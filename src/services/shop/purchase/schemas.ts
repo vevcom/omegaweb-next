@@ -13,7 +13,11 @@ const baseSchema = z.object({
 })
 
 export const purchaseSchemas = {
-    createFromStudentCard: baseSchema.pick({
+    create: baseSchema.pick({
+        shopId: true,
+        products: true,
+    }),
+    createByStudentCard: baseSchema.pick({
         shopId: true,
         products: true,
         studentCard: true,
