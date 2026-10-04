@@ -7,10 +7,11 @@ import { formatVevenUri } from '@/lib/urlEncoding'
 import type { Event } from '@/prisma-generated-pn-types'
 
 type PropTypes = {
-    event: Event
+    event: Event,
+    editable: boolean,
 }
 
-export default function ShowAndEditName({ event }: PropTypes) {
+export default function ShowAndEditName({ event, editable }: PropTypes) {
     const updateAction = configureAction(updateEventAction, { params: { id: event.id } })
 
     return (
@@ -21,7 +22,7 @@ export default function ShowAndEditName({ event }: PropTypes) {
                     ? `/events/${formatVevenUri(data.name, data.id)}`
                     : '/events'),
             }}
-            editable={true} //TODO: authorizer
+            editable={editable}
             inputName="name"
             submitButton={{
                 text: 'Lagre',

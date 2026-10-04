@@ -107,10 +107,16 @@ const { page, generateMetadata } = serverPage({
         canDestroy: eventAuth.destroy.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
+        canUpdate: eventAuth.update.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        }),
         // Reading who is registered takes the regular level of the event, and registering on
         // behalf of others its admin level - offering any of it to someone without the level
         // would only produce an error when they act on it.
         canReadRegistrations: eventRegistrationAuth.readPage.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        }),
+        canReadRegistrationsDetailed: eventRegistrationAuth.readPageDetailed.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
         canRegisterOthers: eventRegistrationAuth.createGuest.data({
@@ -140,7 +146,7 @@ const { page, generateMetadata } = serverPage({
                             )}
                     />
                     <div className={styles.infoInImage}>
-                        <ShowAndEditName event={event} />
+                        <ShowAndEditName event={event} editable={capabilities.canUpdate.authorized} />
                         <ul className={styles.tags}>
                             {event.tags.map(tag => (
                                 <li key={tag.id}>
@@ -233,7 +239,10 @@ const { page, generateMetadata } = serverPage({
 
                 {event.takesRegistration && capabilities.canReadRegistrations.authorized && (
                     <div className={styles.registrationList}>
-                        <RegistrationsList event={event} />
+                        <RegistrationsList
+                            event={event}
+                            canReadDetailed={capabilities.canReadRegistrationsDetailed.authorized}
+                        />
                     </div>
                 )}
             </div>

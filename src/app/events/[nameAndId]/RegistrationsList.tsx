@@ -122,15 +122,16 @@ function DefaultList({
 
 export default function RegistrationsList({
     event,
+    canReadDetailed,
 }: {
     event: EventFiltered,
+    canReadDetailed: boolean,
 }) {
-    const isAdmin = true // TODO: Fix the authing
     const [detailedView, setDetailedView] = useState(false)
 
     return <>
         <h4>Påmeldte</h4>
-        {isAdmin && <Slider
+        {canReadDetailed && <Slider
             label="Detaljert visning"
             name="detailedView"
             onChange={e => setDetailedView(e.target.checked)}
