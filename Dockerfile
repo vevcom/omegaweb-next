@@ -109,6 +109,10 @@ COPY --from=builder /usr/src/app/public ./public
 # only ever touched by the development seeder, and is 78 MB, so it stays out.
 COPY --from=builder /usr/src/app/standard_store ./standard_store
 
+# Never loaded as environment - Next does not read .env.default. src/lib/productionSecrets.ts
+# reads it at start-up to refuse the development secrets it holds.
+COPY .env.default ./.env.default
+
 # Bind mount targets in compose; created here so the image works without them too.
 RUN mkdir -p store/images logs dobbelOmegaManifest
 
