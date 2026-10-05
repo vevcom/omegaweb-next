@@ -13,7 +13,6 @@ build
 # configs
 # you should be explicit in docker-compose about what env-vars should be loaded into a container
 .env 
-.env.default
 next-env.default.d.ts
 
 # info
