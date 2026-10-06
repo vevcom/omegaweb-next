@@ -1,5 +1,6 @@
 'use server'
 
+import { purchaseOperations } from './purchase/operations'
 import { makeAction } from '@/services/serverAction'
 import { productOperations } from '@/services/shop/product/operations'
 import { shopOperations } from '@/services/shop/shop/operations'
@@ -13,3 +14,5 @@ export const updateProductForShopAction = makeAction(productOperations.updateFor
 export const createShopProductConnectionAction = makeAction(productOperations.createShopConnection)
 
 export const createShopAction = makeAction(shopOperations.create)
+
+export const createPurchaseAction = makeAction(purchaseOperations.create)
