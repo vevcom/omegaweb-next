@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { articleRealtionsIncluder, maxSections } from './constants'
+import { articleRelationsIncluder, maxSections } from './constants'
 import { articleSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { articleSectionOperations } from '@/cms/articleSections/operations'
@@ -35,7 +35,7 @@ const create = defineSubOperation({
                 },
                 special
             },
-            include: articleRealtionsIncluder,
+            include: articleRelationsIncluder,
         })
     }
 })
@@ -74,7 +74,7 @@ export const articleOperations = {
                 where: {
                     special: params.special,
                 },
-                include: articleRealtionsIncluder
+                include: articleRelationsIncluder
             })
             if (article) {
                 return {
@@ -96,7 +96,7 @@ export const articleOperations = {
             prisma.article.update({
                 where: { id: params.articleId },
                 data,
-                include: articleRealtionsIncluder,
+                include: articleRelationsIncluder,
             })
     }),
     addSection: defineSubOperation({
@@ -142,7 +142,7 @@ export const articleOperations = {
                         },
                     },
                 },
-                include: articleRealtionsIncluder,
+                include: articleRelationsIncluder,
             })
 
             const addedArticleSectionId = updatedArticle.articleSections[updatedArticle.articleSections.length - 1].id
@@ -163,7 +163,7 @@ export const articleOperations = {
                 where: {
                     id: params.articleId,
                 },
-                include: articleRealtionsIncluder,
+                include: articleRelationsIncluder,
             })
         }
     }),
@@ -245,10 +245,10 @@ export const articleOperations = {
                 where: {
                     id: params.articleId
                 },
-                include: articleRealtionsIncluder
+                include: articleRelationsIncluder
             })
             if (!article) throw new ServiceError('NOT FOUND', 'Artikkel ikke funnet.')
             return article
         }
     })
-}
+} as const

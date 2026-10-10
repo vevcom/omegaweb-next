@@ -247,4 +247,4 @@ export const stripeCustomerOperations = {
             }
         }
     }),
-}
+} as const

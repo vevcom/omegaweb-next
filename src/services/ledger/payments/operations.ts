@@ -227,4 +227,4 @@ export const paymentOperations = {
             })
         },
     }),
-}
+} as const

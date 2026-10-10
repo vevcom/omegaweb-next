@@ -121,4 +121,4 @@ export const admissionOperations = {
             return results
         }
     }),
-}
+} as const

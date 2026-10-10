@@ -24,13 +24,13 @@ export const applicationOperations = {
         dataSchema: applicationSchemas.create,
         paramsSchema: z.object({
             userId: z.number(),
-            commiteeParticipationId: z.number()
+            committeeParticipationId: z.number()
         }),
         authorizer: ({ params }) => applicationAuth.create.data({ userId: params.userId }),
         operation: async ({ prisma, data, params }) => {
             const commiteeParticipation = await prisma.committeeParticipationInApplicationPeriod.findUniqueOrThrow({
                 where: {
-                    id: params.commiteeParticipationId
+                    id: params.committeeParticipationId
                 },
                 select: {
                     applicationPeriod: {
@@ -70,7 +70,7 @@ export const applicationOperations = {
                 data: {
                     text: data.text,
                     userId: params.userId,
-                    applicationPeriodCommiteeId: params.commiteeParticipationId,
+                    applicationPeriodCommiteeId: params.committeeParticipationId,
                     applicationPeriodId: commiteeParticipation.applicationPeriod.id,
                     priority: usersLowestPriorityApplicationInPeriod + 1,
                 }
@@ -82,7 +82,7 @@ export const applicationOperations = {
         dataSchema: applicationSchemas.update,
         paramsSchema: z.object({
             userId: z.number(),
-            commiteeParticipationId: z.number()
+            committeeParticipationId: z.number()
         }),
         opensTransaction: true,
         authorizer: ({ params }) => applicationAuth.update.data({ userId: params.userId }),
@@ -91,7 +91,7 @@ export const applicationOperations = {
                 where: {
                     userId_applicationPeriodCommiteeId: {
                         userId: params.userId,
-                        applicationPeriodCommiteeId: params.commiteeParticipationId
+                        applicationPeriodCommiteeId: params.committeeParticipationId
                     },
                 },
                 select: {
@@ -127,7 +127,7 @@ export const applicationOperations = {
                     where: {
                         userId_applicationPeriodCommiteeId: {
                             userId: params.userId,
-                            applicationPeriodCommiteeId: params.commiteeParticipationId
+                            applicationPeriodCommiteeId: params.committeeParticipationId
                         }
                     },
                     data: {
@@ -162,7 +162,7 @@ export const applicationOperations = {
                     where: {
                         userId_applicationPeriodCommiteeId: {
                             userId: params.userId,
-                            applicationPeriodCommiteeId: params.commiteeParticipationId
+                            applicationPeriodCommiteeId: params.committeeParticipationId
                         }
                     },
                     data: {
@@ -183,7 +183,7 @@ export const applicationOperations = {
                     where: {
                         userId_applicationPeriodCommiteeId: {
                             userId: params.userId,
-                            applicationPeriodCommiteeId: params.commiteeParticipationId
+                            applicationPeriodCommiteeId: params.committeeParticipationId
                         }
                     },
                     data: {
@@ -197,7 +197,7 @@ export const applicationOperations = {
     destroy: defineOperation({
         paramsSchema: z.object({
             userId: z.number(),
-            commiteeParticipationId: z.number()
+            committeeParticipationId: z.number()
         }),
         authorizer: ({ params }) => applicationAuth.destroy.data({ userId: params.userId }),
         opensTransaction: true,
@@ -207,7 +207,7 @@ export const applicationOperations = {
                     where: {
                         userId_applicationPeriodCommiteeId: {
                             userId: params.userId,
-                            applicationPeriodCommiteeId: params.commiteeParticipationId
+                            applicationPeriodCommiteeId: params.committeeParticipationId
                         }
                     },
                     select: {
@@ -246,4 +246,4 @@ export const applicationOperations = {
             })
         }
     }),
-}
+} as const

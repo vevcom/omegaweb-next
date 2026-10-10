@@ -26,4 +26,4 @@ export const cabinSettingsOperations = {
             return await prisma.cabinSettings.create({ data })
         },
     }),
-}
+} as const

@@ -12,12 +12,12 @@ import type { Authorizer } from '@/auth/authorizer/Authorizer'
 
 export function implementSpecialCollection({
     special,
-    imagePanelAuther,
+    imagePanelAuth,
     allowedExtensions,
     config
 }: {
     special: SpecialCollection,
-    imagePanelAuther: Authorizer
+    imagePanelAuth: Authorizer
     /**
      * Which of the image system's extensions this collection accepts on upload.
      * Some special collection may only for example expect svg files, while others may only expect
@@ -52,7 +52,7 @@ export function implementSpecialCollection({
             }
 
             // Special collections don't use visibility for authorization. Instead, authorization is handled
-            // by the owning service's panel authorizer (imagePanelAuther passed at construction). This is
+            // by the owning service's panel authorizer (imagePanelAuth passed at construction). This is
             // because each special collection's access model is specific to its owning service.
             // Empty visibilities are required by the schema but unused; ownershipCheck in the dynamic system
             // prevents special collections from being accessed through the dynamic image operations.
@@ -111,7 +111,7 @@ export function implementSpecialCollection({
     }
 
     const readCollection = defineOperation({
-        authorizer: () => imagePanelAuther,
+        authorizer: () => imagePanelAuth,
         operation: async ({ prisma }) => readCollectionInternal({ prisma })
     })
 
@@ -175,7 +175,7 @@ export function implementSpecialCollection({
     })
 
     const readPageOfImagesInCollection = defineOperation({
-        authorizer: () => imagePanelAuther,
+        authorizer: () => imagePanelAuth,
         paramsSchema: imageSchemas.paramsSchemaReadPageOfImagesInSpecialCollection,
         operation: async ({ prisma, params }) => {
             const collection = await readCollectionInternal({ prisma })

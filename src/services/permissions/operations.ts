@@ -157,4 +157,4 @@ export const permissionOperations = {
             return data.value
         }
     }),
-}
+} as const

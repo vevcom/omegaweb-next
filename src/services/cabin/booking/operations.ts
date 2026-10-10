@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from './cabinPriceCalculator'
 import { cabinBookingSchemas } from './schemas'
 import { cabinBookingAuth } from './auth'
-import { cabinReservationWindowMs, cabinBookingFilerSelection, cabinBookingIncluder } from './constants'
+import { cabinReservationWindowMs, cabinBookingFilterSelection, cabinBookingIncluder } from './constants'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
 import { cabinProductPriceIncluder } from '@/services/cabin/product/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
@@ -14,12 +14,12 @@ import { ledgerTransactionOperations } from '@/services/ledger/transactions/oper
 import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { BookingType, PaymentProvider } from '@/prisma-generated-pn-types'
+import logger from '@/lib/logger'
 import { z } from 'zod'
 import crypto from 'crypto'
 import type { CabinProductExtended } from '@/services/cabin/product/constants'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
-import logger from '@/lib/logger'
 
 const cabinAvailable = defineSubOperation({
     paramsSchema: () => z.object({
@@ -312,7 +312,7 @@ export const cabinBookingOperations = {
         authorizer: () => cabinBookingAuth.readAvailability,
         operation: async ({ prisma }) => {
             const results = await prisma.booking.findMany({
-                select: cabinBookingFilerSelection,
+                select: cabinBookingFilterSelection,
                 orderBy: {
                     start: 'asc'
                 },
@@ -617,4 +617,4 @@ export const cabinBookingOperations = {
             }
         },
     }),
-}
+} as const

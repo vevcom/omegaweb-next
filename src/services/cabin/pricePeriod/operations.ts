@@ -144,4 +144,4 @@ export const cabinPricePeriodOperations = {
             data,
         })
     }),
-}
+} as const

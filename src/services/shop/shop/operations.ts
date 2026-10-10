@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { shopSchemas } from './schema'
+import { shopSchemas } from './schemas'
 import { shopAuth } from './auth'
 import { defineOperation } from '@/services/serviceOperation'
 import { z } from 'zod'
@@ -53,5 +53,5 @@ export const shopOperations = {
             return ret
         }
     }),
-}
+} as const
 

@@ -120,4 +120,4 @@ export const companyOperations = {
             })
         }
     }),
-}
+} as const

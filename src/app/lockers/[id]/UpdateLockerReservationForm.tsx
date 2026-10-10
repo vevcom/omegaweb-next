@@ -18,7 +18,7 @@ type PropTypes = {
 
 export default function UpdateLockerReservationForm({ reservationId, groupsFormData }: PropTypes) {
     const { refresh } = useRouter()
-    const [indefinateDate, setIndefinateDate] = useState(false)
+    const [indefiniteDate, setIndefiniteDate] = useState(false)
     const [groupId, setGroupId] = useState('null')
 
     function handleGroupIdChange(value: string) {
@@ -41,10 +41,10 @@ export default function UpdateLockerReservationForm({ reservationId, groupsFormD
             />
             <Checkbox
                 label="Reserver på ubestemt tid"
-                name="indefinateDate"
-                onChange={() => setIndefinateDate(!indefinateDate)}
+                name="indefiniteDate"
+                onChange={() => setIndefiniteDate(!indefiniteDate)}
             />
-            {!indefinateDate && <DateInput label="Reserver fram til" name="endDate"/>}
+            {!indefiniteDate && <DateInput label="Reserver fram til" name="endDate"/>}
         </Form>
     )
 }

@@ -124,9 +124,9 @@ const { page, generateMetadata } = serverPage({
                                         refreshOnSuccess
                                         action={part.priority === null ?
                                             configureAction(createApplicationAction, {
-                                                params: { userId, commiteeParticipationId: part.id }
+                                                params: { userId, committeeParticipationId: part.id }
                                             }) : configureAction(updateApplicationAction, {
-                                                params: { userId, commiteeParticipationId: part.id }
+                                                params: { userId, committeeParticipationId: part.id }
                                             })
                                         }
                                         submitText={
@@ -150,7 +150,7 @@ const { page, generateMetadata } = serverPage({
                                                 action={configureAction(destroyApplicationAction, {
                                                     params: {
                                                         userId,
-                                                        commiteeParticipationId: part.id
+                                                        committeeParticipationId: part.id
                                                     }
                                                 })}
                                                 confirmation={{
@@ -275,7 +275,7 @@ const { page, generateMetadata } = serverPage({
                                 <PrioritizedCommittees
                                     userId={userId}
                                     items={appliedTo.map(part => ({
-                                        commiteeParticipationId: part.id,
+                                        committeeParticipationId: part.id,
                                         card: renderCommitteeCard(part, session),
                                     }))}
                                 />

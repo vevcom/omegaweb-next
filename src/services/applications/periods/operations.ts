@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { applicationPeriodAuth } from './auth'
 import { applicationPeriodSchemas } from './schemas'
-import { committeesParticipatingincluder } from './constants'
+import { committeesParticipatingIncluder } from './constants'
 import { applicationOperations } from '@/services/applications/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { ServiceError } from '@/services/error'
@@ -28,7 +28,7 @@ export const applicationPeriodOperations = {
 
             const period = await prisma.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },
-                include: committeesParticipatingincluder,
+                include: committeesParticipatingIncluder,
             })
 
             return {
@@ -113,7 +113,7 @@ export const applicationPeriodOperations = {
                                     await applicationOperations.destroy({
                                         params: {
                                             userId: application.userId,
-                                            commiteeParticipationId: application.applicationPeriodCommiteeId
+                                            committeeParticipationId: application.applicationPeriodCommiteeId
                                         },
                                     })
                                 )
@@ -199,4 +199,4 @@ export const applicationPeriodOperations = {
             })
         }
     }),
-}
+} as const

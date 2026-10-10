@@ -1,4 +1,4 @@
-import type { articleSectionsRealtionsIncluder } from './constants'
+import type { articleSectionsRelationsIncluder } from './constants'
 import type { baseSchema } from './schemas'
 import type { z } from 'zod'
 import type { ActionFromSubServiceOperation } from '@/services/actionTypes'
@@ -8,7 +8,7 @@ import type { Prisma } from '@/prisma-generated-pn-types'
 export type ArticleSectionPart = z.input<typeof baseSchema>['part']
 
 export type ExpandedArticleSection = Prisma.ArticleSectionGetPayload<{
-    include: typeof articleSectionsRealtionsIncluder
+    include: typeof articleSectionsRelationsIncluder
 }>
 
 export type UpdateArticleSectionAction = ActionFromSubServiceOperation<typeof articleSectionOperations.update>

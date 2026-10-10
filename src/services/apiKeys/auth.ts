@@ -10,4 +10,4 @@ export const apiKeyAuth = {
     update: baseAuthorizer,
     updateIfExpired: baseAuthorizer,
     destroy: baseAuthorizer,
-}
+} as const

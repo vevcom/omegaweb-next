@@ -1,7 +1,7 @@
 import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
-const ledgerAcccountSchema = z.object({
+const ledgerAccountSchema = z.object({
     // Display name for the account. Only meaningful for GROUP accounts (see LedgerAccount.name).
     name: z.string().optional(),
     groupIds: Zpn.numberListCheckboxFriendly({ label: 'Grupper' }).optional(),
@@ -10,14 +10,14 @@ const ledgerAcccountSchema = z.object({
 })
 
 export const ledgerAccountSchemas = {
-    create: ledgerAcccountSchema.partial().pick({
+    create: ledgerAccountSchema.partial().pick({
         name: true,
         groupIds: true,
         payoutAccountNumber: true,
         frozen: true,
     }),
 
-    update: ledgerAcccountSchema.partial().pick({
+    update: ledgerAccountSchema.partial().pick({
         name: true,
         payoutAccountNumber: true,
         frozen: true,

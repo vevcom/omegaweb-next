@@ -12,7 +12,7 @@ import {
     implementManualMigrationPerGroup,
     implementSimpleAddRemoveMembersOperation,
 } from '@/services/groups/implementGroupType'
-import { articleRealtionsIncluder } from '@/cms/articles/constants'
+import { articleRelationsIncluder } from '@/cms/articles/constants'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { articleOperations } from '@/cms/articles/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
@@ -77,7 +77,7 @@ const readArticle = defineOperation({
         where: params,
         select: {
             committeeArticle: {
-                include: articleRealtionsIncluder,
+                include: articleRelationsIncluder,
             }
         }
     })).committeeArticle

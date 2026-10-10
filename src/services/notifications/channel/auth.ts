@@ -7,4 +7,4 @@ export const notificationChannelAuth = {
     readDefault: Require.nothing(),
     update: Require.permission('NOTIFICATION_ADMIN'),
     destroy: Require.permission('NOTIFICATION_ADMIN'),
-}
+} as const

@@ -120,4 +120,4 @@ export const licenseOperations = {
     }),
     generateStandardLicense,
     readStandardLicense,
-}
+} as const

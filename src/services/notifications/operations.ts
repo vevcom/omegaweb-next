@@ -86,4 +86,4 @@ export const notificationOperations = {
             })
         }
     }),
-}
+} as const

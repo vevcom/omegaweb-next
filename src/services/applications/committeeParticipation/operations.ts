@@ -112,4 +112,4 @@ export const committeeParticipationOperations = {
             )
         )
     })
-}
+} as const

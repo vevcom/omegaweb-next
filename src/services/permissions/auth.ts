@@ -9,4 +9,4 @@ export const permissionsAuth = {
 
     readDefaultPermissions: Require.nothing(),
     updateDefaultPermissions: Require.permission('PERMISSION_ADMIN'),
-}
+} as const

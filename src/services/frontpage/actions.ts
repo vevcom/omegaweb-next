@@ -2,18 +2,18 @@
 import { frontpageOperations } from './operations'
 import { makeAction } from '@/services/serverAction'
 
-export const readSpecialCmsParagraphFrontpageSection = makeAction(
+export const readSpecialCmsParagraphFrontpageSectionAction = makeAction(
     frontpageOperations.readSpecialCmsParagraphSection
 )
 
-export const updateSpecialCmsParagraphFrontpageSection = makeAction(
+export const updateSpecialCmsParagraphFrontpageSectionAction = makeAction(
     frontpageOperations.updateSpecialCmsParagraphContentSection
 )
 
-export const readSpecialCmsImageFrontpage = makeAction(
+export const readSpecialCmsImageFrontpageAction = makeAction(
     frontpageOperations.readSpecialCmsImage
 )
 
-export const updateSpecialCmsImageFrontpage = makeAction(
+export const updateSpecialCmsImageFrontpageAction = makeAction(
     frontpageOperations.updateSpecialCmsImage
 )

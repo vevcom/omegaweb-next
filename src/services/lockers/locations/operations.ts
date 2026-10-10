@@ -31,4 +31,4 @@ export const lockerLocationOperations = {
         authorizer: () => lockerLocationAuth.readAll,
         operation: async ({ prisma }) => prisma.lockerLocation.findMany()
     }),
-}
+} as const

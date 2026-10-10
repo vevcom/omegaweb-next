@@ -27,7 +27,7 @@ export const updateUserProfileImageAction = makeAction(userOperations.updateProf
 export const updateUserBioParagraphContentAction = makeAction(userOperations.updateBioParagraphContent)
 
 export const registerNewEmailAction = makeAction(userOperations.registerNewEmail)
-export const registerUser = makeAction(userOperations.register)
+export const registerUserAction = makeAction(userOperations.register)
 
 export const connectStudentCardAction = makeAction(userOperations.connectStudentCard)
 

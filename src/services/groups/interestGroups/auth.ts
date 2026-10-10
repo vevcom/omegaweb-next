@@ -21,4 +21,4 @@ export const interestGroupAuth = {
     readSpecialCmsParagraphGeneralInfo: Require.permission('INTEREST_GROUP_USE'),
     updateSpecialCmsParagraphContentGeneralInfo: Require.permission('INTEREST_GROUP_ADMIN'),
     updateArticleSection: groupAdminOrInterestGroupAdmin,
-}
+} as const

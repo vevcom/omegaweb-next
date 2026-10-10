@@ -58,14 +58,14 @@ async function createTransactionPart(
     }
 
     // Verify that the new methods are a subset of the available methods
-    const notificaionChannel = await prisma.notificationChannel.findUniqueOrThrow({
+    const notificationChannel = await prisma.notificationChannel.findUniqueOrThrow({
         where: {
             id: channelId,
         },
         include: availableNotificationMethodIncluder,
     })
 
-    if (!validateMethods(notificaionChannel.availableMethods, methods)) {
+    if (!validateMethods(notificationChannel.availableMethods, methods)) {
         throw new ServiceError('BAD PARAMETERS', 'The methods must a subset of the available methods')
     }
 
@@ -176,4 +176,4 @@ export const notificationSubscriptionOperations = {
             )
         }
     }),
-}
+} as const

@@ -4,7 +4,7 @@ import type { Booking } from '@/prisma-generated-pn-types'
 
 export const cabinBookingFieldsToExpose = ['start', 'end', 'type'] as const satisfies (keyof Booking)[]
 
-export const cabinBookingFilerSelection = createSelection(cabinBookingFieldsToExpose)
+export const cabinBookingFilterSelection = createSelection(cabinBookingFieldsToExpose)
 
 export const cabinBookingIncluder = {
     user: {

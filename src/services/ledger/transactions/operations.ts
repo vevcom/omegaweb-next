@@ -412,4 +412,4 @@ export const ledgerTransactionOperations = {
             return transaction
         }
     }),
-}
+} as const
