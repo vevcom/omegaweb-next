@@ -1,15 +1,13 @@
 import '@pn-server-only'
 import { committeeParticipationAuth } from './auth'
+import { committeeParticipationParamsSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
-import { z } from 'zod'
 
 export const committeeParticipationOperations = {
     read: defineOperation({
-        paramsSchema: z.object({
-            participationId: z.number(),
-        }),
+        paramsSchema: committeeParticipationParamsSchemas.read,
         authorizer: async ({ prisma, params }) => committeeParticipationAuth.read.data({
             groupId: await prisma.committeeParticipationInApplicationPeriod.findUniqueOrThrow({
                 where: {
@@ -64,10 +62,8 @@ export const committeeParticipationOperations = {
         }
     }),
     readAll: defineOperation({
-        paramsSchema: z.object({
-            committeeId: z.number(),
-        }),
-        authorizer: async ({ prisma, params }) => committeeParticipationAuth.read.data({
+        paramsSchema: committeeParticipationParamsSchemas.readAll,
+        authorizer: async ({ prisma, params }) => committeeParticipationAuth.readAll.data({
             groupId: await prisma.committee.findUniqueOrThrow({
                 where: {
                     id: params.committeeId

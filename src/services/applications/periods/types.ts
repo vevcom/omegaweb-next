@@ -2,14 +2,6 @@ import type { committeesParticipatingIncluder } from './constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
-export type CountdownInfo = {
-    endTime: Date,
-    commiteesParticipating: {
-        shortName: string,
-        logo: ExpandedImage
-    }[]
-}
-
 type RawExpandedApplicationPeriod = Prisma.ApplicationPeriodGetPayload<{
     include: typeof committeesParticipatingIncluder
 }>
