@@ -182,6 +182,7 @@ const changeClassOfUser = defineOperation({
                 data: { active: true },
             })
 
+            await invalidateOneUserSessionData(tx, params.userId)
             return tx.membership.findUniqueOrThrow({
                 where: {
                     userId_groupId_order: {
@@ -193,7 +194,6 @@ const changeClassOfUser = defineOperation({
             })
         })
 
-        await invalidateOneUserSessionData(prisma, params.userId)
         return membership
     }
 })
@@ -296,11 +296,10 @@ const bumpClasses = defineOperation({
                 data: newMemberships,
                 skipDuplicates: true,
             })
+            await invalidateManyUserSessionData(tx, userIds)
 
             return { deactivated: count }
         })
-
-        await invalidateManyUserSessionData(prisma, userIds)
 
         return { bumped: newMemberships.length, deactivated }
     }

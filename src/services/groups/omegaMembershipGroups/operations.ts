@@ -223,9 +223,10 @@ const updateUserLevel = defineOperation({
     authorizer: () => omegaMembershipGroupAuth.updateUserLevel,
     opensTransaction: true,
     operation: async ({ prisma, params }) => {
-        await prisma.$transaction(tx => writeUserLevel(tx, params))
-
-        await invalidateOneUserSessionData(prisma, params.userId)
+        await prisma.$transaction(async tx => {
+            await writeUserLevel(tx, params)
+            await invalidateOneUserSessionData(tx, params.userId)
+        })
     }
 })
 
