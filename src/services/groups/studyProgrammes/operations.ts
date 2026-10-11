@@ -2,7 +2,6 @@ import '@pn-server-only'
 import { studyProgrammeAuth } from './auth'
 import { studyProgrammeSchemas } from './schemas'
 import { groupOperations } from '@/services/groups/operations'
-import { invalidateManyUserSessionData } from '@/services/auth/invalidateSession'
 import {
     implementGroupType,
     implementSimpleAddRemoveMembersOperation,
@@ -144,20 +143,16 @@ const destroy = defineOperation({
     }),
     authorizer: () => studyProgrammeAuth.destroy,
     opensTransaction: true,
-    operation: async ({ prisma, params }) => {
-        const { studyProgramme, memberIds } = await prisma.$transaction(async tx => {
-            const deleted = await tx.studyProgramme.delete({
-                where: { id: params.id },
-            })
-            const formerMemberIds = await groupOperations.destroy.internalCall({
-                prisma: tx,
-                params: { groupId: deleted.groupId },
-            })
-            return { studyProgramme: deleted, memberIds: formerMemberIds }
+    operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
+        const studyProgramme = await tx.studyProgramme.delete({
+            where: { id: params.id },
         })
-        await invalidateManyUserSessionData(prisma, memberIds)
+        await groupOperations.destroy.internalCall({
+            prisma: tx,
+            params: { groupId: studyProgramme.groupId },
+        })
         return studyProgramme
-    }
+    })
 })
 
 /**

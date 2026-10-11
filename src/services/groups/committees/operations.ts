@@ -4,7 +4,6 @@ import { committeeExpandedIncluder, committeeLogoIncluder } from './constants'
 import { committeeSchemas } from './schemas'
 import { committeeLogoImageOperations } from './committeeLogoCollection'
 import { groupOperations } from '@/services/groups/operations'
-import { invalidateManyUserSessionData } from '@/services/auth/invalidateSession'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import {
@@ -195,7 +194,7 @@ const destroy = defineOperation({
     operation: async ({ prisma, params }) => {
         await assertNotPensioned(prisma, { id: params.id })
 
-        const { committee, memberIds } = await prisma.$transaction(async tx => {
+        const committee = await prisma.$transaction(async tx => {
             const deleted = await tx.committee.delete({
                 where: {
                     id: params.id,
@@ -209,13 +208,12 @@ const destroy = defineOperation({
                 prisma: tx,
                 params: { paragraphId: deleted.applicationParagraphId },
             })
-            const formerMemberIds = await groupOperations.destroy.internalCall({
+            await groupOperations.destroy.internalCall({
                 prisma: tx,
                 params: { groupId: deleted.groupId },
             })
-            return { committee: deleted, memberIds: formerMemberIds }
+            return deleted
         })
-        await invalidateManyUserSessionData(prisma, memberIds)
 
         await articleOperations.destroy.internalCall({ params: { articleId: committee.committeeArticleId } })
 

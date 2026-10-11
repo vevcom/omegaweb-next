@@ -72,7 +72,7 @@ export const admissionOperations = {
             // The trial and the promotion it earns are written together. Were the promotion to fail
             // on its own, the user would be left holding every trial as a soelle - and unable to be
             // put right by sitting the last one again, since they already hold it.
-            const { results, becameSysken } = await prisma.$transaction(async tx => {
+            return prisma.$transaction(async tx => {
                 const trial = await tx.admissionTrial.create({
                     data: {
                         user: {
@@ -109,16 +109,11 @@ export const admissionOperations = {
                         omegaMembershipLevel: 'SYSKEN',
                         onlyUpgrade: true,
                     })
+                    await invalidateOneUserSessionData(tx, data.userId)
                 }
 
-                return { results: trial, becameSysken: completedTrials }
+                return trial
             })
-
-            if (becameSysken) {
-                await invalidateOneUserSessionData(prisma, data.userId)
-            }
-
-            return results
         }
     }),
 } as const

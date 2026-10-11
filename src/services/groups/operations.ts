@@ -369,7 +369,7 @@ export const groupOperations = {
                 )
             }
 
-            const deactivatedUserIds = await prisma.$transaction(async tx => {
+            await prisma.$transaction(async tx => {
                 await setPensioned(tx, params.groupId, data.pensioned)
 
                 if (data.pensioned) {
@@ -381,16 +381,15 @@ export const groupOperations = {
                         where: { groupId: params.groupId, active: true },
                         data: { active: false },
                     })
-                    return endedMemberships.map(membership => membership.userId)
+                    await invalidateManyUserSessionData(tx, endedMemberships.map(membership => membership.userId))
+                    return
                 }
 
                 await tx.group.update({
                     where: { id: params.groupId },
                     data: { order: currentOmegaOrder },
                 })
-                return []
             })
-            await invalidateManyUserSessionData(prisma, deactivatedUserIds)
         }
     }),
 
@@ -484,9 +483,9 @@ export const groupOperations = {
                     where: { id: params.groupId },
                     data: { order: currentOmegaOrder },
                 })
-            })
 
-            await invalidateManyUserSessionData(prisma, activeUserIds)
+                await invalidateManyUserSessionData(tx, activeUserIds)
+            })
         }
     }),
 
@@ -605,7 +604,7 @@ export const groupOperations = {
                 distinct: ['userId'],
             })
             await prisma.group.delete({ where: { id: params.groupId } })
-            return memberships.map(membership => membership.userId)
+            await invalidateManyUserSessionData(prisma, memberships.map(membership => membership.userId))
         },
     }),
 } as const
