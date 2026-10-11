@@ -133,7 +133,7 @@ const destroy = defineOperation({
             })
             return { manualGroup: deleted, memberIds: formerMemberIds }
         })
-        await invalidateManyUserSessionData(memberIds)
+        await invalidateManyUserSessionData(prisma, memberIds)
         return manualGroup
     }
 })

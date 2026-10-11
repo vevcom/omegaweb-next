@@ -115,7 +115,7 @@ export const admissionOperations = {
             })
 
             if (becameSysken) {
-                await invalidateOneUserSessionData(data.userId)
+                await invalidateOneUserSessionData(prisma, data.userId)
             }
 
             return results

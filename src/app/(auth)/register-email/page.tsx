@@ -23,7 +23,9 @@ const { page, generateMetadata } = serverPage({
             redirect(`/register?${QueryParams.callbackUrl.encodeUrl(callbackUrl)}`)
         }
 
-        const feideLoginMatch = await authOperations.readFeideLoginMatch({})
+        const feideLoginMatch = await authOperations.readFeideLoginMatch({
+            params: { userId: authResult.session.user.id },
+        })
         return { updatedUser, feideLoginMatch, callbackUrl }
     },
     render: ({ data: { updatedUser, feideLoginMatch, callbackUrl } }) => (

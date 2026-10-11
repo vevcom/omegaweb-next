@@ -256,7 +256,7 @@ export const groupOperations = {
                 skipDuplicates: true,
             })
 
-            await invalidateManyUserSessionData(userIds)
+            await invalidateManyUserSessionData(prisma, userIds)
         }
     }),
 
@@ -281,7 +281,7 @@ export const groupOperations = {
                 data: { active: false },
             })
 
-            await invalidateManyUserSessionData(data.userIds)
+            await invalidateManyUserSessionData(prisma, data.userIds)
         }
     }),
 
@@ -310,7 +310,7 @@ export const groupOperations = {
                 data: { admin: data.admin },
             })
 
-            await invalidateOneUserSessionData(data.userId)
+            await invalidateOneUserSessionData(prisma, data.userId)
             return membership
         }
     }),
@@ -390,7 +390,7 @@ export const groupOperations = {
                 })
                 return []
             })
-            await invalidateManyUserSessionData(deactivatedUserIds)
+            await invalidateManyUserSessionData(prisma, deactivatedUserIds)
         }
     }),
 
@@ -486,7 +486,7 @@ export const groupOperations = {
                 })
             })
 
-            await invalidateManyUserSessionData(activeUserIds)
+            await invalidateManyUserSessionData(prisma, activeUserIds)
         }
     }),
 

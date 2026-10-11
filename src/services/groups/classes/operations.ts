@@ -193,7 +193,7 @@ const changeClassOfUser = defineOperation({
             })
         })
 
-        await invalidateOneUserSessionData(params.userId)
+        await invalidateOneUserSessionData(prisma, params.userId)
         return membership
     }
 })
@@ -300,7 +300,7 @@ const bumpClasses = defineOperation({
             return { deactivated: count }
         })
 
-        await invalidateManyUserSessionData(userIds)
+        await invalidateManyUserSessionData(prisma, userIds)
 
         return { bumped: newMemberships.length, deactivated }
     }

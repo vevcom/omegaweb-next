@@ -177,7 +177,7 @@ export const interestGroupOperations = {
                     params: { groupId: intrestGroup.groupId },
                 })
             })
-            await invalidateManyUserSessionData(memberIds)
+            await invalidateManyUserSessionData(prisma, memberIds)
         }
     }),
 
