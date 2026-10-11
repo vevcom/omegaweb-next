@@ -1,7 +1,6 @@
 import '@pn-server-only'
 import { readJWTPayload } from '@/jwt/jwtReadUnsecure'
-import { createFeideAccount } from '@/services/auth/feideAccounts/create'
-import { readUserOrNullOfFeideAccount } from '@/services/auth/feideAccounts/read'
+import { feideAccountOperations } from '@/services/auth/feideAccounts/operations'
 import { userOperations } from '@/services/users/operations'
 import { userBasicSelection } from '@/services/users/constants'
 import logger from '@/lib/logger'
@@ -156,7 +155,9 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                 throw new Error('Unsupported provider')
             }
 
-            const user = await readUserOrNullOfFeideAccount(providerAccountId)
+            const user = await feideAccountOperations.readUser.internalCall({
+                params: { feideAccountId: providerAccountId },
+            })
 
             return user && convertToAdapterUser(user)
         },
@@ -183,12 +184,14 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
 
             const tokenData = readJWTPayload<{ email: string }>(account.id_token)
 
-            const feideAccount = await createFeideAccount({
-                id: account.providerAccountId,
-                expiresAt: new Date(account.expires_at * 1000),
-                issuedAt: new Date(tokenData.iat * 1000),
-                userId: Number(account.userId),
-                email: tokenData.email.trim().toLowerCase(),
+            const feideAccount = await feideAccountOperations.create.internalCall({
+                data: {
+                    id: account.providerAccountId,
+                    expiresAt: new Date(account.expires_at * 1000),
+                    issuedAt: new Date(tokenData.iat * 1000),
+                    userId: Number(account.userId),
+                    email: tokenData.email,
+                },
             })
 
             logger.info(

@@ -96,7 +96,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
         </div>
         <div className={styles.divider}>eller</div>
         <div className={styles.option}>
-            <LinkOwUserForm title="B: Koble til eksisterende bruker" />
+            <LinkOwUserForm userId={user.id} title="B: Koble til eksisterende bruker" />
         </div>
     </>
 }

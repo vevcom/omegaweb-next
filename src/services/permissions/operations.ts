@@ -101,7 +101,7 @@ export const permissionOperations = {
             })
 
             // Invalidate all user sessions
-            await invalidateAllUserSessionData()
+            await invalidateAllUserSessionData(prisma)
 
             return data.permissions
         }
@@ -152,7 +152,7 @@ export const permissionOperations = {
             })
 
             const userIds = group.memberships.map(membership => membership.userId)
-            await invalidateManyUserSessionData(userIds)
+            await invalidateManyUserSessionData(prisma, userIds)
 
             return data.value
         }

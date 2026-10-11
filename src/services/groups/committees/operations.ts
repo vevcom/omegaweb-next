@@ -215,7 +215,7 @@ const destroy = defineOperation({
             })
             return { committee: deleted, memberIds: formerMemberIds }
         })
-        await invalidateManyUserSessionData(memberIds)
+        await invalidateManyUserSessionData(prisma, memberIds)
 
         await articleOperations.destroy.internalCall({ params: { articleId: committee.committeeArticleId } })
 

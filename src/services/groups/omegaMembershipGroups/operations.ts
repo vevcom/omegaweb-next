@@ -225,7 +225,7 @@ const updateUserLevel = defineOperation({
     operation: async ({ prisma, params }) => {
         await prisma.$transaction(tx => writeUserLevel(tx, params))
 
-        await invalidateOneUserSessionData(params.userId)
+        await invalidateOneUserSessionData(prisma, params.userId)
     }
 })
 
@@ -338,7 +338,7 @@ const updateUserOrder = defineOperation({
         ])
 
         // The memberships a session carries hold the order they are of.
-        await invalidateOneUserSessionData(params.userId)
+        await invalidateOneUserSessionData(prisma, params.userId)
     }
 })
 

@@ -155,7 +155,7 @@ const destroy = defineOperation({
             })
             return { studyProgramme: deleted, memberIds: formerMemberIds }
         })
-        await invalidateManyUserSessionData(memberIds)
+        await invalidateManyUserSessionData(prisma, memberIds)
         return studyProgramme
     }
 })
