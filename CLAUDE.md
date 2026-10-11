@@ -336,7 +336,7 @@ What the user may do on a page is declared as capabilities: `can[Something]` key
 
 For every `defineOperation()` call, the operation key must align with its schema and authorizer keys:
 
-- `dataSchema` comes from the service's `fooSchemas` and `paramsSchema` from its `fooParamsSchemas`, both exported from `schemas.ts`. The key must match the operation name exactly — e.g. operation `destroyFoo` uses `fooSchemas.destroyFoo` and `fooParamsSchemas.destroyFoo`, not `fooSchemas.createFoo`. Sub-operations whose schemas are built from implementation fields are the exception: those stay in `defineSubOperation`.
+- `dataSchema` comes from the service's `fooSchemas` and `paramsSchema` from its `fooParamsSchemas`, both exported from `schemas.ts`. The key must match the operation name exactly — e.g. operation `destroyFoo` uses `fooSchemas.destroyFoo` and `fooParamsSchemas.destroyFoo`, not `fooSchemas.createFoo`. The `implementationParamsSchema` of an implemented sub-operation goes in `fooParamsSchemas` too, under the key of the operation it implements. Sub-operations whose schemas are built from implementation fields are the exception: those stay in `defineSubOperation`.
 - `authorizer`: must reference the same operation name — e.g. `fooAuth.destroyFoo`, not `fooAuth.createFoo`.
 
 Both objects pick their fields from one `fieldSchemas` object (a `z.object`) in `schemas.ts`, so a field such as `userId` or `name` has the same schema in every operation that takes it, whether as data or as params. When operations share the same schema shape, define a shared variable and reference it from each key in the schemas object (the same goes for `fooParamsSchemas`):

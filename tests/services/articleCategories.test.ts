@@ -208,6 +208,21 @@ describe('reading', () => {
         })
     })
 
+    test('a category is read with the cover image of its newest article', async () => {
+        const category = await createCategory()
+        await addArticle(category.id)
+
+        const read = await articleCategoryOperations.read({
+            params: { name: category.name },
+            session: Session.empty(),
+        })
+        expect(read.articles).toHaveLength(1)
+        expect(read.coverImage).toBeNull()
+
+        const all = await articleCategoryOperations.readAll({ session: Session.empty() })
+        expect(all.find(candidate => candidate.id === category.id)?.coverImage).toBeNull()
+    })
+
     test('ARTICLE_CATEGORY_ADMIN bypasses the regular level', async () => {
         const category = await createCategory({ regularLevel: activeIn(groupOne) })
 
@@ -263,7 +278,8 @@ describe('changing a category and its articles', () => {
         })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
 
         await expect(articleCategoryOperations.removeArticleFromCategory({
-            params: { id: category.id, articleId: article.id },
+            implementationParams: { articleCategoryId: category.id },
+            params: { articleId: article.id },
             session,
         })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
 
@@ -329,9 +345,10 @@ describe('changing a category and its articles', () => {
         })).rejects.toThrow(Smorekopp)
 
         await expect(articleCategoryOperations.removeArticleFromCategory({
-            params: { id: administrated.id, articleId: article.id },
+            implementationParams: { articleCategoryId: administrated.id },
+            params: { articleId: article.id },
             session: sessionInGroups(groupOne),
-        })).rejects.toThrow(Smorekopp)
+        })).rejects.toThrow(new Smorekopp('DISSALLOWED'))
 
         expect(await prisma.article.findUniqueOrThrow({ where: { id: article.id } })).toMatchObject({
             name: article.name
@@ -404,6 +421,8 @@ describe('changing a category and its articles', () => {
 
         expect(await prisma.articleCategory.count({ where: { id: category.id } })).toBe(0)
         expect(await prisma.article.count({ where: { id: article.id } })).toBe(0)
+        // The cover image hangs off the article, so the cascade alone would leave it behind.
+        expect(await prisma.cmsImage.count({ where: { id: article.coverImageId } })).toBe(0)
         expect(await prisma.visibility.count({
             where: { id: { in: [category.visibilityRegularId, category.visibilityAdminId] } },
         })).toBe(0)

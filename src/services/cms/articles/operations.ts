@@ -62,7 +62,7 @@ export const articleOperations = {
                     id: params.articleId
                 }
             })
-            cmsImageOperations.destroy.internalCall({ params: { cmsImageId: article.coverImageId } })
+            await cmsImageOperations.destroy.internalCall({ params: { cmsImageId: article.coverImageId } })
         }
     }),
     readSpecial: defineSubOperation({
