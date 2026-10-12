@@ -11,6 +11,18 @@ import type { Balance, BalanceRecord, ExpandedLedgerAccount } from './types'
 // involved are cheap (a session permission, or one indexed lookup), so checking access again
 // on each call is worth it. bypassAuth is used only where a nested operation's own policy would
 // otherwise reject a caller the outer check already allows.
+const ownershipIncluder = {
+    user: { select: { id: true } },
+    groups: { select: { groupId: true } },
+} as const satisfies Prisma.LedgerAccountInclude
+
+const expandLedgerAccount = (
+    { user, groups, ...account }: Prisma.LedgerAccountGetPayload<{ include: typeof ownershipIncluder }>
+): ExpandedLedgerAccount => {
+    const groupIds = groups.map(group => group.groupId)
+    return { ...account, groupIds, ownership: { userId: user?.id ?? null, groupIds } }
+}
+
 export const ledgerAccountOperations = {
     /**
      * Creates a new GROUP ledger account. USER accounts are created automatically alongside
@@ -65,15 +77,10 @@ export const ledgerAccountOperations = {
                     id: params.ledgerAccountId,
                     user: params.userId !== undefined ? { id: params.userId } : undefined,
                 },
-                include: {
-                    groups: { select: { groupId: true } },
-                },
+                include: ownershipIncluder,
             })
 
-            return {
-                ...account,
-                groupIds: account.groups.map(group => group.groupId),
-            }
+            return expandLedgerAccount(account)
         },
     }),
 
@@ -132,18 +139,21 @@ export const ledgerAccountOperations = {
     readAccessible: defineOperation({
         authorizer: () => ledgerAccountAuth.readAccessible,
         paramsSchema: ledgerAccountParamsSchemas.readAccessible,
-        operation: async ({ prisma, params }, prismaWhereFilter): Promise<LedgerAccount[]> => {
+        operation: async ({ prisma, params }, prismaWhereFilter): Promise<ExpandedLedgerAccount[]> => {
             const types: LedgerAccountType[] = [
                 ...(params.includeGroupAccounts ? ['GROUP' as const] : []),
                 ...(params.includeUserAccounts ? ['USER' as const] : []),
             ]
 
-            return await prisma.ledgerAccount.findMany({
+            const accounts = await prisma.ledgerAccount.findMany({
                 where: {
                     type: { in: types },
                     ...prismaWhereFilter,
                 },
+                include: ownershipIncluder,
             })
+
+            return accounts.map(expandLedgerAccount)
         }
     }),
 

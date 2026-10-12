@@ -1,8 +1,9 @@
 import '@pn-server-only'
-import { shopSchemas } from './schemas'
+import { shopParamsSchemas, shopSchemas } from './schemas'
 import { shopAuth } from './auth'
 import { defineOperation } from '@/services/serviceOperation'
-import { z } from 'zod'
+import { ServiceError } from '@/services/error'
+import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import type { ExtendedShop } from './types'
 
 export const shopOperations = {
@@ -21,9 +22,7 @@ export const shopOperations = {
 
     read: defineOperation({
         authorizer: () => shopAuth.read,
-        paramsSchema: z.object({
-            shopId: z.number(),
-        }),
+        paramsSchema: shopParamsSchemas.read,
         operation: async ({ prisma, params }): Promise<ExtendedShop | null> => {
             const results = await prisma.shop.findFirst({
                 where: {
@@ -35,6 +34,7 @@ export const shopOperations = {
                             product: true,
                         },
                     },
+                    ledgerAccount: { select: { id: true, name: true } },
                 },
             })
             if (results === null) return null
@@ -54,26 +54,32 @@ export const shopOperations = {
         }
     }),
 
+    /**
+     * Links a shop to the GROUP ledger account its purchases are credited to, replacing any
+     * earlier link.
+     * @param params.shopId - The shop to link
+     * @param data.ledgerAccountId - The account to credit
+     */
     connectToLedger: defineOperation({
-        authorizer: () => shopAuth.connectToLedger,
-        paramsSchema: z.object({
-            ledgerId: z.number().int(),
-            shopId: z.number().int()
+        authorizer: async ({ data, prisma }) => shopAuth.connectToLedger.data({
+            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
         }),
-        operation: async ({ prisma, params }) =>
-            await prisma.ledgerAccount.update({
-                where: {
-                    id: params.ledgerId,
-                    type: 'GROUP',
-                },
-                data: {
-                    shop: {
-                        connect: {
-                            id: params.shopId
-                        }
-                    }
-                }
+        paramsSchema: shopParamsSchemas.connectToLedger,
+        dataSchema: shopSchemas.connectToLedger,
+        operation: async ({ prisma, params, data }) => {
+            const account = await prisma.ledgerAccount.findUniqueOrThrow({
+                where: { id: data.ledgerAccountId },
+                select: { type: true },
             })
-    })
+            if (account.type !== 'GROUP') {
+                throw new ServiceError('BAD PARAMETERS', 'En butikk kan bare knyttes til en gruppekonto.')
+            }
+
+            return prisma.shop.update({
+                where: { id: params.shopId },
+                data: { ledgerAccountId: data.ledgerAccountId },
+            })
+        },
+    }),
 } as const
 

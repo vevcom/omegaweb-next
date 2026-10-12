@@ -14,5 +14,6 @@ export const updateProductForShopAction = makeAction(productOperations.updateFor
 export const createShopProductConnectionAction = makeAction(productOperations.createShopConnection)
 
 export const createShopAction = makeAction(shopOperations.create)
+export const connectShopToLedgerAction = makeAction(shopOperations.connectToLedger)
 
 export const createPurchaseAction = makeAction(purchaseOperations.create)
