@@ -615,6 +615,49 @@ const eslintConfig = defineConfig([
             ],
         },
     },
+    {
+        // Date/time fields (day, month, hour, ...) are only ever safe to read or construct through
+        // an explicitly-zoned formatter. Reading/constructing them any other way silently depends on
+        // the host's local timezone - UTC on the server, the visitor's own zone in the browser -
+        // which is how B18 (toLocalDate/getOsloTime) and a string of other DST bugs happened.
+        files: ['**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector: "NewExpression[callee.name='Date'][arguments.length>1]",
+                    message: 'Never build a Date from individual fields (year, month, day, ...) - they are '
+                        + 'read in the host\'s local timezone. Use an ISO string, Date.UTC(...), instant '
+                        + 'arithmetic (Date.now() + ms), or Luxon\'s DateTime with an explicit zone instead.'
+                },
+                {
+                    selector: 'CallExpression[callee.property.name=/^toLocale(String|DateString|TimeString)$/]'
+                        + ":not(:has(Property[key.name='timeZone']))",
+                    message: 'Pass an explicit timeZone (normally \'Europe/Oslo\') - formatting without one '
+                        + 'depends on the host\'s local timezone and differs between server and client.'
+                }
+            ]
+        }
+    },
+    {
+        // The service/lib layer must only ever reason about real instants, never host-local
+        // calendar/clock fields - see the rule above for why. displayDefaultInputValue.ts is the one
+        // sanctioned exception: HTML date/datetime-local inputs are inherently browser-local.
+        files: ['src/services/**/*.{ts,tsx}', 'src/lib/**/*.{ts,tsx}'],
+        ignores: ['src/lib/dates/displayDefaultInputValue.ts'],
+        rules: {
+            'no-restricted-properties': [
+                'error',
+                { property: 'getDate', message: 'Host-local getter - use getUTCDate or an explicitly-zoned formatter.' },
+                { property: 'getMonth', message: 'Host-local getter - use getUTCMonth or an explicitly-zoned formatter.' },
+                { property: 'getFullYear', message: 'Host-local getter - use getUTCFullYear or a zoned formatter.' },
+                { property: 'getHours', message: 'Host-local getter - use getUTCHours or an explicitly-zoned formatter.' },
+                { property: 'getMinutes', message: 'Host-local getter - use getUTCMinutes or a zoned formatter.' },
+                { property: 'getSeconds', message: 'Host-local getter - use getUTCSeconds or a zoned formatter.' },
+                { property: 'getDay', message: 'Host-local getter - use getUTCDay or an explicitly-zoned formatter.' }
+            ]
+        }
+    },
     globalIgnores([
         '.next/**',
         'out/**',
