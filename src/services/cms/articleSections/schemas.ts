@@ -2,7 +2,8 @@ import { maxImageSize, minImageSize } from './constants'
 import { Position } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-export const baseSchema = z.object({
+export const fieldSchemas = z.object({
+    id: z.number(),
     name: z.string().min(2).max(100).optional(),
     imageSize: z.number().transform(val => {
         if (val < minImageSize) return minImageSize
@@ -14,27 +15,36 @@ export const baseSchema = z.object({
 })
 
 export const articleSectionSchemas = {
-    create: baseSchema.pick({
+    create: fieldSchemas.pick({
         name: true,
     }),
-    update: baseSchema.pick({
+    update: fieldSchemas.pick({
         imageSize: true,
         position: true
     }).partial(),
-    addPart: baseSchema.pick({
+    addPart: fieldSchemas.pick({
         part: true
     }),
-    removePart: baseSchema.pick({
+    removePart: fieldSchemas.pick({
         part: true
     }),
-    params: z.union([
-        z.object({
-            articleSectionId: z.number(),
-            articleSectionName: z.undefined().optional()
-        }),
-        z.object({
-            articleSectionId: z.undefined().optional(),
-            articleSectionName: z.string()
-        })
-    ]),
+} as const
+
+/** An article section is addressed by its id or by its name. */
+const articleSectionAddress = z.union([
+    z.object({
+        articleSectionId: fieldSchemas.shape.id,
+        articleSectionName: z.undefined().optional()
+    }),
+    z.object({
+        articleSectionId: z.undefined().optional(),
+        articleSectionName: fieldSchemas.shape.name.unwrap()
+    })
+])
+
+export const articleSectionParamsSchemas = {
+    destroy: articleSectionAddress,
+    update: articleSectionAddress,
+    addPart: articleSectionAddress,
+    removePart: articleSectionAddress,
 } as const
