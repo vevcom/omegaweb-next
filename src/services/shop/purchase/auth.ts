@@ -1,4 +1,3 @@
-
 import { Require } from '@/auth/authorizer/Require'
 import type { Permission } from '@/prisma-generated-pn-types'
 
