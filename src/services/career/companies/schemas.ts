@@ -2,15 +2,16 @@ import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-const baseSchema = z.object({
-    name: z.string().min(
-        2, 'Navnet må være minst 3 tegn langt'
+const fieldSchemas = z.object({
+    id: z.number(),
+    name: z.string().trim().min(
+        2, 'Navnet må være minst 2 tegn langt'
     ).max(
         100, 'Navnet kan maks være 100 tegn langt'
-    ).trim(),
-    description: z.string().max(
+    ),
+    description: z.string().trim().max(
         200, 'Beskrivelsen kan maks være 200 tegn langt'
-    ).trim(),
+    ),
     website: z.union([
         z.literal('').transform(() => null),
         z.string().trim()
@@ -26,24 +27,37 @@ const baseSchema = z.object({
 })
 
 export const companySchemas = {
-    create: baseSchema.pick({
+    create: fieldSchemas.pick({
         name: true,
         description: true,
     }),
-    update: baseSchema.partial().pick({
+    update: fieldSchemas.partial().pick({
         name: true,
         description: true,
         website: true,
     }),
-    updateSponsorTier: baseSchema.pick({
+    updateSponsorTier: fieldSchemas.pick({
         sponsorTier: true,
     }),
+} as const
+
+const companyId = fieldSchemas.pick({
+    id: true,
+})
+
+export const companyParamsSchemas = {
     readPage: readPageInputSchemaObject(
-        z.object({
-            id: z.number(),
+        fieldSchemas.pick({
+            id: true,
         }),
         z.object({
             name: z.string().max(100).optional(),
         }),
     ),
-}
+    update: companyId,
+    updateSponsorTier: companyId,
+    updateCmsImageLogo: z.object({
+        companyId: fieldSchemas.shape.id,
+    }),
+    destroy: companyId,
+} as const

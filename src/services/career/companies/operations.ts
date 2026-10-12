@@ -5,32 +5,32 @@ import {
     logoIncluder,
     sponsorSelection,
 } from './constants'
-import { companySchemas } from './schemas'
+import { companyParamsSchemas, companySchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 import type { SponsorCompany } from './types'
 
 export const companyOperations = {
     create: defineOperation({
         dataSchema: companySchemas.create,
         authorizer: () => companyAuth.create,
-        operation: async ({ prisma, data }) => {
-            //TODO: tranaction when createCmsImage is service operation.
+        opensTransaction: true,
+        operation: async ({ prisma, data }) => prisma.$transaction(async (tx) => {
             const logo = await cmsImageOperations.create.internalCall({
                 data: {},
-                operationImplementationFields: { special: null }
+                prisma: tx,
+                operationImplementationFields: { special: null },
             })
-            return await prisma.company.create({
+            return tx.company.create({
                 data: {
                     ...data,
-                    logoId: logo.id,
-                }
+                    logo: { connect: { id: logo.id } },
+                },
             })
-        }
+        }),
     }),
     readSponsors: defineOperation({
         authorizer: () => companyAuth.readSponsors,
@@ -43,7 +43,7 @@ export const companyOperations = {
         })
     }),
     readPage: defineOperation({
-        paramsSchema: companySchemas.readPage,
+        paramsSchema: companyParamsSchemas.readPage,
         authorizer: () => companyAuth.readPage,
         operation: async ({ prisma, params }) => await prisma.company.findMany({
             ...cursorPagingSelection(params.paging.page),
@@ -58,9 +58,7 @@ export const companyOperations = {
         })
     }),
     update: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: companyParamsSchemas.update,
         dataSchema: companySchemas.update,
         authorizer: () => companyAuth.update,
         operation: async ({ prisma, params: { id }, data }) => {
@@ -71,9 +69,7 @@ export const companyOperations = {
         },
     }),
     updateSponsorTier: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: companyParamsSchemas.updateSponsorTier,
         dataSchema: companySchemas.updateSponsorTier,
         authorizer: () => companyAuth.updateSponsorTier,
         opensTransaction: true,
@@ -97,9 +93,7 @@ export const companyOperations = {
             })
     }),
     updateCmsImageLogo: cmsImageOperations.update.implement({
-        implementationParamsSchema: z.object({
-            companyId: z.number(),
-        }),
+        implementationParamsSchema: companyParamsSchemas.updateCmsImageLogo,
         authorizer: () => companyAuth.updateCmsImageLogo,
         ownershipCheck: async ({ implementationParams, params, prisma }) =>
             (await prisma.company.findUniqueOrThrow({
@@ -108,16 +102,16 @@ export const companyOperations = {
             }))?.logoId === params.cmsImageId
     }),
     destroy: defineOperation({
-        paramsSchema: z.object({
-            id: z.number()
-        }),
+        paramsSchema: companyParamsSchemas.destroy,
         authorizer: () => companyAuth.destroy,
-        operation: async ({ prisma, params: { id } }) => {
-            await prisma.company.delete({
-                where: {
-                    id
-                }
+        opensTransaction: true,
+        operation: async ({ prisma, params: { id } }) => prisma.$transaction(async (tx) => {
+            // The logo is on the company's side of the relation, so it does not cascade.
+            const company = await tx.company.delete({
+                where: { id },
+                select: { logoId: true },
             })
-        }
+            await cmsImageOperations.destroy.internalCall({ params: { cmsImageId: company.logoId }, prisma: tx })
+        }),
     }),
 } as const

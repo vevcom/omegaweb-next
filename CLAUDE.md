@@ -127,6 +127,7 @@ Rules are written once in the service's `auth.ts` as `Require` chains, so the sa
   - `ownershipCheck`: does the sub-resource actually belong to the owning resource (e.g. the paragraph is the career page's special paragraph)? Returning false rejects the call. It is resource-to-resource integrity, not user permission.
   - `beforeRun`: optional extra checks that run after both and may throw.
 - **`.internalCall({ params, data, ... })`** runs a sub-operation from server code with no authorizer and no ownership check. Only for calls from other operations or server code that has already authorized the user.
+- A service that owns a CMS image, paragraph or link creates it through that sub-service's `create.internalCall`, inside its own transaction when it creates the owning row (see `companyOperations.create`), and never by nesting the CMS row in the owner's Prisma write.
 - **`bypassAuth: true`** skips the authorizer of a top-level operation when calling it from trusted server code (e.g. NextAuth callbacks, seeders). Clients cannot set it; `makeAction` never passes it.
 - Operations called inside another operation inherit its context (prisma client or transaction, session, `bypassAuth`) through async local storage; pass `prisma: tx` explicitly to run one inside a transaction.
 
