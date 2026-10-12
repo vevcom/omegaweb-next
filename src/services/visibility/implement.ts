@@ -1,9 +1,9 @@
 import '@pn-server-only'
 import { visibilityOperations } from './operations'
 import { isSubVisibility } from '@/auth/visibility/isSubVisibility'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
-import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
+import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 import type { DoubleLevelVisibilityMatrix, VisibilityMatrix } from './types'
@@ -18,7 +18,7 @@ import type { DoubleLevelVisibilityMatrix, VisibilityMatrix } from './types'
  */
 export function assertAdminLevelIsSubOfRegularLevel(resultingMatrix: DoubleLevelVisibilityMatrix): void {
     if (!isSubVisibility(resultingMatrix.adminLevel, resultingMatrix.regularLevel)) {
-        throw new ServerError(
+        throw new ServiceError(
             'BAD DATA',
             'Alle som kan administrere må også kunne se - det administrative nivået må ' +
             'være en delmengde av det vanlige nivået.'
@@ -35,21 +35,21 @@ type Authorizers<
             params: z.infer<ImplementationParamsSchema>,
             doubleLevelMatrix: DoubleLevelVisibilityMatrix,
         }
-    ) => AuthorizerDynamicFieldsBound | Promise<AuthorizerDynamicFieldsBound>
+    ) => Authorizer | Promise<Authorizer>
     updateRegularLevel: (
         args: {
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>,
             doubleLevelMatrix: DoubleLevelVisibilityMatrix,
         }
-    ) => AuthorizerDynamicFieldsBound | Promise<AuthorizerDynamicFieldsBound>,
+    ) => Authorizer | Promise<Authorizer>,
     updateAdminLevel: (
         args: {
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>,
             doubleLevelMatrix: DoubleLevelVisibilityMatrix,
         }
-    ) => AuthorizerDynamicFieldsBound | Promise<AuthorizerDynamicFieldsBound>
+    ) => Authorizer | Promise<Authorizer>
 }
 
 export const visibilityIncluder = {
@@ -155,12 +155,17 @@ export function implementDoubleLevelVisibilityOperations<
                 prisma,
                 implementationParams,
             })).adminLevel.id === params.visibilityId,
-            beforeRun: async ({ prisma, implementationParams, data }) => assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: (await readDoubleLevelMatrixInternal({
-                    params: implementationParams, prisma
-                })).regularLevel,
-                adminLevel: { requirements: data.requirements }
-            })
+            beforeRun: async ({ prisma, implementationParams, data }) => {
+                if (data.requirements.length === 0) {
+                    throw new ServiceError('BAD DATA', 'Du må velge hvem som kan administrere')
+                }
+                assertAdminLevelIsSubOfRegularLevel({
+                    regularLevel: (await readDoubleLevelMatrixInternal({
+                        params: implementationParams, prisma
+                    })).regularLevel,
+                    adminLevel: { requirements: data.requirements }
+                })
+            }
         })
     } as const
 }

@@ -4,10 +4,18 @@ import type { MembershipFiltered } from '@/services/groups/types'
 
 export type UserGuaranteeOption = 'HAS_USER' | 'NO_USER'
 
+/**
+ * The `user` of a session by what is known of it. A lookup and not a conditional type on purpose:
+ * with a conditional, TypeScript accepts a session that may lack a user where one with a user is
+ * required.
+ */
+type UserOfGuarantee = {
+    HAS_USER: UserFiltered,
+    NO_USER: null,
+}
+
 export type SessionType<UserGuarantee extends UserGuaranteeOption> = {
-    user: UserGuarantee extends 'HAS_USER' ? UserFiltered : (
-        UserGuarantee extends 'NO_USER' ? null : never
-    ),
+    user: UserOfGuarantee[UserGuarantee],
     permissions: Permission[],
     memberships: MembershipFiltered[],
     apiKeyId?: number,
@@ -58,10 +66,10 @@ export class Session<UserGuarantee extends UserGuaranteeOption> {
     }
 
     public static fromJsObject(jsObject: SessionMaybeUser): Session<'NO_USER'> | Session<'HAS_USER'> {
-        return new Session(jsObject)
+        return jsObject.user ? new Session<'HAS_USER'>(jsObject) : new Session<'NO_USER'>(jsObject)
     }
 
-    public static fromDefaultPermissions(defaultPermissions: Permission[]) {
-        return new Session({ permissions: defaultPermissions, memberships: [], user: null })
+    public static fromDefaultPermissions(defaultPermissions: Permission[]): Session<'NO_USER'> {
+        return new Session<'NO_USER'>({ permissions: defaultPermissions, memberships: [], user: null })
     }
 }

@@ -1,26 +1,28 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequirePermissionOrGroupAdmin } from '@/auth/authorizer/RequirePermissionOrGroupAdmin'
-import { requireReadManagedGroupMembers } from '@/services/groups/auth'
+import { Require } from '@/auth/authorizer/Require'
+import { requireReadManagedGroupMembers, requireReadMembershipsOfUser } from '@/services/groups/auth'
 
-export const committeeLogosImagePanelAuth = RequirePermission.staticFields({ permission: 'COMMITTEE_ADMIN' })
+export const committeeLogosImagePanelAuth = Require.permission('COMMITTEE_ADMIN')
+
+const adminOrGroupAdmin = Require.permission('COMMITTEE_ADMIN').or().groupAdmin()
 
 export const committeeAuth = {
-    create: RequirePermission.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    update: RequirePermission.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    readAll: RequirePermission.staticFields({ permission: 'COMMITTEE_READ' }),
-    read: RequirePermission.staticFields({ permission: 'COMMITTEE_READ' }),
-    readMembers: requireReadManagedGroupMembers('COMMITTEE_READ'),
-    readExpanded: RequirePermission.staticFields({ permission: 'COMMITTEE_READ' }),
-    addMembers: RequirePermissionOrGroupAdmin.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    removeMembers: RequirePermissionOrGroupAdmin.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    setMemberAdmin: RequirePermissionOrGroupAdmin.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    setMemberTitle: RequirePermissionOrGroupAdmin.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    migrateGroup: RequirePermissionOrGroupAdmin.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    readArticle: RequirePermission.staticFields({ permission: 'COMMITTEE_READ' }),
-    readParagraph: RequirePermission.staticFields({ permission: 'COMMITTEE_READ' }),
-    destroy: RequirePermission.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    pension: RequirePermission.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    updateParagraphContent: RequirePermissionOrGroupAdmin.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    updateLogo: RequirePermissionOrGroupAdmin.staticFields({ permission: 'COMMITTEE_ADMIN' }),
-    updateArticle: RequirePermissionOrGroupAdmin.staticFields({ permission: 'COMMITTEE_ADMIN' }),
+    create: Require.permission('COMMITTEE_ADMIN'),
+    update: Require.permission('COMMITTEE_ADMIN'),
+    readAll: Require.permission('COMMITTEE_USE'),
+    read: Require.permission('COMMITTEE_USE'),
+    readMembers: requireReadManagedGroupMembers('COMMITTEE_USE'),
+    readMembershipsOfUser: requireReadMembershipsOfUser('COMMITTEE_USE'),
+    readExpanded: Require.permission('COMMITTEE_USE'),
+    addMembers: adminOrGroupAdmin,
+    removeMembers: adminOrGroupAdmin,
+    setMemberAdmin: adminOrGroupAdmin,
+    setMemberTitle: adminOrGroupAdmin,
+    migrateGroup: adminOrGroupAdmin,
+    readArticle: Require.permission('COMMITTEE_USE'),
+    readParagraph: Require.permission('COMMITTEE_USE'),
+    destroy: Require.permission('COMMITTEE_ADMIN'),
+    pension: Require.permission('COMMITTEE_ADMIN'),
+    updateParagraphContent: adminOrGroupAdmin,
+    updateLogo: adminOrGroupAdmin,
+    updateArticle: adminOrGroupAdmin,
 } as const

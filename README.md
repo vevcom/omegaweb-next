@@ -47,6 +47,8 @@ Every time the dev container starts, it applies any pending migrations and upser
 npm run docker:reseed
 ```
 
+Run that same command once if your dev database predates migrations. A database left over from the old `db push --force-reset` workflow has no `_prisma_migrations` table, so the startup `migrate deploy` stops with P3005 ("the database schema is not empty") and the dev server never comes up. The reseed rebuilds it from the committed migrations, at the cost of the local data in it.
+
 #### Reinstalling node_modules
 
 Since we are using volumes in dev, the dev container should keep itself up to date with your working directory. But you will need to reinstall packages manually in projectnext upon changing package.json. Run:

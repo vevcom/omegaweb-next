@@ -1,28 +1,71 @@
 @use "@/styles/ohma";
 
 .EditJobAd {
-    @include ohma.card;
+    flex-shrink: 0;
+    max-height: 80vh;
+    display: grid;
+    gap: calc(3 * #{ohma.$gap});
+    padding: calc(3 * #{ohma.$gap});
+    margin: calc(2 * #{ohma.$gap}) ohma.$minimalPagePadding;
+    border-radius: ohma.$rounding;
     background-color: ohma.$colors-surface-raised;
     color: ohma.$colors-text;
-    display: grid;
-    gap: 1em;
+
     @include ohma.screenLg {
-        grid-template-columns: 250px 1fr;
-        margin: 1em 3em;
+        grid-template-columns: minmax(240px, 320px) 1fr;
+        align-items: start;
     }
+
     @include ohma.screenMobile {
         grid-template-columns: 1fr;
-        margin: 1em .5em;
+        margin: calc(2 * #{ohma.$gap}) ohma.$gap;
+        max-height: none;
     }
-    .update {
-        margin-right: 1em;
-        max-width: 200px;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: ohma.$gap;
+    min-height: 0;
+    min-width: 0;
+
+    @include ohma.screenLg {
+        max-height: calc(80vh - 6 * #{ohma.$gap});
     }
-    .visibility {
-        margin-right: 1em;
-        flex: 1;
-        button[type="submit"] {
-            width: 200px; 
-        }
+}
+
+.heading {
+    font-size: ohma.$fonts-s;
+    font-weight: ohma.$fonts-weight-m;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: ohma.$colors-text-muted;
+    flex-shrink: 0;
+}
+
+.update {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: ohma.$gap;
+
+    form {
+        margin: 0;
+    }
+
+    .destroy {
+        margin-top: calc(2 * #{ohma.$gap});
+        padding-top: calc(2 * #{ohma.$gap});
+        border-top: 1px solid ohma.$colors-surface-hover;
+    }
+}
+
+.companyChooser {
+    flex: 1;
+    min-height: 0;
+
+    @include ohma.screenMobile {
+        max-height: 50vh;
     }
 }

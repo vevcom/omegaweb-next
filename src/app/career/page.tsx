@@ -1,51 +1,56 @@
 import styles from './page.module.scss'
 import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagraph'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { ServerSession } from '@/auth/session/ServerSession'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import CmsLink from '@/components/Cms/CmsLink/CmsLink'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { readSpecialEventTagAction } from '@/services/events/tags/actions'
+import { eventTagOperations } from '@/services/events/tags/operations'
 import {
-    readSpecialCmsParagraphCareerInfo,
-    updateSpecialCmsParagraphContentCareerInfo,
-    readCareerSpecialCmsLinkAction,
+    readSpecialCmsParagraphCareerInfoAction,
+    updateSpecialCmsParagraphContentCareerInfoAction,
     updateCareerSpecialCmsLinkAction
 } from '@/services/career/actions'
+import { careerOperations } from '@/services/career/operations'
 import { careerAuth } from '@/services/career/auth'
+import { serverPage, withFallback } from '@/app/serverPage'
 import Link from 'next/link'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default async function CareerLandingPage() {
-    const session = await ServerSession.fromNextAuth()
-    const conactorCmsLinkRes = await readCareerSpecialCmsLinkAction({ params: { special: 'CAREER_LINK_TO_CONTACTOR' } })
-    const companyPresentationEventTagRes = await readSpecialEventTagAction({ params: { special: 'COMPANY_PRESENTATION' } })
-
-    const contactorCmsLink = conactorCmsLinkRes.success ? conactorCmsLinkRes.data : null
-    const companyPresentationEventTag = companyPresentationEventTagRes.success ? companyPresentationEventTagRes.data : null
-
-    const canEditSpecialCmsLink = careerAuth.updateSpecialCmsLink.dynamicFields({}).auth(
-        session
-    ).toJsObject()
-    const canEditSpecialCmsParagraph = careerAuth.updateSpecialCmsParagraphContentCareerInfo.dynamicFields({}).auth(
-        session
-    ).toJsObject()
-
-    return (
-        <PageWrapper title={session.user ? 'Karriere' : 'For bedrifter'} headerItem={
-            contactorCmsLink ? <CmsLink
-                canEdit={canEditSpecialCmsLink}
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => {
+        const [contactorCmsLink, companyPresentationEventTag] = await Promise.all([
+            withFallback(
+                careerOperations.readSpecialCmsLink({ params: { special: 'CAREER_LINK_TO_CONTACTOR' } }),
+                null
+            ),
+            withFallback(
+                eventTagOperations.readSpecial({ params: { special: 'COMPANY_PRESENTATION' } }),
+                null
+            ),
+        ])
+        return { contactorCmsLink, companyPresentationEventTag, isLoggedIn: Boolean(session.user) }
+    },
+    capabilities: () => ({
+        canEditSpecialCmsLink: careerAuth.updateSpecialCmsLink,
+        canEditSpecialCmsParagraph: careerAuth.updateSpecialCmsParagraphContentCareerInfo,
+    }),
+    metadata: (data) => ({ title: data.isLoggedIn ? 'Karriere' : 'For bedrifter' }),
+    render: ({ data, capabilities }) => (
+        <PageWrapper headerItem={
+            data.contactorCmsLink ? <CmsLink
+                capabilities={{ canEdit: capabilities.canEditSpecialCmsLink }}
                 className={styles.conactorLink}
-                cmsLink={contactorCmsLink}
+                cmsLink={data.contactorCmsLink}
                 updateCmsLinkAction={updateCareerSpecialCmsLinkAction}
             /> : <></>
         }>
             <div className={styles.wrapper}>
                 <SpecialCmsParagraph
-                    canEdit={canEditSpecialCmsParagraph}
+                    capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
                     className={styles.info}
                     special="CAREER_INFO"
-                    readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfo}
-                    updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfo}
+                    readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfoAction}
+                    updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfoAction}
                 />
                 <span className={styles.links}>
                     <Link href="/career/jobads">
@@ -58,7 +63,7 @@ export default async function CareerLandingPage() {
                         <h2>Jobbannonser</h2>
                     </Link>
                     <Link href={`/events?${QueryParams.eventTags.encodeUrl(
-                        companyPresentationEventTag ? [companyPresentationEventTag.name] : []
+                        data.companyPresentationEventTag ? [data.companyPresentationEventTag.name] : []
                     )}`}>
                         <StandardImageServer
                             disableLinkingToLicense
@@ -80,5 +85,8 @@ export default async function CareerLandingPage() {
                 </span>
             </div>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

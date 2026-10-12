@@ -45,7 +45,7 @@ export const dotOperations = {
         numberOfActiveDotsForUser,
     },
     create: createInternal.implement({
-        authorizer: ({ params }) => dotAuth.create.dynamicFields({ userId: params.accuserId }),
+        authorizer: ({ params }) => dotAuth.create.data({ userId: params.accuserId }),
         ownershipCheck: () => true,
     }),
 
@@ -54,7 +54,7 @@ export const dotOperations = {
             id: z.coerce.number(),
         }),
         dataSchema: dotSchemas.update,
-        authorizer: () => dotAuth.update.dynamicFields({}),
+        authorizer: () => dotAuth.update,
         operation: async ({ prisma, params, data }) => prisma.dot.update({
             where: {
                 id: params.id,
@@ -67,7 +67,7 @@ export const dotOperations = {
         paramsSchema: z.object({
             id: z.coerce.number(),
         }),
-        authorizer: () => dotAuth.destroy.dynamicFields({}),
+        authorizer: () => dotAuth.destroy,
         operation: async ({ prisma, params }) => prisma.dot.delete({
             where: {
                 id: params.id,
@@ -87,7 +87,7 @@ export const dotOperations = {
             userId: z.coerce.number(),
             onlyActive: z.boolean().default(false),
         }),
-        authorizer: ({ params }) => dotAuth.readForUser.dynamicFields({ userId: params.userId }),
+        authorizer: ({ params }) => dotAuth.readForUser.data({ userId: params.userId }),
         operation: async ({ prisma, params }): Promise<DotExpanded[]> => {
             const [dots, freezePeriods] = await Promise.all([
                 prisma.dot.findMany({

@@ -1,27 +1,33 @@
 import styles from './page.module.scss'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import {
     assignFlairToUserAction,
-    readAllFlairsAction,
-    readUserFlairsAction,
     unAssignFlairToUserAction
 } from '@/services/flairs/actions'
+import { flairOperations } from '@/services/flairs/operations'
 import Form from '@/components/Form/Form'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
+import { serverPage } from '@/app/serverPage'
 import Flair from '@/components/Flair/Flair'
 import { configureAction } from '@/services/configureAction'
-import type { PropTypes } from '@/app/users/[username]/page'
+import type { PageOperationArgs } from '@/app/serverPage'
 
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
+        const { profile } = await getProfileForUserPage(params, 'flairs', session)
 
-export default async function FlairAdmin({ params }: PropTypes) {
-    const { profile } = await getProfileForUserPage(await params, 'flairs')
-    const usersFlairs = unwrapActionReturn(await readUserFlairsAction({ params: { userId: profile.user.id } }))
-    const flairs = unwrapActionReturn(await readAllFlairsAction()).map(flair => ({
-        ...flair,
-        assignedToUser: usersFlairs.some(userFlair => userFlair.id === flair.id)
-    })).sort((a, b) => a.rank - b.rank)
+        const [usersFlairs, allFlairs] = await Promise.all([
+            flairOperations.readUserFlairs({ params: { userId: profile.user.id } }),
+            flairOperations.readAll({}),
+        ])
 
-    return (
+        const flairs = allFlairs.map(flair => ({
+            ...flair,
+            assignedToUser: usersFlairs.some(userFlair => userFlair.id === flair.id)
+        })).sort((flairOne, flairTwo) => flairOne.rank - flairTwo.rank)
+
+        return { profile, flairs }
+    },
+    render: ({ data }) => (
         <div className={styles.wrapper}>
             <div className={styles.flairContainer}>
                 <p>
@@ -39,12 +45,14 @@ export default async function FlairAdmin({ params }: PropTypes) {
                         </tr>
                     </thead>
                     <tbody>
-                        {flairs.map((flair) => (
+                        {data.flairs.map((flair) => (
                             <tr key={flair.id}>
                                 <td><Flair flair={flair} width={100} /></td>
                                 <td>{flair.name}</td>
                                 <td>{flair.rank}</td>
-                                <td style={{ backgroundColor: `rgb(${flair.colorR}, ${flair.colorG}, ${flair.colorB})` }}>
+                                <td style={{
+                                    backgroundColor: `rgb(${flair.colorR}, ${flair.colorG}, ${flair.colorB})`
+                                }}>
                                 </td>
                                 <td>
                                     <Form
@@ -55,11 +63,17 @@ export default async function FlairAdmin({ params }: PropTypes) {
                                             flair.assignedToUser
                                                 ? configureAction(
                                                     unAssignFlairToUserAction,
-                                                    { params: { userId: profile.user.id, flairId: flair.id } }
+                                                    { params: {
+                                                        userId: data.profile.user.id,
+                                                        flairId: flair.id,
+                                                    } }
                                                 )
                                                 : configureAction(
                                                     assignFlairToUserAction,
-                                                    { params: { userId: profile.user.id, flairId: flair.id } }
+                                                    { params: {
+                                                        userId: data.profile.user.id,
+                                                        flairId: flair.id,
+                                                    } }
                                                 )
                                         }
                                     />
@@ -69,5 +83,9 @@ export default async function FlairAdmin({ params }: PropTypes) {
                     </tbody>
                 </table>
             </div>
-        </div >)
-}
+        </div >
+    ),
+})
+
+export default page
+export { generateMetadata }

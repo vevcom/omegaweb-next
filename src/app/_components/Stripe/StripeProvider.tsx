@@ -1,18 +1,17 @@
 'use client'
 
 import { MINIMUM_PAYMENT_AMOUNT } from '@/services/ledger/payments/constants'
-import { isBuildPhase } from '@/lib/isBuildPhase'
 import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import type { ReactNode } from 'react'
 
-// The publishable key might not be set during the build phase. To avoid build-time
-// errors, we skip the check during the build phase, mirroring src/lib/stripe.ts.
-if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && !isBuildPhase()) {
-    throw new Error('Stripe publishable key er ikke satt')
+if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+    console.error('Stripe publishable key er ikke satt. Betaling vil ikke fungere.')
 }
 
-const stripe = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? 'fake-key')
+const stripe = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+    : null
 
 type Props = {
     children?: ReactNode,

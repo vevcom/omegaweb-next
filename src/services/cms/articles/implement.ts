@@ -4,7 +4,7 @@ import { cmsImageOperations } from '@/cms/images/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import { z } from 'zod'
 import type { ArgsAuthGetterAndOwnershipCheck, PrismaPossibleTransaction } from '@/services/serviceOperation'
-import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
+import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { Prisma, SpecialCmsArticle } from '@/prisma-generated-pn-types'
 import type { articleSchemas } from './schemas'
 
@@ -39,7 +39,7 @@ export function implementUpdateArticleOperations<
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>
         }
-    ) => AuthorizerDynamicFieldsBound | Promise<AuthorizerDynamicFieldsBound>,
+    ) => Authorizer | Promise<Authorizer>,
     ownedArticles: (
         args: {
             prisma: PrismaPossibleTransaction<false>,
@@ -123,8 +123,8 @@ export function implementSpecialArticle({
     updateAuthorizer,
 }: {
     special: SpecialCmsArticle,
-    readAuthorizer: AuthorizerDynamicFieldsBound,
-    updateAuthorizer: AuthorizerDynamicFieldsBound,
+    readAuthorizer: Authorizer,
+    updateAuthorizer: Authorizer,
 }) {
     /**
      * The unauthorized read of the article. It self-heals: readSpecial creates the article from

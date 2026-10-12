@@ -21,37 +21,22 @@ export const permissionCategories = [
 ] as const satisfies string[]
 
 export const permissionConfig = {
-    OMEGAQUOTES_READ: {
-        name: 'Les OmegaQuotes',
-        description: 'kan lese OmegaQuotes',
+    OMEGAQUOTES_USE: {
+        name: 'Bruke OmegaQuotes',
+        description: 'kan lese og skrive OmegaQuotes',
         category: 'omega quotes',
     },
-    OMEGAQUOTES_WRITE: {
-        name: 'Skrive OmegaQuotes',
-        description: 'kan skrive OmegaQuotes',
-        category: 'omega quotes',
-    },
-    OMBUL_CREATE: {
-        name: 'Lage ombul',
-        description: 'kan lage ombul',
+    OMBUL_ADMIN: {
+        name: 'Ombuladministrator',
+        description: 'kan lage, oppdatere og slette ombul',
         category: 'ombul',
     },
-    OMBUL_UPDATE: {
-        name: 'Oppdatere ombul',
-        description: 'kan oppdatere ombul',
-        category: 'ombul',
-    },
-    OMBUL_DESTROY: {
-        name: 'Slette ombul',
-        description: 'kan slette ombul',
-        category: 'ombul',
-    },
-    OMBUL_READ: {
+    OMBUL_USE: {
         name: 'Les ombul',
         description: 'kan lese ombul',
         category: 'ombul',
     },
-    OMEGA_MEMBERSHIP_GROUP_READ: {
+    OMEGA_MEMBERSHIP_GROUP_USE: {
         name: 'Les Omega medlemsgrupper',
         description: 'kan lese Omega medlemsgrupper',
         category: 'groups',
@@ -61,9 +46,9 @@ export const permissionConfig = {
         description: 'kan endre hvilken medlemsgruppe en bruker tilhører',
         category: 'groups',
     },
-    CLASS_READ: {
+    CLASS_USE: {
         name: 'Les klasse',
-        description: 'kan lese klasse',
+        description: 'kan lese klasser',
         category: 'groups',
     },
     CLASS_ADMIN: {
@@ -71,9 +56,9 @@ export const permissionConfig = {
         description: 'kan endre hvilken klasse en bruker er i og rykke opp klassene',
         category: 'groups',
     },
-    COMMITTEE_READ: {
+    COMMITTEE_USE: {
         name: 'Les komite',
-        description: 'kan lese komite',
+        description: 'kan lese komiteer',
         category: 'groups',
     },
     COMMITTEE_ADMIN: {
@@ -81,7 +66,7 @@ export const permissionConfig = {
         description: 'kan lage, endre og slette komiteer, og administrere medlemmene i dem',
         category: 'groups',
     },
-    INTEREST_GROUP_READ: {
+    INTEREST_GROUP_USE: {
         name: 'Les interessegruppe',
         description: 'kan lese interessegruppe',
         category: 'groups',
@@ -91,7 +76,7 @@ export const permissionConfig = {
         description: 'Administrere interessegruppe uten å være admin i gruppen. Og lage nye grupper',
         category: 'groups',
     },
-    STUDY_PROGRAMME_READ: {
+    STUDY_PROGRAMME_USE: {
         name: 'Les studieprogram',
         description: 'kan lese studieprogram',
         category: 'groups',
@@ -101,7 +86,7 @@ export const permissionConfig = {
         description: 'kan lage, endre og slette studieprogram, og administrere medlemmene i dem',
         category: 'groups',
     },
-    MANUAL_GROUP_READ: {
+    MANUAL_GROUP_USE: {
         name: 'Les andre grupper',
         description: 'kan lese andre grupper',
         category: 'groups',
@@ -111,34 +96,24 @@ export const permissionConfig = {
         description: 'kan opprette, oppdatere og slette andre grupper, og styre medlemmene deres',
         category: 'groups',
     },
-    JOBAD_CREATE: {
-        name: 'Lage jobad',
-        description: 'kan lage jobad',
+    JOBAD_ADMIN: {
+        name: 'Jobbannonseadministrator',
+        description: 'kan lage, oppdatere og slette jobbannonser',
         category: 'jobad',
     },
-    JOBAD_UPDATE: {
-        name: 'Oppdatere jobad',
-        description: 'kan oppdatere jobad',
+    JOBAD_USE: {
+        name: 'Les jobbannonser',
+        description: 'kan lese jobbannonser',
         category: 'jobad',
     },
-    JOBAD_DESTROY: {
-        name: 'Slette jobad',
-        description: 'kan slette jobad',
-        category: 'jobad',
-    },
-    JOBAD_READ: {
-        name: 'Les jobad',
-        description: 'kan lese jobad',
-        category: 'jobad',
-    },
-    OMEGA_ORDER_CREATE: {
-        name: 'Lag ny omega orden',
-        description: 'kan inkrementere omega',
+    OMEGA_ORDER_ADMIN: {
+        name: 'Omega orden administrator',
+        description: 'kan inkrementere omega orden',
         category: 'diverse admin',
     },
-    OMEGA_ORDER_READ: {
+    OMEGA_ORDER_USE: {
         name: 'Les omega orden',
-        description: 'kan lese omega',
+        description: 'kan lese omega orden',
         category: 'diverse admin',
     },
     FRONTPAGE_ADMIN: {
@@ -156,24 +131,14 @@ export const permissionConfig = {
         description: 'kan administrere artikkelen på varslingssiden',
         category: 'public',
     },
-    USERS_CREATE: {
-        name: 'Lage bruker',
-        description: 'kan lage bruker',
+    USERS_ADMIN: {
+        name: 'Brukeradministrator',
+        description: 'kan lage, oppdatere og slette brukere',
         category: 'brukere',
     },
-    USERS_DESTROY: {
-        name: 'Slette bruker',
-        description: 'kan slette bruker',
-        category: 'brukere',
-    },
-    USERS_READ: {
+    USERS_USE: {
         name: 'Les bruker',
-        description: 'kan lese bruker',
-        category: 'brukere',
-    },
-    USERS_UPDATE: {
-        name: 'Oppdatere bruker',
-        description: 'kan oppdatere bruker',
+        description: 'kan lese brukere/profiler',
         category: 'brukere',
     },
     IMAGE_ADMIN: {
@@ -183,104 +148,44 @@ export const permissionConfig = {
         `,
         category: 'bilder',
     },
-    IMAGE_COLLECTION_CREATE: {
+    IMAGE_CREATE: {
         name: 'Lage bilde samling',
         description: 'kan lage bilde samling',
         category: 'bilder',
     },
-    EVENT_CREATE: {
-        name: 'Lage event',
-        description: 'kan lage event',
-        category: 'events',
-    },
     EVENT_ADMIN: {
         name: 'Eventadministrator',
-        description: 'kan administrere events',
+        description: 'kan lage og administrere events, samt gi prikker for uteblivelse',
         category: 'events',
     },
-    NOTIFICATION_CHANNEL_CREATE: {
-        name: 'Lage notifikasjonskanal',
-        description: 'kan lage notifikasjonskanal',
+    EVENT_CREATE: {
+        name: 'Lage events',
+        description: 'kan lage nye events, men administrerer kun de som egen synlighet gir tilgang til',
+        category: 'events',
+    },
+    NOTIFICATION_ADMIN: {
+        name: 'Notifikasjonsadministrator',
+        description: 'kan lage notifikasjonskanaler og notifikasjoner, samt administrere andres abonnement',
         category: 'notifikasjoner',
     },
-    NOTIFICATION_CHANNEL_UPDATE: {
-        name: 'Oppdatere notifikasjonskanal',
-        description: 'kan oppdatere notifikasjonskanal',
-        category: 'notifikasjoner',
-    },
-    NOTIFICATION_CREATE: {
-        name: 'Lage notifikasjon',
-        description: 'kan lage notifikasjon',
-        category: 'notifikasjoner',
-    },
-    NOTIFICATION_SUBSCRIPTION_READ: {
-        name: 'Les notifikasjonsabonnement',
-        description: 'kan lese notifikasjonsabonnement',
-        category: 'notifikasjoner',
-    },
-    NOTIFICATION_SUBSCRIPTION_READ_OTHER: {
-        name: 'Les andres notifikasjonsabonnement',
-        description: 'kan lese andres notifikasjonsabonnement',
-        category: 'notifikasjoner',
-    },
-    NOTIFICATION_SUBSCRIPTION_UPDATE: {
-        name: 'Oppdatere notifikasjonsabonnement',
-        description: 'kan oppdatere notifikasjonsabonnement',
-        category: 'notifikasjoner',
-    },
-    NOTIFICATION_SUBSCRIPTION_UPDATE_OTHER: {
-        name: 'Oppdatere andres notifikasjonsabonnement',
-        description: 'kan oppdatere andres notifikasjonsabonnement',
-        category: 'notifikasjoner',
-    },
-    MAIL_SEND: {
+    MAIL_USE: {
         name: 'Sende epost',
         description: 'kan sende epost',
         category: 'mail',
     },
-    MAILADDRESS_EXTERNAL_CREATE: {
-        name: 'Lage ekstern epostadresse',
-        description: 'kan lage ekstern epostadresse',
+    MAILSERVER_USE: {
+        name: 'Se e-postserveren',
+        description: 'kan se e-postalias, e-postlister, eksterne e-postadresser og hvor e-post havner',
         category: 'mail',
     },
-    MAILADDRESS_EXTERNAL_DESTROY: {
-        name: 'Slette ekstern epostadresse',
-        description: 'kan slette ekstern epostadresse',
+    MAILSERVER_ADMIN: {
+        name: 'Administrere e-postserveren',
+        description: 'kan opprette, endre og slette e-postalias, e-postlister, eksterne adresser og koblingene mellom dem',
         category: 'mail',
     },
-    MAILADDRESS_EXTERNAL_READ: {
-        name: 'Les ekstern epostadresse',
-        description: 'kan lese ekstern epostadresse',
-        category: 'mail',
-    },
-    MAILADDRESS_EXTERNAL_UPDATE: {
-        name: 'Oppdatere ekstern epostadresse',
-        description: 'kan oppdatere ekstern epostadresse',
-        category: 'mail',
-    },
-    MAILALIAS_READ: {
-        name: 'Les epostalias',
-        description: 'kan lese epostalias',
-        category: 'mail',
-    },
-    MAILALIAS_ADMIN: {
-        name: 'Administrere epostalias',
-        description: 'kan opprette, oppdatere og slette epostalias',
-        category: 'mail',
-    },
-    MAILINGLIST_READ: {
-        name: 'Les epostliste',
-        description: 'kan lese epostliste',
-        category: 'mail',
-    },
-    MAILINGLIST_ADMIN: {
-        name: 'Administrere epostliste',
-        description: 'kan administrere epostliste og tilknyttede relasjoner',
-        category: 'mail',
-    },
-    ADMISSION_TRIAL_ADMIN: {
-        name: 'Administrere opptaksprøver',
-        description: 'kan lage og lese opptaksprøver for alle brukere',
+    ADMISSION_USE: {
+        name: 'Bruke opptakssystem',
+        description: 'kan lage, lese og administrere opptaksprøver',
         category: 'brukere',
     },
     APIKEY_ADMIN: {
@@ -293,12 +198,12 @@ export const permissionConfig = {
         description: 'kan administrere skjermer',
         category: 'skjermer',
     },
-    SCREEN_READ: {
+    SCREEN_USE: {
         name: 'Les skjermer',
         description: 'kan lese skjermer',
         category: 'skjermer',
     },
-    SCHOOLS_READ: {
+    SCHOOLS_USE: {
         name: 'Les skoler',
         description: 'kan lese skoler',
         category: 'brukere',
@@ -308,7 +213,7 @@ export const permissionConfig = {
         description: 'kan administrere skoler',
         category: 'brukere',
     },
-    COURSES_READ: {
+    COURSES_USE: {
         name: 'Les emner',
         description: 'kan lese emner',
         category: 'brukere',
@@ -333,7 +238,7 @@ export const permissionConfig = {
         description: 'kan administrere bedrifter',
         category: 'brukere'
     },
-    COMPANY_READ: {
+    COMPANY_USE: {
         name: 'Les bedrifter',
         description: 'kan lese bedrifter',
         category: 'brukere'
@@ -349,7 +254,7 @@ export const permissionConfig = {
             Opprette, endre og gi kapper`,
         category: 'brukere',
     },
-    SHOP_READ: {
+    SHOP_USE: {
         name: 'Les butikker',
         description: 'kan lese butikker',
         category: 'shop'
@@ -359,7 +264,7 @@ export const permissionConfig = {
         description: 'Kan administrere alle butikker',
         category: 'shop'
     },
-    PRODUCT_READ: {
+    PRODUCT_USE: {
         name: 'Les produkter',
         description: 'Kan lese produkter',
         category: 'shop'
@@ -369,12 +274,12 @@ export const permissionConfig = {
         description: 'Kan administrare alle produkter',
         category: 'shop'
     },
-    PURCHASE_CREATE: {
+    PURCHASE_USE: {
         name: 'Gjennomfør kjøp',
         description: 'Kan gjennomføre et kjøp i en butikk',
         category: 'shop'
     },
-    PURCHASE_CREATE_ONBEHALF: {
+    PURCHASE_ADMIN: {
         name: 'Kan ta betalt i en butikk',
         description: 'Kan belaste andre brukerkontoer, når de handler i en butikk.',
         category: 'shop'
@@ -382,54 +287,29 @@ export const permissionConfig = {
     LICENSE_ADMIN: {
         name: 'Lisensadministrator',
         description: `
-            kan administrere lisenser. Alle som eier et bilde kan 
+            kan administrere lisenser. Alle som eier et bilde kan
             legge til en lisens uavhengig av denne tillatelsen
         `,
         category: 'diverse admin'
     },
-    CABIN_BOOKING_BED_CREATE: {
-        name: 'Booke senger i hytta',
-        description: 'Kan booke en senger i hytta',
-        category: 'cabin'
-    },
-    CABIN_BOOKING_CABIN_CREATE: {
-        name: 'Booke hytta',
-        description: 'Kan booke hele hytta',
-        category: 'cabin'
-    },
-    CABIN_BOOKING_ADMIN: {
-        name: 'Hyttebooking administrator',
-        description: 'Kan administrere hyttebookinger',
-        category: 'cabin'
-    },
-    CABIN_CALENDAR_READ: {
-        name: 'Les hyttekalender',
-        description: 'Kan lese hyttekalender',
+    CABIN_USE: {
+        name: 'Bruke hytta',
+        description: 'kan booke hytta/senger og lese hyttekalender',
         category: 'cabin'
     },
     CABIN_ADMIN: {
-        name: 'Hyttedministrator',
-        description: 'Kan administrere hytter',
+        name: 'Hytteadministrator',
+        description: 'kan administrere hytter, hyttebookinger og hytteprodukter',
         category: 'cabin'
     },
-    CABIN_PRODUCTS_ADMIN: {
-        name: 'Hytteprodukt administrator',
-        description: 'Kan administrere hyttprodukter',
-        category: 'cabin'
-    },
-    PERMISSION_DEFAULT_ADMIN: {
-        name: 'Endre standardtilganger',
-        description: 'Kan endre standardtilganger',
+    PERMISSION_ADMIN: {
+        name: 'Administrere tilganger',
+        description: 'Kan administrere tilganger til grupper og standardtilganger',
         category: 'permission'
     },
-    PERMISSION_GROUP_READ: {
+    PERMISSION_USE: {
         name: 'Les tilganger til grupper',
         description: 'Kan lese tilganger til grupper',
-        category: 'permission'
-    },
-    PERMISSION_GROUP_ADMIN: {
-        name: 'Administrere tilganger til grupper',
-        description: 'Kan administrere tilganger til grupper',
         category: 'permission'
     },
     APPLICATION_ADMIN: {
@@ -440,7 +320,7 @@ export const permissionConfig = {
         `,
         category: 'applications',
     },
-    APPLICATION_WRITE: {
+    APPLICATION_USE: {
         name: 'Søknadsskriver',
         description: `
             Kan skrive søknader til alle aktive søknadsperioder.
@@ -450,14 +330,14 @@ export const permissionConfig = {
     LEDGER_ADMIN: {
         name: 'Hovedbokadministratør',
         description: `
-            Kan opprette overføringer fra/til og endre alle kontoer. 
+            Kan opprette overføringer fra/til og endre alle kontoer.
         `,
         category: 'diverse admin',
     },
     LEDGER_USE: {
         name: 'Overføre og betale',
         description: `
-            Tillater en bruker å utføre overføring av penger og betaling av varer og tjenester. 
+            Tillater en bruker å utføre overføring av penger og betaling av varer og tjenester.
         `,
         category: 'diverse admin',
     },
@@ -470,5 +350,23 @@ export const permissionConfig = {
         name: 'Nyhetsadministrator',
         description: 'kan administrere alle nyhetsartikler uavhengig av synlighet',
         category: 'public',
+    },
+    ARTICLE_CATEGORY_ADMIN: {
+        name: 'Artikkeladministrator',
+        description: `
+            Kan lage artikkelkategorier, og lese og redigere alle kategorier og artiklene i dem
+            uavhengig av synlighet.
+        `,
+        category: 'public',
+    },
+    BULLSHIT_WRITE: {
+        name: 'Lage bullshit',
+        description: 'Kan sende inn bullshit',
+        category: 'ombul',
+    },
+    BULLSHIT_USE: {
+        name: 'Les bullshit',
+        description: 'Kan lese bullshit',
+        category: 'ombul',
     },
 } satisfies Record<Permission, PermissionInfo>

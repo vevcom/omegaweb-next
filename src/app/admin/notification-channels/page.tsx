@@ -1,14 +1,13 @@
-'use server'
-
 import styles from './page.module.scss'
 import AddNotificationChannel from './addNotificationChannel'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { readNotificationChannelsAction } from '@/services/notifications/actions'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+import { notificationChannelOperations } from '@/services/notifications/channel/operations'
+import { serverPage } from '@/app/serverPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 type ChannelRow = {
     channel: ExpandedNotificationChannel,
@@ -45,42 +44,53 @@ function orderByHierarchy(channels: ExpandedNotificationChannel[]): ChannelRow[]
     return rows
 }
 
-export default async function NotificationChannels() {
-    await authorizeAdminPage('notification-channels')
-    const channels = unwrapActionReturn(await readNotificationChannelsAction())
-    const rows = orderByHierarchy(channels)
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('notification-channels', session)
+        return notificationChannelOperations.readMany({})
+    },
+    metadata: () => ({ title: 'Varslingskanaler' }),
+    render: ({ data: channels }) => {
+        const rows = orderByHierarchy(channels)
 
-    return <PageWrapper
-        title="Varslingskanaler"
-        headerItem={
-            <AddHeaderItemPopUp popUpKey="createNewsPop">
-                <AddNotificationChannel channels={channels}/>
-            </AddHeaderItemPopUp>
-        }
-    >
-        <table className={styles.channelList}>
-            <thead>
-                <tr>
-                    <th>Navn</th>
-                    <th>Beskrivelse</th>
-                </tr>
-            </thead>
-            <tbody>
-                {rows.map(({ channel, depth }) => (
-                    <Link key={channel.id} href={`/admin/notification-channels/${channel.id}`}>
+        return (
+            <PageWrapper
+                headerItem={
+                    <AddHeaderItemPopUp popUpKey="CreateNotificationChannel">
+                        <AddNotificationChannel channels={channels}/>
+                    </AddHeaderItemPopUp>
+                }
+            >
+                <table className={styles.channelList}>
+                    <thead>
                         <tr>
-                            <td>
-                                <span className={styles.name} style={{ paddingLeft: `${depth * 1.5}rem` }}>
-                                    {depth > 0 ? <span className={styles.branch} aria-hidden="true" /> : null}
-                                    {channel.name}
-                                </span>
-                                {channel.special ? <span className={styles.badge}>{channel.special}</span> : null}
-                            </td>
-                            <td className={styles.description}>{channel.description || '—'}</td>
+                            <th>Navn</th>
+                            <th>Beskrivelse</th>
                         </tr>
-                    </Link>
-                ))}
-            </tbody>
-        </table>
-    </PageWrapper>
-}
+                    </thead>
+                    <tbody>
+                        {rows.map(({ channel, depth }) => (
+                            <Link key={channel.id} href={`/admin/notification-channels/${channel.id}`}>
+                                <tr>
+                                    <td>
+                                        <span className={styles.name} style={{ paddingLeft: `${depth * 1.5}rem` }}>
+                                            {depth > 0 ? <span className={styles.branch} aria-hidden="true" /> : null}
+                                            {channel.name}
+                                        </span>
+                                        {channel.special
+                                            ? <span className={styles.badge}>{channel.special}</span>
+                                            : null}
+                                    </td>
+                                    <td className={styles.description}>{channel.description || '—'}</td>
+                                </tr>
+                            </Link>
+                        ))}
+                    </tbody>
+                </table>
+            </PageWrapper>
+        )
+    },
+})
+
+export default page
+export { generateMetadata }

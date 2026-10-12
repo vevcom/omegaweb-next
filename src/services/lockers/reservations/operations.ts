@@ -17,7 +17,7 @@ export const lockerReservationOperations = {
      * @returns The newly created reservation object.
      */
     create: defineOperation({
-        authorizer: () => lockerReservationAuth.create.dynamicFields({}),
+        authorizer: () => lockerReservationAuth.create,
         paramsSchema: z.object({
             lockerId: z.number(),
         }),
@@ -63,7 +63,7 @@ export const lockerReservationOperations = {
      * @returns The updated reservation object.
      */
     read: defineOperation({
-        authorizer: () => lockerReservationAuth.read.dynamicFields({}),
+        authorizer: () => lockerReservationAuth.read,
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -83,7 +83,7 @@ export const lockerReservationOperations = {
      * @returns The updated reservation object.
      */
     update: defineOperation({
-        authorizer: () => lockerReservationAuth.update.dynamicFields({}),
+        authorizer: () => lockerReservationAuth.update,
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -130,5 +130,5 @@ export const lockerReservationOperations = {
             })
         },
     }),
-}
+} as const
 

@@ -9,7 +9,6 @@ export const createLockerLocationAction = makeAction(lockerLocationOperations.cr
 export const readAllLockerLocationsAction = makeAction(lockerLocationOperations.readAll)
 
 export const createLockerAction = makeAction(lockerOperations.create)
-export const readLockerAction = makeAction(lockerOperations.read)
 export const readLockerPageAction = makeAction(lockerOperations.readPage)
 
 export const updateLockerReservationAction = makeAction(lockerReservationOperations.update)

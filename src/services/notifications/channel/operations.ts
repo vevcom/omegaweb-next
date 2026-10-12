@@ -8,16 +8,16 @@ import {
     notificationMethodsArray,
 } from '@/services/notifications/constants'
 import { notificationMethodSchema } from '@/services/notifications/schemas'
-import { booleanOperationOnMethods } from '@/services/notifications/notificationMethodOperations'
+import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
 import { defineOperation } from '@/services/serviceOperation'
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { z } from 'zod'
 import type { ExpandedNotificationChannel, NotificationMethodGeneral } from '@/services/notifications/types'
 
 export const notificationChannelOperations = {
     create: defineOperation({
-        authorizer: () => notificationChannelAuth.create.dynamicFields({}),
+        authorizer: () => notificationChannelAuth.create,
         dataSchema: notificationChannelSchemas.create,
         opensTransaction: true,
         paramsSchema: z.object({
@@ -26,7 +26,7 @@ export const notificationChannelOperations = {
         }),
         operation: async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
             if (!validateMethods(params.availableMethods, params.defaultMethods)) {
-                throw new ServerError('BAD PARAMETERS', 'Default methods cannot exceed available methods.')
+                throw new ServiceError('BAD PARAMETERS', 'Default methods cannot exceed available methods.')
             }
 
             const channel = await prisma.notificationChannel.create({
@@ -105,14 +105,14 @@ export const notificationChannelOperations = {
     }),
 
     readMany: defineOperation({
-        authorizer: () => notificationChannelAuth.readMany.dynamicFields({}),
+        authorizer: () => notificationChannelAuth.readMany,
         operation: async ({ prisma }) => await prisma.notificationChannel.findMany({
             include: availableNotificationMethodIncluder,
         })
     }),
 
     readDefault: defineOperation({
-        authorizer: () => notificationChannelAuth.readDefault.dynamicFields({}),
+        authorizer: () => notificationChannelAuth.readDefault,
         operation: async ({ prisma }) => await prisma.notificationChannel.findMany({
             where: {
                 defaultMethods: {
@@ -126,7 +126,7 @@ export const notificationChannelOperations = {
     }),
 
     update: defineOperation({
-        authorizer: () => notificationChannelAuth.update.dynamicFields({}),
+        authorizer: () => notificationChannelAuth.update,
         dataSchema: notificationChannelSchemas.update,
         paramsSchema: z.object({
             id: z.number(),
@@ -136,7 +136,7 @@ export const notificationChannelOperations = {
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => {
             if (!validateMethods(params.availableMethods, params.defaultMethods)) {
-                throw new ServerError('BAD PARAMETERS', 'Default methods cannot exceed available methods.')
+                throw new ServiceError('BAD PARAMETERS', 'Default methods cannot exceed available methods.')
             }
 
 
@@ -161,7 +161,7 @@ export const notificationChannelOperations = {
                 })
 
                 if (!validateNewParent(params.id, data.parentId, allChannels)) {
-                    throw new ServerError('BAD PARAMETERS', 'Cannot set parentId in a loop')
+                    throw new ServiceError('BAD PARAMETERS', 'Cannot set parentId in a loop')
                 }
 
                 updateParentId = true
@@ -220,7 +220,7 @@ export const notificationChannelOperations = {
     // TODO: It should probably be possible to delete a channel from the frontend (if not default) - Johan
     // It doesn't seem that this function is used yet. -Theodor
     destroy: defineOperation({
-        authorizer: () => notificationChannelAuth.destroy.dynamicFields({}),
+        authorizer: () => notificationChannelAuth.destroy,
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -247,4 +247,4 @@ export const notificationChannelOperations = {
             return results
         })
     }),
-}
+} as const

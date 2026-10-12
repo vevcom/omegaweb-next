@@ -1,10 +1,10 @@
 import styles from './LedgerAccountPaymentMethodsCard.module.scss'
 import PaymentMethodList from '@/components/Ledger/Accounts/PaymentMethodList'
 import PaymentMethodModal from '@/components/Ledger/Modals/PaymentMethodModal'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { readUserAction } from '@/services/users/actions'
+import { userOperations } from '@/services/users/operations'
 import BooleanIndicator from '@/components/UI/BooleanIndicator'
-import { readSavedPaymentMethodsAction } from '@/services/stripeCustomers/actions'
+import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
+import { withFallback, withPageSession } from '@/app/serverPage'
 import Link from 'next/link'
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -14,11 +14,13 @@ type Props = {
 }
 
 export default async function LedgerAccountPaymentMethods({ userId }: Props) {
-    const user = unwrapActionReturn(await readUserAction({ params: { id: userId } })) // TODO: Change to better method
-    const savedPaymentMethodsResult = await readSavedPaymentMethodsAction({ params: { userId } })
-    const savedPaymentMethods = savedPaymentMethodsResult.success
-        ? savedPaymentMethodsResult.data
-        : []
+    const { user, savedPaymentMethods } = await withPageSession(async () => ({
+        user: await userOperations.read({ params: { id: userId } }), // TODO: Change to better method
+        savedPaymentMethods: await withFallback(
+            stripeCustomerOperations.readSavedPaymentMethods({ params: { userId } }),
+            []
+        ),
+    }))
 
     const hasBankCard = savedPaymentMethods.length > 0
     const hasStudentCard = user.studentCard !== null

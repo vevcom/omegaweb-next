@@ -2,24 +2,23 @@ import styles from './Section.module.scss'
 import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagraph'
 import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import {
-    readSpecialCmsImageFrontpage,
-    readSpecialCmsParagraphFrontpageSection,
-    updateSpecialCmsImageFrontpage,
-    updateSpecialCmsParagraphFrontpageSection
+    readSpecialCmsImageFrontpageAction,
+    readSpecialCmsParagraphFrontpageSectionAction,
+    updateSpecialCmsImageFrontpageAction,
+    updateSpecialCmsParagraphFrontpageSectionAction
 } from '@/services/frontpage/actions'
 import Link from 'next/link'
 import type {
     SpecialCmsImage as SpecialCmsImageT,
     SpecialCmsParagraph as SpecialCmsParagraphT
 } from '@/prisma-generated-pn-types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 import type { ReactNode } from 'react'
 
 type PropTypes = {
     specialCmsImage: SpecialCmsImageT,
-    canEditSpecialCmsImage: AuthResultTypeAny,
     specialCmsParagraph: SpecialCmsParagraphT,
-    canEditSpecialCmsParagraph: AuthResultTypeAny,
+    capabilities: Capabilities<'canEditSpecialCmsImage' | 'canEditSpecialCmsParagraph'>,
     readMore: string,
     position: 'left' | 'right',
     imgWidth: number,
@@ -29,9 +28,8 @@ type PropTypes = {
 
 function Section({
     specialCmsImage,
-    canEditSpecialCmsImage,
     specialCmsParagraph,
-    canEditSpecialCmsParagraph,
+    capabilities,
     readMore,
     position,
     imgWidth,
@@ -41,11 +39,11 @@ function Section({
     const imgContainer = (
         <div style={{ width: imgWidth }} className={styles.imgContainer}>
             <SpecialCmsImage
-                canEdit={canEditSpecialCmsImage}
+                capabilities={{ canEdit: capabilities.canEditSpecialCmsImage }}
                 special={specialCmsImage}
                 width={imgWidth}
-                readSpecialCmsImageAction={readSpecialCmsImageFrontpage}
-                updateCmsImageAction={updateSpecialCmsImageFrontpage}
+                readSpecialCmsImageAction={readSpecialCmsImageFrontpageAction}
+                updateCmsImageAction={updateSpecialCmsImageFrontpageAction}
             />
         </div>
     )
@@ -54,11 +52,11 @@ function Section({
             {position === 'left' && imgContainer}
             <div>
                 <SpecialCmsParagraph
-                    canEdit={canEditSpecialCmsParagraph}
+                    capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
                     className={styles.paragraph}
                     special={specialCmsParagraph}
-                    readSpecialCmsParagraphAction={readSpecialCmsParagraphFrontpageSection}
-                    updateCmsParagraphAction={updateSpecialCmsParagraphFrontpageSection}
+                    readSpecialCmsParagraphAction={readSpecialCmsParagraphFrontpageSectionAction}
+                    updateCmsParagraphAction={updateSpecialCmsParagraphFrontpageSectionAction}
                 />
                 <Link className={styles.readMore} href={readMore}>Les mer</Link>
                 {children}

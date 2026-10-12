@@ -33,12 +33,11 @@ export const jobAdSchemas = {
         location: true,
     }),
     readInactivePage: readPageInputSchemaObject(
-        z.number(),
         z.object({
             id: z.number(),
         }),
         z.object({
-            name: z.string().nullable(),
+            name: z.string().max(100).nullable(),
             type: z.nativeEnum(JobType).nullable(),
         }),
     ),

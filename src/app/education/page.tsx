@@ -1,4 +1,5 @@
 import styles from './page.module.scss'
+import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { readStandardImageAction } from '@/services/images/standard/actions'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import ImageCard from '@/components/ImageCard/ImageCard'
@@ -20,7 +21,8 @@ export default async function education() {
     const Books = BooksRes.success ? BooksRes.data : null
 
     return (
-        <PageWrapper title="Fagveven">
+        <PageWrapper>
+            <PageTitleSetter title="Fagveven" />
             <p>
                 Velkommen til omegas fagvev! Her finner du nyttig info om emner og utveksling skrevet
                 av studenter for studenter. Du kan også bidra selv ved å skrive om dine erfaringer

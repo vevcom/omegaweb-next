@@ -1,6 +1,6 @@
 import { hasher } from './hasher'
 import { encrypter } from './encrypter'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import type { EncrypterConfig } from './encrypter'
 
 /**
@@ -22,10 +22,10 @@ export function hashAndEncrypter(
 ) {
     function getFunctions() {
         if (!salt || !Number(salt)) {
-            throw new ServerError('SERVER ERROR', 'Serveren manger config')
+            throw new ServiceError('SERVER ERROR', 'Serveren manger config')
         }
         if (!encryptionKey) {
-            throw new ServerError('SERVER ERROR', 'Serveren manger config')
+            throw new ServiceError('SERVER ERROR', 'Serveren manger config')
         }
         const { hash, compare } = hasher(Number(salt))
         const { encrypt, decrypt } = encrypter(encryptionKey, encrypterConfig)

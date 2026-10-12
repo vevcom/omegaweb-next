@@ -22,7 +22,6 @@ export default function CreateGroupLedgerAccountForm({ popUpKey }: Props) {
         >
             <TextInput name="name" label="Navn" required />
             <TextInput name="payoutAccountNumber" label="Utbetalingskontonummer" />
-            <input type="hidden" name="type" value="GROUP" />
         </Form>
     )
 }

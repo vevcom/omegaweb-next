@@ -1,13 +1,14 @@
 import styles from './YouTube.module.scss'
 
 type PropTypes = {
-	src: string,
+    src: string,
+    title: string,
 }
 
-function YouTube({ src }: PropTypes) {
+function YouTube({ src, title }: PropTypes) {
     return <div className={styles.YouTube}>
         <iframe
-            title="YouTube Video" // TODO Add name of youtube video
+            title={title}
             allowFullScreen
             className={styles.YouTubeIframe}
             src={src.replace('/watch?v=', '/embed/')} />

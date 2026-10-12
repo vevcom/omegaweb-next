@@ -1,4 +1,4 @@
-import type { eventRegistrationIncluderDetailed, eventRegistrationSelection } from './constants'
+import type { eventRegistrationSelectionDetailed, eventRegistrationSelection } from './constants'
 import type { eventRegistrationSchemas } from './schemas'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
@@ -20,7 +20,7 @@ export type EventRegistrationWithWaitingList = EventRegistration & {
 }
 
 export type EventRegistrationDetailedExpanded = Prisma.EventRegistrationGetPayload<{
-    include: typeof eventRegistrationIncluderDetailed,
+    select: typeof eventRegistrationSelectionDetailed,
 }>
 
 /**

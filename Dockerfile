@@ -23,7 +23,7 @@ RUN npx prisma generate
 COPY src/prisma/owSchema src/prisma/owSchema
 RUN npm run dobbelOmega:generate
 
-RUN mkdir -p usr/src/app/store/images
+RUN mkdir -p store/images
 
 # Copy remaining files except src
 # (src is binded in dev so there is no need to copy it here)
@@ -57,6 +57,9 @@ ENV NODE_ENV=production
 
 ARG NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
 ENV NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
+
+ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
 
 COPY src src
 

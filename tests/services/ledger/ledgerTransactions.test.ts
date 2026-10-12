@@ -28,10 +28,9 @@ describe('ledger transactions', () => {
                 bypassAuth: true,
             })
 
-            const testAccount = await ledgerAccountOperations.create({
-                data: {
-                    userId: testUser.id,
-                },
+            // userOperations.create already gave the user a ledger account - just read it.
+            const testAccount = await ledgerAccountOperations.read({
+                params: { userId: testUser.id },
                 bypassAuth: true,
             })
 

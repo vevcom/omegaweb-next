@@ -1,25 +1,29 @@
-import { RequireLevelFromDoubleLevelVisibility } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibility'
-import { RequireLevelFromDoubleLevelVisibilityDynamic } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibilityDynamic'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequireVisibilityFilter } from '@/auth/authorizer/RequireVisibilityFilter'
+import { Require } from '@/auth/authorizer/Require'
+import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
+
+/**
+ * A news article's admin level decides who may edit, destroy, (un)publish or see it in draft, its
+ * regular level who may see it once published. NEWS_ADMIN bypasses both levels for every article.
+ * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`.
+ */
+const regularLevel = Require.permission('NEWS_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
+const adminLevel = Require.permission('NEWS_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
 
 export const newsAuth = {
-    create: RequirePermission.staticFields({ permission: 'NEWS_CREATE' }),
+    create: Require.permission('NEWS_ADMIN').or().permission('NEWS_CREATE'),
 
-    readDoubleLevelMatrix:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'REGULAR', bypassPermission: 'NEWS_ADMIN' }),
-    updateRegularLevel:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'NEWS_ADMIN' }),
-    updateAdminLevel:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'NEWS_ADMIN' }),
+    readDoubleLevelMatrix: regularLevel,
+    updateRegularLevel: adminLevel,
+    updateAdminLevel: adminLevel,
 
-    destroy: RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'NEWS_ADMIN' }),
-    update: RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'NEWS_ADMIN' }),
-    updateArticle: RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'NEWS_ADMIN' }),
-    setPublished:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'NEWS_ADMIN' }),
+    destroy: adminLevel,
+    update: adminLevel,
+    updateArticle: adminLevel,
+    setPublished: adminLevel,
 
-    read: RequireLevelFromDoubleLevelVisibilityDynamic.staticFields({ bypassPermission: 'NEWS_ADMIN' }),
-    readCurrent: RequireVisibilityFilter.staticFields({ bypassPermission: 'NEWS_ADMIN' }),
-    readOldPage: RequireVisibilityFilter.staticFields({ bypassPermission: 'NEWS_ADMIN' }),
+    // Published articles are visible at the regular level, drafts only at the admin level.
+    read: ({ published, doubleLevelMatrix }: { published: boolean, doubleLevelMatrix: DoubleLevelVisibilityMatrix }) =>
+        (published ? regularLevel : adminLevel).data({ visibility: doubleLevelMatrix }),
+    readCurrent: Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
+    readOldPage: Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
 } as const

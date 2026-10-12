@@ -5,12 +5,12 @@ import { cmsLinkOperations } from '@/cms/links/operations'
 
 export const careerOperations = {
     readSpecialCmsParagraphCareerInfo: cmsParagraphOperations.readSpecial.implement({
-        authorizer: () => careerAuth.readSpecialCmsParagraphCareerInfo.dynamicFields({}),
+        authorizer: () => careerAuth.readSpecialCmsParagraphCareerInfo,
         ownershipCheck: ({ params }) => params.special === 'CAREER_INFO'
     }),
 
     updateSpecialCmsParagraphContentCareerInfo: cmsParagraphOperations.updateContent.implement({
-        authorizer: () => careerAuth.updateSpecialCmsParagraphContentCareerInfo.dynamicFields({}),
+        authorizer: () => careerAuth.updateSpecialCmsParagraphContentCareerInfo,
         ownershipCheck: async ({ params }) =>
             await cmsParagraphOperations.isSpecial.internalCall({
                 params: { paragraphId: params.paragraphId, special: ['CAREER_INFO'] },
@@ -18,12 +18,12 @@ export const careerOperations = {
     }),
 
     readSpecialCmsLink: cmsLinkOperations.readSpecial.implement({
-        authorizer: () => careerAuth.readSpecialCmsLink.dynamicFields({}),
+        authorizer: () => careerAuth.readSpecialCmsLink,
         ownershipCheck: ({ params }) => params.special === 'CAREER_LINK_TO_CONTACTOR'
     }),
 
     updateSpecialCmsLink: cmsLinkOperations.update.implement({
-        authorizer: () => careerAuth.updateSpecialCmsLink.dynamicFields({}),
+        authorizer: () => careerAuth.updateSpecialCmsLink,
         ownershipCheck: ({ params }) =>
             cmsLinkOperations.isSpecial.internalCall({
                 params: {
@@ -32,4 +32,4 @@ export const careerOperations = {
                 }
             })
     }),
-}
+} as const

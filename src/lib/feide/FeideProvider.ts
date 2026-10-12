@@ -44,16 +44,20 @@ export default function FeideProvider<P extends FeideProfile>(
             // so we have to fetch it from the extended user info Feide API endpoint.
             const extendedUserInfo = await fetchExtendedUserInfoFromFeide(tokens.access_token)
 
+            const email = profile.email?.trim().toLowerCase()
+
             return {
                 id: profile.sub,
-                username: profile.email?.split('@')[0],
-                email: profile.email,
+                username: email?.split('@')[0],
+                email,
                 name: profile.name,
                 firstname: extendedUserInfo.givenName?.join(' '),
                 lastname: extendedUserInfo.sn?.join(' '),
             }
         },
-        allowDangerousEmailAccountLinking: true, // This will try to link accounts with the same email
+        // Links a new Feide login to the user with the same email. The signIn callback in authOptions
+        // refuses this unless feideLoginMayLinkByEmail allows it.
+        allowDangerousEmailAccountLinking: true,
         options,
     }
 }

@@ -178,7 +178,14 @@ describe('mail flow traversal', () => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
         const group = await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })
         testGroupIds.push(group.id)
-        const user = await prisma.user.create({ data: { username: 'test-group-user', email: 'test-group@test.test' } })
+        const user = await prisma.user.create({
+            data: {
+                username: 'test-group-user',
+                email: 'test-group@test.test',
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+            },
+        })
         await prisma.membership.create({
             data: { userId: user.id, groupId: group.id, admin: false, active: true, order },
         })
@@ -201,6 +208,52 @@ describe('mail flow traversal', () => {
         expect(flow.mailingList).toHaveLength(1)
         expect(flow.group.map(flowGroup => flowGroup.id)).toContain(group.id)
         expect(flow.user.map(flowUser => flowUser.id)).toContain(user.id)
+    })
+
+    test('inactive group members are not part of the mail flow', async () => {
+        const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
+        const group = await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })
+        testGroupIds.push(group.id)
+        const activeUser = await prisma.user.create({
+            data: {
+                username: 'test-active-member',
+                email: 'test-active-member@test.test',
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+            },
+        })
+        const inactiveUser = await prisma.user.create({
+            data: {
+                username: 'test-inactive-member',
+                email: 'test-inactive-member@test.test',
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+            },
+        })
+        await prisma.membership.create({
+            data: { userId: activeUser.id, groupId: group.id, admin: false, active: true, order },
+        })
+        await prisma.membership.create({
+            data: { userId: inactiveUser.id, groupId: group.id, admin: false, active: false, order },
+        })
+
+        const list = await mailingListOperations.create({
+            data: { name: 'test-inactive-traversal', description: '' },
+            bypassAuth: true,
+        })
+
+        await mailOperations.createMailingListGroupRelation({
+            data: { mailingListId: list.id, groupId: group.id },
+            bypassAuth: true,
+        })
+
+        const flow = await mailOperations.readMailTraversal({
+            params: { filter: 'mailingList', id: list.id },
+            bypassAuth: true,
+        })
+
+        expect(flow.user.map(flowUser => flowUser.id)).toContain(activeUser.id)
+        expect(flow.user.map(flowUser => flowUser.id)).not.toContain(inactiveUser.id)
     })
 
     test('external address appearing via multiple mailing lists is deduplicated in alias traversal', async () => {
@@ -259,7 +312,14 @@ describe('destroy mailing list user relation', () => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
         const group = await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })
         testGroupIds.push(group.id)
-        const user = await prisma.user.create({ data: { username: 'test-destroy-user', email: 'test-destroy@test.test' } })
+        const user = await prisma.user.create({
+            data: {
+                username: 'test-destroy-user',
+                email: 'test-destroy@test.test',
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+            },
+        })
         await prisma.membership.create({
             data: { userId: user.id, groupId: group.id, admin: false, active: true, order },
         })
@@ -282,7 +342,14 @@ describe('destroy mailing list user relation', () => {
     })
 
     test('can destroy direct user relation when one exists', async () => {
-        const user = await prisma.user.create({ data: { username: 'test-direct-user', email: 'test-direct@test.test' } })
+        const user = await prisma.user.create({
+            data: {
+                username: 'test-direct-user',
+                email: 'test-direct@test.test',
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+            },
+        })
         const list = await mailingListOperations.create({
             data: { name: 'test-direct-list', description: '' },
             bypassAuth: true,

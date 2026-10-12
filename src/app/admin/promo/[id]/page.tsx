@@ -8,27 +8,21 @@ import ImageUploader from '@/components/Image/ImageUploader'
 import Image from '@/components/Image/Image'
 import {
     destroyPromoAction,
-    readPromoAction,
     updatePromoAction,
     updatePromoImageAction
 } from '@/services/promo/actions'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+import { promoOperations } from '@/services/promo/operations'
+import { serverPage } from '@/app/serverPage'
 import { configureAction } from '@/services/configureAction'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        id: string
-    }>
-}
-
-export default async function PromoUpdatePage({ params }: PropTypes) {
-    const promo = unwrapActionReturn(
-        await readPromoAction({ params: { promoId: Number((await params).id) } })
-    )
-
-    return (
-        <PageWrapper title={`Rediger promo: ${promo.title}`}>
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ id: string }>) =>
+        promoOperations.read({ params: { promoId: Number(params.id) } }),
+    metadata: (promo) => ({ title: `Rediger promo: ${promo.title}` }),
+    render: ({ data: promo }) => (
+        <PageWrapper>
             <div className={styles.image}>
                 <Image width={400} image={promo.image} hideCredit hideCopyRight />
                 <PopUp
@@ -74,5 +68,8 @@ export default async function PromoUpdatePage({ params }: PropTypes) {
                 }}
             />
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

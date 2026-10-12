@@ -1,5 +1,6 @@
 import styles from './Checkbox.module.scss'
 import CheckboxFieldPresent from './CheckboxFieldPresent'
+import { useId } from 'react'
 import type { InputHTMLAttributes, ReactNode } from 'react'
 
 type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name' | 'id'> & {
@@ -16,11 +17,12 @@ type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name' | '
  * @param children - If given, the children will be clickable as part of checkbox
  * @returns
  */
-function Checkbox({ label, children, ...props }: PropTypes) {
-    const inputId = props.id ?? `id_input_${props.name}`
+function Checkbox({ label, children, id, ...props }: PropTypes) {
+    const domId = useId()
+    const inputId = id ?? domId
 
     return (
-        <div id={props.name} className={styles.Checkbox}>
+        <div className={styles.Checkbox}>
             {
                 children ? (
                     <label className={styles.inputAndChildren}>

@@ -10,19 +10,16 @@ export default async function seedProdPermissions(prisma: PrismaClientPn) {
         vevcom: allPermissions,
         hs: allPermissions,
         ombul: [
-            'OMBUL_READ',
-            'OMBUL_CREATE',
-            'OMBUL_UPDATE',
-            'OMBUL_DESTROY',
+            'OMBUL_USE',
+            'OMBUL_ADMIN',
+            'BULLSHIT_USE',
         ],
         hyttecom: [
             'CABIN_ADMIN',
-            'CABIN_BOOKING_ADMIN',
-            'CABIN_PRODUCTS_ADMIN',
         ],
         contactor: [
             'DOTS_ADMIN',
-            'SCREEN_READ',
+            'SCREEN_USE',
             'SCREEN_ADMIN',
         ],
     }

@@ -16,19 +16,16 @@ const ownedCmsImages: Readonly<SpecialCmsImage[]> = [
     'FRONTPAGE_2',
     'FRONTPAGE_3',
     'FRONTPAGE_4',
-    'FOOTER_SPONSOR_1',
-    'FOOTER_SPONSOR_2',
-    'FOOTER_SPONSOR_3',
 ]
 
 export const frontpageOperations = {
     readSpecialCmsParagraphSection: cmsParagraphOperations.readSpecial.implement({
-        authorizer: () => frontpageAuth.readSpecialCmsParagraphSection.dynamicFields({}),
+        authorizer: () => frontpageAuth.readSpecialCmsParagraphSection,
         ownershipCheck: ({ params }) => ownedCmsParagraphs.includes(params.special)
     }),
 
     updateSpecialCmsParagraphContentSection: cmsParagraphOperations.updateContent.implement({
-        authorizer: () => frontpageAuth.updateSpecialCmsParagraphContentSection.dynamicFields({}),
+        authorizer: () => frontpageAuth.updateSpecialCmsParagraphContentSection,
         ownershipCheck: async ({ params }) =>
             await cmsParagraphOperations.isSpecial.internalCall({
                 params: {
@@ -39,12 +36,12 @@ export const frontpageOperations = {
     }),
 
     readSpecialCmsImage: cmsImageOperations.readSpecial.implement({
-        authorizer: () => frontpageAuth.readSpecialCmsImage.dynamicFields({}),
+        authorizer: () => frontpageAuth.readSpecialCmsImage,
         ownershipCheck: ({ params }) => ownedCmsImages.includes(params.special)
     }),
 
     updateSpecialCmsImage: cmsImageOperations.update.implement({
-        authorizer: () => frontpageAuth.updateSpecialCmsImage.dynamicFields({}),
+        authorizer: () => frontpageAuth.updateSpecialCmsImage,
         ownershipCheck: async ({ params }) =>
             await cmsImageOperations.isSpecial.internalCall({
                 params: {

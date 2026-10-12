@@ -22,6 +22,9 @@ export const groupSchemas = {
      * Shared by the member management operations, which all address one group at one order.
      */
     groupMemberParams,
+    readMembershipsOfUserOfType: z.object({
+        userId: z.number(),
+    }),
     readMembers: z.object({
         groupId: z.number(),
         /**

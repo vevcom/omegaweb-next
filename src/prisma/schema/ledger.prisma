@@ -30,8 +30,7 @@ enum LedgerAccountType {
 // It is used to store internal funds for either users or groups
 model LedgerAccount {
   id                  Int                  @id @default(autoincrement())
-  user                User?                @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  userId              Int?                 @unique
+  user                User?
   groups              GroupLedgerAccount[]
   type                LedgerAccountType
   frozen              Boolean              @default(false) // If true, no transactions may be made on this account.

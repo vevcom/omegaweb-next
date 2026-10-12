@@ -6,9 +6,6 @@ export const createCabinBookingUserAttachedAction = makeAction(cabinBookingOpera
 export const createBedBookingUserAttachedAction = makeAction(cabinBookingOperations.createBedBookingUserAttached)
 export const createCabinBookingNoUserAction = makeAction(cabinBookingOperations.createCabinBookingNoUser)
 export const createBedBookingNoUserAction = makeAction(cabinBookingOperations.createBedBookingNoUser)
-export const readCabinAvailabilityAction = makeAction(cabinBookingOperations.readAvailability)
-export const readCabinBookingsAction = makeAction(cabinBookingOperations.readMany)
-export const readCabinBookingAction = makeAction(cabinBookingOperations.read)
 export const createCabinBookingPaymentAction = makeAction(cabinBookingOperations.createPayment)
 
 export const readSpecialCmsParagraphCabinContractAction = makeAction(
@@ -17,3 +14,4 @@ export const readSpecialCmsParagraphCabinContractAction = makeAction(
 export const updateSpecialCmsParagraphCabinContractAction = makeAction(
     cabinBookingOperations.updateSpecialCmsParagraphContentCabinContract
 )
+export const releaseCabinBookingReservationAction = makeAction(cabinBookingOperations.releaseReservation)

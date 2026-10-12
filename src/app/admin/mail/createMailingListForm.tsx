@@ -13,7 +13,7 @@ export default function CreateMailingList() {
         action={createMailingListAction}
         successCallback={data => {
             if (!data) return
-            push(`./mail/mailingList/${data.id}`)
+            push(`/admin/mail/mailingList/${data.id}`)
         }}
     >
         <TextInput label="Navn" name="name"></TextInput>

@@ -8,7 +8,7 @@ import { admissionOperations } from '@/services/admission/operations'
 import { allAdmissions } from '@/services/admission/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
 import { GroupType } from '@/prisma-generated-pn-types'
 import type { OmegaMembershipLevel, Prisma } from '@/prisma-generated-pn-types'
@@ -20,26 +20,27 @@ function omegaMembershipGTEQ(lhs: OmegaMembershipLevel, rhs: OmegaMembershipLeve
 const commonGroupOperations = implementGroupType({
     type: GroupType.OMEGA_MEMBERSHIP_GROUP,
     auth: {
-        readExpanded: omegaMembershipGroupAuth.readExpanded.dynamicFields({}),
-        readMembers: () => omegaMembershipGroupAuth.readMembers.dynamicFields({}),
+        readExpanded: omegaMembershipGroupAuth.readExpanded,
+        readMembers: () => omegaMembershipGroupAuth.readMembers,
+        readMembershipsOfUser: ({ userId }) => omegaMembershipGroupAuth.readMembershipsOfUser.data({ userId }),
     },
 })
 
 const migration = implementStraightAwayMigration({
     type: GroupType.OMEGA_MEMBERSHIP_GROUP,
     auth: {
-        migrateGroups: omegaMembershipGroupAuth.migrateGroups.dynamicFields({}),
+        migrateGroups: omegaMembershipGroupAuth.migrateGroups,
     },
 })
 
 const readMany = defineOperation({
-    authorizer: () => omegaMembershipGroupAuth.readMany.dynamicFields({}),
+    authorizer: () => omegaMembershipGroupAuth.readMany,
     operation: async ({ prisma }) => prisma.omegaMembershipGroup.findMany()
 })
 
 const read = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.read,
-    authorizer: () => omegaMembershipGroupAuth.read.dynamicFields({}),
+    authorizer: () => omegaMembershipGroupAuth.read,
     operation: async ({ prisma, params }) => prisma.omegaMembershipGroup.findUniqueOrThrow({
         where: params,
     })
@@ -60,7 +61,7 @@ const read = defineOperation({
  */
 const inferUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.inferUserLevel,
-    authorizer: () => omegaMembershipGroupAuth.inferUserLevel.dynamicFields({}),
+    authorizer: () => omegaMembershipGroupAuth.inferUserLevel,
     operation: async ({ prisma, params }): Promise<OmegaMembershipLevel> => {
         const partOfOmega = await prisma.membership.findFirst({
             where: {
@@ -105,8 +106,14 @@ async function readActiveOmegaMemberships(prisma: Prisma.TransactionClient, user
 }
 
 /**
- * The writes that put a user into the omega membership group of the given level: any other omega
- * membership is dropped, and the admission trials are brought into the state the level implies.
+ * The writes that put a user into the omega membership group of the given level: the omega
+ * membership they held goes inactive, and the admission trials are brought into the state the level
+ * implies.
+ *
+ * A user holds at most one membership per omega membership group, and one of them is active. The
+ * inactive ones are the record of the levels the user has been through - a sysken was a soelle
+ * first - so a user put back at a level they held before gets that membership back, of the order
+ * it was granted in, rather than a new one.
  *
  * The client to write with is handed in rather than opened here, so that a caller with more to
  * record in the same breath - the trial that earned the promotion - can pass its own transaction
@@ -156,14 +163,38 @@ export async function writeUserLevel(
         })
     }
 
-    await prisma.membership.deleteMany({
+    await prisma.membership.updateMany({
         where: {
             userId: params.userId,
             group: {
                 groupType: GroupType.OMEGA_MEMBERSHIP_GROUP,
             },
-        }
+        },
+        data: { active: false },
     })
+
+    const held = await prisma.membership.findFirst({
+        where: {
+            userId: params.userId,
+            groupId: group.groupId,
+        },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+    })
+
+    if (held) {
+        await prisma.membership.update({
+            where: {
+                userId_groupId_order: {
+                    userId: params.userId,
+                    groupId: group.groupId,
+                    order: held.order,
+                },
+            },
+            data: { active: true },
+        })
+        return
+    }
 
     await prisma.membership.create({
         data: {
@@ -183,13 +214,13 @@ export async function writeUserLevel(
 }
 
 /**
- * Moves the user into the omega membership group of the given level, dropping any other omega
- * membership. This is the only way an omega membership changes on its own - the admission system
+ * Moves the user into the omega membership group of the given level, leaving the one they held
+ * inactive. This is the only way an omega membership changes on its own - the admission system
  * drives it, and `createTrial` makes the same move as part of recording the trial that earned it.
  */
 const updateUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.updateUserLevel,
-    authorizer: () => omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}),
+    authorizer: () => omegaMembershipGroupAuth.updateUserLevel,
     opensTransaction: true,
     operation: async ({ prisma, params }) => {
         await prisma.$transaction(tx => writeUserLevel(tx, params))
@@ -202,11 +233,11 @@ const updateUserLevel = defineOperation({
  * The omega membership the user holds - which of the omega membership groups they are an active
  * member of, and the order that membership was granted in.
  *
- * Every user is given one when they are created, and `updateUserLevel` replaces the one they hold
- * rather than adding to it, so both holding none and holding several are broken states. Neither is
- * papered over at read time: the database is put right here, so that the next read - and everything
- * else that looks at the user's memberships - sees one answer rather than each caller inventing its
- * own tie-break.
+ * Every user is given one when they are created, and `updateUserLevel` deactivates the one they
+ * hold when it grants another, so both holding no active one and holding several are broken states.
+ * Neither is papered over at read time: the database is put right here, so that the next read - and
+ * everything else that looks at the user's memberships - sees one answer rather than each caller
+ * inventing its own tie-break.
  *
  * Which level to put the user at is the admission system's to say, since that is what the level
  * records: a user who has sat every trial has earned their place as a sysken, and anyone else is a
@@ -215,7 +246,7 @@ const updateUserLevel = defineOperation({
  */
 const readUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.readUserLevel,
-    authorizer: () => omegaMembershipGroupAuth.readUserLevel.dynamicFields({}),
+    authorizer: () => omegaMembershipGroupAuth.readUserLevel,
     operation: async ({ prisma, params }): Promise<{ level: OmegaMembershipLevel, order: number }> => {
         const omegaMemberships = await readActiveOmegaMemberships(prisma, params.userId)
 
@@ -245,8 +276,8 @@ const readUserLevel = defineOperation({
             bypassAuth: true,
         })
 
-        const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-        return { level, order }
+        const [rewritten] = await readActiveOmegaMemberships(prisma, params.userId)
+        return rewritten
     }
 })
 
@@ -261,7 +292,7 @@ const readUserLevel = defineOperation({
 const updateUserOrder = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.updateUserOrderParams,
     dataSchema: omegaMembershipGroupSchemas.updateUserOrder,
-    authorizer: () => omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}),
+    authorizer: () => omegaMembershipGroupAuth.updateUserOrder,
     opensTransaction: true,
     operation: async ({ prisma, params, data }) => {
         // Read before the transaction is opened: a user whose memberships are in a broken state is
@@ -281,7 +312,7 @@ const updateUserOrder = defineOperation({
         ])
 
         if (!order) {
-            throw new ServerError('BAD DATA', `Den ${data.order}'dis orden finnes ikke.`)
+            throw new ServiceError('BAD DATA', `Den ${data.order}'dis orden finnes ikke.`)
         }
 
         await prisma.$transaction([
@@ -324,5 +355,6 @@ export const omegaMembershipGroupOperations = {
     updateUserOrder,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
+    readMembershipsOfUser: commonGroupOperations.readMembershipsOfUser,
     migrateGroups: migration.migrateGroups,
 } as const

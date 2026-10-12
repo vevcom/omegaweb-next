@@ -61,53 +61,6 @@
     }
 }
 
-.panel {
-    position: absolute;
-    top: calc(100% + #{ohma.$gap});
-    left: 0;
-    right: 0;
-    z-index: 5;
-    list-style: none;
-    margin: 0;
-    padding: ohma.$gap;
-    max-height: 260px;
-    overflow-y: auto;
-    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
-    background-color: ohma.$colors-surface-hover;
-    box-shadow: ohma.$colors-boxShadow 0 3px 6px, ohma.$colors-boxShadow 0 3px 6px;
-
-    button {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: ohma.$gap;
-        border: none;
-        background: transparent;
-        text-align: left;
-        font-size: ohma.$fonts-m;
-        color: ohma.$colors-text;
-        padding: calc(#{ohma.$gap}) calc(2 * #{ohma.$gap});
-        border-radius: calc(#{ohma.$rounding} - 1.5 * #{ohma.$gap});
-        cursor: pointer;
-        transition: background-color ohma.$transitionTime;
-
-        &:hover, &.active {
-            background-color: color-mix(in srgb, ohma.$colors-surface-hover, white 10%);
-        }
-
-        &.selected {
-            color: ohma.$colors-accent-blue;
-        }
-    }
-
-    .empty {
-        padding: calc(#{ohma.$gap}) calc(2 * #{ohma.$gap});
-        color: ohma.$colors-text-muted;
-        font-size: ohma.$fonts-s;
-    }
-}
-
 .onRaised > .field {
     background-color: ohma.$colors-surface-hover;
 

@@ -1,0 +1,10 @@
+@use '@/styles/ohma';
+
+.toolbar {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(2 * #{ohma.$gap});
+    width: 100%;
+}

@@ -1,5 +1,5 @@
-import { RequireEveryPermission } from '@/auth/authorizer/RequireEveryPermission'
-import { RequireEveryPermissionOrGroupAdmin } from '@/auth/authorizer/RequireEveryPermissionOrGroupAdmin'
+import { requireEveryPermissionOrGroupAdmin } from '@/auth/authorizer/RequireEveryPermissionOrGroupAdmin'
+import { Require } from '@/auth/authorizer/Require'
 import type { Permission } from '@/prisma-generated-pn-types'
 
 /**
@@ -7,19 +7,18 @@ import type { Permission } from '@/prisma-generated-pn-types'
  * users behind the memberships, so it takes permission to read users on top of permission to read
  * the group type itself - a group type's own read permission is not enough on its own.
  *
- * `CLASS_READ` and `MANUAL_GROUP_READ` are default permissions (seeded in development by `seedDevPermissions.ts`), and
- * `ServerSession.fromNextAuth` falls back to the default permissions when there is no session, so a
- * `readMembers` gated on one of those alone is callable by a visitor who is not logged in at all.
+ * `CLASS_USE` and `MANUAL_GROUP_USE` are default permissions (seeded in development by
+ * `seedDevPermissions.ts`), and `ServerSession.fromNextAuth` falls back to the default permissions
+ * when there is no session, so a `readMembers` gated on one of those alone is callable by a
+ * visitor who is not logged in at all.
  *
- * `USERS_READ` is a membership permission, so for the group types whose own read permission is a
+ * `USERS_USE` is a membership permission, so for the group types whose own read permission is a
  * membership permission too this adds nothing - which is the point. The rule holds for every type
  * rather than being a patch on the two that need it, so a group type that is made readable by
  * default later cannot start handing out member data by doing so.
  */
 export function requireReadGroupMembers(groupTypeReadPermission: Permission) {
-    return RequireEveryPermission.staticFields({
-        permissions: [groupTypeReadPermission, 'USERS_READ'],
-    })
+    return Require.permission(groupTypeReadPermission).permission('USERS_USE')
 }
 
 /**
@@ -38,7 +37,15 @@ export function requireReadGroupMembers(groupTypeReadPermission: Permission) {
  * default read permission still cannot hand out a roster to a visitor.
  */
 export function requireReadManagedGroupMembers(groupTypeReadPermission: Permission) {
-    return RequireEveryPermissionOrGroupAdmin.staticFields({
-        permissions: [groupTypeReadPermission, 'USERS_READ'],
-    })
+    return requireEveryPermissionOrGroupAdmin([groupTypeReadPermission, 'USERS_USE'])
+}
+
+/**
+ * The authorizer every group type's `readMembershipsOfUser` uses. A user may always see their own
+ * memberships. Anyone else needs what `requireReadGroupMembers` asks for, and for the same reason:
+ * the memberships say something about the user, and the group type's own read permission may be a
+ * default permission that a visitor who is not logged in holds as well.
+ */
+export function requireReadMembershipsOfUser(groupTypeReadPermission: Permission) {
+    return Require.userId().or().permission(groupTypeReadPermission).permission('USERS_USE')
 }

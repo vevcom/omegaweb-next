@@ -1,20 +1,20 @@
-import 'server-only'
+import '@pn-server-only'
 import { cabinPricePeriodAuth } from './auth'
 import { cabinPricePeriodSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { z } from 'zod'
 
 export const cabinPricePeriodOperations = {
     create: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.create.dynamicFields({}),
+        authorizer: () => cabinPricePeriodAuth.create,
         dataSchema: cabinPricePeriodSchemas.createPricePeriod,
         operation: async ({ prisma, data }) => {
             const currentReleaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 
             if (currentReleaseDate && currentReleaseDate.releaseUntil >= data.validFrom) {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD DATA',
                     'Kan ikke sette en pris periode til å være gyldig når datoene allerede er sluppet.'
                 )
@@ -28,7 +28,7 @@ export const cabinPricePeriodOperations = {
             })
 
             if (latestPricePeriod && latestPricePeriod.validFrom >= data.validFrom) {
-                throw new ServerError('BAD DATA', 'Kan ikke sette en pris periode til å være gyldig før en annen periode.')
+                throw new ServiceError('BAD DATA', 'Kan ikke sette en pris periode til å være gyldig før en annen periode.')
             }
 
             const result = await prisma.pricePeriod.create({
@@ -58,7 +58,7 @@ export const cabinPricePeriodOperations = {
     }),
 
     destroy: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.destroy.dynamicFields({}),
+        authorizer: () => cabinPricePeriodAuth.destroy,
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -70,7 +70,7 @@ export const cabinPricePeriodOperations = {
             })
 
             if (currentReleasePeriod && pricePeriod.validFrom <= currentReleasePeriod.releaseUntil) {
-                throw new ServerError('BAD PARAMETERS', 'Kan ikke slette en pris periode som er publisert.')
+                throw new ServiceError('BAD PARAMETERS', 'Kan ikke slette en pris periode som er publisert.')
             }
 
             return await prisma.pricePeriod.delete({
@@ -80,12 +80,12 @@ export const cabinPricePeriodOperations = {
     }),
 
     readMany: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.readMany.dynamicFields({}),
+        authorizer: () => cabinPricePeriodAuth.readMany,
         operation: async ({ prisma }) => prisma.pricePeriod.findMany()
     }),
 
     readPublicPeriods: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.readPublicPeriods.dynamicFields({}),
+        authorizer: () => cabinPricePeriodAuth.readPublicPeriods,
         operation: async ({ prisma }) => {
             const releaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 
@@ -118,7 +118,7 @@ export const cabinPricePeriodOperations = {
     }),
 
     readUnreleasedPeriods: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.readUnreleasedPeriods.dynamicFields({}),
+        authorizer: () => cabinPricePeriodAuth.readUnreleasedPeriods,
         operation: async ({ prisma }) => {
             const releaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
             return prisma.pricePeriod.findMany({
@@ -132,7 +132,7 @@ export const cabinPricePeriodOperations = {
     }),
 
     update: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.update.dynamicFields({}),
+        authorizer: () => cabinPricePeriodAuth.update,
         dataSchema: cabinPricePeriodSchemas.updatePricePeriod,
         paramsSchema: z.object({
             pricePeriodId: z.number(),
@@ -144,4 +144,4 @@ export const cabinPricePeriodOperations = {
             data,
         })
     }),
-}
+} as const

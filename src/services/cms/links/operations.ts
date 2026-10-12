@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { cmsLinkSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { SpecialCmsLink } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
@@ -41,7 +41,7 @@ export const cmsLinkOperations = {
                     id: params.linkId
                 }
             })
-            if (cmsLink.special) throw new ServerError('BAD PARAMETERS', 'Cannot delete special CMS link')
+            if (cmsLink.special) throw new ServiceError('BAD PARAMETERS', 'Cannot delete special CMS link')
             await prisma.cmsLink.delete({
                 where: {
                     id: params.linkId
@@ -100,7 +100,7 @@ export const cmsLinkOperations = {
                     special: true
                 }
             })
-            if (!link) throw new ServerError('NOT FOUND', 'Link not found')
+            if (!link) throw new ServiceError('NOT FOUND', 'Link not found')
             if (!link.special) return false
             return params.special.includes(link.special)
         }

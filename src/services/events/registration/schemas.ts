@@ -13,7 +13,6 @@ const baseSchema = z.object({
  * places of the event, or the ones on the waiting list past them.
  */
 const readPage = readPageInputSchemaObject(
-    z.number(),
     z.object({
         id: z.number(),
     }),

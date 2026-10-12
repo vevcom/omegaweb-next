@@ -1,15 +1,15 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const schoolAuth = {
-    create: RequirePermission.staticFields({ permission: 'SCHOOLS_ADMIN' }),
-    createStandard: RequirePermission.staticFields({ permission: 'SCHOOLS_ADMIN' }),
-    destroy: RequirePermission.staticFields({ permission: 'SCHOOLS_ADMIN' }),
-    read: RequirePermission.staticFields({ permission: 'SCHOOLS_READ' }),
-    readExpandedPage: RequirePermission.staticFields({ permission: 'SCHOOLS_READ' }),
-    readStandard: RequirePermission.staticFields({ permission: 'SCHOOLS_READ' }),
-    readMany: RequirePermission.staticFields({ permission: 'SCHOOLS_READ' }),
-    update: RequirePermission.staticFields({ permission: 'SCHOOLS_ADMIN' }),
-    updateCmsParagraphContent: RequirePermission.staticFields({ permission: 'SCHOOLS_ADMIN' }),
-    updateCmsImage: RequirePermission.staticFields({ permission: 'SCHOOLS_ADMIN' }),
-    updateCmsLink: RequirePermission.staticFields({ permission: 'SCHOOLS_ADMIN' }),
+    create: Require.permission('SCHOOLS_ADMIN'),
+    createStandard: Require.permission('SCHOOLS_ADMIN'),
+    destroy: Require.permission('SCHOOLS_ADMIN'),
+    read: Require.permission('SCHOOLS_USE'),
+    readExpandedPage: Require.permission('SCHOOLS_USE'),
+    readStandard: Require.permission('SCHOOLS_USE'),
+    readMany: Require.permission('SCHOOLS_USE'),
+    update: Require.permission('SCHOOLS_ADMIN'),
+    updateCmsParagraphContent: Require.permission('SCHOOLS_ADMIN'),
+    updateCmsImage: Require.permission('SCHOOLS_ADMIN'),
+    updateCmsLink: Require.permission('SCHOOLS_ADMIN'),
 } as const

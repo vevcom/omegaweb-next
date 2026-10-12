@@ -1,17 +1,23 @@
 import styles from './page.module.scss'
-import { redirectToErrorPage, unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { readLedgerAccountAction } from '@/services/ledger/accounts/actions'
 import TransactionList from '@/components/Ledger/Transactions/LedgerTransactionList'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { Require } from '@/auth/authorizer/Require'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default async function Transactions() {
-    const session = await ServerSession.fromNextAuth()
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => {
+        const { user } = Require.user()
+            .auth(session).requireAuthorized().session
 
-    if (!session.user) redirectToErrorPage('UNAUTHORIZED')
+        return ledgerAccountOperations.read({ params: { userId: user.id } })
+    },
+    render: ({ data: ledgerAccount }) => (
+        <div className={styles.wrapper}>
+            <TransactionList accountId={ledgerAccount.id} />
+        </div>
+    ),
+})
 
-    const ledgerAccount = unwrapActionReturn(await readLedgerAccountAction({ params: { userId: session.user.id } }))
-
-    return <div className={styles.wrapper}>
-        <TransactionList accountId={ledgerAccount.id} />
-    </div>
-}
+export default page
+export { generateMetadata }

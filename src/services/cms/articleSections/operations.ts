@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { articleSectionSchemas } from './schemas'
-import { articleSectionsRealtionsIncluder } from './constants'
-import { ServerError } from '@/services/error'
+import { articleSectionsRelationsIncluder } from './constants'
+import { ServiceError } from '@/services/error'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { cmsLinkOperations } from '@/cms/links/operations'
@@ -14,7 +14,7 @@ const create = defineSubOperation({
     operation: () => ({ prisma, data }) =>
         prisma.articleSection.create({
             data,
-            include: articleSectionsRealtionsIncluder
+            include: articleSectionsRelationsIncluder
         })
 })
 
@@ -23,7 +23,7 @@ const destroy = defineSubOperation({
     operation: () => ({ prisma, params }) =>
         prisma.articleSection.delete({
             where: params.articleSectionId ? { id: params.articleSectionId } : { name: params.articleSectionName },
-            include: articleSectionsRealtionsIncluder
+            include: articleSectionsRelationsIncluder
         })
 })
 
@@ -47,7 +47,7 @@ export const articleSectionOperations = {
                     imageSize: data.imageSize,
                     imagePosition: data.position,
                 },
-                include: articleSectionsRealtionsIncluder,
+                include: articleSectionsRelationsIncluder,
             })
     }),
 
@@ -70,10 +70,10 @@ export const articleSectionOperations = {
                 include: { [data.part]: true }
             })
             if (!articleSection) {
-                throw new ServerError('NOT FOUND', 'ArticleSection not found')
+                throw new ServiceError('NOT FOUND', 'ArticleSection not found')
             }
             if (articleSection[data.part]) {
-                throw new ServerError('BAD PARAMETERS', `ArticleSection already has ${data.part}`)
+                throw new ServiceError('BAD PARAMETERS', `ArticleSection already has ${data.part}`)
             }
 
             switch (data.part) {
@@ -86,7 +86,7 @@ export const articleSectionOperations = {
                     return await prisma.articleSection.update({
                         where,
                         data: { cmsImage: { connect: { id: cmsImage.id } } },
-                        include: articleSectionsRealtionsIncluder
+                        include: articleSectionsRelationsIncluder
                     })
                 }
                 case 'cmsParagraph':
@@ -98,7 +98,7 @@ export const articleSectionOperations = {
                     return await prisma.articleSection.update({
                         where,
                         data: { cmsParagraph: { connect: { id: cmsParagraph.id } } },
-                        include: articleSectionsRealtionsIncluder
+                        include: articleSectionsRelationsIncluder
                     })
                 }
                 case 'cmsLink':
@@ -110,13 +110,13 @@ export const articleSectionOperations = {
                     return await prisma.articleSection.update({
                         where,
                         data: { cmsLink: { connect: { id: cmsLink.id } } },
-                        include: articleSectionsRealtionsIncluder
+                        include: articleSectionsRelationsIncluder
                     })
                 }
                 default:
                     break
             }
-            throw new ServerError('BAD PARAMETERS', 'Invalid part')
+            throw new ServiceError('BAD PARAMETERS', 'Invalid part')
         }
     }),
 
@@ -141,10 +141,10 @@ export const articleSectionOperations = {
                 include: { cmsLink: true, cmsParagraph: true, cmsImage: true }
             })
             if (!articleSection) {
-                throw new ServerError('NOT FOUND', 'ArticleSection not found')
+                throw new ServiceError('NOT FOUND', 'ArticleSection not found')
             }
             if (!articleSection[data.part]) {
-                throw new ServerError('BAD PARAMETERS', `ArticleSection does not have ${data.part}`)
+                throw new ServiceError('BAD PARAMETERS', `ArticleSection does not have ${data.part}`)
             }
 
             switch (data.part) {
@@ -180,7 +180,7 @@ export const articleSectionOperations = {
                 include: { cmsParagraph: true, cmsImage: true, cmsLink: true }
             })
             if (!afterDelete) {
-                throw new ServerError('UNKNOWN ERROR', 'Noe uventet skjedde etter sletting av del av artclesection')
+                throw new ServiceError('UNKNOWN ERROR', 'Noe uventet skjedde etter sletting av del av artclesection')
             }
             if (
                 destroyOnEmpty &&

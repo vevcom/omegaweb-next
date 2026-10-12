@@ -1,3 +1,4 @@
+import '@pn-server-only'
 import { prismaCall } from '@/services/prismaCall'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { User } from '@/prisma-generated-pn-types'

@@ -1,6 +1,8 @@
-import upsertOrderBasedOnDate, { upsertOmegaOrder } from './upsertOrderBasedOnDate'
 import { type IdMapper, owIdToPnId } from './IdMapper'
+import { migratedOrder } from './migratedOrder'
+import { inferClassLadder } from './classLadder'
 import { createProgressBar } from './progressBar'
+import { createCmsParagraph } from './createCmsParagraph'
 import manifest from '@/prisma/seeder/src/dobbelOmega/manifest'
 import { Prisma, type PrismaClient as PrismaClientPn, type SEX } from '@/prisma-generated-pn-client'
 import logger from '@/lib/logger'
@@ -22,7 +24,11 @@ import type { Record } from '@prisma/client/runtime/client'
  * or Credentials. These should be linked when people log in for the first time.
  * If a user has the soelle field true on Omegaweb-basic it will get a relation to the soelle group
  * - else it is assumed to be a member and an inactive relation to the soelle group.
- * i.e. no users are assumed to be external.
+ * i.e. no users are assumed to be external. Every membership is of the order the user was taken up in.
+ *
+ * Omegaweb-basic had no notion of omega orders beyond the one a user was taken up in, so the orders
+ * are never created here: they come from the seeder, and an order inferred past the current one is
+ * reported and brought down to it (see `migratedOrder`).
  *
  * A migrated member is also given every admission trial. Being a sysken and having sat all of them
  * are the same statement in projectNext - the membership is read back from the trials when it has
@@ -33,6 +39,9 @@ import type { Record } from '@prisma/client/runtime/client'
  * @param owPrisma - PrismaClientOw
  * @param limits - Limits - used to limit the number of users to migrate
  */
+
+// Placeholder emails must not be able to receive mail: the site itself hands out aliases on omega.ntnu.no.
+const placeholderEmailDomain = 'dobbelomega.invalid'
 
 const sexMap = {
     // eslint-disable-next-line id-length
@@ -214,17 +223,29 @@ export class UserMigrator {
             }
 
             const meta = err.meta as {
-                driverAdapterError: {
-                    cause: {
-                        constraint: {
-                            fields: string[]
-                        }
+                driverAdapterError?: {
+                    table?: string
+                    cause?: {
+                        constraint?: { fields?: string[] } | { index?: string }
                     }
                 }
             }
 
+            const constraint = meta.driverAdapterError?.cause?.constraint
+            if (!constraint) {
+                throw err
+            }
 
-            const target = meta.driverAdapterError.cause.constraint.fields
+            // Postgres names the constraint it violated, and the adapter passes that name on as
+            // `index` - the field list only comes through when the error carried no name. The
+            // columns sit between the table prefix and the `_key` suffix: `User_email_key`.
+            const table = meta.driverAdapterError?.table
+            const indexName = 'index' in constraint ? constraint.index : undefined
+            const target = 'fields' in constraint ? constraint.fields : indexName
+                ?.replace(table ? `${table}_` : '', '')
+                .replace(/_key$/, '')
+                .split('_')
+
             if (!target) {
                 throw err
             }
@@ -239,12 +260,21 @@ export class UserMigrator {
             return [usernameCollision, emailCollision]
         }
 
+        // A user who never wrote a bio still gets the paragraph, ready to be written in.
+        const bioParagraph = user.bio
+            ? await createCmsParagraph(this.pnPrisma, user.bio)
+            : await this.pnPrisma.cmsParagraph.create({ data: {} })
+
+        const ledgerAccount = await this.pnPrisma.ledgerAccount.create({
+            data: { type: 'USER' },
+        })
+
         const userData = {
             username: user.username.toLowerCase(),
-            email: user.email ? user.email.toLowerCase() : `dobbel-${user.id}@omega.ntnu.no`,
+            email: user.email ? user.email.toLowerCase() : `dobbel-${user.id}@${placeholderEmailDomain}`,
             firstname: user.firstname,
             lastname: user.lastname,
-            bio: user.bio ?? '',
+            bioParagraphId: bioParagraph.id,
             acceptedTerms: undefined,
             sex: sexMap[user.sex],
             allergies: undefined,
@@ -254,6 +284,7 @@ export class UserMigrator {
             updatedAt: user.updatedAt,
             imageId: owIdToPnId(this.imageIdMap, user.ImageId, 'images'),
             archived: user.archived,
+            ledgerAccountId: ledgerAccount.id,
         } satisfies Prisma.UserUncheckedCreateInput
 
         let pnUser: User | undefined
@@ -273,7 +304,7 @@ export class UserMigrator {
 
                 if (emailCollision) {
                     manifest.error(`User ${user.id} has a colliding email: ${user.email}. Generating new email.`)
-                    userData.email = `dobbelomega-${user.id}-${uuid()}@omega.ntnu.no`
+                    userData.email = `dobbelomega-${user.id}-${uuid()}@${placeholderEmailDomain}`
                 }
 
                 if (retries > 0) {
@@ -370,22 +401,23 @@ export class UserMigrator {
         await Promise.all(users.map(async user => {
             const pnUser = await this.createUser(user)
 
-            // Connect to correct membership group
-            await upsertOmegaOrder(this.pnPrisma, user.order)
-
-            const soelleOrder = await upsertOrderBasedOnDate(this.pnPrisma, user.createdAt)
-
             if (!this.soelleGroup || !this.memberGroup) {
                 throw new Error('Cannot use th UserMigrator, before it is initialized.')
             }
 
+            // The omega memberships are of the order the user was taken up in, as in projectNext,
+            // where the level is granted within an order and the membership records which. Every
+            // member was a soelle first, so a sysken keeps that membership inactive - the state
+            // `writeUserLevel` leaves a user promoted in the app in. Omegaweb-basic does not say
+            // when the promotion happened, so it is taken to be within the order they came in.
+            const order = migratedOrder(user.order, `User ${user.id}`)
             await this.pnPrisma.membership.create({
                 data: {
                     groupId: this.soelleGroup.groupId,
                     userId: pnUser.id,
                     active: user.soelle,
                     admin: false,
-                    order: soelleOrder,
+                    order,
                 }
             })
 
@@ -396,7 +428,7 @@ export class UserMigrator {
                         userId: pnUser.id,
                         active: true,
                         admin: false,
-                        order: user.order,
+                        order,
                     }
                 })
 
@@ -415,217 +447,21 @@ export class UserMigrator {
             }
 
             // connect to correct class (year)
-            const yearsInProgramme = Math.min(user.StudyProgrammes?.years ?? 0, 5)
-            switch (yearsInProgramme) {
-                case 0:
-                    manifest.error(`User ${user.id} has no years in programme or no programme`)
-                    break
-                case 2:
-                {
-                    //ASSUME 2 years masters. The user can be member of 4 5 and 6 (siving)
-                    let yearOfStudy2 = user.yearOfStudy
-                    if (yearOfStudy2 < 4) {
-                        manifest.error(
-                            `User ${user.id} is in 2 year programme but has year of study less than 4 - setting to 4`
-                        )
-                        yearOfStudy2 = 4
-                    }
-                    // Anything past year 6 (siving) just means the user graduated a while ago and OW
-                    // kept incrementing yearOfStudy - not a data error, so no active membership either.
-                    const graduated2 = yearOfStudy2 > 6
-                    if (graduated2) yearOfStudy2 = 6
-                    if (yearOfStudy2 === 6) {
-                        const orderBecameSiving = user.order + 2
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(6),
-                                userId: pnUser.id,
-                                active: !graduated2,
-                                admin: false,
-                                order: orderBecameSiving,
-                            }
-                        })
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(5),
-                                userId: pnUser.id,
-                                active: false,
-                                admin: false,
-                                order: orderBecameSiving - 1,
-                            }
-                        })
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(4),
-                                userId: pnUser.id,
-                                active: false,
-                                admin: false,
-                                order: orderBecameSiving - 2,
-                            }
-                        })
-                    } else if (yearOfStudy2 === 5) {
-                        const orderBecame5 = user.order + 1
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(5),
-                                userId: pnUser.id,
-                                active: true,
-                                admin: false,
-                                order: orderBecame5,
-                            }
-                        })
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(4),
-                                userId: pnUser.id,
-                                active: false,
-                                admin: false,
-                                order: orderBecame5 - 1,
-                            }
-                        })
-                    } else if (yearOfStudy2 === 4) {
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(4),
-                                userId: pnUser.id,
-                                active: true,
-                                admin: false,
-                                order: user.order,
-                            }
-                        })
-                    } else {
-                        manifest.error(`User ${user.id} is in a 2 year programme but not in year 4, 5 or 6`)
-                    }
-                    break
+            const classLadder = inferClassLadder({
+                id: user.id,
+                order: user.order,
+                yearOfStudy: user.yearOfStudy,
+                yearsInProgramme: Math.min(user.StudyProgrammes?.years ?? 0, 5),
+            })
+            await Promise.all(classLadder.map(rung => this.pnPrisma.membership.create({
+                data: {
+                    groupId: this.yearIdMap(rung.year),
+                    userId: pnUser.id,
+                    active: rung.active,
+                    admin: false,
+                    order: rung.order,
                 }
-                case 3:
-                {
-                    //ASSUME 3 years bachelors. The user can be member of 1 2 and 3, and cannot be siving.
-                    let yearOfStudy3 = user.yearOfStudy
-                    if (yearOfStudy3 < 1) {
-                        manifest.error(`User ${user.id} has year of study less than 1 - setting to 1`)
-                        yearOfStudy3 = 1
-                    }
-                    if (yearOfStudy3 > 3) {
-                        manifest.error(`User ${user.id} has year of study greater than 3 - setting to 3`)
-                        yearOfStudy3 = 3
-                    }
-                    if (yearOfStudy3 === 1) {
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(1),
-                                userId: pnUser.id,
-                                active: true,
-                                admin: false,
-                                order: user.order,
-                            }
-                        })
-                    } else if (yearOfStudy3 === 2) {
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(2),
-                                userId: pnUser.id,
-                                active: true,
-                                admin: false,
-                                order: user.order,
-                            }
-                        })
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(1),
-                                userId: pnUser.id,
-                                active: false,
-                                admin: false,
-                                order: user.order - 1,
-                            }
-                        })
-                    } else if (yearOfStudy3 === 3) {
-                        // This is a nut - it is hard to say if the user still is in 3. grade.
-                        // We will assume that the user is in 3. grade if the order is gte 103
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(3),
-                                userId: pnUser.id,
-                                active: user.order >= 103,
-                                admin: false,
-                                order: user.order,
-                            }
-                        })
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(2),
-                                userId: pnUser.id,
-                                active: false,
-                                admin: false,
-                                order: user.order - 1,
-                            }
-                        })
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(1),
-                                userId: pnUser.id,
-                                active: false,
-                                admin: false,
-                                order: user.order - 2,
-                            }
-                        })
-                    }
-                    break
-                }
-                case 5:
-                {
-                    // Assuming 5 year masters. The user can be member of 1 2 3 4 5 and 6 (siving)
-                    let yearOfStudy5 = user.yearOfStudy
-                    if (yearOfStudy5 < 1) {
-                        manifest.error(
-                            `User ${user.id} is in 5 year programme but has year of study less than 1 - setting to 1`
-                        )
-                        yearOfStudy5 = 1
-                    }
-                    // Anything past year 6 (siving) just means the user graduated a while ago and OW
-                    // kept incrementing yearOfStudy - not a data error, so no active membership either.
-                    const graduated5 = yearOfStudy5 > 6
-                    if (graduated5) yearOfStudy5 = 6
-                    if (yearOfStudy5 === 6) {
-                        const orderBecameSiving = user.order + 5 // Assume the user used 5 years to get to sivin
-                        await this.pnPrisma.membership.create({
-                            data: {
-                                groupId: this.yearIdMap(6),
-                                userId: pnUser.id,
-                                active: !graduated5,
-                                admin: false,
-                                order: orderBecameSiving,
-                            }
-                        })
-                        for (let i = 5; i >= 1; i--) {
-                            await this.pnPrisma.membership.create({
-                                data: {
-                                    groupId: this.yearIdMap(i),
-                                    userId: pnUser.id,
-                                    active: false,
-                                    admin: false,
-                                    order: orderBecameSiving - (6 - i),
-                                }
-                            })
-                        }
-                    } else {
-                        for (let year = 1; year <= yearOfStudy5; year++) {
-                            await this.pnPrisma.membership.create({
-                                data: {
-                                    groupId: this.yearIdMap(year),
-                                    userId: pnUser.id,
-                                    active: year === yearOfStudy5,
-                                    admin: false,
-                                    order: user.order + year - 1,
-                                }
-                            })
-                        }
-                    }
-                    break
-                }
-                default:
-                    manifest.error(`User ${user.id} has ${yearsInProgramme} years in programme - dobbelOmega failed :(`)
-            }
+            })))
 
             this.progressBar?.increment()
         }))

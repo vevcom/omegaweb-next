@@ -1,8 +1,8 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const licenseAuth = {
-    create: RequirePermission.staticFields({ permission: 'LICENSE_ADMIN' }),
-    read: RequirePermission.staticFields({ permission: 'LICENSE_ADMIN' }),
-    update: RequirePermission.staticFields({ permission: 'LICENSE_ADMIN' }),
-    destroy: RequirePermission.staticFields({ permission: 'LICENSE_ADMIN' }),
-}
+    create: Require.permission('LICENSE_ADMIN'),
+    read: Require.permission('LICENSE_ADMIN'),
+    update: Require.permission('LICENSE_ADMIN'),
+    destroy: Require.permission('LICENSE_ADMIN'),
+} as const

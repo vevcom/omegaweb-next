@@ -3,21 +3,21 @@ import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } f
 import { imageOperations, expandImageCollection } from '@/services/images/subservice/operations'
 import { expandedImageCollectionIncluder, type ImageExtension } from '@/services/images/subservice/constants'
 import { imageSchemas } from '@/services/images/subservice/schemas'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
 import { visibilityOperations } from '@/services/visibility/operations'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
 import type { ExpandedImageCollection } from '@/services/images/subservice/types'
-import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
+import type { Authorizer } from '@/auth/authorizer/Authorizer'
 
 export function implementSpecialCollection({
     special,
-    imagePanelAuther,
+    imagePanelAuth,
     allowedExtensions,
     config
 }: {
     special: SpecialCollection,
-    imagePanelAuther: AuthorizerDynamicFieldsBound
+    imagePanelAuth: Authorizer
     /**
      * Which of the image system's extensions this collection accepts on upload.
      * Some special collection may only for example expect svg files, while others may only expect
@@ -52,7 +52,7 @@ export function implementSpecialCollection({
             }
 
             // Special collections don't use visibility for authorization. Instead, authorization is handled
-            // by the owning service's panel authorizer (imagePanelAuther passed at construction). This is
+            // by the owning service's panel authorizer (imagePanelAuth passed at construction). This is
             // because each special collection's access model is specific to its owning service.
             // Empty visibilities are required by the schema but unused; ownershipCheck in the dynamic system
             // prevents special collections from being accessed through the dynamic image operations.
@@ -111,7 +111,7 @@ export function implementSpecialCollection({
     }
 
     const readCollection = defineOperation({
-        authorizer: () => imagePanelAuther,
+        authorizer: () => imagePanelAuth,
         operation: async ({ prisma }) => readCollectionInternal({ prisma })
     })
 
@@ -144,7 +144,7 @@ export function implementSpecialCollection({
                 select: { id: true }
             })
             if (!image) {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD PARAMETERS',
                     `Image ${params.imageId} is not part of the special collection ${special}`
                 )
@@ -165,7 +165,7 @@ export function implementSpecialCollection({
                 select: { id: true }
             })
             if (!image) {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD PARAMETERS',
                     `Image ${params.imageId} is not part of the special collection ${special}`
                 )
@@ -175,7 +175,7 @@ export function implementSpecialCollection({
     })
 
     const readPageOfImagesInCollection = defineOperation({
-        authorizer: () => imagePanelAuther,
+        authorizer: () => imagePanelAuth,
         paramsSchema: imageSchemas.paramsSchemaReadPageOfImagesInSpecialCollection,
         operation: async ({ prisma, params }) => {
             const collection = await readCollectionInternal({ prisma })

@@ -11,7 +11,7 @@ import HorizontalSelector from '@/components/UI/HorizontalSelector'
 import { displayAmount, convertAmount } from '@/lib/currency/convert'
 import { createActionError } from '@/services/actionError'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 import { lazy, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PopUpKeyType } from '@/contexts/PopUp'
@@ -80,7 +80,7 @@ export default function LedgerTransactionModal({
     onSubmitAction,
 }: Props) {
     const isAdmin = useAuthorizer({
-        authorizer: RequirePermission.staticFields({ permission: 'LEDGER_ADMIN' }).dynamicFields({})
+        authorizer: Require.permission('LEDGER_ADMIN')
     }).authorized
 
     // MANUAL is only ever a legitimate choice for an admin when it's offered alongside a real

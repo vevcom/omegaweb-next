@@ -1,19 +1,21 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequirePermissionOrGroupAdmin } from '@/auth/authorizer/RequirePermissionOrGroupAdmin'
-import { requireReadManagedGroupMembers } from '@/services/groups/auth'
+import { Require } from '@/auth/authorizer/Require'
+import { requireReadManagedGroupMembers, requireReadMembershipsOfUser } from '@/services/groups/auth'
+
+const adminOrGroupAdmin = Require.permission('MANUAL_GROUP_ADMIN').or().groupAdmin()
 
 export const manualGroupAuth = {
-    create: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
-    read: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_READ' }),
-    readMany: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_READ' }),
-    readExpanded: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_READ' }),
-    readMembers: requireReadManagedGroupMembers('MANUAL_GROUP_READ'),
-    update: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
-    destroy: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
-    pension: RequirePermission.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
-    addMembers: RequirePermissionOrGroupAdmin.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
-    removeMembers: RequirePermissionOrGroupAdmin.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
-    setMemberAdmin: RequirePermissionOrGroupAdmin.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
-    setMemberTitle: RequirePermissionOrGroupAdmin.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
-    migrateGroup: RequirePermissionOrGroupAdmin.staticFields({ permission: 'MANUAL_GROUP_ADMIN' }),
+    create: Require.permission('MANUAL_GROUP_ADMIN'),
+    read: Require.permission('MANUAL_GROUP_USE'),
+    readMany: Require.permission('MANUAL_GROUP_USE'),
+    readExpanded: Require.permission('MANUAL_GROUP_USE'),
+    readMembers: requireReadManagedGroupMembers('MANUAL_GROUP_USE'),
+    readMembershipsOfUser: requireReadMembershipsOfUser('MANUAL_GROUP_USE'),
+    update: Require.permission('MANUAL_GROUP_ADMIN'),
+    destroy: Require.permission('MANUAL_GROUP_ADMIN'),
+    pension: Require.permission('MANUAL_GROUP_ADMIN'),
+    addMembers: adminOrGroupAdmin,
+    removeMembers: adminOrGroupAdmin,
+    setMemberAdmin: adminOrGroupAdmin,
+    setMemberTitle: adminOrGroupAdmin,
+    migrateGroup: adminOrGroupAdmin,
 } as const

@@ -3,18 +3,24 @@ import CreateGroupLedgerAccountForm from '@/components/Ledger/Accounts/CreateGro
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const popUpKey = 'createGroupLedgerAccount'
 
-export default async function LedgerAccounts() {
-    await authorizeAdminPage('accounts')
-    return (
-        <PageWrapper title="Gruppekontoer" headerItem={
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('accounts', session),
+    metadata: () => ({ title: 'Gruppekontoer' }),
+    render: () => (
+        <PageWrapper headerItem={
             <AddHeaderItemPopUp popUpKey={popUpKey}>
                 <CreateGroupLedgerAccountForm popUpKey={popUpKey} />
             </AddHeaderItemPopUp>
         }>
             <LedgerAccountList />
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

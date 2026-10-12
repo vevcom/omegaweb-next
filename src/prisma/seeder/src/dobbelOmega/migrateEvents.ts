@@ -1,3 +1,4 @@
+import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
 import { owIdToPnId, type IdMapper } from './IdMapper'
 import { createProgressBar } from './progressBar'
 import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
@@ -60,7 +61,7 @@ export default async function migrateEvents(
         })
         const paragraph = await pnPrisma.cmsParagraph.create({
             data: {
-                contentHtml: event.text || '',
+                contentHtml: sanitizeHtml(event.text || ''),
                 createdAt: event.createdAt,
                 updatedAt: event.updatedAt,
             }
@@ -142,7 +143,7 @@ export default async function migrateEvents(
         })
         const paragraph = await pnPrisma.cmsParagraph.create({
             data: {
-                contentHtml: simpleEvent.text || '',
+                contentHtml: sanitizeHtml(simpleEvent.text || ''),
                 createdAt: simpleEvent.createdAt,
                 updatedAt: simpleEvent.updatedAt,
             }

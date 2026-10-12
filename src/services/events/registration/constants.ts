@@ -1,4 +1,4 @@
-import { userFilterSelection } from '@/services/users/constants'
+import { userCardSelection } from '@/services/users/constants'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -6,7 +6,7 @@ export const eventRegistrationSelection = {
     id: true,
     user: {
         select: {
-            ...userFilterSelection,
+            ...userCardSelection,
             image: { include: expandedImageIncluder },
         },
     },
@@ -26,10 +26,19 @@ export const eventRegistrationQueueOrder = {
     id: 'asc',
 } as const satisfies Prisma.EventRegistrationOrderByWithRelationInput
 
-export const eventRegistrationIncluderDetailed = {
-    ...eventRegistrationSelection,
+export const eventRegistrationSelectionDetailed = {
+    id: true,
+    note: true,
+    user: {
+        select: {
+            ...userCardSelection,
+            email: true,
+            mobile: true,
+            allergies: true,
+        },
+    },
     contact: true,
-} satisfies Prisma.EventRegistrationInclude
+} satisfies Prisma.EventRegistrationSelect
 
 export enum REGISTRATION_READER_TYPE {
     REGISTRATIONS = 'REGISTRATIONS',

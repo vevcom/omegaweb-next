@@ -1,0 +1,48 @@
+@use '@/styles/ohma';
+
+.Bullshit {
+    position: relative;
+
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+
+    > .BullshitBubble {
+        position: relative;
+
+        > p {
+            position: relative;
+            z-index: 2;
+            font-family: ohma.$fonts-secondary;
+            font-size: ohma.$fonts-xl;
+            font-weight: lighter;
+            display: block;
+            text-align: left;
+            padding: 2rem 3rem;
+            color: ohma.$colors-text;
+            font-style: italic;
+            border-radius: 25px;
+            background-color: ohma.$colors-surface-raised;
+        }
+
+        &::after {
+            content: '';
+            position: absolute;
+            left: calc(#{ohma.$gap}*5);
+            bottom: 0;
+            z-index: 1;
+            width: 20px;
+            height: 20px;
+            background-color: ohma.$colors-surface-raised;
+            transform: translateY(50%) rotate(45deg);
+        }
+    }
+
+    > h3 {
+        margin-left: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    > .timestamp {
+        margin-left: 2rem;
+    }
+}

@@ -1,9 +1,9 @@
 import '@pn-server-only'
 import { admissionSchemas } from './schemas'
 import { admissionAuth } from './auth'
-import { userFilterSelection } from '@/services/users/constants'
+import { userBasicSelection } from '@/services/users/constants'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { omegaMembershipGroupOperations, writeUserLevel } from '@/services/groups/omegaMembershipGroups/operations'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { Admission } from '@/prisma-generated-pn-types'
@@ -13,7 +13,7 @@ import type { ExpandedAdmissionTrail } from './types'
 export const admissionOperations = {
     readTrial: defineOperation({
         paramsSchema: admissionSchemas.readTrial,
-        authorizer: ({ params }) => admissionAuth.readTrial.dynamicFields({ userId: params.userId }),
+        authorizer: ({ params }) => admissionAuth.readTrial.data({ userId: params.userId }),
         operation: async ({ prisma, params: { userId } }) => await prisma.admissionTrial.findMany({
             where: {
                 userId,
@@ -27,7 +27,7 @@ export const admissionOperations = {
      */
     userCompletedTrials: defineOperation({
         paramsSchema: admissionSchemas.userCompletedTrials,
-        authorizer: ({ params }) => admissionAuth.userCompletedTrials.dynamicFields({ userId: params.userId }),
+        authorizer: ({ params }) => admissionAuth.userCompletedTrials.data({ userId: params.userId }),
         operation: async ({ prisma, params: { userId } }): Promise<boolean> => {
             const trials = await prisma.admissionTrial.count({
                 where: {
@@ -46,7 +46,7 @@ export const admissionOperations = {
      * given a trial that would never add up to anything.
      */
     createTrial: defineOperation({
-        authorizer: () => admissionAuth.createTrial.dynamicFields({}),
+        authorizer: () => admissionAuth.createTrial,
         paramsSchema: z.object({
             admission: z.nativeEnum(Admission),
         }),
@@ -63,7 +63,7 @@ export const admissionOperations = {
             })
 
             if (omegaMembership.level !== 'SOELLE') {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD PARAMETERS',
                     'Opptaksprøver kan kun registreres for en soelle.'
                 )
@@ -89,7 +89,7 @@ export const admissionOperations = {
                     },
                     include: {
                         user: {
-                            select: userFilterSelection,
+                            select: userBasicSelection,
                         }
                     }
                 })
@@ -121,4 +121,4 @@ export const admissionOperations = {
             return results
         }
     }),
-}
+} as const

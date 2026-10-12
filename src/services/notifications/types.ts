@@ -14,5 +14,4 @@ export type ExpandedNotificationChannel = Prisma.NotificationChannelGetPayload<{
 
 export type NotificationResult = {
     notification: Notification | null,
-    recipients: number
 }

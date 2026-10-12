@@ -9,6 +9,7 @@ services:
             dockerfile: ${PROJECT_ROOT:-.}/Dockerfile
             args:
                 NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
+                NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
         environment:
             DB_URI: ${DB_URI}
             MIGRATE_FROM_OW: ${MIGRATE_FROM_OW}
@@ -46,6 +47,8 @@ services:
             SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME}
             SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
             SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+            RELEASE_COUNTDOWN_PASSWORD: ${RELEASE_COUNTDOWN_PASSWORD}
+            GITHUB_TOKEN: ${GITHUB_TOKEN}
         healthcheck:
             test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
             interval: 10s

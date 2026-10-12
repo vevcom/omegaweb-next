@@ -2,14 +2,13 @@
 
 import SubscriptionItem from './subscriptionItem'
 import styles from './notificationSettings.module.scss'
-import { booleanOperationOnMethods, newAllMethodsOff } from '@/services/notifications/notificationMethodOperations'
+import { booleanOperationOnMethods, newAllMethodsOff } from '@/services/notifications/methods/helpers'
 import SubmitButton from '@/components/UI/SubmitButton'
 import { SUCCESS_FEEDBACK_TIME } from '@/components/Form/constants'
-import { updateNotificationSubscriptionsAction } from '@/services/notifications/actions'
+import { updateNotificationSubscriptionsAction } from '@/services/notifications/subscription/actions'
 import { notificationMethodsArray, notificationMethodsDisplayMap } from '@/services/notifications/constants'
-import { v4 as uuid } from 'uuid'
 import { useState } from 'react'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 import type { MinimizedSubscription, Subscription } from '@/services/notifications/subscription/types'
 import type { NotificationBranch } from './types'
 import type { ErrorMessage } from '@/services/error'
@@ -133,7 +132,7 @@ function prepareDataForDelivery(tree: NotificationBranch) {
 type PropTypes = {
     channels: ExpandedNotificationChannel[],
     subscriptions: Subscription[],
-    user: UserFiltered
+    user: UserBasic
 }
 
 export default function NotificationSettings({
@@ -230,7 +229,7 @@ export default function NotificationSettings({
                     <th>Kanal</th>
                     {notificationMethodsArray.map(method =>
                         <th
-                            key={uuid()}
+                            key={method}
                             className={styles.notificationMethodsTH}
                         >
                             <span>{notificationMethodsDisplayMap[method]}</span>
@@ -240,7 +239,6 @@ export default function NotificationSettings({
             </thead>
             <tbody>
                 <SubscriptionItem
-                    key={uuid()}
                     branch={channelTree}
                     onChange={handleChange}
                 />

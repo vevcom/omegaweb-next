@@ -2,12 +2,14 @@ import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
 import { defaultSearchResultLimit, eventFilterSelection } from './constants'
+import { eventRegistrationQueueOrder } from './registration/constants'
+import { notifyPromotedFromWaitingList } from './registration/notifyPromotedFromWaitingList'
 import { notificationOperations } from '@/services/notifications/operations'
 import { getOsloTime } from '@/lib/dates/getOsloTime'
 import { getLocationMapData } from '@/lib/maps/locationMap'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
@@ -27,15 +29,12 @@ import type { EventExpanded } from './types'
 const visibility = implementDoubleLevelVisibilityOperations({
     implementationParamsSchema: eventSchemas.params,
     authorizers: {
-        readDoubleLevelMatrix: ({ doubleLevelMatrix }) => eventAuth.readDoubleLevelMatrix.dynamicFields({
-            doubleLevelMatrix,
-        }),
-        updateRegularLevel: ({ doubleLevelMatrix }) => eventAuth.updateRegularLevel.dynamicFields({
-            doubleLevelMatrix,
-        }),
-        updateAdminLevel: ({ doubleLevelMatrix }) => eventAuth.updateAdminLevel.dynamicFields({
-            doubleLevelMatrix,
-        })
+        readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
+            eventAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix }),
+        updateRegularLevel: ({ doubleLevelMatrix }) =>
+            eventAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix }),
+        updateAdminLevel: ({ doubleLevelMatrix }) =>
+            eventAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix })
     },
     readDoubleLevel: async ({ prisma, implementationParams, include }) => {
         const event = await prisma.event.findUniqueOrThrow({
@@ -95,7 +94,7 @@ const read = defineOperation({
                 visibilityAdmin: { include: visibilityIncluder }
             }
         })
-        return eventAuth.read.dynamicFields({
+        return eventAuth.read({
             level: readLevelOfEvent(event),
             doubleLevelMatrix: {
                 regularLevel: toMatrix(event.visibilityRegular),
@@ -141,7 +140,7 @@ export const eventOperations = {
 
     create: defineOperation({
         dataSchema: eventSchemas.create,
-        authorizer: () => eventAuth.create.dynamicFields({}),
+        authorizer: () => eventAuth.create,
         operation: async ({ prisma, data, session }) => {
             assertAdminLevelIsSubOfRegularLevel({
                 regularLevel: { requirements: data.visibilityRegularRequirements },
@@ -149,27 +148,27 @@ export const eventOperations = {
             })
 
             if (data.eventStart > data.eventEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Event må jo strate før den slutter')
+                throw new ServiceError('BAD PARAMETERS', 'Event må jo strate før den slutter')
             }
 
             if (data.registrationStart && data.registrationEnd && data.registrationStart > data.registrationEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Påmelding må jo strate før den slutter')
+                throw new ServiceError('BAD PARAMETERS', 'Påmelding må jo strate før den slutter')
             }
 
             if (data.registrationStart && !data.registrationEnd || !data.registrationStart && data.registrationEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
+                throw new ServiceError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
             }
 
             if (data.paymentStart && data.paymentEnd && data.paymentStart > data.paymentEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Betaling må jo strate før den slutter')
+                throw new ServiceError('BAD PARAMETERS', 'Betaling må jo strate før den slutter')
             }
 
             if (data.paymentStart && !data.paymentEnd || !data.paymentStart && data.paymentEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Begge betalingsdatoer må være satt eller ingen')
+                throw new ServiceError('BAD PARAMETERS', 'Begge betalingsdatoer må være satt eller ingen')
             }
 
             if (data.price && (!data.paymentStart || !data.paymentEnd)) {
-                throw new ServerError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet har en pris')
+                throw new ServiceError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet har en pris')
             }
 
             const cmsParagraph = await cmsParagraphOperations.create.internalCall({
@@ -246,6 +245,7 @@ export const eventOperations = {
                 data: {
                     title: `Hva der hender: ${event.name}`,
                     message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
+                    audience: { visibilityId: event.visibilityRegularId },
                 },
             })
             return event
@@ -258,7 +258,7 @@ export const eventOperations = {
         paramsSchema: z.object({
             tags: z.array(z.string()).nullable(),
         }),
-        authorizer: () => eventAuth.readManyCurrent.dynamicFields({}),
+        authorizer: () => eventAuth.readManyCurrent,
         operation: async ({ prisma, params }, visibilityWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
                 select: {
@@ -293,10 +293,10 @@ export const eventOperations = {
     }),
     readManyArchivedPage: defineOperation({
         paramsSchema: eventSchemas.readManyArchivedPage,
-        authorizer: () => eventAuth.readManyArchivedPage.dynamicFields({}),
+        authorizer: () => eventAuth.readManyArchivedPage,
         operation: async ({ prisma, params }, visibilityWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
                 where: {
                     eventEnd: {
                         lt: getOsloTime()
@@ -337,7 +337,7 @@ export const eventOperations = {
      */
     search: defineOperation({
         paramsSchema: eventSchemas.search,
-        authorizer: () => eventAuth.search.dynamicFields({}),
+        authorizer: () => eventAuth.search,
         operation: async ({ prisma, params }, visibilityWhereFilter) => await prisma.event.findMany({
             take: params.limit ?? defaultSearchResultLimit,
             select: {
@@ -361,8 +361,8 @@ export const eventOperations = {
     update: defineOperation({
         paramsSchema: eventSchemas.params,
         dataSchema: eventSchemas.update,
-        authorizer: async ({ params, prisma }) => eventAuth.update.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+        authorizer: async ({ params, prisma }) => eventAuth.update.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
         }),
         operation: async ({ prisma, params, data: { tagIds, locationMap, ...data } }) => {
             const event = await prisma.event.findUniqueOrThrow({
@@ -371,30 +371,30 @@ export const eventOperations = {
             })
 
             if ((data.eventStart ?? event?.eventStart) > (data.eventEnd ?? event?.eventEnd)) {
-                throw new ServerError('BAD PARAMETERS', 'Event må jo strate før den slutter')
+                throw new ServiceError('BAD PARAMETERS', 'Event må jo strate før den slutter')
             }
 
             if (data.registrationStart && data.registrationEnd && data.registrationStart > data.registrationEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Påmelding må jo strate før den slutter')
+                throw new ServiceError('BAD PARAMETERS', 'Påmelding må jo strate før den slutter')
             }
 
             if (data.registrationStart && !data.registrationEnd || !data.registrationStart && data.registrationEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
+                throw new ServiceError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
             }
 
             if (data.paymentStart && data.paymentEnd && data.paymentStart > data.paymentEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Betaling må jo strate før den slutter')
+                throw new ServiceError('BAD PARAMETERS', 'Betaling må jo strate før den slutter')
             }
 
             if (data.paymentStart && !data.paymentEnd || !data.paymentStart && data.paymentEnd) {
-                throw new ServerError('BAD PARAMETERS', 'Begge betalingsdatoer må være satt eller ingen')
+                throw new ServiceError('BAD PARAMETERS', 'Begge betalingsdatoer må være satt eller ingen')
             }
 
             const effectivePrice = data.price ?? event.price
             const effectivePaymentStart = data.paymentStart ?? event.paymentStart
             const effectivePaymentEnd = data.paymentEnd ?? event.paymentEnd
             if (effectivePrice && (!effectivePaymentStart || !effectivePaymentEnd)) {
-                throw new ServerError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet har en pris')
+                throw new ServiceError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet har en pris')
             }
 
             let mapUpdate: Prisma.EventLocationMapUpdateOneWithoutEventNestedInput | undefined
@@ -412,27 +412,48 @@ export const eventOperations = {
                     locationMap: mapUpdate,
                 },
             })
-            if (!tagIds) return eventUpdate
-
-            await prisma.eventTagEvent.deleteMany({
-                where: {
-                    eventId: params.id,
-                    NOT: {
-                        tagId: {
-                            in: tagIds
+            if (tagIds) {
+                await prisma.eventTagEvent.deleteMany({
+                    where: {
+                        eventId: params.id,
+                        NOT: {
+                            tagId: {
+                                in: tagIds
+                            }
                         }
                     }
-                }
-            })
+                })
 
-            await prisma.eventTagEvent.createMany({
-                data: tagIds.map(tagId => ({
-                    eventId: params.id,
-                    tagId
-                })),
-                skipDuplicates: true
-            })
-            // TODO: Send email to users that get promoted from waiting list
+                await prisma.eventTagEvent.createMany({
+                    data: tagIds.map(tagId => ({
+                        eventId: params.id,
+                        tagId
+                    })),
+                    skipDuplicates: true
+                })
+            }
+
+            // More places promote the registrations queueing right past the old ones.
+            if (eventUpdate.places > event.places) {
+                const promotedRegistrations = await prisma.eventRegistration.findMany({
+                    where: {
+                        eventId: params.id,
+                    },
+                    orderBy: eventRegistrationQueueOrder,
+                    skip: event.places,
+                    take: eventUpdate.places - event.places,
+                    select: {
+                        userId: true,
+                        contact: {
+                            select: {
+                                email: true,
+                            },
+                        },
+                    },
+                })
+                await notifyPromotedFromWaitingList(eventUpdate.name, promotedRegistrations)
+            }
+
             return eventUpdate
         }
     }),
@@ -441,8 +462,8 @@ export const eventOperations = {
         implementationParamsSchema: z.object({
             eventId: z.number()
         }),
-        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateCmsCoverImage.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({
+        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateCmsCoverImage.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({
                 params: { id: implementationParams.eventId }, prisma
             })
         }),
@@ -461,8 +482,8 @@ export const eventOperations = {
     setPublished: defineOperation({
         paramsSchema: eventSchemas.params,
         dataSchema: eventSchemas.setPublished,
-        authorizer: async ({ params, prisma }) => eventAuth.setPublished.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+        authorizer: async ({ params, prisma }) => eventAuth.setPublished.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
         }),
         operation: async ({ prisma, params, data }) => prisma.event.update({
             where: { id: params.id },
@@ -472,8 +493,8 @@ export const eventOperations = {
 
     destroy: defineOperation({
         paramsSchema: eventSchemas.params,
-        authorizer: async ({ params, prisma }) => eventAuth.destroy.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+        authorizer: async ({ params, prisma }) => eventAuth.destroy.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
         }),
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
@@ -504,8 +525,8 @@ export const eventOperations = {
         implementationParamsSchema: z.object({
             eventId: z.number()
         }),
-        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateParagraphContent.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({
+        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateParagraphContent.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({
                 params: { id: implementationParams.eventId }, prisma
             })
         }),

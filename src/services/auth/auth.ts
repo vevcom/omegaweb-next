@@ -1,15 +1,14 @@
-import { RequireJWT } from '@/auth/authorizer/RequireJWT'
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequireUser } from '@/auth/authorizer/RequireUser'
+import { Require } from '@/auth/authorizer/Require'
 
 export const authAuth = {
-    verifyEmail: RequireJWT.staticFields({ audience: 'verifyemail' }),
-    resetPassword: RequireJWT.staticFields({ audience: 'resetpassword' }),
-    sendResetPasswordEmail: RequireNothing.staticFields({}),
-    sendLinkFeideAccountEmail: RequireUser.staticFields({}),
-    readFeideLoginMatch: RequireUser.staticFields({}),
-    verifyLinkFeideAccountToken: RequireJWT.staticFields({ audience: 'linkfeideaccount' }),
-    linkFeideAccount: RequireJWT.staticFields({ audience: 'linkfeideaccount' }),
-    adminLinkFeideAccount: RequirePermission.staticFields({ permission: 'USERS_UPDATE' }),
-}
+    // A valid JWT is the entire admission control here, not the session. It's verified directly in
+    // the operation body in operations.ts.
+    verifyEmail: Require.nothing(),
+    resetPassword: Require.nothing(),
+    sendResetPasswordEmail: Require.nothing(),
+    sendLinkFeideAccountEmail: Require.user(),
+    readFeideLoginMatch: Require.user(),
+    verifyLinkFeideAccountToken: Require.nothing(),
+    linkFeideAccount: Require.nothing(),
+    adminLinkFeideAccount: Require.permission('USERS_ADMIN'),
+} as const

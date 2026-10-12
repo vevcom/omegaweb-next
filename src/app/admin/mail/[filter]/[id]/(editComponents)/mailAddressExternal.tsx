@@ -10,71 +10,70 @@ import {
 } from '@/services/mail/mailAddressExternal/actions'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
 import { mailAuth } from '@/services/mail/auth'
+import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { useRouter } from 'next/navigation'
 import type { MailingList } from '@/prisma-generated-pn-types'
 import type { MailFlowObject } from '@/services/mail/types'
 
-
 export default function EditMailAddressExternal({
+    id,
     data,
-    mailingLists
+    mailingLists,
 }: {
     id: number,
     data: MailFlowObject,
-    mailingLists: MailingList[]
+    mailingLists: MailingList[],
 }) {
-    const { push } = useRouter()
+    const { push, refresh } = useRouter()
 
-    const focusedAddress = data.mailaddressExternal[0]
-    if (!focusedAddress) {
-        throw Error('Fant ikke ekstern e-postadresse')
-    }
+    const focusedExternal = data.mailaddressExternal.find(external => external.id === id)
+    if (!focusedExternal) throw new Error('Fant ikke den eksterne adressen')
 
-    const canUpdate = useAuthorizer({ authorizer: mailAddressExternalAuth.update.dynamicFields({}) }).authorized
-    const canDestroy = useAuthorizer({ authorizer: mailAddressExternalAuth.destroy.dynamicFields({}) }).authorized
-    const canAddToList = useAuthorizer({
-        authorizer: mailAuth.createMailingListExternalRelation.dynamicFields({})
+    const canAdmin = useAuthorizer({
+        authorizer: mailAddressExternalAuth.update
+    }).authorized
+    const canAddRelation = useAuthorizer({
+        authorizer: mailAuth.createMailingListExternalRelation
     }).authorized
 
+    const connectedListIds = new Set(data.mailingList.map(list => list.id))
+    const availableLists = mailingLists.filter(list => !connectedListIds.has(list.id))
+
     return <>
-        <h2>{focusedAddress.address}</h2>
-        { canUpdate && <div>
-            <Form
-                title="Ekstern e-postadresse"
-                submitText="Oppdater"
-                action={updateMailAddressExternalAction}
-            >
-                <input type="hidden" name="id" value={focusedAddress.id} />
-                <TextInput name="address" label="E-post" defaultValue={focusedAddress.address} />
-                <TextInput name="description" label="Beskrivelse" defaultValue={focusedAddress.description} />
-            </Form>
-        </div>}
-        { canDestroy && <div>
-            <Form
-                action={destroyMailAddressExternalAction.bind(null, { params: { id: focusedAddress.id } })}
-                successCallback={() => push('/admin/mail')}
-                submitText="Slett"
-                submitColor="red"
-                confirmation={{
-                    confirm: true,
-                    text: 'Sikker på at du vil slette denne eksterne adressen? Dette kan ikke angres.',
-                }}
+        {canAdmin && <Form
+            title="Rediger ekstern adresse"
+            submitText="Oppdater"
+            action={updateMailAddressExternalAction}
+        >
+            <input type="hidden" name="id" value={focusedExternal.id} />
+            <TextInput name="address" label="Adresse" defaultValue={focusedExternal.address} />
+            <TextInput name="description" label="Beskrivelse" defaultValue={focusedExternal.description ?? ''} />
+        </Form>}
+
+        {canAddRelation && availableLists.length > 0 && <Form
+            title="Sett på e-postliste"
+            submitText="Legg til"
+            action={createMailingListExternalRelationAction}
+            successCallback={refresh}
+        >
+            <input type="hidden" name="mailAddressExternalId" value={focusedExternal.id} />
+            <SelectNumber
+                options={availableLists.map(list => ({ value: list.id, label: list.name }))}
+                name="mailingListId"
+                label="E-postliste"
             />
-        </div> }
-        { canAddToList && <div>
-            <Form
-                title="Legg til e-postliste"
-                submitText="Legg til"
-                action={createMailingListExternalRelationAction}
-            >
-                <input type="hidden" name="mailAddressExternalId" value={focusedAddress.id} />
-                <SelectNumber
-                    options={mailingLists.map(list => ({ value: list.id, label: list.name }))}
-                    name="mailingListId"
-                    label="E-postliste"
-                />
-            </Form>
-        </div>}
+        </Form>}
+
+        {canAdmin && <Form
+            action={configureAction(destroyMailAddressExternalAction, { params: { id: focusedExternal.id } })}
+            successCallback={() => push('/admin/mail/mailaddressExternal')}
+            submitText="Slett adressen"
+            submitColor="red"
+            confirmation={{
+                confirm: true,
+                text: 'Sikker på at du vil slette denne eksterne adressen? Dette kan ikke angres.',
+            }}
+        />}
     </>
 }

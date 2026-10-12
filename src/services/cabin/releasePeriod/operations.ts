@@ -1,14 +1,14 @@
-import 'server-only'
+import '@pn-server-only'
 import { cabinReleasePeriodAuth } from './auth'
 import { cabinReleasePeriodSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { z } from 'zod'
 
 export const cabinReleasePeriodOperations = {
 
     create: defineOperation({
-        authorizer: () => cabinReleasePeriodAuth.create.dynamicFields({}),
+        authorizer: () => cabinReleasePeriodAuth.create,
         dataSchema: cabinReleasePeriodSchemas.createReleasePeriod,
         operation: async ({ prisma, data }) => {
             const latestReleasePeriod = await prisma.releasePeriod.findFirst({
@@ -18,11 +18,11 @@ export const cabinReleasePeriodOperations = {
             })
 
             if (latestReleasePeriod && latestReleasePeriod.releaseTime > data.releaseTime) {
-                throw new ServerError('BAD DATA', 'En ny slippdato må slippes senere den den gjeldene siste slippdatoen.')
+                throw new ServiceError('BAD DATA', 'En ny slippdato må slippes senere den den gjeldene siste slippdatoen.')
             }
 
             if (latestReleasePeriod && latestReleasePeriod.releaseUntil >= data.releaseUntil) {
-                throw new ServerError('BAD DATA', 'Et nytt slipp, må slippe flere datoer enn det forrige slippet.')
+                throw new ServiceError('BAD DATA', 'Et nytt slipp, må slippe flere datoer enn det forrige slippet.')
             }
 
             await prisma.releasePeriod.create({
@@ -32,7 +32,7 @@ export const cabinReleasePeriodOperations = {
     }),
 
     destroy: defineOperation({
-        authorizer: () => cabinReleasePeriodAuth.destroy.dynamicFields({}),
+        authorizer: () => cabinReleasePeriodAuth.destroy,
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -42,7 +42,7 @@ export const cabinReleasePeriodOperations = {
             })
 
             if (releasePeriod.releaseTime < new Date()) {
-                throw new ServerError('BAD PARAMETERS', 'Kan ikke slette en slippgruppe som har blitt publisert.')
+                throw new ServiceError('BAD PARAMETERS', 'Kan ikke slette en slippgruppe som har blitt publisert.')
             }
 
             return await prisma.releasePeriod.delete({
@@ -52,7 +52,7 @@ export const cabinReleasePeriodOperations = {
     }),
 
     readMany: defineOperation({
-        authorizer: () => cabinReleasePeriodAuth.readMany.dynamicFields({}),
+        authorizer: () => cabinReleasePeriodAuth.readMany,
         operation: async ({ prisma }) => prisma.releasePeriod.findMany({
             orderBy: {
                 releaseUntil: 'desc',
@@ -61,7 +61,7 @@ export const cabinReleasePeriodOperations = {
     }),
 
     getCurrentReleasePeriod: defineOperation({
-        authorizer: () => cabinReleasePeriodAuth.getCurrentReleasePeriod.dynamicFields({}),
+        authorizer: () => cabinReleasePeriodAuth.getCurrentReleasePeriod,
         operation: async ({ prisma }) => prisma.releasePeriod.findFirst({
             where: {
                 releaseTime: {
@@ -76,7 +76,7 @@ export const cabinReleasePeriodOperations = {
     }),
 
     update: defineOperation({
-        authorizer: () => cabinReleasePeriodAuth.update.dynamicFields({}),
+        authorizer: () => cabinReleasePeriodAuth.update,
         dataSchema: cabinReleasePeriodSchemas.updateReleasePeriod,
         operation: async ({ prisma, data }) => prisma.releasePeriod.update({
             where: {
@@ -88,4 +88,4 @@ export const cabinReleasePeriodOperations = {
             },
         })
     }),
-}
+} as const

@@ -2,14 +2,11 @@
 import { makeAction } from '@/services/serverAction'
 import { dynamicImageOperations } from '@/services/images/dynamic/operations'
 
-export const readDynamicImageCollectionDoubleLevelVisibilityAction =
-    makeAction(dynamicImageOperations.visibility.readDoubleLevelMatrix)
 export const updateDynamicImageCollectionRegularLevelVisibilityAction =
     makeAction(dynamicImageOperations.visibility.updateRegularLevel)
 export const updateDynamicImageCollectionAdminLevelVisibilityAction =
     makeAction(dynamicImageOperations.visibility.updateAdminLevel)
 
-export const readDynamicImageCollectionAction = makeAction(dynamicImageOperations.readCollection)
 export const readDynamicImageCollectionsPageAction = makeAction(dynamicImageOperations.readCollectionPage)
 export const createDynamicImageCollectionAction = makeAction(dynamicImageOperations.createCollection)
 export const destroyDynamicImageCollectionAction = makeAction(dynamicImageOperations.destroyCollection)
@@ -19,5 +16,3 @@ export const uploadImageToDynamicCollectionAction = makeAction(dynamicImageOpera
 export const uploadManyImagesToDynamicCollectionAction = makeAction(dynamicImageOperations.uploadManyImages)
 export const readImagesPageInDynamicCollectionAction =
     makeAction(dynamicImageOperations.readPageOfImagesInCollection)
-export const updateImageMetaInDynamicCollectionAction = makeAction(dynamicImageOperations.updateImageMeta)
-export const destroyImageInDynamicCollectionAction = makeAction(dynamicImageOperations.destroyImage)

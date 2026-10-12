@@ -1,16 +1,20 @@
 'use client'
 import { SubPageNavBar, SubPageNavBarItem } from '@/components/NavBar/SubPageNavBar/SubPageNavBar'
+import useAuthorizer from '@/hooks/useAuthorizer'
+import { committeeParticipationAuth } from '@/services/applications/committeeParticipation/auth'
 import { faArrowLeft, faCog, faInfo, faScroll, faUsers } from '@fortawesome/free-solid-svg-icons'
 import { usePathname } from 'next/navigation'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
 
 type PropTypes = {
     shortName: string,
-    canReadCommitteeApplication: AuthResultTypeAny
+    groupId: number,
 }
 
-export default function Nav({ shortName, canReadCommitteeApplication }: PropTypes) {
+export default function Nav({ shortName, groupId }: PropTypes) {
     const pathname = usePathname()
+    const canReadCommitteeApplication = useAuthorizer({
+        authorizer: committeeParticipationAuth.readAll.data({ groupId }),
+    }).authorized
 
     const adminPath = `/committees/${shortName}/admin`
     const readPeriodesPath = `/committees/${shortName}/applicationPeriods`
@@ -20,7 +24,7 @@ export default function Nav({ shortName, canReadCommitteeApplication }: PropType
     return (
         <SubPageNavBar>
             <SubPageNavBarItem icon={faCog} href={adminPath}>Innstillinger</SubPageNavBarItem>
-            {canReadCommitteeApplication.authorized &&
+            {canReadCommitteeApplication &&
                 <SubPageNavBarItem icon={faScroll} href={readPeriodesPath}>Søknadsperioder</SubPageNavBarItem>
             }
             <SubPageNavBarItem icon={faUsers} href={membersPath}>Medlemmer</SubPageNavBarItem>

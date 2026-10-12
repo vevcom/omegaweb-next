@@ -1,11 +1,11 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const applicationPeriodAuth = {
-    readAll: RequirePermission.staticFields({ permission: 'APPLICATION_WRITE' }),
-    read: RequirePermission.staticFields({ permission: 'APPLICATION_WRITE' }),
-    readNumberOfApplications: RequirePermission.staticFields({ permission: 'APPLICATION_WRITE' }),
-    create: RequirePermission.staticFields({ permission: 'APPLICATION_ADMIN' }),
-    update: RequirePermission.staticFields({ permission: 'APPLICATION_ADMIN' }),
-    removeAllApplicationTexts: RequirePermission.staticFields({ permission: 'APPLICATION_ADMIN' }),
-    destroy: RequirePermission.staticFields({ permission: 'APPLICATION_ADMIN' }),
-}
+    readAll: Require.permission('APPLICATION_USE'),
+    read: Require.permission('APPLICATION_USE'),
+    readNumberOfApplications: Require.permission('APPLICATION_USE'),
+    create: Require.permission('APPLICATION_ADMIN'),
+    update: Require.permission('APPLICATION_ADMIN'),
+    removeAllApplicationTexts: Require.permission('APPLICATION_ADMIN'),
+    destroy: Require.permission('APPLICATION_ADMIN'),
+} as const

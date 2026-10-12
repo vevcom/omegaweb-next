@@ -42,6 +42,7 @@ function DetailedTable({
                     <tr>
                         <th>Navn</th>
                         <th>E-post</th>
+                        <th>Mobil</th>
                         <th>Allergier</th>
                         <th>Notat</th>
                         <th>Slett</th>
@@ -50,7 +51,7 @@ function DetailedTable({
                 <tbody>
                     <EndlessScroll
                         pagingContext={EventRegistrationDetailedPagingContext}
-                        loadingInfoWrapper={loadingInfo => <tr><td colSpan={5}>{loadingInfo}</td></tr>}
+                        loadingInfoWrapper={loadingInfo => <tr><td colSpan={6}>{loadingInfo}</td></tr>}
                         renderer={row => {
                             const name = row.user ? <Link href={`/users/${row.user.username}`}>
                                 <UserDisplayName user={row.user} width={20} />
@@ -58,6 +59,7 @@ function DetailedTable({
                             return <tr key={row.id}>
                                 <td>{name}</td>
                                 <td>{row.user ? row.user.email : row.contact?.email}</td>
+                                <td>{row.user ? row.user.mobile : row.contact?.mobile}</td>
                                 <td>{row.user ? row.user.allergies : 'Ukjent'}</td>
                                 <td>{row.note}</td>
                                 <td>

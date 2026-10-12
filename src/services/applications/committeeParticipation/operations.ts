@@ -1,16 +1,14 @@
 import '@pn-server-only'
 import { committeeParticipationAuth } from './auth'
+import { committeeParticipationParamsSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
-import { z } from 'zod'
 
 export const committeeParticipationOperations = {
     read: defineOperation({
-        paramsSchema: z.object({
-            participationId: z.number(),
-        }),
-        authorizer: async ({ prisma, params }) => committeeParticipationAuth.read.dynamicFields({
+        paramsSchema: committeeParticipationParamsSchemas.read,
+        authorizer: async ({ prisma, params }) => committeeParticipationAuth.read.data({
             groupId: await prisma.committeeParticipationInApplicationPeriod.findUniqueOrThrow({
                 where: {
                     id: params.participationId
@@ -64,10 +62,8 @@ export const committeeParticipationOperations = {
         }
     }),
     readAll: defineOperation({
-        paramsSchema: z.object({
-            committeeId: z.number(),
-        }),
-        authorizer: async ({ prisma, params }) => committeeParticipationAuth.read.dynamicFields({
+        paramsSchema: committeeParticipationParamsSchemas.readAll,
+        authorizer: async ({ prisma, params }) => committeeParticipationAuth.readAll.data({
             groupId: await prisma.committee.findUniqueOrThrow({
                 where: {
                     id: params.committeeId
@@ -112,4 +108,4 @@ export const committeeParticipationOperations = {
             )
         )
     })
-}
+} as const

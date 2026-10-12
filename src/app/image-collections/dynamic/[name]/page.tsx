@@ -1,30 +1,36 @@
 import DynamicCollectionPanel from './DynamicCollectionPanel'
-import {
-    readDynamicImageCollectionAction,
-    readDynamicImageCollectionDoubleLevelVisibilityAction,
-} from '@/services/images/dynamic/actions'
-import { notFound } from 'next/navigation'
+import { dynamicImageOperations } from '@/services/images/dynamic/operations'
+import { serverPage, withFallback } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        name: string
-    }>
-}
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ name: string }>) => {
+        const collectionName = decodeURIComponent(params.name)
 
-export default async function Collection({ params }: PropTypes) {
-    const collectionName = decodeURIComponent((await params).name)
+        const collection = await dynamicImageOperations.readCollection({ params: { collectionName } })
 
-    const readCollection = await readDynamicImageCollectionAction({ params: { collectionName } })
-    if (!readCollection.success) notFound() //TODO: replace with better error page if error is UNAUTHORIZED.
-    const collection = readCollection.data
+        // Readable only by those who administrate the collection - a visitor without that access
+        // simply gets no admin controls.
+        const doubleLevelVisibility = await withFallback(
+            dynamicImageOperations.visibility.readDoubleLevelMatrix({
+                params: { collectionId: collection.id }
+            }),
+            null
+        )
 
-    const readDoubleLevelVisibility = await readDynamicImageCollectionDoubleLevelVisibilityAction({
-        params: { collectionId: collection.id }
-    })
-    const doubleLevelVisibility = readDoubleLevelVisibility.success ? readDoubleLevelVisibility.data : null
-
+        return { collection, doubleLevelVisibility }
+    },
+    metadata: (data) => ({ title: data.collection.name }),
     // The page chrome lives in DynamicCollectionPanel: the admin controls go in the wrapper's
     // header slot and the image panel they refresh in its body, so both have to be rendered from
     // the same client component.
-    return <DynamicCollectionPanel collection={collection} doubleLevelVisibility={doubleLevelVisibility} />
-}
+    render: ({ data }) => (
+        <DynamicCollectionPanel
+            collection={data.collection}
+            doubleLevelVisibility={data.doubleLevelVisibility}
+        />
+    ),
+})
+
+export default page
+export { generateMetadata }

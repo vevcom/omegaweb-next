@@ -1,0 +1,7 @@
+model Bullshit {
+  id           Int      @id @default(autoincrement())
+  quote        String
+  timestamp    DateTime @default(now())
+  bullshitPoster   User     @relation(fields: [bullshitPosterId], references: [id])
+  bullshitPosterId Int
+}

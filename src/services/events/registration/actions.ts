@@ -5,8 +5,6 @@ import { eventRegistrationOperations } from '@/services/events/registration/oper
 export const createEventRegistrationAction = makeAction(eventRegistrationOperations.create)
 export const createGuestEventRegistrationAction = makeAction(eventRegistrationOperations.createGuest)
 
-export const readDotPunishmentOfUserAction = makeAction(eventRegistrationOperations.readDotPunishmentOfUser)
-export const readEventRegistrationOfUserAction = makeAction(eventRegistrationOperations.readOfUser)
 export const readEventRegistrationsPageAction = makeAction(eventRegistrationOperations.readPage)
 export const readDetailedEventRegistrationsPageAction = makeAction(eventRegistrationOperations.readPageDetailed)
 

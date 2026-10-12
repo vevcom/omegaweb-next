@@ -20,10 +20,9 @@ export const lockersSchemas = {
     }),
 
     readPage: readPageInputSchemaObject(
-        z.number(),
         z.object({
             id: z.number(),
         }),
-        z.any(),
+        z.undefined(),
     ),
 }

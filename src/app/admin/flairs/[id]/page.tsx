@@ -1,25 +1,20 @@
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
-import { destroyFlairAction, readFlairAction, updateFlairAction } from '@/services/flairs/actions'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+import { destroyFlairAction, updateFlairAction } from '@/services/flairs/actions'
+import { flairOperations } from '@/services/flairs/operations'
+import { serverPage } from '@/app/serverPage'
 import { configureAction } from '@/services/configureAction'
 import Flair from '@/components/Flair/Flair'
 import ColorInput from '@/components/UI/ColorInput'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        id: string
-    }>
-}
-
-export default async function FlairUpdatePage({ params }: PropTypes) {
-    const flair = unwrapActionReturn(
-        await readFlairAction({ params: { flairId: Number((await params).id) } })
-    )
-
-    return (
-        <PageWrapper title={`Rediger flair: ${flair.name}`}>
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ id: string }>) =>
+        flairOperations.read({ params: { flairId: Number(params.id) } }),
+    metadata: (flair) => ({ title: `Rediger flair: ${flair.name}` }),
+    render: ({ data: flair }) => (
+        <PageWrapper>
             <Flair flair={flair} width={200} />
             <Form
                 title="Oppdater flair"
@@ -49,5 +44,8 @@ export default async function FlairUpdatePage({ params }: PropTypes) {
                 }}
             />
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

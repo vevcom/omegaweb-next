@@ -6,7 +6,6 @@ import { CompanyPagingProvider } from '@/contexts/paging/CompanyPaging'
 import Company from '@/components/Company/Company'
 import Date from '@/components/Date/Date'
 import {
-    readJobAdAction,
     updateJobAdArticleAction,
     updateJobAdArticleAddSectionAction,
     updateJobAdArticleCmsImageAction,
@@ -18,13 +17,12 @@ import {
     updateJobAdArticleSectionsAddPartAction,
     updateJobAdArticleSectionsRemovePartAction
 } from '@/services/career/jobAds/actions'
+import { jobAdOperations } from '@/services/career/jobAds/operations'
 import { jobAdType } from '@/services/career/jobAds/constants'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
-import { ServerSession } from '@/auth/session/ServerSession'
 import { configureAction } from '@/services/configureAction'
 import { jobAdAuth } from '@/services/career/jobAds/auth'
-import PageTitleSetter from '@/contexts/PageTitleSetter'
-import { notFound } from 'next/navigation'
+import { serverPage } from '@/app/serverPage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faCheckCircle,
@@ -34,35 +32,20 @@ import {
     faSuitcase,
     faXmarkCircle
 } from '@fortawesome/free-solid-svg-icons'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        nameAndId: string
-    }>
-}
-
-export default async function JobAd({ params }: PropTypes) {
-    const nameAndId = (await params).nameAndId
-
-    const session = await ServerSession.fromNextAuth()
-    const jobAdRes = await readJobAdAction({ params: { id: decodeVevenUriHandleError(nameAndId) } })
-    if (!jobAdRes.success) {
-        //TODO: Handle error in idiomatic way
-        if (jobAdRes.errorCode === 'NOT FOUND') notFound()
-        throw new Error('Kunne ikke laste stillingsannonsen')
-    }
-    const jobAd = jobAdRes.data
-
-    const canEdit = jobAdAuth.updateArticle.dynamicFields({}).auth(
-        session
-    ).toJsObject()
-
-    return (
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) =>
+        jobAdOperations.read({ params: { id: decodeVevenUriHandleError(params.nameAndId) } }),
+    capabilities: () => ({
+        canEdit: jobAdAuth.updateArticle,
+    }),
+    metadata: (jobAd) => ({ title: jobAd.article.name }),
+    render: ({ data: jobAd, capabilities }) => (
         <div className={styles.wrapper}>
-            <PageTitleSetter title={'Jobbannonse'} />
             <main className={styles.main}>
                 <Article
-                    canEdit={canEdit}
+                    capabilities={capabilities}
                     article={jobAd.article}
                     coverImageClass={styles.coverImage}
                     sideBarClassName={styles.sideBar}
@@ -123,7 +106,11 @@ export default async function JobAd({ params }: PropTypes) {
                                 <li>
                                     <FontAwesomeIcon icon={jobAd.active ? faCheckCircle : faXmarkCircle} />
                                     <h3>Status</h3>
-                                    <p>{jobAd.active ? 'Denne jobbanonsen er aktiv' : 'Denne jobbanonsen er arkivert'}</p>
+                                    <p>
+                                        {jobAd.active
+                                            ? 'Denne jobbanonsen er aktiv'
+                                            : 'Denne jobbanonsen er arkivert'}
+                                    </p>
                                 </li>
                                 <li>
                                     <FontAwesomeIcon icon={faClock} />
@@ -154,7 +141,6 @@ export default async function JobAd({ params }: PropTypes) {
                                     disableEdit
                                     squareLogo={false}
                                     company={jobAd.company}
-                                    session={session}
                                 />
                             </div>
                         </>
@@ -174,5 +160,8 @@ export default async function JobAd({ params }: PropTypes) {
             </CompanyPagingProvider>
         </div>
 
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

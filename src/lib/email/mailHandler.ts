@@ -2,20 +2,19 @@ import '@pn-server-only'
 import logger from '@/lib/logger'
 import { TRANSPORT_OPTIONS } from '@/lib/email/constants'
 import nodemailer from 'nodemailer'
-import type SMTPPool from 'nodemailer/lib/smtp-pool'
-import type SMTPTransport from 'nodemailer/lib/smtp-transport'
+import type { SMTPPoolSentMessageInfo, SMTPSentMessageInfo, TestAccount, Transporter as MailTransporter } from 'nodemailer'
 import type Mail from 'nodemailer/lib/mailer'
 
 const isProd = process.env.NODE_ENV === 'production'
 const isTest = process.env.NODE_ENV === 'test'
 
-type Transporter = nodemailer.Transporter<SMTPPool.SentMessageInfo | SMTPTransport.SentMessageInfo>
+type Transporter = MailTransporter<SMTPPoolSentMessageInfo | SMTPSentMessageInfo>
 
 class MailHandler {
     transporter: Transporter | null = null
     resolveSetup: (value?: unknown) => void = () => {}
     waitForSetup = new Promise((resolve) => { this.resolveSetup = resolve })
-    testAccount: nodemailer.TestAccount | null = null
+    testAccount: TestAccount | null = null
 
     queue: Mail.Options[] = []
 
@@ -69,7 +68,7 @@ class MailHandler {
         logger.debug('Email setup for development.', { testAccount: this.testAccount })
     }
 
-    async getTestAccount(): Promise<nodemailer.TestAccount> {
+    async getTestAccount(): Promise<TestAccount> {
         if (isProd) {
             throw new Error('TestAccount should only be used in development')
         }
@@ -107,7 +106,7 @@ class MailHandler {
             logger.debug('Mail sent.', { response })
 
             if (!isProd) {
-                logger.info(`Mail preview: ${nodemailer.getTestMessageUrl(response as SMTPTransport.SentMessageInfo)}`)
+                logger.info(`Mail preview: ${nodemailer.getTestMessageUrl(response)}`)
             }
         })
     }

@@ -2,8 +2,6 @@ import styles from './page.module.scss'
 import Article from '@/cms/Article/Article'
 import { configureAction } from '@/services/configureAction'
 import {
-    readArticleCategoryAction,
-    readArticleInCategoryAction,
     updateArticleCategoryArticleAction,
     updateArticleCategoryArticleAddSectionAction,
     updateArticleCategoryArticleCmsImageAction,
@@ -15,93 +13,89 @@ import {
     updateArticleCategoryArticleSectionsAddPartAction,
     updateArticleCategoryArticleSectionsRemovePartAction
 } from '@/services/articleCategories/actions'
+import { articleCategoryOperations } from '@/services/articleCategories/operations'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { ServerSession } from '@/auth/session/ServerSession'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        category: string
-        nameAndId: string
-    }>,
-}
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ category: string, nameAndId: string }>) => {
+        const articleId = decodeVevenUriHandleError(params.nameAndId)
+        const categoryName = decodeURIComponent(params.category)
 
-export default async function ArticleCategoryPage({ params }: PropTypes) {
-    const articleId = decodeVevenUriHandleError((await params).nameAndId)
-    const categoryName = decodeURIComponent((await params).category)
+        const [articleCategory, article] = await Promise.all([
+            articleCategoryOperations.read({ params: { name: categoryName } }),
+            articleCategoryOperations.readArticleInCategory({
+                implementationParams: {
+                    articleCategoryName: categoryName,
+                },
+                params: {
+                    articleId,
+                },
+            }),
+        ])
 
-    const articleCategory = unwrapActionReturn(
-        await readArticleCategoryAction({ params: { name: categoryName } })
-    )
-
-    const article = unwrapActionReturn(
-        await readArticleInCategoryAction({
-            implementationParams: {
-                articleCategoryName: categoryName
-            }
-        }, {
-            params: {
-                articleId,
-            }
-        })
-    )
-
-    const canEdit = articleCategoryAuth.updateArticle.dynamicFields({}).auth(
-        await ServerSession.fromNextAuth()
-    ).toJsObject()
-
-    return (
+        return { articleCategory, article }
+    },
+    capabilities: (data) => ({
+        canEdit: articleCategoryAuth.updateArticle.data({ visibility: data.articleCategory.visibility }),
+    }),
+    metadata: (data) => ({ title: data.article.name }),
+    render: ({ data, capabilities }) => (
         <div className={styles.wrapper}>
             <Article
-                canEdit={canEdit}
+                capabilities={capabilities}
                 coverImageClass={styles.coverImage}
-                article={article}
+                article={data.article}
                 actions={{
                     updateArticleAction: configureAction(
                         updateArticleCategoryArticleAction,
-                        { implementationParams: { articleCategoryId: articleCategory.id } }
+                        { implementationParams: { articleCategoryId: data.articleCategory.id } }
                     ),
                     updateCoverImageAction: configureAction(
                         updateArticleCategoryArticleCoverImageAction,
-                        { implementationParams: { articleCategoryId: articleCategory.id } }
+                        { implementationParams: { articleCategoryId: data.articleCategory.id } }
                     ),
                     addSectionToArticleAction: configureAction(
                         updateArticleCategoryArticleAddSectionAction,
-                        { implementationParams: { articleCategoryId: articleCategory.id } }
+                        { implementationParams: { articleCategoryId: data.articleCategory.id } }
                     ),
                     reorderArticleSectionsAction: configureAction(
                         updateArticleCategoryArticleReorderSectionsAction,
-                        { implementationParams: { articleCategoryId: articleCategory.id } }
+                        { implementationParams: { articleCategoryId: data.articleCategory.id } }
                     ),
                     articleSections: {
                         updateCmsParagraph: configureAction(
                             updateArticleCategoryArticleCmsParagraphAction,
-                            { implementationParams: { articleCategoryId: articleCategory.id } }
+                            { implementationParams: { articleCategoryId: data.articleCategory.id } }
                         ),
                         updateCmsImage: configureAction(
                             updateArticleCategoryArticleCmsImageAction,
-                            { implementationParams: { articleCategoryId: articleCategory.id } }
+                            { implementationParams: { articleCategoryId: data.articleCategory.id } }
                         ),
                         updateCmsLink: configureAction(
                             updateArticleCategoryArticleCmsLinkAction,
-                            { implementationParams: { articleCategoryId: articleCategory.id } }
+                            { implementationParams: { articleCategoryId: data.articleCategory.id } }
                         ),
                         updateArticleSection: configureAction(
                             updateArticleCategoryArticleSectionAction,
-                            { implementationParams: { articleCategoryId: articleCategory.id } }
+                            { implementationParams: { articleCategoryId: data.articleCategory.id } }
                         ),
                         addPartToArticleSection: configureAction(
                             updateArticleCategoryArticleSectionsAddPartAction,
-                            { implementationParams: { articleCategoryId: articleCategory.id } }
+                            { implementationParams: { articleCategoryId: data.articleCategory.id } }
                         ),
                         removePartFromArticleSection: configureAction(
                             updateArticleCategoryArticleSectionsRemovePartAction,
-                            { implementationParams: { articleCategoryId: articleCategory.id } }
+                            { implementationParams: { articleCategoryId: data.articleCategory.id } }
                         )
                     }
                 }}
             />
         </div>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

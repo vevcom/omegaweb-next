@@ -6,6 +6,7 @@ import CmsLink from '@/cms/CmsLink/CmsLink'
 import CmsImage from '@/cms/CmsImage/CmsImage'
 import CmsParagraph from '@/cms/CmsParagraph/CmsParagraph'
 import { configureAction } from '@/services/configureAction'
+import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import type {
     ExpandedArticleSection,
     AddPartToArticleSectionAction,
@@ -15,7 +16,7 @@ import type {
 import type { UpdateCmsParagraphAction } from '@/cms/paragraphs/types'
 import type { UpdateCmsImageAction } from '@/cms/images/types'
 import type { UpdateCmsLinkAction } from '@/cms/links/types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     articleSection: ExpandedArticleSection
@@ -27,7 +28,7 @@ type PropTypes = {
         addPartToArticleSection: AddPartToArticleSectionAction,
         removePartFromArticleSection: RemovePartFromArticleSectionAction
     }
-    canEdit: AuthResultTypeAny
+    capabilities: Capabilities<'canEdit'>
 }
 
 export type ArticleSectionActions = PropTypes['actions']
@@ -35,9 +36,10 @@ export type ArticleSectionActions = PropTypes['actions']
 export default function ArticleSection({
     articleSection,
     actions,
-    canEdit,
+    capabilities,
 }: PropTypes) {
     const { cmsParagraph, cmsImage, cmsLink } = articleSection
+    const clientCapabilities = capabilitiesToJsObject(capabilities)
 
     const cmsImageContent = (
         // cmsImageWithControls fills this box via absolute positioning (see the module scss),
@@ -50,13 +52,13 @@ export default function ArticleSection({
                         width={articleSection.imageSize}
                         cmsImage={cmsImage}
                         updateCmsImageAction={actions.updateCmsImage}
-                        canEdit={canEdit}
+                        capabilities={capabilities}
                     />
                     <ImageControls
                         className={styles.moveControls}
                         articleSection={articleSection}
                         updateArticleSectionAction={actions.updateArticleSection}
-                        canEdit={canEdit}
+                        capabilities={clientCapabilities}
                     />
                 </span>
                 <div className={styles.remover}>
@@ -68,7 +70,7 @@ export default function ArticleSection({
                                 { params: { articleSectionName: articleSection.name } }
                             )
                         }
-                        canEdit={canEdit}
+                        capabilities={clientCapabilities}
                     />
                 </div>
             </>
@@ -86,7 +88,7 @@ export default function ArticleSection({
                     actions.addPartToArticleSection,
                     { params: { articleSectionName: articleSection.name } }
                 )}
-                canEdit={canEdit}
+                capabilities={clientCapabilities}
             >
                 <span className={styles.content}>
                     {
@@ -106,14 +108,14 @@ export default function ArticleSection({
                                             { params: { articleSectionName: articleSection.name } }
                                         )
                                     }
-                                    canEdit={canEdit}
+                                    capabilities={clientCapabilities}
                                 />
                             </div>
                             <CmsParagraph
                                 cmsParagraph={cmsParagraph}
                                 className={styles.paragrphComponent}
                                 updateCmsParagraphAction={actions.updateCmsParagraph}
-                                canEdit={canEdit}
+                                capabilities={capabilities}
                             />
                         </span>
                         }
@@ -129,10 +131,14 @@ export default function ArticleSection({
                                             { params: { articleSectionName: articleSection.name } }
                                         )
                                     }
-                                    canEdit={canEdit}
+                                    capabilities={clientCapabilities}
                                 />
                             </div>
-                            <CmsLink canEdit={canEdit} cmsLink={cmsLink} updateCmsLinkAction={actions.updateCmsLink} />
+                            <CmsLink
+                                capabilities={capabilities}
+                                cmsLink={cmsLink}
+                                updateCmsLinkAction={actions.updateCmsLink}
+                            />
                         </div>
                         }
                     </div>

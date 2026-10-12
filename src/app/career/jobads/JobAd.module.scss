@@ -20,3 +20,8 @@
     border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
     font-weight: ohma.$fonts-weight-m;
 }
+
+.sponsorMark {
+    vertical-align: middle;
+    margin-right: calc(0.75 * #{ohma.$gap});
+}

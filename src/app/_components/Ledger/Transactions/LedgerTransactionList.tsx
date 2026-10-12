@@ -4,8 +4,6 @@ import styles from './LedgerTransactionList.module.scss'
 import LedgerTransactionRow from './LedgerTransactionRow'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { LedgerTransactionPagingProvider, LedgerTransactionPagingContext } from '@/contexts/paging/LedgerTransactionPaging'
-import useAuthorizer from '@/hooks/useAuthorizer'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
 import { useContext } from 'react'
 
 type Props = {
@@ -22,10 +20,6 @@ function EmptyState() {
 }
 
 export default function TransactionList({ accountId }: Props) {
-    const isLedgerAdmin = useAuthorizer({
-        authorizer: RequirePermission.staticFields({ permission: 'LEDGER_ADMIN' }).dynamicFields({})
-    }).authorized
-
     return <LedgerTransactionPagingProvider
         startPage={{ page: 0, pageSize: 10 }}
         details={{ accountId }} serverRenderedData={[]}
@@ -38,7 +32,6 @@ export default function TransactionList({ accountId }: Props) {
                     key={transaction.id}
                     accountId={accountId}
                     transaction={transaction}
-                    canViewFees={isLedgerAdmin}
                 />
             }
             wrapper={children =>

@@ -12,23 +12,20 @@ import {
     visibilityIncluder
 } from '@/services/visibility/implement'
 import { defineOperation } from '@/services/serviceOperation'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
-import { ServerError } from '@/services/error'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
+import { ServiceError } from '@/services/error'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { z } from 'zod'
 
 const visibility = implementDoubleLevelVisibilityOperations({
     implementationParamsSchema: newsSchemas.params,
     authorizers: {
-        readDoubleLevelMatrix: ({ doubleLevelMatrix }) => newsAuth.readDoubleLevelMatrix.dynamicFields({
-            doubleLevelMatrix,
-        }),
-        updateRegularLevel: ({ doubleLevelMatrix }) => newsAuth.updateRegularLevel.dynamicFields({
-            doubleLevelMatrix,
-        }),
-        updateAdminLevel: ({ doubleLevelMatrix }) => newsAuth.updateAdminLevel.dynamicFields({
-            doubleLevelMatrix,
-        })
+        readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
+            newsAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix }),
+        updateRegularLevel: ({ doubleLevelMatrix }) =>
+            newsAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix }),
+        updateAdminLevel: ({ doubleLevelMatrix }) =>
+            newsAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix })
     },
     readDoubleLevel: async ({ prisma, implementationParams, include }) => {
         const news = await prisma.newsArticle.findUniqueOrThrow({
@@ -54,8 +51,8 @@ const read = defineOperation({
                 visibilityAdmin: { include: visibilityIncluder }
             }
         })
-        return newsAuth.read.dynamicFields({
-            level: news.published ? 'REGULAR' : 'ADMIN',
+        return newsAuth.read({
+            published: news.published,
             doubleLevelMatrix: {
                 regularLevel: toMatrix(news.visibilityRegular),
                 adminLevel: toMatrix(news.visibilityAdmin)
@@ -70,7 +67,7 @@ const read = defineOperation({
             },
             include: newsArticleRealtionsIncluder
         })
-        if (!news) throw new ServerError('NOT FOUND', `article ${params.id} not found`)
+        if (!news) throw new ServiceError('NOT FOUND', `article ${params.id} not found`)
         return news
     }
 })
@@ -78,7 +75,7 @@ const read = defineOperation({
 export const newsOperations = {
     visibility,
     create: defineOperation({
-        authorizer: () => newsAuth.create.dynamicFields({}),
+        authorizer: () => newsAuth.create,
         dataSchema: newsSchemas.create,
         operation: async ({ prisma, data }) => {
             const { name, description, endDateTime } = data
@@ -130,14 +127,15 @@ export const newsOperations = {
         }
     }),
     destroy: defineOperation({
-        authorizer: async ({ params, prisma }) => newsAuth.destroy.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) =>
+            newsAuth.destroy.data({
+                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+            }),
         paramsSchema: newsSchemas.params,
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
             const news = await prisma.newsArticle.findUnique({ where: { id: params.id } })
-            if (!news) throw new ServerError('NOT FOUND', `article ${params.id} not found`)
+            if (!news) throw new ServiceError('NOT FOUND', `article ${params.id} not found`)
 
             await prisma.$transaction(async tx => {
                 await tx.newsArticle.delete({ where: { id: params.id } })
@@ -155,7 +153,7 @@ export const newsOperations = {
         }
     }),
     readCurrent: defineOperation({
-        authorizer: () => newsAuth.readCurrent.dynamicFields({}),
+        authorizer: () => newsAuth.readCurrent,
         operation: async ({ prisma }, prismaWhereFilter) => {
             const news = await prisma.newsArticle.findMany({
                 where: {
@@ -184,7 +182,7 @@ export const newsOperations = {
     }),
     readOldPage: defineOperation({
         paramsSchema: newsSchemas.readOldPage,
-        authorizer: () => newsAuth.readOldPage.dynamicFields({}),
+        authorizer: () => newsAuth.readOldPage,
         operation: async ({ prisma, params }, prismaWhereFilter) => {
             const news = await prisma.newsArticle.findMany({
                 where: {
@@ -198,7 +196,7 @@ export const newsOperations = {
                         ]
                     } : {}),
                 },
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
                 orderBy: {
                     article: {
                         createdAt: 'desc',
@@ -214,9 +212,10 @@ export const newsOperations = {
     }),
     read,
     update: defineOperation({
-        authorizer: async ({ params, prisma }) => newsAuth.update.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) =>
+            newsAuth.update.data({
+                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+            }),
         paramsSchema: newsSchemas.params,
         dataSchema: newsSchemas.update,
         operation: async ({ prisma, params, data }) =>
@@ -239,9 +238,10 @@ export const newsOperations = {
      * those who can administrate it again.
      */
     setPublished: defineOperation({
-        authorizer: async ({ params, prisma }) => newsAuth.setPublished.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) =>
+            newsAuth.setPublished.data({
+                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+            }),
         paramsSchema: newsSchemas.params,
         dataSchema: newsSchemas.setPublished,
         operation: async ({ prisma, params, data }) => {
@@ -263,6 +263,7 @@ export const newsOperations = {
                     data: {
                         title: 'Ny nyhetsartikkel', // TODO: Add info about the article
                         message: 'En ny nyhetsartikkel er publisert',
+                        audience: { visibilityId: news.visibilityRegularId },
                     },
                 })
             }
@@ -277,12 +278,13 @@ export const newsOperations = {
         implementationParamsSchema: z.object({
             newsId: z.number(),
         }),
-        authorizer: async ({ implementationParams, prisma }) => newsAuth.updateArticle.dynamicFields({
-            doubleLevelMatrix: await visibility.readDoubleLevelMatrixInternal({
-                params: { id: implementationParams.newsId },
-                prisma
-            })
-        }),
+        authorizer: async ({ implementationParams, prisma }) =>
+            newsAuth.updateArticle.data({
+                visibility: await visibility.readDoubleLevelMatrixInternal({
+                    params: { id: implementationParams.newsId },
+                    prisma
+                })
+            }),
         ownedArticles: async ({ implementationParams }) => {
             const news = await read({ params: { id: implementationParams.newsId }, bypassAuth: true })
             return [news.article]

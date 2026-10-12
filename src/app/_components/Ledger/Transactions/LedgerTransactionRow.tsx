@@ -7,7 +7,6 @@ import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/t
 type Props = {
     transaction: ExpandedLedgerTransaction,
     accountId: number,
-    canViewFees?: boolean,
 }
 
 // Incomplete (PENDING) transactions are shown in italic; terminal-but-unsuccessful (FAILED,
@@ -19,7 +18,7 @@ function stateStyle(state: ExpandedLedgerTransaction['state']) {
     return undefined
 }
 
-export default function LedgerTransactionRow({ transaction, accountId, canViewFees }: Props) {
+export default function LedgerTransactionRow({ transaction, accountId }: Props) {
     const totalFunds = (
         transaction.ledgerEntries?.reduce((sum, entry) => sum + Math.abs(entry.funds), 0)
         + Math.abs(transaction.payment?.funds ?? 0)
@@ -43,6 +42,6 @@ export default function LedgerTransactionRow({ transaction, accountId, canViewFe
             </tr>
         )}
     >
-        <LedgerTransactionDetails transaction={transaction} accountId={accountId} canViewFees={canViewFees} />
+        <LedgerTransactionDetails transaction={transaction} accountId={accountId} />
     </PopUp>
 }

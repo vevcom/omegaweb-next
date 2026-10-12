@@ -1,12 +1,12 @@
 import { prisma as globalPrisma } from '@/prisma/client'
 import { defineOperation } from '@/services/serviceOperation'
 import { Session } from '@/auth/session/Session'
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
+import { Require } from '@/auth/authorizer/Require'
 import { describe, test, expect } from '@jest/globals'
 import type { ServiceOperationContext } from '@/services/serviceOperation'
 
 const returnContextInfo = defineOperation({
-    authorizer: () => RequireNothing.staticFields({}).dynamicFields({}),
+    authorizer: () => Require.nothing(),
     operation: async ({ prisma, session }) => ({
         inTransaction: '$transaction' in prisma,
         apiKeyId: session.apiKeyId,
@@ -14,7 +14,7 @@ const returnContextInfo = defineOperation({
 })
 
 const callReturnContextInfo = defineOperation({
-    authorizer: () => RequireNothing.staticFields({}).dynamicFields({}),
+    authorizer: () => Require.nothing(),
     operation: async () => returnContextInfo({})
 })
 

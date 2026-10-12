@@ -10,12 +10,14 @@ export function checkForPermissionDuplicates(arr: Permission[], failMessage: str
     }
 }
 
+// EVENT_ADMIN and NOTIFICATION_ADMIN are deliberately absent. Granting either to every committee
+// would bypass event visibility and registration-owner checks, or let committee members manage
+// other users' notification subscriptions. Committees that administer events or notifications get
+// those permissions directly. EVENT_CREATE, IMAGE_CREATE and NEWS_CREATE only let a committee
+// create its own content, so they are safe to grant here.
 export const COMMITTEE_PERMISSIONS: Permission[] = [
-    'IMAGE_COLLECTION_CREATE',
+    'IMAGE_CREATE',
     'EVENT_CREATE',
-    'NOTIFICATION_CREATE',
-    'MAILADDRESS_EXTERNAL_READ',
-    'MAILALIAS_READ',
-    'MAILINGLIST_READ',
-    'MAILINGLIST_ADMIN',
+    'NEWS_CREATE',
+    'MAILSERVER_USE',
 ]

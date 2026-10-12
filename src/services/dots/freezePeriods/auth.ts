@@ -1,9 +1,8 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequireUser } from '@/auth/authorizer/RequireUser'
+import { Require } from '@/auth/authorizer/Require'
 
 export const dotFreezePeriodAuth = {
-    create: RequirePermission.staticFields({ permission: 'DOTS_ADMIN' }),
-    readAll: RequireUser.staticFields({}),
-    update: RequirePermission.staticFields({ permission: 'DOTS_ADMIN' }),
-    destroy: RequirePermission.staticFields({ permission: 'DOTS_ADMIN' }),
+    create: Require.permission('DOTS_ADMIN'),
+    readAll: Require.user(),
+    update: Require.permission('DOTS_ADMIN'),
+    destroy: Require.permission('DOTS_ADMIN'),
 } as const

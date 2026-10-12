@@ -1,0 +1,40 @@
+@use '@/styles/ohma';
+
+.SponsorLegend {
+    display: flex;
+    flex-direction: column;
+    gap: ohma.$gap;
+    margin: 0;
+    padding: calc(2 * #{ohma.$gap});
+    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
+    background-color: ohma.$colors-surface-raised;
+
+    > div {
+        display: flex;
+        align-items: center;
+        gap: calc(1.5 * #{ohma.$gap});
+    }
+
+    dt {
+        flex-shrink: 0;
+        min-width: 15em;
+    }
+
+    dd {
+        margin: 0;
+        font-size: ohma.$fonts-s;
+        color: ohma.$colors-text-muted;
+    }
+
+    @include ohma.screenMobile {
+        > div {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: calc(0.5 * #{ohma.$gap});
+        }
+
+        dt {
+            min-width: 0;
+        }
+    }
+}

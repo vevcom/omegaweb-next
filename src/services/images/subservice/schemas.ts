@@ -58,7 +58,6 @@ export const baseSchema = z.object({
 })
 
 const pageSchema = readPageInputSchema(
-    z.number(),
     z.object({
         imageId: z.number(),
     }),

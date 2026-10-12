@@ -1,7 +1,7 @@
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
+import { Require } from '@/auth/authorizer/Require'
 
-export const standardImagesImagePanelAuth = RequireNothing.staticFields({})
+export const standardImagesImagePanelAuth = Require.nothing()
 
 export const standardImageCollectionAuth = {
-    readStandardImage: RequireNothing.staticFields({}),
+    readStandardImage: Require.nothing(),
 } as const

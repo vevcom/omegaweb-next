@@ -5,12 +5,9 @@ import { makeAction } from '@/services/serverAction'
 export const createNewsAction = makeAction(newsOperations.create)
 export const destroyNewsAction = makeAction(newsOperations.destroy)
 export const readOldNewsPageAction = makeAction(newsOperations.readOldPage)
-export const readNewsCurrentAction = makeAction(newsOperations.readCurrent)
-export const readNewsAction = makeAction(newsOperations.read)
 export const updateNewsAction = makeAction(newsOperations.update)
 export const setNewsPublishedAction = makeAction(newsOperations.setPublished)
 
-export const readNewsDoubleLevelVisibilityAction = makeAction(newsOperations.visibility.readDoubleLevelMatrix)
 export const updateNewsRegularLevelVisibilityAction = makeAction(newsOperations.visibility.updateRegularLevel)
 export const updateNewsAdminLevelVisibilityAction = makeAction(newsOperations.visibility.updateAdminLevel)
 

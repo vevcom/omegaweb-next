@@ -1,46 +1,49 @@
 import { EmailVerifiedWrapper } from './EmailVerifiedWrapper'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { ServerSession } from '@/auth/session/ServerSession'
-import { verifyEmailAction } from '@/services/auth/actions'
+import { authOperations } from '@/services/auth/operations'
+import { serverPage } from '@/app/serverPage'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import type { SearchParamsServerSide } from '@/lib/queryParams/types'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = SearchParamsServerSide
+const { page, generateMetadata } = serverPage({
+    operation: async ({ searchParams }: PageOperationArgs) => {
+        const token = QueryParams.token.decode(searchParams)
+        if (!token) {
+            notFound()
+        }
 
-export default async function Register({ searchParams }: PropTypes) {
-    const token = QueryParams.token.decode(await searchParams)
-    if (!token) {
-        notFound()
-    }
+        const updatedUser = await authOperations.verifyEmail({ params: { token } })
+        return updatedUser
+    },
+    render: ({ data: updatedUser, session }) => {
+        const userId = session.user?.id
 
-    const user = (await ServerSession.fromNextAuth()).user
+        if (!userId) {
+            // TODO: If the user arrives here by an invitation email
+            // or from another verify email email, we should log the user inn,
+            // not just ask the user to do so. Escpecially since invited users can't login with feide.
+            return <EmailVerifiedWrapper>
+                <Link href="/login">Logg inn</Link>
+            </EmailVerifiedWrapper>
+        }
 
-    const userId = user?.id
-    const updatedUser = unwrapActionReturn(await verifyEmailAction({ params: { token } }))
+        if (userId !== updatedUser.id) {
+            return <EmailVerifiedWrapper>
+                <p>Ups, du er visst logged inn som noen andre, dette kan skape litt problemer.</p>
+                <Link href="/logout">Logg ut</Link>
+            </EmailVerifiedWrapper>
+        }
 
-    if (!userId) {
-        // TODO: If the user arrives here by an invitation email
-        // or from another verify email email, we should log the user inn,
-        // not just ask the user to do so. Escpecially since invited users can't login with feide.
-        return <EmailVerifiedWrapper>
-            <Link href="/login">Logg inn</Link>
-        </EmailVerifiedWrapper>
-    }
+        if (updatedUser.acceptedTerms) {
+            return <EmailVerifiedWrapper>
+                <Link href="/users/me">Gå til profil siden</Link>
+            </EmailVerifiedWrapper>
+        }
 
-    if (userId !== updatedUser.id) {
-        return <EmailVerifiedWrapper>
-            <p>Ups, du er visst logged inn som noen andre, dette kan skape litt problemer.</p>
-            <Link href="/logout">Logg ut</Link>
-        </EmailVerifiedWrapper>
-    }
+        return redirect('/register')
+    },
+})
 
-    if (updatedUser.acceptedTerms) {
-        return <EmailVerifiedWrapper>
-            <Link href="/users/me">Gå til profil siden</Link>
-        </EmailVerifiedWrapper>
-    }
-
-    redirect('/register')
-}
+export default page
+export { generateMetadata }

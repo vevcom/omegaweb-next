@@ -5,6 +5,7 @@ import ChangeName from './ChangeName'
 import CmsImage from '@/cms/CmsImage/CmsImage'
 import SlideInOnView from '@/components/SlideInOnView/SlideInOnView'
 import { configureAction } from '@/services/configureAction'
+import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import ArticleSection, {
     type ArticleSectionActions
 } from '@/cms/ArticleSection/ArticleSection'
@@ -16,7 +17,7 @@ import type {
     UpdateArticleAction
 } from '@/cms/articles/types'
 import type { UpdateCmsImageAction } from '@/cms/images/types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 export type PropTypes = {
     article: ExpandedArticle,
@@ -34,7 +35,7 @@ export type PropTypes = {
         reorderArticleSectionsAction: ReorderArticleSectionsAction,
         articleSections: ArticleSectionActions
     }
-    canEdit: AuthResultTypeAny
+    capabilities: Capabilities<'canEdit'>
 }
 
 export default function Article({
@@ -47,8 +48,10 @@ export default function Article({
     articleClassName,
     addSectionClassName,
     actions,
-    canEdit,
+    capabilities,
 }: PropTypes) {
+    const clientCapabilities = capabilitiesToJsObject(capabilities)
+
     return (
         <span className={styles.Article}>
             {hideCoverImage ? <></> : (
@@ -57,7 +60,7 @@ export default function Article({
                         width={500}
                         cmsImage={article.coverImage}
                         updateCmsImageAction={actions.updateCoverImageAction}
-                        canEdit={canEdit}
+                        capabilities={capabilities}
                     />
                     <SlideInOnView direction="bottom">
                         <ChangeName
@@ -68,7 +71,7 @@ export default function Article({
                                     { params: { articleId: article.id } }
                                 )
                             }
-                            canEdit={canEdit}
+                            capabilities={clientCapabilities}
                         />
                     </SlideInOnView>
                 </span>
@@ -82,10 +85,10 @@ export default function Article({
                                     <ArticleSection
                                         actions={actions.articleSections}
                                         articleSection={section}
-                                        canEdit={canEdit}
+                                        capabilities={capabilities}
                                     />
                                     <SectionMover
-                                        canEdit={canEdit}
+                                        capabilities={clientCapabilities}
                                         showUp={i !== 0}
                                         showDown={i !== article.articleSections.length - 1}
                                         className={styles.moverComponent}
@@ -116,7 +119,7 @@ export default function Article({
             )}
             <div className={`${styles.addSection} ${addSectionClassName ?? ''}`}>
                 <AddSection
-                    canEdit={canEdit}
+                    capabilities={clientCapabilities}
                     currentNumberSections={article.articleSections.length}
                     addSectionToArticleAction={
                         configureAction(

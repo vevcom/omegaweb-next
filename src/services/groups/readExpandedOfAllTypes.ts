@@ -12,7 +12,7 @@ import { omegaMembershipGroupOperations } from './omegaMembershipGroups/operatio
 import { studyProgrammeAuth } from './studyProgrammes/auth'
 import { studyProgrammeOperations } from './studyProgrammes/operations'
 import { defineOperation } from '@/services/serviceOperation'
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
+import { Require } from '@/auth/authorizer/Require'
 import { GroupType } from '@/prisma-generated-pn-types'
 import type { ExpandedGroupsOfAllTypes } from './types'
 
@@ -59,13 +59,13 @@ const groupTypeExpandedReads = {
  * operation itself requires nothing: what the session may see is decided per group type.
  */
 export const readExpandedOfAllTypes = defineOperation({
-    authorizer: () => RequireNothing.staticFields({}).dynamicFields({}),
+    authorizer: () => Require.nothing(),
     operation: async ({ session }): Promise<ExpandedGroupsOfAllTypes> => {
         const entries = await Promise.all(
             Object.values(GroupType).map(async groupType => {
                 const { auth, readExpanded } = groupTypeExpandedReads[groupType]
 
-                if (!auth.dynamicFields({}).auth(session).authorized) {
+                if (!auth.auth(session).authorized) {
                     return [groupType, null] as const
                 }
 

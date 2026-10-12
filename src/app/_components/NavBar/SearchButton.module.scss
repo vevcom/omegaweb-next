@@ -1,0 +1,21 @@
+@use '@/styles/ohma';
+
+.searchButton {
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+
+    .searchPicture {
+        width: 40px;
+        height: 40px;
+        padding: ohma.$gap;
+        border-radius: calc(#{ohma.$gap} * 2);
+        color: ohma.$colors-text;
+        transition: ohma.$transitionTime;
+        &:hover {
+            background-color: ohma.$colors-accent-blue;
+        }
+    }
+}

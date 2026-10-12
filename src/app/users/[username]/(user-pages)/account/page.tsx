@@ -1,27 +1,34 @@
 import styles from './page.module.scss'
-import { redirectToErrorPage, unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { readLedgerAccountAction } from '@/services/ledger/accounts/actions'
 import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOverviewCard'
 import LedgerAccountPaymentMethods from '@/components/Ledger/Accounts/LedgerAccountPaymentMethodsCard'
 import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { Require } from '@/auth/authorizer/Require'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default async function Account() {
-    const session = await ServerSession.fromNextAuth()
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => {
+        const { user } = Require.user()
+            .auth(session).requireAuthorized().session
 
-    if (!session.user) redirectToErrorPage('UNAUTHORIZED')
+        const ledgerAccount = await ledgerAccountOperations.read({ params: { userId: user.id } })
+        return { ledgerAccount, userId: user.id }
+    },
+    render: ({ data }) => (
+        <div className={styles.wrapper}>
+            <LedgerAccountOverview
+                ledgerAccount={data.ledgerAccount}
+                showPayoutButton
+                showDepositButton
+                showDeactivateButton
+                showFees
+            />
+            <LedgerAccountPaymentMethods userId={data.userId} />
+            <LedgerAccountTransactionSummary transactionsHref="account/transactions" />
+        </div>
+    ),
+})
 
-    const ledgerAccount = unwrapActionReturn(await readLedgerAccountAction({ params: { userId: session.user.id } }))
-
-    return <div className={styles.wrapper}>
-        <LedgerAccountOverview
-            ledgerAccount={ledgerAccount}
-            showPayoutButton
-            showDepositButton
-            showDeactivateButton
-            showFees
-        />
-        <LedgerAccountPaymentMethods userId={session.user.id} />
-        <LedgerAccountTransactionSummary transactionsHref="account/transactions" />
-    </div>
-}
+export default page
+export { generateMetadata }

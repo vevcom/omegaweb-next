@@ -1,9 +1,9 @@
-import { ServerError, Smorekopp } from './error'
+import { ServiceError, Smorekopp } from './error'
 import logger from '@/lib/logger'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
-import type { ServerErrorCode } from './error'
+import type { ServiceErrorCode } from './error'
 
-const errorMessagesMap: { [key: string]: [ServerErrorCode, string] } = {
+const errorMessagesMap: { [key: string]: [ServiceErrorCode, string] } = {
     P2002: ['DUPLICATE', 'duplicate entry'],
     P2025: ['NOT FOUND', 'not found'],
 }
@@ -35,19 +35,19 @@ export async function prismaCall<T>(call: () => T | Promise<T>): Promise<T> {
             && error.code === 'P2025'
 
         if (process.env.NODE_ENV !== 'test' && !isSeedExpectedNotFound) {
-            // TODO: Add the details from the error to the ServerError
+            // TODO: Add the details from the error to the ServiceError
             logger.error(error)
         }
 
         if (!(error instanceof PrismaClientKnownRequestError)) {
             logger.error('Unknown error:', error)
-            throw new ServerError('UNKNOWN ERROR', 'unknown error')
+            throw new ServiceError('UNKNOWN ERROR', 'unknown error')
         }
 
         const pError = errorMessagesMap[error.code]
-        if (pError) throw new ServerError(pError[0], pError[1])
+        if (pError) throw new ServiceError(pError[0], pError[1])
         logger.error('Unknown prisma error:', error)
-        throw new ServerError('UNKNOWN ERROR', 'unknown prisma error')
+        throw new ServiceError('UNKNOWN ERROR', 'unknown prisma error')
     }
 }
 
@@ -55,10 +55,10 @@ export async function prismaCall<T>(call: () => T | Promise<T>): Promise<T> {
 // the use of operations
 
 /**
- * A function that wraps a prisma call in a try catch block and throws a ServerError if it fails.
- * It translates prisma errors into ServerErrors.
- * Further unknown errors are thrown as UNKNOWN ServerErrors.
- * When wrapped in this you make sure all thrown errors are of type ServerError
+ * A function that wraps a prisma call in a try catch block and throws a ServiceError if it fails.
+ * It translates prisma errors into ServiceErrors.
+ * Further unknown errors are thrown as UNKNOWN ServiceErrors.
+ * When wrapped in this you make sure all thrown errors are of type ServiceError
  * @param call - The function to be wrapped
  * @returns
  */

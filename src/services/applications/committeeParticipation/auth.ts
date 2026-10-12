@@ -1,6 +1,8 @@
-import { RequirePermissionOrGroupAdmin } from '@/auth/authorizer/RequirePermissionOrGroupAdmin'
+import { Require } from '@/auth/authorizer/Require'
+
+const groupAdminOrApplicationAdmin = Require.permission('APPLICATION_ADMIN').or().groupAdmin()
 
 export const committeeParticipationAuth = {
-    read: RequirePermissionOrGroupAdmin.staticFields({ permission: 'APPLICATION_ADMIN' }),
-    readAll: RequirePermissionOrGroupAdmin.staticFields({ permission: 'APPLICATION_ADMIN' }),
-}
+    read: groupAdminOrApplicationAdmin,
+    readAll: groupAdminOrApplicationAdmin,
+} as const

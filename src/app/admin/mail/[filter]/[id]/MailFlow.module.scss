@@ -1,6 +1,130 @@
 @use '@/styles/ohma';
 
-.mailListContainer {
+.flowCard {
+    background-color: ohma.$colors-surface-raised;
+    border-radius: ohma.$cardRounding;
+    padding: ohma.$cardPadding;
+}
+
+.flow {
     display: flex;
-    flex-direction: row wrap;
+    flex-direction: row;
+    align-items: stretch;
+    gap: calc(2 * #{ohma.$gap});
+
+    @media screen and (max-width: ohma.$mobileBreakpoint) {
+        flex-direction: column;
+        align-items: stretch;
+
+        .arrow {
+            transform: rotate(90deg);
+            align-self: center;
+        }
+    }
+}
+
+.stage {
+    flex: 1 1 0;
+    min-width: 0;
+
+    h3 {
+        margin: 0 0 ohma.$gap 0;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: ohma.$colors-text-muted;
+    }
+
+    ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: ohma.$gap;
+    }
+}
+
+.stageSection {
+    &:not(:first-of-type) {
+        margin-top: calc(1.5 * #{ohma.$gap});
+    }
+
+    h4 {
+        margin: 0 0 calc(0.5 * #{ohma.$gap}) 0;
+        font-size: 0.75rem;
+        font-weight: normal;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: ohma.$colors-text-muted;
+    }
+}
+
+.arrow {
+    align-self: center;
+    color: ohma.$colors-text-muted;
+    font-size: 1.5rem;
+    flex: 0 0 auto;
+}
+
+.chip {
+    display: flex;
+    align-items: center;
+    gap: ohma.$gap;
+    padding: ohma.$gap calc(1.5 * #{ohma.$gap});
+    border-radius: ohma.$rounding;
+    background-color: ohma.$colors-surface-subtle;
+    min-width: 0;
+
+    &.focused {
+        outline: 2px solid ohma.$colors-accent-green;
+        font-weight: bold;
+    }
+}
+
+.typeIcon {
+    color: ohma.$colors-text-muted;
+    flex: 0 0 auto;
+}
+
+.chipLabel {
+    color: ohma.$colors-text;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+
+    &:is(a):hover {
+        text-decoration: underline;
+    }
+}
+
+.via {
+    font-size: 0.8rem;
+    color: ohma.$colors-text-muted;
+    font-style: italic;
+}
+
+.remove {
+    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: ohma.$colors-text-muted;
+    padding: calc(0.5 * #{ohma.$gap});
+    line-height: 1;
+    flex: 0 0 auto;
+
+    &:hover {
+        color: ohma.$colors-accent-red;
+    }
+}
+
+.none {
+    color: ohma.$colors-text-muted;
+    font-style: italic;
+    margin: 0;
+}
+
+.error {
+    color: ohma.$colors-accent-red;
+    margin: ohma.$gap 0 0 0;
 }

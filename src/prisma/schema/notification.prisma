@@ -33,8 +33,8 @@ model NotificationChannel {
 model NotificationMethod {
   id          Int     @id @default(autoincrement())
   email       Boolean @default(false)
-  // push        Boolean @default(false)
   emailWeekly Boolean @default(false)
+  //feat: add push method
 
   channelDefault   NotificationChannel[]      @relation(name: "defaultMethods")
   channelAvailable NotificationChannel[]      @relation(name: "availableMethods")
@@ -61,8 +61,44 @@ model Notification {
   title     String
   message   String
 
-  channelId Int
-  channel   NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  // Who is supposed to get this notification. Recipients are resolved by the notification worker
+  // right before dispatching (not at create time), so subscription, membership and visibility
+  // changes after creation count. A user must fulfill all of these to get notified:
+  // 1. be subscribed to the channel with the method in question,
+  // 2. be in the list of targeted users (an empty list means no restriction),
+  // 3. pass the visibility (null means no restriction), and
+  // 4. hold the permission (null means no restriction).
+  channelId     Int
+  channel       NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  usersTargeted User[]              @relation(name: "NotificationTargets")
+  // Deleting a visibility (e.g. along with the entity owning it) takes the notification with it,
+  // rather than silently making the notification unrestricted.
+  visibilityId Int?
+  visibility   Visibility? @relation(fields: [visibilityId], references: [id], onDelete: Cascade)
+  permission   Permission?
 
-  // Add visibility later
+  // Dispatch state, written by the notification worker. Null = not yet handled by that method.
+  // The claim column lets a dispatch that died mid-send go stale and be retried (see the worker).
+  emailDispatchStartedAt  DateTime?
+  emailDispatchedAt       DateTime?
+  emailWeeklyDispatchedAt DateTime?
+
+  weeklyMailOutboxEntries WeeklyMailOutboxEntry[]
+}
+
+// One user's part of one notification in the weekly digest mail. Rows are written on digest day -
+// after recipients are resolved, in the same transaction that marks the notifications
+// weekly-dispatched - and deleted again once the digest mail containing them has been sent, so
+// the table only ever holds the not-yet-sent backlog.
+model WeeklyMailOutboxEntry {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  notificationId Int
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationId])
 }

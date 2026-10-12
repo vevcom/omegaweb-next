@@ -3,7 +3,7 @@ import { omegaOrderAuth } from './auth'
 import { groupTypesMigratedStraightAway } from './constants'
 import { groupTypesConfig } from '@/services/groups/constants'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { GroupType } from '@/prisma-generated-pn/client'
 import type { OmegaOrderRequirement } from './types'
 
@@ -18,7 +18,7 @@ export const omegaOrderOperations = {
      * always brought along, so the requirement only ever fails if something has drifted.
      */
     readRequirements: defineOperation({
-        authorizer: () => omegaOrderAuth.readRequirements.dynamicFields({}),
+        authorizer: () => omegaOrderAuth.readRequirements,
         operation: async ({ prisma }): Promise<OmegaOrderRequirement[]> => {
             const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -87,13 +87,13 @@ export const omegaOrderOperations = {
      */
     create: defineOperation({
         opensTransaction: true,
-        authorizer: () => omegaOrderAuth.create.dynamicFields({}),
+        authorizer: () => omegaOrderAuth.create,
         operation: async ({ prisma }) => {
             const requirements = await omegaOrderOperations.readRequirements({ bypassAuth: true })
             const unfulfilled = requirements.filter(requirement => !requirement.fulfilled)
 
             if (unfulfilled.length) {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD PARAMETERS',
                     `Omega kan ikke inkrementeres enda: ${
                         unfulfilled.map(requirement => requirement.description).join(', ')
@@ -123,19 +123,19 @@ export const omegaOrderOperations = {
         }
     }),
     readCurrent: defineOperation({
-        authorizer: () => omegaOrderAuth.readCurrent.dynamicFields({}),
+        authorizer: () => omegaOrderAuth.readCurrent,
         operation: async ({ prisma }) => {
             const omegaOrder = await prisma.omegaOrder.findFirst({
                 orderBy: {
                     order: 'desc'
                 }
             })
-            if (!omegaOrder) throw new ServerError('NOT FOUND', 'Current Omega Order not found')
+            if (!omegaOrder) throw new ServiceError('NOT FOUND', 'Current Omega Order not found')
             return omegaOrder
         }
     }),
     readAll: defineOperation({
-        authorizer: () => omegaOrderAuth.readAll.dynamicFields({}),
+        authorizer: () => omegaOrderAuth.readAll,
         operation: async ({ prisma }) =>
             await prisma.omegaOrder.findMany({
                 orderBy: {

@@ -74,8 +74,11 @@
         div {
             list-style: none;
             margin: ohma.$gap;
-            a {
+            a, button {
                 width: calc(30 * #{ohma.$gap});
+                border: none;
+                cursor: pointer;
+                font-family: inherit;
                 text-decoration: none;
                 padding: calc(2 * #{ohma.$gap});
                 background: ohma.$colors-surface-base;
@@ -137,7 +140,7 @@
             justify-content: center;
             > div {
                 width: 100%;
-                > a {
+                > a, > button {
                     font-size: x-large;
                     width: 100%;
                 }

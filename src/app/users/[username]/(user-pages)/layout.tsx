@@ -1,11 +1,11 @@
 import styles from './layout.module.scss'
-import { readUserProfileAction } from '@/services/users/actions'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { ServerSession } from '@/auth/session/ServerSession'
+import PageTitleSetter from '@/contexts/PageTitleSetter'
+import { userOperations } from '@/services/users/operations'
+import { serverLayout, withFallback, withPageSession } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import UserNavBar from '@/app/users/[username]/UserNavBar'
 import { notFound } from 'next/navigation'
-import type { ReactNode } from 'react'
+import type { LayoutOperationArgs } from '@/app/serverPage'
 import type { PropTypes } from '@/app/users/[username]/page'
 import type { Metadata } from 'next'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -24,29 +24,32 @@ function userPagesTitle(
 }
 
 export async function generateMetadata({ params }: PropTypes): Promise<Metadata> {
-    const session = await ServerSession.fromNextAuth()
-    const paramUsername = (await params).username
-    const username = paramUsername === 'me' ? session.user?.username : paramUsername
-    if (!username) return {}
+    return withPageSession(async (session) => {
+        const paramUsername = (await params).username
+        const username = paramUsername === 'me' ? session.user?.username : paramUsername
+        if (!username) return {}
 
-    const profileRes = await readUserProfileAction({ params: { username } })
-    if (!profileRes.success) return {}
-    return { title: userPagesTitle(profileRes.data.user, session) }
+        const profile = await withFallback(userOperations.readProfile({ params: { username } }), null)
+        if (!profile) return {}
+        return { title: userPagesTitle(profile.user, session) }
+    })
 }
 
-export default async function UserAdmin({ children, params }: PropTypes & { children: ReactNode }) {
-    const session = await ServerSession.fromNextAuth()
-    let username = (await params).username
-    if (username === 'me') {
-        if (!session.user) return notFound()
-        username = session.user.username
-    }
+export default serverLayout({
+    operation: async ({ params, session }: LayoutOperationArgs<{ username: string }>) => {
+        let username = params.username
+        if (username === 'me') {
+            if (!session.user) return notFound()
+            username = session.user.username
+        }
 
-    // Guards the whole section: a username nobody may read gets no layout and no nav.
-    const { user } = unwrapActionReturn(await readUserProfileAction({ params: { username } }))
-
-    return (
-        <PageWrapper title={userPagesTitle(user, session)} fillHeight transparent hideTitle>
+        // Guards the whole section: a username nobody may read gets no layout and no nav.
+        const profile = await userOperations.readProfile({ params: { username } })
+        return { username, user: profile.user }
+    },
+    render: ({ data: { username, user }, children, session }) => (
+        <PageWrapper fillHeight transparent hideTitle>
+            <PageTitleSetter title={userPagesTitle(user, session)} />
             <div className={styles.userAdminLayout}>
                 <main className={styles.main}>
                     <div className={styles.mainInner}>
@@ -56,5 +59,5 @@ export default async function UserAdmin({ children, params }: PropTypes & { chil
                 <UserNavBar username={username} userId={user.id} />
             </div>
         </PageWrapper>
-    )
-}
+    ),
+})

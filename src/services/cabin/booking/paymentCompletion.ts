@@ -1,5 +1,5 @@
 import { notificationOperations } from '@/services/notifications/operations'
-import { sendSystemMail } from '@/lib/email/send'
+import { sendMailOperations } from '@/services/notifications/send-mail/operations'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -22,18 +22,20 @@ export async function sendBookingConfirmation(
             },
             data: {
                 ...mailData,
-                userIdList: [booking.userId],
+                audience: { userIds: [booking.userId] },
             },
         })
         return
     }
 
     if (booking.guestUser) {
-        await sendSystemMail(
-            booking.guestUser.email,
-            mailData.title,
-            mailData.message
-        )
+        await sendMailOperations.internal.sendSystemMail.internalCall({
+            data: {
+                to: booking.guestUser.email,
+                subject: mailData.title,
+                body: mailData.message,
+            },
+        })
     }
 }
 

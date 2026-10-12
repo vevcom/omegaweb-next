@@ -1,35 +1,38 @@
-import { RequireLevelFromDoubleLevelVisibility } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibility'
-import { RequireLevelFromDoubleLevelVisibilityDynamic } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibilityDynamic'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequireVisibilityFilter } from '@/auth/authorizer/RequireVisibilityFilter'
+import { Require } from '@/auth/authorizer/Require'
+import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 
 /**
- * The admin level of an event decides who may edit and delete it, the regular level who may
- * register for it - and, for an event not viewable by all, who may see it at all. EVENT_ADMIN
- * bypasses both levels for every event, and EVENT_CREATE is what it takes to make one in the first
- * place.
+ * The admin level of an event decides who may edit and delete it. The regular level decides who
+ * may register for it, and who may see it at all when it isn't viewable by everyone. EVENT_ADMIN
+ * bypasses both levels for every event.
  */
+const regularLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
+const adminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
+
 export const eventAuth = {
-    create: RequirePermission.staticFields({ permission: 'EVENT_CREATE' }),
+    // A new event has no visibility matrix yet to check. EVENT_CREATE is the only gate here. The
+    // creator sets the event's own visibility, which then governs every operation below.
+    create: Require.permission('EVENT_ADMIN').or().permission('EVENT_CREATE'),
 
-    readDoubleLevelMatrix:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'REGULAR', bypassPermission: 'EVENT_ADMIN' }),
-    updateRegularLevel:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'EVENT_ADMIN' }),
-    updateAdminLevel:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'EVENT_ADMIN' }),
+    readDoubleLevelMatrix: regularLevel,
+    updateRegularLevel: adminLevel,
+    updateAdminLevel: adminLevel,
 
-    read: RequireLevelFromDoubleLevelVisibilityDynamic.staticFields({ bypassPermission: 'EVENT_ADMIN' }),
-    readManyCurrent: RequireVisibilityFilter.staticFields({ bypassPermission: 'EVENT_ADMIN' }),
-    readManyArchivedPage: RequireVisibilityFilter.staticFields({ bypassPermission: 'EVENT_ADMIN' }),
-    search: RequireVisibilityFilter.staticFields({ bypassPermission: 'EVENT_ADMIN' }),
+    // The level 'PUBLIC' is for an event marked as viewable by all: then neither level is checked.
+    read: ({ level, doubleLevelMatrix }: {
+        level: 'PUBLIC' | 'REGULAR' | 'ADMIN',
+        doubleLevelMatrix: DoubleLevelVisibilityMatrix,
+    }) => {
+        if (level === 'PUBLIC') return Require.nothing()
+        return (level === 'REGULAR' ? regularLevel : adminLevel).data({ visibility: doubleLevelMatrix })
+    },
+    readManyCurrent: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
+    readManyArchivedPage: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
+    search: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
 
-    update: RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'EVENT_ADMIN' }),
-    setPublished:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'EVENT_ADMIN' }),
-    updateCmsCoverImage:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'EVENT_ADMIN' }),
-    updateParagraphContent:
-        RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'EVENT_ADMIN' }),
-    destroy: RequireLevelFromDoubleLevelVisibility.staticFields({ level: 'ADMIN', bypassPermission: 'EVENT_ADMIN' }),
+    update: adminLevel,
+    setPublished: adminLevel,
+    updateCmsCoverImage: adminLevel,
+    updateParagraphContent: adminLevel,
+    destroy: adminLevel,
 } as const

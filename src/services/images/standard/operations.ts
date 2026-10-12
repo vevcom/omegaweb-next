@@ -3,7 +3,7 @@ import { StandardImageConfig } from './constants'
 import { standardImageCollectionAuth, standardImagesImagePanelAuth } from './auth'
 import { implementSpecialCollection } from '@/services/images/subservice/special/implement'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
 import { StandardImage } from '@/prisma-generated-pn-types'
 import { imageOperations } from '@/services/images/subservice/operations'
@@ -17,7 +17,7 @@ const {
     generateCollectionFromConfig: generateStandardImagesCollectionFromConfig
 } = implementSpecialCollection({
     special: 'STANDARDIMAGES',
-    imagePanelAuther: standardImagesImagePanelAuth.dynamicFields({}),
+    imagePanelAuth: standardImagesImagePanelAuth,
     allowedExtensions,
     config: {
         name: 'Standardbilder',
@@ -112,7 +112,7 @@ const updateStandardImageFromConfig = defineSubOperation({
 })
 
 const readStandardImage = defineOperation({
-    authorizer: () => standardImageCollectionAuth.readStandardImage.dynamicFields({}),
+    authorizer: () => standardImageCollectionAuth.readStandardImage,
     paramsSchema: z.object({
         standardImage: z.nativeEnum(StandardImage)
     }),
@@ -166,7 +166,7 @@ const readStandardImage = defineOperation({
  * just a maintenance reminder that this list and the enum must stay in sync.
  */
 const readAllStandardImages = defineOperation({
-    authorizer: () => standardImageCollectionAuth.readStandardImage.dynamicFields({}),
+    authorizer: () => standardImageCollectionAuth.readStandardImage,
     operation: async ({ prisma }): Promise<Record<StandardImage, ExpandedImage>> => {
         const standardCollection = await standardImagesImagePanelOperations.readCollection({})
         const imagesInCollection = await prisma.image.findMany({
@@ -189,7 +189,7 @@ const readAllStandardImages = defineOperation({
             const image = allStandardImages.find(candidate => candidate.standardImage === standardImage)
             // Unreachable: each member was either returned by the findMany or just regenerated.
             if (!image) {
-                throw new ServerError('NOT FOUND', `Standard image ${standardImage} could not be resolved`)
+                throw new ServiceError('NOT FOUND', `Standard image ${standardImage} could not be resolved`)
             }
             return image
         }

@@ -1,5 +1,4 @@
 import styles from './RadioLarge.module.scss'
-import { v4 as uuid } from 'uuid'
 
 
 export default function RadioLarge<ValueType extends number | string>({
@@ -21,7 +20,7 @@ export default function RadioLarge<ValueType extends number | string>({
     return <div className={styles.radioContainer}>
         {options.map((option, i) => {
             const id = `${name}-${i}`
-            return <div key={uuid()}>
+            return <div key={option.value}>
                 <input
                     type="radio"
                     name={name}

@@ -33,14 +33,14 @@ type PropTypes = {
 export default function OmbulAdmin({ ombul }: PropTypes) {
     const { push, refresh } = useRouter()
     const canUpdate = useEditMode({
-        authorizer: ombulAuth.update.dynamicFields({})
+        authorizer: ombulAuth.update
     })
     const canUpdateCoverAuthResult = useAuthorizer({
-        authorizer: ombulAuth.updateCoverImage.dynamicFields({})
+        authorizer: ombulAuth.updateCoverImage
     })
     const canUpdateCover = useEditMode({ authResult: canUpdateCoverAuthResult })
     const canDestroy = useEditMode({
-        authorizer: ombulAuth.destroy.dynamicFields({})
+        authorizer: ombulAuth.destroy
     })
 
     const updateOmbulActionBind = configureAction(

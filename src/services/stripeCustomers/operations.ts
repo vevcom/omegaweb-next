@@ -1,5 +1,6 @@
+import '@pn-server-only'
 import { stripeCustomerAuth } from './auth'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { stripe } from '@/lib/stripe'
 import { z } from 'zod'
@@ -10,7 +11,7 @@ export const stripeCustomerOperations = {
      * Otherwise, a new customer is created, associated in the DB, and returned.
      */
     readOrCreate: defineOperation({
-        authorizer: ({ params: { userId } }) => stripeCustomerAuth.readOrCreate.dynamicFields({ userId }),
+        authorizer: ({ params: { userId } }) => stripeCustomerAuth.readOrCreate.data({ userId }),
         paramsSchema: z.object({
             userId: z.number(),
         }),
@@ -78,7 +79,7 @@ export const stripeCustomerOperations = {
 
             if (customer.deleted) {
                 // This should never happen as we never delete customers in Stripe.
-                throw new ServerError(
+                throw new ServiceError(
                     'SERVER ERROR',
                     'Stripe kunden tilknyttet brukeren er slettet. Vennligst kontakt Vevcom.',
                 )
@@ -107,7 +108,7 @@ export const stripeCustomerOperations = {
      * If the user does not have a Stripe customer associated it will be created automatically.
      */
     createSession: defineOperation({
-        authorizer: ({ params: { userId } }) => stripeCustomerAuth.createSession.dynamicFields({ userId }),
+        authorizer: ({ params: { userId } }) => stripeCustomerAuth.createSession.data({ userId }),
         paramsSchema: z.object({
             userId: z.number(),
         }),
@@ -155,7 +156,7 @@ export const stripeCustomerOperations = {
      * Creates a setup intent for adding a new payment method to the user's customer account in Stripe.
      */
     createSetupIntent: defineOperation({
-        authorizer: ({ params: { userId } }) => stripeCustomerAuth.createSetupIntent.dynamicFields({ userId }),
+        authorizer: ({ params: { userId } }) => stripeCustomerAuth.createSetupIntent.data({ userId }),
         paramsSchema: z.object({
             userId: z.number(),
         }),
@@ -165,7 +166,7 @@ export const stripeCustomerOperations = {
             const setupIntent = await stripe.setupIntents.create({ customer: customerId })
 
             if (!setupIntent.client_secret) {
-                throw new ServerError(
+                throw new ServiceError(
                     'UNKNOWN ERROR',
                     'Noe gikk galt ved opprettelse av betalingsmetode.',
                 )
@@ -181,7 +182,7 @@ export const stripeCustomerOperations = {
      * Returns a filtered list of saved payment methods for the user.
      */
     readSavedPaymentMethods: defineOperation({
-        authorizer: ({ params: { userId } }) => stripeCustomerAuth.readSavedPaymentMethods.dynamicFields({ userId }),
+        authorizer: ({ params: { userId } }) => stripeCustomerAuth.readSavedPaymentMethods.data({ userId }),
         paramsSchema: z.object({
             userId: z.number(),
         }),
@@ -219,7 +220,7 @@ export const stripeCustomerOperations = {
      * Deletes (or "detaches" in Stripe lingo) a saved payment method from the user's customer account in Stripe.
      */
     deleteSavedPaymentMethod: defineOperation({
-        authorizer: ({ params: { userId } }) => stripeCustomerAuth.deleteSavedPaymentMethod.dynamicFields({ userId }),
+        authorizer: ({ params: { userId } }) => stripeCustomerAuth.deleteSavedPaymentMethod.data({ userId }),
         paramsSchema: z.object({
             userId: z.number(),
             paymentMethodId: z.string(),
@@ -246,4 +247,4 @@ export const stripeCustomerOperations = {
             }
         }
     }),
-}
+} as const

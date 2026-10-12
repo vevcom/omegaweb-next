@@ -1,51 +1,28 @@
 import '@pn-server-only'
-import { dispatchEmailNotifications } from './email/dispatch'
 import { notificationAuth } from './auth'
 import { notificationSchemas } from './schemas'
-import { allNotificationMethodsOn, notificationMethodsArray } from './constants'
-import { availableNotificationMethodIncluder } from './channel/constants'
-import { emailSchemas } from './email/schemas'
-import { sendMail } from '@/lib/email/send'
-import { userFilterSelection } from '@/services/users/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
-import type { Notification } from '@/prisma-generated-pn-types'
-import type { ExpandedNotificationChannel, NotificationResult } from './types'
-import type { UserFiltered } from '@/services/users/types'
-
-const dispathMethod = {
-    email: dispatchEmailNotifications,
-    emailWeekly: async () => { },
-} satisfies Record<
-    typeof notificationMethodsArray[number],
-    ((channel: ExpandedNotificationChannel, notification: Notification, users: UserFiltered[]) => Promise<void>)
->
-
-export function repalceSpecialSymbols(text: string, user: UserFiltered) {
-    return text
-        .replaceAll('%u', user.username)
-        .replaceAll('%n', user.firstname)
-        .replaceAll('%N', `${user.firstname} ${user.lastname}`)
-}
+import type { NotificationResult } from './types'
 
 export const notificationOperations = {
     /**
-     * Creates a notification with the specified data.
+     * Creates a notification. Nothing is sent here: the notification worker picks it up, resolves
+     * who should receive it at that point (channel subscriptions ∩ targeted users ∩ visibility ∩
+     * permission, see methods/recipients.ts) and dispatches it through the channel's available methods.
      *
-     * @param data - The detailed data for dispatching the notification.
-     * @returns A promise that resolves with an object containing the dispatched notification and the number of recipients.
+     * @param data - The notification, optionally restricted to an audience of users, a visibility and a permission.
+     * @returns The created notification.
      */
     create: defineOperation({
-        authorizer: () => notificationAuth.create.dynamicFields({}),
+        authorizer: () => notificationAuth.create,
         dataSchema: notificationSchemas.create,
         operation: async ({ prisma, data }): Promise<NotificationResult> => {
-            // This prevent notifications from beeing sent during seeding
+            // This prevents notifications from being created - and later dispatched by the
+            // notification worker - during seeding.
             if (process.env.IGNORE_SERVER_ONLY) {
-                return {
-                    notification: null,
-                    recipients: 0,
-                }
+                return { notification: null }
             }
 
             const notification = await prisma.notification.create({
@@ -57,63 +34,24 @@ export const notificationOperations = {
                             id: data.channelId,
                         },
                     },
-                }
-            })
-
-            const results = await prisma.notificationChannel.findUniqueOrThrow({
-                where: {
-                    id: data.channelId,
-                },
-                include: {
-                    ...availableNotificationMethodIncluder,
-                    subscriptions: {
-                        select: {
-                            methods: {
-                                select: allNotificationMethodsOn,
-                            },
-                            user: {
-                                select: userFilterSelection,
+                    ...(data.audience?.userIds && data.audience.userIds.length > 0 ? {
+                        usersTargeted: {
+                            connect: data.audience.userIds.map(userId => ({ id: userId })),
+                        },
+                    } : {}),
+                    ...(data.audience?.visibilityId ? {
+                        visibility: {
+                            connect: {
+                                id: data.audience.visibilityId,
                             },
                         },
-                    },
-                },
-            })
-
-            // If a userId map is sent, remove all other users.
-            if (data.userIdList) {
-                results.subscriptions = results.subscriptions.filter(
-                    subscription => (data.userIdList && data.userIdList.includes(subscription.user.id))
-                )
-            }
-
-            // TODO: Filter the users by visibility
-
-            notificationMethodsArray.forEach(method => {
-                if (!results.availableMethods[method]) {
-                    return
+                    } : {}),
+                    permission: data.audience?.permission,
                 }
-
-                const userFiltered = results.subscriptions
-                    .filter(subscription => subscription.methods[method])
-                    .map(subscription => subscription.user)
-
-                dispathMethod[method]({
-                    ...results,
-                    subscriptions: undefined,
-                } as ExpandedNotificationChannel, notification, userFiltered)
             })
 
-            return {
-                notification,
-                recipients: results.subscriptions.length
-            }
+            return { notification }
         }
-    }),
-
-    sendMail: defineOperation({
-        authorizer: () => notificationAuth.sendMail.dynamicFields({}),
-        dataSchema: emailSchemas.sendMail,
-        operation: ({ data }) => sendMail(data)
     }),
 
     /**
@@ -143,9 +81,9 @@ export const notificationOperations = {
                     channelId: channel.id,
                     title: data.title,
                     message: data.message,
-                    userIdList: data.userIdList,
+                    audience: data.audience,
                 }
             })
         }
     }),
-}
+} as const

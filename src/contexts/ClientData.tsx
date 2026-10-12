@@ -124,7 +124,7 @@ export default function ClientDataProvider({
         specialCollectionsInFlight.current = true
         setSpecialCollections({ status: 'loading' })
         const authorizedPanels = Object.values(specialImagePanels).filter(
-            panel => panel.auth.dynamicFields({}).auth(session).authorized
+            panel => panel.auth.auth(session).authorized
         )
         const results = await Promise.all(authorizedPanels.map(panel => panel.readCollectionAction()))
         setSpecialCollections({

@@ -1,6 +1,7 @@
 import styles from './page.module.scss'
 import UpdateApiKeyForm from './UpdateApiKeyForm'
-import { readApiKeyAction, destroyApiKeyAction } from '@/services/apiKeys/actions'
+import { destroyApiKeyAction } from '@/services/apiKeys/actions'
+import { apiKeyOperations } from '@/services/apiKeys/operations'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import Form from '@/components/Form/Form'
 import DateInput from '@/components/UI/DateInput'
@@ -10,20 +11,15 @@ import Slider from '@/components/UI/Slider'
 import Date from '@/app/_components/Date/Date'
 import Checkbox from '@/app/_components/UI/Checkbox'
 import { configureAction } from '@/services/configureAction'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        name: string
-    }>
-}
-
-export default async function ApiKeyAdmin({ params }: PropTypes) {
-    const res = await readApiKeyAction({ params: { name: decodeURIComponent((await params).name) } })
-    if (!res.success) throw new Error(res.error?.length ? res.error[0].message : 'En feil har oppstått')
-    const apiKey = res.data
-
-    return (
-        <PageWrapper title="API nøkkel">
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ name: string }>) =>
+        apiKeyOperations.read({ params: { name: decodeURIComponent(params.name) } }),
+    metadata: () => ({ title: 'API nøkkel' }),
+    render: ({ data: apiKey }) => (
+        <PageWrapper>
             <div className={styles.wrapper}>
                 <h2>Navn: {apiKey.name}</h2>
                 <i>{apiKey.active ? 'Denne api nøkkelen er aktiv' : 'Denne api nøkkelen er inaktiv'}</i>
@@ -57,7 +53,8 @@ export default async function ApiKeyAdmin({ params }: PropTypes) {
                         submitText="Slett nøkkel"
                         action={configureAction(destroyApiKeyAction, { params: { id: apiKey.id } })}
                         confirmation={{
-                            text: 'Er du sikker på at du vil slette denne nøkkelen? Heller anbefaler vi å deaktivere den.',
+                            text: 'Er du sikker på at du vil slette denne nøkkelen? ' +
+                                'Heller anbefaler vi å deaktivere den.',
                             confirm: true,
                         }}
                         submitColor="red"
@@ -66,5 +63,8 @@ export default async function ApiKeyAdmin({ params }: PropTypes) {
                 </div>
             </div>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

@@ -1,8 +1,6 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequirePermissionAndUserId } from '@/auth/authorizer/RequirePermissionAndUserId'
-
+import { Require } from '@/auth/authorizer/Require'
 
 export const omegaQuotesAuth = {
-    create: RequirePermissionAndUserId.staticFields({ permission: 'OMEGAQUOTES_WRITE' }),
-    readPage: RequirePermission.staticFields({ permission: 'OMEGAQUOTES_READ' })
+    create: Require.userId().permission('OMEGAQUOTES_USE'),
+    readPage: Require.permission('OMEGAQUOTES_USE')
 } as const

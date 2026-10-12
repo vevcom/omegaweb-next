@@ -1,5 +1,5 @@
 import { adminNavAuthorizers, adminNavDef } from '@/app/admin/adminNavDef'
-import { ServerSession } from '@/auth/session/ServerSession'
+import type { ServerPageSession } from '@/app/serverPage'
 
 /**
  * Guards an admin page with the authorizers its `adminNavDef` link declares, on the same terms as
@@ -8,15 +8,16 @@ import { ServerSession } from '@/auth/session/ServerSession'
  * when its link is tightened.
  *
  * Being let in says nothing about which parts of the page to render. That is the page's own job: it
- * re-runs the authorizers it cares about against the returned session.
+ * re-runs the authorizers it cares about against the session.
  *
  * @param path - The page's path, as `adminNavDef` spells it. `null` is the admin front page, which
  * anyone with any admin page to open may see.
- * @returns The session of the current user.
+ * @param session - The session of the request, as the serverPage operation receives it.
+ * @throws A service error when the session passes none of the authorizers. It is meant to be called
+ * from the page's serverPage operation, which sends an anonymous user to login and shows a logged-in
+ * one the error view.
  */
-export async function authorizeAdminPage(path: string | null) {
-    const session = await ServerSession.fromNextAuth()
-
+export function authorizeAdminPage(path: string | null, session: ServerPageSession) {
     const authorizers = path === null ? adminNavAuthorizers() : adminNavDef
         .flatMap(group => group.links)
         .find(link => link.path === path)
@@ -27,8 +28,6 @@ export async function authorizeAdminPage(path: string | null) {
 
     if (!authorizers.some(authorizer => authorizer.auth(session).authorized)) {
         // Any one of them would have done, so the first is as good as another to be turned away by.
-        authorizers[0].auth(session).redirectOnUnauthorized({ returnUrl: path === null ? '/admin' : `/admin/${path}` })
+        authorizers[0].auth(session).requireAuthorized()
     }
-
-    return session
 }

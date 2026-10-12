@@ -1,11 +1,11 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const jobAdAuth = {
-    create: RequirePermission.staticFields({ permission: 'JOBAD_CREATE' }),
-    read: RequirePermission.staticFields({ permission: 'JOBAD_READ' }),
-    readActive: RequirePermission.staticFields({ permission: 'JOBAD_READ' }),
-    readInactivePage: RequirePermission.staticFields({ permission: 'JOBAD_READ' }),
-    update: RequirePermission.staticFields({ permission: 'JOBAD_UPDATE' }),
-    updateArticle: RequirePermission.staticFields({ permission: 'JOBAD_UPDATE' }),
-    destroy: RequirePermission.staticFields({ permission: 'JOBAD_DESTROY' }),
-}
+    create: Require.permission('JOBAD_ADMIN'),
+    read: Require.permission('JOBAD_USE'),
+    readActive: Require.permission('JOBAD_USE'),
+    readInactivePage: Require.permission('JOBAD_USE'),
+    update: Require.permission('JOBAD_ADMIN'),
+    updateArticle: Require.permission('JOBAD_ADMIN'),
+    destroy: Require.permission('JOBAD_ADMIN'),
+} as const

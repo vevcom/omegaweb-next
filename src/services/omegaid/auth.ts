@@ -1,7 +1,6 @@
-import { RequireUserId } from '@/auth/authorizer/RequireUserId'
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
+import { Require } from '@/auth/authorizer/Require'
 
 export const omegaIdAuth = {
-    generate: RequireUserId.staticFields({}),
-    readPublicKey: RequireNothing.staticFields({}),
+    generate: Require.userId(),
+    readPublicKey: Require.nothing(),
 } as const

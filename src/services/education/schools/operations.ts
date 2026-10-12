@@ -6,14 +6,14 @@ import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsLinkOperations } from '@/cms/links/operations'
 import { defineOperation } from '@/services/serviceOperation'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
-import { ServerError } from '@/services/error'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
+import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
 import { StandardSchool } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const read = defineOperation({
-    authorizer: () => schoolAuth.read.dynamicFields({}),
+    authorizer: () => schoolAuth.read,
     paramsSchema: z.object({
         shortName: z.string()
     }),
@@ -30,7 +30,7 @@ const read = defineOperation({
 })
 
 const create = defineOperation({
-    authorizer: () => schoolAuth.create.dynamicFields({}),
+    authorizer: () => schoolAuth.create,
     dataSchema: schoolSchemas.create,
     operation: async ({ prisma, data }) => {
         const cmsImage = await cmsImageOperations.create.internalCall({
@@ -73,7 +73,7 @@ const create = defineOperation({
 })
 
 const createStandard = defineOperation({
-    authorizer: () => schoolAuth.createStandard.dynamicFields({}),
+    authorizer: () => schoolAuth.createStandard,
     paramsSchema: z.object({
         standardSchool: z.nativeEnum(StandardSchool)
     }),
@@ -90,7 +90,7 @@ const createStandard = defineOperation({
 })
 
 const updateCmsParagraphContent = cmsParagraphOperations.updateContent.implement({
-    authorizer: () => schoolAuth.updateCmsParagraphContent.dynamicFields({}),
+    authorizer: () => schoolAuth.updateCmsParagraphContent,
     implementationParamsSchema: z.object({
         shortName: z.string()
     }),
@@ -101,7 +101,7 @@ const updateCmsParagraphContent = cmsParagraphOperations.updateContent.implement
 })
 
 const updateCmsImage = cmsImageOperations.update.implement({
-    authorizer: () => schoolAuth.updateCmsImage.dynamicFields({}),
+    authorizer: () => schoolAuth.updateCmsImage,
     implementationParamsSchema: z.object({
         shortName: z.string()
     }),
@@ -112,7 +112,7 @@ const updateCmsImage = cmsImageOperations.update.implement({
 })
 
 const updateCmsLink = cmsLinkOperations.update.implement({
-    authorizer: () => schoolAuth.updateCmsLink.dynamicFields({}),
+    authorizer: () => schoolAuth.updateCmsLink,
     implementationParamsSchema: z.object({
         shortName: z.string()
     }),
@@ -127,7 +127,7 @@ export const schoolOperations = {
     create,
     createStandard,
     destroy: defineOperation({
-        authorizer: () => schoolAuth.destroy.dynamicFields({}),
+        authorizer: () => schoolAuth.destroy,
         paramsSchema: z.object({
             id: z.number()
         }),
@@ -136,12 +136,12 @@ export const schoolOperations = {
                 where: { id: params.id },
                 select: { standardSchool: true },
             })
-            if (school.standardSchool) throw new ServerError('BAD PARAMETERS', 'Kan ikke slette standard skole')
+            if (school.standardSchool) throw new ServiceError('BAD PARAMETERS', 'Kan ikke slette standard skole')
             await prisma.school.delete({ where: { id: params.id } })
         }
     }),
     readExpandedPage: defineOperation({
-        authorizer: () => schoolAuth.readExpandedPage.dynamicFields({}),
+        authorizer: () => schoolAuth.readExpandedPage,
         paramsSchema: schoolSchemas.readPage,
         operation: ({ prisma, params }) =>
             prisma.school.findMany({
@@ -154,11 +154,11 @@ export const schoolOperations = {
                     { shortName: 'asc' },
                     { id: 'asc' },
                 ],
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
             })
     }),
     readStandard: defineOperation({
-        authorizer: () => schoolAuth.readStandard.dynamicFields({}),
+        authorizer: () => schoolAuth.readStandard,
         operation: ({ prisma }) =>
             Promise.all(Object.values(StandardSchool).map(async standardSchool => {
                 const school = await prisma.school.findUnique({
@@ -173,7 +173,7 @@ export const schoolOperations = {
             }))
     }),
     readMany: defineOperation({
-        authorizer: () => schoolAuth.readMany.dynamicFields({}),
+        authorizer: () => schoolAuth.readMany,
         paramsSchema: schoolSchemas.readMany,
         operation: ({ prisma, params }) =>
             prisma.school.findMany({
@@ -184,7 +184,7 @@ export const schoolOperations = {
             })
     }),
     update: defineOperation({
-        authorizer: () => schoolAuth.update.dynamicFields({}),
+        authorizer: () => schoolAuth.update,
         paramsSchema: z.object({
             id: z.number()
         }),

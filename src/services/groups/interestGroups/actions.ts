@@ -5,10 +5,6 @@ import { interestGroupOperations } from '@/services/groups/interestGroups/operat
 
 export const createInterestGroupAction = makeAction(interestGroupOperations.create)
 export const destroyInterestGroupAction = makeAction(interestGroupOperations.destroy)
-export const readInterestGroupsAction = makeAction(interestGroupOperations.readMany)
-export const readInterestGroupAction = makeAction(interestGroupOperations.read)
-export const readInterestGroupsExpandedAction = makeAction(interestGroupOperations.readExpanded)
-export const readInterestGroupMembersAction = makeAction(interestGroupOperations.readMembers)
 export const addInterestGroupMembersAction = makeAction(interestGroupOperations.addMembers)
 export const removeInterestGroupMembersAction = makeAction(interestGroupOperations.removeMembers)
 export const setInterestGroupMemberAdminAction = makeAction(interestGroupOperations.setMemberAdmin)

@@ -106,12 +106,11 @@ export const eventSchemas = {
     }).refine(waitingListRefiner, waitingListMessage),
 
     readManyArchivedPage: readPageInputSchemaObject(
-        z.number(),
         z.object({
             id: z.number(),
         }),
         z.object({
-            name: z.string().optional(),
+            name: z.string().max(100).optional(),
             tags: z.array(z.string()).nullable(),
         }),
     ),

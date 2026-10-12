@@ -38,10 +38,14 @@ export default async function migrateLedgerAccounts(
         // TODO: MoneySourceAccounts.stripePaymentMethodId/stripeCardDescription have no
         // equivalent field on the new schema yet - not migrated.
 
-        const ledgerAccount = await pnPrisma.ledgerAccount.create({
+        const { ledgerAccountId } = await pnPrisma.user.findUniqueOrThrow({
+            where: { id: userId },
+            select: { ledgerAccountId: true },
+        })
+
+        const ledgerAccount = await pnPrisma.ledgerAccount.update({
+            where: { id: ledgerAccountId },
             data: {
-                type: 'USER',
-                userId,
                 frozen: account.disabled ?? false,
             },
         })

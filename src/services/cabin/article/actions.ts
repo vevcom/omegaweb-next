@@ -2,7 +2,6 @@
 import { cabinArticleOperations } from './operations'
 import { makeAction } from '@/services/serverAction'
 
-export const readCabinArticleAction = makeAction(cabinArticleOperations.read)
 export const updateCabinArticleAction = makeAction(cabinArticleOperations.update.update)
 export const updateCabinArticleAddSectionAction = makeAction(cabinArticleOperations.update.addSection)
 export const updateCabinArticleReorderSectionsAction = makeAction(cabinArticleOperations.update.reorderSections)

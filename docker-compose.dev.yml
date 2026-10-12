@@ -7,6 +7,7 @@ services:
             target: dev
         ports:
             - 80:3000
+            - 3000:3000
         volumes:
             - ${PROJECT_ROOT:-.}/src:/usr/src/app/src
             - ${PROJECT_ROOT:-.}/package.json:/usr/src/app/package.json
@@ -31,6 +32,21 @@ services:
             - ${PROJECT_ROOT:-.}/package-lock.json:/usr/src/app/package-lock.json
             - ${PROJECT_ROOT:-.}/logs:/usr/src/app/logs
             - devstore:/usr/src/app/store
+
+    notificationworker:
+        extends:
+            file: docker-compose.base.yml
+            service: projectnext
+        build:
+            target: dev
+        command: ["./node_modules/.bin/tsx", "src/lib/notifications/worker.ts"]
+        environment:
+            IGNORE_SERVER_ONLY: 'true'
+        volumes:
+            - ${PROJECT_ROOT:-.}/src:/usr/src/app/src
+            - ${PROJECT_ROOT:-.}/package.json:/usr/src/app/package.json
+            - ${PROJECT_ROOT:-.}/package-lock.json:/usr/src/app/package-lock.json
+            - ${PROJECT_ROOT:-.}/logs:/usr/src/app/logs
 
     db:
         extends:

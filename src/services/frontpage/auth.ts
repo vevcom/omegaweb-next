@@ -1,10 +1,9 @@
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 
 export const frontpageAuth = {
-    readSpecialCmsParagraphSection: RequireNothing.staticFields({}),
-    updateSpecialCmsParagraphContentSection: RequirePermission.staticFields({ permission: 'FRONTPAGE_ADMIN' }),
-    readSpecialCmsImage: RequireNothing.staticFields({}),
-    updateSpecialCmsImage: RequirePermission.staticFields({ permission: 'FRONTPAGE_ADMIN' })
-}
+    readSpecialCmsParagraphSection: Require.nothing(),
+    updateSpecialCmsParagraphContentSection: Require.permission('FRONTPAGE_ADMIN'),
+    readSpecialCmsImage: Require.nothing(),
+    updateSpecialCmsImage: Require.permission('FRONTPAGE_ADMIN')
+} as const

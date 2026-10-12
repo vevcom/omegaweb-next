@@ -6,7 +6,7 @@ import { updateCommitteeArticleCoverImageAction } from '@/services/groups/commit
 import type { ReactNode } from 'react'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { ExpandedCmsImage } from '@/cms/images/types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     children?: ReactNode
@@ -14,14 +14,14 @@ type PropTypes = {
     coverImage: ExpandedCmsImage
     grayScale?: boolean,
     shortName: string
-    canEditCoverImage: AuthResultTypeAny
+    capabilities: Capabilities<'canEditCoverImage'>
 }
 export default function CommitteeImage({
     children,
     logoImage,
     coverImage,
     shortName,
-    canEditCoverImage,
+    capabilities,
     grayScale = false
 }: PropTypes) {
     return (
@@ -35,7 +35,7 @@ export default function CommitteeImage({
             </div>
             <div className={styles.coverIsland}>
                 <CmsImage
-                    canEdit={canEditCoverImage}
+                    capabilities={{ canEdit: capabilities.canEditCoverImage }}
                     updateCmsImageAction={configureAction(
                         updateCommitteeArticleCoverImageAction,
                         { implementationParams: { shortName } }

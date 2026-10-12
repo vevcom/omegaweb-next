@@ -1,0 +1,35 @@
+@use '@/styles/ohma';
+
+.SelectedCompany {
+    display: flex;
+    flex-direction: column;
+    gap: calc(0.5 * #{ohma.$gap});
+    width: 100%;
+    padding: calc(1 * #{ohma.$gap}) calc(2 * #{ohma.$gap});
+    border: 2px solid transparent;
+    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
+    background-color: ohma.$colors-surface-raised;
+}
+
+.label {
+    font-size: calc(#{ohma.$fonts-s} * 0.85);
+    color: ohma.$colors-text-muted;
+}
+
+.name {
+    font-size: ohma.$fonts-m;
+    line-height: calc(#{ohma.$fonts-m} * 1.25);
+    color: ohma.$colors-ink-strong;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.empty {
+    border-color: color-mix(in srgb, ohma.$colors-accent-yellow, transparent 60%);
+
+    .name {
+        color: ohma.$colors-text-muted;
+        font-style: italic;
+    }
+}

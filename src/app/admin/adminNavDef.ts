@@ -10,6 +10,7 @@ import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { permissionsAuth } from '@/services/permissions/auth'
 import { apiKeyAuth } from '@/services/apiKeys/auth'
 import { notificationAuth } from '@/services/notifications/auth'
+import { sendMailAuth } from '@/services/notifications/send-mail/auth'
 import { notificationChannelAuth } from '@/services/notifications/channel/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailingListAuth } from '@/services/mail/list/auth'
@@ -27,13 +28,14 @@ import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { promoAuth } from '@/services/promo/auth'
 import { licenseAuth } from '@/services/licenses/auth'
 import { flairAuth } from '@/services/flairs/auth'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 import {
     faChild,
     faKey,
     faUser,
     faUserGroup,
     faPaperPlane,
+    faEnvelopesBulk,
     faSchool,
     faDotCircle,
     faHouse,
@@ -41,7 +43,7 @@ import {
     faListDots,
     faMoneyBillWave,
 } from '@fortawesome/free-solid-svg-icons'
-import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
+import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 
@@ -58,7 +60,7 @@ export type AdminNavLink = {
      * The same list is what `authorizeAdminPage` guards the page with, so a link is never shown to
      * a page that would turn the viewer away.
      */
-    authorizers: () => AuthorizerDynamicFieldsBound[],
+    authorizers: () => Authorizer<UserRequiredOutOpt, object | undefined>[],
 }
 
 export type AdminNavGroup = {
@@ -79,7 +81,7 @@ export const adminNavDef: AdminNavGroup[] = [
             {
                 title: 'Brukere',
                 path: 'users',
-                authorizers: () => [userAuth.create.dynamicFields({})],
+                authorizers: () => [userAuth.create],
             },
         ],
     },
@@ -90,15 +92,15 @@ export const adminNavDef: AdminNavGroup[] = [
                 title: 'Opptak',
                 path: 'admission',
                 authorizers: () => [
-                    admissionAuth.createTrial.dynamicFields({}),
-                    omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}),
-                    omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}),
+                    admissionAuth.createTrial,
+                    omegaMembershipGroupAuth.updateUserLevel,
+                    omegaMembershipGroupAuth.updateUserOrder,
                 ],
             },
             {
                 title: 'Omegas tilstand',
                 path: 'stateOfOmega',
-                authorizers: () => [omegaOrderAuth.create.dynamicFields({})],
+                authorizers: () => [omegaOrderAuth.create],
             },
         ],
     },
@@ -109,45 +111,45 @@ export const adminNavDef: AdminNavGroup[] = [
                 title: 'Klasser',
                 path: 'classes',
                 authorizers: () => [
-                    classAuth.bumpClasses.dynamicFields({}),
-                    classAuth.changeClassOfUser.dynamicFields({}),
+                    classAuth.bumpClasses,
+                    classAuth.changeClassOfUser,
                 ],
             },
             {
                 title: 'Komitéer',
                 path: 'committees',
                 authorizers: () => [
-                    committeeAuth.create.dynamicFields({}),
-                    committeeAuth.update.dynamicFields({}),
+                    committeeAuth.create,
+                    committeeAuth.update,
                 ],
             },
             {
                 title: 'Interessegrupper',
                 path: 'interest-groups',
-                authorizers: () => [interestGroupAuth.create.dynamicFields({})],
+                authorizers: () => [interestGroupAuth.create],
             },
             {
                 title: 'Medlemsgrupper',
                 path: 'omega-membership-groups',
                 authorizers: () => [
-                    omegaMembershipGroupAuth.updateUserLevel.dynamicFields({}),
-                    omegaMembershipGroupAuth.updateUserOrder.dynamicFields({}),
+                    omegaMembershipGroupAuth.updateUserLevel,
+                    omegaMembershipGroupAuth.updateUserOrder,
                 ],
             },
             {
                 title: 'Studieprogrammer',
                 path: 'study-programmes',
                 authorizers: () => [
-                    studyProgrammeAuth.create.dynamicFields({}),
-                    studyProgrammeAuth.update.dynamicFields({}),
+                    studyProgrammeAuth.create,
+                    studyProgrammeAuth.update,
                 ],
             },
             {
                 title: 'Andre grupper',
                 path: 'manual-groups',
                 authorizers: () => [
-                    manualGroupAuth.create.dynamicFields({}),
-                    manualGroupAuth.update.dynamicFields({}),
+                    manualGroupAuth.create,
+                    manualGroupAuth.update,
                 ],
             },
         ],
@@ -158,17 +160,17 @@ export const adminNavDef: AdminNavGroup[] = [
             {
                 title: 'Gruppe Tilganger',
                 path: 'group-permissions',
-                authorizers: () => [permissionsAuth.updateGroupPermission.dynamicFields({})],
+                authorizers: () => [permissionsAuth.updateGroupPermission],
             },
             {
                 title: 'Standard Tilganger',
                 path: 'default-permissions',
-                authorizers: () => [permissionsAuth.updateDefaultPermissions.dynamicFields({})],
+                authorizers: () => [permissionsAuth.updateDefaultPermissions],
             },
             {
                 title: 'API Nøkler',
                 path: 'api-keys',
-                authorizers: () => [apiKeyAuth.readMany.dynamicFields({})],
+                authorizers: () => [apiKeyAuth.readMany],
             },
         ],
     },
@@ -176,31 +178,42 @@ export const adminNavDef: AdminNavGroup[] = [
         header: { icon: faPaperPlane, title: 'Varslinger' },
         links: [
             {
-                title: 'Send varsel',
-                path: 'send-notification',
-                authorizers: () => [notificationAuth.create.dynamicFields({})],
-            },
-            {
                 title: 'Varslingkanaler',
                 path: 'notification-channels',
                 authorizers: () => [
-                    notificationChannelAuth.create.dynamicFields({}),
-                    notificationChannelAuth.update.dynamicFields({}),
+                    notificationChannelAuth.create,
+                    notificationChannelAuth.update,
                 ],
             },
             {
-                title: 'Mailing lister',
-                path: 'mail',
-                authorizers: () => [
-                    mailAliasAuth.create.dynamicFields({}),
-                    mailingListAuth.create.dynamicFields({}),
-                    mailAddressExternalAuth.create.dynamicFields({}),
-                ],
+                title: 'Send varsel',
+                path: 'send-notification',
+                authorizers: () => [notificationAuth.create],
             },
             {
                 title: 'Send e-post',
                 path: 'send-mail',
-                authorizers: () => [notificationAuth.sendMail.dynamicFields({})],
+                authorizers: () => [sendMailAuth.sendMail],
+            },
+        ],
+    },
+    {
+        header: { icon: faEnvelopesBulk, title: 'Mailing tjener' },
+        links: [
+            {
+                title: 'E-postlister',
+                path: 'mail/mailingList',
+                authorizers: () => [mailingListAuth.readMany],
+            },
+            {
+                title: 'E-postalias',
+                path: 'mail/alias',
+                authorizers: () => [mailAliasAuth.readMany],
+            },
+            {
+                title: 'Eksterne adresser',
+                path: 'mail/mailaddressExternal',
+                authorizers: () => [mailAddressExternalAuth.readMany],
             },
         ],
     },
@@ -211,15 +224,15 @@ export const adminNavDef: AdminNavGroup[] = [
                 title: 'Skoler',
                 path: 'schools',
                 authorizers: () => [
-                    schoolAuth.create.dynamicFields({}),
-                    schoolAuth.update.dynamicFields({}),
+                    schoolAuth.create,
+                    schoolAuth.update,
                 ],
             },
             {
                 // Courses have no service of their own yet, so the permission is required directly.
                 title: 'Emnekatalog',
                 path: 'courses',
-                authorizers: () => [RequirePermission.staticFields({ permission: 'COURSES_ADMIN' }).dynamicFields({})],
+                authorizers: () => [Require.permission('COURSES_ADMIN')],
             },
         ],
     },
@@ -230,16 +243,16 @@ export const adminNavDef: AdminNavGroup[] = [
                 title: 'Prikker',
                 path: 'dots',
                 authorizers: () => [
-                    dotAuth.update.dynamicFields({}),
-                    dotAuth.destroy.dynamicFields({}),
+                    dotAuth.update,
+                    dotAuth.destroy,
                 ],
             },
             {
                 title: 'Frysperioder',
                 path: 'dots-freeze-periods',
                 authorizers: () => [
-                    dotFreezePeriodAuth.create.dynamicFields({}),
-                    dotFreezePeriodAuth.update.dynamicFields({}),
+                    dotFreezePeriodAuth.create,
+                    dotFreezePeriodAuth.update,
                 ],
             },
         ],
@@ -251,19 +264,19 @@ export const adminNavDef: AdminNavGroup[] = [
                 title: 'Perioder',
                 path: 'cabin-periods',
                 authorizers: () => [
-                    cabinReleasePeriodAuth.readMany.dynamicFields({}),
-                    cabinPricePeriodAuth.readMany.dynamicFields({}),
+                    cabinReleasePeriodAuth.readMany,
+                    cabinPricePeriodAuth.readMany,
                 ],
             },
             {
                 title: 'Produkter',
                 path: 'cabin-product',
-                authorizers: () => [cabinProductAuth.create.dynamicFields({})],
+                authorizers: () => [cabinProductAuth.create],
             },
             {
                 title: 'Bookinger',
                 path: 'cabin-booking',
-                authorizers: () => [cabinBookingAuth.readMany.dynamicFields({})],
+                authorizers: () => [cabinBookingAuth.readMany],
             },
         ],
     },
@@ -273,14 +286,14 @@ export const adminNavDef: AdminNavGroup[] = [
             {
                 title: 'Butikker',
                 path: 'shop',
-                authorizers: () => [shopAuth.create.dynamicFields({})],
+                authorizers: () => [shopAuth.create],
             },
             {
                 title: 'Produkter',
                 path: 'product',
                 authorizers: () => [
-                    productAuth.create.dynamicFields({}),
-                    productAuth.update.dynamicFields({}),
+                    productAuth.create,
+                    productAuth.update,
                 ],
             },
         ],
@@ -291,7 +304,7 @@ export const adminNavDef: AdminNavGroup[] = [
             {
                 title: 'Kontoer',
                 path: 'accounts',
-                authorizers: () => [ledgerAccountAuth.readPage.dynamicFields({})],
+                authorizers: () => [ledgerAccountAuth.readPage],
             },
         ],
     },
@@ -301,22 +314,22 @@ export const adminNavDef: AdminNavGroup[] = [
             {
                 title: 'Promo',
                 path: 'promo',
-                authorizers: () => [promoAuth.readAll.dynamicFields({})],
+                authorizers: () => [promoAuth.readAll],
             },
             {
                 title: 'Lisenser',
                 path: 'licenses',
                 authorizers: () => [
-                    licenseAuth.create.dynamicFields({}),
-                    licenseAuth.update.dynamicFields({}),
+                    licenseAuth.create,
+                    licenseAuth.update,
                 ],
             },
             {
                 title: 'Flairs',
                 path: 'flairs',
                 authorizers: () => [
-                    flairAuth.create.dynamicFields({}),
-                    flairAuth.update.dynamicFields({}),
+                    flairAuth.create,
+                    flairAuth.update,
                 ],
             },
             {
@@ -334,7 +347,9 @@ export const adminNavDef: AdminNavGroup[] = [
  * Every authorizer in the admin nav - passing any of them is what it takes to have an admin page to
  * open at all.
  */
-export function adminNavAuthorizers({ except }: { except?: string } = {}): AuthorizerDynamicFieldsBound[] {
+export function adminNavAuthorizers(
+    { except }: { except?: string } = {}
+): Authorizer<UserRequiredOutOpt, object | undefined>[] {
     return adminNavDef.flatMap(group => group.links)
         .filter(link => link.path !== except)
         .flatMap(link => link.authorizers())

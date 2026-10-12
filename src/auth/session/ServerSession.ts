@@ -3,7 +3,7 @@ import { authOptions } from '@/auth/nextAuth/authOptions'
 import { apiKeyOperations } from '@/services/apiKeys/operations'
 import { apiKeyDecryptAndCompare } from '@/services/apiKeys/hashEncryptKey'
 import { decodeApiKey } from '@/services/apiKeys/apiKeyEncoder'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { permissionOperations } from '@/services/permissions/operations'
 import { getServerSession as getSessionNextAuth } from 'next-auth'
 
@@ -16,7 +16,7 @@ export class ServerSession<UserGuarantee extends UserGuaranteeOption> extends Se
             return ServerSession.fromDefaultPermissions(defaultPermissions)
         }
 
-        return new Session({
+        return Session.fromJsObject({
             user: session.user,
             permissions: session.permissions,
             memberships: session.memberships,
@@ -46,18 +46,18 @@ export class ServerSession<UserGuarantee extends UserGuaranteeOption> extends Se
                 params: { id }
             })
         } catch (e) {
-            if (e instanceof ServerError && e.errorCode === 'NOT FOUND') {
-                throw new ServerError('INVALID API KEY', INVALID_API_KEY_MESSAGE)
+            if (e instanceof ServiceError && e.errorCode === 'NOT FOUND') {
+                throw new ServiceError('INVALID API KEY', INVALID_API_KEY_MESSAGE)
             }
             throw e
         }
 
         const { keyHashEncrypted, active, permissions } = apiKeyFetch
 
-        if (!active) throw new ServerError('INVALID API KEY', 'Api nøkkelen har utløpt')
-
         const success = await apiKeyDecryptAndCompare(key, keyHashEncrypted)
-        if (!success) throw new ServerError('INVALID API KEY', INVALID_API_KEY_MESSAGE)
+        if (!success) throw new ServiceError('INVALID API KEY', INVALID_API_KEY_MESSAGE)
+
+        if (!active) throw new ServiceError('INVALID API KEY', 'Api nøkkelen er utløpt eller deaktivert')
 
         return new Session<'NO_USER'>({
             user: null,

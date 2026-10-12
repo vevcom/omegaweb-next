@@ -1,14 +1,9 @@
-import { RequirePermissionAndUser } from '@/auth/authorizer/RequirePermissionAndUser'
-import { RequireUserIdOrPermission } from '@/auth/authorizer/RequireUserIdOrPermission'
+import { Require } from '@/auth/authorizer/Require'
+
+const userIdOrAdmissionUse = Require.permission('ADMISSION_USE').or().userId()
 
 export const admissionAuth = {
-    createTrial: RequirePermissionAndUser.staticFields({
-        permission: 'ADMISSION_TRIAL_ADMIN',
-    }),
-    readTrial: RequireUserIdOrPermission.staticFields({
-        permission: 'ADMISSION_TRIAL_ADMIN',
-    }),
-    userCompletedTrials: RequireUserIdOrPermission.staticFields({
-        permission: 'ADMISSION_TRIAL_ADMIN',
-    }),
+    createTrial: Require.user().permission('ADMISSION_USE'),
+    readTrial: userIdOrAdmissionUse,
+    userCompletedTrials: userIdOrAdmissionUse,
 } as const

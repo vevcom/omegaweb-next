@@ -1,10 +1,12 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
+
+const baseAuthorizer = Require.permission('CABIN_ADMIN')
 
 export const cabinPricePeriodAuth = {
-    create: RequirePermission.staticFields({ permission: 'CABIN_ADMIN' }),
-    destroy: RequirePermission.staticFields({ permission: 'CABIN_ADMIN' }),
-    readMany: RequirePermission.staticFields({ permission: 'CABIN_ADMIN' }),
-    readPublicPeriods: RequirePermission.staticFields({ permission: 'CABIN_CALENDAR_READ' }),
-    readUnreleasedPeriods: RequirePermission.staticFields({ permission: 'CABIN_ADMIN' }),
-    update: RequirePermission.staticFields({ permission: 'CABIN_ADMIN' }),
+    create: baseAuthorizer,
+    destroy: baseAuthorizer,
+    readMany: baseAuthorizer,
+    readPublicPeriods: Require.permission('CABIN_USE'),
+    readUnreleasedPeriods: baseAuthorizer,
+    update: baseAuthorizer,
 } as const

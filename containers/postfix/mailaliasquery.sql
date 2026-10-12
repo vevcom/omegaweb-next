@@ -35,7 +35,7 @@ SELECT DISTINCT mainquery."email" FROM
         INNER JOIN "Membership" ON "Group"."id" = "Membership"."groupId"
         INNER JOIN "User" ON "Membership"."userId" = "User"."id"
         
-        WHERE "MailAlias"."address" = '%s'
+        WHERE "MailAlias"."address" = '%s' AND "Membership"."active" = true
     
 ) as mainquery
 WHERE mainquery."email" IS NOT NULL;

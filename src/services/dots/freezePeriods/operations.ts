@@ -7,12 +7,12 @@ import { z } from 'zod'
 export const dotFreezePeriodOperations = {
     create: defineOperation({
         dataSchema: dotFreezePeriodSchemas.create,
-        authorizer: () => dotFreezePeriodAuth.create.dynamicFields({}),
+        authorizer: () => dotFreezePeriodAuth.create,
         operation: async ({ prisma, data }) => prisma.dotFreezePeriod.create({ data }),
     }),
 
     readAll: defineOperation({
-        authorizer: () => dotFreezePeriodAuth.readAll.dynamicFields({}),
+        authorizer: () => dotFreezePeriodAuth.readAll,
         operation: async ({ prisma }) => prisma.dotFreezePeriod.findMany({
             orderBy: {
                 start: 'desc',
@@ -25,7 +25,7 @@ export const dotFreezePeriodOperations = {
             id: z.coerce.number(),
         }),
         dataSchema: dotFreezePeriodSchemas.update,
-        authorizer: () => dotFreezePeriodAuth.update.dynamicFields({}),
+        authorizer: () => dotFreezePeriodAuth.update,
         operation: async ({ prisma, params, data }) => prisma.dotFreezePeriod.update({
             where: {
                 id: params.id,
@@ -38,7 +38,7 @@ export const dotFreezePeriodOperations = {
         paramsSchema: z.object({
             id: z.coerce.number(),
         }),
-        authorizer: () => dotFreezePeriodAuth.destroy.dynamicFields({}),
+        authorizer: () => dotFreezePeriodAuth.destroy,
         operation: async ({ prisma, params }) => prisma.dotFreezePeriod.delete({
             where: {
                 id: params.id,

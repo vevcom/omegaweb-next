@@ -1,0 +1,15 @@
+@use '@/styles/ohma';
+
+.wrapper {
+    background-color: ohma.$colors-surface-base;
+    border-radius: ohma.$rounding;
+    padding: ohma.$cardPadding;
+}
+
+.groupType {
+    margin-top: ohma.$cardPadding;
+}
+
+.empty {
+    color: ohma.$colors-text-muted;
+}

@@ -9,13 +9,15 @@ export const studentCardSchema = z.string()
 export const userSchema = z.object({
     username: z.string().max(50).min(2).toLowerCase(),
     sex: z.nativeEnum(SEX).optional().nullable(),
-    email: z.string().max(200).min(2).email(),
+    email: z.string().trim().toLowerCase()
+        .max(200)
+        .min(2)
+        .email(),
     emailVerified: z.string().datetime({}).optional().nullable(),
     mobile: z.string().regex(/^\+?\d{4,20}$/, { message: 'Skriv kun tall, uten mellomrom.' }),
     firstname: z.string().max(50).min(2),
     lastname: z.string().max(50).min(2),
     allergies: z.string().max(150).optional().nullable(),
-    bio: z.string().max(2047).optional(),
     relationshipStatusText: z.string().max(150).optional(),
     relationshipStatus: z.nativeEnum(RelationshipStatus).optional(),
     studentCard: studentCardSchema,
@@ -52,14 +54,12 @@ export const userSchemas = {
     }),
 
     update: userSchema.partial().pick({
-        email: true,
         firstname: true,
         lastname: true,
         username: true,
         mobile: true,
         allergies: true,
         sex: true,
-        bio: true,
         imageConsent: true,
         relationshipStatusText: true,
         relationshipStatus: true,
@@ -68,10 +68,11 @@ export const userSchemas = {
     updateProfile: userSchema.partial().pick({
         allergies: true,
         sex: true,
-        bio: true,
         imageConsent: true,
         relationshipStatusText: true,
         relationshipStatus: true,
+    }).extend({
+        mobile: userSchema.shape.mobile.or(z.literal('').transform(() => null)).optional(),
     }),
 
     register: userSchema.pick({
@@ -91,6 +92,8 @@ export const userSchemas = {
 
     registerNewEmail: userSchema.pick({
         email: true,
+    }).extend({
+        currentPassword: z.string().max(50).optional(),
     }),
 
     connectStudentCard: userSchema.pick({
@@ -104,12 +107,11 @@ export const userSchemas = {
     updateProfileImage: imageSchemas.uploadImage,
 
     readPage: readPageInputSchemaObject(
-        z.number(),
         z.object({
             id: z.number()
         }),
         z.object({
-            partOfName: z.string(),
+            partOfName: z.string().max(100),
             groups: z.array(z.object({
                 groupOrder: z.union([z.number(), z.literal('ACTIVE')]),
                 groupId: z.number()

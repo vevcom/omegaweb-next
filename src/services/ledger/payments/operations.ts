@@ -1,10 +1,12 @@
+import '@pn-server-only'
 import { paymentAuth } from './auth'
 import { stripe } from '@/lib/stripe'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import logger from '@/lib/logger'
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import { z } from 'zod'
 
 export const paymentOperations = {
@@ -60,7 +62,7 @@ export const paymentOperations = {
      * @warning Do not call this method for manual payments! It will fail.
      */
     initiate: defineOperation({
-        authorizer: () => paymentAuth.initiate.dynamicFields({}),
+        authorizer: () => paymentAuth.initiate,
         paramsSchema: z.object({
             paymentId: z.number(),
         }),
@@ -82,11 +84,11 @@ export const paymentOperations = {
             })
 
             if (payment.state !== 'PENDING') {
-                throw new ServerError('BAD PARAMETERS', 'Betalingen har allerede blitt forespurt.')
+                throw new ServiceError('BAD PARAMETERS', 'Betalingen har allerede blitt forespurt.')
             }
 
             if (payment.provider === 'MANUAL') {
-                throw new ServerError('BAD PARAMETERS', 'Manuelle betalinger trenger ikke å startes.')
+                throw new ServiceError('BAD PARAMETERS', 'Manuelle betalinger trenger ikke å startes.')
             }
 
             if (payment.provider === 'STRIPE') {
@@ -127,31 +129,45 @@ export const paymentOperations = {
                 })
 
                 if (paymentIntent.client_secret === null) {
-                    throw new ServerError('UNKNOWN ERROR', 'Noe gikk galt med forespørselen til Stripe.')
+                    throw new ServiceError('UNKNOWN ERROR', 'Noe gikk galt med forespørselen til Stripe.')
                 }
 
-                return await prisma.payment.update({
-                    where: {
-                        id: params.paymentId,
-                    },
-                    data: {
-                        stripePayment: {
-                            update: {
-                                paymentIntentId: paymentIntent.id,
-                                clientSecret: paymentIntent.client_secret,
-                            },
+                // A cancel may have got in between the read above and this write. Writing only
+                // while still PENDING keeps a canceled payment canceled, and the intent made for
+                // it is canceled too, so it cannot be paid for something already given up.
+                try {
+                    return await prisma.payment.update({
+                        where: {
+                            id: params.paymentId,
+                            state: 'PENDING',
                         },
-                        state: 'PROCESSING',
-                    },
-                    include: {
-                        stripePayment: true,
-                        manualPayment: true,
-                    }
-                })
+                        data: {
+                            stripePayment: {
+                                update: {
+                                    paymentIntentId: paymentIntent.id,
+                                    clientSecret: paymentIntent.client_secret,
+                                },
+                            },
+                            state: 'PROCESSING',
+                        },
+                        include: {
+                            stripePayment: true,
+                            manualPayment: true,
+                        }
+                    })
+                } catch (error) {
+                    if (!(error instanceof PrismaClientKnownRequestError) || error.code !== 'P2025') throw error
+                    await stripe.paymentIntents.cancel(
+                        paymentIntent.id,
+                        {},
+                        { idempotencyKey: `project-next-payment-intent-${paymentIntent.id}-cancel-unstarted` },
+                    )
+                    throw new ServiceError('BAD PARAMETERS', 'Betalingen ble avbrutt før den kom i gang.')
+                }
             }
 
             // If we reach here, the payment provider is unknown.
-            throw new ServerError('SERVER ERROR', 'Prøvde å forespørre betalingsleverandør som ikke er støttet.')
+            throw new ServiceError('SERVER ERROR', 'Prøvde å forespørre betalingsleverandør som ikke er støttet.')
         },
     }),
 
@@ -159,10 +175,12 @@ export const paymentOperations = {
      * Cancels a payment that is still awaiting completion (e.g. an abandoned Stripe checkout).
      * If it's a STRIPE payment with a live payment intent, cancels that too, so a webhook that
      * arrives late can never later mark it SUCCEEDED. A no-op if the payment already reached a
-     * terminal state (SUCCEEDED/FAILED/CANCELED) by the time this runs.
+     * terminal state (SUCCEEDED/FAILED/CANCELED) by the time this runs. Fails, leaving the
+     * payment as it was, if the intent could not be canceled: the money could still be taken for
+     * something the caller is about to give up.
      */
     cancel: defineOperation({
-        authorizer: () => paymentAuth.cancel.dynamicFields({}),
+        authorizer: () => paymentAuth.cancel,
         paramsSchema: z.object({
             paymentId: z.number(),
         }),
@@ -173,16 +191,25 @@ export const paymentOperations = {
             })
 
             if (payment.provider === 'STRIPE' && payment.stripePayment?.paymentIntentId) {
+                const paymentIntentId = payment.stripePayment.paymentIntentId
                 try {
                     await stripe.paymentIntents.cancel(
-                        payment.stripePayment.paymentIntentId,
+                        paymentIntentId,
                         {},
                         { idempotencyKey: `project-next-payment-id-${params.paymentId}-cancel` },
                     )
                 } catch (error) {
-                    // Tolerate it already being canceled, succeeded, or gone on Stripe's side -
-                    // our own state update below is guarded and will simply no-op if so.
-                    logger.error(`Failed to cancel Stripe payment intent for payment ${params.paymentId}`, { error })
+                    // Stripe refuses to cancel an intent that is already final. That is fine when
+                    // it is canceled. A succeeded one is about to be reported by the webhook, and
+                    // one still open could be paid later, so neither may be written off here.
+                    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId).catch(() => null)
+                    if (paymentIntent?.status === 'succeeded') {
+                        throw new ServiceError('BAD PARAMETERS', 'Betalingen er allerede gjennomført.')
+                    }
+                    if (paymentIntent?.status !== 'canceled') {
+                        logger.error(`Could not cancel Stripe payment intent for payment ${params.paymentId}`, { error })
+                        throw new ServiceError('SERVER ERROR', 'Betalingen kunne ikke avbrytes hos Stripe. Prøv igjen.')
+                    }
                 }
             }
 
@@ -200,4 +227,4 @@ export const paymentOperations = {
             })
         },
     }),
-}
+} as const

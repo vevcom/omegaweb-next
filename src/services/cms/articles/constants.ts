@@ -1,12 +1,12 @@
-import { articleSectionsRealtionsIncluder } from '@/cms/articleSections/constants'
+import { articleSectionsRelationsIncluder } from '@/cms/articleSections/constants'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 export const maxSections = 10 // Max 10 sections in an article
 
-export const articleRealtionsIncluder = {
+export const articleRelationsIncluder = {
     articleSections: {
-        include: articleSectionsRealtionsIncluder
+        include: articleSectionsRelationsIncluder
     },
     coverImage: {
         include: {

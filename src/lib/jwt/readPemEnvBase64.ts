@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 
 /**
  * PEM keys are stored in env vars as base64 rather than raw multi-line text.
@@ -14,7 +14,7 @@ export function readPemEnvBase64(value: string): string {
     const pem = Buffer.from(value, 'base64').toString('utf-8')
 
     if (!pem.startsWith('-----BEGIN ')) {
-        throw new ServerError(
+        throw new ServiceError(
             'INVALID CONFIGURATION',
             'A PEM env value must be the base64 encoding of a PEM key, not the PEM itself'
         )

@@ -5,17 +5,20 @@ import { admissionDisplayNames, allAdmissions } from '@/services/admission/const
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import { userAuth } from '@/services/users/auth'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import { serverPage } from '@/app/serverPage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronRight, faScroll } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default async function AdmissionTrials() {
-    const session = await authorizeAdminPage('admission')
-
-    const canSearchUsers = userAuth.readPage.dynamicFields({}).auth(session).authorized
-
-    return (
-        <PageWrapper title="Opptak">
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('admission', session),
+    capabilities: () => ({
+        canSearchUsers: userAuth.readPage,
+    }),
+    metadata: () => ({ title: 'Opptak' }),
+    render: ({ capabilities }) => (
+        <PageWrapper>
             <div className={styles.wrapper}>
                 <section className={styles.section}>
                     <h2>Registrer opptaksprøve</h2>
@@ -42,7 +45,7 @@ export default async function AdmissionTrials() {
                     <p className={styles.lead}>
                         Søk opp en bruker for å se hvilke prøver de har tatt, og for å endre medlemskapet deres.
                     </p>
-                    {canSearchUsers ? (
+                    {capabilities.canSearchUsers.authorized ? (
                         <UserPagingProvider
                             startPage={{ page: 0, pageSize: 50 }}
                             serverRenderedData={[]}
@@ -58,5 +61,8 @@ export default async function AdmissionTrials() {
                 </section>
             </div>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

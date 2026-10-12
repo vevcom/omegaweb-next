@@ -1,50 +1,60 @@
 import styles from './page.module.scss'
 import BumpClasses from './BumpClasses'
-import { readClassesAction, readClassesExpandedAction } from '@/services/groups/classes/actions'
-import { readCurrentOmegaOrderAction } from '@/services/omegaOrder/actions'
+import { classOperations } from '@/services/groups/classes/operations'
+import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { classAuth } from '@/services/groups/classes/auth'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+import { serverPage } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
 import { CLASS_LEVEL_ORDERING } from '@/services/groups/constants'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default async function Classes() {
-    const session = await authorizeAdminPage('classes')
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('classes', session)
+        const [classRows, expandedClasses, currentOrder] = await Promise.all([
+            classOperations.readMany({}),
+            classOperations.readExpanded({}),
+            omegaOrderOperations.readCurrent({}),
+        ])
+        return { classRows, expandedClasses, currentOrder }
+    },
+    capabilities: () => ({
+        canBump: classAuth.bumpClasses,
+    }),
+    metadata: () => ({ title: 'Klasser' }),
+    render: ({ data, capabilities }) => {
+        // The expanded groups carry the name, member count and order; the class rows carry the level.
+        // Joining them on the group id lets the table be listed in the order students move through.
+        // A class is not administered per group, so no row links anywhere.
+        const rows = CLASS_LEVEL_ORDERING.flatMap(level => {
+            const classRow = data.classRows.find(row => row.level === level)
+            const expanded = classRow && data.expandedClasses.find(group => group.id === classRow.groupId)
+            return expanded ? [{
+                key: level,
+                name: expanded.name,
+                order: expanded.order,
+                members: expanded.members,
+            }] : []
+        })
 
-    const [classRows, expandedClasses, currentOrder] = await Promise.all([
-        readClassesAction().then(unwrapActionReturn),
-        readClassesExpandedAction().then(unwrapActionReturn),
-        readCurrentOmegaOrderAction().then(unwrapActionReturn),
-    ])
-    const canBump = classAuth.bumpClasses.dynamicFields({}).auth(session).authorized
+        return (
+            <PageWrapper>
+                <GroupTypeTable rows={rows} currentOrder={data.currentOrder.order} nameHeading="Klasse" />
 
-    // The expanded groups carry the name, member count and order; the class rows carry the level.
-    // Joining them on the group id lets the table be listed in the order students move through.
-    // A class is not administered per group, so no row links anywhere.
-    const rows = CLASS_LEVEL_ORDERING.flatMap(level => {
-        const classRow = classRows.find(row => row.level === level)
-        const expanded = classRow && expandedClasses.find(group => group.id === classRow.groupId)
-        return expanded ? [{
-            key: level,
-            name: expanded.name,
-            order: expanded.order,
-            members: expanded.members,
-        }] : []
-    })
+                <div className={styles.actions}>
+                    <p className={styles.explanation}>
+                        Klassene følger ordenen til Omega automatisk. Når Omega har blitt inkrementert må
+                        klassene rykkes opp: alle studenter flyttes én klasse opp, og uteksaminerte beholder
+                        medlemskapet sitt. Dette må gjøres før Omega kan inkrementeres på nytt.
+                    </p>
+                    {capabilities.canBump.authorized && <BumpClasses />}
+                </div>
+            </PageWrapper>
+        )
+    },
+})
 
-    return (
-        <PageWrapper title="Klasser">
-            <GroupTypeTable rows={rows} currentOrder={currentOrder.order} nameHeading="Klasse" />
-
-            <div className={styles.actions}>
-                <p className={styles.explanation}>
-                    Klassene følger ordenen til Omega automatisk. Når Omega har blitt inkrementert må
-                    klassene rykkes opp: alle studenter flyttes én klasse opp, og uteksaminerte beholder
-                    medlemskapet sitt. Dette må gjøres før Omega kan inkrementeres på nytt.
-                </p>
-                {canBump && <BumpClasses />}
-            </div>
-        </PageWrapper>
-    )
-}
+export default page
+export { generateMetadata }

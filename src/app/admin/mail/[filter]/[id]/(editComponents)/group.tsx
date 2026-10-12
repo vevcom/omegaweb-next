@@ -4,11 +4,12 @@ import Form from '@/components/Form/Form'
 import { SelectNumber } from '@/components/UI/Select'
 import { createMailingListGroupRelationAction } from '@/services/mail/actions'
 import { mailAuth } from '@/services/mail/auth'
+import { useRouter } from 'next/navigation'
 import type { MailFlowObject } from '@/services/mail/types'
 import type { MailingList } from '@/prisma-generated-pn-types'
 
-
 export default function EditGroup({
+    id,
     data,
     mailingLists
 }: {
@@ -16,25 +17,28 @@ export default function EditGroup({
     data: MailFlowObject,
     mailingLists: MailingList[]
 }) {
-    const focusedGroup = data.group[0]
-    if (!focusedGroup) {
-        throw Error('Fant ikke gruppen')
-    }
-    const canAddToList = useAuthorizer({ authorizer: mailAuth.createMailingListGroupRelation.dynamicFields({}) }).authorized
+    const { refresh } = useRouter()
 
-    return <div>
-        <h2>{focusedGroup.id}</h2>
-        { canAddToList && <Form
-            title="Legg til e-postliste"
+    const canAddToList = useAuthorizer({
+        authorizer: mailAuth.createMailingListGroupRelation
+    }).authorized
+
+    const connectedListIds = new Set(data.mailingList.map(list => list.id))
+    const availableLists = mailingLists.filter(list => !connectedListIds.has(list.id))
+
+    return <>
+        {canAddToList && availableLists.length > 0 && <Form
+            title="Sett på e-postliste"
             submitText="Legg til"
             action={createMailingListGroupRelationAction}
+            successCallback={refresh}
         >
-            <input type="hidden" name="groupId" value={focusedGroup.id} />
+            <input type="hidden" name="groupId" value={id} />
             <SelectNumber
-                options={mailingLists.map(list => ({ value: list.id, label: list.name }))}
+                options={availableLists.map(list => ({ value: list.id, label: list.name }))}
                 name="mailingListId"
                 label="E-postliste"
             />
         </Form>}
-    </div>
+    </>
 }

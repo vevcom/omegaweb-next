@@ -74,24 +74,61 @@ The codebase uses a ServiceOperation pattern for all business logic. Services ar
 **Key concepts:**
 - **ServiceOperation**: Core abstraction defined in `src/services/serviceOperation.ts`. All business logic is wrapped in ServiceOperations.
 - **Server Actions**: Client-callable functions created by wrapping ServiceOperations with `makeAction()` from `src/services/serverAction.ts`.
-- **Authorization**: Custom authorization system with Authorizer classes (see `src/auth/authorizer/`). Each ServiceOperation specifies its required permissions.
+- **Authorization**: Every ServiceOperation has an authorizer built with the `Require` chain from `src/auth/authorizer/Require.ts` (see [Authorizers](#authorizers)).
 - **Transaction Management**: The `opensTransaction` flag signals that a ServiceOperation will open its own database transaction. Since transactions cannot be nested, this allows the type system and runtime validation to prevent calling such operations from within an existing transaction.
 
 **Pattern example:**
 ```typescript
-// Define a ServiceOperation
-const myServiceOperation = defineOperation({
-  paramsSchema: z.object({ id: z.number() }),
-  dataSchema: z.object({ name: z.string() }),
-  authorizer: ({ params }) => MyAuthorizer.dynamicFields({ id: params.id }),
+// auth.ts
+export const fooAuth = {
+  update: Require.permission('FOO_ADMIN').or().userId(),
+} as const
+
+// schemas.ts
+const fieldSchemas = z.object({ id: z.number(), name: z.string() })
+
+export const fooSchemas = {
+  update: fieldSchemas.pick({ name: true }),
+}
+export const fooParamsSchemas = {
+  update: fieldSchemas.pick({ id: true }),
+}
+
+// operations.ts
+const update = defineOperation({
+  paramsSchema: fooParamsSchemas.update,
+  dataSchema: fooSchemas.update,
+  authorizer: async ({ params, prisma }) => {
+    const foo = await prisma.foo.findUniqueOrThrow({ where: { id: params.id }, select: { ownerId: true } })
+    return fooAuth.update.data({ userId: foo.ownerId })
+  },
   operation: async ({ params, data, session, prisma }) => {
     // Business logic here
   }
 })
 
-// Wrap it as a Server Action for client use
-export const myAction = makeAction(myServiceOperation)
+// actions.ts
+export const updateFooAction = makeAction(fooOperations.update)
 ```
+
+### Authorizers
+
+Rules are written once in the service's `auth.ts` as `Require` chains, so the same rule can run on the server (in the operation) and in the frontend (with `useAuthorizer`). `operations.ts` only supplies data to them with `.data({...})`; it never builds a `Require` chain itself.
+
+- **Conditions:** `.permission('X')`, `.user()`, `.userId()` (needs `{ userId }`), `.userField()`, `.groupAdmin()` (needs `{ groupId }`), `.levelOfDoubleVisibility({ level })` (needs `{ visibility }`), `.ownership<Data>(check)` and `.custom<Data>(check)` for caller-defined checks, `.visibilityFilter()` for list queries (attaches a Prisma `where` filter instead of denying), and `.nothing()` for operations with no access rule.
+- **Combining:** conditions in a chain are ANDed; `.or()` starts a new OR'd group. `.anyOf(...)` and `.allOf(...)` combine already-built chains. `chain.allOf(extra)` only extends the last group of `chain`; use `Require.allOf(chain, extra)` to require `extra` on every branch.
+- **Data:** a chain that needs data (`userId`, `groupId`, ...) is a type error until `.data({...})` has supplied all of it. Rules that need data from the database fetch it in the operation's `authorizer` (which may be async and receives `prisma`), then call `.data()`.
+
+### Sub-operations, ownership checks and internal calls
+
+- **`defineSubOperation`** defines an operation for a sub-service (CMS paragraphs, images, links, ...) that other services embed. It has no authorizer of its own; schemas and `operation` are functions so an implementer can pass implementation fields.
+- **`.implement({ authorizer, ownershipCheck, beforeRun? })`** turns a sub-operation into a callable operation for one owning service (e.g. `careerOperations` implements `cmsParagraphOperations.updateContent`).
+  - `authorizer`: may this user act on the owning resource?
+  - `ownershipCheck`: does the sub-resource actually belong to the owning resource (e.g. the paragraph is the career page's special paragraph)? Returning false rejects the call. It is resource-to-resource integrity, not user permission.
+  - `beforeRun`: optional extra checks that run after both and may throw.
+- **`.internalCall({ params, data, ... })`** runs a sub-operation from server code with no authorizer and no ownership check. Only for calls from other operations or server code that has already authorized the user.
+- **`bypassAuth: true`** skips the authorizer of a top-level operation when calling it from trusted server code (e.g. NextAuth callbacks, seeders). Clients cannot set it; `makeAction` never passes it.
+- Operations called inside another operation inherit its context (prisma client or transaction, session, `bypassAuth`) through async local storage; pass `prisma: tx` explicitly to run one inside a transaction.
 
 ### Service Folder Structure
 
@@ -100,16 +137,17 @@ Each service domain follows a standard file layout. See `src/services/omegaquote
 ```
 src/services/[domain]/
 ├── actions.ts      # 'use server' — makeAction() wrappers, one per operation
-├── auth.ts         # Authorizer definitions (RequirePermission.staticFields etc.)
+├── auth.ts         # Authorizer definitions (`Require` chains, shared with the frontend)
 ├── constants.ts    # Domain constants and config values (env vars, field selections)
 ├── operations.ts   # defineOperation() calls, exported as `{ ... } as const`
-├── schemas.ts      # Plain Zod schemas (no ValidationBase)
+├── schemas.ts      # Plain Zod schemas: data in `fooSchemas`, params in `fooParamsSchemas`
 └── types.ts        # TypeScript types specific to this domain (if needed)
 ```
 
 Rules:
 - **`constants.ts`** — not `ConfigVars.ts` or any other name
 - **`operations.ts`** — the exported object must end with `as const`
+- **`schemas.ts`** — holds every `dataSchema` and `paramsSchema` the service's operations use (see [Operation Naming Conventions](#operation-naming-conventions)); none are defined inline in `operations.ts`
 - **`actions.ts`** — must have `'use server'` at the top; only calls `makeAction()`
 - Sub-domains (e.g. `mail/alias/`) follow the same layout within their subfolder
 
@@ -194,18 +232,74 @@ Files that must run only on the server import `'@pn-server-only'` at the top. Th
 - `ParseError` - Validation/parsing errors
 - Error handling is managed internally by the ServiceOperation system via `makeAction()`
 
-### Calling Actions from the Frontend
+### Calling Services from the Frontend
 
-**IMPORTANT**: Frontend code (`src/app/`) must NEVER import from `operations.ts` directly. Always go through `actions.ts`. This applies to both server components (pages) and client components.
+**IMPORTANT**: Client components (`'use client'`) must NEVER import from `operations.ts`. They call server actions from `actions.ts`. Operations are server-only — they build on `serviceOperation.ts`, which imports `'@pn-server-only'`.
 
-In server components (pages), use `unwrapActionReturn` from `@/app/redirectToErrorPage` to unwrap the result — it returns the data directly on success and redirects to the error page on failure:
+Server components do the opposite: pages, layouts and other server components import from `operations.ts` and call operations directly, not through actions. A read action exists only when a client component needs it, so don't add one for a page.
 
-```typescript
-import { readMailAliasesAction } from '@/services/mail/alias/actions'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+#### Pages: `serverPage`
 
-const aliases = unwrapActionReturn(await readMailAliasesAction())
+Pages are built with `serverPage` from `@/app/serverPage` (trimmed from `src/app/news/[nameAndId]/page.tsx`):
+
+```tsx
+import { newsOperations } from '@/services/news/operations'
+import { newsAuth } from '@/services/news/auth'
+import { serverPage, withFallback } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
+
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) => {
+        const news = await newsOperations.read({
+            params: { id: decodeVevenUriHandleError(params.nameAndId) },
+        })
+        const doubleLevelVisibility = await withFallback(
+            newsOperations.visibility.readDoubleLevelMatrix({ params: { id: news.id } }),
+            null
+        )
+        return { news, doubleLevelVisibility }
+    },
+    capabilities: (data) => ({
+        canEdit: newsAuth.updateArticle.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY
+        }),
+    }),
+    metadata: (data) => ({ title: data.news.article.name }),
+    render: ({ data, capabilities }) => (
+        <Article article={data.news.article} capabilities={capabilities} />
+    ),
+})
+
+export default page
+export { generateMetadata }
 ```
+
+- `operation` loads everything the page needs. It runs inside a service context seeded with the request's session, so operations called in it pick the session up without it being passed. It runs once per request, shared by the page and `generateMetadata`.
+- A service error thrown from `operation` renders `ServiceErrorView` in place of the page; `NOT FOUND` becomes `notFound()` and `UNAUTHENTICATED` redirects to login. Wrap calls whose failure should not take the page down in `withFallback(promise, fallback)`. It falls back on every service error; pass the error codes as a third argument to fall back only on those, e.g. `withFallback(promise, null, ['NOT FOUND'])`.
+- Access to the page is decided in `operation`, by the authorizers of the operations it calls or explicitly (admin pages call `authorizeAdminPage(path, session)`). `capabilities` does not guard the page: it declares what the user may do on it under `can[Something]` keys, and `render` receives the results as `capabilities` (see [Capabilities](#capabilities)).
+- The page title comes from `metadata` — don't render `PageTitleSetter` in a page built with `serverPage`.
+
+#### Layouts: `serverLayout`
+
+Layouts that load data are built with `serverLayout`, also from `@/app/serverPage`. It is `serverPage` for layouts — the operation gets `params` and `session` (layouts have no `searchParams`), and `render` also receives `children`:
+
+```tsx
+export default serverLayout({
+    operation: async ({ params }: LayoutOperationArgs<{ category: string }>) =>
+        articleCategoryOperations.read({ params: { name: decodeURIComponent(params.category) } }),
+    render: ({ data: category, children }) => <SideBar category={category}>{children}</SideBar>,
+})
+```
+
+A layout needs it even when every page under it uses `serverPage`: an error thrown by a layout is not caught by the pages it wraps, so without `serverLayout` an expected service error (an unknown committee, say) ends up in the error boundary instead of becoming a 404.
+
+The root layout is the exception. It renders the document itself, so it has nothing to show an error view in — it uses `withPageSession` and wraps every read in `withFallback`.
+
+#### Other server components: `withPageSession`
+
+Server components rendered inside a page (cards, sections) wrap their operation calls in `withPageSession(async session => ...)` from `@/app/serverPage`, which sets up the same service context. Errors are not handled there: wrap calls in `withFallback`, catch them with `handleServiceError`, or let them reach the error boundary.
+
+#### Actions in client components
 
 Action call signatures depend on whether the operation has `paramsSchema` and/or `dataSchema`:
 - No schemas → `action()`
@@ -221,27 +315,35 @@ In `'use client'` components, use the `useAuthorizer` hook from `@/hooks/useAuth
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { someAuth } from '@/services/some/auth'
 
-const canDoThing = useAuthorizer({ authorizer: someAuth.operation.dynamicFields({}) }).authorized
+const canDoThing = useAuthorizer({ authorizer: someAuth.operation.data({ userId }) }).authorized
 ```
 
 Never do this manually in client components:
 ```typescript
 const session = useSession()
-const canDoThing = !session.loading && someAuth.operation.dynamicFields({}).auth(session.session).authorized
+const canDoThing = !session.loading && someAuth.operation.data({ userId }).auth(session.session).authorized
 ```
+
+### Capabilities
+
+What the user may do on a page is declared as capabilities: `can[Something]` keys mapped to authorizers, run against the session into `AuthResult`s. The types and helpers live in `src/auth/authorizer/capabilities.ts`.
+
+- Pages and layouts declare them in `serverPage`/`serverLayout`'s `capabilities: (data, session) => ({ canEdit: fooAuth.update.data({ ... }) })` and read them in `render` as `capabilities.canEdit.authorized`. A rule that needs the session's own user takes the `session` argument (`session.user ? fooAuth.create.data({ userId: session.user.id }) : Require.user()`) — don't run `.auth(session)` inline in `render`.
+- Server components take one `capabilities: Capabilities<'canEdit' | 'canDestroy'>` prop and read `capabilities.canEdit.authorized`. Never destructure it, and never take `session` to run authorizers in the component or a boolean per ability. A parent passes its own object on when the keys match (`capabilities={capabilities}`), maps them otherwise (`capabilities={{ canEdit: capabilities.canEditParagraph }}`), and builds them per item of a list with `runCapabilities(session, { ... })`.
+- Client components choose: run the rule themselves with `useAuthorizer`/`useEditMode({ authorizer })` when they know it (the parent passes the ids the rule needs, such as `groupId`), or take `capabilities: CapabilitiesJsObject<'canEdit'>` when the rule belongs to whoever renders them (the CMS editors: whether a paragraph may be edited is the owning service's rule). The server side hands those over with `capabilitiesToJsObject(capabilities)` — an `AuthResult` is a class instance and cannot cross to the client as it is.
 
 ### Operation Naming Conventions
 
 For every `defineOperation()` call, the operation key must align with its schema and authorizer keys:
 
-- `dataSchema` and `paramsSchema`: if taken from a schemas object, the key must match the operation name exactly — e.g. operation `destroyFoo` must use `fooSchemas.destroyFoo`, not `fooSchemas.createFoo`.
-- `authorizer`: must reference the same operation name — e.g. `fooAuth.destroyFoo.dynamicFields({})`, not `fooAuth.createFoo`.
+- `dataSchema` comes from the service's `fooSchemas` and `paramsSchema` from its `fooParamsSchemas`, both exported from `schemas.ts`. The key must match the operation name exactly — e.g. operation `destroyFoo` uses `fooSchemas.destroyFoo` and `fooParamsSchemas.destroyFoo`, not `fooSchemas.createFoo`. The `implementationParamsSchema` of an implemented sub-operation goes in `fooParamsSchemas` too, under the key of the operation it implements. Sub-operations whose schemas are built from implementation fields are the exception: those stay in `defineSubOperation`.
+- `authorizer`: must reference the same operation name — e.g. `fooAuth.destroyFoo`, not `fooAuth.createFoo`.
 
-When create and destroy operations share the same schema shape, define a shared variable and reference it from both keys in the schemas object:
+Both objects pick their fields from one `fieldSchemas` object (a `z.object`) in `schemas.ts`, so a field such as `userId` or `name` has the same schema in every operation that takes it, whether as data or as params. When operations share the same schema shape, define a shared variable and reference it from each key in the schemas object (the same goes for `fooParamsSchemas`):
 
 ```typescript
 // schemas.ts
-const fooRelation = z.object({ ... })
+const fooRelation = fieldSchemas.pick({ userId: true, groupId: true })
 
 export const fooSchemas = {
     createFoo: fooRelation,

@@ -1,0 +1,18 @@
+@use '@/styles/ohma';
+
+.addUser {
+    flex: 1 1 100%;
+
+    h3 {
+        margin: 0;
+    }
+
+    p {
+        color: ohma.$colors-text-muted;
+        margin: calc(0.5 * #{ohma.$gap}) 0 ohma.$gap 0;
+    }
+}
+
+.error {
+    color: ohma.$colors-accent-red;
+}

@@ -14,7 +14,7 @@ export default function CreateMailaddressExternal() {
         action={createMailAddressExternalAction}
         successCallback={data => {
             if (!data) return
-            push(`./mail/mailaddressExternal/${data.id}`)
+            push(`/admin/mail/mailaddressExternal/${data.id}`)
         }}
     >
         <TextInput label="Adresse" name="address"></TextInput>

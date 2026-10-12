@@ -3,8 +3,8 @@ import { lockerReservationIncluder } from './reservations/constants'
 import { lockersSchemas } from './schemas'
 import { lockerAuth } from './auth'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { ServiceError } from '@/services/error'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { z } from 'zod'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { LockerWithReservation } from '@/services/lockers/types'
@@ -26,7 +26,7 @@ export async function updateLockerReservationIfExpired(prisma: Prisma.Transactio
             }
         })
         if (!updateResult) {
-            throw new ServerError('NOT FOUND', 'lockerReservation not found while updating')
+            throw new ServiceError('NOT FOUND', 'lockerReservation not found while updating')
         }
         locker.LockerReservation = []
     }
@@ -40,7 +40,7 @@ export const lockerOperations = {
      * @returns The newly created locker object.
      */
     create: defineOperation({
-        authorizer: () => lockerAuth.create.dynamicFields({}),
+        authorizer: () => lockerAuth.create,
         dataSchema: lockersSchemas.create,
         operation: async ({ prisma, data }) => await prisma.locker.create({
             data,
@@ -55,7 +55,7 @@ export const lockerOperations = {
      * @returns The locker object.
      */
     read: defineOperation({
-        authorizer: () => lockerAuth.read.dynamicFields({}),
+        authorizer: () => lockerAuth.read,
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -81,11 +81,11 @@ export const lockerOperations = {
      * @returns A list of locker objects.
      */
     readPage: defineOperation({
-        authorizer: () => lockerAuth.readPage.dynamicFields({}),
+        authorizer: () => lockerAuth.readPage,
         paramsSchema: lockersSchemas.readPage,
         operation: async ({ prisma, params }) => {
             const lockers = await prisma.locker.findMany({
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
                 orderBy: {
                     id: 'asc'
                 },
@@ -97,4 +97,4 @@ export const lockerOperations = {
             return lockers
         }
     }),
-}
+} as const

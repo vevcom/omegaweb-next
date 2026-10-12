@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { assertGroupNotPensioned, groupOperations, isGroupOfType } from './operations'
-import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
+import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { GroupType } from '@/prisma-generated-pn-types'
 import type { SetPensioned } from './types'
@@ -11,8 +11,8 @@ import type { SetPensioned } from './types'
  * the group's own admins are allowed through.
  */
 export type GroupAuthorizerOfGroup = (args: { groupId: number }) =>
-    | AuthorizerDynamicFieldsBound
-    | Promise<AuthorizerDynamicFieldsBound>
+    | Authorizer
+    | Promise<Authorizer>
 
 /**
  * The ownership check shared by every common operation addressing a single group: the group must be
@@ -33,13 +33,19 @@ function ownershipCheckOfType(type: GroupType) {
 export function implementGroupType({ type, auth }: {
     type: GroupType,
     auth: {
-        readExpanded: AuthorizerDynamicFieldsBound,
+        readExpanded: Authorizer,
         readMembers: GroupAuthorizerOfGroup,
+        readMembershipsOfUser: (args: { userId: number }) => Authorizer,
     },
 }) {
     return {
         readExpanded: groupOperations.readExpandedOfType.implement({
             authorizer: () => auth.readExpanded,
+            ownershipCheck: () => true,
+            operationImplementationFields: { type },
+        }),
+        readMembershipsOfUser: groupOperations.readMembershipsOfUserOfType.implement({
+            authorizer: ({ params }) => auth.readMembershipsOfUser({ userId: params.userId }),
             ownershipCheck: () => true,
             operationImplementationFields: { type },
         }),
@@ -129,7 +135,7 @@ export function implementManualMigrationPerGroup({ type, auth, setPensioned }: {
 export function implementStraightAwayMigration({ type, auth }: {
     type: GroupType,
     auth: {
-        migrateGroups: AuthorizerDynamicFieldsBound,
+        migrateGroups: Authorizer,
     },
 }) {
     return {

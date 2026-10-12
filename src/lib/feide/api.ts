@@ -73,6 +73,20 @@ export async function fetchGroupsFromFeide(accessToken: string): Promise<FeideGr
 }
 
 /**
+ * The realms (institutions, e.g. `ntnu.no`) of the study programmes the user is in. Study programme
+ * groups come from the student system of the user's own institution, so another institution cannot
+ * put its users in them.
+ *
+ * @param accessToken - The access token of a Feide account.
+ */
+export async function fetchStudyProgrammeRealmsFromFeide(accessToken: string): Promise<string[]> {
+    const realms = (await fetchGroupsFromFeide(accessToken))
+        .filter(({ type }) => type === 'fc:fs:prg')
+        .map(({ id }) => id.split(':')[4])
+    return realms.filter((realm, index) => realms.indexOf(realm) === index)
+}
+
+/**
  * A wrapper for `fetchGroupsFromFeide` witch returns an array of studyprogrammes
  * that the user is currently part of.
  *

@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { shopSchemas } from './schema'
+import { shopSchemas } from './schemas'
 import { shopAuth } from './auth'
 import { defineOperation } from '@/services/serviceOperation'
 import { z } from 'zod'
@@ -8,19 +8,19 @@ import type { ExtendedShop } from './types'
 export const shopOperations = {
     create: defineOperation({
         dataSchema: shopSchemas.create,
-        authorizer: () => shopAuth.create.dynamicFields({}),
+        authorizer: () => shopAuth.create,
         operation: async ({ prisma, data }) => prisma.shop.create({
             data
         })
     }),
 
     readMany: defineOperation({
-        authorizer: () => shopAuth.read.dynamicFields({}),
+        authorizer: () => shopAuth.read,
         operation: ({ prisma }) => prisma.shop.findMany(),
     }),
 
     read: defineOperation({
-        authorizer: () => shopAuth.read.dynamicFields({}),
+        authorizer: () => shopAuth.read,
         paramsSchema: z.object({
             shopId: z.number(),
         }),
@@ -53,5 +53,5 @@ export const shopOperations = {
             return ret
         }
     }),
-}
+} as const
 

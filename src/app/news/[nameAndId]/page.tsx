@@ -3,8 +3,6 @@ import EditNews from './EditNews'
 import CurrentNews from '@/app/news/CurrentNews'
 import Article from '@/cms/Article/Article'
 import {
-    readNewsAction,
-    readNewsDoubleLevelVisibilityAction,
     updateNewsArticleAction,
     updateNewsArticleAddSectionAction,
     updateNewsArticleCmsImageAction,
@@ -16,95 +14,104 @@ import {
     updateNewsArticleSectionsAddPartAction,
     updateNewsArticleSectionsRemovePartAction
 } from '@/services/news/actions'
+import { newsOperations } from '@/services/news/operations'
 import SlideInOnView from '@/components/SlideInOnView/SlideInOnView'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { configureAction } from '@/services/configureAction'
 import { newsAuth } from '@/services/news/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
-import { ServerSession } from '@/auth/session/ServerSession'
-import { notFound } from 'next/navigation'
+import { serverPage, withFallback } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        nameAndId: string
-    }>
-}
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) => {
+        const news = await newsOperations.read({
+            params: { id: decodeVevenUriHandleError(params.nameAndId) },
+        })
 
-export default async function NewsArticle({ params }: PropTypes) {
-    const idAndName = (await params).nameAndId
-    const res = await readNewsAction({ params: { id: decodeVevenUriHandleError(idAndName) } })
-    if (!res.success) notFound()
-    const news = res.data
+        // Readable only by those who administrate the news article - a visitor without that
+        // access simply gets no editing tools.
+        const doubleLevelVisibility = await withFallback(
+            newsOperations.visibility.readDoubleLevelMatrix({ params: { id: news.id } }),
+            null
+        )
 
-    const readDoubleLevelVisibility = await readNewsDoubleLevelVisibilityAction({ params: { id: news.id } })
-    const doubleLevelVisibility = readDoubleLevelVisibility.success ? readDoubleLevelVisibility.data : null
+        return { news, doubleLevelVisibility }
+    },
+    capabilities: (data) => ({
+        canEdit: newsAuth.updateArticle.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY
+        }),
+    }),
+    metadata: (data) => ({ title: data.news.article.name }),
+    render: ({ data, capabilities }) => {
+        const { news, doubleLevelVisibility } = data
 
-    const canEdit = newsAuth.updateArticle.dynamicFields({
-        doubleLevelMatrix: doubleLevelVisibility ?? EMPTY_VISIBILITY
-    }).auth(
-        await ServerSession.fromNextAuth()
-    ).toJsObject()
-    return (
-        <div className={styles.wrapper}>
-            <Article
-                canEdit={canEdit}
-                articleClassName={styles.article}
-                article={news.article}
-                actions={{
-                    updateArticleAction: configureAction(
-                        updateNewsArticleAction,
-                        { implementationParams: { newsId: news.id } }
-                    ),
-                    updateCoverImageAction: configureAction(
-                        updateNewsArticleCoverImageAction,
-                        { implementationParams: { newsId: news.id } }
-                    ),
-                    addSectionToArticleAction: configureAction(
-                        updateNewsArticleAddSectionAction,
-                        { implementationParams: { newsId: news.id } }
-                    ),
-                    reorderArticleSectionsAction: configureAction(
-                        updateNewsArticleReorderSectionsAction,
-                        { implementationParams: { newsId: news.id } }
-                    ),
-                    articleSections: {
-                        updateCmsParagraph: configureAction(
-                            updateNewsArticleCmsParagraphAction,
+        return (
+            <div className={styles.wrapper}>
+                <Article
+                    capabilities={capabilities}
+                    articleClassName={styles.article}
+                    article={news.article}
+                    actions={{
+                        updateArticleAction: configureAction(
+                            updateNewsArticleAction,
                             { implementationParams: { newsId: news.id } }
                         ),
-                        updateCmsImage: configureAction(
-                            updateNewsArticleCmsImageAction,
+                        updateCoverImageAction: configureAction(
+                            updateNewsArticleCoverImageAction,
                             { implementationParams: { newsId: news.id } }
                         ),
-                        updateCmsLink: configureAction(
-                            updateNewsArticleCmsLinkAction,
+                        addSectionToArticleAction: configureAction(
+                            updateNewsArticleAddSectionAction,
                             { implementationParams: { newsId: news.id } }
                         ),
-                        updateArticleSection: configureAction(
-                            updateNewsArticleSectionAction,
+                        reorderArticleSectionsAction: configureAction(
+                            updateNewsArticleReorderSectionsAction,
                             { implementationParams: { newsId: news.id } }
                         ),
-                        addPartToArticleSection: configureAction(
-                            updateNewsArticleSectionsAddPartAction,
-                            { implementationParams: { newsId: news.id } }
-                        ),
-                        removePartFromArticleSection: configureAction(
-                            updateNewsArticleSectionsRemovePartAction,
-                            { implementationParams: { newsId: news.id } }
-                        )
-                    }
-                }}
-            />
-            <SlideInOnView>
-                <EditNews news={news} doubleLevelVisibility={doubleLevelVisibility}>
-                    <div className={styles.moreNews}>
-                        <h1>Flere nyheter</h1>
-                        <div>
-                            <CurrentNews not={news.id} />
+                        articleSections: {
+                            updateCmsParagraph: configureAction(
+                                updateNewsArticleCmsParagraphAction,
+                                { implementationParams: { newsId: news.id } }
+                            ),
+                            updateCmsImage: configureAction(
+                                updateNewsArticleCmsImageAction,
+                                { implementationParams: { newsId: news.id } }
+                            ),
+                            updateCmsLink: configureAction(
+                                updateNewsArticleCmsLinkAction,
+                                { implementationParams: { newsId: news.id } }
+                            ),
+                            updateArticleSection: configureAction(
+                                updateNewsArticleSectionAction,
+                                { implementationParams: { newsId: news.id } }
+                            ),
+                            addPartToArticleSection: configureAction(
+                                updateNewsArticleSectionsAddPartAction,
+                                { implementationParams: { newsId: news.id } }
+                            ),
+                            removePartFromArticleSection: configureAction(
+                                updateNewsArticleSectionsRemovePartAction,
+                                { implementationParams: { newsId: news.id } }
+                            )
+                        }
+                    }}
+                />
+                <SlideInOnView>
+                    <EditNews news={news} doubleLevelVisibility={doubleLevelVisibility}>
+                        <div className={styles.moreNews}>
+                            <h1>Flere nyheter</h1>
+                            <div>
+                                <CurrentNews not={news.id} />
+                            </div>
                         </div>
-                    </div>
-                </EditNews>
-            </SlideInOnView>
-        </div>
-    )
-}
+                    </EditNews>
+                </SlideInOnView>
+            </div>
+        )
+    },
+})
+
+export default page
+export { generateMetadata }

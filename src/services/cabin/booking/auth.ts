@@ -1,55 +1,35 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequirePermissionAndUserId } from '@/auth/authorizer/RequirePermissionAndUserId'
-import { RequireBookingAccess } from '@/auth/authorizer/RequireBookingAccess'
+import { requireBookingAccess, requireBookingHolder } from '@/auth/authorizer/RequireBookingAccess'
+import { Require } from '@/auth/authorizer/Require'
 
 export const cabinBookingAuth = {
-    createCabinBookingUserAttached: RequirePermissionAndUserId.staticFields({
-        permission: 'CABIN_BOOKING_CABIN_CREATE'
-    }),
+    createCabinBookingUserAttached: Require.userId().permission('CABIN_USE'),
 
-    createCabinBookingNoUser: RequirePermission.staticFields({
-        permission: 'CABIN_BOOKING_CABIN_CREATE'
-    }),
+    createCabinBookingNoUser: Require.permission('CABIN_USE'),
 
-    createBedBookingUserAttached: RequirePermissionAndUserId.staticFields({
-        permission: 'CABIN_BOOKING_BED_CREATE'
-    }),
+    createBedBookingUserAttached: Require.userId().permission('CABIN_USE'),
 
-    createBedBookingNoUser: RequirePermission.staticFields({
-        permission: 'CABIN_BOOKING_BED_CREATE'
-    }),
+    createBedBookingNoUser: Require.permission('CABIN_USE'),
 
-    readAvailability: RequirePermission.staticFields({
-        permission: 'CABIN_CALENDAR_READ'
-    }),
+    readAvailability: Require.permission('CABIN_USE'),
 
-    readMany: RequirePermission.staticFields({
-        permission: 'CABIN_BOOKING_ADMIN'
-    }),
+    readMany: Require.permission('CABIN_ADMIN'),
 
-    read: RequirePermission.staticFields({
-        permission: 'CABIN_BOOKING_ADMIN'
-    }),
+    read: Require.permission('CABIN_ADMIN'),
 
-    readSpecialCmsParagraphCabinContract: RequirePermission.staticFields({
-        permission: 'CABIN_CALENDAR_READ'
-    }),
+    readSpecialCmsParagraphCabinContract: Require.permission('CABIN_USE'),
 
-    updateSpecialCmsParagraphContentCabinContract: RequirePermission.staticFields({
-        permission: 'CABIN_BOOKING_ADMIN'
-    }),
+    updateSpecialCmsParagraphContentCabinContract: Require.permission('CABIN_ADMIN'),
 
     // Domain access only: may this session pay for *this* booking - owns it (session, or the
     // matching secret for a guest booking with no session to check ownership against) or holds
-    // CABIN_BOOKING_ADMIN. Provider/account-ownership rules are not this operation's business -
+    // CABIN_ADMIN. Provider/account-ownership rules are not this operation's business -
     // paymentOperations.create and ledgerTransactionOperations.create already own those.
-    createPayment: (
-        booking: { userId: number | null, secret: string },
-        providedSecret: string,
-    ) => RequireBookingAccess.staticFields({ permission: 'CABIN_BOOKING_ADMIN' }).dynamicFields({
-        userId: booking.userId,
-        secret: booking.secret,
-        providedSecret,
-    }),
+    //
+    // Needs `{ booking, providedSecret }` supplied via `.data()`.
+    createPayment: requireBookingAccess('CABIN_ADMIN'),
+
+    // Only the holder of a reservation gives it up. Needs `{ booking, providedSecret }` supplied
+    // via `.data()`.
+    releaseReservation: requireBookingHolder(),
 } as const
 

@@ -1,3 +1,4 @@
+import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import TextInput from '@/components/UI/TextInput'
@@ -6,7 +7,7 @@ import { createCourseAction } from '@/education/courses/actions'
 
 export default function Courses() {
     return (
-        <PageWrapper title="Emner" headerItem={
+        <PageWrapper headerItem={
             <AddHeaderItemPopUp popUpKey="create-couses">
                 <Form
                     action={createCourseAction}
@@ -15,6 +16,7 @@ export default function Courses() {
                 </Form>
             </AddHeaderItemPopUp>
         }>
+            <PageTitleSetter title="Emner" />
             <div>hei</div>
         </PageWrapper>
     )

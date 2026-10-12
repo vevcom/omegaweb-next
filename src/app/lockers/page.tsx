@@ -1,12 +1,14 @@
 import LockerIdForm from './LockerIdForm'
 import LockerList from './LockerList'
 import QRButton from './QRButton'
+import PageTitleSetter from '@/contexts/PageTitleSetter'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { LockerPagingProvider } from '@/contexts/paging/LockerPaging'
 
 export default async function Lockers() {
     return (
-        <PageWrapper title="Skap">
+        <PageWrapper>
+            <PageTitleSetter title="Skap" />
             <LockerIdForm />
             <br/>
             <QRButton />

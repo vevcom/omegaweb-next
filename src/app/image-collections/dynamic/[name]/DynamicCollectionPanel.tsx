@@ -1,6 +1,7 @@
 'use client'
 import styles from './page.module.scss'
 import CollectionAdmin from './CollectionAdmin'
+import PageTitleSetter from '@/contexts/PageTitleSetter'
 import ImagePanel from '@/components/Image/ImagePanel/ImagePanel'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import DoubleLevelVisibilityDescription
@@ -45,7 +46,6 @@ export default function DynamicCollectionPanel({ collection, doubleLevelVisibili
 
     return (
         <PageWrapper
-            title={collection.name}
             headerItem={
                 <CollectionAdmin
                     collection={collection}
@@ -54,6 +54,7 @@ export default function DynamicCollectionPanel({ collection, doubleLevelVisibili
                 />
             }
         >
+            <PageTitleSetter title={collection.name} />
             <div className={styles.collectionHeader}>
                 {collection.description && <p className={styles.description}>{collection.description}</p>}
                 {doubleLevelVisibility && (

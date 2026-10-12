@@ -1,4 +1,4 @@
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 
 /**
  * This function encodes the key and id into a single string
@@ -23,7 +23,7 @@ export function decodeApiKey(key: string) {
     const id = params.get('id')
     const keyStr = params.get('key')
     if (!id || !keyStr || isNaN(parseInt(id, 10))) {
-        throw new ServerError('BAD PARAMETERS', 'Invalid key')
+        throw new ServiceError('BAD PARAMETERS', 'Invalid key')
     }
     return {
         id: parseInt(id, 10),

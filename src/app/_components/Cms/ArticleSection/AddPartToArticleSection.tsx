@@ -11,22 +11,22 @@ import type {
 } from '@/cms/articleSections/types'
 import type { ReactNode } from 'react'
 import type { ConfiguredAction } from '@/services/actionTypes'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = Omit<AddPartsPropTypes, 'onClick'> & {
     children: ReactNode
     addPartToArticleSectionAction: ConfiguredAction<AddPartToArticleSectionAction>
-    canEdit: AuthResultTypeAny
+    capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
 export default function AddPartToArticleSection({
     children,
     addPartToArticleSectionAction,
-    canEdit,
+    capabilities,
     ...props
 }: PropTypes) {
     const { refresh } = useRouter()
-    const editable = useEditMode({ authResult: canEdit })
+    const editable = useEditMode({ authResult: capabilities.canEdit })
 
     const handleAdd = useCallback(async (part: ArticleSectionPart) => {
         await addPartToArticleSectionAction({ data: { part } })

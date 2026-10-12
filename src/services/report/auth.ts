@@ -1,7 +1,6 @@
-import { RequireUser } from '@/auth/authorizer/RequireUser'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const reportAuth = {
-    read: RequireUser.staticFields({}),
-    update: RequirePermission.staticFields({ permission: 'REPORT_ADMIN' })
+    read: Require.user(),
+    update: Require.permission('REPORT_ADMIN')
 } as const

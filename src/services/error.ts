@@ -103,7 +103,7 @@ export class Smorekopp<ValidCodes extends ErrorCode | AuthStatus> extends Error 
 
         this.errorCode = errorCode
         this.errors = parsedErrors ?? []
-        this.name = 'ServerError'
+        this.name = 'ServiceError'
     }
 
     get httpCode() {
@@ -111,11 +111,11 @@ export class Smorekopp<ValidCodes extends ErrorCode | AuthStatus> extends Error 
     }
 }
 
-//TODO: Rename this to ServiceError and actually start to use the serviceCausedError field.
-export type ServerErrorCode = Exclude<ErrorCode, 'UNAUTHENTICATED' | 'UNAUTHORIZED'>
-export class ServerError extends Smorekopp<ServerErrorCode> {
+//TODO: Actually start to use the serviceCausedError field.
+export type ServiceErrorCode = Exclude<ErrorCode, 'UNAUTHENTICATED' | 'UNAUTHORIZED'>
+export class ServiceError extends Smorekopp<ServiceErrorCode> {
     public serviceCausedError: string | undefined
-    constructor(errorCode: ServerErrorCode, errors: string | ErrorMessage[], serviceCausedError?: string) {
+    constructor(errorCode: ServiceErrorCode, errors: string | ErrorMessage[], serviceCausedError?: string) {
         super(errorCode, errors)
         this.serviceCausedError = serviceCausedError
     }

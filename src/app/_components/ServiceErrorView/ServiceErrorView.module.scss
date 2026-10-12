@@ -1,0 +1,36 @@
+@use '@/styles/ohma';
+
+.wrapper {
+    background: ohma.$colors-surface-base;
+    padding: 0 calc(2 * #{ohma.$gap});
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 50vh;
+    .info {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        h3 {
+            color: ohma.$colors-text;
+        }
+        .code {
+            color: ohma.$colors-text;
+            opacity: .6;
+            font-size: ohma.$fonts-s;
+        }
+        .imageContainer {
+            border-right: solid 2px ohma.$colors-surface-base;
+            padding-right: 20px;
+            margin-right: 20px;
+        }
+    }
+}
+
+@media screen and (max-width: ohma.$mobileBreakpoint) {
+    .info {
+        min-height: 50vh;
+    }
+}

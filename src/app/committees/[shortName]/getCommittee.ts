@@ -1,19 +1,16 @@
-import { readCommitteeAction } from '@/services/groups/committees/actions'
-import { notFound } from 'next/navigation'
-import type { PropTypes } from './page'
+import { committeeOperations } from '@/services/groups/committees/operations'
 
 /**
- * A function to get a committee from params in a page under /committees/[name]
- * @param params - The name in an object resived by the page
- * @returns
+ * A function to get a committee from the shortName param of a page under /committees/[shortName].
+ * Meant to be called from a serverPage or serverLayout operation, which supplies the service
+ * context - a missing committee throws NOT FOUND, which they render as the not-found page.
+ * @param shortName - The shortName route param, still URI-encoded.
+ * @returns The committee.
  */
-export default async function getCommittee(params: PropTypes['params']) {
-    const name = decodeURIComponent((await params).shortName)
-    const res = await readCommitteeAction({
+export default async function getCommittee(shortName: string) {
+    return committeeOperations.read({
         params: {
-            shortName: name
+            shortName: decodeURIComponent(shortName),
         },
     })
-    if (!res.success) notFound()
-    return res.data
 }

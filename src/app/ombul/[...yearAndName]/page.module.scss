@@ -98,11 +98,7 @@ $coverWidth: calc(33 * #{ohma.$gap});
 .paragraph {
     max-width: 75ch;
 }
-
-// Rendered inside a PopUp, which teleports its children outside the page - kept top-level here
-// rather than nested, since a nested selector wouldn't match once teleported.
 .book {
     display: block;
-    width: 100%;
-    min-height: 90vh;
+    width: min(calc(100vw - 4rem), calc(130svh - 6rem));
 }

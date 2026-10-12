@@ -4,8 +4,10 @@ import stylesNav from './NavBar.module.scss'
 import useKeyPress from '@/hooks/useKeyPress'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import useOnNavigation from '@/hooks/useOnNavigation'
+import { useGlobalSearch } from '@/contexts/GlobalSearch'
 import React, { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
 import type { NavLink } from './navDef'
 
@@ -17,6 +19,7 @@ type PropTypes = {
 
 export default function Menu({ items, openBtnVariant }: PropTypes) {
     const [isOpen, setIsOpen] = useState(false)
+    const globalSearch = useGlobalSearch()
     function closeMenu(ref: React.RefObject<HTMLDivElement | null>) {
         ref?.current?.classList.add(styles.closeMenu)
         setTimeout(() => setIsOpen(false), 400)
@@ -32,6 +35,18 @@ export default function Menu({ items, openBtnVariant }: PropTypes) {
                     <>
                         <div ref={menuRef} className={styles.Menu}>
                             <div>
+                                <div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsOpen(false)
+                                            globalSearch.setIsOpen(true)
+                                        }}
+                                    >
+                                        <FontAwesomeIcon icon={faMagnifyingGlass}/>
+                                        Søk
+                                    </button>
+                                </div>
                                 {items.map((item) => (
                                     <div key={item.name}>
                                         <Link href={item.href}>

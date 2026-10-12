@@ -1,6 +1,5 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const notificationAuth = {
-    create: RequirePermission.staticFields({ permission: 'NOTIFICATION_CREATE' }),
-    sendMail: RequirePermission.staticFields({ permission: 'MAIL_SEND' }),
+    create: Require.permission('NOTIFICATION_ADMIN'),
 } as const

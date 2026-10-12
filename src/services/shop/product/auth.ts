@@ -1,8 +1,8 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const productAuth = {
-    read: RequirePermission.staticFields({ permission: 'PRODUCT_READ' }),
-    create: RequirePermission.staticFields({ permission: 'PRODUCT_ADMIN' }),
-    update: RequirePermission.staticFields({ permission: 'PRODUCT_ADMIN' }),
-    createShopConnection: RequirePermission.staticFields({ permission: 'SHOP_ADMIN' }),
-}
+    read: Require.permission('PRODUCT_USE'),
+    create: Require.permission('PRODUCT_ADMIN'),
+    update: Require.permission('PRODUCT_ADMIN'),
+    createShopConnection: Require.permission('SHOP_ADMIN'),
+} as const

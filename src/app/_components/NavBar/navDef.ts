@@ -15,14 +15,14 @@ import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
 import { userAuth } from '@/services/users/auth'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
+import { bullshitAuth } from '@/services/bullshit/auth'
+import { Require } from '@/auth/authorizer/Require'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
 import {
     faGamepad,
     faBook,
     faComment,
     faCamera,
-    faCircleInfo,
     faNewspaper,
     faCalendar,
     faSuitcase,
@@ -35,8 +35,9 @@ import {
     faHouseChimneyWindow,
     faPeopleLine,
     faIdCard,
+    faPoo,
 } from '@fortawesome/free-solid-svg-icons'
-import type { AuthorizerDynamicFieldsBound, UserRequieredOutOpt } from '@/auth/authorizer/Authorizer'
+import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
 
@@ -49,7 +50,7 @@ export type NavItem = {
      * shown it - so a link is never offered to a page that would turn the viewer away. Filtering
      * authorizers are welcome: only whether they pass is looked at, not the filter they hand back.
      */
-    authorizers: () => AuthorizerDynamicFieldsBound<UserRequieredOutOpt, object | undefined>[],
+    authorizers: () => Authorizer<UserRequiredOutOpt, object | undefined>[],
     /**
      * Who the entry is worded for, not who may open it: some pages are offered under one name to
      * visitors and another to members. Left out, the entry is for everyone the authorizers let in.
@@ -65,107 +66,107 @@ export const navDef: NavItem[] = [
         name: 'Komitéer',
         href: '/committees',
         icon: faBeer,
-        authorizers: () => [committeeAuth.readAll.dynamicFields({})],
+        authorizers: () => [committeeAuth.readAll],
     },
     {
         name: 'Jobbannonser',
         href: '/career/jobads',
         icon: faBriefcase,
-        authorizers: () => [jobAdAuth.readActive.dynamicFields({})],
+        authorizers: () => [jobAdAuth.readActive],
     },
     {
         name: 'For bedrifter',
         href: '/career',
         icon: faSuitcase,
-        authorizers: () => [careerAuth.readSpecialCmsParagraphCareerInfo.dynamicFields({})],
+        authorizers: () => [careerAuth.readSpecialCmsParagraphCareerInfo],
         audience: 'loggedOut',
     },
     {
         name: 'Ny student?',
         href: '/articles',
         icon: faGraduationCap,
-        authorizers: () => [articleCategoryAuth.readAll.dynamicFields({})],
+        authorizers: () => [articleCategoryAuth.readAll],
         audience: 'loggedOut',
     },
     {
         name: 'Hvad der hender',
         href: '/events',
         icon: faCalendar,
-        authorizers: () => [eventAuth.readManyCurrent.dynamicFields({})],
+        authorizers: () => [eventAuth.readManyCurrent],
     },
     {
-        name: 'Ombul',
+        name: 'OmBul',
         href: '/ombul',
         icon: faBook,
-        authorizers: () => [ombulAuth.readLatest.dynamicFields({})],
+        authorizers: () => [ombulAuth.readLatest],
     },
     {
         name: 'Karriere',
         href: '/career',
         icon: faSuitcase,
-        authorizers: () => [careerAuth.readSpecialCmsParagraphCareerInfo.dynamicFields({})],
+        authorizers: () => [careerAuth.readSpecialCmsParagraphCareerInfo],
         audience: 'loggedIn',
     },
     {
         name: 'Nyheter',
         href: '/news',
         icon: faNewspaper,
-        authorizers: () => [newsAuth.readCurrent.dynamicFields({})],
+        authorizers: () => [newsAuth.readCurrent],
     },
     {
         name: 'Omegaquotes',
         href: '/omegaquotes',
         icon: faComment,
-        authorizers: () => [omegaQuotesAuth.readPage.dynamicFields({})],
+        authorizers: () => [omegaQuotesAuth.readPage],
+    },
+    {
+        name: 'Bullshit',
+        href: '/bullshit',
+        icon: faPoo,
+        authorizers: () => [bullshitAuth.readPage, bullshitAuth.create],
     },
     {
         name: 'Artikler',
         href: '/articles',
         icon: faSignature,
-        authorizers: () => [articleCategoryAuth.readAll.dynamicFields({})],
+        authorizers: () => [articleCategoryAuth.readAll],
     },
     {
         // A page of static content with no service behind it.
         name: 'Fagveven',
         href: '/education',
         icon: faSchool,
-        authorizers: () => [RequireNothing.staticFields({}).dynamicFields({})],
+        authorizers: () => [Require.nothing()],
     },
     {
         name: 'Bilder',
         href: '/image-collections',
         icon: faCamera,
-        authorizers: () => [dynamicImageAuth.readCollectionPage.dynamicFields({})],
-    },
-    {
-        name: 'Om Omega',
-        href: '/articles/om%20omega',
-        icon: faCircleInfo,
-        authorizers: () => [articleCategoryAuth.read.dynamicFields({})],
+        authorizers: () => [dynamicImageAuth.readCollectionPage],
     },
     {
         name: 'Interessegrupper',
         href: '/interest-groups',
         icon: faGamepad,
-        authorizers: () => [interestGroupAuth.readMany.dynamicFields({})],
+        authorizers: () => [interestGroupAuth.readMany],
     },
     {
         name: 'Hyttebooking',
         href: '/cabin',
         icon: faHouseChimneyWindow,
-        authorizers: () => [cabinArticleAuth.read.dynamicFields({})],
+        authorizers: () => [cabinArticleAuth.read],
     },
     {
         name: 'Broedre iitem Systre',
         href: '/users',
         icon: faPeopleLine,
-        authorizers: () => [userAuth.readPage.dynamicFields({})],
+        authorizers: () => [userAuth.readPage],
     },
     {
         name: 'Søknadsperioder',
         href: '/applications',
         icon: faIdCard,
-        authorizers: () => [applicationPeriodAuth.readAll.dynamicFields({})],
+        authorizers: () => [applicationPeriodAuth.readAll],
     },
     {
         name: 'Administrasjon',

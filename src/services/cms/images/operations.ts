@@ -4,7 +4,7 @@ import { defineSubOperation } from '@/services/serviceOperation'
 import { visibilityIncluder, toMatrix } from '@/services/visibility/implement'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { specialImagePanels } from '@/services/images/specialPanels/constants'
-import { ServerError, Smorekopp } from '@/services/error'
+import { ServiceError, Smorekopp } from '@/services/error'
 import { SpecialCmsImage } from '@/prisma-generated-pn-types'
 import logger from '@/lib/logger'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
@@ -45,12 +45,12 @@ async function sessionAdministratesCollectionOfImage({
             },
         },
     })
-    if (!image) throw new ServerError('NOT FOUND', `Image with id ${imageId} does not exist`)
+    if (!image) throw new ServiceError('NOT FOUND', `Image with id ${imageId} does not exist`)
 
     const { special, visibilityAdmin } = image.collection
 
     if (special) {
-        return specialImagePanels[special].auth.dynamicFields({}).auth(session).authorized
+        return specialImagePanels[special].auth.auth(session).authorized
     }
 
     return checkVisibility(session.memberships, toMatrix(visibilityAdmin))
@@ -166,7 +166,7 @@ export const cmsImageOperations = {
                     id: params.cmsImageId
                 }
             })
-            if (cmsImage.special) throw new ServerError('BAD PARAMETERS', 'Cannot delete special CMS image')
+            if (cmsImage.special) throw new ServiceError('BAD PARAMETERS', 'Cannot delete special CMS image')
             await prisma.cmsImage.delete({
                 where: {
                     id: params.cmsImageId
@@ -194,7 +194,7 @@ export const cmsImageOperations = {
                     special: true,
                 }
             })
-            if (!image) throw new ServerError('NOT FOUND', 'Cms image not found')
+            if (!image) throw new ServiceError('NOT FOUND', 'Cms image not found')
             if (!image?.special) return false
             return params.special.includes(image.special)
         }

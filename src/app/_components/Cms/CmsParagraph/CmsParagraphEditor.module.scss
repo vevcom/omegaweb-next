@@ -1,10 +1,7 @@
 @use '@/styles/ohma';
 
-.CmsParagraphEditor, .openEditor {
-    width: 70vw;
-
+.form {
     > .editor, .loader {
-        height: 70vh;
         width: 100%;
         font-size: ohma.$fonts-s;
         border-radius: 4px;
@@ -21,6 +18,15 @@
             justify-content: center;
             align-items: center;
         }
+    }
+}
+
+// In the pop-up the editor takes up most of the screen.
+.CmsParagraphEditor {
+    width: 70vw;
+
+    > .editor, .loader {
+        height: 70vh;
     }
 }
 

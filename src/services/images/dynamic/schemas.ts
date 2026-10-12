@@ -14,7 +14,6 @@ export const dynamicImageSchemas = {
         ),
     }),
     readCollectionPage: readPageInputSchemaObject(
-        z.number(),
         z.object({
             id: z.number()
         }),

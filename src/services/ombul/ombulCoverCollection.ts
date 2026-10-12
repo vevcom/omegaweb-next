@@ -10,7 +10,7 @@ export const {
 } = implementSpecialCollection({
     special: 'OMBULCOVERS',
     allowedExtensions: rasterExtensions,
-    imagePanelAuther: ombulCoversImagePanelAuth.dynamicFields({}),
+    imagePanelAuth: ombulCoversImagePanelAuth,
     config: {
         name: 'Ombulforsider',
         description: 'Bilder brukt som forsider for ombul. Hvert bilde i denne samlingen tilhører nøyaktig én ombul.',

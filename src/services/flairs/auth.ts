@@ -1,19 +1,17 @@
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
-import { RequireUserIdOrPermission } from '@/auth/authorizer/RequireUserIdOrPermission'
+import { Require } from '@/auth/authorizer/Require'
 
-export const flairImagesImagePanelAuth = RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' })
+export const flairImagesImagePanelAuth = Require.permission('FLAIR_ADMIN')
 
 export const flairAuth = {
-    create: RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' }),
-    destroy: RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' }),
-    update: RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' }),
-    assignToUser: RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' }),
-    unAssignToUser: RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' }),
-    increaseRank: RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' }),
-    decreaseRank: RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' }),
-    read: RequireNothing.staticFields({}),
-    readAll: RequireNothing.staticFields({}),
-    readUserFlairs: RequireUserIdOrPermission.staticFields({ permission: 'USERS_READ' }),
-    updateImage: RequirePermission.staticFields({ permission: 'FLAIR_ADMIN' }),
+    create: Require.permission('FLAIR_ADMIN'),
+    destroy: Require.permission('FLAIR_ADMIN'),
+    update: Require.permission('FLAIR_ADMIN'),
+    assignToUser: Require.permission('FLAIR_ADMIN'),
+    unAssignToUser: Require.permission('FLAIR_ADMIN'),
+    increaseRank: Require.permission('FLAIR_ADMIN'),
+    decreaseRank: Require.permission('FLAIR_ADMIN'),
+    read: Require.nothing(),
+    readAll: Require.nothing(),
+    readUserFlairs: Require.permission('USERS_USE').or().userId(),
+    updateImage: Require.permission('FLAIR_ADMIN'),
 } as const

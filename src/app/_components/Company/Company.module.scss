@@ -1,34 +1,96 @@
 @use '@/styles/ohma';
 
 .Company {
-    border-radius: ohma.$cardRounding;
-    padding: ohma.$gap;
+    position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    height: 100%;
+    padding: ohma.$gap;
+    border: 1px solid transparent;
+    border-radius: ohma.$rounding;
+    background-color: ohma.$colors-surface-raised;
+    transition: background-color ohma.$transitionTime, border-color ohma.$transitionTime;
+
+    &:hover {
+        background-color: ohma.$colors-surface-hover;
+    }
+}
+
+.logoFrame {
     position: relative;
-    .logo, .logoSq {
+    margin-bottom: ohma.$gap;
+}
+
+.logo, .logoSq {
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    background-color: ohma.$colors-surface-base;
+    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
+}
+
+.logoSq {
+    aspect-ratio: 1/1;
+
+    div {
+        width: 100%;
+        height: 100%;
+    }
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+}
+
+.badge {
+    position: absolute;
+    top: ohma.$gap;
+    left: ohma.$gap;
+    max-width: calc(100% - 4 * #{ohma.$gap});
+    z-index: 1;
+}
+
+.info {
+    margin: 0 ohma.$gap;
+    padding-bottom: ohma.$gap;
+    position: relative;
+    flex: 1;
+
+    h2 {
+        font-size: ohma.$fonts-l;
         overflow: hidden;
-        display: flex;
-        align-items: center;
-        margin-bottom: ohma.$gap;
-        border-radius: calc(#{ohma.$cardRounding} - #{ohma.$gap});
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
-    .logoSq {
-        aspect-ratio: 1/1;
+
+    p {
+        color: ohma.$colors-text-muted;
     }
-    .info {
-        margin: 0 ohma.$gap;
-        position: relative;
-        h2 {
-            font-size: ohma.$fonts-xl;
-        }
-        .showSettings {
-            color: ohma.$colors-text;
-            position: absolute;
-            top: 50%;
-            right: 0;
-            transform: translateY(-50%);
-        }
+
+    .showSettings {
+        color: ohma.$colors-text;
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 2;
     }
+}
+
+.withSettings {
+    padding-right: calc(5 * #{ohma.$gap});
+}
+
+.tierMain {
+    border-color: color-mix(in srgb, ohma.$colors-accent-yellow, transparent 50%);
+    background-color: color-mix(in srgb, ohma.$colors-accent-yellow, ohma.$colors-surface-raised 94%);
+
+    &:hover {
+        background-color: color-mix(in srgb, ohma.$colors-accent-yellow, ohma.$colors-surface-hover 94%);
+    }
+}
+
+.tierSponsor {
+    border-color: color-mix(in srgb, ohma.$colors-accent-cyan, transparent 65%);
 }

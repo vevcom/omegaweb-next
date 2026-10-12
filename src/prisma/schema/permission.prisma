@@ -1,55 +1,50 @@
 enum Permission {
   // Job ads
-  JOBAD_CREATE
-  JOBAD_READ
-  JOBAD_UPDATE
-  JOBAD_DESTROY
+  JOBAD_ADMIN
+  JOBAD_USE
 
   // Omega Quotes
-  OMEGAQUOTES_WRITE
-  OMEGAQUOTES_READ
+  OMEGAQUOTES_USE
 
   // Ombul
-  OMBUL_CREATE
-  OMBUL_READ
-  OMBUL_UPDATE
-  OMBUL_DESTROY
+  OMBUL_ADMIN
+  OMBUL_USE
 
   // Groups
   // There are no generic group permissions: a group is only ever reachable through its own group
   // type, and each group type below carries its own. Reading "all groups" is the union of the group
   // types the session may read, decided per type.
   //
-  // Every group type carries the same two: _READ to see it, _ADMIN for everything else - creating,
+  // Every group type carries the same two: _USE to see it, _ADMIN for everything else - creating,
   // updating, destroying and managing members. Splitting those apart again would mean deciding, per
   // type, which of them a half-administrator should hold, and nothing has ever needed that.
 
   // omega order
-  OMEGA_ORDER_READ
-  OMEGA_ORDER_CREATE
+  OMEGA_ORDER_USE
+  OMEGA_ORDER_ADMIN
 
   // Groups - Classes
-  CLASS_READ
+  CLASS_USE
   CLASS_ADMIN
 
   // Groups - Committess
-  COMMITTEE_READ
+  COMMITTEE_USE
   COMMITTEE_ADMIN
 
   // Groups - InterestGroups
   INTEREST_GROUP_ADMIN
-  INTEREST_GROUP_READ
+  INTEREST_GROUP_USE
 
   // Groups - ManualGroups
   MANUAL_GROUP_ADMIN
-  MANUAL_GROUP_READ
+  MANUAL_GROUP_USE
 
   // Groups - OmegaMembershipGroup
-  OMEGA_MEMBERSHIP_GROUP_READ
+  OMEGA_MEMBERSHIP_GROUP_USE
   OMEGA_MEMBERSHIP_GROUP_ADMIN
 
   // Groups - StudyProgramme
-  STUDY_PROGRAMME_READ
+  STUDY_PROGRAMME_USE
   STUDY_PROGRAMME_ADMIN
 
   // Lockers
@@ -61,97 +56,72 @@ enum Permission {
 
   // User list permissions - theese are admin permissions, and do not have anything
   // to do with a user´s ability to edit its own user.
-  // USER_READ for example means that the user can read the list of users.
-  USERS_READ
-  USERS_UPDATE
-  USERS_DESTROY
-  USERS_CREATE
+  // USERS_USE for example means that the user can read the list of users.
+  USERS_USE
+  USERS_ADMIN
 
-  IMAGE_COLLECTION_CREATE
+  IMAGE_CREATE
   IMAGE_ADMIN
 
-  EVENT_CREATE
   EVENT_ADMIN
+  EVENT_CREATE
 
   // Notifications
-  NOTIFICATION_CHANNEL_CREATE
-  NOTIFICATION_CHANNEL_UPDATE
-
-  NOTIFICATION_SUBSCRIPTION_READ
-  NOTIFICATION_SUBSCRIPTION_READ_OTHER
-  NOTIFICATION_SUBSCRIPTION_UPDATE
-  NOTIFICATION_SUBSCRIPTION_UPDATE_OTHER
-
-  NOTIFICATION_CREATE
+  NOTIFICATION_ADMIN
 
   // Mail
-  MAIL_SEND
+  MAIL_USE
 
-  // Mail Aliases
-  MAILALIAS_READ
-  MAILALIAS_ADMIN
-
-  // Mailing list
-  MAILINGLIST_READ
-  MAILINGLIST_ADMIN
-
-  // External mail addresses
-  MAILADDRESS_EXTERNAL_CREATE
-  MAILADDRESS_EXTERNAL_READ
-  MAILADDRESS_EXTERNAL_UPDATE
-  MAILADDRESS_EXTERNAL_DESTROY
+  // Mail server: aliases, mailing lists and external addresses
+  MAILSERVER_USE
+  MAILSERVER_ADMIN
 
   // Admisstion
-  ADMISSION_TRIAL_ADMIN
+  ADMISSION_USE
 
   // API keys
   APIKEY_ADMIN
-  SCREEN_READ
+  SCREEN_USE
   SCREEN_ADMIN
 
   // Omega course catalouge
-  SCHOOLS_READ
+  SCHOOLS_USE
   SCHOOLS_ADMIN
 
-  COURSES_READ
+  COURSES_USE
   COURSES_ADMIN
 
   // Omega job ads
-  COMPANY_READ
+  COMPANY_USE
   COMPANY_ADMIN
 
   // Dots
   DOTS_ADMIN
 
   // Cabin
-  CABIN_CALENDAR_READ
-  CABIN_BOOKING_CABIN_CREATE
-  CABIN_BOOKING_BED_CREATE
-  CABIN_BOOKING_ADMIN
+  CABIN_USE
   CABIN_ADMIN
-  CABIN_PRODUCTS_ADMIN
 
   // Shop
-  SHOP_READ
+  SHOP_USE
   SHOP_ADMIN
 
-  PRODUCT_READ
+  PRODUCT_USE
   PRODUCT_ADMIN
 
-  PURCHASE_CREATE
-  PURCHASE_CREATE_ONBEHALF
+  PURCHASE_USE
+  PURCHASE_ADMIN
 
   // Image licenses
   LICENSE_ADMIN
 
   // Permission admin
-  PERMISSION_GROUP_READ
-  PERMISSION_GROUP_ADMIN
-  PERMISSION_DEFAULT_ADMIN
+  PERMISSION_USE
+  PERMISSION_ADMIN
 
   // Applications
   APPLICATION_ADMIN
-  APPLICATION_WRITE
+  APPLICATION_USE
 
   // New student page
   NEW_STUDENT_ADMIN
@@ -166,9 +136,15 @@ enum Permission {
   //Flair/badge/cape
   FLAIR_ADMIN
 
+  //Bullshit
+  BULLSHIT_WRITE
+  BULLSHIT_USE
   // News
   NEWS_CREATE
   NEWS_ADMIN
+
+  // Article categories
+  ARTICLE_CATEGORY_ADMIN
 }
 
 model GroupPermission {

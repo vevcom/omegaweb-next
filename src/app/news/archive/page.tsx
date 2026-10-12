@@ -2,16 +2,18 @@ import styles from './page.module.scss'
 import OldNewsList from './OldNewsList'
 import NewsCard from '@/app/news/NewsCard'
 import { OldNewsPagingProvider } from '@/contexts/paging/OldNewsPaging'
-import { readOldNewsPageAction } from '@/services/news/actions'
+import { newsOperations } from '@/services/news/operations'
+import { serverPage } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 import type { PageSizeOldNews } from '@/contexts/paging/OldNewsPaging'
 
-export default async function NewsArchive() {
-    const pageSize: PageSizeOldNews = 20
-    const res = await readOldNewsPageAction({
+const pageSize: PageSizeOldNews = 20
+
+const { page, generateMetadata } = serverPage({
+    operation: async () => newsOperations.readOldPage({
         params: {
             paging: {
                 page: {
@@ -22,12 +24,10 @@ export default async function NewsArchive() {
                 details: undefined
             },
         }
-    })
-    if (!res.success) throw new Error('Kunne ikke laste nyheter')
-    const serverRendered = res.data
-
-    return (
-        <PageWrapper title="Nyhetsarkiv" headerItem={
+    }),
+    metadata: () => ({ title: 'Nyhetsarkiv' }),
+    render: ({ data: serverRendered }) => (
+        <PageWrapper headerItem={
             <Link href="/news" className={styles.backLink}>
                 <FontAwesomeIcon icon={faArrowLeft} />
             </Link>
@@ -43,5 +43,8 @@ export default async function NewsArchive() {
                 <OldNewsList serverRendered={serverRendered.map(news => <NewsCard key={news.id} news={news} />)} />
             </OldNewsPagingProvider>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

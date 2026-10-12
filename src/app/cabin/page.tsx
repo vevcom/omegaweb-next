@@ -1,6 +1,4 @@
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import {
-    readCabinArticleAction,
     updateCabinArticleAction,
     updateCabinArticleAddSectionAction,
     updateCabinArticleCmsImageAction,
@@ -12,24 +10,24 @@ import {
     updateCabinArticleSectionsAddPartAction,
     updateCabinArticleSectionsRemovePartAction
 } from '@/services/cabin/article/actions'
+import { cabinArticleOperations } from '@/services/cabin/article/operations'
 import SpecialArticle from '@/cms/SpecialArticle/SpecialArticle'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { serverPage } from '@/app/serverPage'
 import Link from 'next/link'
 
-export default async function Cabin() {
-    const article = unwrapActionReturn(await readCabinArticleAction())
-
-    const canEdit = cabinArticleAuth.update.dynamicFields({}).auth(
-        await ServerSession.fromNextAuth()
-    ).toJsObject()
-
-    return (
-        <PageWrapper title="Heutten" headerItem={<Link href="/cabin/book">Trykk her for å Booke</Link>}>
+const { page, generateMetadata } = serverPage({
+    operation: async () => cabinArticleOperations.read({}),
+    capabilities: () => ({
+        canEdit: cabinArticleAuth.update,
+    }),
+    metadata: () => ({ title: 'Heutten' }),
+    render: ({ data: article, capabilities }) => (
+        <PageWrapper headerItem={<Link href="/cabin/book">Trykk her for å Booke</Link>}>
             <SpecialArticle
                 article={article}
-                canEdit={canEdit}
+                capabilities={capabilities}
                 actions={{
                     update: updateCabinArticleAction,
                     addSection: updateCabinArticleAddSectionAction,
@@ -46,5 +44,8 @@ export default async function Cabin() {
                 }}
             />
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

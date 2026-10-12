@@ -1,64 +1,41 @@
 'use client'
-import 'easymde/dist/easymde.min.css'
-import './CustomEditorClasses.scss'
 import styles from './CmsParagraphEditor.module.scss'
+import CmsParagraphEditorForm from './CmsParagraphEditorForm'
 import EditOverlay from '@/components/Cms/EditOverlay'
-import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
-import { configureAction } from '@/services/configureAction'
 import useEditMode from '@/hooks/useEditMode'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
 import type { CmsParagraph } from '@/prisma-generated-pn-types'
 import type { UpdateCmsParagraphAction } from '@/cms/paragraphs/types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
-
-// Needed because SimpleMDE is not SSR compatible as it access navigator object
-const DynamicSimpleMDEditor = dynamic(
-    () => import('react-simplemde-editor'),
-    {
-        ssr: false,
-        loading: () => <p className={styles.loader}>Laster...</p>
-    }
-)
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     cmsParagraph: CmsParagraph
     editorClassName?: string
     updateCmsParagraphAction: UpdateCmsParagraphAction
-    canEdit: AuthResultTypeAny
+    capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
-export default function CmsParagraphEditor({ cmsParagraph, editorClassName, updateCmsParagraphAction, canEdit }: PropTypes) {
-    const editable = useEditMode({ authResult: canEdit })
-    const { refresh } = useRouter()
-    const [content, setContent] = useState(cmsParagraph.contentMd)
-
-    const handleContentChange = (value: string) => {
-        setContent(value)
-    }
-
-    const action = configureAction(updateCmsParagraphAction, { params: { paragraphId: cmsParagraph.id } })
+export default function CmsParagraphEditor({
+    cmsParagraph,
+    editorClassName,
+    updateCmsParagraphAction,
+    capabilities,
+}: PropTypes) {
+    const editable = useEditMode({ authResult: capabilities.canEdit })
 
     if (!editable) return null
     return (
         <PopUp
-            popUpKey={cmsParagraph.id}
+            popUpKey={`EditCmsParagraph${cmsParagraph.id}`}
             showButtonClass={styles.openBtn}
             showButtonContent={
                 <EditOverlay />
             }>
-            <div className={`${styles.CmsParagraphEditor} ${editorClassName}`}>
-                <DynamicSimpleMDEditor className={styles.editor} value={content} onChange={handleContentChange} />
-                <Form
-                    action={action.bind(null, { data: { markdown: content } })}
-                    submitText="Oppdater"
-                    successCallback={() => {
-                        refresh()
-                    }}
-                />
-            </div>
+            <CmsParagraphEditorForm
+                className={`${styles.CmsParagraphEditor} ${editorClassName ?? ''}`}
+                cmsParagraph={cmsParagraph}
+                updateCmsParagraphAction={updateCmsParagraphAction}
+            />
         </PopUp>
     )
 }

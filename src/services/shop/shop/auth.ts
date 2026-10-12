@@ -1,6 +1,6 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const shopAuth = {
-    read: RequirePermission.staticFields({ permission: 'SHOP_READ' }),
-    create: RequirePermission.staticFields({ permission: 'SHOP_ADMIN' }),
-}
+    read: Require.permission('SHOP_USE'),
+    create: Require.permission('SHOP_ADMIN'),
+} as const

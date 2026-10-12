@@ -1,4 +1,4 @@
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { checkGroupValidity } from '@/lib/groups/checkGroupValidity'
 import type { ValidatedGroup } from '@/lib/groups/checkGroupValidity'
 import type {
@@ -39,7 +39,7 @@ export function assertGroupValidity<
 > {
     const result = checkGroupValidity(group)
     if (!result.valid) {
-        throw new ServerError('SERVER ERROR', 'Ånei, serveren er i en invalid tilstand. Kontakt en administrator')
+        throw new ServiceError('SERVER ERROR', 'Ånei, serveren er i en invalid tilstand. Kontakt en administrator')
     }
     return result.group
 }

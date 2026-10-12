@@ -1,27 +1,14 @@
-import type { committeesParticipatingincluder } from './constants'
+import type { committeesParticipatingIncluder } from './constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
-export type CountdownInfo = {
-    endTime: Date,
-    commiteesParticipating: {
-        shortName: string,
-        logo: ExpandedImage
-    }[]
-}
-
 type RawExpandedApplicationPeriod = Prisma.ApplicationPeriodGetPayload<{
-    include: typeof committeesParticipatingincluder
+    include: typeof committeesParticipatingIncluder
 }>
 
-// committee.logoImage is resolved to a non-null default by applicationPeriodOperations.read,
-// unlike the raw (nullable) shape committeesParticipatingincluder would otherwise imply.
+type Participation = RawExpandedApplicationPeriod['committeesParticipating'][number]
+
+// committee.logoImage is resolved to a non-null default by applicationPeriodOperations.read.
 export type ExpandedApplicationPeriod = Omit<RawExpandedApplicationPeriod, 'committeesParticipating'> & {
-    committeesParticipating: (
-        Omit<RawExpandedApplicationPeriod['committeesParticipating'][number], 'committee'> & {
-            committee: Omit<RawExpandedApplicationPeriod['committeesParticipating'][number]['committee'], 'logoImage'> & {
-                logoImage: ExpandedImage
-            }
-        }
-    )[]
+    committeesParticipating: (Participation & { committee: { logoImage: ExpandedImage } })[]
 }

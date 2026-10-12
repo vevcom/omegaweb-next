@@ -1,12 +1,11 @@
-'use server'
-
 import OmegaIdContainer from './container'
-import { readOmegaJWTPublicKeyAction } from '@/services/omegaid/actions'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
+import { omegaIdOperations } from '@/services/omegaid/operations'
+import { serverPage } from '@/app/serverPage'
 
+const { page, generateMetadata } = serverPage({
+    operation: async () => omegaIdOperations.readPublicKey({}),
+    render: ({ data: publicKey }) => <OmegaIdContainer publicKey={publicKey} />,
+})
 
-export default async function OmegaId() {
-    const publicKey = unwrapActionReturn(await readOmegaJWTPublicKeyAction())
-
-    return <OmegaIdContainer publicKey={publicKey} />
-}
+export default page
+export { generateMetadata }

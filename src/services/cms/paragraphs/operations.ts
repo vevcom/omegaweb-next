@@ -1,15 +1,11 @@
 import '@pn-server-only'
 import { cmsParagraphSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { SpecialCmsParagraph } from '@/prisma-generated-pn-types'
 import logger from '@/lib/logger'
-import rehypeFormat from 'rehype-format'
-import rehypeStringify from 'rehype-stringify'
-import remarkParse from 'remark-parse'
-import remarkRehype from 'remark-rehype'
+import { markdownToSafeHtml } from '@/lib/html/safeHtml'
 import { z } from 'zod'
-import { unified } from 'unified'
 
 const create = defineSubOperation({
     dataSchema: () => cmsParagraphSchemas.create,
@@ -37,7 +33,7 @@ export const cmsParagraphOperations = {
         operation: () => async ({ params, prisma }) => {
             const paragraph = await prisma.cmsParagraph.findUniqueOrThrow({ where: { id: params.paragraphId } })
             if (paragraph.special) {
-                throw new ServerError('BAD PARAMETERS', 'Special paragraphs cannot be deleted')
+                throw new ServiceError('BAD PARAMETERS', 'Special paragraphs cannot be deleted')
             }
             await prisma.cmsParagraph.delete({ where: { id: params.paragraphId } })
         }
@@ -63,7 +59,7 @@ export const cmsParagraphOperations = {
         operation: () => async ({ params, prisma, data }) => {
             const paragraph = await prisma.cmsParagraph.findUniqueOrThrow({ where: { id: params.paragraphId } })
             if (paragraph.special) {
-                throw new ServerError('BAD PARAMETERS', 'Special paragraphs cannot have their meta data updated')
+                throw new ServiceError('BAD PARAMETERS', 'Special paragraphs cannot have their meta data updated')
             }
             await prisma.cmsParagraph.update({ where: { id: params.paragraphId }, data })
         }
@@ -76,14 +72,8 @@ export const cmsParagraphOperations = {
         dataSchema: () => cmsParagraphSchemas.updateContent,
         operation: () => async ({ params, prisma, data }) => {
             try {
-                const contentHtml = (await unified()
-                    .use(remarkParse)
-                    .use(remarkRehype)
-                    .use(rehypeFormat)
-                    .use(rehypeStringify)
-                    .process(data.markdown)).value.toString()
+                const contentHtml = (await markdownToSafeHtml(data.markdown))
                     .replace(/<img[^>]*>/g, 'Bilder i markdown er ikke støttet. Bruk det innebygde bildeverktøyet.')
-                //TODO: Final sanitization of html!!!
                 return await prisma.cmsParagraph.update({
                     where: {
                         id: params.paragraphId
@@ -94,7 +84,7 @@ export const cmsParagraphOperations = {
                     }
                 })
             } catch {
-                throw new ServerError('BAD PARAMETERS', 'Invalid markdown')
+                throw new ServiceError('BAD PARAMETERS', 'Invalid markdown')
             }
         }
     }),
@@ -118,7 +108,7 @@ export const cmsParagraphOperations = {
                     special: true
                 }
             })
-            if (!paragraph) throw new ServerError('NOT FOUND', 'Paragraph not found')
+            if (!paragraph) throw new ServiceError('NOT FOUND', 'Paragraph not found')
             if (!paragraph.special) return false
             return params.special.includes(paragraph.special)
         }

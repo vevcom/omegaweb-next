@@ -3,83 +3,82 @@ import styles from './page.module.scss'
 import FindProductForm from './FindProductForm'
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import PopUp from '@/app/_components/PopUp/PopUp'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { displayAmount } from '@/lib/currency/convert'
 import { sortObjectsByName } from '@/lib/sortObjects'
-import { readShopAction, readProductsAction } from '@/services/shop/actions'
+import { shopOperations } from '@/services/shop/shop/operations'
+import { productOperations } from '@/services/shop/product/operations'
+import { serverPage } from '@/app/serverPage'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { notFound } from 'next/navigation'
-import { v4 as uuid } from 'uuid'
-import type { Product } from '@/prisma-generated-pn-types'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        shop: string
-    }>
-}
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ shop: string }>) => {
+        const shopId = parseInt(params.shop, 10)
+        if (isNaN(shopId)) notFound()
 
-export default async function Shop({ params }: PropTypes) {
-    const shopId = parseInt((await params).shop, 10)
-    if (isNaN(shopId)) notFound()
+        const [shopData, allProducts] = await Promise.all([
+            shopOperations.read({ params: { shopId } }),
+            productOperations.readMany({}),
+        ])
+        if (!shopData) notFound()
 
-    const shopData = unwrapActionReturn(await readShopAction({
-        params: {
-            shopId,
-        },
-    }))
-
-    if (!shopData) notFound()
-
-    const allProducts = unwrapActionReturn(await readProductsAction())
-    let unconnectedProducts: Product[] = []
-    if (allProducts) {
         const existingProductIds = new Set(shopData.products.map(product => product.id))
-        unconnectedProducts = allProducts.filter(product => !existingProductIds.has(product.id))
-    }
+        const unconnectedProducts = allProducts.filter(product => !existingProductIds.has(product.id))
 
-    return <PageWrapper
-        title={shopData.name}
-    >
-        <p>{shopData.description}</p>
+        return { shopId, shopData, unconnectedProducts }
+    },
+    metadata: (data) => ({ title: data.shopData.name }),
+    render: ({ data }) => {
+        const { shopId, shopData, unconnectedProducts } = data
 
-        <PopUp
-            showButtonClass={styles.button}
-            showButtonContent="Legg til Produkt"
-            popUpKey="createProductForShop"
-        >
-            <FindProductForm shopId={shopId} products={unconnectedProducts} />
-            <br />
-            <EditProductForShopForm shopId={shopId} />
-        </PopUp>
+        return (
+            <PageWrapper>
+                <p>{shopData.description}</p>
 
-        <table className={styles.table}>
-            <thead>
-                <tr>
-                    <th>Rediger</th>
-                    <th>Produkt</th>
-                    <th>Beskrivelse</th>
-                    <th>Pris</th>
-                </tr>
-            </thead>
-            <tbody>
-                {sortObjectsByName(shopData.products).map(product => <tr
-                    key={uuid()}
-                    className={product.active ? '' : styles.deactivatedProduct}
+                <PopUp
+                    showButtonClass={styles.button}
+                    showButtonContent="Legg til Produkt"
+                    popUpKey="createProductForShop"
                 >
-                    <td className={styles.editButtonWrapper}>
-                        <PopUp
-                            showButtonContent={<FontAwesomeIcon icon={faPencil} />}
-                            popUpKey={'EditProductForShop'}
+                    <FindProductForm shopId={shopId} products={unconnectedProducts} />
+                    <br />
+                    <EditProductForShopForm shopId={shopId} />
+                </PopUp>
+
+                <table className={styles.table}>
+                    <thead>
+                        <tr>
+                            <th>Rediger</th>
+                            <th>Produkt</th>
+                            <th>Beskrivelse</th>
+                            <th>Pris</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sortObjectsByName(shopData.products).map(product => <tr
+                            key={product.id}
+                            className={product.active ? '' : styles.deactivatedProduct}
                         >
-                            <EditProductForShopForm shopId={shopId} product={product} />
-                        </PopUp>
-                    </td>
-                    <td>{product.name}</td>
-                    <td>{product.description}</td>
-                    <td>{displayAmount(product.price, false)}</td>
-                </tr>)}
-            </tbody>
-        </table>
-    </PageWrapper>
-}
+                            <td className={styles.editButtonWrapper}>
+                                <PopUp
+                                    showButtonContent={<FontAwesomeIcon icon={faPencil} />}
+                                    popUpKey={'EditProductForShop'}
+                                >
+                                    <EditProductForShopForm shopId={shopId} product={product} />
+                                </PopUp>
+                            </td>
+                            <td>{product.name}</td>
+                            <td>{product.description}</td>
+                            <td>{displayAmount(product.price, false)}</td>
+                        </tr>)}
+                    </tbody>
+                </table>
+            </PageWrapper>
+        )
+    },
+})
+
+export default page
+export { generateMetadata }

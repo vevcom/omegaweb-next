@@ -1,4 +1,5 @@
 'use client'
+import styles from './SelectedCompany.module.scss'
 import { CompanySelectionContext } from '@/contexts/CompanySelection'
 import { useContext } from 'react'
 
@@ -12,14 +13,14 @@ export default function SelectedCompany() {
     if (!companyCtx) {
         throw new Error('CompanySelectionContext eller companyPaging er ikke definert')
     }
+
+    const company = companyCtx.selectedCompany
+
     return (
-        companyCtx.selectedCompany ? (
-            <>
-                <div>{companyCtx.selectedCompany.name}</div>
-                <input name="companyId" type="hidden" value={companyCtx.selectedCompany.id} />
-            </>
-        ) : (
-            <div>Velg en bedrift</div>
-        )
+        <div className={`${styles.SelectedCompany} ${company ? '' : styles.empty}`}>
+            <span className={styles.label}>Bedrift</span>
+            <span className={styles.name}>{company ? company.name : 'Velg en bedrift i listen'}</span>
+            {company && <input name="companyId" type="hidden" value={company.id} />}
+        </div>
     )
 }

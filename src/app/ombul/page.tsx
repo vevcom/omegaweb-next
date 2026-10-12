@@ -3,57 +3,65 @@ import CreateOmbul from './CreateOmbul'
 import OmbulCover from './OmbulCover'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import { ServerSession } from '@/auth/session/ServerSession'
-import { readLatestOmbulAction, readOmbulsAction } from '@/services/ombul/actions'
+import { ombulOperations } from '@/services/ombul/operations'
 import { ombulAuth } from '@/services/ombul/auth'
+import { serverPage, withFallback } from '@/app/serverPage'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
-export default async function Ombuls() {
-    const showCreateButton = ombulAuth.create.dynamicFields({}).auth(await ServerSession.fromNextAuth()).authorized
-
-    const latestOmbulRes = await readLatestOmbulAction()
-    const latestOmbul = latestOmbulRes.success ? latestOmbulRes.data : null
-    const ombulRes = await readOmbulsAction()
-    if (!ombulRes.success) throw new Error('Kunne ikke laste ombuler')
-    const ombuls = ombulRes.data
-
-    const yearsWithOmbul = Object.entries(ombuls.reduce((groups, ombul) => {
-        const year = ombul.year
-        if (!groups[year]) {
-            groups[year] = []
-        }
-        groups[year].push(ombul)
-        return groups
-    }, {} as { [year: number]: ExpandedOmbul[] })).toSorted(([a], [b]) => parseInt(b, 10) - parseInt(a, 10))
-
-
-    return (
-        <PageWrapper
-            title="Ombul"
-            headerItem={
-                showCreateButton && (
-                    <AddHeaderItemPopUp popUpKey="create ombul">
-                        <CreateOmbul latestOmbul={latestOmbul} />
-                    </AddHeaderItemPopUp>
-                )
+const { page, generateMetadata } = serverPage({
+    operation: async () => {
+        const [latestOmbul, ombuls] = await Promise.all([
+            withFallback(ombulOperations.readLatest({}), null),
+            ombulOperations.readAll({}),
+        ])
+        return { latestOmbul, ombuls }
+    },
+    capabilities: () => ({
+        canCreate: ombulAuth.create,
+    }),
+    metadata: () => ({ title: 'Ombul' }),
+    render: ({ data, capabilities }) => {
+        const yearsWithOmbul = Object.entries(data.ombuls.reduce((groups, ombul) => {
+            const year = ombul.year
+            if (!groups[year]) {
+                groups[year] = []
             }
-        >
-            <div className={styles.wrapper}>
-                {
-                    yearsWithOmbul.map(([year, ombulsInYear]) => (
-                        <div key={year}>
-                            <h1>{year}</h1>
-                            <div className={styles.ombulList}>
-                                {
-                                    ombulsInYear.map(ombul => (
-                                        <OmbulCover key={ombul.id} ombul={ombul} />
-                                    ))
-                                }
-                            </div>
-                        </div>
-                    ))
+            groups[year].push(ombul)
+            return groups
+        }, {} as { [year: number]: ExpandedOmbul[] })).toSorted(
+            ([yearOne], [yearTwo]) => parseInt(yearTwo, 10) - parseInt(yearOne, 10)
+        )
+
+        return (
+            <PageWrapper
+                headerItem={
+                    capabilities.canCreate.authorized && (
+                        <AddHeaderItemPopUp popUpKey="create ombul">
+                            <CreateOmbul latestOmbul={data.latestOmbul} />
+                        </AddHeaderItemPopUp>
+                    )
                 }
-            </div>
-        </PageWrapper>
-    )
-}
+            >
+                <div className={styles.wrapper}>
+                    {
+                        yearsWithOmbul.map(([year, ombulsInYear]) => (
+                            <div key={year}>
+                                <h1>{year}</h1>
+                                <div className={styles.ombulList}>
+                                    {
+                                        ombulsInYear.map(ombul => (
+                                            <OmbulCover key={ombul.id} ombul={ombul} />
+                                        ))
+                                    }
+                                </div>
+                            </div>
+                        ))
+                    }
+                </div>
+            </PageWrapper>
+        )
+    },
+})
+
+export default page
+export { generateMetadata }

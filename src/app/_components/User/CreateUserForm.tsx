@@ -4,7 +4,6 @@ import { createUserAction } from '@/services/users/actions'
 import TextInput from '@/components/UI/TextInput'
 import Form from '@/components/Form/Form'
 import React from 'react'
-import { v4 as uuid } from 'uuid'
 import { useRouter } from 'next/navigation'
 
 type PropTypes = {
@@ -22,10 +21,10 @@ export default function CreateUserForm({ className }: PropTypes) {
                 action={createUserAction}
                 successCallback={refresh}
             >
-                <TextInput label="E-post" name="email" key={uuid()}/>
-                <TextInput label="Brukernavn" name="username" key={uuid()}/>
-                <TextInput label="Fornavn" name="firstname" key={uuid()}/>
-                <TextInput label="Etternavn" name="lastname" key={uuid()}/>
+                <TextInput label="E-post" name="email"/>
+                <TextInput label="Brukernavn" name="username"/>
+                <TextInput label="Fornavn" name="firstname"/>
+                <TextInput label="Etternavn" name="lastname"/>
                 <p>Når en bruker lages vil brukeren få tilsendt en e-post, med en link for å fullføre registreringen.</p>
             </Form>
         </div>

@@ -15,7 +15,7 @@ export default function CreateMailAlias() {
         action={createMailAliasAction}
         successCallback={(data) => {
             if (!data) return
-            push(`./mail/alias/${data.id}`)
+            push(`/admin/mail/alias/${data.id}`)
         }}
     >
         <TextInput label="Alias" name="address" />

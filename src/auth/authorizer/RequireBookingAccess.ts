@@ -1,5 +1,6 @@
-import { AuthorizerFactory } from './Authorizer'
+import { Require } from './Require'
 import { createHash, timingSafeEqual } from 'crypto'
+import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Permission } from '@/prisma-generated-pn-types'
 
 /**
@@ -12,31 +13,35 @@ function secretsMatch(a: string, b: string): boolean {
     return timingSafeEqual(digestA, digestB)
 }
 
+type BookingAccess = {
+    booking: { userId: number | null, secret: string },
+    providedSecret: string | undefined,
+}
+
+function holdsBooking({ session, booking, providedSecret }: { session: SessionMaybeUser } & BookingAccess) {
+    return (session.user !== null && session.user.id === booking.userId) ||
+        (providedSecret !== undefined && secretsMatch(providedSecret, booking.secret))
+}
+
+const notHolderErrorMessage = 'Du har ikke tilgang til denne bookingen.'
+
 /**
  * Authorized if the session holds `permission`, the session user owns the booking, or the
  * caller supplied the booking's secret. The secret is how a guest booking (created without a
  * session) can be resumed and paid for later without logging in.
+ *
+ * Needs `{ booking, providedSecret }` supplied via `.data()`.
  */
-export const RequireBookingAccess = AuthorizerFactory<
-    { permission: Permission },
-    { userId: number | null, secret: string, providedSecret?: string },
-    'USER_NOT_REQUIERED_FOR_AUTHORIZED'
->(({ session, staticFields, dynamicFields }) => {
-    if (session.permissions.includes(staticFields.permission)) {
-        return { success: true, session }
-    }
+export function requireBookingAccess(permission: Permission) {
+    return Require.permission(permission).or().custom<BookingAccess>(holdsBooking, { errorMessage: notHolderErrorMessage })
+}
 
-    if (session.user !== null && session.user.id === dynamicFields.userId) {
-        return { success: true, session }
-    }
-
-    if (dynamicFields.providedSecret !== undefined && secretsMatch(dynamicFields.providedSecret, dynamicFields.secret)) {
-        return { success: true, session }
-    }
-
-    return {
-        success: false,
-        session,
-        errorMessage: 'Du har ikke tilgang til denne bookingen.'
-    }
-})
+/**
+ * Authorized only for the holder of the booking: the session user owning it, or the caller
+ * supplying its secret. No permission stands in for being the holder.
+ *
+ * Needs `{ booking, providedSecret }` supplied via `.data()`.
+ */
+export function requireBookingHolder() {
+    return Require.custom<BookingAccess>(holdsBooking, { errorMessage: notHolderErrorMessage })
+}

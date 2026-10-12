@@ -1,0 +1,129 @@
+@use "@/styles/ohma";
+
+.ReleaseCountdown {
+    // Always dark, regardless of the user's chosen theme.
+    --text: hsl(0, 0%, 90%);
+    --text-muted: hsl(0, 0%, 55%);
+    --surface-base: hsl(0, 0%, 6%);
+    --surface-raised: hsl(0, 0%, 10%);
+
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: #000;
+    color: ohma.$colors-text;
+}
+
+.countdown {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(2 * ohma.$gap);
+    padding: calc(4 * ohma.$gap) ohma.$gap calc(2 * ohma.$gap);
+    text-align: center;
+
+    h1 {
+        font-family: ohma.$fonts-secondary;
+        font-size: ohma.$fonts-xxl;
+        margin: 0;
+    }
+}
+
+.units {
+    display: flex;
+    justify-content: center;
+    gap: calc(2 * ohma.$gap);
+
+    @include ohma.screenMobile {
+        width: 100%;
+        max-width: 30rem;
+        gap: ohma.$gap;
+    }
+}
+
+.unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 6rem;
+    padding: calc(2 * ohma.$gap);
+    border: 1px solid hsl(0, 0%, 20%);
+    border-radius: ohma.$cardRounding;
+    background: rgb(0 0 0 / 60%);
+    backdrop-filter: blur(4px);
+
+    @include ohma.screenMobile {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: ohma.$gap calc(ohma.$gap / 2);
+    }
+}
+
+.value {
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: ohma.$fonts-weight-l;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: ohma.$colors-accent-blue;
+
+    @include ohma.screenMobile {
+        font-size: clamp(1.75rem, 10vw, 3rem);
+    }
+}
+
+.label {
+    font-size: ohma.$fonts-s;
+    color: ohma.$colors-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+
+    @include ohma.screenMobile {
+        font-size: clamp(8px, 2.5vw, 12px);
+        letter-spacing: 0.05em;
+    }
+}
+
+.releaseDate {
+    margin: 0;
+    color: ohma.$colors-text-muted;
+    font-size: ohma.$fonts-m;
+}
+
+.enter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: ohma.$gap;
+    animation: fade-in 1.5s ease-out both;
+}
+
+.enterError {
+    margin: 0;
+    color: ohma.$colors-error;
+    font-size: ohma.$fonts-s;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(0 0 0 / 70%);
+    backdrop-filter: blur(6px);
+    z-index: 10;
+}

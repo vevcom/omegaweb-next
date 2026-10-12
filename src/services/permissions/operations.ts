@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { permissionsAuth } from './auth'
-import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import { defineOperation } from '@/services/serviceOperation'
 import { invalidateAllUserSessionData, invalidateManyUserSessionData } from '@/services/auth/invalidateSession'
 import { groupsWithRelationsIncluder } from '@/services/groups/constants'
 import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
@@ -11,16 +11,17 @@ import { z } from 'zod'
 
 export const permissionOperations = {
     readDefaultPermissions: defineOperation({
-        authorizer: () => permissionsAuth.readDefaultPermissions.dynamicFields({}),
+        authorizer: () => permissionsAuth.readDefaultPermissions,
         operation: async ({ prisma }) =>
             (await prisma.defaultPermission.findMany()).map(perm => perm.permission)
     }),
 
-    readPermissionsOfUser: defineSubOperation({
-        paramsSchema: () => z.object({
+    readPermissionsOfUser: defineOperation({
+        authorizer: ({ params }) => permissionsAuth.readPermissionsOfUser.data({ userId: params.userId }),
+        paramsSchema: z.object({
             userId: z.number(),
         }),
-        operation: () => async ({ prisma, params }) => {
+        operation: async ({ prisma, params }) => {
             const [defaultPermissions, groupPermissions] = await Promise.all([
                 permissionOperations.readDefaultPermissions({}),
                 prisma.membership.findMany({
@@ -49,7 +50,7 @@ export const permissionOperations = {
     }),
 
     readPermissionsOfGroup: defineOperation({
-        authorizer: () => permissionsAuth.readGroupPermissions.dynamicFields({}),
+        authorizer: () => permissionsAuth.readGroupPermissions,
         paramsSchema: z.object({
             groupId: z.number()
         }),
@@ -61,7 +62,7 @@ export const permissionOperations = {
     }),
 
     readPermissionMatrix: defineOperation({
-        authorizer: () => permissionsAuth.readPermissionMatrix.dynamicFields({}),
+        authorizer: () => permissionsAuth.readPermissionMatrix,
         operation: async ({ prisma }) => {
             const groupsPermission = await prisma.group.findMany({
                 include: {
@@ -79,7 +80,7 @@ export const permissionOperations = {
     }),
 
     updateDefaultPermissions: defineOperation({
-        authorizer: () => permissionsAuth.updateDefaultPermissions.dynamicFields({}),
+        authorizer: () => permissionsAuth.updateDefaultPermissions,
         dataSchema: z.object({
             permissions: z.nativeEnum(Permission).array(),
         }),
@@ -107,7 +108,7 @@ export const permissionOperations = {
     }),
 
     updateGroupPermission: defineOperation({
-        authorizer: () => permissionsAuth.updateGroupPermission.dynamicFields({}),
+        authorizer: () => permissionsAuth.updateGroupPermission,
         paramsSchema: z.object({
             groupId: z.number(),
             permission: z.nativeEnum(Permission),
@@ -156,4 +157,4 @@ export const permissionOperations = {
             return data.value
         }
     }),
-}
+} as const

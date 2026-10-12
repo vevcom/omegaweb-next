@@ -1,7 +1,15 @@
+@use '@/styles/ohma';
+
 .CompanyListFilter {
-    width: 100%;
     display: flex;
-    flex-flow: row wrap;
-    align-items: flex-end;
-    gap: 1em;
+    flex-flow: row nowrap;
+    align-items: center;
+    gap: calc(1.5 * #{ohma.$gap});
+    width: 100%;
+    max-width: 360px;
+
+    .icon {
+        flex-shrink: 0;
+        color: ohma.$colors-text-muted;
+    }
 }

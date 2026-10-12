@@ -1,7 +1,7 @@
 import { useSession } from '@/auth/session/useSession'
 import { AuthResult } from '@/auth/authorizer/AuthResult'
 import { Session, type UserGuaranteeOption } from '@/auth/session/Session'
-import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
+import type { Authorizer } from '@/auth/authorizer/Authorizer'
 
 /**
  * This function applies an authorizer to the current client side session stored. While
@@ -11,17 +11,17 @@ import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
 function useAuthorizer({
     authorizer
 }: {
-    authorizer: AuthorizerDynamicFieldsBound<'USER_NOT_REQUIERED_FOR_AUTHORIZED'>
+    authorizer: Authorizer<'USER_NOT_REQUIRED_FOR_AUTHORIZED'>
 }): AuthResult<UserGuaranteeOption, boolean, object | undefined>
 function useAuthorizer({
     authorizer
 }: {
-    authorizer: AuthorizerDynamicFieldsBound<'USER_REQUIERED_FOR_AUTHORIZED'>
+    authorizer: Authorizer<'USER_REQUIRED_FOR_AUTHORIZED'>
 }): AuthResult<UserGuaranteeOption, false, object | undefined> | AuthResult<'HAS_USER', true, object | undefined>
 function useAuthorizer({
     authorizer
 }: {
-    authorizer: AuthorizerDynamicFieldsBound
+    authorizer: Authorizer
 }): AuthResult<UserGuaranteeOption, boolean, object | undefined> {
     const session = useSession()
     if (session.loading) {

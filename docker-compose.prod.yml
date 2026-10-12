@@ -71,6 +71,34 @@ services:
             migrate:
                 condition: service_completed_successfully
 
+    # Sends the weekly notification digest emails. Must stay at 1 replica - the digest run is
+    # only guarded against repeats by its date cutoff, not against concurrent senders.
+    notificationworker:
+        extends:
+            file: docker-compose.base.yml
+            service: projectnext
+        build:
+            target: tools
+        command: ["./node_modules/.bin/tsx", "src/lib/notifications/worker.ts"]
+        environment:
+            IGNORE_SERVER_ONLY: 'true'
+        healthcheck:
+            test: ["CMD-SHELL", "pgrep -f \"[n]otifications/worker.ts\" > /dev/null"]
+            interval: 10s
+            timeout: 3s
+            retries: 3
+            start_period: 15s
+        networks:
+            - dokploy-network
+        volumes:
+            - logs:/usr/src/app/logs
+        deploy:
+            replicas: 1
+        restart: always
+        depends_on:
+            migrate:
+                condition: service_completed_successfully
+
     # One-shot, never started with the stack. The migration/seed toolchain needs the
     # full dependency tree (see the tools stage in the Dockerfile), so it ships as its
     # own image and is run on demand:

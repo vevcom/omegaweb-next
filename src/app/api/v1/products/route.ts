@@ -1,5 +1,5 @@
 import { apiHandler } from '@/api/apiHandler'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { productOperations } from '@/services/shop/product/operations'
 
 export const GET = apiHandler({
@@ -7,7 +7,7 @@ export const GET = apiHandler({
     query: searchParams => {
         const shopId = searchParams.get('shopId')
         if (!shopId?.trim()) {
-            throw new ServerError('BAD PARAMETERS', 'shopId is required.')
+            throw new ServiceError('BAD PARAMETERS', 'shopId is required.')
         }
 
         return {

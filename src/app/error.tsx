@@ -5,9 +5,9 @@ import PageTitleSetter from '@/contexts/PageTitleSetter'
 import StandardImageClient from '@/components/Image/StandardImageClient'
 
 /**
- * note that passing custom error type to next error boundary is not supported
- * thus the error is encoded in a normal Error object
- * Look at redirectToErrorPage to how it is implemented.
+ * The boundary for errors thrown during rendering. Expected service errors never reach it -
+ * serverPage and serverLayout render ServiceErrorView for those - so what lands here are genuine
+ * bugs, which only carry a plain Error message.
 */
 export default function ErrorBoundary({ error, reset }: {error: unknown, reset: () => void}) {
     return (

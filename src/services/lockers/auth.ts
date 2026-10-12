@@ -1,7 +1,7 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const lockerAuth = {
-    create: RequirePermission.staticFields({ permission: 'LOCKER_ADMIN' }),
-    read: RequirePermission.staticFields({ permission: 'LOCKER_USE' }),
-    readPage: RequirePermission.staticFields({ permission: 'LOCKER_USE' }),
-}
+    create: Require.permission('LOCKER_ADMIN'),
+    read: Require.permission('LOCKER_USE'),
+    readPage: Require.permission('LOCKER_USE'),
+} as const

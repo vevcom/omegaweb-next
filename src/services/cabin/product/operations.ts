@@ -1,18 +1,18 @@
-import 'server-only'
+import '@pn-server-only'
 
 import { cabinProductAuth } from './auth'
 import { cabinProductSchemas } from './schemas'
 import { cabinProductPriceIncluder } from './constants'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
 import { z } from 'zod'
 
 export const cabinProductOperations = {
 
     create: defineOperation({
-        authorizer: () => cabinProductAuth.create.dynamicFields({}),
+        authorizer: () => cabinProductAuth.create,
         dataSchema: cabinProductSchemas.createProduct,
         operation: ({ prisma, data }) => prisma.cabinProduct.create({
             data,
@@ -20,7 +20,7 @@ export const cabinProductOperations = {
     }),
 
     createPrice: defineOperation({
-        authorizer: () => cabinProductAuth.createPrice.dynamicFields({}),
+        authorizer: () => cabinProductAuth.createPrice,
         paramsSchema: z.object({
             cabinProductId: z.number(),
         }),
@@ -39,7 +39,7 @@ export const cabinProductOperations = {
             ])
 
             if (releasePeriod && pricePeriod.validFrom <= releasePeriod.releaseUntil) {
-                throw new ServerError('BAD PARAMETERS', 'Cannot change prices for a product that is released')
+                throw new ServiceError('BAD PARAMETERS', 'Cannot change prices for a product that is released')
             }
 
             const result = await prisma.cabinProductPrice.create({
@@ -54,14 +54,14 @@ export const cabinProductOperations = {
     }),
 
     readMany: defineOperation({
-        authorizer: () => cabinProductAuth.readMany.dynamicFields({}),
+        authorizer: () => cabinProductAuth.readMany,
         operation: ({ prisma }) => prisma.cabinProduct.findMany({
             include: cabinProductPriceIncluder,
         }),
     }),
 
     readActive: defineOperation({
-        authorizer: () => cabinProductAuth.readActive.dynamicFields({}),
+        authorizer: () => cabinProductAuth.readActive,
         operation: async ({ prisma }) => {
             const pricePeriods = await cabinPricePeriodOperations.readPublicPeriods({ bypassAuth: true })
 
@@ -81,7 +81,7 @@ export const cabinProductOperations = {
     }),
 
     read: defineOperation({
-        authorizer: () => cabinProductAuth.read.dynamicFields({}),
+        authorizer: () => cabinProductAuth.read,
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -90,4 +90,4 @@ export const cabinProductOperations = {
             include: cabinProductPriceIncluder,
         })
     }),
-}
+} as const

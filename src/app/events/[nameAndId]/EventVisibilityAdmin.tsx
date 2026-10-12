@@ -27,13 +27,13 @@ export default function EventVisibilityAdmin({ event, doubleLevelVisibility }: P
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
 
     const canUpdateRegularVisibility = useAuthorizer({
-        authorizer: eventAuth.updateRegularLevel.dynamicFields({ doubleLevelMatrix })
+        authorizer: eventAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix })
     }).authorized
     const canUpdateAdminVisibility = useAuthorizer({
-        authorizer: eventAuth.updateAdminLevel.dynamicFields({ doubleLevelMatrix })
+        authorizer: eventAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix })
     }).authorized
     const canSetPublished = useAuthorizer({
-        authorizer: eventAuth.setPublished.dynamicFields({ doubleLevelMatrix })
+        authorizer: eventAuth.setPublished.data({ visibility: doubleLevelMatrix })
     }).authorized
 
     const setPublished = configureAction(setEventPublishedAction, { params: { id: event.id } })

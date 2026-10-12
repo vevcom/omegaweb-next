@@ -1,6 +1,6 @@
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { isSubVisibility } from '@/auth/visibility/isSubVisibility'
-import { RequireLevelFromDoubleLevelVisibility } from '@/auth/authorizer/RequireLevelFromDoubleLevelVisibility'
+import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -24,15 +24,12 @@ const testDoubleLevelVisibility = implementDoubleLevelVisibilityOperations({
         adminId: z.number(),
     }),
     authorizers: {
-        readDoubleLevelMatrix: ({ doubleLevelMatrix }) => RequireLevelFromDoubleLevelVisibility
-            .staticFields({ level: 'REGULAR', bypassPermission: null })
-            .dynamicFields({ doubleLevelMatrix }),
-        updateRegularLevel: ({ doubleLevelMatrix }) => RequireLevelFromDoubleLevelVisibility
-            .staticFields({ level: 'ADMIN', bypassPermission: null })
-            .dynamicFields({ doubleLevelMatrix }),
-        updateAdminLevel: ({ doubleLevelMatrix }) => RequireLevelFromDoubleLevelVisibility
-            .staticFields({ level: 'ADMIN', bypassPermission: null })
-            .dynamicFields({ doubleLevelMatrix }),
+        readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
+            Require.levelOfDoubleVisibility({ level: 'regularLevel' }).data({ visibility: doubleLevelMatrix }),
+        updateRegularLevel: ({ doubleLevelMatrix }) =>
+            Require.levelOfDoubleVisibility({ level: 'adminLevel' }).data({ visibility: doubleLevelMatrix }),
+        updateAdminLevel: ({ doubleLevelMatrix }) =>
+            Require.levelOfDoubleVisibility({ level: 'adminLevel' }).data({ visibility: doubleLevelMatrix }),
     },
     readDoubleLevel: async ({ prisma: client, implementationParams, include }) => {
         const [regularLevel, adminLevel] = await Promise.all([

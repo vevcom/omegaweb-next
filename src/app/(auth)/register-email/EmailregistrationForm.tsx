@@ -5,7 +5,8 @@ import { registerNewEmailAction } from '@/services/users/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { QueryParams } from '@/lib/queryParams/queryParams'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { UserFiltered } from '@/services/users/types'
 
@@ -15,12 +16,10 @@ type PropTypes = {
         feideEmail: string,
         createdByFeideLoginOnProjectNext: boolean,
     } | null,
+    callbackUrl: string,
 }
 
-export default function EmailRegistrationForm({ user, feideLoginMatch }: PropTypes) {
-    const searchParams = useSearchParams()
-    const callbackUrl = searchParams.get('callbackUrl') || '/users/me'
-
+export default function EmailRegistrationForm({ user, feideLoginMatch, callbackUrl }: PropTypes) {
     const { push } = useRouter()
 
     const [feedback, setFeedback] = useState<string | null>(null)
@@ -35,7 +34,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch }: PropTyp
             successCallback={(data) => {
                 if (data) {
                     if (data.verified) {
-                        push(`/register?callbackUrl=${callbackUrl}`)
+                        push(`/register?${QueryParams.callbackUrl.encodeUrl(callbackUrl)}`)
                     } else {
                         setFeedback(`
                             For å bekrefte at dette er din e-post har vi sendt en e-post til ${data.email}.

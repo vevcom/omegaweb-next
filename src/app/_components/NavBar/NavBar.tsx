@@ -2,6 +2,7 @@ import Item from './Item'
 import styles from './NavBar.module.scss'
 import UserNavigation from './UserNavigation'
 import ReportButton from './ReportButton'
+import SearchButton from './SearchButton'
 import NavBarTitle from './NavBarTitle'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import StandardImageServer from '@/components/Image/StandardImageServer'
@@ -50,6 +51,7 @@ export default async function NavBar({ isLoggedIn, profileImage, navItems }: Pro
                     ))
                 }
                 <li className={styles.rightSide}>
+                    <SearchButton/>
                     <ReportButton/>
                     <div className={`${styles.magicHat} ${isLoggedIn ? styles.loggedIn : styles.loggedOut}`}>
                         {

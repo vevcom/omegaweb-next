@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { getHttpErrorCode, ServerError, Smorekopp } from '@/services/error'
+import { getHttpErrorCode, ServiceError, Smorekopp } from '@/services/error'
 import { ServerSession } from '@/auth/session/ServerSession'
 import type { ServiceOperation } from '@/services/serviceOperation'
 import type { ErrorCode, ErrorMessage } from '@/services/error'
@@ -57,7 +57,7 @@ export function apiHandler<
                     data = await req.json()
                 } catch (error) {
                     if (error instanceof SyntaxError) {
-                        throw new ServerError('BAD DATA', 'The API only accepts valid json data.')
+                        throw new ServiceError('BAD DATA', 'The API only accepts valid json data.')
                     }
                     throw error
                 }

@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { apiHandler } from '@/api/apiHandler'
 import { userOperations } from '@/services/users/operations'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 
 export const GET = apiHandler({
     serviceOperation: userOperations.readUserWithBalance,
@@ -9,7 +9,7 @@ export const GET = apiHandler({
         const studentCard = searchParams.get('studentCard')
 
         if (!studentCard) {
-            throw new ServerError('BAD PARAMETERS', 'studentCard is required.')
+            throw new ServiceError('BAD PARAMETERS', 'studentCard is required.')
         }
 
         return { studentCard }

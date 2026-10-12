@@ -1,17 +1,21 @@
 import '@pn-server-only'
 import { applicationAuth } from './auth'
-import { applicationSchemas } from './schemas'
-import { ServerError } from '@/services/error'
+import { applicationParamsSchemas, applicationSchemas } from './schemas'
+import { renumberApplicationPriorities } from './renumberPriorities'
+import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
-import { z } from 'zod'
+
+const applicationWhere = ({ userId, committeeParticipationId }: { userId: number, committeeParticipationId: number }) => ({
+    userId_applicationPeriodCommiteeId: {
+        userId,
+        applicationPeriodCommiteeId: committeeParticipationId,
+    },
+})
 
 export const applicationOperations = {
     readForUser: defineOperation({
-        paramsSchema: z.object({
-            userId: z.number(),
-            periodId: z.number()
-        }),
-        authorizer: ({ params }) => applicationAuth.readForUser.dynamicFields({ userId: params.userId }),
+        paramsSchema: applicationParamsSchemas.readForUser,
+        authorizer: ({ params }) => applicationAuth.readForUser.data({ userId: params.userId }),
         operation: async ({ prisma, params }) => prisma.application.findMany({
             where: {
                 userId: params.userId,
@@ -22,15 +26,12 @@ export const applicationOperations = {
 
     create: defineOperation({
         dataSchema: applicationSchemas.create,
-        paramsSchema: z.object({
-            userId: z.number(),
-            commiteeParticipationId: z.number()
-        }),
-        authorizer: ({ params }) => applicationAuth.create.dynamicFields({ userId: params.userId }),
+        paramsSchema: applicationParamsSchemas.create,
+        authorizer: ({ params }) => applicationAuth.create.data({ userId: params.userId }),
         operation: async ({ prisma, data, params }) => {
-            const commiteeParticipation = await prisma.committeeParticipationInApplicationPeriod.findUniqueOrThrow({
+            const committeeParticipation = await prisma.committeeParticipationInApplicationPeriod.findUniqueOrThrow({
                 where: {
-                    id: params.commiteeParticipationId
+                    id: params.committeeParticipationId
                 },
                 select: {
                     applicationPeriod: {
@@ -43,12 +44,12 @@ export const applicationOperations = {
                 }
             })
 
-            if (Date.now() < commiteeParticipation.applicationPeriod.startDate.getTime()) {
-                throw new ServerError(
+            if (Date.now() < committeeParticipation.applicationPeriod.startDate.getTime()) {
+                throw new ServiceError(
                     'BAD PARAMETERS', 'The application period has not started yet.'
                 )
-            } else if (Date.now() > commiteeParticipation.applicationPeriod.endDate.getTime()) {
-                throw new ServerError(
+            } else if (Date.now() > committeeParticipation.applicationPeriod.endDate.getTime()) {
+                throw new ServiceError(
                     'BAD PARAMETERS', 'The application period has ended.'
                 )
             }
@@ -56,7 +57,7 @@ export const applicationOperations = {
             const usersLowestPriorityApplicationInPeriod = await prisma.application.findFirst({
                 where: {
                     userId: params.userId,
-                    applicationPeriodId: commiteeParticipation.applicationPeriod.id
+                    applicationPeriodId: committeeParticipation.applicationPeriod.id
                 },
                 orderBy: {
                     priority: 'desc'
@@ -70,8 +71,8 @@ export const applicationOperations = {
                 data: {
                     text: data.text,
                     userId: params.userId,
-                    applicationPeriodCommiteeId: params.commiteeParticipationId,
-                    applicationPeriodId: commiteeParticipation.applicationPeriod.id,
+                    applicationPeriodCommiteeId: params.committeeParticipationId,
+                    applicationPeriodId: committeeParticipation.applicationPeriod.id,
                     priority: usersLowestPriorityApplicationInPeriod + 1,
                 }
             })
@@ -80,21 +81,14 @@ export const applicationOperations = {
 
     update: defineOperation({
         dataSchema: applicationSchemas.update,
-        paramsSchema: z.object({
-            userId: z.number(),
-            commiteeParticipationId: z.number()
-        }),
+        paramsSchema: applicationParamsSchemas.update,
         opensTransaction: true,
-        authorizer: ({ params }) => applicationAuth.update.dynamicFields({ userId: params.userId }),
-        operation: async ({ prisma, data, params }) => {
-            const application = await prisma.application.findUniqueOrThrow({
-                where: {
-                    userId_applicationPeriodCommiteeId: {
-                        userId: params.userId,
-                        applicationPeriodCommiteeId: params.commiteeParticipationId
-                    },
-                },
+        authorizer: ({ params }) => applicationAuth.update.data({ userId: params.userId }),
+        operation: async ({ prisma, data, params }) => prisma.$transaction(async (tx) => {
+            const application = await tx.application.findUniqueOrThrow({
+                where: applicationWhere(params),
                 select: {
+                    id: true,
                     priority: true,
                     applicationPeriodId: true,
                     applicationPeriodCommitee: {
@@ -112,138 +106,83 @@ export const applicationOperations = {
             })
             const { startDate, endDate, endPriorityDate } = application.applicationPeriodCommitee.applicationPeriod
             if (Date.now() < startDate.getTime()) {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD PARAMETERS', 'The application period has not started yet.'
                 )
             }
 
             if (data.text !== undefined) {
                 if (Date.now() > endDate.getTime()) {
-                    throw new ServerError(
+                    throw new ServiceError(
                         'BAD PARAMETERS', 'The application period has ended.'
                     )
                 }
-                await prisma.application.update({
-                    where: {
-                        userId_applicationPeriodCommiteeId: {
-                            userId: params.userId,
-                            applicationPeriodCommiteeId: params.commiteeParticipationId
-                        }
-                    },
-                    data: {
-                        text: data.text
-                    }
+                await tx.application.update({
+                    where: { id: application.id },
+                    data: { text: data.text },
                 })
             }
             if (data.priority === undefined) return
             if (Date.now() > endPriorityDate.getTime()) {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD PARAMETERS', 'The priority period has ended.'
                 )
             }
 
-            const otherApplication = await prisma.application.findFirst({
+            const newPriority = data.priority === 'UP' ? application.priority - 1 : application.priority + 1
+            const otherApplication = await tx.application.findFirst({
                 where: {
                     userId: params.userId,
                     applicationPeriodId: application.applicationPeriodId,
-                    priority: data.priority === 'UP' ? application.priority - 1 : application.priority + 1
-                }
+                    priority: newPriority,
+                },
+                select: { id: true },
             })
 
             if (!otherApplication) {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD PARAMETERS', 'The application is already at the top or bottom of the priority list.'
                 )
             }
-            // Swap the priorities if the other application exists.
-            // Must temporarly change the priority to -1 to avoid unique constraint violation
-            prisma.$transaction(async (tx) => {
-                await tx.application.update({
-                    where: {
-                        userId_applicationPeriodCommiteeId: {
-                            userId: params.userId,
-                            applicationPeriodCommiteeId: params.commiteeParticipationId
-                        }
-                    },
-                    data: {
-                        priority: -1 // Temporarily set to -1 to avoid unique constraint violation
-                    }
-                })
-
-                await tx.application.update({
-                    where: {
-                        id: otherApplication.id
-                    },
-                    data: {
-                        priority: application.priority
-                    }
-                })
-
-                await tx.application.update({
-                    where: {
-                        userId_applicationPeriodCommiteeId: {
-                            userId: params.userId,
-                            applicationPeriodCommiteeId: params.commiteeParticipationId
-                        }
-                    },
-                    data: {
-                        priority: data.priority === 'UP' ? application.priority - 1 : application.priority + 1
-                    }
-                })
-            })
-        },
+            // Swapped by way of -1: (userId, applicationPeriodId, priority) is unique, so neither
+            // application can take the other's priority while it is still held.
+            await tx.application.update({ where: { id: application.id }, data: { priority: -1 } })
+            await tx.application.update({ where: { id: otherApplication.id }, data: { priority: application.priority } })
+            await tx.application.update({ where: { id: application.id }, data: { priority: newPriority } })
+        }),
     }),
 
     destroy: defineOperation({
-        paramsSchema: z.object({
-            userId: z.number(),
-            commiteeParticipationId: z.number()
-        }),
-        authorizer: ({ params }) => applicationAuth.destroy.dynamicFields({ userId: params.userId }),
+        paramsSchema: applicationParamsSchemas.destroy,
+        authorizer: ({ params }) => applicationAuth.destroy.data({ userId: params.userId }),
         opensTransaction: true,
-        operation: async ({ prisma, params }) => {
-            prisma.$transaction(async (tx) => {
-                const application = await tx.application.delete({
-                    where: {
-                        userId_applicationPeriodCommiteeId: {
-                            userId: params.userId,
-                            applicationPeriodCommiteeId: params.commiteeParticipationId
-                        }
-                    },
-                    select: {
-                        priority: true,
-                        applicationPeriodId: true,
-                        applicationPeriodCommitee: {
-                            select: {
-                                applicationPeriod: {
-                                    select: {
-                                        endDate: true,
-                                    }
+        operation: async ({ prisma, params }) => prisma.$transaction(async (tx) => {
+            const application = await tx.application.findUniqueOrThrow({
+                where: applicationWhere(params),
+                select: {
+                    id: true,
+                    applicationPeriodId: true,
+                    applicationPeriodCommitee: {
+                        select: {
+                            applicationPeriod: {
+                                select: {
+                                    endDate: true,
                                 }
                             }
                         }
                     }
-                })
-                if (Date.now() > application.applicationPeriodCommitee.applicationPeriod.endDate.getTime()) {
-                    throw new ServerError(
-                        'BAD PARAMETERS', 'The application period has ended.'
-                    )
                 }
-                await tx.application.updateMany({
-                    where: {
-                        userId: params.userId,
-                        applicationPeriodId: application.applicationPeriodId,
-                        priority: {
-                            gt: application.priority
-                        }
-                    },
-                    data: {
-                        priority: {
-                            decrement: 1
-                        }
-                    }
-                })
             })
-        }
+            if (Date.now() > application.applicationPeriodCommitee.applicationPeriod.endDate.getTime()) {
+                throw new ServiceError(
+                    'BAD PARAMETERS', 'The application period has ended.'
+                )
+            }
+            await tx.application.delete({ where: { id: application.id } })
+            await renumberApplicationPriorities(tx, {
+                applicationPeriodId: application.applicationPeriodId,
+                userIds: [params.userId],
+            })
+        }),
     }),
-}
+} as const

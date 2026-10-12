@@ -1,25 +1,23 @@
 import styles from './page.module.scss'
 import UserDotsInEditMode from './UserDotsInEditMode'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
-import { readDotsForUserAction } from '@/services/dots/actions'
+import { dotOperations } from '@/services/dots/operations'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        username: string
-    }>
-}
-
-export default async function UserDotAdmin({ params }: PropTypes) {
-    const { profile } = await getProfileForUserPage(await params, 'dots')
-    const dots = unwrapActionReturn(
-        await readDotsForUserAction({ params: { userId: profile.user.id } })
-    )
-
-    return (
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
+        const { profile } = await getProfileForUserPage(params, 'dots', session)
+        const dots = await dotOperations.readForUser({ params: { userId: profile.user.id } })
+        return { profile, dots }
+    },
+    render: ({ data }) => (
         <div className={styles.wrapper}>
             <h2>Prikker</h2>
-            <UserDotsInEditMode userId={profile.user.id} dots={dots} />
+            <UserDotsInEditMode userId={data.profile.user.id} dots={data.dots} />
         </div>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

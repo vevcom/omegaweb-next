@@ -1,33 +1,35 @@
 import EmailRegistrationForm from './EmailregistrationForm'
-import { ServerSession } from '@/auth/session/ServerSession'
-import { RequireUser } from '@/auth/authorizer/RequireUser'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
-import { readFeideLoginMatchAction } from '@/services/auth/actions'
-import { readUserAction } from '@/services/users/actions'
+import { Require } from '@/auth/authorizer/Require'
+import { QueryParams } from '@/lib/queryParams/queryParams'
+import { userOperations } from '@/services/users/operations'
+import { authOperations } from '@/services/auth/operations'
+import { serverPage } from '@/app/serverPage'
 import { notFound, redirect } from 'next/navigation'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default async function Registeremail() {
-    const { authorized, session } = RequireUser.staticFields({}).dynamicFields({}).auth(
-        await ServerSession.fromNextAuth()
-    )
+const { page, generateMetadata } = serverPage({
+    operation: async ({ searchParams, session }: PageOperationArgs) => {
+        const callbackUrl = QueryParams.callbackUrl.decode(searchParams) ?? '/users/me'
+        const authResult = Require.user().auth(session)
+        if (!authResult.authorized) return notFound()
 
-    if (!authorized) notFound()
+        const updatedUser = await userOperations.read({ params: { id: authResult.session.user.id } })
 
-    const updatedUser = await readUserAction({ params: { id: session.user.id } })
+        if (updatedUser.acceptedTerms) {
+            redirect(callbackUrl)
+        }
 
-    if (!updatedUser.success) {
-        return notFound()
-    }
+        if (updatedUser.emailVerified) {
+            redirect(`/register?${QueryParams.callbackUrl.encodeUrl(callbackUrl)}`)
+        }
 
-    if (updatedUser.data.acceptedTerms) {
-        redirect('/users/me')
-    }
+        const feideLoginMatch = await authOperations.readFeideLoginMatch({})
+        return { updatedUser, feideLoginMatch, callbackUrl }
+    },
+    render: ({ data: { updatedUser, feideLoginMatch, callbackUrl } }) => (
+        <EmailRegistrationForm user={updatedUser} feideLoginMatch={feideLoginMatch} callbackUrl={callbackUrl} />
+    ),
+})
 
-    if (updatedUser.data.emailVerified) {
-        redirect('/register')
-    }
-
-    const feideLoginMatch = unwrapActionReturn(await readFeideLoginMatchAction())
-
-    return <EmailRegistrationForm user={updatedUser.data} feideLoginMatch={feideLoginMatch} />
-}
+export default page
+export { generateMetadata }

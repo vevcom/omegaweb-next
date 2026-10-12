@@ -4,7 +4,7 @@ import { apiKeySchemas } from './schemas'
 import { apiKeyHashAndEncrypt } from './hashEncryptKey'
 import { encodeApiKey } from './apiKeyEncoder'
 import { apiFilterSelection, apiKeyLength } from './constants'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
 import { z } from 'zod'
@@ -18,7 +18,7 @@ import type { ApiKeyFiltered, ApiKeyFilteredWithKey } from './types'
  * Note: This operaiton is only used internally.
  */
 const updateIfExpired = defineOperation({
-    authorizer: () => apiKeyAuth.updateIfExpired.dynamicFields({}),
+    authorizer: () => apiKeyAuth.updateIfExpired,
     paramsSchema: z.object({
         id: z.number(),
         expiresAt: z.date().nullable(),
@@ -26,7 +26,7 @@ const updateIfExpired = defineOperation({
     }),
     operation: async ({ prisma, params: apiKey }) => {
         if (!apiKey) {
-            throw new ServerError('NOT FOUND', 'Nøkkelen finnes ikke')
+            throw new ServiceError('NOT FOUND', 'Nøkkelen finnes ikke')
         }
 
         if (!apiKey.expiresAt || apiKey.expiresAt > new Date()) return { active: apiKey.active }
@@ -45,7 +45,7 @@ const updateIfExpired = defineOperation({
 
 export const apiKeyOperations = {
     create: defineOperation({
-        authorizer: () => apiKeyAuth.create.dynamicFields({}),
+        authorizer: () => apiKeyAuth.create,
         dataSchema: apiKeySchemas.create,
         operation: async ({ prisma, data }): Promise<ApiKeyFilteredWithKey> => {
             const NODE_ENV = process.env.NODE_ENV
@@ -66,7 +66,7 @@ export const apiKeyOperations = {
         }
     }),
     read: defineOperation({
-        authorizer: () => apiKeyAuth.read.dynamicFields({}),
+        authorizer: () => apiKeyAuth.read,
         paramsSchema: z.union([z.object({ id: z.number() }), z.object({ name: z.string() })]),
         operation: async ({ prisma, params }): Promise<ApiKeyFiltered> => {
             const apiKey = await prisma.apiKey.findUnique({
@@ -77,7 +77,7 @@ export const apiKeyOperations = {
                 select: apiFilterSelection,
             })
 
-            if (!apiKey) throw new ServerError('BAD PARAMETERS', 'Api key does not exist')
+            if (!apiKey) throw new ServiceError('BAD PARAMETERS', 'Api key does not exist')
             return {
                 ...apiKey,
                 ...await updateIfExpired({
@@ -88,7 +88,7 @@ export const apiKeyOperations = {
         }
     }),
     readMany: defineOperation({
-        authorizer: () => apiKeyAuth.readMany.dynamicFields({}),
+        authorizer: () => apiKeyAuth.readMany,
         operation: async ({ prisma }): Promise<ApiKeyFiltered[]> => {
             const apiKeys = await prisma.apiKey.findMany({
                 select: apiFilterSelection,
@@ -108,7 +108,7 @@ export const apiKeyOperations = {
         }
     }),
     readWithHash: defineOperation({
-        authorizer: () => apiKeyAuth.readWithHash.dynamicFields({}),
+        authorizer: () => apiKeyAuth.readWithHash,
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -134,14 +134,14 @@ export const apiKeyOperations = {
         }
     }),
     update: defineOperation({
-        authorizer: () => apiKeyAuth.update.dynamicFields({}),
+        authorizer: () => apiKeyAuth.update,
         paramsSchema: z.object({
             id: z.number(),
         }),
         dataSchema: apiKeySchemas.update,
         operation: async ({ prisma, params, data }) => {
             if (data.active && data.expiresAt && data.expiresAt < new Date()) {
-                throw new ServerError('BAD PARAMETERS', 'Hvis du vil aktivere en nøkkel, kan den ikke ha utløpt')
+                throw new ServiceError('BAD PARAMETERS', 'Hvis du vil aktivere en nøkkel, kan den ikke ha utløpt')
             }
 
             const { name } = await prisma.apiKey.update({
@@ -152,7 +152,7 @@ export const apiKeyOperations = {
         },
     }),
     destroy: defineOperation({
-        authorizer: () => apiKeyAuth.destroy.dynamicFields({}),
+        authorizer: () => apiKeyAuth.destroy,
         paramsSchema: z.object({
             id: z.number(),
         }),
@@ -165,7 +165,7 @@ export const apiKeyOperations = {
                 })
 
                 if (apiKey.active) {
-                    throw new ServerError('BAD PARAMETERS', 'Du kan ikke slette en aktiv nøkkel - deaktiver den først')
+                    throw new ServiceError('BAD PARAMETERS', 'Du kan ikke slette en aktiv nøkkel - deaktiver den først')
                 }
 
                 await tx.apiKey.delete({
@@ -174,4 +174,4 @@ export const apiKeyOperations = {
             })
         }
     }),
-}
+} as const

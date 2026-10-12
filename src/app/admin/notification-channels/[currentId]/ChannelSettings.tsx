@@ -1,13 +1,14 @@
 'use client'
 
 import styles from './ChannelSettings.module.scss'
-import NotificationMethodSelector from '@/components/NotificaionMethodSelector/NotificaionMethodSelector'
+import PageTitleSetter from '@/contexts/PageTitleSetter'
+import NotificationMethodSelector from '@/components/NotificationMethodSelector/NotificationMethodSelector'
 import TextInput from '@/components/UI/TextInput'
 import { SelectNumber } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { booleanOperationOnMethods } from '@/services/notifications/notificationMethodOperations'
-import { updateNotificationChannelAction } from '@/services/notifications/actions'
+import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
+import { updateNotificationChannelAction } from '@/services/notifications/channel/actions'
 import { findValidParents } from '@/services/notifications/channel/schemas'
 import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
@@ -28,8 +29,8 @@ export default function ChannelSettings({
     const selectOptions = findValidParents(currentChannel.id, channels)
 
     return <PageWrapper
-        title={currentChannelState.name}
     >
+        <PageTitleSetter title={currentChannelState.name} />
         <div className={styles.channelSettings}>
             {currentChannelState.special ? <p>Spesiell: {currentChannelState.special}</p> : null}
             <Form

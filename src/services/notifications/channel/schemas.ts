@@ -4,24 +4,8 @@ import { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 import type {
     ExpandedNotificationChannel,
-    NotificationMethodGeneral,
-    NotificationMethodTypes
+    NotificationMethodGeneral
 } from '@/services/notifications/types'
-
-//TODO: This is unused ??
-export function parseMethods(data: FormData, prefix?: NotificationMethodTypes) {
-    return Object.fromEntries(
-        notificationMethodsArray.filter(method => notificationMethodsArray.includes(method)).map(method => {
-            const compare = prefix ? `${prefix}_${method}` : method
-            const value = data.get(compare)
-            if (!value) {
-                return [method, false]
-            }
-
-            return [method, value === 'on']
-        })
-    ) as NotificationMethodGeneral
-}
 
 /**
  * Validates the available notification methods against the default methods.

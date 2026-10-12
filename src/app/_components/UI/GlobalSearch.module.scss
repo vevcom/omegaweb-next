@@ -42,6 +42,18 @@
     color: ohma.$colors-text-muted;
 }
 
+// The popup is fullscreen on mobile, so there is no outside to click and no Esc key.
+.closeBtn {
+    display: none;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: ohma.$gap;
+    cursor: pointer;
+    font-size: ohma.$fonts-l;
+    color: ohma.$colors-text;
+}
+
 .field {
     flex: 1;
     min-width: 0;
@@ -181,6 +193,10 @@
 }
 
 @include ohma.screenMobile {
+    .closeBtn {
+        display: block;
+    }
+
     .GlobalSearch {
         padding-top: 0;
 

@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { extensionForMimeType, type StorableExtension } from './fileExtensions'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { v4 as uuid } from 'uuid'
 import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
@@ -37,7 +37,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
         const ext = extensionForMimeType(file.type, allowedExt)
 
         if (ext === null) {
-            throw new ServerError('BAD PARAMETERS', [
+            throw new ServiceError('BAD PARAMETERS', [
                 {
                     path: ['file'],
                     message: `Filtypen må være en av ${allowedExt.join(', ')}`
@@ -69,7 +69,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
             return await readFile(filePath)
         } catch (error) {
             if (isErrorWithCode(error) && error.code === 'ENOENT') {
-                throw new ServerError('NOT FOUND', 'Filen du forsøkte å finne ble ikke funnet')
+                throw new ServiceError('NOT FOUND', 'Filen du forsøkte å finne ble ikke funnet')
             }
             throw error
         }
@@ -88,7 +88,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
         } catch (error) {
             if (isErrorWithCode(error) && error.code === 'ENOENT') {
                 if (throwOnNotFound) {
-                    throw new ServerError('NOT FOUND', 'Filen du forsøkte å finne ble ikke funnet')
+                    throw new ServiceError('NOT FOUND', 'Filen du forsøkte å finne ble ikke funnet')
                 }
                 return
             }

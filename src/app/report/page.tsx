@@ -1,7 +1,5 @@
 import styles from './page.module.scss'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import {
-    readReportArticleAction,
     updateReportArticleAction,
     updateReportArticleAddSectionAction,
     updateReportArticleCmsImageAction,
@@ -13,23 +11,23 @@ import {
     updateReportArticleSectionsAddPartAction,
     updateReportArticleSectionsRemovePartAction
 } from '@/services/report/actions'
+import { reportOperations } from '@/services/report/operations'
 import SpecialArticle from '@/cms/SpecialArticle/SpecialArticle'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { reportAuth } from '@/services/report/auth'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { serverPage } from '@/app/serverPage'
 
-export default async function Report() {
-    const article = unwrapActionReturn(await readReportArticleAction())
-
-    const canEdit = reportAuth.update.dynamicFields({}).auth(
-        await ServerSession.fromNextAuth()
-    ).toJsObject()
-
-    return (
-        <PageWrapper title="Varsling" className={styles.reportPage}>
+const { page, generateMetadata } = serverPage({
+    operation: async () => reportOperations.read({}),
+    capabilities: () => ({
+        canEdit: reportAuth.update,
+    }),
+    metadata: () => ({ title: 'Varsling' }),
+    render: ({ data: article, capabilities }) => (
+        <PageWrapper className={styles.reportPage}>
             <SpecialArticle
                 article={article}
-                canEdit={canEdit}
+                capabilities={capabilities}
                 actions={{
                     update: updateReportArticleAction,
                     addSection: updateReportArticleAddSectionAction,
@@ -46,5 +44,8 @@ export default async function Report() {
                 }}
             />
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

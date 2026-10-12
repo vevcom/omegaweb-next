@@ -3,6 +3,8 @@ import { committeeAuth } from './auth'
 import { committeeExpandedIncluder, committeeLogoIncluder } from './constants'
 import { committeeSchemas } from './schemas'
 import { committeeLogoImageOperations } from './committeeLogoCollection'
+import { groupOperations } from '@/services/groups/operations'
+import { invalidateManyUserSessionData } from '@/services/auth/invalidateSession'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import {
@@ -10,17 +12,17 @@ import {
     implementManualMigrationPerGroup,
     implementSimpleAddRemoveMembersOperation,
 } from '@/services/groups/implementGroupType'
-import { articleRealtionsIncluder } from '@/cms/articles/constants'
+import { articleRelationsIncluder } from '@/cms/articles/constants'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { articleOperations } from '@/cms/articles/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { GroupType } from '@/prisma-generated-pn-types'
-import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
-import type { Prisma } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { z } from 'zod'
+import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { Prisma } from '@/prisma-generated-pn-types'
 
 async function readDefaultCommitteeLogo() {
     return standardImageCollectionOperations.readStandardImage({
@@ -29,7 +31,7 @@ async function readDefaultCommitteeLogo() {
 }
 
 const readAll = defineOperation({
-    authorizer: () => committeeAuth.readAll.dynamicFields({}),
+    authorizer: () => committeeAuth.readAll,
     operation: async ({ prisma }) => {
         const defaultCommitteeLogo = await readDefaultCommitteeLogo()
 
@@ -45,15 +47,12 @@ const readAll = defineOperation({
 })
 
 const read = defineOperation({
-    authorizer: () => committeeAuth.read.dynamicFields({}),
+    authorizer: () => committeeAuth.read,
     paramsSchema: z.union([
         z.object({ id: z.number() }),
         z.object({ shortName: z.string() })
     ]),
     operation: async ({ prisma, params }) => {
-        const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
-            params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
-        })
         const defaultCommitteeLogo = await readDefaultCommitteeLogo()
 
         const result = await prisma.committee.findUniqueOrThrow({
@@ -65,22 +64,12 @@ const read = defineOperation({
             ...result,
             logoImage: result.logoImage ?? defaultCommitteeLogo,
             coverImage: result.committeeArticle.coverImage,
-            group: {
-                ...result.group,
-                memberships: result.group.memberships.map(membership => ({
-                    ...membership,
-                    user: {
-                        ...membership.user,
-                        image: membership.user.image ?? defaultProfileImage
-                    }
-                }))
-            }
         }
     }
 })
 
 const readArticle = defineOperation({
-    authorizer: () => committeeAuth.readArticle.dynamicFields({}),
+    authorizer: () => committeeAuth.readArticle,
     paramsSchema: z.object({
         shortName: z.string(),
     }),
@@ -88,14 +77,14 @@ const readArticle = defineOperation({
         where: params,
         select: {
             committeeArticle: {
-                include: articleRealtionsIncluder,
+                include: articleRelationsIncluder,
             }
         }
     })).committeeArticle
 })
 
 const readParagraph = defineOperation({
-    authorizer: () => committeeAuth.readParagraph.dynamicFields({}),
+    authorizer: () => committeeAuth.readParagraph,
     paramsSchema: z.object({
         shortName: z.string(),
     }),
@@ -121,7 +110,7 @@ async function assertNotPensioned(
     })
 
     if (committee.pensioned) {
-        throw new ServerError(
+        throw new ServiceError(
             'BAD PARAMETERS',
             `${committee.name} er pensjonert og kan ikke endres. Gjenopprett komiteen først.`
         )
@@ -133,7 +122,7 @@ const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
         shortName: z.string(),
     }),
     authorizer: async ({ implementationParams }) =>
-        committeeAuth.updateParagraphContent.dynamicFields({
+        committeeAuth.updateParagraphContent.data({
             groupId: (await read({
                 params: { shortName: implementationParams.shortName },
                 bypassAuth: true
@@ -150,7 +139,7 @@ const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
 
 const updateLogo = defineOperation({
     authorizer: async ({ params }) =>
-        committeeAuth.updateLogo.dynamicFields({
+        committeeAuth.updateLogo.data({
             groupId: (await read({
                 params: { shortName: params.shortName },
                 bypassAuth: true
@@ -198,18 +187,36 @@ const updateLogo = defineOperation({
 })
 
 const destroy = defineOperation({
-    authorizer: () => committeeAuth.destroy.dynamicFields({}),
+    authorizer: () => committeeAuth.destroy,
     paramsSchema: z.object({
         id: z.number()
     }),
+    opensTransaction: true,
     operation: async ({ prisma, params }) => {
         await assertNotPensioned(prisma, { id: params.id })
 
-        const committee = await prisma.committee.delete({
-            where: {
-                id: params.id,
-            },
+        const { committee, memberIds } = await prisma.$transaction(async tx => {
+            const deleted = await tx.committee.delete({
+                where: {
+                    id: params.id,
+                },
+            })
+            await cmsParagraphOperations.destroy.internalCall({
+                prisma: tx,
+                params: { paragraphId: deleted.paragraphId },
+            })
+            await cmsParagraphOperations.destroy.internalCall({
+                prisma: tx,
+                params: { paragraphId: deleted.applicationParagraphId },
+            })
+            const formerMemberIds = await groupOperations.destroy.internalCall({
+                prisma: tx,
+                params: { groupId: deleted.groupId },
+            })
+            return { committee: deleted, memberIds: formerMemberIds }
         })
+        await invalidateManyUserSessionData(memberIds)
+
         await articleOperations.destroy.internalCall({ params: { articleId: committee.committeeArticleId } })
 
         if (committee.logoImageId) {
@@ -223,7 +230,7 @@ const destroy = defineOperation({
 })
 
 const create = defineOperation({
-    authorizer: () => committeeAuth.create.dynamicFields({}),
+    authorizer: () => committeeAuth.create,
     dataSchema: committeeSchemas.create,
     opensTransaction: true,
     operation: ({ prisma, data }) =>
@@ -300,7 +307,7 @@ const create = defineOperation({
 })
 
 const update = defineOperation({
-    authorizer: () => committeeAuth.update.dynamicFields({}),
+    authorizer: () => committeeAuth.update,
     paramsSchema: z.object({
         id: z.number()
     }),
@@ -327,7 +334,7 @@ const update = defineOperation({
 })
 
 const updateArticle = implementUpdateArticleOperations({
-    authorizer: async ({ implementationParams }) => committeeAuth.updateArticle.dynamicFields({
+    authorizer: async ({ implementationParams }) => committeeAuth.updateArticle.data({
         groupId: (await read({
             params: { shortName: implementationParams.shortName },
             bypassAuth: true
@@ -347,26 +354,27 @@ const updateArticle = implementUpdateArticleOperations({
 const commonGroupOperations = implementGroupType({
     type: GroupType.COMMITTEE,
     auth: {
-        readExpanded: committeeAuth.readExpanded.dynamicFields({}),
-        readMembers: ({ groupId }) => committeeAuth.readMembers.dynamicFields({ groupId }),
+        readExpanded: committeeAuth.readExpanded,
+        readMembers: ({ groupId }) => committeeAuth.readMembers.data({ groupId }),
+        readMembershipsOfUser: ({ userId }) => committeeAuth.readMembershipsOfUser.data({ userId }),
     },
 })
 
 const memberManagement = implementSimpleAddRemoveMembersOperation({
     type: GroupType.COMMITTEE,
     auth: {
-        addMembers: ({ groupId }) => committeeAuth.addMembers.dynamicFields({ groupId }),
-        removeMembers: ({ groupId }) => committeeAuth.removeMembers.dynamicFields({ groupId }),
-        setMemberAdmin: ({ groupId }) => committeeAuth.setMemberAdmin.dynamicFields({ groupId }),
-        setMemberTitle: ({ groupId }) => committeeAuth.setMemberTitle.dynamicFields({ groupId }),
+        addMembers: ({ groupId }) => committeeAuth.addMembers.data({ groupId }),
+        removeMembers: ({ groupId }) => committeeAuth.removeMembers.data({ groupId }),
+        setMemberAdmin: ({ groupId }) => committeeAuth.setMemberAdmin.data({ groupId }),
+        setMemberTitle: ({ groupId }) => committeeAuth.setMemberTitle.data({ groupId }),
     },
 })
 
 const migration = implementManualMigrationPerGroup({
     type: GroupType.COMMITTEE,
     auth: {
-        migrateGroup: ({ groupId }) => committeeAuth.migrateGroup.dynamicFields({ groupId }),
-        pension: () => committeeAuth.pension.dynamicFields({}),
+        migrateGroup: ({ groupId }) => committeeAuth.migrateGroup.data({ groupId }),
+        pension: () => committeeAuth.pension,
     },
     setPensioned: (prisma, groupId, pensioned) => prisma.committee.update({
         where: { groupId },
@@ -382,6 +390,7 @@ export const committeeOperations = {
     read,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
+    readMembershipsOfUser: commonGroupOperations.readMembershipsOfUser,
     addMembers: memberManagement.addMembers,
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,

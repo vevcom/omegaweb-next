@@ -17,7 +17,6 @@ model User {
   email                            String             @unique
   firstname                        String             @default("[Fjernet]")
   lastname                         String             @default("[Fjernet]")
-  bio                              String             @default("")
   relationshipStatus               RelationshipStatus @default(NOT_SPECIFIED)
   relationshipStatusText           String             @default("")
   archived                         Boolean            @default(false)
@@ -30,10 +29,18 @@ model User {
   // Only set for a user created on a Feide login that matched no existing (migrated) user. Such a
   // user may hand its Feide account over to a migrated user using the admin and be deleted - no other user may.
   createdByFeideLoginOnProjectNext Boolean            @default(false)
+  // Bumped to end every session of the user, as a password change does. A session carries the value
+  // it was started with and is only valid while that still matches.
+  sessionEpoch                     Int                @default(0)
 
+  bullshit    Bullshit[]
   image       Image?  @relation(fields: [imageId], references: [id])
   imageId     Int?    @unique
   studentCard String? @unique
+
+  // The bio shown on the user's profile, edited in place there by the user or a user admin.
+  bioParagraph   CmsParagraph @relation(fields: [bioParagraphId], references: [id])
+  bioParagraphId Int          @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt // is also updated manually
@@ -57,13 +64,16 @@ model User {
   omegaQuote OmegaQuote[]
 
   // Which ledger account (i.e. internal bank account) and
-  // stripe customer this user is associated with.
-  ledgerAccount  LedgerAccount?
-  stripeCustomer StripeCustomer?
+  // stripe customer this user is associated with. Every user has exactly one ledger account.
+  ledgerAccountId Int             @unique
+  ledgerAccount   LedgerAccount   @relation(fields: [ledgerAccountId], references: [id], onUpdate: Cascade)
+  stripeCustomer  StripeCustomer?
 
   // What notifications the user whiches to received and
   // which mailing lists the user is on.
   notificationSubscriptions NotificationSubscription[]
+  notificationsTargeted     Notification[]          @relation(name: "NotificationTargets")
+  weeklyMailOutboxEntries   WeeklyMailOutboxEntry[]
   mailingLists              MailingListUser[]
 
   // Which admissions (a.k.a. "opptak") the user has taken
@@ -114,13 +124,12 @@ model Credentials {
 
 // Associates each user with their Feide account.
 model FeideAccount {
-  id          String   @id
-  accessToken String   @db.Text
-  email       String   @unique
-  expiresAt   DateTime
-  issuedAt    DateTime
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId      Int      @unique
+  id        String   @id
+  email     String   @unique
+  expiresAt DateTime
+  issuedAt  DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId    Int      @unique
 }
 
 // Associates each user with their Stripe customer id.

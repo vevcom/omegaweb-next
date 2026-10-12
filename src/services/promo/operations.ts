@@ -8,7 +8,7 @@ import { z } from 'zod'
 
 export const promoOperations = {
     create: defineOperation({
-        authorizer: () => promoAuth.create.dynamicFields({}),
+        authorizer: () => promoAuth.create,
         dataSchema: promoSchema.create,
         opensTransaction: true,
         operation: ({ prisma, data }) =>
@@ -32,7 +32,7 @@ export const promoOperations = {
             })
     }),
     update: defineOperation({
-        authorizer: () => promoAuth.update.dynamicFields({}),
+        authorizer: () => promoAuth.update,
         paramsSchema: z.object({
             promoId: z.number()
         }),
@@ -52,7 +52,7 @@ export const promoOperations = {
             })
     }),
     updateImage: defineOperation({
-        authorizer: () => promoAuth.updateImage.dynamicFields({}),
+        authorizer: () => promoAuth.updateImage,
         paramsSchema: z.object({
             promoId: z.number()
         }),
@@ -86,7 +86,7 @@ export const promoOperations = {
         }
     }),
     read: defineOperation({
-        authorizer: () => promoAuth.read.dynamicFields({}),
+        authorizer: () => promoAuth.read,
         paramsSchema: z.object({
             promoId: z.number(),
         }),
@@ -99,7 +99,7 @@ export const promoOperations = {
             })
     }),
     readAll: defineOperation({
-        authorizer: () => promoAuth.readAll.dynamicFields({}),
+        authorizer: () => promoAuth.readAll,
         operation: async ({ prisma }) =>
             await prisma.promo.findMany({
                 include: promoWithImageIncluder,
@@ -109,7 +109,7 @@ export const promoOperations = {
     // The banner currently live on the frontpage: whichever promo's period covers now, preferring
     // the most recently created one if several periods overlap.
     readActive: defineOperation({
-        authorizer: () => promoAuth.readActive.dynamicFields({}),
+        authorizer: () => promoAuth.readActive,
         operation: async ({ prisma }) => {
             const now = new Date()
             return await prisma.promo.findFirst({
@@ -123,7 +123,7 @@ export const promoOperations = {
         }
     }),
     destroy: defineOperation({
-        authorizer: () => promoAuth.destroy.dynamicFields({}),
+        authorizer: () => promoAuth.destroy,
         paramsSchema: z.object({
             promoId: z.number(),
         }),

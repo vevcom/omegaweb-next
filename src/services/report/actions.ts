@@ -2,9 +2,6 @@
 import { reportOperations } from './operations'
 import { makeAction } from '@/services/serverAction'
 
-export const readReportArticleAction = makeAction(
-    reportOperations.read
-)
 export const updateReportArticleAction = makeAction(
     reportOperations.update.update
 )

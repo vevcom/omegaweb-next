@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faShieldHeart } from '@fortawesome/free-solid-svg-icons'
 
 export default function ReportButton() {
-    const canRead = useAuthorizer({ authorizer: reportAuth.read.dynamicFields({}) }).authorized
+    const canRead = useAuthorizer({ authorizer: reportAuth.read }).authorized
 
     if (!canRead) return <></>
 

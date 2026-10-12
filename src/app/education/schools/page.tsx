@@ -1,33 +1,32 @@
 import styles from './page.module.scss'
-import { readExpandedSchoolsPageAction } from '@/services/education/schools/actions'
+import { schoolOperations } from '@/services/education/schools/operations'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { SchoolPagingProvider } from '@/contexts/paging/SchoolPaging'
 import SchoolList from '@/components/School/SchoolList'
-import { ServerSession } from '@/auth/session/ServerSession'
 import { schoolAuth } from '@/services/education/schools/auth'
 import { schoolListRenderer } from '@/components/School/SchoolListRenderer'
+import { serverPage } from '@/app/serverPage'
 import Link from 'next/link'
 import type { PageSizeSchool } from '@/contexts/paging/SchoolPaging'
 
-export default async function Schools() {
-    const session = await ServerSession.fromNextAuth()
-    const isSchoolAdmin = schoolAuth.create.dynamicFields({}).auth(session).authorized
+const pageSizeSchool: PageSizeSchool = 8
 
-    const pageSizeSchool: PageSizeSchool = 8
-    const res = await readExpandedSchoolsPageAction({
+const { page, generateMetadata } = serverPage({
+    operation: async () => schoolOperations.readExpandedPage({
         params: {
             paging: {
                 page: { pageSize: pageSizeSchool, page: 0, cursor: null },
                 details: undefined,
             },
         },
-    })
-    if (!res.success) throw new Error(res.error?.length ? res.error[0].message : 'Ukjent feil')
-    const serverRenderedData = res.data
-
-    return (
-        <PageWrapper title="Skoler" headerItem={
-            isSchoolAdmin ? (
+    }),
+    capabilities: () => ({
+        canAdministrateSchools: schoolAuth.create,
+    }),
+    metadata: () => ({ title: 'Skoler' }),
+    render: ({ data: serverRenderedData, capabilities }) => (
+        <PageWrapper headerItem={
+            capabilities.canAdministrateSchools.authorized ? (
                 <Link href="/admin/schools" className={styles.adminLink}>
                     Gå til administrasjon
                 </Link>
@@ -39,9 +38,12 @@ export default async function Schools() {
                 startPage={{ pageSize: pageSizeSchool, page: 1 }}
             >
                 <div className={styles.wrapper}>
-                    <SchoolList serverRendered={serverRenderedData.map(schoolListRenderer(session.toJsObject()))} />
+                    <SchoolList serverRendered={serverRenderedData.map(schoolListRenderer)} />
                 </div>
             </SchoolPagingProvider>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

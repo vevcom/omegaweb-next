@@ -1,8 +1,10 @@
-import { RequireUserIdOrPermission } from '@/auth/authorizer/RequireUserIdOrPermission'
+import { Require } from '@/auth/authorizer/Require'
+
+const userIdOrApplicationAdmin = Require.permission('APPLICATION_ADMIN').or().userId()
 
 export const applicationAuth = {
-    readForUser: RequireUserIdOrPermission.staticFields({ permission: 'APPLICATION_ADMIN' }),
-    create: RequireUserIdOrPermission.staticFields({ permission: 'APPLICATION_ADMIN' }),
-    update: RequireUserIdOrPermission.staticFields({ permission: 'APPLICATION_ADMIN' }),
-    destroy: RequireUserIdOrPermission.staticFields({ permission: 'APPLICATION_ADMIN' }),
-}
+    readForUser: userIdOrApplicationAdmin,
+    create: userIdOrApplicationAdmin,
+    update: userIdOrApplicationAdmin,
+    destroy: userIdOrApplicationAdmin,
+} as const

@@ -1,6 +1,4 @@
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import {
-    readNewStudentArticleAction,
     updateNewStudentArticleAction,
     updateNewStudentArticleAddSectionAction,
     updateNewStudentArticleCmsImageAction,
@@ -12,23 +10,23 @@ import {
     updateNewStudentArticleSectionsAddPartAction,
     updateNewStudentArticleSectionsRemovePartAction
 } from '@/services/newStudent/actions'
+import { newStudentOperations } from '@/services/newStudent/operations'
 import SpecialArticle from '@/cms/SpecialArticle/SpecialArticle'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { newStudentAuth } from '@/services/newStudent/auth'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { serverPage } from '@/app/serverPage'
 
-export default async function NewStudent() {
-    const article = unwrapActionReturn(await readNewStudentArticleAction())
-
-    const canEdit = newStudentAuth.update.dynamicFields({}).auth(
-        await ServerSession.fromNextAuth()
-    ).toJsObject()
-
-    return (
-        <PageWrapper title="Ny student">
+const { page, generateMetadata } = serverPage({
+    operation: async () => newStudentOperations.read({}),
+    capabilities: () => ({
+        canEdit: newStudentAuth.update,
+    }),
+    metadata: () => ({ title: 'Ny student' }),
+    render: ({ data: article, capabilities }) => (
+        <PageWrapper>
             <SpecialArticle
                 article={article}
-                canEdit={canEdit}
+                capabilities={capabilities}
                 actions={{
                     update: updateNewStudentArticleAction,
                     addSection: updateNewStudentArticleAddSectionAction,
@@ -45,5 +43,8 @@ export default async function NewStudent() {
                 }}
             />
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

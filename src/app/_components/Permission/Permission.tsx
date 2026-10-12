@@ -12,7 +12,7 @@ type PropTypes = {
 
 /**
  * Display a permission in a nice way by getting info from the permission config object.
- * @param permission - The permission to display ex. USERS_READ
+ * @param permission - The permission to display ex. USERS_USE
  * @param children - Displayed to the LEFT of the content
  * @param displayCategory - Display which category the permission is from (default true)
  * @returns

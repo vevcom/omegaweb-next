@@ -2,7 +2,7 @@
 import styles from './DateInput.module.scss'
 import { toLocalDate } from '@/lib/dates/toLocal'
 import { displayDefaultInputValue } from '@/lib/dates/displayDefaultInputValue'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { PropTypes as PropTypesInput } from './TextInput'
 import type { ChangeEvent } from 'react'
 
@@ -18,8 +18,11 @@ export default function DateInput({
     className,
     defaultValue,
     includeTime = false,
+    id,
     ...props
 }: Omit<PropTypes, 'type'>) {
+    const domId = useId()
+    const inputId = id ?? domId
     const defaultValueTransformedLocal = defaultValue instanceof Date
         ? displayDefaultInputValue(toLocalDate(defaultValue), includeTime)
         : defaultValue
@@ -38,12 +41,13 @@ export default function DateInput({
                 `${styles.DateInput} ${styles[color]} ${background === 'raised' ? styles.onRaised : ''} ${className}`
             }
         >
-            <label className={styles.label}>{label}</label>
+            <label htmlFor={inputId} className={styles.label}>{label}</label>
             <input
                 onChange={setUtc}
                 defaultValue={defaultValueTransformedLocal}
                 type={includeTime ? 'datetime-local' : 'date'}
                 {...props}
+                id={inputId}
                 name={`${props.name}Local`}
             />
             <input

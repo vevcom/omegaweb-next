@@ -1,9 +1,9 @@
+import '@pn-server-only'
 import { ledgerMovementAuth } from './auth'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { defineOperation } from '@/services/serviceOperation'
-import { andAuthorizers } from '@/auth/authorizer/andAuthorizers'
 import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
@@ -24,7 +24,7 @@ export const ledgerMovementOperations = {
      * @return The created transaction representing the deposit operation.
      */
     createDeposit: defineOperation({
-        authorizer: () => ledgerMovementAuth.createDeposit.dynamicFields({}),
+        authorizer: () => ledgerMovementAuth.createDeposit,
         opensTransaction: true,
         paramsSchema: z.object({
             ledgerAccountId: z.number(),
@@ -83,12 +83,9 @@ export const ledgerMovementOperations = {
      * @returns The created transaction representing the payout operation.
      */
     createPayout: defineOperation({
-        authorizer: async ({ params, prisma }) => andAuthorizers(
-            ledgerMovementAuth.createPayout.ledgerUse.dynamicFields({}),
-            ledgerMovementAuth.createPayout.accountAccess.dynamicFields({
-                accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.ledgerAccountId })],
-            }),
-        ),
+        authorizer: async ({ params, prisma }) => ledgerMovementAuth.createPayout.data({
+            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.ledgerAccountId })],
+        }),
         paramsSchema: z.object({
             ledgerAccountId: z.number(),
             funds: z.number().nonnegative().default(0),
@@ -130,4 +127,4 @@ export const ledgerMovementOperations = {
             return transaction
         })
     }),
-}
+} as const

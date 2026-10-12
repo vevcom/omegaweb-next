@@ -6,18 +6,19 @@ import OmegaIdReader from '@/components/OmegaId/reader/OmegaIdReader'
 import UserList from '@/components/User/UserList/UserList'
 import { createAdmissionTrialAction } from '@/services/admission/actions'
 import { configureAction } from '@/services/configureAction'
+import { userAuth } from '@/services/users/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import type { Admission } from '@/prisma-generated-pn-types'
 
 
 export default function RegisterAdmissiontrial({
     admission,
     omegaIdPublicKey,
-    canSearchUsers,
 }: {
     admission: Admission,
     omegaIdPublicKey: string,
-    canSearchUsers: boolean,
 }) {
+    const canSearchUsers = useAuthorizer({ authorizer: userAuth.readPage }).authorized
     return <div className={styles.registration}>
         <h4>Registrer med QR kode</h4>
         <OmegaIdReader

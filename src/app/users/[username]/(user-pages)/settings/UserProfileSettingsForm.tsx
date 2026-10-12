@@ -6,7 +6,6 @@ import Dropdown from '@/components/UI/Dropdown'
 import { configureAction } from '@/services/configureAction'
 import { updateUserProfileAction } from '@/services/users/actions'
 import { sexConfig, relationshipStatusConfig } from '@/services/users/constants'
-import Textarea from '@/components/UI/Textarea'
 import { RelationshipStatus, SEX } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
 
@@ -33,6 +32,7 @@ export default function UserProfileSettingsForm({ user, emailDomain } : PropType
             action={configureAction(updateUserProfileAction, { params: { username: user.username } })}
         >
             <p>Har du andre brukerinstillinger du ønsker å endre? Kontakt HS på hs@{emailDomain}</p>
+            <TextInput label="Mobilnummer" name="mobile" defaultValue={user.mobile ?? ''} />
             <TextInput label="Allergier / diett" name="allergies" defaultValue={user.allergies || ''} />
             <Dropdown
                 label="Kjønn"
@@ -40,7 +40,6 @@ export default function UserProfileSettingsForm({ user, emailDomain } : PropType
                 options={sexOptions}
                 defaultValue={user.sex ?? SEX.OTHER}
             />
-            <Textarea label="Bio" name="bio" defaultValue={user.bio} />
             <TextInput
                 label="Sivilstatus"
                 name="relationshipStatusText"

@@ -1,32 +1,35 @@
-
 import ChannelSettings from './ChannelSettings'
-import { readNotificationChannelsAction } from '@/services/notifications/actions'
-import { readMailAliasesAction } from '@/services/mail/alias/actions'
+import { notificationChannelOperations } from '@/services/notifications/channel/operations'
+import { aliasOperations } from '@/services/mail/alias/operations'
+import { serverPage } from '@/app/serverPage'
 import { notFound } from 'next/navigation'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        currentId: string
-    }>
-}
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ currentId: string }>) => {
+        const [channels, mailAliases] = await Promise.all([
+            notificationChannelOperations.readMany({}),
+            aliasOperations.readMany({}),
+        ])
 
-export default async function Channels({ params }: PropTypes) {
-    const [channels, mailAliases] = await Promise.all([
-        readNotificationChannelsAction(),
-        readMailAliasesAction(),
-    ])
+        const currentId = Number(params.currentId)
+        const selected = channels.find(channel => channel.id === currentId)
 
-    if (!channels.success || !mailAliases.success) {
-        // TODO: Handle error
-        notFound()
-    }
+        if (!selected) {
+            notFound()
+        }
 
-    const currentId = Number((await params).currentId)
-    const selected = channels.data.find(channel => channel.id === currentId)
+        return { channels, mailAliases, selected }
+    },
+    metadata: (data) => ({ title: data.selected.name }),
+    render: ({ data }) => (
+        <ChannelSettings
+            channels={data.channels}
+            currentChannel={data.selected}
+            mailAliases={data.mailAliases}
+        />
+    ),
+})
 
-    if (!selected) {
-        notFound()
-    }
-
-    return <ChannelSettings channels={channels.data} currentChannel={selected} mailAliases={mailAliases.data} />
-}
+export default page
+export { generateMetadata }

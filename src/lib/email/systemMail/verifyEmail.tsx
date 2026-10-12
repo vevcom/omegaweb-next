@@ -1,13 +1,13 @@
 import '@pn-server-only'
 import { emailValidationExpiration } from './constants'
 import { VerifyEmailTemplate } from '@/lib/email/templates/verifyEmail'
-import { sendSystemMail } from '@/lib/email/send'
+import { sendMailOperations } from '@/services/notifications/send-mail/operations'
 import { generateJWT } from '@/jwt/jwt'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userSchemas } from '@/services/users/schemas'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
-// TODO: Fix this with new validation
-export async function sendVerifyEmail(user: UserFiltered, email: string) {
+export async function sendVerifyEmail(user: UserBasic, email: string) {
     const parse = userSchemas.verifyEmail.parse({ email })
 
     const jwt = generateJWT('verifyemail', {
@@ -15,7 +15,13 @@ export async function sendVerifyEmail(user: UserFiltered, email: string) {
         sub: user.id,
     }, emailValidationExpiration)
 
-    const link = `${process.env.WEBSITE_URL}/verify-email?token=${jwt}`
+    const link = `${process.env.WEBSITE_URL}/verify-email?${QueryParams.token.encodeUrl(jwt)}`
 
-    await sendSystemMail(parse.email, 'Bekreft e-post', <VerifyEmailTemplate user={user} link={link} />)
+    await sendMailOperations.internal.sendSystemMail.internalCall({
+        data: {
+            to: parse.email,
+            subject: 'Bekreft e-post',
+            body: <VerifyEmailTemplate user={user} link={link} />,
+        },
+    })
 }

@@ -2,7 +2,7 @@ import ConfirmLinkOwUserForm from './ConfirmLinkOwUserForm'
 import LinkOwUserForm from './LinkOwUserForm'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { ServerSession } from '@/auth/session/ServerSession'
-import { RequireUser } from '@/auth/authorizer/RequireUser'
+import { Require } from '@/auth/authorizer/Require'
 import { verifyLinkFeideAccountTokenAction } from '@/services/auth/actions'
 import { notFound } from 'next/navigation'
 import type { SearchParamsServerSide } from '@/lib/queryParams/types'
@@ -28,9 +28,7 @@ export default async function LinkOwUser({ searchParams }: PropTypes) {
         return <ConfirmLinkOwUserForm token={token} linkRequest={linkRequest.data} />
     }
 
-    const { authorized } = RequireUser.staticFields({}).dynamicFields({}).auth(
-        await ServerSession.fromNextAuth()
-    )
+    const { authorized } = Require.user().auth(await ServerSession.fromNextAuth())
 
     if (!authorized) notFound()
 

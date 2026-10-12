@@ -23,10 +23,14 @@ export default function CompanyChooser({ className }: PropTypes) {
     }
 
     return (
-        <div className={`${styles.CompanyChooser} ${className}`}>
-            <TextInput className={styles.filter} label="Søk Navn" name="name" onChange={handleNameFilter} />
-            <Link href="/career/companies">Administrer bedrifter</Link>
-            <CompanyList disableEditing serverRenderedData={[]} />
+        <div className={`${styles.CompanyChooser} ${className ?? ''}`}>
+            <div className={styles.header}>
+                <TextInput className={styles.filter} label="Søk Navn" name="name" onChange={handleNameFilter} />
+                <Link href="/career/companies">Administrer bedrifter</Link>
+            </div>
+            <div className={styles.list}>
+                <CompanyList disableEditing serverRenderedData={[]} />
+            </div>
         </div>
     )
 }

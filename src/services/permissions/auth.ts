@@ -1,12 +1,12 @@
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 
 export const permissionsAuth = {
-    readGroupPermissions: RequirePermission.staticFields({ permission: 'PERMISSION_GROUP_READ' }),
-    readPermissionMatrix: RequirePermission.staticFields({ permission: 'PERMISSION_GROUP_READ' }),
-    updateGroupPermission: RequirePermission.staticFields({ permission: 'PERMISSION_GROUP_ADMIN' }),
+    readGroupPermissions: Require.permission('PERMISSION_USE'),
+    readPermissionMatrix: Require.permission('PERMISSION_USE'),
+    readPermissionsOfUser: Require.permission('PERMISSION_USE').or().userId(),
+    updateGroupPermission: Require.permission('PERMISSION_ADMIN'),
 
-    readDefaultPermissions: RequireNothing.staticFields({}),
-    updateDefaultPermissions: RequirePermission.staticFields({ permission: 'PERMISSION_DEFAULT_ADMIN' }),
-}
+    readDefaultPermissions: Require.nothing(),
+    updateDefaultPermissions: Require.permission('PERMISSION_ADMIN'),
+} as const

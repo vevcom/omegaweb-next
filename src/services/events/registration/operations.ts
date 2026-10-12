@@ -1,23 +1,21 @@
 import '@pn-server-only'
 import {
-    eventRegistrationIncluderDetailed,
+    eventRegistrationSelectionDetailed,
     eventRegistrationQueueOrder,
     eventRegistrationSelection,
     REGISTRATION_READER_TYPE,
 } from './constants'
 import { eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
+import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'
 import { dotOperations } from '@/services/dots/operations'
 import { displayDate } from '@/lib/dates/displayDate'
 import { Smorekopp } from '@/services/error'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
-import { notificationOperations } from '@/services/notifications/operations'
-import { sendSystemMail } from '@/lib/email/send'
-import { userFilterSelection } from '@/services/users/constants'
 import { eventOperations } from '@/services/events/operations'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
@@ -140,7 +138,7 @@ export const eventRegistrationOperations = {
             userId: z.number().min(0),
             eventId: z.number().min(0),
         }),
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.create.dynamicFields({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.create({
             userId: params.userId,
             doubleLevelMatrix: await eventVisibility(prisma, params.eventId),
         }),
@@ -176,8 +174,8 @@ export const eventRegistrationOperations = {
     }),
 
     createGuest: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.createGuest.dynamicFields({
-            doubleLevelMatrix: await eventVisibility(prisma, params.eventId),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.createGuest.data({
+            visibility: await eventVisibility(prisma, params.eventId)
         }),
         paramsSchema: z.object({
             eventId: z.number(),
@@ -212,9 +210,7 @@ export const eventRegistrationOperations = {
     }),
 
     readDotPunishmentOfUser: readDotPunishmentOfUser.implement({
-        authorizer: ({ params }) => eventRegistrationAuth.readDotPunishmentOfUser.dynamicFields({
-            userId: params.userId,
-        }),
+        authorizer: ({ params }) => eventRegistrationAuth.readDotPunishmentOfUser.data({ userId: params.userId }),
         ownershipCheck: () => true,
     }),
 
@@ -224,7 +220,7 @@ export const eventRegistrationOperations = {
      * they stand.
      */
     readOfUser: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readOfUser.dynamicFields({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readOfUser({
             userId: params.userId,
             doubleLevelMatrix: await eventVisibility(prisma, params.eventId),
         }),
@@ -269,8 +265,8 @@ export const eventRegistrationOperations = {
     }),
 
     readPage: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPage.dynamicFields({
-            doubleLevelMatrix: await eventVisibility(prisma, params.paging.details.eventId),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPage.data({
+            visibility: await eventVisibility(prisma, params.paging.details.eventId)
         }),
         paramsSchema: eventRegistrationSchemas.readPage,
         operation: async ({ prisma, params }): Promise<EventRegistrationExpanded[]> => {
@@ -282,7 +278,7 @@ export const eventRegistrationOperations = {
             })
 
             const registrations = await prisma.eventRegistration.findMany({
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
                 where: segment,
                 orderBy: eventRegistrationQueueOrder,
                 select: eventRegistrationSelection,
@@ -296,8 +292,8 @@ export const eventRegistrationOperations = {
     }),
 
     readPageDetailed: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPageDetailed.dynamicFields({
-            doubleLevelMatrix: await eventVisibility(prisma, params.paging.details.eventId),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPageDetailed.data({
+            visibility: await eventVisibility(prisma, params.paging.details.eventId)
         }),
         paramsSchema: eventRegistrationSchemas.readPageDetailed,
         operation: async ({ prisma, params }) => {
@@ -305,16 +301,16 @@ export const eventRegistrationOperations = {
             if (!segment) return []
 
             return await prisma.eventRegistration.findMany({
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
                 where: segment,
                 orderBy: eventRegistrationQueueOrder,
-                include: eventRegistrationIncluderDetailed,
+                select: eventRegistrationSelectionDetailed,
             })
         }
     }),
 
     updateNotes: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.updateNotes.dynamicFields(
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.updateNotes(
             await registrationOwnerAndEventVisibility(prisma, params.registrationId)
         ),
         paramsSchema: z.object({
@@ -347,7 +343,7 @@ export const eventRegistrationOperations = {
     }),
 
     destroy: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.destroy.dynamicFields(
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.destroy(
             await registrationOwnerAndEventVisibility(prisma, params.registrationId)
         ),
         paramsSchema: z.object({
@@ -412,38 +408,13 @@ export const eventRegistrationOperations = {
                 skip: registration.event.places - 1,
                 orderBy: eventRegistrationQueueOrder,
                 include: {
-                    user: {
-                        select: userFilterSelection,
-                    },
                     contact: true,
                 }
             })
 
             if (!nextInLine) return
 
-            const title = 'Opprykk fra venteliste ved Omegas nettsider'
-            const message = `Gratulerer! Du har rykket opp fra venteliste på arrangementet ${registration.event.name}.`
-
-            if (nextInLine.user) {
-                await notificationOperations.createSpecial.internalCall({
-                    params: {
-                        special: 'EVENT_WAITINGLIST_PROMOTION',
-                    },
-                    data: {
-                        title,
-                        message,
-                        userIdList: [nextInLine.user.id],
-                    },
-                })
-            }
-
-            if (nextInLine.contact && nextInLine.contact.email) {
-                await sendSystemMail(
-                    nextInLine.contact.email,
-                    title,
-                    message
-                )
-            }
+            await notifyPromotedFromWaitingList(registration.event.name, [nextInLine])
         }
     }),
 
@@ -462,7 +433,7 @@ export const eventRegistrationOperations = {
             manualFees: z.coerce.number().nonnegative().default(0),
             description: z.string().optional(),
         }),
-        authorizer: ({ params }) => eventRegistrationAuth.createPayment.dynamicFields({ userId: params.userId }),
+        authorizer: ({ params }) => eventRegistrationAuth.createPayment.data({ userId: params.userId }),
         opensTransaction: true,
         operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
             const registration = await prisma.eventRegistration.findUnique({
@@ -568,9 +539,9 @@ export const eventRegistrationOperations = {
 
                 // Outer authorizer (eventRegistrationAuth.createPayment) already covers
                 // whether this caller may pay for params.userId's registration, which
-                // readOrCreate's own ownership check would otherwise re-reject an admin for.
+                // read's own ownership check would otherwise re-reject an admin for.
                 const payerAccount = params.amountFromBalance > 0
-                    ? await ledgerAccountOperations.readOrCreate({
+                    ? await ledgerAccountOperations.read({
                         params: { userId: params.userId },
                         bypassAuth: true,
                         prisma: tx,

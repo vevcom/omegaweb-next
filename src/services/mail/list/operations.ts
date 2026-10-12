@@ -7,20 +7,20 @@ import type { MailingList } from '@/prisma-generated-pn-types'
 export const mailingListOperations = {
     create: defineOperation({
         dataSchema: mailingListSchemas.create,
-        authorizer: () => mailingListAuth.create.dynamicFields({}),
+        authorizer: () => mailingListAuth.create,
         operation: async ({ prisma, data }): Promise<MailingList> =>
             prisma.mailingList.create({ data }),
     }),
 
     readMany: defineOperation({
-        authorizer: () => mailingListAuth.readMany.dynamicFields({}),
+        authorizer: () => mailingListAuth.readMany,
         operation: async ({ prisma }): Promise<MailingList[]> =>
             prisma.mailingList.findMany(),
     }),
 
     update: defineOperation({
         dataSchema: mailingListSchemas.update,
-        authorizer: () => mailingListAuth.update.dynamicFields({}),
+        authorizer: () => mailingListAuth.update,
         operation: async ({ prisma, data }): Promise<MailingList> =>
             prisma.mailingList.update({
                 where: { id: data.id },
@@ -33,7 +33,7 @@ export const mailingListOperations = {
 
     destroy: defineOperation({
         paramsSchema: mailingListSchemas.destroy,
-        authorizer: () => mailingListAuth.destroy.dynamicFields({}),
+        authorizer: () => mailingListAuth.destroy,
         operation: async ({ prisma, params }): Promise<MailingList> =>
             prisma.mailingList.delete({
                 where: { id: params.id },

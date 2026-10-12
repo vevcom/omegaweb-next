@@ -8,7 +8,6 @@ import Form from '@/components/Form/Form'
 import { SelectString } from '@/components/UI/Select'
 import { jobAdOptions } from '@/services/career/jobAds/constants'
 import DateInput from '@/components/UI/DateInput'
-import { v4 as uuid } from 'uuid'
 
 export default function CreateJobAdForm() {
     return (
@@ -19,11 +18,11 @@ export default function CreateJobAdForm() {
                 action={createJobAdAction}
                 refreshOnSuccess
             >
-                <TextInput label="Tittel" name="articleName" key={uuid()}/>
-                <TextInput label="Beskrivelse" name="description" key={uuid()}/>
-                <TextInput label="Sted" name="location" key={uuid()}/>
+                <TextInput label="Tittel" name="articleName"/>
+                <TextInput label="Beskrivelse" name="description"/>
+                <TextInput label="Sted" name="location"/>
                 <SelectedCompany />
-                <SelectString options={jobAdOptions} label="Type" name="type" key={uuid()}/>
+                <SelectString options={jobAdOptions} label="Type" name="type"/>
                 <DateInput includeTime label="Søknadsfrist" name="applicationDeadline"/>
             </Form>
             <CompanyChooser className={styles.companyList} />

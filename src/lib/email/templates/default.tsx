@@ -1,17 +1,17 @@
 import '@pn-server-only'
 
-import { Html, Markdown } from '@react-email/components'
-import type { UserFiltered } from '@/services/users/types'
+import { Html } from '@react-email/components'
+import type { UserBasic } from '@/services/users/types'
 
 export function DefaultEmailTemplate({
-    text,
+    html,
 }: {
-    user: UserFiltered,
-    text: string,
+    user: UserBasic,
+    html: string,
 }) {
     return (
         <Html>
-            <Markdown>{text}</Markdown>
+            <div dangerouslySetInnerHTML={{ __html: html }} />
 
             <p style={{ color: '#666' }}>
                 Du får denne e-posten siden du står på mailinglistene til Sct. Omega broderskab.

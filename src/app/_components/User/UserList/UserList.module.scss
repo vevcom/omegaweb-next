@@ -42,12 +42,22 @@
         }
 
         .sortable {
-            cursor: pointer;
+            padding: 0;
             user-select: none;
             white-space: nowrap;
 
             &:hover {
                 color: ohma.$colors-accent-blue;
+            }
+
+            > button {
+                width: 100%;
+                height: auto;
+                display: block;
+                padding: calc(1.5 * #{ohma.$gap}) calc(2 * #{ohma.$gap});
+                font: inherit;
+                color: inherit;
+                text-align: inherit;
             }
         }
 

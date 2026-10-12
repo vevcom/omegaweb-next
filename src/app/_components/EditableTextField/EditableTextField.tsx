@@ -2,7 +2,7 @@
 import styles from './EditableTextField.module.scss'
 import Form from '@/components/Form/Form'
 import useEditMode from '@/hooks/useEditMode'
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
+import { Require } from '@/auth/authorizer/Require'
 import useKeyPress from '@/hooks/useKeyPress'
 import React, { useEffect, useState, useRef, useEffectEvent } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -10,9 +10,8 @@ import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import type { PropTypes as FormPropTypes } from '@/components/Form/Form'
 
 // Hoisted so useEditMode's authorizer dependency stays referentially stable across renders -
-// RequireNothing.staticFields({}).dynamicFields({}) takes no dynamic args, so there's nothing
-// to recompute per render/instance.
-const requireNothingAuthorizer = RequireNothing.staticFields({}).dynamicFields({})
+// Require.nothing() takes no dynamic args, so there's nothing to recompute per render/instance.
+const requireNothingAuthorizer = Require.nothing()
 
 type PropTypes<ReturnType> = {
     props?: Omit<React.HTMLAttributes<HTMLElement>, 'children' | 'contentEditable'>

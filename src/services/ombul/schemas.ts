@@ -14,7 +14,11 @@ export const baseSchema = z.object({
         val === undefined || val <= 30, 'max 30'
     ),
     name: z.string().min(2, 'Minimum lengde er 2').max(25, 'Maximum lengde er 25').trim(),
-    description: z.string().min(2, 'Minimum lengde er 2').max(100, 'Maximum lengde er 100').trim()
+    description: z.string()
+        .trim()
+        .max(100, 'Maximum lengde er 100')
+        .refine(description => description.length !== 1, 'Minimum lengde er 2')
+        .transform(description => description || null),
 })
 
 export const ombulSchemas = {
@@ -31,7 +35,7 @@ export const ombulSchemas = {
         issueNumber: true,
         name: true,
         description: true
-    }),
+    }).partial(),
     updateFile: baseSchema.pick({
         ombulFile: true
     }),

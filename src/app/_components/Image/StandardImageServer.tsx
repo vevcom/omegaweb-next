@@ -1,6 +1,7 @@
 import styles from './StandardImage.module.scss'
 import Image, { SrcImage } from './Image'
-import { readStandardImageAction } from '@/services/images/standard/actions'
+import { standardImageCollectionOperations } from '@/services/images/standard/operations'
+import { withFallback, withPageSession } from '@/app/serverPage'
 import type { PropTypes as ImagePropTypes } from './Image'
 import type { StandardImage as StandardImageT } from '@/prisma-generated-pn-types'
 import type React from 'react'
@@ -22,12 +23,15 @@ const fallbackImage = '/images/fallback.jpg'
  * @returns
  */
 export default async function StandardImageServer({ standardImage, children, className = '', ...props }: PropTypes) {
-    const imageRes = await readStandardImageAction({ params: { standardImage } })
+    const image = await withPageSession(() => withFallback(
+        standardImageCollectionOperations.readStandardImage({ params: { standardImage } }),
+        null
+    ))
 
     return (
         <div className={`${styles.StandardImage} ${className}`}>
-            {imageRes.success ? (
-                <Image image={imageRes.data} {...props} />
+            {image ? (
+                <Image image={image} {...props} />
             ) : (
                 <SrcImage src={fallbackImage} {...props} />
             )}

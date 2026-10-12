@@ -3,10 +3,10 @@ import styles from './page.module.scss'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLink } from '@fortawesome/free-solid-svg-icons'
-import type { readCommitteeParticipatingPeriodAction } from '@/services/applications/committeeParticipation/actions'
+import type { readAllCommitteeParticipationAction } from '@/services/applications/committeeParticipation/actions'
 
 export type CommitteeParticipationPeriodType =
-    Pick<Awaited<ReturnType<typeof readCommitteeParticipatingPeriodAction>> & { success: true }, 'data'>['data'][number]
+    Pick<Awaited<ReturnType<typeof readAllCommitteeParticipationAction>> & { success: true }, 'data'>['data'][number]
 
 
 export function PeriodSection({ period, shortName }: { period: CommitteeParticipationPeriodType, shortName: string }) {

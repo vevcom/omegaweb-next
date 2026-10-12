@@ -1,0 +1,32 @@
+@use "@/styles/ohma";
+
+// The graph covers the whole screen behind the countdown, tilted back so it lies a little flat.
+.GitGraphPlayer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    perspective: 1000px;
+    perspective-origin: 50% 30%;
+    // Fades into the distance at the top.
+    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 25%) 0%, black 40%);
+}
+
+.canvas {
+    position: absolute;
+    bottom: 0;
+    left: -30%;
+    display: block;
+    // Oversized so the tilted plane still reaches the top and sides of the screen.
+    width: 160%;
+    height: 200%;
+    transform: rotateX(32deg);
+    transform-origin: 50% 100%;
+}
+
+.repository {
+    position: absolute;
+    right: ohma.$gap;
+    bottom: ohma.$gap;
+    font-size: ohma.$fonts-s;
+    color: #808080;
+}

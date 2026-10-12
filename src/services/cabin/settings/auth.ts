@@ -1,6 +1,6 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const cabinSettingsAuth = {
-    read: RequirePermission.staticFields({ permission: 'CABIN_ADMIN' }),
-    update: RequirePermission.staticFields({ permission: 'CABIN_ADMIN' }),
+    read: Require.permission('CABIN_ADMIN'),
+    update: Require.permission('CABIN_ADMIN'),
 } as const

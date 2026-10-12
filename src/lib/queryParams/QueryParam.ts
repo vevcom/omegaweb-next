@@ -37,6 +37,27 @@ export class StringQueryParam extends QueryParam<string> {
     }
 }
 
+/**
+ * A path on this site to send the user on to, like a callbackUrl. Anything else decodes to null -
+ * a full URL, a protocol-relative one (`//evil.example`) or one a browser would read as such - so
+ * a link cannot be crafted to make the site redirect its visitor somewhere else.
+ */
+export class LocalPathQueryParam extends StringQueryParam {
+    decodeValue(value: string | string[] | undefined): string | null {
+        const path = super.decodeValue(value)
+        if (path === null || !path.startsWith('/')) return null
+
+        // Resolved against a stand-in origin the way a browser would resolve it, which also reads
+        // `/\` and `/<tab>/` as `//`. A path that stays on the site keeps that origin.
+        const origin = 'http://local.invalid'
+        try {
+            return new URL(path, origin).origin === origin ? path : null
+        } catch {
+            return null
+        }
+    }
+}
+
 export class StringArrayQueryParam extends QueryParam<string[]> {
     encode(value: string[]): string {
         return value.join(',')

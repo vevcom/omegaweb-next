@@ -1,14 +1,13 @@
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
-export const promoImagesImagePanelAuth = RequirePermission.staticFields({ permission: 'FRONTPAGE_ADMIN' })
+export const promoImagesImagePanelAuth = Require.permission('FRONTPAGE_ADMIN')
 
 export const promoAuth = {
-    create: RequirePermission.staticFields({ permission: 'FRONTPAGE_ADMIN' }),
-    update: RequirePermission.staticFields({ permission: 'FRONTPAGE_ADMIN' }),
-    destroy: RequirePermission.staticFields({ permission: 'FRONTPAGE_ADMIN' }),
-    read: RequirePermission.staticFields({ permission: 'FRONTPAGE_ADMIN' }),
-    readAll: RequirePermission.staticFields({ permission: 'FRONTPAGE_ADMIN' }),
-    readActive: RequireNothing.staticFields({}),
-    updateImage: RequirePermission.staticFields({ permission: 'FRONTPAGE_ADMIN' }),
+    create: Require.permission('FRONTPAGE_ADMIN'),
+    update: Require.permission('FRONTPAGE_ADMIN'),
+    destroy: Require.permission('FRONTPAGE_ADMIN'),
+    read: Require.permission('FRONTPAGE_ADMIN'),
+    readAll: Require.permission('FRONTPAGE_ADMIN'),
+    readActive: Require.nothing(),
+    updateImage: Require.permission('FRONTPAGE_ADMIN'),
 } as const

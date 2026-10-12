@@ -1,8 +1,8 @@
-import { ServerSession } from '@/auth/session/ServerSession'
-import { readUserProfileAction } from '@/services/users/actions'
+import { userOperations } from '@/services/users/operations'
 import { userNavDef } from '@/app/users/[username]/userNavDef'
 import { notFound, redirect } from 'next/navigation'
-import type { AuthorizerDynamicFieldsBound } from '@/auth/authorizer/Authorizer'
+import type { ServerPageSession } from '@/app/serverPage'
+import type { Authorizer } from '@/auth/authorizer/Authorizer'
 
 type Params = {
     username: string
@@ -10,6 +10,7 @@ type Params = {
 
 /**
  * Wrapper used on all of a user's pages to auth the route and get the profile it is about.
+ * It is meant to be called from the page's serverPage operation, which passes the session along.
  *
  * The page is guarded with the authorizers its nav item declares, and on the same terms: passing
  * any one of them is enough to open it, because each stands for something the page lets you do.
@@ -22,18 +23,16 @@ type Params = {
  * @param params - The username of the user whose page it is. If 'me' is passed, the current user's
  * own page is redirected to.
  * @param path - The page's path, as `userNavDef` spells it.
- * @returns The profile being seen and the session of the current user.
+ * @param session - The session of the request, as the serverPage operation receives it.
+ * @returns The profile being seen.
 */
-export async function getProfileForUserPage({ username }: Params, path: string) {
-    const session = await ServerSession.fromNextAuth()
+export async function getProfileForUserPage({ username }: Params, path: string, session: ServerPageSession) {
     if (username === 'me') {
         if (!session.user) return notFound()
         redirect(`/users/${session.user.username}/${path}`) //This throws.
     }
 
-    const profileRes = await readUserProfileAction({ params: { username } })
-    if (!profileRes.success) return notFound()
-    const profile = profileRes.data
+    const profile = await userOperations.readProfile({ params: { username } })
 
     const navItem = userNavDef.find(item => item.path === path)
     if (!navItem) {
@@ -41,12 +40,11 @@ export async function getProfileForUserPage({ username }: Params, path: string) 
     }
 
     const authorizers = navItem.authorizers({ username, userId: profile.user.id })
-    const passes = (authorizer: AuthorizerDynamicFieldsBound) => authorizer.auth(session).authorized
+    const passes = (authorizer: Authorizer) => authorizer.auth(session).authorized
 
     if (!authorizers.some(passes)) {
-        // Any one of them would have done, so the first is as good as another to be turned away by.
-        authorizers[0].auth(session).redirectOnUnauthorized({ returnUrl: `/users/${username}/${path}` })
+        authorizers[0].auth(session).requireAuthorized()
     }
 
-    return { profile, session }
+    return { profile }
 }

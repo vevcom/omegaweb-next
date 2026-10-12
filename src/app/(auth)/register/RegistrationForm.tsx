@@ -1,6 +1,6 @@
 'use client'
 import { configureAction } from '@/services/configureAction'
-import { registerUser } from '@/services/users/actions'
+import { registerUserAction } from '@/services/users/actions'
 import Form from '@/components/Form/Form'
 import Checkbox from '@/components/UI/Checkbox'
 import { SelectString } from '@/components/UI/Select'
@@ -8,17 +8,15 @@ import TextInput from '@/components/UI/TextInput'
 import { sexConfig } from '@/services/users/constants'
 import { SEX, type User } from '@/prisma-generated-pn-types'
 import { signIn } from 'next-auth/react'
-import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 
 export default function RegistrationForm({
     userData,
+    callbackUrl,
 }: {
     userData: Pick<User, 'id' | 'username' | 'mobile' | 'allergies' | 'sex'>,
+    callbackUrl: string,
 }) {
-    const searchParams = useSearchParams()
-    const callbackUrl = searchParams.get('callbackUrl') || '/users/me'
-
     const [lastPassword, setLastPassword] = useState('')
     const [sexValue, setSexValue] = useState<SEX | undefined>(userData.sex ?? undefined)
 
@@ -30,7 +28,7 @@ export default function RegistrationForm({
     return <Form
         title="Ekstra brukerinformasjon"
         submitText="Fullfør registrering"
-        action={configureAction(registerUser, { params: { id: userData.id } })}
+        action={configureAction(registerUserAction, { params: { id: userData.id } })}
         successCallback={() => signIn('credentials', {
             username: userData.username,
             password: lastPassword,

@@ -3,7 +3,8 @@ import styles from './ColorInput.module.scss'
 import { useId, useState } from 'react'
 import type { InputHTMLAttributes, ChangeEvent } from 'react'
 
-export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
+export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name'> & {
+    name: string,
     defaultValueRGB?: {
         red: number,
         green: number,

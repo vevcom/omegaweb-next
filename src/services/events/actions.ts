@@ -7,8 +7,6 @@ export const createEventAction = makeAction(eventOperations.create)
 
 export const destroyEventAction = makeAction(eventOperations.destroy)
 
-export const readCurrentEventsAction = makeAction(eventOperations.readManyCurrent)
-export const readEventAction = makeAction(eventOperations.read)
 export const readArchivedEventsPageAction = makeAction(eventOperations.readManyArchivedPage)
 
 export const updateEventAction = makeAction(eventOperations.update)
@@ -16,7 +14,6 @@ export const setEventPublishedAction = makeAction(eventOperations.setPublished)
 export const updateEventParagraphContentAction = makeAction(eventOperations.updateParagraphContent)
 export const updateEventCmsCoverImageAction = makeAction(eventOperations.updateCmsCoverImage)
 
-export const readEventDoubleLevelVisibilityAction = makeAction(eventOperations.visibility.readDoubleLevelMatrix)
 export const updateEventRegularLevelVisibilityAction = makeAction(eventOperations.visibility.updateRegularLevel)
 export const updateEventAdminLevelVisibilityAction = makeAction(eventOperations.visibility.updateAdminLevel)
 

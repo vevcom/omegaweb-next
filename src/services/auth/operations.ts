@@ -1,14 +1,16 @@
+import '@pn-server-only'
 import { authAuth } from './auth'
 import { authSchemas } from './schemas'
 import { moveFeideAccountToUser } from './feideAccounts/move'
-import { userFilterSelection } from '@/services/users/constants'
+import { userBasicSelection } from '@/services/users/constants'
 import { userSchemas } from '@/services/users/schemas'
 import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
 import { sendLinkFeideAccountMail } from '@/lib/email/systemMail/linkFeideAccount'
+import { sendEmailChangedMail } from '@/lib/email/systemMail/emailChanged'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { userOperations } from '@/services/users/operations'
-import { readJWTPayload } from '@/lib/jwt/jwtReadUnsecure'
+import { verifyJWT } from '@/lib/jwt/jwt'
 import logger from '@/lib/logger'
 import { z } from 'zod'
 
@@ -20,15 +22,12 @@ const linkFeideAccountClaimsSchema = z.object({
     feideEmail: z.string(),
 }).transform(({ sub, ...claims }) => ({ targetUserId: sub, ...claims }))
 
-/**
- * Reads the claims of a link Feide account token. Must only be called after the
- * token has been verified, which the authorizers of the operations using it do.
- */
+/** Verifies and reads the claims of a link Feide account token. */
 function readLinkFeideAccountClaims(token: string) {
-    const claims = linkFeideAccountClaimsSchema.safeParse(readJWTPayload(token))
+    const claims = linkFeideAccountClaimsSchema.safeParse(verifyJWT(token, 'linkfeideaccount'))
 
     if (!claims.success) {
-        throw new ServerError('JWT INVALID', 'The JWT does not contain the mandatory fields')
+        throw new ServiceError('JWT INVALID', 'The JWT does not contain the mandatory fields')
     }
 
     return claims.data
@@ -39,13 +38,12 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string(),
         }),
-        authorizer: ({ params }) => authAuth.verifyEmail.dynamicFields(params),
+        authorizer: () => authAuth.verifyEmail,
         operation: async ({ prisma, params }) => {
-            // INFO: Safe to parse unsafe since the authorizer has verified the token.
-            const payload = readJWTPayload(params.token)
+            const payload = verifyJWT(params.token, 'verifyemail')
 
             if (!payload.sub || !payload.email || !payload.iat) {
-                throw new ServerError('JWT INVALID', 'The JWT does not contain the mandatory fields')
+                throw new ServiceError('JWT INVALID', 'The JWT does not contain the mandatory fields')
             }
 
             const userId = Number(payload.sub)
@@ -61,10 +59,10 @@ export const authOperations = {
             })
 
             if (iat < user.updatedAt) {
-                throw new ServerError('JWT INVALID', 'The user has changed since the token was generated.')
+                throw new ServiceError('JWT INVALID', 'The user has changed since the token was generated.')
             }
 
-            return await prisma.user.update({
+            const updatedUser = await prisma.user.update({
                 where: {
                     id: userId,
                 },
@@ -72,8 +70,15 @@ export const authOperations = {
                     emailVerified: new Date(),
                     email,
                 },
-                select: userFilterSelection,
+                select: {
+                    ...userBasicSelection,
+                    email: true,
+                    acceptedTerms: true,
+                },
             })
+            await sendEmailChangedMail(updatedUser, user.email)
+
+            return updatedUser
         }
     }),
 
@@ -81,13 +86,12 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string()
         }),
-        authorizer: ({ params }) => authAuth.resetPassword.dynamicFields(params),
+        authorizer: () => authAuth.resetPassword,
         operation: async ({ prisma, params }) => {
-            // INFO: Safe to parse unsafe since the authorizer has verified the token.
-            const payload = readJWTPayload(params.token)
+            const payload = verifyJWT(params.token, 'resetpassword')
 
             if (!payload.sub || !payload.iat) {
-                throw new ServerError('JWT INVALID', 'The forgot password JWT is not valid')
+                throw new ServiceError('JWT INVALID', 'The forgot password JWT is not valid')
             }
 
             const userId = Number(payload.sub)
@@ -102,7 +106,7 @@ export const authOperations = {
             })
 
             if (user.credentials && user.credentials?.credentialsUpdatedAt > new Date(payload.iat * 1000)) {
-                throw new ServerError('JWT INVALID', 'The password has already been changed')
+                throw new ServiceError('JWT INVALID', 'The password has already been changed')
             }
 
             return userId
@@ -114,11 +118,11 @@ export const authOperations = {
             token: z.string()
         }),
         dataSchema: userSchemas.updatePassword,
-        authorizer: ({ params }) => authAuth.resetPassword.dynamicFields(params),
+        authorizer: () => authAuth.resetPassword,
         operation: async ({ params, data }) => {
             const userId = await authOperations.verifyResetPasswordToken({ params })
 
-            userOperations.updatePassword({
+            await userOperations.updatePassword({
                 params: {
                     id: userId,
                 },
@@ -130,10 +134,10 @@ export const authOperations = {
 
     sendLinkFeideAccountEmail: defineOperation({
         dataSchema: authSchemas.sendLinkFeideAccountEmail,
-        authorizer: () => authAuth.sendLinkFeideAccountEmail.dynamicFields({}),
+        authorizer: () => authAuth.sendLinkFeideAccountEmail,
         operation: async ({ prisma, data, session }) => {
             if (!session.user) {
-                throw new ServerError('DISSALLOWED', 'This endpoint requires a user connected to the session.')
+                throw new ServiceError('DISSALLOWED', 'This endpoint requires a user connected to the session.')
             }
 
             // Only a user created by a Feide login that has not completed registration may ask
@@ -158,7 +162,7 @@ export const authOperations = {
                 feideUser.credentials ||
                 feideUser.acceptedTerms
             ) {
-                throw new ServerError(
+                throw new ServiceError(
                     'DISSALLOWED',
                     'Bare en ny Feide-innlogging som ikke har fullført registreringen kan kobles til en gammel bruker.'
                 )
@@ -175,7 +179,10 @@ export const authOperations = {
                     credentials: null,
                     NOT: { id: feideUser.id },
                 },
-                select: userFilterSelection,
+                select: {
+                    ...userBasicSelection,
+                    email: true,
+                },
             })
 
             if (targetUser) {
@@ -201,10 +208,10 @@ export const authOperations = {
      * Returns null if the session user has no Feide account.
      */
     readFeideLoginMatch: defineOperation({
-        authorizer: () => authAuth.readFeideLoginMatch.dynamicFields({}),
+        authorizer: () => authAuth.readFeideLoginMatch,
         operation: async ({ prisma, session }) => {
             if (!session.user) {
-                throw new ServerError('DISSALLOWED', 'This endpoint requires a user connected to the session.')
+                throw new ServiceError('DISSALLOWED', 'This endpoint requires a user connected to the session.')
             }
 
             const user = await prisma.user.findUniqueOrThrow({
@@ -228,7 +235,7 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string(),
         }),
-        authorizer: ({ params }) => authAuth.verifyLinkFeideAccountToken.dynamicFields(params),
+        authorizer: () => authAuth.verifyLinkFeideAccountToken,
         operation: async ({ prisma, params }) => {
             const claims = readLinkFeideAccountClaims(params.token)
 
@@ -251,7 +258,7 @@ export const authOperations = {
         paramsSchema: z.object({
             token: z.string(),
         }),
-        authorizer: ({ params }) => authAuth.linkFeideAccount.dynamicFields(params),
+        authorizer: () => authAuth.linkFeideAccount,
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
             const claims = readLinkFeideAccountClaims(params.token)
@@ -266,7 +273,7 @@ export const authOperations = {
 
     adminLinkFeideAccount: defineOperation({
         dataSchema: authSchemas.adminLinkFeideAccount,
-        authorizer: () => authAuth.adminLinkFeideAccount.dynamicFields({}),
+        authorizer: () => authAuth.adminLinkFeideAccount,
         opensTransaction: true,
         operation: async ({ prisma, data }) => {
             const fromUser = await prisma.user.findUniqueOrThrow({
@@ -287,7 +294,7 @@ export const authOperations = {
 
     sendResetPasswordEmail: defineOperation({
         dataSchema: authSchemas.sendResetPasswordEmail,
-        authorizer: () => authAuth.sendResetPasswordEmail.dynamicFields({}),
+        authorizer: () => authAuth.sendResetPasswordEmail,
         operation: async ({ data }) => {
             try {
                 const user = await userOperations.read({
@@ -306,4 +313,4 @@ export const authOperations = {
             return data.email
         }
     }),
-}
+} as const

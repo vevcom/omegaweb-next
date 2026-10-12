@@ -2,22 +2,23 @@ import styles from './page.module.scss'
 import CreateApiKeyForm from './CreateApiKeyForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import { readApiKeysAction } from '@/services/apiKeys/actions'
+import { apiKeyOperations } from '@/services/apiKeys/operations'
+import { serverPage } from '@/app/serverPage'
 import Date from '@/components/Date/Date'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import { v4 as uuid } from 'uuid'
 import Link from 'next/link'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const popUpKey = 'createApiKey'
 
-export default async function ApiKeysAdmin() {
-    await authorizeAdminPage('api-keys')
-    const res = await readApiKeysAction()
-    if (!res.success) throw new Error(res.error?.length ? res.error[0].message : 'En feil oppstod')
-    const apiKeys = res.data
-
-    return (
-        <PageWrapper title="API-nøkler" headerItem={
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('api-keys', session)
+        return apiKeyOperations.readMany({})
+    },
+    metadata: () => ({ title: 'API-nøkler' }),
+    render: ({ data: apiKeys }) => (
+        <PageWrapper headerItem={
             <AddHeaderItemPopUp popUpKey={popUpKey}>
                 <CreateApiKeyForm popUpKey={popUpKey} />
             </AddHeaderItemPopUp>
@@ -35,7 +36,7 @@ export default async function ApiKeysAdmin() {
                     </thead>
                     <tbody>
                         {apiKeys.map(apiKey => (
-                            <Link href={`/admin/api-keys/${apiKey.name}`} key={uuid()} passHref>
+                            <Link href={`/admin/api-keys/${apiKey.name}`} key={apiKey.id} passHref>
                                 <tr className={apiKey.active ? styles.activated : styles.deactivated}>
                                     <td>{apiKey.name}</td>
                                     <td><Date date={apiKey.createdAt} /></td>
@@ -49,5 +50,8 @@ export default async function ApiKeysAdmin() {
                 </table>
             </div>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

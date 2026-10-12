@@ -234,7 +234,7 @@ describe('createTrial only accepts a soelle', () => {
     beforeAll(async () => {
         registrarSession = Session.fromJsObject({
             memberships: [],
-            permissions: ['ADMISSION_TRIAL_ADMIN'],
+            permissions: ['ADMISSION_USE'],
             user: await createTestUser('omegaregistrar'),
         })
     })
@@ -436,11 +436,72 @@ describe('updateUserOrder', () => {
 
         await setOrder(user.id, current - 1)
 
+        // The den gemene hob membership the user was created with stays, inactive - what is
+        // checked is that the soelle group holds one membership, not two.
         const all = await prisma.membership.findMany({
-            where: { userId: user.id, group: { groupType: 'OMEGA_MEMBERSHIP_GROUP' } },
+            where: { userId: user.id, groupId: soelle.groupId },
         })
         expect(all).toHaveLength(1)
         expect(all[0].order).toBe(current - 1)
         expect(all[0].active).toBe(true)
+    })
+})
+
+describe('updateUserLevel keeps the levels a user has been through', () => {
+    const readAllOmegaMemberships = (userId: number) => prisma.membership.findMany({
+        where: { userId, group: { groupType: 'OMEGA_MEMBERSHIP_GROUP' } },
+        select: {
+            order: true,
+            active: true,
+            group: { select: { omegaMembershipGroup: { select: { omegaMembershipLevel: true } } } },
+        },
+    })
+    const levelOf = (membership: Awaited<ReturnType<typeof readAllOmegaMemberships>>[number]) =>
+        membership.group.omegaMembershipGroup?.omegaMembershipLevel
+
+    test('promoting a soelle leaves the soelle membership inactive', async () => {
+        const user = await createTestUser('omegahistoryone')
+        await setLevel(user.id, 'SOELLE')
+
+        await setLevel(user.id, 'SYSKEN')
+
+        const all = await readAllOmegaMemberships(user.id)
+        expect(all.filter(membership => membership.active).map(levelOf)).toEqual(['SYSKEN'])
+        expect(all.find(membership => levelOf(membership) === 'SOELLE')?.active).toBe(false)
+    })
+
+    test('putting a user back at a level reactivates the membership they held, of its own order', async () => {
+        const user = await createTestUser('omegahistorytwo')
+        await setLevel(user.id, 'SOELLE')
+        const { order: current } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+        await omegaMembershipGroupOperations.updateUserOrder({
+            params: { userId: user.id },
+            data: { order: current - 1 },
+            bypassAuth: true,
+        })
+        await setLevel(user.id, 'SYSKEN')
+
+        await setLevel(user.id, 'SOELLE')
+
+        const resolved = await omegaMembershipGroupOperations.readUserLevel({
+            params: { userId: user.id }, bypassAuth: true,
+        })
+        expect(resolved).toEqual({ level: 'SOELLE', order: current - 1 })
+        const all = await readAllOmegaMemberships(user.id)
+        expect(all.filter(membership => levelOf(membership) === 'SOELLE')).toHaveLength(1)
+        expect(all.find(membership => levelOf(membership) === 'SYSKEN')?.active).toBe(false)
+    })
+
+    test('a user holds at most one membership per level', async () => {
+        const user = await createTestUser('omegahistorythree')
+        await setLevel(user.id, 'SOELLE')
+        await setLevel(user.id, 'SYSKEN')
+        await setLevel(user.id, 'SOELLE')
+        await setLevel(user.id, 'SYSKEN')
+
+        const all = await readAllOmegaMemberships(user.id)
+        const levels = all.map(levelOf)
+        expect(new Set(levels).size).toBe(levels.length)
+        expect(all.filter(membership => membership.active).map(levelOf)).toEqual(['SYSKEN'])
     })
 })

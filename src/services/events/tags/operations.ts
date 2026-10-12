@@ -4,7 +4,7 @@ import { specialEventTags } from './constants'
 import { eventTagSchemas } from './schemas'
 import logger from '@/lib/logger'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { SpecialEventTags } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
@@ -13,7 +13,7 @@ export const eventTagOperations = {
         paramsSchema: z.object({
             id: z.number(),
         }),
-        authorizer: () => eventTagAuth.read.dynamicFields({}),
+        authorizer: () => eventTagAuth.read,
         operation: async ({ prisma, params: { id } }) => await prisma.eventTag.findUniqueOrThrow({
             where: {
                 id
@@ -24,7 +24,7 @@ export const eventTagOperations = {
         paramsSchema: z.object({
             special: z.nativeEnum(SpecialEventTags),
         }),
-        authorizer: () => eventTagAuth.readSpecial.dynamicFields({}),
+        authorizer: () => eventTagAuth.readSpecial,
         operation: async ({ prisma, params: { special } }) => {
             const tag = await prisma.eventTag.findUnique({
                 where: {
@@ -44,12 +44,12 @@ export const eventTagOperations = {
         }
     }),
     readAll: defineOperation({
-        authorizer: () => eventTagAuth.readAll.dynamicFields({}),
+        authorizer: () => eventTagAuth.readAll,
         operation: async ({ prisma }) => await prisma.eventTag.findMany()
     }),
     create: defineOperation({
         dataSchema: eventTagSchemas.create,
-        authorizer: () => eventTagAuth.create.dynamicFields({}),
+        authorizer: () => eventTagAuth.create,
         operation: async ({ prisma, data: { color, ...data } }) =>
             await prisma.eventTag.create({
                 data: {
@@ -65,7 +65,7 @@ export const eventTagOperations = {
             id: z.number(),
         }),
         dataSchema: eventTagSchemas.update,
-        authorizer: () => eventTagAuth.update.dynamicFields({}),
+        authorizer: () => eventTagAuth.update,
         operation: async ({ prisma, params: { id }, data: { color, ...data } }) => {
             const colorR = color ? color.red : undefined
             const colorG = color ? color.green : undefined
@@ -87,17 +87,17 @@ export const eventTagOperations = {
         paramsSchema: z.object({
             id: z.number(),
         }),
-        authorizer: () => eventTagAuth.destroy.dynamicFields({}),
+        authorizer: () => eventTagAuth.destroy,
         operation: async ({ prisma, params }) => {
             const tag = await prisma.eventTag.findUniqueOrThrow({
                 where: { id: params.id }
             })
             if (tag.special) {
-                throw new ServerError('BAD PARAMETERS', 'Kan ikke slette spesialtagger')
+                throw new ServiceError('BAD PARAMETERS', 'Kan ikke slette spesialtagger')
             }
             await prisma.eventTag.delete({
                 where: { id: params.id }
             })
         }
     }),
-}
+} as const

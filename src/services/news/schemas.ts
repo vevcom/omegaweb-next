@@ -44,7 +44,6 @@ export const newsSchemas = {
         published: Zpn.checkboxOrBoolean({ label: 'Publisert' })
     }),
     readOldPage: readPageInputSchemaObject(
-        z.number(),
         z.object({
             id: z.number(),
         }),

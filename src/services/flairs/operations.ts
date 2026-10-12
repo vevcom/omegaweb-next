@@ -3,13 +3,13 @@ import { flairAuth } from './auth'
 import { flairSchema } from './schemas'
 import { flairImageOperations } from './flairImageCollection'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { z } from 'zod'
 
 export const flairOperations = {
     create: defineOperation({
-        authorizer: () => flairAuth.create.dynamicFields({}),
+        authorizer: () => flairAuth.create,
         dataSchema: flairSchema.create,
         opensTransaction: true,
         operation: ({ prisma, data }) =>
@@ -31,7 +31,7 @@ export const flairOperations = {
             })
     }),
     update: defineOperation({
-        authorizer: () => flairAuth.update.dynamicFields({}),
+        authorizer: () => flairAuth.update,
         dataSchema: flairSchema.update,
         paramsSchema: z.object({
             flairId: z.number()
@@ -50,7 +50,7 @@ export const flairOperations = {
             })
     }),
     updateImage: defineOperation({
-        authorizer: () => flairAuth.updateImage.dynamicFields({}),
+        authorizer: () => flairAuth.updateImage,
         paramsSchema: z.object({
             flairId: z.number()
         }),
@@ -86,7 +86,7 @@ export const flairOperations = {
         }
     }),
     read: defineOperation({
-        authorizer: () => flairAuth.read.dynamicFields({}),
+        authorizer: () => flairAuth.read,
         paramsSchema: z.object({
             flairId: z.number(),
         }),
@@ -101,7 +101,7 @@ export const flairOperations = {
             })
     }),
     readAll: defineOperation({
-        authorizer: () => flairAuth.readAll.dynamicFields({}),
+        authorizer: () => flairAuth.readAll,
         operation: async ({ prisma }) => {
             const flairs = (await prisma.flair.findMany({
                 include: {
@@ -128,7 +128,7 @@ export const flairOperations = {
         }
     }),
     readUserFlairs: defineOperation({
-        authorizer: ({ params }) => flairAuth.readUserFlairs.dynamicFields({ userId: params.userId }),
+        authorizer: ({ params }) => flairAuth.readUserFlairs.data({ userId: params.userId }),
         paramsSchema: z.object({
             userId: z.number(),
         }),
@@ -147,7 +147,7 @@ export const flairOperations = {
             }).then(user => user.flairs)
     }),
     assignToUser: defineOperation({
-        authorizer: () => flairAuth.assignToUser.dynamicFields({}),
+        authorizer: () => flairAuth.assignToUser,
         paramsSchema: z.object({
             flairId: z.number(),
             userId: z.number(),
@@ -177,7 +177,7 @@ export const flairOperations = {
         ,
     }),
     unAssignToUser: defineOperation({
-        authorizer: () => flairAuth.unAssignToUser.dynamicFields({}),
+        authorizer: () => flairAuth.unAssignToUser,
         paramsSchema: z.object({
             flairId: z.number(),
             userId: z.number(),
@@ -198,7 +198,7 @@ export const flairOperations = {
         ,
     }),
     destroy: defineOperation({
-        authorizer: () => flairAuth.destroy.dynamicFields({}),
+        authorizer: () => flairAuth.destroy,
         paramsSchema: z.object({
             flairId: z.number(),
         }),
@@ -224,7 +224,7 @@ export const flairOperations = {
         }
     }),
     increaseRank: defineOperation({
-        authorizer: () => flairAuth.increaseRank.dynamicFields({}),
+        authorizer: () => flairAuth.increaseRank,
         paramsSchema: z.object({
             flairId: z.number(),
         }),
@@ -243,7 +243,7 @@ export const flairOperations = {
                 }
             })
             if (!lowerFlair) {
-                throw new ServerError('BAD PARAMETERS', 'Flair is already at lowest rank')
+                throw new ServiceError('BAD PARAMETERS', 'Flair is already at lowest rank')
             }
             const tempRank = -99999999
             await prisma.flair.update({
@@ -261,7 +261,7 @@ export const flairOperations = {
         }
     }),
     decreaseRank: defineOperation({
-        authorizer: () => flairAuth.decreaseRank.dynamicFields({}),
+        authorizer: () => flairAuth.decreaseRank,
         paramsSchema: z.object({
             flairId: z.number(),
         }),
@@ -280,7 +280,7 @@ export const flairOperations = {
                 }
             })
             if (!higherFlair) {
-                throw new ServerError('BAD PARAMETERS', 'Flair is already at highest rank')
+                throw new ServiceError('BAD PARAMETERS', 'Flair is already at highest rank')
             }
             // Use a temporary rank to avoid unique constraint violation
             const tempRank = -99999999

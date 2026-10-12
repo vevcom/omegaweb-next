@@ -1,13 +1,13 @@
 import '@pn-server-only'
 
 import { Html } from '@react-email/components'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
 export function UserInvitationTemplate({
     user,
     link,
 }: {
-    user: UserFiltered,
+    user: UserBasic,
     link: string,
 }) {
     return (

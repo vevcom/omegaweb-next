@@ -1,0 +1,30 @@
+@use "@/styles/ohma";
+
+.ReleaseAdmin {
+    display: flex;
+    flex-direction: column;
+    gap: ohma.$gap;
+    width: min(28rem, calc(100vw - 2 * ohma.$gap));
+    max-height: calc(100vh - 2 * ohma.$gap);
+    overflow-y: auto;
+    padding: calc(3 * ohma.$gap);
+    border: 1px solid hsl(0, 0%, 20%);
+    border-radius: ohma.$cardRounding;
+    background: ohma.$colors-surface-base;
+
+    h2 {
+        margin: 0;
+        font-family: ohma.$fonts-secondary;
+    }
+}
+
+.form {
+    padding-top: ohma.$gap;
+    border-top: 1px solid hsl(0, 0%, 20%);
+}
+
+.note {
+    margin: 0;
+    color: ohma.$colors-text-muted;
+    font-size: ohma.$fonts-s;
+}

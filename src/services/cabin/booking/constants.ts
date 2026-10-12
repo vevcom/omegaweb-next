@@ -1,14 +1,14 @@
 import { createSelection } from '@/services/createSelection'
-import { userFilterSelection } from '@/services/users/constants'
+import { userBasicSelection } from '@/services/users/constants'
 import type { Booking } from '@/prisma-generated-pn-types'
 
 export const cabinBookingFieldsToExpose = ['start', 'end', 'type'] as const satisfies (keyof Booking)[]
 
-export const cabinBookingFilerSelection = createSelection(cabinBookingFieldsToExpose)
+export const cabinBookingFilterSelection = createSelection(cabinBookingFieldsToExpose)
 
 export const cabinBookingIncluder = {
     user: {
-        select: userFilterSelection,
+        select: userBasicSelection,
     },
     BookingProduct: {
         include: {

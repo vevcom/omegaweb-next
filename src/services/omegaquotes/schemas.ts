@@ -12,7 +12,6 @@ export const omegaquoteSchemas = {
         author: true,
     }),
     readPage: readPageInputSchemaObject(
-        z.number(),
         z.object({
             id: z.number(),
         }),

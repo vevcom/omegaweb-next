@@ -1,3 +1,4 @@
+import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
 import { owIdToPnId } from './IdMapper'
 import { createProgressBar } from './progressBar'
 import logger from '@/lib/logger'
@@ -141,7 +142,7 @@ export default async function migrateNews(
                                 name: `ow_article_${article.id}_body`,
                                 cmsParagraph: {
                                     create: {
-                                        contentHtml: article.text || '',
+                                        contentHtml: sanitizeHtml(article.text || ''),
                                         createdAt: article.createdAt,
                                         updatedAt: article.updatedAt,
                                     }
@@ -153,7 +154,7 @@ export default async function migrateNews(
                 visibilityRegular: visibilityCreateInput(
                     article, memberGroupId, idMaps.committeeGroups, currentOrder
                 ),
-                visibilityAdmin: { create: {} },
+                visibilityAdmin: { create: { requirements: { create: [{}] } } },
             }
         })
 

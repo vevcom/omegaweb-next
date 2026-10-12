@@ -4,64 +4,64 @@ import ToggleShowAdminCollections from './ToggleShowAdminCollections'
 import { DynamicImageCollectionPagingProvider } from '@/contexts/paging/DynamicImageCollectionPaging'
 import CollectionCardLink from '@/components/Image/Collection/CollectionCardLink'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { ServerSession } from '@/auth/session/ServerSession'
 import { dynamicImageAuth } from '@/services/images/dynamic/auth'
-import { readDynamicImageCollectionsPageAction } from '@/services/images/dynamic/actions'
+import { dynamicImageOperations } from '@/services/images/dynamic/operations'
 import { QueryParams } from '@/lib/queryParams/queryParams'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 import type { PageSizeDynamicImageCollection } from '@/contexts/paging/DynamicImageCollectionPaging'
-import type { SearchParamsServerSide } from '@/lib/queryParams/types'
 
-type PropTypes = SearchParamsServerSide
+const pageSize: PageSizeDynamicImageCollection = 12
 
-export default async function Images({ searchParams }: PropTypes) {
-    const session = await ServerSession.fromNextAuth()
-    const canCreateCollection = dynamicImageAuth.createCollection.dynamicFields({ }).auth(session)
-    const pageSize: PageSizeDynamicImageCollection = 12
+const { page, generateMetadata } = serverPage({
+    operation: async ({ searchParams }: PageOperationArgs) => {
+        const showOnlyCollectionsSessionAdministrates =
+            QueryParams.onlyAdministratedCollections.decode(searchParams) ?? false
+        const details = { showOnlyCollectionsSessionAdministrates }
 
-    const showOnlyCollectionsSessionAdministrates =
-        QueryParams.onlyAdministratedCollections.decode(await searchParams) ?? false
-    const details = { showOnlyCollectionsSessionAdministrates }
-
-    const collectionPage = await readDynamicImageCollectionsPageAction({
-        params: {
-            paging: {
-                page: {
-                    pageSize,
-                    page: 0,
-                    cursor: null,
+        const collections = await dynamicImageOperations.readCollectionPage({
+            params: {
+                paging: {
+                    page: {
+                        pageSize,
+                        page: 0,
+                        cursor: null,
+                    },
+                    details,
                 },
-                details,
             },
-        },
-    })
+        })
 
-    if (!collectionPage.success) {
-        throw collectionPage.error ? collectionPage.error[0].message : new Error('Unknown error')
-    }
-
-    const collections = collectionPage.data
-
-    return (
-        <PageWrapper title="Fotogalleri" headerItem={canCreateCollection.authorized && <MakeNewCollection />}>
+        return { collections, details, showOnlyCollectionsSessionAdministrates }
+    },
+    capabilities: () => ({
+        canCreateCollection: dynamicImageAuth.createCollection,
+    }),
+    metadata: () => ({ title: 'Fotogalleri' }),
+    render: ({ data, capabilities }) => (
+        <PageWrapper headerItem={capabilities.canCreateCollection.authorized && <MakeNewCollection />}>
             <DynamicImageCollectionPagingProvider
                 startPage={{
                     pageSize,
                     page: 1,
                 }}
-                details={details}
-                serverRenderedData={collections}
+                details={data.details}
+                serverRenderedData={data.collections}
             >
                 <ImageCollectionList
                     toggle={
                         <ToggleShowAdminCollections
-                            showOnlyCollectionsSessionAdministrates={showOnlyCollectionsSessionAdministrates}
+                            showOnlyCollectionsSessionAdministrates={data.showOnlyCollectionsSessionAdministrates}
                         />
                     }
-                    serverRendered={collections.map(collection => (
+                    serverRendered={data.collections.map(collection => (
                         <CollectionCardLink key={collection.id} collection={collection} />
                     ))}
                 />
             </DynamicImageCollectionPagingProvider>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

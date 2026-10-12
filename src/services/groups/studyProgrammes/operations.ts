@@ -1,6 +1,8 @@
 import '@pn-server-only'
 import { studyProgrammeAuth } from './auth'
 import { studyProgrammeSchemas } from './schemas'
+import { groupOperations } from '@/services/groups/operations'
+import { invalidateManyUserSessionData } from '@/services/auth/invalidateSession'
 import {
     implementGroupType,
     implementSimpleAddRemoveMembersOperation,
@@ -14,8 +16,9 @@ import { z } from 'zod'
 const commonGroupOperations = implementGroupType({
     type: GroupType.STUDY_PROGRAMME,
     auth: {
-        readExpanded: studyProgrammeAuth.readExpanded.dynamicFields({}),
-        readMembers: ({ groupId }) => studyProgrammeAuth.readMembers.dynamicFields({ groupId }),
+        readExpanded: studyProgrammeAuth.readExpanded,
+        readMembers: ({ groupId }) => studyProgrammeAuth.readMembers.data({ groupId }),
+        readMembershipsOfUser: ({ userId }) => studyProgrammeAuth.readMembershipsOfUser.data({ userId }),
     },
 })
 
@@ -28,23 +31,23 @@ const commonGroupOperations = implementGroupType({
 const memberManagement = implementSimpleAddRemoveMembersOperation({
     type: GroupType.STUDY_PROGRAMME,
     auth: {
-        addMembers: ({ groupId }) => studyProgrammeAuth.addMembers.dynamicFields({ groupId }),
-        removeMembers: ({ groupId }) => studyProgrammeAuth.removeMembers.dynamicFields({ groupId }),
-        setMemberAdmin: ({ groupId }) => studyProgrammeAuth.setMemberAdmin.dynamicFields({ groupId }),
-        setMemberTitle: ({ groupId }) => studyProgrammeAuth.setMemberTitle.dynamicFields({ groupId }),
+        addMembers: ({ groupId }) => studyProgrammeAuth.addMembers.data({ groupId }),
+        removeMembers: ({ groupId }) => studyProgrammeAuth.removeMembers.data({ groupId }),
+        setMemberAdmin: ({ groupId }) => studyProgrammeAuth.setMemberAdmin.data({ groupId }),
+        setMemberTitle: ({ groupId }) => studyProgrammeAuth.setMemberTitle.data({ groupId }),
     },
 })
 
 const migration = implementStraightAwayMigration({
     type: GroupType.STUDY_PROGRAMME,
     auth: {
-        migrateGroups: studyProgrammeAuth.migrateGroups.dynamicFields({}),
+        migrateGroups: studyProgrammeAuth.migrateGroups,
     },
 })
 
 const create = defineOperation({
     dataSchema: studyProgrammeSchemas.create,
-    authorizer: () => studyProgrammeAuth.create.dynamicFields({}),
+    authorizer: () => studyProgrammeAuth.create,
     operation: async ({ prisma, data }) => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -68,7 +71,7 @@ const create = defineOperation({
  */
 const upsertMany = defineOperation({
     dataSchema: studyProgrammeSchemas.upsertMany,
-    authorizer: () => studyProgrammeAuth.upsertMany.dynamicFields({}),
+    authorizer: () => studyProgrammeAuth.upsertMany,
     opensTransaction: true,
     operation: async ({ prisma, data }) => {
         if (data.studyProgrammes.length === 0) return []
@@ -109,7 +112,7 @@ const upsertMany = defineOperation({
 })
 
 const readMany = defineOperation({
-    authorizer: () => studyProgrammeAuth.readMany.dynamicFields({}),
+    authorizer: () => studyProgrammeAuth.readMany,
     operation: async ({ prisma }) => prisma.studyProgramme.findMany()
 })
 
@@ -117,7 +120,7 @@ const read = defineOperation({
     paramsSchema: z.object({
         id: z.number(),
     }),
-    authorizer: () => studyProgrammeAuth.read.dynamicFields({}),
+    authorizer: () => studyProgrammeAuth.read,
     operation: async ({ prisma, params }) => prisma.studyProgramme.findUniqueOrThrow({
         where: { id: params.id },
     })
@@ -128,7 +131,7 @@ const update = defineOperation({
         id: z.number(),
     }),
     dataSchema: studyProgrammeSchemas.update,
-    authorizer: () => studyProgrammeAuth.update.dynamicFields({}),
+    authorizer: () => studyProgrammeAuth.update,
     operation: async ({ prisma, params, data }) => prisma.studyProgramme.update({
         where: { id: params.id },
         data,
@@ -139,17 +142,22 @@ const destroy = defineOperation({
     paramsSchema: z.object({
         id: z.number(),
     }),
-    authorizer: () => studyProgrammeAuth.destroy.dynamicFields({}),
+    authorizer: () => studyProgrammeAuth.destroy,
     opensTransaction: true,
-    operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
-        const studyProgramme = await tx.studyProgramme.delete({
-            where: { id: params.id },
+    operation: async ({ prisma, params }) => {
+        const { studyProgramme, memberIds } = await prisma.$transaction(async tx => {
+            const deleted = await tx.studyProgramme.delete({
+                where: { id: params.id },
+            })
+            const formerMemberIds = await groupOperations.destroy.internalCall({
+                prisma: tx,
+                params: { groupId: deleted.groupId },
+            })
+            return { studyProgramme: deleted, memberIds: formerMemberIds }
         })
-        await tx.group.delete({
-            where: { id: studyProgramme.groupId },
-        })
+        await invalidateManyUserSessionData(memberIds)
         return studyProgramme
-    })
+    }
 })
 
 /**
@@ -163,7 +171,7 @@ const readFeideReturnedForUser = defineOperation({
     paramsSchema: z.object({
         userId: z.number(),
     }),
-    authorizer: () => studyProgrammeAuth.readFeideReturnedForUser.dynamicFields({}),
+    authorizer: () => studyProgrammeAuth.readFeideReturnedForUser,
     operation: async ({ prisma, params }) => prisma.studyProgramme.findMany({
         where: {
             usersFeideHasAlreadyReturnedItFor: { some: { id: params.userId } },
@@ -183,7 +191,7 @@ const recordFeideReturnedForUser = defineOperation({
     dataSchema: z.object({
         studyProgrammeIds: z.number().array(),
     }),
-    authorizer: () => studyProgrammeAuth.recordFeideReturnedForUser.dynamicFields({}),
+    authorizer: () => studyProgrammeAuth.recordFeideReturnedForUser,
     operation: async ({ prisma, params, data }) => prisma.user.update({
         where: { id: params.userId },
         data: {
@@ -206,6 +214,7 @@ export const studyProgrammeOperations = {
     destroy,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
+    readMembershipsOfUser: commonGroupOperations.readMembershipsOfUser,
     addMembers: memberManagement.addMembers,
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,

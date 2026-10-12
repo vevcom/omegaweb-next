@@ -9,10 +9,11 @@ import { searchEventsAction } from '@/services/events/actions'
 import { searchUsersAction } from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
+import { useGlobalSearch } from '@/contexts/GlobalSearch'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { displayDate } from '@/lib/dates/displayDate'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faMagnifyingGlass, faCalendar, faSpinner } from '@fortawesome/free-solid-svg-icons'
+import { faMagnifyingGlass, faCalendar, faSpinner, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -58,12 +59,12 @@ const categoryOptions: { value: Category, label: string }[] = [
  * cycle through with Tab/Shift+Tab and browse with the arrow keys.
  */
 export default function GlobalSearch({ navItems }: PropTypes) {
-    const canSearchUsers = useAuthorizer({ authorizer: userAuth.search.dynamicFields({}) }).authorized
+    const canSearchUsers = useAuthorizer({ authorizer: userAuth.search }).authorized
     const availableCategories = canSearchUsers
         ? categoryOptions
         : categoryOptions.filter(option => option.value !== 'users')
 
-    const [isOpen, setIsOpen] = useState(false)
+    const { isOpen, setIsOpen } = useGlobalSearch()
     const [category, setCategory] = useState<Category>('all')
     const [query, setQuery] = useState('')
     const [debouncedQuery, setDebouncedQuery] = useState('')
@@ -101,7 +102,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
         }
         window.addEventListener('keydown', handleShortcut)
         return () => window.removeEventListener('keydown', handleShortcut)
-    }, [])
+    }, [setIsOpen])
 
     useEffect(() => {
         if (isOpen) {
@@ -244,6 +245,9 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                         onKeyDown={handleKeyDown}
                     />
                     {loading && <FontAwesomeIcon icon={faSpinner} spin className={styles.spinner} />}
+                    <button type="button" className={styles.closeBtn} aria-label="Lukk søk" onClick={close}>
+                        <FontAwesomeIcon icon={faXmark} />
+                    </button>
                 </div>
                 <ModeSwitch options={availableCategories} value={category} onChange={handleCategoryChange} />
                 <div className={styles.results}>

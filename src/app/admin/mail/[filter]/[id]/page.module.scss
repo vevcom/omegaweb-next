@@ -1,19 +1,23 @@
 @use '@/styles/ohma';
 
+.wrapper {
+    padding: calc(2 * #{ohma.$gap});
+    display: flex;
+    flex-direction: column;
+    gap: calc(2 * #{ohma.$gap});
+}
+
+.typeTag {
+    margin: 0;
+    color: ohma.$colors-text-muted;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
 .editContainer {
-    background-color: ohma.$colors-surface-base;
-    @include ohma.card();
     display: flex;
     flex-flow: row wrap;
-    justify-content: space-between;
-    align-items: top;
-    gap: 2em;
-
-    form {
-        border-color: black;
-        border-width: 2px;
-        border-style: solid;
-        padding: 0.5rem;
-        border-radius: ohma.$gap;
-    }
+    align-items: flex-start;
+    gap: calc(2 * #{ohma.$gap});
 }

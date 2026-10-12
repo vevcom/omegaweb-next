@@ -5,4 +5,3 @@ import { dotOperations } from '@/services/dots/operations'
 export const createDotAction = makeAction(dotOperations.create)
 export const updateDotAction = makeAction(dotOperations.update)
 export const destroyDotAction = makeAction(dotOperations.destroy)
-export const readDotsForUserAction = makeAction(dotOperations.readForUser)

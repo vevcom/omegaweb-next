@@ -18,7 +18,6 @@ export const schoolSchemas = {
         onlyNonStandard: z.boolean(),
     }),
     readPage: readPageInputSchemaObject(
-        z.number(),
         z.object({
             id: z.number(),
         }),

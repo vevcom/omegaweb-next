@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 /**
@@ -26,7 +26,7 @@ export async function moveFeideAccountToUser(
     },
 ): Promise<void> {
     if (fromUserId === toUserId) {
-        throw new ServerError('BAD PARAMETERS', 'Kan ikke flytte en Feide-konto til brukeren den allerede er på.')
+        throw new ServiceError('BAD PARAMETERS', 'Kan ikke flytte en Feide-konto til brukeren den allerede er på.')
     }
 
     await prisma.$transaction(async transaction => {
@@ -41,22 +41,22 @@ export async function moveFeideAccountToUser(
         })
 
         if (!fromUser.feideAccount) {
-            throw new ServerError('BAD PARAMETERS', 'Brukeren har ingen Feide-konto å flytte.')
+            throw new ServiceError('BAD PARAMETERS', 'Brukeren har ingen Feide-konto å flytte.')
         }
 
         if (feideAccountId !== undefined && fromUser.feideAccount.id !== feideAccountId) {
-            throw new ServerError('BAD PARAMETERS', 'Brukeren har ikke lenger denne Feide-kontoen.')
+            throw new ServiceError('BAD PARAMETERS', 'Brukeren har ikke lenger denne Feide-kontoen.')
         }
 
         if (!fromUser.createdByFeideLoginOnProjectNext) {
-            throw new ServerError(
+            throw new ServiceError(
                 'BAD PARAMETERS',
                 'Feide-kontoen kan bare flyttes fra en bruker som ble opprettet ved Feide-innloggingen.'
             )
         }
 
         if (fromUser.credentials || fromUser.acceptedTerms) {
-            throw new ServerError(
+            throw new ServiceError(
                 'BAD PARAMETERS',
                 'Feide-kontoen kan bare flyttes fra en bruker som ikke har fullført registreringen.'
             )
@@ -71,7 +71,7 @@ export async function moveFeideAccountToUser(
         })
 
         if (toUser.feideAccount || toUser.credentials) {
-            throw new ServerError('BAD PARAMETERS', 'Målbrukeren er allerede koblet til en innlogging.')
+            throw new ServiceError('BAD PARAMETERS', 'Målbrukeren er allerede koblet til en innlogging.')
         }
 
         await transaction.feideAccount.update({
@@ -79,8 +79,12 @@ export async function moveFeideAccountToUser(
             data: { userId: toUserId },
         })
 
-        await transaction.user.delete({
+        const deletedUser = await transaction.user.delete({
             where: { id: fromUserId },
+            select: { bioParagraphId: true },
+        })
+        await transaction.cmsParagraph.delete({
+            where: { id: deletedUser.bioParagraphId },
         })
     })
 }

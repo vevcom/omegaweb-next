@@ -1,11 +1,11 @@
 import type { Prisma } from '@/prisma-generated-pn-types'
-import type { articleRealtionsIncluder } from './constants'
+import type { articleRelationsIncluder } from './constants'
 import type { ActionFromServiceOperation, ActionFromSubServiceOperation } from '@/services/actionTypes'
 import type { articleOperations } from './operations'
 import type { implementSpecialArticle } from './implement'
 
 export type ExpandedArticle = Prisma.ArticleGetPayload<{
-    include: typeof articleRealtionsIncluder
+    include: typeof articleRelationsIncluder
 }>
 
 export type UpdateArticleAction = ActionFromSubServiceOperation<typeof articleOperations.update>

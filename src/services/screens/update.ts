@@ -1,6 +1,6 @@
 import { updateScreenValidation } from './validation'
 import { readScreen } from './read'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { prismaCall } from '@/services/prismaCall'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { ScreenPageMoveDirection } from './types'
@@ -74,7 +74,7 @@ export async function movePageInScreen(
             order: direction === 'UP' ? 'desc' : 'asc'
         }
     }))
-    if (!screenPageScreen2) throw new ServerError('BAD PARAMETERS', 'Du kan ikke flytte denne lengre')
+    if (!screenPageScreen2) throw new ServiceError('BAD PARAMETERS', 'Du kan ikke flytte denne lengre')
     const highestOrder = await getHighestOrder(id.screen)
     await prismaCall(() => prisma.screenPageScreen.update({
         where: { screenPageId_screenId: { screenId: id.screen, screenPageId: id.page } },

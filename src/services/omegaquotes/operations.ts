@@ -1,14 +1,15 @@
+import '@pn-server-only'
 import { omegaQuotesAuth } from './auth'
 import { omegaquoteSchemas } from './schemas'
 import { omegaQuoteFilterSelection } from './constants'
 import { notificationOperations } from '@/services/notifications/operations'
 import { defineOperation } from '@/services/serviceOperation'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { z } from 'zod'
 
 export const omegaquoteOperations = {
     create: defineOperation({
-        authorizer: ({ params }) => omegaQuotesAuth.create.dynamicFields({ userId: params.userPosterId }),
+        authorizer: ({ params }) => omegaQuotesAuth.create.data({ userId: params.userPosterId }),
         dataSchema: omegaquoteSchemas.create,
         paramsSchema: z.object({
             userPosterId: z.number()
@@ -32,6 +33,7 @@ export const omegaquoteOperations = {
                 data: {
                     title: 'Ny Omegaquote♪',
                     message: `${results.quote}\n - ${results.author}`,
+                    audience: { permission: 'OMEGAQUOTES_USE' },
                 },
             })
             return results
@@ -39,13 +41,13 @@ export const omegaquoteOperations = {
     }),
     readPage: defineOperation({
         paramsSchema: omegaquoteSchemas.readPage,
-        authorizer: () => omegaQuotesAuth.readPage.dynamicFields({}),
+        authorizer: () => omegaQuotesAuth.readPage,
         operation: async ({ prisma, params }) =>
             prisma.omegaQuote.findMany({
                 orderBy: {
                     timestamp: 'desc',
                 },
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
                 select: omegaQuoteFilterSelection,
             })
     }),

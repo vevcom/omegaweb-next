@@ -1,5 +1,6 @@
 import JobAd from './JobAd'
-import { readActiveJobAdsAction } from '@/services/career/jobAds/actions'
+import { jobAdOperations } from '@/services/career/jobAds/operations'
+import { withPageSession } from '@/app/serverPage'
 
 type PropTypes = {
     not?: number
@@ -9,14 +10,8 @@ type PropTypes = {
  * @param not - pass it not: a id of a jobad to exclude from the list
  */
 export default async function CurrentJobAds({ not }: PropTypes) {
-    const res = await readActiveJobAdsAction()
-    if (!res.success) {
-        throw res.error ?
-            new Error(res.error[0].message) :
-            new Error('unknown error reading jobad')
-    }
-
-    const jobAds = res.data.filter(jobAd => jobAd.id !== not)
+    const activeJobAds = await withPageSession(() => jobAdOperations.readActive({}))
+    const jobAds = activeJobAds.filter(jobAd => jobAd.id !== not)
 
     return (
         jobAds.length ? (

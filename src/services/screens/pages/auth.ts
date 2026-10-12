@@ -1,10 +1,10 @@
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const screenPageAuth = {
     //TODO: Service not refactored to serviceoperations.... use these authorizers then.
-    create: RequirePermission.staticFields({ permission: 'SCREEN_ADMIN' }),
-    destroy: RequirePermission.staticFields({ permission: 'SCREEN_ADMIN' }),
-    read: RequirePermission.staticFields({ permission: 'SCREEN_READ' }),
-    readAll: RequirePermission.staticFields({ permission: 'SCREEN_READ' }),
-    update: RequirePermission.staticFields({ permission: 'SCREEN_ADMIN' }),
+    create: Require.permission('SCREEN_ADMIN'),
+    destroy: Require.permission('SCREEN_ADMIN'),
+    read: Require.permission('SCREEN_USE'),
+    readAll: Require.permission('SCREEN_USE'),
+    update: Require.permission('SCREEN_ADMIN'),
 } as const

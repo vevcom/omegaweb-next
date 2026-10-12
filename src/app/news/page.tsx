@@ -1,6 +1,7 @@
 import styles from './page.module.scss'
 import AddNews from './AddNews'
 import CurrentNews from './CurrentNews'
+import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import ArchiveLink from '@/components/HeaderItems/ArchiveLink'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -10,7 +11,7 @@ export default async function NewsArtilces() {
     const canCreateNews = true //temp
 
     return (
-        <PageWrapper title="Nyheter"
+        <PageWrapper
             headerItem={
                 <div className={styles.head}>
                     <ArchiveLink href="news/archive" />
@@ -24,6 +25,7 @@ export default async function NewsArtilces() {
                 </div>
             }
         >
+            <PageTitleSetter title="Nyheter" />
             <main className={styles.wrapper}>
                 <CurrentNews />
             </main>

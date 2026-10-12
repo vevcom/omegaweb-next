@@ -2,9 +2,6 @@
 import { newStudentOperations } from './operations'
 import { makeAction } from '@/services/serverAction'
 
-export const readNewStudentArticleAction = makeAction(
-    newStudentOperations.read
-)
 export const updateNewStudentArticleAction = makeAction(
     newStudentOperations.update.update
 )

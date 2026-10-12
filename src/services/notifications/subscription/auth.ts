@@ -1,6 +1,8 @@
-import { RequireUserIdOrPermission } from '@/auth/authorizer/RequireUserIdOrPermission'
+import { Require } from '@/auth/authorizer/Require'
+
+const userIdOrNotificationAdmin = Require.permission('NOTIFICATION_ADMIN').or().userId()
 
 export const notificationSubscriptionAuth = {
-    read: RequireUserIdOrPermission.staticFields({ permission: 'NOTIFICATION_SUBSCRIPTION_READ' }),
-    update: RequireUserIdOrPermission.staticFields({ permission: 'NOTIFICATION_SUBSCRIPTION_UPDATE' }),
-}
+    read: userIdOrNotificationAdmin,
+    update: userIdOrNotificationAdmin,
+} as const

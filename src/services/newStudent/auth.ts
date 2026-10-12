@@ -1,7 +1,6 @@
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
-import { RequirePermission } from '@/auth/authorizer/RequirePermission'
+import { Require } from '@/auth/authorizer/Require'
 
 export const newStudentAuth = {
-    read: RequireNothing.staticFields({}),
-    update: RequirePermission.staticFields({ permission: 'NEW_STUDENT_ADMIN' })
+    read: Require.nothing(),
+    update: Require.permission('NEW_STUDENT_ADMIN')
 } as const

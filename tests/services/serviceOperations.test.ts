@@ -1,8 +1,7 @@
-import { RequireNothing } from '@/auth/authorizer/RequireNothing'
+import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
 import { defineOperation } from '@/services/serviceOperation'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
-import { AuthorizerFactory } from '@/auth/authorizer/Authorizer'
 import { describe, expect, test } from '@jest/globals'
 import { z } from 'zod'
 
@@ -11,12 +10,11 @@ describe('service operation', () => {
         const addPositiveOnly = defineOperation({
             authorizer: ({ data: { a, b } }) => {
                 if (a < 0 || b < 0) {
-                    return AuthorizerFactory(
-                        ({ session }) => ({ success: false, session })
-                    ).staticFields({}).dynamicFields({})
+                    // The bare `Require` entry point has no rules chained onto it, so it always denies.
+                    return Require
                 }
 
-                return RequireNothing.staticFields({}).dynamicFields({})
+                return Require.nothing()
             },
             dataSchema: z.object({
                 a: z.number(),
@@ -61,13 +59,13 @@ describe('service operation', () => {
     describe('nested', () => {
         // Simple service operation that just returns its own context
         const inner = defineOperation({
-            authorizer: () => RequireNothing.staticFields({}).dynamicFields({}),
+            authorizer: () => Require.nothing(),
             operation: async (context) => context,
         })
 
         // Outer service operation that calls the inner one and returns its context
         const outer = defineOperation({
-            authorizer: () => RequireNothing.staticFields({}).dynamicFields({}),
+            authorizer: () => Require.nothing(),
             operation: async () => await inner({}),
         })
 

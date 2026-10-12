@@ -1,6 +1,7 @@
 import styles from './page.module.scss'
 import CreateJobAdForm from './CreateJobAdForm'
 import CurrentJobAds from './CurrentJobAds'
+import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import ArchiveLink from '@/components/HeaderItems/ArchiveLink'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -9,7 +10,7 @@ import CompanySelectionProvider from '@/contexts/CompanySelection'
 
 export default async function JobAds() {
     return (
-        <PageWrapper title="Jobbannonser"
+        <PageWrapper
             headerItem={
                 <div className={styles.head}>
                     <AddHeaderItemPopUp popUpKey={'jobAdForm'}>
@@ -29,6 +30,7 @@ export default async function JobAds() {
                     <ArchiveLink href="/career/jobads/archive" />
                 </div>
             }>
+            <PageTitleSetter title="Jobbannonser" />
             <div className={styles.wrapper}>
                 <CurrentJobAds/>
             </div>

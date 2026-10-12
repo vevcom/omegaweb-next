@@ -1,30 +1,37 @@
-'use server'
 import styles from './page.module.scss'
 import NotificationSettings from './notificationSettings'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
-import { readNotificationChannelsAction, readNotificationSubscriptionsAction } from '@/services/notifications/actions'
-import type { PropTypes } from '@/app/users/[username]/page'
+import { notificationChannelOperations } from '@/services/notifications/channel/operations'
+import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default async function Notififcations({ params }: PropTypes) {
-    const { profile } = await getProfileForUserPage(await params, 'notifications')
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
+        const { profile } = await getProfileForUserPage(params, 'notifications', session)
 
-    const [channels, subscriptions] = await Promise.all([
-        readNotificationChannelsAction(),
-        readNotificationSubscriptionsAction({
-            params: {
-                userId: profile.user.id
-            },
-        }),
-    ])
+        const [channels, subscriptions] = await Promise.all([
+            notificationChannelOperations.readMany({}),
+            notificationSubscriptionOperations.read({
+                params: {
+                    userId: profile.user.id
+                },
+            }),
+        ])
 
-    if (!channels.success || !subscriptions.success) {
-        throw new Error('Kunne ikke laste kanaler eller abonnementer')
-    }
-
-    return (
+        return { profile, channels, subscriptions }
+    },
+    render: ({ data }) => (
         <div className={styles.wrapper}>
             <h2>Notifikasjoner</h2>
-            <NotificationSettings user={profile.user} channels={channels.data} subscriptions={subscriptions.data} />
+            <NotificationSettings
+                user={data.profile.user}
+                channels={data.channels}
+                subscriptions={data.subscriptions}
+            />
         </div>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

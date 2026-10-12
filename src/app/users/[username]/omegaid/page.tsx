@@ -1,4 +1,3 @@
-'use server'
 import styles from './page.module.scss'
 import { ServerSession } from '@/auth/session/ServerSession'
 import OmegaId from '@/components/OmegaId/identification/OmegaId'
