@@ -17,7 +17,7 @@ export default function JobAd({ jobAd }: PropTypes) {
 
     return (
         <Link
-            href={`/career/jobads/${formatVevenUri(jobAd.articleName, jobAd.id)}`}
+            href={`/career/job-ads/${formatVevenUri(jobAd.articleName, jobAd.id)}`}
             className={styles.JobAd}
         >
             <div className={styles.thumb}>

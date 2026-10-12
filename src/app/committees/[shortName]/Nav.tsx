@@ -17,7 +17,7 @@ export default function Nav({ shortName, groupId }: PropTypes) {
     }).authorized
 
     const adminPath = `/committees/${shortName}/admin`
-    const readPeriodesPath = `/committees/${shortName}/applicationPeriods`
+    const readPeriodesPath = `/committees/${shortName}/application-periods`
     const membersPath = `/committees/${shortName}/members`
     const aboutPath = `/committees/${shortName}/about`
 

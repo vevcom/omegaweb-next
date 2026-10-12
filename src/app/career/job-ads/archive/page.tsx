@@ -10,7 +10,7 @@ import Link from 'next/link'
 export default async function JobAdsArchive() {
     return (
         <PageWrapper headerItem={
-            <Link href="/career/jobads" className={styles.backLink}>
+            <Link href="/career/job-ads" className={styles.backLink}>
                 <FontAwesomeIcon icon={faArrowLeft} />
             </Link>
         }>

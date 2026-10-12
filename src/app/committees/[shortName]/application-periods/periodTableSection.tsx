@@ -26,7 +26,7 @@ export function PeriodSection({ period, shortName }: { period: CommitteeParticip
                 kl: {period.endPriorityDate.toLocaleTimeString('en-GB')}
             </td>
             <td className={entriesClassName} >
-                <Link href={`/committees/${shortName}/applicationPeriods/${period.participationId}`} >
+                <Link href={`/committees/${shortName}/application-periods/${period.participationId}`} >
                     <FontAwesomeIcon icon={faLink}>
                     </FontAwesomeIcon>
                 </Link>

@@ -35,7 +35,7 @@ const { page, generateMetadata } = serverPage({
                             </CompanyPagingProvider>
                         </AddHeaderItemPopUp>
                     )}
-                    <ArchiveLink href="/career/jobads/archive" />
+                    <ArchiveLink href="/career/job-ads/archive" />
                 </div>
             }>
             <div className={styles.wrapper}>

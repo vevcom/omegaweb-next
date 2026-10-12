@@ -95,7 +95,7 @@ export const adminNavDef: AdminNavGroup[] = [
             },
             {
                 title: 'Omegas tilstand',
-                path: 'stateOfOmega',
+                path: 'state-of-omega',
                 authorizers: () => [omegaOrderAuth.create],
             },
         ],

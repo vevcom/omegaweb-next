@@ -12,7 +12,7 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
         // The page's whole point is incrementing the order, so it is gated on `create`
         // rather than the read auth the operations themselves enforce.
-        authorizeAdminPage('stateOfOmega', session)
+        authorizeAdminPage('state-of-omega', session)
 
         const [currentOrder, requirements] = await Promise.all([
             omegaOrderOperations.readCurrent({}),

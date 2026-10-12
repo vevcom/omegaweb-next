@@ -53,7 +53,7 @@ const { page, generateMetadata } = serverPage({
                     updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfoAction}
                 />
                 <span className={styles.links}>
-                    <Link href="/career/jobads">
+                    <Link href="/career/job-ads">
                         <StandardImageServer
                             disableLinkingToLicense
                             className={styles.linkImage}
