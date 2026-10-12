@@ -13,9 +13,9 @@ import {
 } from '@/services/dots/freezePeriods/actions'
 import { dotFreezePeriodOperations } from '@/services/dots/freezePeriods/operations'
 import { dotFreezePeriodAuth } from '@/services/dots/freezePeriods/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const createPopUpKey = 'createDotFreezePeriod'
 

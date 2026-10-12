@@ -1,8 +1,8 @@
 import styles from './page.module.scss'
 import Countdown from './Countdown'
 import { applicationPeriodOperations } from '@/services/applications/periods/operations'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ periodName: string }>) =>

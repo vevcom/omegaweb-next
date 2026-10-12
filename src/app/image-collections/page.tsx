@@ -7,8 +7,8 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import { dynamicImageOperations } from '@/services/images/dynamic/operations'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 import type { PageSizeDynamicImageCollection } from '@/contexts/paging/DynamicImageCollectionPaging'
 
 const pageSize: PageSizeDynamicImageCollection = 12

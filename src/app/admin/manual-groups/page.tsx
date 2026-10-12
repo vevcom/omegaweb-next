@@ -4,7 +4,7 @@ import DestroyManualGroup from './DestroyManualGroup'
 import { manualGroupOperations } from '@/services/groups/manualGroups/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import PopUp from '@/components/PopUp/PopUp'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
@@ -12,7 +12,7 @@ import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

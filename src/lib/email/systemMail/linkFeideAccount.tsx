@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { sendMailOperations } from '@/services/notifications/send-mail/operations'
+import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { LinkFeideAccountTemplate } from '@/lib/email/templates/linkFeideAccount'
 import { generateJWT } from '@/jwt/jwt'
 import { QueryParams } from '@/lib/queryParams/queryParams'

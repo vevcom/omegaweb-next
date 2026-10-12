@@ -5,9 +5,9 @@ import PageTitleSetter from '@/contexts/PageTitleSetter'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import CommitteeImage from '@/components/Committee/CommitteeImage/CommitteeImage'
 import { committeeAuth } from '@/services/groups/committees/auth'
-import { serverLayout } from '@/app/serverPage'
+import { serverLayout } from '@/app/ServerPage'
 import { Require } from '@/auth/authorizer/Require'
-import type { LayoutOperationArgs } from '@/app/serverPage'
+import type { LayoutOperationArgs } from '@/app/ServerPage'
 
 export default serverLayout({
     operation: async ({ params }: LayoutOperationArgs<{ shortName: string }>) => ({

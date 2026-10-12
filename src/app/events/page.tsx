@@ -11,9 +11,9 @@ import { eventTagOperations } from '@/services/events/tags/operations'
 import { eventTagAuth } from '@/services/events/tags/auth'
 import { eventAuth } from '@/services/events/auth'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ searchParams }: PageOperationArgs) => {

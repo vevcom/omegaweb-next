@@ -1,6 +1,6 @@
 import JobAd from './JobAd'
 import { jobAdOperations } from '@/services/career/jobAds/operations'
-import { withPageSession } from '@/app/serverPage'
+import { withPageSession } from '@/app/ServerPage'
 
 type PropTypes = {
     not?: number

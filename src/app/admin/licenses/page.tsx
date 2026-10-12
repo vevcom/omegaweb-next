@@ -8,12 +8,12 @@ import {
 } from '@/services/licenses/actions'
 import { licenseOperations } from '@/services/licenses/operations'
 import { licenseAuth } from '@/services/licenses/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import TextInput from '@/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

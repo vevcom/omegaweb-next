@@ -1,9 +1,9 @@
-import MailForm from './mailForm'
+import MailForm from './MailForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { sendMailAuth } from '@/services/notifications/send-mail/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     // The page reads nothing - the operation only gates it.

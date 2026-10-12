@@ -244,13 +244,13 @@ Server components do the opposite: pages, layouts and other server components im
 
 #### Pages: `serverPage`
 
-Pages are built with `serverPage` from `@/app/serverPage` (trimmed from `src/app/news/[nameAndId]/page.tsx`):
+Pages are built with `serverPage` from `@/app/ServerPage` (trimmed from `src/app/news/[nameAndId]/page.tsx`):
 
 ```tsx
 import { newsOperations } from '@/services/news/operations'
 import { newsAuth } from '@/services/news/auth'
-import { serverPage, withFallback } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) => {
@@ -286,7 +286,7 @@ export { generateMetadata }
 
 #### Layouts: `serverLayout`
 
-Layouts that load data are built with `serverLayout`, also from `@/app/serverPage`. It is `serverPage` for layouts — the operation gets `params` and `session` (layouts have no `searchParams`), and `render` also receives `children`:
+Layouts that load data are built with `serverLayout`, also from `@/app/ServerPage`. It is `serverPage` for layouts — the operation gets `params` and `session` (layouts have no `searchParams`), and `render` also receives `children`:
 
 ```tsx
 export default serverLayout({
@@ -302,7 +302,7 @@ The root layout is the exception. It renders the document itself, so it has noth
 
 #### Other server components: `withPageSession`
 
-Server components rendered inside a page (cards, sections) wrap their operation calls in `withPageSession(async session => ...)` from `@/app/serverPage`, which sets up the same service context. Errors are not handled there: wrap calls in `withFallback`, catch them with `handleServiceError`, or let them reach the error boundary.
+Server components rendered inside a page (cards, sections) wrap their operation calls in `withPageSession(async session => ...)` from `@/app/ServerPage`, which sets up the same service context. Errors are not handled there: wrap calls in `withFallback`, catch them with `handleServiceError`, or let them reach the error boundary.
 
 #### Actions in client components
 

@@ -6,8 +6,8 @@ import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
 import { Require } from '@/auth/authorizer/Require'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

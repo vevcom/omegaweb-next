@@ -3,10 +3,10 @@ import CreateOrder from './CreateOrder'
 import Requirements from './Requirements'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { omegaOrderAuth } from '@/services/omegaOrder/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Date from '@/components/Date/Date'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

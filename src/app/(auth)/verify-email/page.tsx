@@ -1,10 +1,10 @@
 import { EmailVerifiedWrapper } from './EmailVerifiedWrapper'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { authOperations } from '@/services/auth/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     allowUnregistered: true,

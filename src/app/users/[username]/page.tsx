@@ -10,7 +10,7 @@ import { userAuth } from '@/services/users/auth'
 import { configureAction } from '@/services/configureAction'
 import { sexConfig } from '@/services/users/constants'
 import { flairOperations } from '@/services/flairs/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import UserNavBar from '@/app/users/[username]/UserNavBar'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -22,7 +22,7 @@ import {
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import React from 'react'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 export type PropTypes = {
     params: Promise<{

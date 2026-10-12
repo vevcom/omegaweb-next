@@ -1,10 +1,10 @@
-import NotificationForm from './notificationForm'
+import NotificationForm from './NotificationForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
 import { notificationAuth } from '@/services/notifications/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

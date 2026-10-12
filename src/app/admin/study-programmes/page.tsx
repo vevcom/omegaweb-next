@@ -1,13 +1,13 @@
-import UpdateStudyProgrammeForm from './updateStudyProgrammeForm'
-import StudyProgrammeTableBody from './studyProgrammeTable'
+import UpdateStudyProgrammeForm from './UpdateStudyProgrammeForm'
+import StudyProgrammeTableBody from './StudyProgrammeTableBody'
 import styles from './page.module.scss'
 import { studyProgrammeOperations } from '@/services/groups/studyProgrammes/operations'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

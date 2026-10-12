@@ -7,10 +7,10 @@ import { flairOperations } from '@/services/flairs/operations'
 import { flairAuth } from '@/services/flairs/auth'
 import Form from '@/components/Form/Form'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import Flair from '@/components/Flair/Flair'
 import { configureAction } from '@/services/configureAction'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {

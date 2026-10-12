@@ -2,10 +2,10 @@ import styles from './page.module.scss'
 import PermissionCheckbox from './PermissionCheckbox'
 import { permissionConfig } from '@/services/permissions/constants'
 import { permissionOperations } from '@/services/permissions/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import type { Permission } from '@/prisma-generated-pn-types'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

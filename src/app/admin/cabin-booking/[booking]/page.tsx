@@ -1,12 +1,12 @@
 import { cabinBookingOperations } from '@/services/cabin/booking/operations'
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { displayDate } from '@/lib/dates/displayDate'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import Link from 'next/link'
 import React from 'react'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 function trHelper(key: string, value: React.ReactNode) {
     return <tr>

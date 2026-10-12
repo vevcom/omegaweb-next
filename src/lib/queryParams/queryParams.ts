@@ -5,8 +5,8 @@ import {
     NumberQueryParam,
     StringArrayQueryParam,
     StringQueryParam,
-} from './QueryParam'
-import type { QueryParam } from './QueryParam'
+} from './queryParam'
+import type { QueryParam } from './queryParam'
 export const QueryParams = {
     eventTags: new StringArrayQueryParam('event-tags'),
     onlyActive: new BooleanQueryParam('only-active'),

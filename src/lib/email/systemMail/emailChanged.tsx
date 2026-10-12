@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { EmailChangedTemplate } from '@/lib/email/templates/emailChanged'
-import { sendMailOperations } from '@/services/notifications/send-mail/operations'
+import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import logger from '@/lib/logger'
 import type { UserBasicWithEmail } from '@/services/users/types'
 

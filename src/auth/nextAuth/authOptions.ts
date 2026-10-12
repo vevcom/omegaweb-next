@@ -4,7 +4,7 @@ import { feideLoginMayLinkByEmail } from './feideEmailLinking'
 import { compressJwt, decompressJwt } from './jwtCompression'
 import { permissionsMaxAge } from './constants'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
-import FeideProvider from '@/lib/feide/FeideProvider'
+import FeideProvider from '@/lib/feide/feideProvider'
 import { fetchStudyProgrammeRealmsFromFeide } from '@/lib/feide/api'
 import {
     inferClassFromStudyProgrammes,

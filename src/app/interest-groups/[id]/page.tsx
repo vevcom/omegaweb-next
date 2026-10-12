@@ -10,7 +10,7 @@ import {
 import { interestGroupOperations } from '@/services/groups/interestGroups/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import MigrateGroup from '@/components/Group/MigrateGroup'
 import ManageGroupMembers from '@/components/Group/ManageGroupMembers'
@@ -18,7 +18,7 @@ import PensionGroup from '@/components/Group/PensionGroup'
 import { groupMembersByOrder } from '@/components/Group/groupMembersByOrder'
 import UserCard from '@/components/User/UserCard'
 import { notFound } from 'next/navigation'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ id: string }>) => {
