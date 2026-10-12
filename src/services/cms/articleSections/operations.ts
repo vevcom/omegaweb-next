@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { articleSectionParamsSchemas, articleSectionSchemas } from './schemas'
 import { articleSectionParts, articleSectionsRelationsIncluder } from './constants'
+import { createArticleSectionPart } from './createPart'
 import { ServiceError } from '@/services/error'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
@@ -9,7 +10,6 @@ import {
     defineSubOperation,
 } from '@/services/serviceOperation'
 import type { ArticleSectionPart } from './types'
-import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
 /** An article section is addressed by id or by name. */
@@ -22,34 +22,6 @@ const destroyPart = {
     cmsParagraph: (id: number) => cmsParagraphOperations.destroy.internalCall({ params: { paragraphId: id } }),
     cmsLink: (id: number) => cmsLinkOperations.destroy.internalCall({ params: { linkId: id } }),
 } as const satisfies Record<ArticleSectionPart, (id: number) => Promise<void>>
-
-/** Creates an empty part of each kind through its own service, and connects it to the section. */
-const createPart = {
-    cmsImage: async (prisma: Prisma.TransactionClient) => ({
-        cmsImage: { connect: { id: (await cmsImageOperations.create.internalCall({
-            data: {},
-            prisma,
-            operationImplementationFields: { special: null },
-        })).id } },
-    }),
-    cmsParagraph: async (prisma: Prisma.TransactionClient) => ({
-        cmsParagraph: { connect: { id: (await cmsParagraphOperations.create.internalCall({
-            data: {},
-            prisma,
-            operationImplementationFields: { special: null },
-        })).id } },
-    }),
-    cmsLink: async (prisma: Prisma.TransactionClient) => ({
-        cmsLink: { connect: { id: (await cmsLinkOperations.create.internalCall({
-            data: { text: 'lenke', url: './' },
-            prisma,
-            operationImplementationFields: { special: null },
-        })).id } },
-    }),
-} as const satisfies Record<
-    ArticleSectionPart,
-    (prisma: Prisma.TransactionClient) => Promise<Prisma.ArticleSectionUpdateInput>
->
 
 const create = defineSubOperation({
     dataSchema: () => articleSectionSchemas.create,
@@ -121,7 +93,7 @@ export const articleSectionOperations = {
 
             return tx.articleSection.update({
                 where,
-                data: await createPart[data.part](tx),
+                data: await createArticleSectionPart[data.part](tx),
                 include: articleSectionsRelationsIncluder,
             })
         }),
