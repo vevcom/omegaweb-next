@@ -2,12 +2,12 @@ import '@pn-server-only'
 import { companyAuth } from './auth'
 import {
     companySponsorOrdering,
-    companySponsorTierLockKey,
     logoIncluder,
     sponsorSelection,
 } from './constants'
 import { companySchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
+import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
@@ -79,7 +79,7 @@ export const companyOperations = {
         opensTransaction: true,
         operation: async ({ prisma, params: { id }, data: { sponsorTier } }) =>
             await prisma.$transaction(async tx => {
-                await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(${companySponsorTierLockKey}::bigint)`
+                await takeAdvisoryLock(tx, 'companySponsorTier')
 
                 if (sponsorTier === CompanySponsorTier.MAIN) {
                     await tx.company.updateMany({

@@ -1,4 +1,5 @@
 import { dateMatchCron } from '@/lib/dates/cron'
+import { ServiceError } from '@/services/error'
 import type { CabinProductExtended, CabinProductPriceExtended } from '@/services/cabin/product/constants'
 import type { CabinProduct, CabinProductPrice, PricePeriod } from '@/prisma-generated-pn-types'
 
@@ -29,7 +30,7 @@ function matchPriceForDay({
 }) {
     const currentPricePeriod = pricePeriods.findLast(period => period.validFrom <= day)
     if (!currentPricePeriod) {
-        throw new Error('Could not find a price period for all the selected days')
+        throw new ServiceError('BAD PARAMETERS', 'Det finnes ingen prisperiode for alle de valgte dagene.')
     }
 
     const filtered = prices.filter(price => {
@@ -49,7 +50,7 @@ function matchPriceForDay({
     })
 
     if (filtered.length === 0) {
-        throw new Error(`No available price for the day ${day}`)
+        throw new ServiceError('BAD PARAMETERS', `Det finnes ingen pris for ${day.toISOString().slice(0, 10)}.`)
     }
 
     const sorted = filtered.sort((a, b) => a.price - b.price)
