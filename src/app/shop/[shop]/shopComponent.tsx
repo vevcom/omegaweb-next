@@ -4,7 +4,6 @@ import styles from './shopComponent.module.scss'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { displayAmount } from '@/lib/currency/convert'
 import { useState } from 'react'
-import { unwrapActionReturn } from '@/app/redirectToErrorPage'
 import type { Dispatch, SetStateAction } from 'react'
 import type { ExtendedShop } from '@/services/shop/shop/types'
 import type { ExtendedProduct } from '@/services/shop/product/types'
@@ -22,7 +21,6 @@ type receiptType = {
     remainingBalance: number;
 }
 
-
 type EditShoppingCartType = Dispatch<SetStateAction<PurchaseOrderType>>
 
 export default function ShopUI({ userId, shopData }: { userId: number; shopData: ExtendedShop }) {
@@ -39,9 +37,7 @@ export default function ShopUI({ userId, shopData }: { userId: number; shopData:
     })
     const [receipt, editReceipt] = useState<receiptType | null>(null)
 
-    return <PageWrapper
-        title={shopData.name}
-    >
+    return <PageWrapper>
         <p>{shopData.description}</p>
         <table className={styles.table}>
             <thead>
@@ -136,7 +132,7 @@ async function createPurchase(
         })
     )
 
-    const purchaseResult = unwrapActionReturn(await createPurchaseAction(
+    const purchaseResult = await createPurchaseAction(
         { params: { userId } },
         {
             data: {
@@ -144,13 +140,14 @@ async function createPurchase(
                 products: products.filter(product => product.quantity > 0),
             },
         }
-    ))
-    editReceipt({
-        products: purchaseResult.productList,
-        remainingBalance: purchaseResult.remainingBalance,
-    })
+    )
 
-
+    if (purchaseResult.success) {
+        editReceipt({
+            products: purchaseResult.data.productList.map(product => ({ ...product, active: true })),
+            remainingBalance: purchaseResult.data.remainingBalance,
+        })
+    }
 }
 
 function addProduct(product: ExtendedProduct, shoppingCart: PurchaseOrderType, editShoppingCart: EditShoppingCartType) {

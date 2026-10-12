@@ -53,5 +53,27 @@ export const shopOperations = {
             return ret
         }
     }),
+
+    connectToLedger: defineOperation({
+        authorizer: () => shopAuth.connectToLedger,
+        paramsSchema: z.object({
+            ledgerId: z.number().int(),
+            shopId: z.number().int()
+        }),
+        operation: async ({ prisma, params }) =>
+            await prisma.ledgerAccount.update({
+                where: {
+                    id: params.ledgerId,
+                    type: 'GROUP',
+                },
+                data: {
+                    shop: {
+                        connect: {
+                            id: params.shopId
+                        }
+                    }
+                }
+            })
+    })
 }
 

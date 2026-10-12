@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { purchaseAuth } from './auth'
 import { purchaseSchemas } from './schemas'
-import { ServerError } from '@/services/error'
+import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { userOperations } from '@/services/users/operations'
 import { permissionOperations } from '@/services/permissions/operations'
@@ -25,7 +25,7 @@ const createPurchase = defineSubOperation({
     opensTransaction: true,
     operation: ({ method }: { method: PurchaseMethod }) => async ({ prisma, params, data }) => {
         if (data.products.length === 0) {
-            throw new ServerError('BAD PARAMETERS', 'The list of products to buy cannot be empty')
+            throw new ServiceError('BAD PARAMETERS', 'The list of products to buy cannot be empty')
         }
 
         const user = await prisma.user.findUniqueOrThrow({
@@ -40,7 +40,7 @@ const createPurchase = defineSubOperation({
             select: { ledgerAccountId: true },
         })
         if (!shop.ledgerAccountId) {
-            throw new ServerError('SERVER ERROR', 'Denne butikken har ingen tilknyttet konto.')
+            throw new ServiceError('SERVER ERROR', 'Denne butikken har ingen tilknyttet konto.')
         }
 
         // Find the price of the different products
@@ -55,7 +55,7 @@ const createPurchase = defineSubOperation({
         })
 
         if (productPrices.length !== data.products.length) {
-            throw new ServerError(
+            throw new ServiceError(
                 'BAD PARAMETERS',
                 'The product list contains invalid product ids for the specified shop'
             )
@@ -74,7 +74,7 @@ const createPurchase = defineSubOperation({
 
         const totalPrice = productList.reduce((sum, product) => sum + product.price * product.quantity, 0)
 
-        const buyerAccount = await ledgerAccountOperations.readOrCreate({
+        const buyerAccount = await ledgerAccountOperations.read({
             params: { userId: user.id },
             bypassAuth: true,
         })
@@ -118,7 +118,7 @@ const createPurchase = defineSubOperation({
             })
 
             if (transaction.state === 'FAILED') {
-                throw new ServerError(
+                throw new ServiceError(
                     'BAD PARAMETERS',
                     transaction.reason ?? 'Kjøpet kunne ikke fullføres.'
                 )
@@ -140,7 +140,7 @@ const createPurchase = defineSubOperation({
 
 export const purchaseOperations = {
     create: createPurchase.implement({
-        authorizer: ({ params }) => purchaseAuth.create.dynamicFields({ userId: params.userId }),
+        authorizer: ({ params }) => purchaseAuth.create.data({ userId: params.userId }),
         ownershipCheck: () => true,
         operationImplementationFields: { method: PurchaseMethod.WEB },
     }),

@@ -28,6 +28,8 @@ const { page, generateMetadata } = serverPage({
         const existingProductIds = new Set(shopData.products.map(product => product.id))
         const unconnectedProducts = allProducts.filter(product => !existingProductIds.has(product.id))
 
+        const groupLedgers =
+
         return { shopId, shopData, unconnectedProducts }
     },
     metadata: (data) => ({ title: data.shopData.name }),
