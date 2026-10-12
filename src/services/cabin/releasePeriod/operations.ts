@@ -24,7 +24,7 @@ export const cabinReleasePeriodOperations = {
                 throw new ServiceError('BAD DATA', 'Et nytt slipp, må slippe flere datoer enn det forrige slippet.')
             }
 
-            await prisma.releasePeriod.create({
+            return prisma.releasePeriod.create({
                 data,
             })
         }
@@ -72,15 +72,45 @@ export const cabinReleasePeriodOperations = {
         })
     }),
 
+    /**
+     * Changes a release that has not happened yet. The releases stay in order: each one releases
+     * later, and further, than the one before it, as `create` requires of a new one.
+     */
     update: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.update,
         paramsSchema: cabinReleasePeriodParamsSchemas.update,
         dataSchema: cabinReleasePeriodSchemas.update,
-        operation: async ({ prisma, params, data }) => prisma.releasePeriod.update({
-            where: {
-                id: params.id,
-            },
-            data,
-        })
+        operation: async ({ prisma, params, data }) => {
+            const releasePeriod = await prisma.releasePeriod.findUniqueOrThrow({
+                where: params,
+            })
+
+            if (releasePeriod.releaseTime < new Date()) {
+                throw new ServiceError('BAD PARAMETERS', 'Kan ikke endre en slippgruppe som har blitt publisert.')
+            }
+
+            const [previous, next] = await Promise.all([
+                prisma.releasePeriod.findFirst({
+                    where: { id: { not: params.id }, releaseTime: { lte: releasePeriod.releaseTime } },
+                    orderBy: { releaseTime: 'desc' },
+                }),
+                prisma.releasePeriod.findFirst({
+                    where: { id: { not: params.id }, releaseTime: { gt: releasePeriod.releaseTime } },
+                    orderBy: { releaseTime: 'asc' },
+                }),
+            ])
+
+            if (previous && (previous.releaseTime > data.releaseTime || previous.releaseUntil >= data.releaseUntil)) {
+                throw new ServiceError('BAD DATA', 'Slippet må slippes etter, og slippe flere datoer enn, slippet før det.')
+            }
+            if (next && (next.releaseTime < data.releaseTime || next.releaseUntil <= data.releaseUntil)) {
+                throw new ServiceError('BAD DATA', 'Slippet må slippes før, og slippe færre datoer enn, slippet etter det.')
+            }
+
+            return prisma.releasePeriod.update({
+                where: params,
+                data,
+            })
+        }
     }),
 } as const

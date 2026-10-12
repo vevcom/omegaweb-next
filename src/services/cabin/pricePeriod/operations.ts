@@ -132,15 +132,54 @@ export const cabinPricePeriodOperations = {
         }
     }),
 
+    /**
+     * Moves a price period that is not published. It stays after the released dates, as `create`
+     * requires of a new one, and between its neighbours, so every day still falls in the period it
+     * was priced by.
+     */
     update: defineOperation({
         authorizer: () => cabinPricePeriodAuth.update,
         dataSchema: cabinPricePeriodSchemas.update,
         paramsSchema: cabinPricePeriodParamsSchemas.update,
-        operation: async ({ prisma, data, params }) => prisma.pricePeriod.update({
-            where: {
-                id: params.id,
-            },
-            data,
-        })
+        operation: async ({ prisma, data, params }) => {
+            const currentReleasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
+
+            const pricePeriod = await prisma.pricePeriod.findUniqueOrThrow({
+                where: params,
+            })
+
+            if (currentReleasePeriod && pricePeriod.validFrom <= currentReleasePeriod.releaseUntil) {
+                throw new ServiceError('BAD PARAMETERS', 'Kan ikke endre en pris periode som er publisert.')
+            }
+            if (currentReleasePeriod && data.validFrom <= currentReleasePeriod.releaseUntil) {
+                throw new ServiceError(
+                    'BAD DATA',
+                    'Kan ikke sette en pris periode til å være gyldig når datoene allerede er sluppet.'
+                )
+            }
+
+            const [previous, next] = await Promise.all([
+                prisma.pricePeriod.findFirst({
+                    where: { id: { not: params.id }, validFrom: { lt: pricePeriod.validFrom } },
+                    orderBy: { validFrom: 'desc' },
+                }),
+                prisma.pricePeriod.findFirst({
+                    where: { id: { not: params.id }, validFrom: { gt: pricePeriod.validFrom } },
+                    orderBy: { validFrom: 'asc' },
+                }),
+            ])
+
+            if ((previous && previous.validFrom >= data.validFrom) || (next && next.validFrom <= data.validFrom)) {
+                throw new ServiceError(
+                    'BAD DATA',
+                    'Pris perioden må starte etter perioden før den, og før perioden etter den.'
+                )
+            }
+
+            return prisma.pricePeriod.update({
+                where: params,
+                data,
+            })
+        }
     }),
 } as const
