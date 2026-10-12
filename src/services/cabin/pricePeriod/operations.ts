@@ -1,17 +1,20 @@
 import '@pn-server-only'
 import { cabinPricePeriodAuth } from './auth'
-import { cabinPricePeriodSchemas } from './schemas'
+import { cabinPricePeriodParamsSchemas, cabinPricePeriodSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { ServiceError } from '@/services/error'
-import { z } from 'zod'
 
 export const cabinPricePeriodOperations = {
     create: defineOperation({
         authorizer: () => cabinPricePeriodAuth.create,
-        dataSchema: cabinPricePeriodSchemas.createPricePeriod,
-        operation: async ({ prisma, data }) => {
-            const currentReleaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
+        dataSchema: cabinPricePeriodSchemas.create,
+        opensTransaction: true,
+        operation: async ({ prisma, data }) => prisma.$transaction(async (tx) => {
+            const currentReleaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
+                bypassAuth: true,
+                prisma: tx,
+            })
 
             if (currentReleaseDate && currentReleaseDate.releaseUntil >= data.validFrom) {
                 throw new ServiceError(
@@ -20,7 +23,7 @@ export const cabinPricePeriodOperations = {
                 )
             }
 
-            const latestPricePeriod = await prisma.pricePeriod.findFirst({
+            const latestPricePeriod = await tx.pricePeriod.findFirst({
                 orderBy: {
                     validFrom: 'desc',
                 },
@@ -31,20 +34,20 @@ export const cabinPricePeriodOperations = {
                 throw new ServiceError('BAD DATA', 'Kan ikke sette en pris periode til å være gyldig før en annen periode.')
             }
 
-            const result = await prisma.pricePeriod.create({
+            const result = await tx.pricePeriod.create({
                 data: {
                     validFrom: data.validFrom
                 }
             })
 
             if (data.copyPreviousPrices && latestPricePeriod) {
-                const products = await prisma.cabinProductPrice.findMany({
+                const products = await tx.cabinProductPrice.findMany({
                     where: {
                         pricePeriodId: latestPricePeriod.id,
                     }
                 })
 
-                await prisma.cabinProductPrice.createMany({
+                await tx.cabinProductPrice.createMany({
                     data: products.map(product => ({
                         ...product,
                         id: undefined,
@@ -54,14 +57,12 @@ export const cabinPricePeriodOperations = {
             }
 
             return result
-        }
+        }),
     }),
 
     destroy: defineOperation({
         authorizer: () => cabinPricePeriodAuth.destroy,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: cabinPricePeriodParamsSchemas.destroy,
         operation: async ({ prisma, params }) => {
             const currentReleasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 
@@ -133,13 +134,11 @@ export const cabinPricePeriodOperations = {
 
     update: defineOperation({
         authorizer: () => cabinPricePeriodAuth.update,
-        dataSchema: cabinPricePeriodSchemas.updatePricePeriod,
-        paramsSchema: z.object({
-            pricePeriodId: z.number(),
-        }),
+        dataSchema: cabinPricePeriodSchemas.update,
+        paramsSchema: cabinPricePeriodParamsSchemas.update,
         operation: async ({ prisma, data, params }) => prisma.pricePeriod.update({
             where: {
-                id: params.pricePeriodId,
+                id: params.id,
             },
             data,
         })

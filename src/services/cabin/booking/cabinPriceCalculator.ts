@@ -1,6 +1,6 @@
 import { dateMatchCron } from '@/lib/dates/cron'
 import { ServiceError } from '@/services/error'
-import type { CabinProductExtended, CabinProductPriceExtended } from '@/services/cabin/product/constants'
+import type { CabinProductExtended, CabinProductPriceExtended } from '@/services/cabin/product/types'
 import type { CabinProduct, CabinProductPrice, PricePeriod } from '@/prisma-generated-pn-types'
 
 function getDateArray(start: Date, end: Date) {

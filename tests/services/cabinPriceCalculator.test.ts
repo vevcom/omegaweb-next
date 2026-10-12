@@ -3,7 +3,7 @@ import {
     calculateTotalCabinBookingPrice,
 } from '@/services/cabin/booking/cabinPriceCalculator'
 import { describe, expect, test } from '@jest/globals'
-import type { CabinProductExtended } from '@/services/cabin/product/constants'
+import type { CabinProductExtended } from '@/services/cabin/product/types'
 import type { PricePeriod } from '@/prisma-generated-pn-types'
 
 const date = (day: string) => new Date(`${day}T00:00:00Z`)
