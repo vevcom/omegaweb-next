@@ -1,10 +1,15 @@
-export enum ThemeName {
-    Standard = 'Standard',
-    Light = 'Light',
-    Solarized = 'Solarized',
-    StjerneInnbygger = 'StjerneInnbygger',
-    HotDogStand = 'Pølsebod',
-    owBasic = 'Alt var bedre før',
+import { Theme } from '@/prisma-generated-pn-types'
+import type { CSSProperties } from 'react'
+
+export { Theme }
+
+export const themeLabels: Record<Theme, string> = {
+    [Theme.STANDARD]: 'Standard',
+    [Theme.LIGHT]: 'Light',
+    [Theme.SOLARIZED]: 'Solarized',
+    [Theme.STJERNE_INNBYGGER]: 'Stjerneinnbygger',
+    [Theme.HOT_DOG_STAND]: 'Pølsebod',
+    [Theme.OW_BASIC]: 'Alt var bedre før',
 }
 
 type ThemeColors = {
@@ -27,8 +32,8 @@ type ThemeColors = {
     'accent-violet': string;
 };
 
-export const themes: Record<ThemeName, ThemeColors> = {
-    [ThemeName.Standard]: {
+export const themes: Record<Theme, ThemeColors> = {
+    [Theme.STANDARD]: {
         layer: 'hsla(210, 0%, 0%, 0.2)',
         text: 'hsl(0, 0%, 80%)',
         'text-muted': 'hsl(0, 0%, 70%)',
@@ -47,7 +52,7 @@ export const themes: Record<ThemeName, ThemeColors> = {
         'accent-magenta': 'hsl(300, 80%, 60%)',
         'accent-violet': 'hsl(260, 80%, 60%)',
     },
-    [ThemeName.Light]: {
+    [Theme.LIGHT]: {
         layer: 'hsla(0, 0%, 0%, 0.05)',
         text: 'hsl(0, 0%, 10%)',
         'text-muted': 'hsl(0, 0%, 20%)',
@@ -66,7 +71,7 @@ export const themes: Record<ThemeName, ThemeColors> = {
         'accent-magenta': 'hsl(300, 60%, 40%)',
         'accent-violet': 'hsl(260, 55%, 45%)',
     },
-    [ThemeName.Solarized]: {
+    [Theme.SOLARIZED]: {
         layer: 'hsla(0, 0%, 50%, 0.15)',
         text: 'hsl(196, 13%, 45%)',
         'text-muted': 'hsl(180, 7%, 60%)',
@@ -85,7 +90,7 @@ export const themes: Record<ThemeName, ThemeColors> = {
         'accent-magenta': 'hsl(331, 64%, 52%)',
         'accent-violet': 'hsl(237, 43%, 60%)',
     },
-    [ThemeName.StjerneInnbygger]: {
+    [Theme.STJERNE_INNBYGGER]: {
         layer: 'hsla(211, 48.1%, 35.5%, 0.18)',
         text: 'hsl(0, 0%, 80%)',
         'text-muted': 'hsl(0, 0%, 70%)',
@@ -104,7 +109,7 @@ export const themes: Record<ThemeName, ThemeColors> = {
         'accent-magenta': 'hsl(300, 80%, 60%)',
         'accent-violet': 'hsl(260, 80%, 60%)',
     },
-    [ThemeName.owBasic]: {
+    [Theme.OW_BASIC]: {
         layer: '#f7f8fa',
         text: '#1c1c1c',
         'text-muted': 'hsl(0, 0%, 20%)',
@@ -123,7 +128,7 @@ export const themes: Record<ThemeName, ThemeColors> = {
         'accent-magenta': '#556a82',
         'accent-violet': '#556a82',
     },
-    [ThemeName.HotDogStand]: {
+    [Theme.HOT_DOG_STAND]: {
         layer: 'hsl(0, 100%, 50%)',
         text: 'hsl(0, 0%, 100%)',
         'text-muted': 'hsl(0, 0%, 100%)',
@@ -144,31 +149,23 @@ export const themes: Record<ThemeName, ThemeColors> = {
     },
 }
 
-const themeListeners = new Set<() => void>()
+export function themeCssVars(theme: Theme): CSSProperties {
+    return Object.fromEntries(
+        Object.entries(themes[theme]).map(([key, value]) => [`--${key}`, value])
+    )
+}
 
-export function applyTheme(name: ThemeName): void {
-    localStorage.setItem('theme', name)
-    const colors = themes[name]
+/**
+ * Repaints the page in the given theme without a reload. The server renders the user's stored theme
+ * onto <html> on every request (see RootLayout), so this is only for showing a change immediately.
+ */
+export function applyTheme(theme: Theme): void {
+    const colors = themes[theme]
     const root = document.documentElement
-    // Keeps the Android/desktop browser chrome in step with the theme. The meta
-    // itself comes from the viewport export in layout.tsx; without that there is
-    // no node here to update.
+    // Keeps the Android/desktop browser chrome in step with the theme. The meta itself is
+    // rendered by RootLayout; without that there is no node here to update.
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', colors['surface-base'])
     Object.entries(colors).forEach(([key, value]) => {
         root.style.setProperty(`--${key}`, value)
     })
-    themeListeners.forEach(listener => listener())
-}
-
-export function subscribeToTheme(listener: () => void): () => void {
-    themeListeners.add(listener)
-    return () => themeListeners.delete(listener)
-}
-
-export function getActiveTheme(): ThemeName | null {
-    return localStorage.getItem('theme') as ThemeName | null
-}
-
-export function getServerActiveTheme(): ThemeName | null {
-    return null
 }

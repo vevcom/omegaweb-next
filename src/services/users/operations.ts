@@ -399,6 +399,21 @@ export const userOperations = {
         })
     }),
 
+    updateTheme: defineOperation({
+        dataSchema: userSchemas.updateTheme,
+        authorizer: () => userAuth.updateTheme,
+        operation: async ({ prisma, data, session }) => {
+            if (!session.user) {
+                throw new ServiceError('DISSALLOWED', 'This endpoint requires a user connected to the session.')
+            }
+
+            await prisma.user.update({
+                where: { id: session.user.id },
+                data,
+            })
+        }
+    }),
+
     updateBioParagraphContent: cmsParagraphOperations.updateContent.implement({
         implementationParamsSchema: userSchemas.params.updateBioParagraphContent,
         authorizer: ({ implementationParams }) =>

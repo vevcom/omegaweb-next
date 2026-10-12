@@ -1,15 +1,29 @@
 'use client'
 
 import styles from './page.module.scss'
-import { themes, applyTheme, subscribeToTheme, getActiveTheme, getServerActiveTheme } from './theme'
-import { useSyncExternalStore } from 'react'
-import type { ThemeName } from './theme'
+import { themes, themeLabels, applyTheme } from '@/lib/theme'
+import { updateUserThemeAction } from '@/services/users/actions'
+import { useState } from 'react'
+import type { Theme } from '@/lib/theme'
 
-export default function ThemeForm() {
-    const activeTheme = useSyncExternalStore(subscribeToTheme, getActiveTheme, getServerActiveTheme)
+type PropTypes = {
+    activeTheme: Theme
+}
 
-    function selectTheme(name: ThemeName) {
-        applyTheme(name)
+export default function ThemeForm({ activeTheme }: PropTypes) {
+    const [selectedTheme, setSelectedTheme] = useState(activeTheme)
+
+    async function selectTheme(theme: Theme) {
+        const previousTheme = selectedTheme
+        // Repaint first so the choice is instant, then store it. The next page load gets the theme
+        // from the server, so a failed save must put the old one back.
+        setSelectedTheme(theme)
+        applyTheme(theme)
+        const result = await updateUserThemeAction({ data: { theme } })
+        if (!result.success) {
+            setSelectedTheme(previousTheme)
+            applyTheme(previousTheme)
+        }
     }
 
     return (
@@ -19,11 +33,11 @@ export default function ThemeForm() {
                 return (
                     <a
                         key={name}
-                        className={`${styles.Theme} ${name === activeTheme ? styles.active : ''}`}
-                        onClick={() => selectTheme(name as ThemeName)}
+                        className={`${styles.Theme} ${name === selectedTheme ? styles.active : ''}`}
+                        onClick={() => selectTheme(name as Theme)}
                     >
                         <div className={styles.ThemeHeader}>
-                            {name}
+                            {themeLabels[name as Theme]}
                         </div>
                         <div className={styles.ThemeContent}>
                             <div className={styles.ThemeBody}>
