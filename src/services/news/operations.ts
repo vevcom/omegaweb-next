@@ -52,18 +52,19 @@ export const newsOperations = {
         dataSchema: newsSchemas.data.create,
         opensTransaction: true,
         operation: async ({ prisma, data }) => {
+            const { name, description, endDateTime } = data
+
+            const backupEndDateTime = new Date(Date.now() + defaultNewsArticleOldCutoff * 24 * 60 * 60 * 1000)
+
             assertAdminLevelIsSubOfRegularLevel({
                 regularLevel: { requirements: data.visibilityRegularRequirements },
                 adminLevel: { requirements: data.visibilityAdminRequirements },
             })
 
-            const defaultEndDateTime = new Date()
-            defaultEndDateTime.setDate(defaultEndDateTime.getDate() + defaultNewsArticleOldCutoff)
-
             return prisma.$transaction(async tx => {
                 const article = await articleOperations.create.internalCall({
                     prisma: tx,
-                    data: { name: data.name },
+                    data: { name },
                     dataSchemaImplementationFields: { maxNameLength: 30 },
                     operationImplementationFields: { special: null }
                 })
@@ -78,8 +79,8 @@ export const newsOperations = {
 
                 return tx.newsArticle.create({
                     data: {
-                        description: data.description,
-                        endDateTime: data.endDateTime ?? defaultEndDateTime,
+                        description,
+                        endDateTime: endDateTime ?? backupEndDateTime,
                         article: { connect: { id: article.id } },
                         visibilityRegular: { connect: { id: visibilityRegular.id } },
                         visibilityAdmin: { connect: { id: visibilityAdmin.id } },

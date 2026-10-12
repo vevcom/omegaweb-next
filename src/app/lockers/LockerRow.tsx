@@ -1,5 +1,6 @@
 import styles from './LockerRow.module.scss'
 // import { checkGroupValidity, inferGroupName } from '@/services/groups/read'
+import { displayDate } from '@/lib/dates/displayDate'
 import Link from 'next/link'
 import type { LockerWithReservation } from '@/services/lockers/types'
 
@@ -19,7 +20,7 @@ export default function LockerRow({ locker }: PropTypes) {
         if (reservation.endDate === null) {
             endDateText = 'ubestemt'
         } else {
-            endDateText = reservation.endDate.toLocaleDateString()
+            endDateText = displayDate(reservation.endDate, false)
         }
     }
 

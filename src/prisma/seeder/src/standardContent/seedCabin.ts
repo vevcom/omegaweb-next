@@ -85,7 +85,7 @@ export const seedCabin = defineSeedOperation(async (prisma: PrismaClient) => {
         }),
         prisma.pricePeriod.create({
             data: {
-                validFrom: new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate())
+                validFrom: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate()))
             }
         }),
     ])
@@ -117,11 +117,11 @@ export const seedCabin = defineSeedOperation(async (prisma: PrismaClient) => {
         data: [
             {
                 releaseTime: now,
-                releaseUntil: new Date(now.getUTCFullYear(), now.getUTCMonth() + 2, now.getUTCDate())
+                releaseUntil: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, now.getUTCDate()))
             },
             {
-                releaseTime: new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate()),
-                releaseUntil: new Date(now.getUTCFullYear(), now.getUTCMonth() + 4, now.getUTCDate())
+                releaseTime: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate())),
+                releaseUntil: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 4, now.getUTCDate()))
             },
         ],
     })

@@ -2,6 +2,7 @@ import SmallEventTag from './SmallEventTag'
 import styles from './EventCard.module.scss'
 import Image from '@/components/Image/Image'
 import { formatVevenUri } from '@/lib/urlEncoding'
+import { osloDateTime } from '@/lib/dates/oslo'
 import React from 'react'
 import Link from 'next/link'
 import type { EventExpanded } from '@/services/events/types'
@@ -12,7 +13,7 @@ type PropTypes = {
 
 const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des']
 
-const twoDigitHour = (date: Date) => String(date.getHours()).padStart(2, '0')
+const twoDigitHour = (date: Date) => String(osloDateTime(date).hour).padStart(2, '0')
 
 export default function EventCard({ event }: PropTypes) {
     const attendanceRatio = event.places > 0 ? event.numOfRegistrations / event.places : 0
@@ -29,8 +30,8 @@ export default function EventCard({ event }: PropTypes) {
         </div>
 
         <div className={styles.lead}>
-            <b>{event.eventStart.getDate()}</b>
-            <span>{months[event.eventStart.getMonth()]}</span>
+            <b>{osloDateTime(event.eventStart).day}</b>
+            <span>{months[osloDateTime(event.eventStart).month - 1]}</span>
         </div>
 
         <div className={styles.main}>

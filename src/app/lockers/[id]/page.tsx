@@ -8,6 +8,7 @@ import { groupOperations } from '@/services/groups/operations'
 import { lockerReservationAuth } from '@/services/lockers/reservations/auth'
 import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
+import { displayDate } from '@/lib/dates/displayDate'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -80,7 +81,7 @@ const { page, generateMetadata } = serverPage({
             if (reservation.endDate === null) {
                 endDateText = 'på ubestemt tid'
             } else {
-                endDateText = `fram til ${reservation.endDate.toLocaleDateString()}`
+                endDateText = `fram til ${displayDate(reservation.endDate, false)}`
             }
         }
 
