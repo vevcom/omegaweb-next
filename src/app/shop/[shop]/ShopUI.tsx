@@ -1,14 +1,18 @@
 'use client'
 
-import styles from './shopComponent.module.scss'
+import styles from './ShopUI.module.scss'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { displayAmount } from '@/lib/currency/convert'
-import { useState } from 'react'
-import type { Dispatch, SetStateAction } from 'react'
-import type { ExtendedShop } from '@/services/shop/shop/types'
-import type { ExtendedProduct } from '@/services/shop/product/types'
 import Button from '@/components/UI/Button'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { createPurchaseAction } from '@/services/shop/actions'
+import { purchaseAuth } from '@/services/shop/purchase/auth'
+import { useState } from 'react'
+import Link from 'next/link'
+import type { ExtendedProduct } from '@/services/shop/product/types'
+import type { ExtendedShop } from '@/services/shop/shop/types'
+import type { Dispatch, SetStateAction } from 'react'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type ProductType = ExtendedProduct & { quantity: number }
 
@@ -23,7 +27,14 @@ type receiptType = {
 
 type EditShoppingCartType = Dispatch<SetStateAction<PurchaseOrderType>>
 
-export default function ShopUI({ userId, shopData }: { userId: number; shopData: ExtendedShop }) {
+export default function ShopUI({ userId, shopData, capabilities }: {
+    userId: number,
+    shopData: ExtendedShop,
+    capabilities: CapabilitiesJsObject<'canAdminister'>,
+}) {
+    const canPurchase = useAuthorizer({
+        authorizer: purchaseAuth.create.data({ userId, visibility: shopData.visibility })
+    }).authorized
     const [shoppingCart, editShoppingCart] = useState<PurchaseOrderType>({
         products: Object.fromEntries(
             shopData.products.map(product => [
@@ -39,6 +50,9 @@ export default function ShopUI({ userId, shopData }: { userId: number; shopData:
 
     return <PageWrapper>
         <p>{shopData.description}</p>
+        {capabilities.canAdminister.authorized && (
+            <Link href={`/admin/shop/${shopData.id}`}>Administrer butikken</Link>
+        )}
         <table className={styles.table}>
             <thead>
                 <tr>
@@ -86,10 +100,12 @@ export default function ShopUI({ userId, shopData }: { userId: number; shopData:
                         ), false)}
                     </td>
                     <td>
-                        <Button
-                            onClick={() => createPurchase(shoppingCart, shopData.id, userId, editReceipt)}>
-                            Kjøp
-                        </Button>
+                        {canPurchase && (
+                            <Button
+                                onClick={() => createPurchase(shoppingCart, shopData.id, userId, editReceipt)}>
+                                Kjøp
+                            </Button>
+                        )}
                     </td>
                 </tr>
             </tbody>
@@ -102,18 +118,23 @@ export default function ShopUI({ userId, shopData }: { userId: number; shopData:
                         <th>Produkt</th>
                         <th>Beskrivelse</th>
                         <th>Pris pr.stykk</th>
+                        <th>Antall</th>
+                        <th>Pris total</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {shopData.products.map(product =>
+                    {receipt.products.map(product =>
                         <tr key={product.id}>
                             <td>{product.name}</td>
                             <td>{product.description}</td>
                             <td>{displayAmount(product.price, false)}</td>
+                            <td>{product.quantity}</td>
+                            <td>{displayAmount(product.quantity * product.price, false)}</td>
                         </tr>
                     )}
                 </tbody>
             </table>
+            <p>Gjenstående saldo: {displayAmount(receipt.remainingBalance, false)}</p>
         </div>
         }
 
@@ -143,8 +164,14 @@ async function createPurchase(
     )
 
     if (purchaseResult.success) {
+        // The purchase returns each line as id, quantity and the unit price it was charged at;
+        // the cart still knows the product behind the id.
         editReceipt({
-            products: purchaseResult.data.productList.map(product => ({ ...product, active: true })),
+            products: purchaseResult.data.productList.map(line => ({
+                ...shoppingCart.products[line.productId],
+                quantity: line.quantity,
+                price: line.price,
+            })),
             remainingBalance: purchaseResult.data.remainingBalance,
         })
     }

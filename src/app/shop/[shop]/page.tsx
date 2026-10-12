@@ -1,7 +1,7 @@
-import { notFound } from 'next/navigation'
-import ShopUI from './shopComponent'
+import ShopUI from './ShopUI'
 import { serverPage } from '@/app/serverPage'
 import { shopOperations } from '@/services/shop/shop/operations'
+import { authorizeShopAdminPage } from '@/app/admin/shop/[shop]/authorizeShopAdminPage'
 import { Require } from '@/auth/authorizer/Require'
 import type { PageOperationArgs } from '@/app/serverPage'
 
@@ -13,17 +13,22 @@ const { page, generateMetadata } = serverPage({
                 shopId: parseInt(params.shop, 10),
             }
         })
-        if (!shop) {
-            return notFound()
-        }
 
         const userId = Require.user().auth(session).requireAuthorized().session.user.id
 
         return { shop, userId }
     },
-    metadata: () => ({ title: '' }),
-    render: ({ data }) =>
-        <ShopUI userId={data.userId} shopData={data.shop}></ShopUI>
+    capabilities: (data) => ({
+        canAdminister: authorizeShopAdminPage(data.shop.visibility),
+    }),
+    metadata: (data) => ({ title: data.shop.name }),
+    render: ({ data, capabilities }) => (
+        <ShopUI
+            userId={data.userId}
+            shopData={data.shop}
+            capabilities={{ canAdminister: capabilities.canAdminister.toJsObject() }}
+        />
+    )
 })
 
 export default page

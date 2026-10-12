@@ -1,6 +1,7 @@
 import { defineOperation } from '@/services/serviceOperation'
 import '@pn-server-only'
 import { ServiceError } from '@/services/error'
+import { shopOperations } from '@/services/shop/shop/operations'
 import { z } from 'zod'
 import type { ExtendedProduct } from './types'
 import { productAuth } from './auth'
@@ -20,7 +21,9 @@ export const productOperations = {
     }),
 
     createForShop: defineOperation({
-        authorizer: () => productAuth.create,
+        authorizer: async ({ params, prisma }) => productAuth.createForShop.data({
+            visibility: await shopOperations.visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+        }),
         paramsSchema: z.object({
             shopId: z.number(),
         }),
@@ -45,7 +48,12 @@ export const productOperations = {
     }),
 
     createShopConnection: defineOperation({
-        authorizer: () => productAuth.createShopConnection,
+        authorizer: async ({ data, prisma }) => productAuth.createShopConnection.data({
+            visibility: await shopOperations.visibility.readDoubleLevelMatrixInternal({
+                params: { shopId: data.shopId },
+                prisma,
+            }),
+        }),
         dataSchema: productSchemas.createShopConnection,
         operation: async ({ prisma, data }) => prisma.shopProduct.create({
             data: {
@@ -146,7 +154,12 @@ export const productOperations = {
     }),
 
     updateForShop: defineOperation({
-        authorizer: () => productAuth.update,
+        authorizer: async ({ params, prisma }) => productAuth.updateForShop.data({
+            visibility: await shopOperations.visibility.readDoubleLevelMatrixInternal({
+                params: { shopId: params.shopId },
+                prisma,
+            }),
+        }),
         dataSchema: productSchemas.updateForShop,
         paramsSchema: z.object({
             shopId: z.number(),

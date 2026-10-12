@@ -4,7 +4,8 @@ import { purchaseSchemas } from './schemas'
 import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { userOperations } from '@/services/users/operations'
-import { permissionOperations } from '@/services/permissions/operations'
+import { groupOperations } from '@/services/groups/operations'
+import { shopOperations } from '@/services/shop/shop/operations'
 import { userBasicSelection } from '@/services/users/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
@@ -140,12 +141,18 @@ const createPurchase = defineSubOperation({
 
 export const purchaseOperations = {
     create: createPurchase.implement({
-        authorizer: ({ params }) => purchaseAuth.create.data({ userId: params.userId }),
+        authorizer: async ({ params, data, prisma }) => purchaseAuth.create.data({
+            userId: params.userId,
+            visibility: await shopOperations.visibility.readDoubleLevelMatrixInternal({
+                params: { shopId: data.shopId },
+                prisma,
+            }),
+        }),
         ownershipCheck: () => true,
         operationImplementationFields: { method: PurchaseMethod.WEB },
     }),
     createByStudentCard: defineOperation({
-        authorizer: async ({ data }) => {
+        authorizer: async ({ data, prisma }) => {
             let user
             try {
                 user = await userOperations.read({
@@ -161,14 +168,12 @@ export const purchaseOperations = {
                 throw e
             }
 
-            const permissions = await permissionOperations.readPermissionsOfUser({
-                params: {
-                    userId: user.id,
-                },
-                bypassAuth: true,
-            })
+            const [membershipsOfUser, visibility] = await Promise.all([
+                groupOperations.readMembershipsOfUser.internalCall({ params: { userId: user.id } }),
+                shopOperations.visibility.readDoubleLevelMatrixInternal({ params: { shopId: data.shopId }, prisma }),
+            ])
 
-            return purchaseAuth.createByStudentCard.data({ permissionsOfUser: permissions })
+            return purchaseAuth.createByStudentCard.data({ membershipsOfUser, visibility })
         },
         dataSchema: purchaseSchemas.createByStudentCard,
         opensTransaction: true,

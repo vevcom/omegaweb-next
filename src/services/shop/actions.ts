@@ -15,5 +15,7 @@ export const createShopProductConnectionAction = makeAction(productOperations.cr
 
 export const createShopAction = makeAction(shopOperations.create)
 export const connectShopToLedgerAction = makeAction(shopOperations.connectToLedger)
+export const updateShopRegularLevelVisibilityAction = makeAction(shopOperations.visibility.updateRegularLevel)
+export const updateShopAdminLevelVisibilityAction = makeAction(shopOperations.visibility.updateAdminLevel)
 
 export const createPurchaseAction = makeAction(purchaseOperations.create)

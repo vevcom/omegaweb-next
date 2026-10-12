@@ -2,33 +2,32 @@ import { EditProductForShopForm } from './EditProductForShopForm'
 import styles from './page.module.scss'
 import FindProductForm from './FindProductForm'
 import ConnectShopToLedgerForm from './ConnectShopToLedgerForm'
+import ShopVisibilityAdmin from './ShopVisibilityAdmin'
+import { authorizeShopAdminPage } from './authorizeShopAdminPage'
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import PopUp from '@/app/_components/PopUp/PopUp'
 import { displayAmount } from '@/lib/currency/convert'
 import { sortObjectsByName } from '@/lib/sortObjects'
 import { shopOperations } from '@/services/shop/shop/operations'
 import { shopAuth } from '@/services/shop/shop/auth'
+import { productAuth } from '@/services/shop/product/auth'
 import { productOperations } from '@/services/shop/product/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { serverPage } from '@/app/serverPage'
-import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ shop: string }>) => {
-        authorizeAdminPage('shop', session)
         const shopId = parseInt(params.shop, 10)
-        if (isNaN(shopId)) notFound()
+        const shopData = await shopOperations.read({ params: { shopId } })
+        authorizeShopAdminPage(shopData.visibility).auth(session).requireAuthorized()
 
-        const [shopData, allProducts, ledgerAccounts] = await Promise.all([
-            shopOperations.read({ params: { shopId } }),
+        const [allProducts, ledgerAccounts] = await Promise.all([
             productOperations.readMany({}),
             ledgerAccountOperations.readAccessible({ params: { includeGroupAccounts: true, includeUserAccounts: false } }),
         ])
-        if (!shopData) notFound()
 
         const existingProductIds = new Set(shopData.products.map(product => product.id))
         const unconnectedProducts = allProducts.filter(product => !existingProductIds.has(product.id))
@@ -36,7 +35,11 @@ const { page, generateMetadata } = serverPage({
         return { shopId, shopData, unconnectedProducts, ledgerAccounts }
     },
     capabilities: (data) => ({
+        canCreateProduct: productAuth.createForShop.data({ visibility: data.shopData.visibility }),
+        canAddProduct: productAuth.createShopConnection.data({ visibility: data.shopData.visibility }),
+        canUpdateProduct: productAuth.updateForShop.data({ visibility: data.shopData.visibility }),
         canConnectToLedger: shopAuth.connectToLedger.data({
+            visibility: data.shopData.visibility,
             accounts: data.ledgerAccounts.map(account => account.ownership),
         }),
     }),
@@ -65,21 +68,26 @@ const { page, generateMetadata } = serverPage({
                         />
                     </PopUp>
                 )}
+                <ShopVisibilityAdmin shop={shopData} />
 
-                <PopUp
-                    showButtonClass={styles.button}
-                    showButtonContent="Legg til Produkt"
-                    popUpKey="createProductForShop"
-                >
-                    <FindProductForm shopId={shopId} products={unconnectedProducts} />
-                    <br />
-                    <EditProductForShopForm shopId={shopId} />
-                </PopUp>
+                {(capabilities.canAddProduct.authorized || capabilities.canCreateProduct.authorized) && (
+                    <PopUp
+                        showButtonClass={styles.button}
+                        showButtonContent="Legg til Produkt"
+                        popUpKey="createProductForShop"
+                    >
+                        {capabilities.canAddProduct.authorized && (
+                            <FindProductForm shopId={shopId} products={unconnectedProducts} />
+                        )}
+                        <br />
+                        {capabilities.canCreateProduct.authorized && <EditProductForShopForm shopId={shopId} />}
+                    </PopUp>
+                )}
 
                 <table className={styles.table}>
                     <thead>
                         <tr>
-                            <th>Rediger</th>
+                            {capabilities.canUpdateProduct.authorized && <th>Rediger</th>}
                             <th>Produkt</th>
                             <th>Beskrivelse</th>
                             <th>Pris</th>
@@ -90,14 +98,16 @@ const { page, generateMetadata } = serverPage({
                             key={product.id}
                             className={product.active ? '' : styles.deactivatedProduct}
                         >
-                            <td className={styles.editButtonWrapper}>
-                                <PopUp
-                                    showButtonContent={<FontAwesomeIcon icon={faPencil} />}
-                                    popUpKey={'EditProductForShop'}
-                                >
-                                    <EditProductForShopForm shopId={shopId} product={product} />
-                                </PopUp>
-                            </td>
+                            {capabilities.canUpdateProduct.authorized && (
+                                <td className={styles.editButtonWrapper}>
+                                    <PopUp
+                                        showButtonContent={<FontAwesomeIcon icon={faPencil} />}
+                                        popUpKey={`EditProductForShop-${product.id}`}
+                                    >
+                                        <EditProductForShopForm shopId={shopId} product={product} />
+                                    </PopUp>
+                                </td>
+                            )}
                             <td>{product.name}</td>
                             <td>{product.description}</td>
                             <td>{displayAmount(product.price, false)}</td>
