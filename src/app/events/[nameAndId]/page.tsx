@@ -146,7 +146,7 @@ const { page, generateMetadata } = serverPage({
                             )}
                     />
                     <div className={styles.infoInImage}>
-                        <ShowAndEditName event={event} editable={capabilities.canUpdate.authorized} />
+                        <ShowAndEditName event={event} capabilities={{ canUpdate: capabilities.canUpdate.toJsObject() }} />
                         <ul className={styles.tags}>
                             {event.tags.map(tag => (
                                 <li key={tag.id}>
@@ -164,7 +164,9 @@ const { page, generateMetadata } = serverPage({
                             </UsersHeaderItemPopUp>
                         }
                         <SettingsHeaderItemPopUp scale={30} popUpKey="EditEvent">
-                            <CreateOrUpdateEventForm event={event} eventTags={tags} />
+                            {capabilities.canUpdate.authorized &&
+                                <CreateOrUpdateEventForm event={event} eventTags={tags} />
+                            }
                             <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
                             { capabilities.canDestroy.authorized &&
                                 <Form

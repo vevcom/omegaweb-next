@@ -11,6 +11,9 @@ import {
     updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
+import { eventRegistrationAuth } from '@/services/events/registration/auth'
+import { Require } from '@/auth/authorizer/Require'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import type { EventExpanded } from '@/services/events/types'
@@ -91,6 +94,11 @@ export default function RegistrationUI({
     const [btnKey, setBtnKey] = useState(1)
 
     const session = useSession()
+    const canPay = useAuthorizer({
+        authorizer: session.data
+            ? eventRegistrationAuth.createPayment.data({ userId: session.data.user.id })
+            : Require.user(),
+    }).authorized
 
     useEffect(() => {
         const timeUntilRegistration = registrationStart.getTime() - (new Date()).getTime()
@@ -214,7 +222,7 @@ export default function RegistrationUI({
             <p>Påmeldingen åpner om <CountDown referenceDate={registrationStart} /></p>
         )}
 
-        {showPayment && event.price && paymentOpen && (
+        {showPayment && canPay && event.price && paymentOpen && (
             <EventPaymentModal
                 eventId={event.id}
                 userId={session.data.user.id}

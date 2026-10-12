@@ -1,32 +1,30 @@
 import styles from './page.module.scss'
 import UpdateSchool from './UpdateSchool'
-import PageTitleSetter from '@/contexts/PageTitleSetter'
-import { destroySchoolAction, readSchoolAction } from '@/education/schools/actions'
+import { destroySchoolAction } from '@/education/schools/actions'
+import { schoolOperations } from '@/education/schools/operations'
+import { schoolAuth } from '@/education/schools/auth'
 import Form from '@/components/Form/Form'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import School from '@/components/School/School'
 import { configureAction } from '@/services/configureAction'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-type PropTypes = {
-    params: Promise<{
-        shortName: string
-    }>
-}
-
-export default async function SchoolAdmin({ params }: PropTypes) {
-    const shortName = decodeURIComponent((await params).shortName)
-
-    const res = await readSchoolAction({ params: { shortName } })
-    if (!res.success) throw new Error(res.error?.length ? res.error[0].message : 'Unknown error')
-    const school = res.data
-
-    return (
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params }: PageOperationArgs<{ shortName: string }>) =>
+        schoolOperations.read({ params: { shortName: decodeURIComponent(params.shortName) } }),
+    capabilities: () => ({
+        canUpdateSchool: schoolAuth.update,
+        canDestroySchool: schoolAuth.destroy,
+    }),
+    metadata: () => ({ title: 'Administrer skole' }),
+    render: ({ data: school, capabilities }) => (
         <PageWrapper>
-            <PageTitleSetter title="Administrer skole" />
-            <UpdateSchool school={school} />
+            {capabilities.canUpdateSchool.authorized && <UpdateSchool school={school} />}
             <div className={styles.preview}>
                 <School school={school} />
             </div>
+            {capabilities.canDestroySchool.authorized &&
             <Form
                 action={configureAction(destroySchoolAction, { params: { id: school.id } })}
                 navigateOnSuccess="/admin/schools"
@@ -38,6 +36,10 @@ export default async function SchoolAdmin({ params }: PropTypes) {
                     text: 'Er du sikker på at du vil slette denne skolen? De vil også slette alle emner til denne skolen.'
                 }}
             />
+            }
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

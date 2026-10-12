@@ -73,7 +73,7 @@ export const licenseOperations = {
         }),
     }),
     readAll: defineOperation({
-        authorizer: () => licenseAuth.destroy,
+        authorizer: () => licenseAuth.readAll,
         operation: async ({ prisma }) => await prisma.license.findMany()
     }),
     destroy: defineOperation({

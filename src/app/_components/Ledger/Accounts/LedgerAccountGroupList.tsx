@@ -7,13 +7,15 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { ExpandedGroup } from '@/services/groups/types'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type Props = {
     ledgerAccountId: number,
     groups: ExpandedGroup[],
+    capabilities: CapabilitiesJsObject<'canChangeGroups'>,
 }
 
-export default function LedgerAccountGroupList({ ledgerAccountId, groups }: Props) {
+export default function LedgerAccountGroupList({ ledgerAccountId, groups, capabilities }: Props) {
     const router = useRouter()
     const [error, setError] = useState<string | null>(null)
 
@@ -39,9 +41,11 @@ export default function LedgerAccountGroupList({ ledgerAccountId, groups }: Prop
                 {groups.length > 0 ? groups.map(group => (
                     <li key={group.id} className={styles.groupElement}>
                         <span>{group.name}</span>
-                        <button onClick={() => removeGroup(group.id)} className={styles.removeButton}>
-                            <FontAwesomeIcon icon={faXmark} />
-                        </button>
+                        {capabilities.canChangeGroups.authorized &&
+                            <button onClick={() => removeGroup(group.id)} className={styles.removeButton}>
+                                <FontAwesomeIcon icon={faXmark} />
+                            </button>
+                        }
                     </li>
                 )) : <li><em>Denne kontoen er ikke knyttet til noen grupper.</em></li>}
             </ul>

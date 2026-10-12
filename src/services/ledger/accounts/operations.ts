@@ -76,12 +76,15 @@ export const ledgerAccountOperations = {
                 },
                 include: {
                     groups: { select: { groupId: true } },
+                    user: { select: { id: true } },
                 },
             })
 
+            const groupIds = account.groups.map(group => group.groupId)
             return {
                 ...account,
-                groupIds: account.groups.map(group => group.groupId),
+                groupIds,
+                ownership: { userId: account.user?.id ?? null, groupIds },
             }
         },
     }),

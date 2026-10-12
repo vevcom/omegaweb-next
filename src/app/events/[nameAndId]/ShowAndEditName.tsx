@@ -4,14 +4,17 @@ import EditableTextField from '@/components/EditableTextField/EditableTextField'
 import { updateEventAction } from '@/services/events/actions'
 import { configureAction } from '@/services/configureAction'
 import { formatVevenUri } from '@/lib/urlEncoding'
+import useEditMode from '@/hooks/useEditMode'
 import type { Event } from '@/prisma-generated-pn-types'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     event: Event,
-    editable: boolean,
+    capabilities: CapabilitiesJsObject<'canUpdate'>,
 }
 
-export default function ShowAndEditName({ event, editable }: PropTypes) {
+export default function ShowAndEditName({ event, capabilities }: PropTypes) {
+    const editable = useEditMode({ authResult: capabilities.canUpdate })
     const updateAction = configureAction(updateEventAction, { params: { id: event.id } })
 
     return (

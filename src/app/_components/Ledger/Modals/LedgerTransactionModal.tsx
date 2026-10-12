@@ -11,7 +11,7 @@ import HorizontalSelector from '@/components/UI/HorizontalSelector'
 import { displayAmount, convertAmount } from '@/lib/currency/convert'
 import { createActionError } from '@/services/actionError'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import { Require } from '@/auth/authorizer/Require'
+import { paymentAuth } from '@/services/ledger/payments/auth'
 import { lazy, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PopUpKeyType } from '@/contexts/PopUp'
@@ -79,18 +79,18 @@ export default function LedgerTransactionModal({
     refreshOnSuccess,
     onSubmitAction,
 }: Props) {
-    const isAdmin = useAuthorizer({
-        authorizer: Require.permission('LEDGER_ADMIN')
+    const canPayManually = useAuthorizer({
+        authorizer: paymentAuth.create({ provider: 'MANUAL' })
     }).authorized
 
-    // MANUAL is only ever a legitimate choice for an admin when it's offered alongside a real
-    // alternative (i.e. as a deliberate bypass of the normal payment flow) — that's core business
-    // logic, enforced here so callers never need to re-derive it themselves. When MANUAL is the
-    // *only* method a caller offers (e.g. a payout, which has no alternative provider at all),
-    // there's nothing to bypass, so it's left as-is; authorization for that case is the caller's
-    // own domain rule (e.g. account ownership), not this admin-only exclusivity rule.
+    // MANUAL is only ever a legitimate choice when it's offered alongside a real alternative (i.e.
+    // as a deliberate bypass of the normal payment flow) and the payment rule allows it - enforced
+    // here so callers never need to re-derive it themselves. When MANUAL is the *only* method a
+    // caller offers (e.g. a payout, which has no alternative provider at all), there's nothing to
+    // bypass, so it's left as-is; authorization for that case is the caller's own domain rule
+    // (e.g. account ownership), not this exclusivity rule.
     const paymentMethods = availablePaymentMethods.length > 1
-        ? availablePaymentMethods.filter(method => method !== 'MANUAL' || isAdmin)
+        ? availablePaymentMethods.filter(method => method !== 'MANUAL' || canPayManually)
         : availablePaymentMethods
 
     const amountFromBalance = availableBalance ? Math.min(availableBalance, funds) : 0
@@ -139,7 +139,7 @@ export default function LedgerTransactionModal({
             shortfall,
             paymentMethod,
             manualFees: paymentMethod === 'MANUAL' ? manualFees : undefined,
-            description: paymentMethod === 'MANUAL' && isAdmin ? (description || undefined) : undefined,
+            description: paymentMethod === 'MANUAL' && canPayManually ? (description || undefined) : undefined,
         })
         if (!result.success) return result
 
@@ -206,7 +206,7 @@ export default function LedgerTransactionModal({
                             onChange={e => setManualFees(convertAmount(e.target.value))}
                             required
                         />
-                        {isAdmin && (
+                        {canPayManually && (
                             <TextInput
                                 label="Kommentar"
                                 name="description"

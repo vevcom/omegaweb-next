@@ -17,6 +17,7 @@ import getCommittee from '@/app/committees/[shortName]/getCommittee'
 import { configureAction } from '@/services/configureAction'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { serverPage } from '@/app/serverPage'
+import { Require } from '@/auth/authorizer/Require'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
@@ -26,7 +27,11 @@ const { page, generateMetadata } = serverPage({
         return { article, committee }
     },
     capabilities: (data) => ({
-        canEdit: committeeAuth.updateArticle.data({ groupId: data.committee.groupId }),
+        // A pensioned committee is history: the service refuses every change to it.
+        canEdit: Require.allOf(
+            committeeAuth.updateArticle.data({ groupId: data.committee.groupId }),
+            Require.custom(() => !data.committee.pensioned, { errorMessage: 'Komiteen er pensjonert' }),
+        ),
     }),
     render: ({ data, capabilities }) => {
         const { shortName } = data.committee

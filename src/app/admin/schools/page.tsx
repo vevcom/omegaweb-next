@@ -5,6 +5,7 @@ import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { createSchoolAction } from '@/education/schools/actions'
 import { schoolOperations } from '@/education/schools/operations'
+import { schoolAuth } from '@/education/schools/auth'
 import TextInput from '@/components/UI/TextInput'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { serverPage } from '@/app/serverPage'
@@ -19,9 +20,12 @@ const { page, generateMetadata } = serverPage({
         ])
         return { standardSchools, schools }
     },
+    capabilities: () => ({
+        canCreateSchool: schoolAuth.create,
+    }),
     metadata: () => ({ title: 'Skoler' }),
-    render: ({ data: { standardSchools, schools } }) => (
-        <PageWrapper headerItem={
+    render: ({ data: { standardSchools, schools }, capabilities }) => (
+        <PageWrapper headerItem={capabilities.canCreateSchool.authorized &&
             <AddHeaderItemPopUp popUpKey="CreateSchool">
                 <Form
                     action={createSchoolAction}
