@@ -11,7 +11,6 @@ import { serverPage } from '@/app/serverPage'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { notFound } from 'next/navigation'
-import { v4 as uuid } from 'uuid'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
@@ -27,8 +26,6 @@ const { page, generateMetadata } = serverPage({
 
         const existingProductIds = new Set(shopData.products.map(product => product.id))
         const unconnectedProducts = allProducts.filter(product => !existingProductIds.has(product.id))
-
-        const groupLedgers =
 
         return { shopId, shopData, unconnectedProducts }
     },
@@ -61,7 +58,7 @@ const { page, generateMetadata } = serverPage({
                     </thead>
                     <tbody>
                         {sortObjectsByName(shopData.products).map(product => <tr
-                            key={uuid()}
+                            key={product.id}
                             className={product.active ? '' : styles.deactivatedProduct}
                         >
                             <td className={styles.editButtonWrapper}>

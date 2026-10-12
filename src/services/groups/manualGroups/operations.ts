@@ -1,6 +1,8 @@
 import '@pn-server-only'
 import { manualGroupAuth } from './auth'
 import { manualGroupSchemas } from './schemas'
+import { groupOperations } from '@/services/groups/operations'
+import { invalidateManyUserSessionData } from '@/services/auth/invalidateSession'
 import {
     implementGroupType,
     implementManualMigrationPerGroup,
@@ -121,15 +123,18 @@ const destroy = defineOperation({
     operation: async ({ prisma, params }) => {
         await assertNotPensioned(prisma, params.id)
 
-        return prisma.$transaction(async tx => {
-            const manualGroup = await tx.manualGroup.delete({
+        const { manualGroup, memberIds } = await prisma.$transaction(async tx => {
+            const deleted = await tx.manualGroup.delete({
                 where: { id: params.id },
             })
-            await tx.group.delete({
-                where: { id: manualGroup.groupId },
+            const formerMemberIds = await groupOperations.destroy.internalCall({
+                prisma: tx,
+                params: { groupId: deleted.groupId },
             })
-            return manualGroup
+            return { manualGroup: deleted, memberIds: formerMemberIds }
         })
+        await invalidateManyUserSessionData(memberIds)
+        return manualGroup
     }
 })
 

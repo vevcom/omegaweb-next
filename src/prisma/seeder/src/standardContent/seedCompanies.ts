@@ -5,9 +5,14 @@ import { getImageForCmsImageRelation } from '@/seeder/src/standardContent/seedIm
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { ImagesAvailablieForCms } from '@/seeder/src/standardContent/seedImages'
 import type { Data } from '@/services/serviceOperation'
+import type { CompanySponsorTier } from '@/prisma-generated-pn-types'
 
 type SeedCompanyConfig = Data<typeof companyOperations.create> & {
     logo: ImagesAvailablieForCms,
+    sponsor?: {
+        sponsorTier: CompanySponsorTier,
+        website: string | null,
+    },
 }
 
 /**
@@ -24,11 +29,13 @@ export const seedCompaniesConfig = [
         name: 'Kongsberg Gruppen',
         description: 'Internasjonal teknologikonsern innen forsvar, maritime systemer og romfart.',
         logo: { dynamicImageSeededForCmsName: 'kongsberg' },
+        sponsor: { sponsorTier: 'SPONSOR', website: 'https://www.kongsberg.com' },
     },
     {
         name: 'Nordic Semiconductor',
         description: 'Trondheimsbasert produsent av trådløse kretsløsninger for IoT.',
         logo: { dynamicImageSeededForCmsName: 'nordic' },
+        sponsor: { sponsorTier: 'MAIN', website: 'https://www.nordicsemi.com' },
     },
 ] as const satisfies SeedCompanyConfig[]
 
@@ -49,7 +56,7 @@ async function upsertCompany(prisma: PrismaClient, company: SeedCompanyConfig) {
     const logo = await getImageForCmsImageRelation(company.logo, prisma)
 
     return upsert({
-        checkExistance: () => prisma.company.findUnique({
+        checkExistence: () => prisma.company.findUnique({
             where: { name: company.name },
             select: { id: true },
         }),
@@ -66,6 +73,17 @@ async function createCompany(prisma: PrismaClient, company: SeedCompanyConfig, i
     // companyOperations.create makes the logo CmsImage but has no way to point it at an
     // actual image, so the image is connected here.
     await connectLogo(prisma, createdCompany.id, imageId)
+
+    if (company.sponsor) {
+        await companyOperations.updateSponsorTier({
+            params: { id: createdCompany.id },
+            data: { sponsorTier: company.sponsor.sponsorTier },
+        })
+        await prisma.company.update({
+            where: { id: createdCompany.id },
+            data: { website: company.sponsor.website },
+        })
+    }
 
     return createdCompany
 }

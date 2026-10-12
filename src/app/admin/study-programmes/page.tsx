@@ -14,16 +14,16 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('study-programmes', session)
         return studyProgrammeOperations.readMany({})
     },
-    capabilityChecks: {
-        canCreate: () => studyProgrammeAuth.create,
-        canEdit: () => studyProgrammeAuth.update,
-    },
+    capabilities: () => ({
+        canCreate: studyProgrammeAuth.create,
+        canEdit: studyProgrammeAuth.update,
+    }),
     metadata: () => ({ title: 'Studieprogrammer' }),
     render: ({ data: studyprogrammes, capabilities }) => (
         <PageWrapper
             headerItem={
                 capabilities.canCreate.authorized && (
-                    <AddHeaderItemPopUp popUpKey="create ombul">
+                    <AddHeaderItemPopUp popUpKey="CreateStudyProgramme">
                         <UpdateStudyProgrammeForm />
                     </AddHeaderItemPopUp>
                 )
@@ -41,10 +41,7 @@ const { page, generateMetadata } = serverPage({
                         <th>Del av Omega</th>
                     </tr>
                 </thead>
-                <StudyProgrammeTableBody
-                    studyprogrammes={studyprogrammes}
-                    canEdit={capabilities.canEdit.authorized}
-                />
+                <StudyProgrammeTableBody studyprogrammes={studyprogrammes} />
             </table>
         </PageWrapper>
     ),

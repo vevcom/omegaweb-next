@@ -4,7 +4,6 @@ import React from 'react'
 export default function PageWrapper({
     children,
     headerItem,
-    //titleClassName,
     fillHeight = false,
     hideTitle = false,
     transparent = false,
@@ -12,7 +11,6 @@ export default function PageWrapper({
 }: {
     children: React.ReactNode,
     headerItem?: React.ReactNode,
-    //titleClassName?: string,
     fillHeight?: boolean,
     hideTitle?: boolean,
     /** For pages laid out as islands: drops the wrapper's surface-base panel so the page background shows through. */
@@ -31,10 +29,6 @@ export default function PageWrapper({
         <div className={wrapperClass}>
             {!hideTitle && (
                 <div className={styles.inlineHeader}>
-                    {/* TODO If anyone wants this we can keep it
-                    <h1 className={titleClassName}>{ title }</h1>
-                    */}
-
                     <div>
                         { headerItem }
                     </div>

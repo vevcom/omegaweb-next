@@ -4,7 +4,7 @@ import ProfilePicture from './ProfilePicture'
 import Link from 'next/link'
 import type { CSSProperties } from 'react'
 import type { ExpandedImage } from '@/services/images/subservice/types'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserCard as UserCardData } from '@/services/users/types'
 
 // TODO: Make nice and add picture
 export default function UserCard({
@@ -12,7 +12,7 @@ export default function UserCard({
     className,
     subText,
 }: {
-    user: UserFiltered & {
+    user: UserCardData & {
         image: ExpandedImage
     },
     className?: string,

@@ -1,4 +1,5 @@
 import '@pn-server-only'
+import { resetPasswordExpiration } from './constants'
 import { sendMailOperations } from '@/services/notifications/send-mail/operations'
 import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'
 import { generateJWT } from '@/jwt/jwt'
@@ -18,7 +19,7 @@ export async function sendResetPasswordMail(email: string) {
 
         const jwt = generateJWT('resetpassword', {
             sub: user.id,
-        }, 60 * 60)
+        }, resetPasswordExpiration)
 
         const link = `${process.env.WEBSITE_URL}/reset-password-form?${QueryParams.token.encodeUrl(jwt)}`
 

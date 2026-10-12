@@ -6,22 +6,27 @@ import PopUp from '@/components/PopUp/PopUp'
 import useEditMode from '@/hooks/useEditMode'
 import type { CmsParagraph } from '@/prisma-generated-pn-types'
 import type { UpdateCmsParagraphAction } from '@/cms/paragraphs/types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     cmsParagraph: CmsParagraph
     editorClassName?: string
     updateCmsParagraphAction: UpdateCmsParagraphAction
-    canEdit: AuthResultTypeAny
+    capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
-export default function CmsParagraphEditor({ cmsParagraph, editorClassName, updateCmsParagraphAction, canEdit }: PropTypes) {
-    const editable = useEditMode({ authResult: canEdit })
+export default function CmsParagraphEditor({
+    cmsParagraph,
+    editorClassName,
+    updateCmsParagraphAction,
+    capabilities,
+}: PropTypes) {
+    const editable = useEditMode({ authResult: capabilities.canEdit })
 
     if (!editable) return null
     return (
         <PopUp
-            popUpKey={cmsParagraph.id}
+            popUpKey={`EditCmsParagraph${cmsParagraph.id}`}
             showButtonClass={styles.openBtn}
             showButtonContent={
                 <EditOverlay />

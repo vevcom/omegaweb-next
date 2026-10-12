@@ -219,6 +219,7 @@ const create = defineOperation({
                 data: {
                     title: 'Ny ombul',
                     message: `Ny ombul er ute! ${ombul.name}`,
+                    audience: { permission: 'OMBUL_USE' },
                 },
             })
 

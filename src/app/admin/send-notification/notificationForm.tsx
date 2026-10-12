@@ -9,7 +9,7 @@ import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 
 
-export default function NotificaionForm({
+export default function NotificationForm({
     channels,
 }: {
     channels: ExpandedNotificationChannel[]

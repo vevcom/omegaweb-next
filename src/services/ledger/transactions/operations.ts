@@ -1,3 +1,4 @@
+import '@pn-server-only'
 import { calculateCreditFees, calculateDebitFees } from './calculateFees'
 import { determineTransactionState } from './determineTransactionState'
 import { runPaymentCompletionHook } from './paymentCompletionHooks'
@@ -5,7 +6,7 @@ import { ledgerTransactionAuth } from './auth'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { resolveAccountOwnership, resolveAccountsOwnership } from '@/services/ledger/accounts/ownership'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
@@ -193,7 +194,7 @@ export const ledgerTransactionOperations = {
                 { createdAt: 'desc' },
                 { id: 'desc' },
             ],
-            ...cursorPageingSelection(params.paging.page)
+            ...cursorPagingSelection(params.paging.page)
         })
     }),
 
@@ -411,4 +412,4 @@ export const ledgerTransactionOperations = {
             return transaction
         }
     }),
-}
+} as const

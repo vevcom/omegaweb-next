@@ -2,7 +2,7 @@ import type { jobAdSchemas } from './schemas'
 import type { CompanyExpanded } from '@/services/career/companies/types'
 import type { ExpandedArticle } from '@/cms/articles/types'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
-import type { JobAd } from '@/prisma-generated-pn-types'
+import type { CompanySponsorTier, JobAd } from '@/prisma-generated-pn-types'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 export type ExpandedJobAd = JobAd & {
     article: ExpandedArticle,
@@ -16,6 +16,7 @@ export type ExpandedJobAd = JobAd & {
 export type SimpleJobAd = JobAd & {
     coverImage: ExpandedImage | null
     companyName: string,
+    companySponsorTier: CompanySponsorTier,
 }
 
 export type JobAdInactiveCursor = InferPagingCursor<typeof jobAdSchemas.readInactivePage>

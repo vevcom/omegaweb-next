@@ -1,6 +1,6 @@
 'use client'
 
-import { readJWTPayload } from './jwtReadUnsecure'
+import { decodeBase64Url, readJWTPayload } from './jwtReadUnsecure'
 import { createActionError } from '@/services/actionError'
 import { JWT_ISSUER } from '@/lib/jwt/constants'
 import type { OmegaJWTAudience } from '@/lib/jwt/types'
@@ -15,14 +15,12 @@ import type { ActionReturn } from '@/services/actionTypes'
  * @returns A promise that resolves to an `ActionReturn` object containing the parsed JWT payload if the JWT is valid,
  * or an error object if the JWT is invalid.
  */
-export async function parseJWT(
+export async function parseJWTClient(
     token: string,
     publicKey: string,
     timeOffset: number,
     audience: OmegaJWTAudience
 ): Promise<ActionReturn<number>> {
-    // TODO: This only works in safari and firefox :///
-
     function invalidJWT(message?: string): ActionReturn<number> {
         return createActionError('JWT INVALID', message || 'Invalid JWT')
     }
@@ -38,32 +36,37 @@ export async function parseJWT(
     }
 
     const keyStripped = publicKey
-        .replaceAll('\n', '')
         .replace('-----BEGIN PUBLIC KEY-----', '')
         .replace('-----END PUBLIC KEY-----', '')
-        .trim()
+        .replace(/\s/g, '')
 
-    const key = await crypto.subtle.importKey(
-        'spki', // Subject Public Key Info
-        Buffer.from(keyStripped, 'base64'),
-        {
-            name: 'ECDSA',
-            namedCurve: 'P-256',
-        },
-        true,
-        ['verify']
-    )
+    // Decoding and Web Crypto throw on malformed input. A scanned token must still come back as a
+    // result the reader can show, never as a rejected promise.
+    let signValid: boolean
+    try {
+        const key = await crypto.subtle.importKey(
+            'spki', // Subject Public Key Info
+            decodeBase64Url(keyStripped),
+            {
+                name: 'ECDSA',
+                namedCurve: 'P-256',
+            },
+            true,
+            ['verify']
+        )
 
-    const signValid = await crypto.subtle.verify(
-        {
-            name: 'ECDSA',
-            hash: 'SHA-256'
-        },
-        key,
-        Buffer.from(tokenS[2], 'base64'),
-        Buffer.from(`${tokenS[0]}.${tokenS[1]}`),
-    )
-
+        signValid = await crypto.subtle.verify(
+            {
+                name: 'ECDSA',
+                hash: 'SHA-256'
+            },
+            key,
+            decodeBase64Url(tokenS[2]),
+            new TextEncoder().encode(`${tokenS[0]}.${tokenS[1]}`),
+        )
+    } catch {
+        return invalidJWT('Malformatted JWT')
+    }
 
     if (!signValid) {
         return invalidJWT('Invalid JWT signature')

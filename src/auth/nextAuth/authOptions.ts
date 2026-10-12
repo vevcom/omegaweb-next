@@ -1,8 +1,11 @@
 import '@pn-server-only'
 import VevenAdapter from './VevenAdapter'
+import { feideLoginMayLinkByEmail } from './feideEmailLinking'
 import { compressJwt, decompressJwt } from './jwtCompression'
+import { permissionsMaxAge } from './constants'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
 import FeideProvider from '@/lib/feide/FeideProvider'
+import { fetchStudyProgrammeRealmsFromFeide } from '@/lib/feide/api'
 import {
     inferClassFromStudyProgrammes,
     inferOmegaMembershipFromStudyProgrammes,
@@ -75,35 +78,25 @@ export const authOptions: AuthOptions = {
             // iat = issued at (timestamp given in seconds since epoch)
             if (!token || !token.iat) return null
 
+            const user = await prisma.user.findUnique({
+                where: { id: token.user.id },
+                select: {
+                    sessionEpoch: true,
+                    credentials: { select: { userId: true } },
+                    feideAccount: { select: { id: true } },
+                },
+            })
+
+            // A password change bumps the epoch, which ends every session started before it.
+            if (!user || user.sessionEpoch !== token.sessionEpoch) return null
+
             switch (token.provider) {
                 case 'credentials': {
-                    const credentials = await prisma.credentials.findUnique({
-                        where: {
-                            userId: token.user.id
-                        },
-                        select: {
-                            credentialsUpdatedAt: true
-                        }
-                    })
-
-                    // Check if the users credentials were updated after the token was
-                    // created. I.e. if the user updates their password you don't want
-                    // their old token to be valid. 'iat' is given in seconds so we
-                    // have to convert it to milliseconds.
-                    // Add 10 seconds to get time to login after a credentials update
-                    if (!credentials || token.iat * 1000 < credentials.credentialsUpdatedAt.getTime() - 10000) return null
-
+                    if (!user.credentials) return null
                     break
                 }
                 case 'feide': {
-                    const hasFeide = await prisma.feideAccount.count({
-                        where: {
-                            userId: token.user.id
-                        },
-                    })
-
-                    if (!hasFeide) return null
-
+                    if (!user.feideAccount) return null
                     break
                 }
                 default: {
@@ -115,6 +108,16 @@ export const authOptions: AuthOptions = {
         },
     },
     callbacks: {
+        async signIn({ account, profile }) {
+            if (account?.provider !== 'feide') return true
+            const accessToken = account.access_token
+            const mayLink = await feideLoginMayLinkByEmail(prisma, {
+                providerAccountId: account.providerAccountId,
+                email: profile?.email,
+                readRealms: async () => (accessToken ? fetchStudyProgrammeRealmsFromFeide(accessToken) : []),
+            })
+            return mayLink ? true : '/login?error=FeideEmailInUse'
+        },
         async session({ session, token }) {
             session.user = token.user
             session.permissions = token.permissions
@@ -131,7 +134,9 @@ export const authOptions: AuthOptions = {
                             throw new Error('Account has no access token!')
                         }
 
-                        if (profile?.email) await updateEmailForFeideAccount(account.providerAccountId, profile.email)
+                        if (profile?.email) {
+                            await updateEmailForFeideAccount(account.providerAccountId, profile.email.trim().toLowerCase())
+                        }
 
                         const userId = user ? Number(user.id) : token.user.id
 
@@ -152,8 +157,13 @@ export const authOptions: AuthOptions = {
                     // Check if the user data that is on the jwt was changed
                     // after the token was created. If so get new data from db.
                     // 'iat' is given in seconds so we have to convert it to
-                    // milliseconds.
-                    if (token.iat && token.iat * 1000 > dbUser?.updatedAt.getTime()) {
+                    // milliseconds. NextAuth renews 'iat' on every session read,
+                    // so the permissions are also re-read once they are old: a
+                    // change that missed invalidating the session still lands.
+                    if (
+                        token.iat && token.iat * 1000 > dbUser?.updatedAt.getTime() &&
+                        Date.now() - token.permissionsReadAt < permissionsMaxAge
+                    ) {
                         return token
                     }
 
@@ -179,8 +189,18 @@ export const authOptions: AuthOptions = {
                 throw new Error(`Got unsupported provider. Provider: ${provider}`)
             }
 
+            // Read at sign in only: a session keeps the epoch it was started with.
+            const sessionEpoch = account
+                ? (await prisma.user.findUniqueOrThrow({
+                    where: { id: userId },
+                    select: { sessionEpoch: true },
+                })).sessionEpoch
+                : token.sessionEpoch
+
             return {
                 provider,
+                sessionEpoch,
+                permissionsReadAt: Date.now(),
                 user: await userOperations.read({
                     params: { id: userId },
                     bypassAuth: true,

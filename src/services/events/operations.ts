@@ -2,12 +2,14 @@ import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
 import { defaultSearchResultLimit, eventFilterSelection } from './constants'
+import { eventRegistrationQueueOrder } from './registration/constants'
+import { notifyPromotedFromWaitingList } from './registration/notifyPromotedFromWaitingList'
 import { notificationOperations } from '@/services/notifications/operations'
 import { getOsloTime } from '@/lib/dates/getOsloTime'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
@@ -243,7 +245,7 @@ export const eventOperations = {
                 data: {
                     title: `Hva der hender: ${event.name}`,
                     message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
-                    visibilityId: event.visibilityRegularId,
+                    audience: { visibilityId: event.visibilityRegularId },
                 },
             })
             return event
@@ -294,7 +296,7 @@ export const eventOperations = {
         authorizer: () => eventAuth.readManyArchivedPage,
         operation: async ({ prisma, params }, visibilityWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
                 where: {
                     eventEnd: {
                         lt: getOsloTime()
@@ -410,27 +412,48 @@ export const eventOperations = {
                     locationMap: mapUpdate,
                 },
             })
-            if (!tagIds) return eventUpdate
-
-            await prisma.eventTagEvent.deleteMany({
-                where: {
-                    eventId: params.id,
-                    NOT: {
-                        tagId: {
-                            in: tagIds
+            if (tagIds) {
+                await prisma.eventTagEvent.deleteMany({
+                    where: {
+                        eventId: params.id,
+                        NOT: {
+                            tagId: {
+                                in: tagIds
+                            }
                         }
                     }
-                }
-            })
+                })
 
-            await prisma.eventTagEvent.createMany({
-                data: tagIds.map(tagId => ({
-                    eventId: params.id,
-                    tagId
-                })),
-                skipDuplicates: true
-            })
-            // TODO: Send email to users that get promoted from waiting list
+                await prisma.eventTagEvent.createMany({
+                    data: tagIds.map(tagId => ({
+                        eventId: params.id,
+                        tagId
+                    })),
+                    skipDuplicates: true
+                })
+            }
+
+            // More places promote the registrations queueing right past the old ones.
+            if (eventUpdate.places > event.places) {
+                const promotedRegistrations = await prisma.eventRegistration.findMany({
+                    where: {
+                        eventId: params.id,
+                    },
+                    orderBy: eventRegistrationQueueOrder,
+                    skip: event.places,
+                    take: eventUpdate.places - event.places,
+                    select: {
+                        userId: true,
+                        contact: {
+                            select: {
+                                email: true,
+                            },
+                        },
+                    },
+                })
+                await notifyPromotedFromWaitingList(eventUpdate.name, promotedRegistrations)
+            }
+
             return eventUpdate
         }
     }),

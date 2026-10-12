@@ -97,7 +97,7 @@ export const seedInterestGroups = defineSeedOperation(async (prisma: PrismaClien
     })
 
     await Promise.all(interestGroups.map(group => upsert({
-        checkExistance: () => prisma.interestGroup.findFirst({
+        checkExistence: () => prisma.interestGroup.findFirst({
             where: { name: group.name },
             select: { id: true },
         }),

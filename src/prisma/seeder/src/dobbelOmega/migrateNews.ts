@@ -154,7 +154,7 @@ export default async function migrateNews(
                 visibilityRegular: visibilityCreateInput(
                     article, memberGroupId, idMaps.committeeGroups, currentOrder
                 ),
-                visibilityAdmin: { create: {} },
+                visibilityAdmin: { create: { requirements: { create: [{}] } } },
             }
         })
 

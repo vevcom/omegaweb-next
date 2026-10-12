@@ -6,18 +6,18 @@ import React, { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import type { ExpandedArticle, UpdateArticleAction } from '@/cms/articles/types'
 import type { ConfiguredAction } from '@/services/actionTypes'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     article: ExpandedArticle
     updateArticleAction: ConfiguredAction<UpdateArticleAction>
-    canEdit: AuthResultTypeAny,
+    capabilities: CapabilitiesJsObject<'canEdit'>,
 }
 
-export default function ChangeName({ article, updateArticleAction, canEdit }: PropTypes) {
+export default function ChangeName({ article, updateArticleAction, capabilities }: PropTypes) {
     const currentPath = usePathname()
     const [currentName, setCurrentName] = useState(article.name)
-    const editable = useEditMode({ authResult: canEdit })
+    const editable = useEditMode({ authResult: capabilities.canEdit })
 
     const successCallback = (data: ExpandedArticle | undefined) => {
         const oldName = encodeURIComponent(currentName)

@@ -31,16 +31,16 @@ const { page, generateMetadata } = serverPage({
 
         return { committee, paragraph, members }
     },
-    capabilityChecks: {
-        canEditCommitteeParagraph: (data) => committeeAuth.updateParagraphContent.data({
+    capabilities: (data) => ({
+        canEditCommitteeParagraph: committeeAuth.updateParagraphContent.data({
             groupId: data.committee.groupId,
         }),
-    },
+    }),
     metadata: (data) => ({ title: data.committee.name }),
     render: ({ data, capabilities }) => (
         <div className={styles.wrapper}>
             <CmsParagraph
-                canEdit={capabilities.canEditCommitteeParagraph.toJsObject()}
+                capabilities={{ canEdit: capabilities.canEditCommitteeParagraph }}
                 cmsParagraph={data.paragraph}
                 updateCmsParagraphAction={configureAction(
                     updateCommitteeParagraphAction,

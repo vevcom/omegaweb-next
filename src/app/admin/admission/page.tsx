@@ -13,9 +13,9 @@ import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('admission', session),
-    capabilityChecks: {
-        canSearchUsers: () => userAuth.readPage,
-    },
+    capabilities: () => ({
+        canSearchUsers: userAuth.readPage,
+    }),
     metadata: () => ({ title: 'Opptak' }),
     render: ({ capabilities }) => (
         <PageWrapper>

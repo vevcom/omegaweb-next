@@ -5,9 +5,9 @@ import { sendMailOperations } from '@/services/notifications/send-mail/operation
 import { generateJWT } from '@/jwt/jwt'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userSchemas } from '@/services/users/schemas'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
-export async function sendVerifyEmail(user: UserFiltered, email: string) {
+export async function sendVerifyEmail(user: UserBasic, email: string) {
     const parse = userSchemas.verifyEmail.parse({ email })
 
     const jwt = generateJWT('verifyemail', {

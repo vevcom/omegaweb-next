@@ -1,18 +1,15 @@
 import Company from './Company'
-import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { CompanyExpanded } from '@/services/career/companies/types'
 
 /**
- * Used to render schools server side and client side in consistent way
- * @param session - The session of the user used to determine if the user is an admin of the company
+ * Used to render companies server side and client side in consistent way
+ * @param disableEditing - If the edit buttons should be left out even for a user with the rights
  * @returns A function that takes a company and returns a Company component
  */
 export const companyListRenderer = ({
-    session,
     disableEditing = false
 }: {
-    session: SessionMaybeUser,
     disableEditing?: boolean
 // eslint-disable-next-line react/display-name
-}) => (company: CompanyExpanded) =>
-    <Company disableEdit={disableEditing} session={session} key={company.id} company={company} />
+} = {}) => (company: CompanyExpanded) =>
+    <Company disableEdit={disableEditing} key={company.id} company={company} />

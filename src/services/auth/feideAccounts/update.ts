@@ -13,13 +13,12 @@ export async function updateFeideAccount(
         throw new ServiceError('UNKNOWN ERROR', 'Tried to update feide account with data for a non feide account.')
     }
 
-    if (!account.expires_at || !account.access_token || !account.id_token) {
+    if (!account.expires_at || !account.id_token) {
         throw new Error('Missing required fields in account')
     }
 
     const tokenData = readJWTPayload(account.id_token)
 
-    const accessToken = account.access_token
     const expiresAt = new Date(account.expires_at * 1000)
     const issuedAt = new Date(tokenData.iat * 1000)
 
@@ -28,7 +27,6 @@ export async function updateFeideAccount(
             id: accountId
         },
         data: {
-            accessToken,
             expiresAt,
             issuedAt,
         }

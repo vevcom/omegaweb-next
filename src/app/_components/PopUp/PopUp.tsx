@@ -8,8 +8,47 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useState, useRef, useCallback, useEffectEvent } from 'react'
-import type { ReactNode, CSSProperties } from 'react'
+import type { ReactNode, CSSProperties, RefObject } from 'react'
 import type { PopUpKeyType } from '@/contexts/PopUp'
+
+type DialogPropTypes = {
+    children: ReactNode,
+    mainRef: RefObject<HTMLDivElement | null>,
+    triggerRef: RefObject<HTMLButtonElement | null>,
+    close: () => void,
+}
+
+/**
+ * The open pop-up, as it is teleported to the PopUpProvider. It is keyed by the pop-up key, so it
+ * mounts when the pop-up opens and unmounts when it closes, which is when focus is moved into it and
+ * given back to whatever opened it.
+ */
+function PopUpDialog({ children, mainRef, triggerRef, close }: DialogPropTypes) {
+    const closeButtonRef = useRef<HTMLButtonElement>(null)
+
+    useEffect(() => {
+        // Safari does not focus a button when it is clicked, so the pop-up's own trigger is preferred.
+        const returnFocusTo = triggerRef.current
+            ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
+        closeButtonRef.current?.focus({ preventScroll: true })
+        return () => returnFocusTo?.focus({ preventScroll: true })
+    }, [triggerRef])
+
+    return (
+        <div className={styles.PopUp}>
+            <div className={styles.main} ref={mainRef} role="dialog" aria-modal="true">
+                <div className={styles.overflow}>
+                    <button ref={closeButtonRef} className={styles.closeBtn} onClick={close} aria-label="Lukk">
+                        <FontAwesomeIcon icon={faXmark} />
+                    </button>
+                    <div className={styles.content}>
+                        { children }
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
 
 export type PropTypes = {
     children: ReactNode,
@@ -39,6 +78,7 @@ export default function PopUp({
     useKeyPress('Escape', () => setIsOpen(false))
     const ref = useClickOutsideRef(() => setIsOpen(false))
     const contentRef = useRef<ReactNode>(null)
+    const triggerRef = useRef<HTMLButtonElement>(null)
 
     if (!popUpContext) throw new Error('Trenger PopUpContext for pop-up-vinduer')
 
@@ -68,18 +108,9 @@ export default function PopUp({
 
     useEffect(() => {
         contentRef.current = (
-            <div className={styles.PopUp}>
-                <div className={styles.main} ref={ref}>
-                    <div className={styles.overflow}>
-                        <button className={styles.closeBtn} onClick={() => setIsOpen(false)}>
-                            <FontAwesomeIcon icon={faXmark} />
-                        </button>
-                        <div className={styles.content}>
-                            { children }
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <PopUpDialog key={popUpKey} mainRef={ref} triggerRef={triggerRef} close={() => setIsOpen(false)}>
+                { children }
+            </PopUpDialog>
         )
         if (isOpen) {
             teleport(contentRef.current, popUpKey)
@@ -137,6 +168,7 @@ export default function PopUp({
             customShowButton(handleOpening)
         ) : (
             <button
+                ref={triggerRef}
                 className={`${styles.openBtn} ${showButtonClass}`}
                 style={showButtonStyle}
                 onClick={handleOpening}

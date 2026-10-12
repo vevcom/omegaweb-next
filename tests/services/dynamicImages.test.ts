@@ -397,6 +397,42 @@ describe('paging over collections', () => {
     })
 })
 
+describe('admin levels', () => {
+    test('one requirement with no conditions leaves the collection to IMAGE_ADMIN', async () => {
+        const collection = await prisma.imageCollection.create({
+            data: {
+                name: `Migrert samling ${++collectionCounter}`,
+                visibilityRegular: { create: {} },
+                visibilityAdmin: { create: { requirements: { create: [{}] } } },
+            },
+        })
+
+        await expect(dynamicImageOperations.updateCollection({
+            params: { collectionId: collection.id },
+            data: { collectionName: 'Kapret' },
+            session: sessionInGroups(groupOne),
+        })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
+
+        await dynamicImageOperations.destroyCollection({
+            params: { collectionId: collection.id },
+            session: sessionWithPermissions('IMAGE_ADMIN'),
+        })
+
+        expect(await prisma.imageCollection.count({ where: { id: collection.id } })).toBe(0)
+    })
+
+    test('the admin level cannot be emptied', async () => {
+        const collection = await createCollection({ adminLevel: activeIn(groupOne) })
+
+        await expect(dynamicImageOperations.visibility.updateAdminLevel({
+            implementationParams: { collectionId: collection.id },
+            params: { visibilityId: collection.visibilityAdminId },
+            data: { requirements: [] },
+            session: sessionInGroups(groupOne),
+        })).rejects.toThrow(new Smorekopp('BAD DATA'))
+    })
+})
+
 describe('special collections are not reachable through the dynamic service', () => {
     test('reading a special collection by name is refused', async () => {
         const special = await prisma.imageCollection.findFirstOrThrow({ where: { special: { not: null } } })

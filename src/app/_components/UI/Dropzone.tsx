@@ -101,7 +101,15 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
     return (
         <div className={styles.Dropzone}>
             <div onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave} className={styles.uploader}>
-                <input ref={input} name={name} onChange={filesUpdated} type="file" multiple {...props} />
+                <input
+                    ref={input}
+                    name={name}
+                    onChange={filesUpdated}
+                    type="file"
+                    multiple
+                    aria-label={label}
+                    {...props}
+                />
                 <p>{label}</p>
                 <FontAwesomeIcon icon={faUpload} />
             </div>

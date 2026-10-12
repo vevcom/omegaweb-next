@@ -1,8 +1,8 @@
-import 'server-only'
+import '@pn-server-only'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from './cabinPriceCalculator'
 import { cabinBookingSchemas } from './schemas'
 import { cabinBookingAuth } from './auth'
-import { cabinReservationWindowMs, cabinBookingFilerSelection, cabinBookingIncluder } from './constants'
+import { cabinReservationWindowMs, cabinBookingFilterSelection, cabinBookingIncluder } from './constants'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
 import { cabinProductPriceIncluder } from '@/services/cabin/product/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
@@ -14,12 +14,12 @@ import { ledgerTransactionOperations } from '@/services/ledger/transactions/oper
 import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { BookingType, PaymentProvider } from '@/prisma-generated-pn-types'
+import logger from '@/lib/logger'
 import { z } from 'zod'
 import crypto from 'crypto'
 import type { CabinProductExtended } from '@/services/cabin/product/constants'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
-import logger from '@/lib/logger'
 
 const cabinAvailable = defineSubOperation({
     paramsSchema: () => z.object({
@@ -312,7 +312,7 @@ export const cabinBookingOperations = {
         authorizer: () => cabinBookingAuth.readAvailability,
         operation: async ({ prisma }) => {
             const results = await prisma.booking.findMany({
-                select: cabinBookingFilerSelection,
+                select: cabinBookingFilterSelection,
                 orderBy: {
                     start: 'asc'
                 },
@@ -466,10 +466,23 @@ export const cabinBookingOperations = {
                 // Extends the reservation window to cover the full lifetime a pending attempt is
                 // allowed to stay open for (see stalePendingTransactionMs above), so cabinAvailable
                 // can't release these dates to another booker while this attempt can still succeed.
-                await tx.booking.update({
-                    where: { id: booking.id },
+                // Matching on the window read above also serializes this attempt against a
+                // concurrent release or attempt: whichever of them got to the row first changed
+                // it, and the loser matches nothing.
+                const { count } = await tx.booking.updateMany({
+                    where: {
+                        id: booking.id,
+                        canceled: null,
+                        transactionTimeout: booking.transactionTimeout,
+                    },
                     data: { transactionTimeout: new Date(Date.now() + stalePendingTransactionMs) },
                 })
+                if (count === 0) {
+                    throw new Smorekopp(
+                        'BAD PARAMETERS',
+                        'Reservasjonen ble kansellert eller fikk en annen betaling i mellomtiden.'
+                    )
+                }
 
                 let paymentId: number | undefined
 
@@ -530,5 +543,78 @@ export const cabinBookingOperations = {
 
             return { payment }
         },
-    })
-}
+    }),
+
+    /**
+     * Gives up a reservation that was never paid for, so its dates free up right away instead of
+     * once its payment window runs out. A payment attempt still under way is canceled with it, so
+     * it can never complete for dates that are no longer held. Releasing it again does nothing;
+     * releasing while a new payment attempt is being started fails and asks for a retry.
+     */
+    releaseReservation: defineOperation({
+        paramsSchema: z.object({
+            bookingId: z.number(),
+            secret: z.string().min(1),
+        }),
+        authorizer: async ({ params, prisma }) => {
+            const booking = await prisma.booking.findUnique({
+                where: { id: params.bookingId },
+                select: { userId: true, secret: true },
+            })
+
+            return cabinBookingAuth.releaseReservation.data({
+                booking: booking ?? { userId: null, secret: '' },
+                providedSecret: params.secret,
+            })
+        },
+        operation: async ({ prisma, params }) => {
+            const booking = await prisma.booking.findUniqueOrThrow({
+                where: { id: params.bookingId },
+                select: { canceled: true, transactionTimeout: true },
+            })
+
+            if (booking.canceled !== null) return
+
+            const attempt = await prisma.ledgerTransaction.findFirst({
+                where: {
+                    bookingId: params.bookingId,
+                    state: { in: ['PENDING', 'SUCCEEDED'] },
+                },
+            })
+            if (booking.transactionTimeout === null || attempt?.state === 'SUCCEEDED') {
+                throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen er allerede betalt.')
+            }
+            if (attempt) {
+                // Bypassed: the authorizer above already established the caller holds this
+                // booking, which is the right bar for canceling a payment attempt on it.
+                await ledgerTransactionOperations.cancel({
+                    params: { id: attempt.id },
+                    bypassAuth: true,
+                })
+            }
+
+            // Matching on the window read above protects a booking that got paid for meanwhile
+            // (the window is cleared) or got a new payment attempt (the window is extended) - see
+            // createPayment, which matches the same way.
+            const { count } = await prisma.booking.updateMany({
+                where: {
+                    id: params.bookingId,
+                    canceled: null,
+                    transactionTimeout: booking.transactionTimeout,
+                },
+                data: { canceled: new Date() },
+            })
+            if (count === 0) {
+                const current = await prisma.booking.findUniqueOrThrow({
+                    where: { id: params.bookingId },
+                    select: { canceled: true },
+                })
+                if (current.canceled !== null) return
+                throw new Smorekopp(
+                    'BAD PARAMETERS',
+                    'En betaling for reservasjonen ble startet i mellomtiden. Prøv igjen.'
+                )
+            }
+        },
+    }),
+} as const

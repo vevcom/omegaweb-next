@@ -10,7 +10,7 @@ export const {
 } = implementSpecialCollection({
     special: 'COMMITTEELOGOS',
     allowedExtensions: svgExtensions,
-    imagePanelAuther: committeeLogosImagePanelAuth,
+    imagePanelAuth: committeeLogosImagePanelAuth,
     config: {
         name: 'Komitélogoer',
         description: 'Bilder brukt som komitélogoer. Hvert bilde i denne samlingen tilhører nøyaktig én komité.',

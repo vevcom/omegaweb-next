@@ -1,10 +1,10 @@
 import '@pn-server-only'
 import { jobAdAuth } from './auth'
 import { jobAdSchemas } from './schemas'
-import { articleAndCompanyIncluder, simpleArticleAndCompanyIncluder } from './constants'
+import { activeJobAdOrdering, articleAndCompanyIncluder, simpleArticleAndCompanyIncluder } from './constants'
 import { logoIncluder } from '@/services/career/companies/constants'
 import { defineOperation } from '@/services/serviceOperation'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
@@ -70,6 +70,7 @@ export const jobAdOperations = {
                 data: {
                     title: `Ny jobbannonse: ${articleName}`,
                     message: `${jobAd.company.name} har lagt ut en ny jobbannonse: ${articleName}`,
+                    audience: { permission: 'JOBAD_USE' },
                 },
             })
 
@@ -90,20 +91,17 @@ export const jobAdOperations = {
         authorizer: () => jobAdAuth.readActive,
         operation: async ({ prisma }): Promise<SimpleJobAd[]> => {
             const jobAds = await prisma.jobAd.findMany({
-                orderBy: {
-                    article: {
-                        createdAt: 'desc',
-                    },
-                },
+                orderBy: activeJobAdOrdering,
                 where: {
                     active: true,
                 },
                 include: simpleArticleAndCompanyIncluder,
             })
-            return jobAds.map(ad => ({
-                ...ad,
-                coverImage: ad.article.coverImage.image,
-                companyName: ad.company.name,
+            return jobAds.map(jobAd => ({
+                ...jobAd,
+                coverImage: jobAd.article.coverImage.image,
+                companyName: jobAd.company.name,
+                companySponsorTier: jobAd.company.sponsorTier,
             }))
         }
     }),
@@ -116,7 +114,7 @@ export const jobAdOperations = {
         authorizer: () => jobAdAuth.readInactivePage,
         operation: async ({ prisma, params }): Promise<SimpleJobAd[]> => {
             const jobAds = await prisma.jobAd.findMany({
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
                 where: {
                     active: false,
                     article: {
@@ -129,10 +127,11 @@ export const jobAdOperations = {
                 },
                 include: simpleArticleAndCompanyIncluder,
             })
-            return jobAds.map(ad => ({
-                ...ad,
-                coverImage: ad.article.coverImage.image,
-                companyName: ad.company.name,
+            return jobAds.map(jobAd => ({
+                ...jobAd,
+                coverImage: jobAd.article.coverImage.image,
+                companyName: jobAd.company.name,
+                companySponsorTier: jobAd.company.sponsorTier,
             }))
         }
     }),
@@ -175,4 +174,4 @@ export const jobAdOperations = {
             await articleOperations.destroy.internalCall({ params: { articleId: jobAd.articleId } })
         }
     }),
-}
+} as const

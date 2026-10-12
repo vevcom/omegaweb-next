@@ -351,6 +351,14 @@ export const permissionConfig = {
         description: 'kan administrere alle nyhetsartikler uavhengig av synlighet',
         category: 'public',
     },
+    ARTICLE_CATEGORY_ADMIN: {
+        name: 'Artikkeladministrator',
+        description: `
+            Kan lage artikkelkategorier, og lese og redigere alle kategorier og artiklene i dem
+            uavhengig av synlighet.
+        `,
+        category: 'public',
+    },
     BULLSHIT_WRITE: {
         name: 'Lage bullshit',
         description: 'Kan sende inn bullshit',

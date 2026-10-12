@@ -10,7 +10,7 @@ export const {
 } = implementSpecialCollection({
     special: 'FLAIRIMAGES',
     allowedExtensions,
-    imagePanelAuther: flairImagesImagePanelAuth,
+    imagePanelAuth: flairImagesImagePanelAuth,
     config: {
         name: 'Flairbilder',
         description: 'Bilder brukt av flairs. Hvert bilde i denne samlingen tilhører nøyaktig én flair.',

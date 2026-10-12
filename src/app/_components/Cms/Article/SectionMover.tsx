@@ -7,14 +7,14 @@ import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ConfiguredAction } from '@/services/actionTypes'
 import type { ReorderArticleSectionsAction } from '@/cms/articles/types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     className?: string
     showUp: boolean
     showDown: boolean
     reorderArticleSectionsAction: ConfiguredAction<ReorderArticleSectionsAction>
-    canEdit: AuthResultTypeAny
+    capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
 export default function SectionMover({
@@ -22,9 +22,9 @@ export default function SectionMover({
     showUp,
     showDown,
     reorderArticleSectionsAction,
-    canEdit,
+    capabilities,
 }: PropTypes) {
-    const editable = useEditMode({ authResult: canEdit })
+    const editable = useEditMode({ authResult: capabilities.canEdit })
     const { refresh } = useRouter()
 
     const handleMove = useCallback(async (direction: 'UP' | 'DOWN') => {

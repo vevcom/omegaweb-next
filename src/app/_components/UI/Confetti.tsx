@@ -1,39 +1,43 @@
 'use client'
 import canvasConfetti from 'canvas-confetti'
+import { useEffect, useEffectEvent } from 'react'
 
-type ConfettiArguments = {
+type PropTypes = {
     angle?: number,
     spread?: number,
-    duration?: number
+    duration?: number,
     colors?: string[],
     particleCount?: number,
     origin?: { x: number, y: number },
 }
 
 /**
- * Summons confetti :)
+ * Fires confetti for `duration` milliseconds when it mounts. Renders nothing.
  */
-export function confetti({
+export default function Confetti({
     angle = 90,
     spread = 150,
     duration = 1000,
-    colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff',],
+    colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'],
     particleCount = 10,
-    origin = { x: 0.5, y: 1 }
-}: ConfettiArguments = {}) {
-    const end = Date.now() + duration;
+    origin = { x: 0.5, y: 1 },
+}: PropTypes) {
+    const fire = useEffectEvent(() => {
+        const end = Date.now() + duration
+        let frameId = 0
 
-    (function frame() {
-        canvasConfetti({
-            particleCount,
-            angle,
-            spread,
-            origin,
-            colors,
-        })
-
-        if (Date.now() < end) {
-            requestAnimationFrame(frame)
+        const frame = () => {
+            canvasConfetti({ particleCount, angle, spread, origin, colors })
+            if (Date.now() < end) {
+                frameId = requestAnimationFrame(frame)
+            }
         }
-    }())
+        frame()
+
+        return () => cancelAnimationFrame(frameId)
+    })
+
+    useEffect(() => fire(), [])
+
+    return null
 }

@@ -7,21 +7,21 @@ import { useRouter } from 'next/navigation'
 import type { ArticleSectionPart } from '@/cms/articleSections/types'
 import type { AddSectionToArticleAction } from '@/cms/articles/types'
 import type { ConfiguredAction } from '@/services/actionTypes'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     currentNumberSections: number,
     addSectionToArticleAction: ConfiguredAction<AddSectionToArticleAction>
-    canEdit: AuthResultTypeAny
+    capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
 export default function AddSection({
     currentNumberSections,
     addSectionToArticleAction,
-    canEdit,
+    capabilities,
 }: PropTypes) {
     const { refresh } = useRouter()
-    const editable = useEditMode({ authResult: canEdit })
+    const editable = useEditMode({ authResult: capabilities.canEdit })
 
     const handleAdd = async (includePart: ArticleSectionPart) => {
         await addSectionToArticleAction({

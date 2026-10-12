@@ -1,3 +1,4 @@
+import '@pn-server-only'
 import { stripeCustomerAuth } from './auth'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
@@ -246,4 +247,4 @@ export const stripeCustomerOperations = {
             }
         }
     }),
-}
+} as const

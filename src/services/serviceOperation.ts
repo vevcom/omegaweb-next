@@ -12,28 +12,28 @@ import type { z } from 'zod'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma, PrismaClient } from '@/prisma-generated-pn-client'
 
-export type InferedOrInput<Schema extends z.ZodTypeAny | undefined, InferedOfInput extends 'INFERED' | 'INPUT'> =
+export type InferredOrInput<Schema extends z.ZodTypeAny | undefined, InferredOrInputMode extends 'INFERRED' | 'INPUT'> =
     Schema extends undefined
     ? object
-    : InferedOfInput extends 'INFERED' ? z.infer<NonNullable<Schema>> : z.input<NonNullable<Schema>>
+    : InferredOrInputMode extends 'INFERRED' ? z.infer<NonNullable<Schema>> : z.input<NonNullable<Schema>>
 
-export type ParamsObject<ParamsSchema extends z.ZodTypeAny | undefined, InferedOfInput extends 'INFERED' | 'INPUT'> =
+export type ParamsObject<ParamsSchema extends z.ZodTypeAny | undefined, InferredOrInputMode extends 'INFERRED' | 'INPUT'> =
     ParamsSchema extends undefined
     ? object
-    : { params: InferedOrInput<ParamsSchema, InferedOfInput> }
+    : { params: InferredOrInput<ParamsSchema, InferredOrInputMode> }
 
 export type ImplementationParamsObject<
     ImplementationParamsSchema extends z.ZodTypeAny | undefined,
-    InferedOfInput extends 'INFERED' | 'INPUT'
+    InferredOrInputMode extends 'INFERRED' | 'INPUT'
 > =
     ImplementationParamsSchema extends undefined
     ? object
-    : { implementationParams: InferedOrInput<ImplementationParamsSchema, InferedOfInput> }
+    : { implementationParams: InferredOrInput<ImplementationParamsSchema, InferredOrInputMode> }
 
-export type DataObject<DataSchema extends z.ZodTypeAny | undefined, InferedOfInput extends 'INFERED' | 'INPUT'> =
+export type DataObject<DataSchema extends z.ZodTypeAny | undefined, InferredOrInputMode extends 'INFERRED' | 'INPUT'> =
     DataSchema extends undefined
     ? object
-    : { data: InferedOrInput<DataSchema, InferedOfInput> }
+    : { data: InferredOrInput<DataSchema, InferredOrInputMode> }
 
 /**
  * This is the type for the argument that are passed to the execute operation of a service operation.
@@ -63,8 +63,8 @@ export type ServiceOperationOperation<
     PrismaWhereFilter extends object | undefined
 > = (
     args:
-        & ParamsObject<ParamsSchema, 'INFERED'>
-        & DataObject<DataSchema, 'INFERED'>
+        & ParamsObject<ParamsSchema, 'INFERRED'>
+        & DataObject<DataSchema, 'INFERRED'>
         & ServiceOperationContext<OpensTransaction>
     , prismaWhereFilter: PrismaWhereFilter | undefined
 ) => Promise<Return> | Return
@@ -92,9 +92,9 @@ export type ArgsAuthGetterAndOwnershipCheck<
     DataSchema extends z.ZodTypeAny | undefined,
     ImplementationParamsSchema extends z.ZodTypeAny | undefined
 > =
-    & ParamsObject<ParamsSchema, 'INFERED'>
-    & ImplementationParamsObject<ImplementationParamsSchema, 'INFERED'>
-    & DataObject<DataSchema, 'INFERED'>
+    & ParamsObject<ParamsSchema, 'INFERRED'>
+    & ImplementationParamsObject<ImplementationParamsSchema, 'INFERRED'>
+    & DataObject<DataSchema, 'INFERRED'>
     & Pick<ServiceOperationContext<OpensTransaction>, 'prisma'>
 
 export type AuthorizerGetter<
@@ -107,10 +107,10 @@ export type AuthorizerGetter<
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
 ) =>
         | Authorizer<
-            'USER_NOT_REQUIERED_FOR_AUTHORIZED' | 'USER_REQUIERED_FOR_AUTHORIZED', PrismaWhereFilter
+            'USER_NOT_REQUIRED_FOR_AUTHORIZED' | 'USER_REQUIRED_FOR_AUTHORIZED', PrismaWhereFilter
         > | Promise<
             Authorizer<
-                'USER_NOT_REQUIERED_FOR_AUTHORIZED' | 'USER_REQUIERED_FOR_AUTHORIZED', PrismaWhereFilter
+                'USER_NOT_REQUIRED_FOR_AUTHORIZED' | 'USER_REQUIRED_FOR_AUTHORIZED', PrismaWhereFilter
             >
         >
 

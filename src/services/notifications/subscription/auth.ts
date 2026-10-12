@@ -5,4 +5,4 @@ const userIdOrNotificationAdmin = Require.permission('NOTIFICATION_ADMIN').or().
 export const notificationSubscriptionAuth = {
     read: userIdOrNotificationAdmin,
     update: userIdOrNotificationAdmin,
-}
+} as const

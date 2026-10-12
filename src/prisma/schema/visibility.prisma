@@ -13,6 +13,9 @@ model Visibility {
   eventAdmin   Event? @relation(name: "EventAdminVisibility")
   eventRegular Event? @relation(name: "EventRegularVisibility")
 
+  articleCategoryAdmin   ArticleCategory? @relation(name: "ArticleCategoryAdminVisibility")
+  articleCategoryRegular ArticleCategory? @relation(name: "ArticleCategoryRegularVisibility")
+
   notifications Notification[]
 }
 

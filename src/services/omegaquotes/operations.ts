@@ -1,9 +1,10 @@
+import '@pn-server-only'
 import { omegaQuotesAuth } from './auth'
 import { omegaquoteSchemas } from './schemas'
 import { omegaQuoteFilterSelection } from './constants'
 import { notificationOperations } from '@/services/notifications/operations'
 import { defineOperation } from '@/services/serviceOperation'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { z } from 'zod'
 
 export const omegaquoteOperations = {
@@ -32,6 +33,7 @@ export const omegaquoteOperations = {
                 data: {
                     title: 'Ny Omegaquote♪',
                     message: `${results.quote}\n - ${results.author}`,
+                    audience: { permission: 'OMEGAQUOTES_USE' },
                 },
             })
             return results
@@ -45,7 +47,7 @@ export const omegaquoteOperations = {
                 orderBy: {
                     timestamp: 'desc',
                 },
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
                 select: omegaQuoteFilterSelection,
             })
     }),

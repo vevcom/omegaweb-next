@@ -40,7 +40,7 @@ export default async function migrateImageCollections(pnPrisma: PrismaClientPn, 
                     create: {} //Assuming all collections from omegaweb-basic to be public on migration is probably fine
                 },
                 visibilityAdmin: {
-                    create: {} //TODO: not everyone should be able to update this....
+                    create: { requirements: { create: [{}] } }
                 }
             }
         })

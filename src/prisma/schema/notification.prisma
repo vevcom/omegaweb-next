@@ -65,8 +65,9 @@ model Notification {
   // right before dispatching (not at create time), so subscription, membership and visibility
   // changes after creation count. A user must fulfill all of these to get notified:
   // 1. be subscribed to the channel with the method in question,
-  // 2. be in the list of targeted users (an empty list means no restriction), and
-  // 3. pass the visibility (null means no restriction).
+  // 2. be in the list of targeted users (an empty list means no restriction),
+  // 3. pass the visibility (null means no restriction), and
+  // 4. hold the permission (null means no restriction).
   channelId     Int
   channel       NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
   usersTargeted User[]              @relation(name: "NotificationTargets")
@@ -74,6 +75,7 @@ model Notification {
   // rather than silently making the notification unrestricted.
   visibilityId Int?
   visibility   Visibility? @relation(fields: [visibilityId], references: [id], onDelete: Cascade)
+  permission   Permission?
 
   // Dispatch state, written by the notification worker. Null = not yet handled by that method.
   // The claim column lets a dispatch that died mid-send go stale and be retried (see the worker).

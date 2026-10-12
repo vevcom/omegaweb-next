@@ -2,10 +2,12 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { notificationMethodOperations } from '@/services/notifications/methods/operations'
 import { notificationDispatchIncluder, recipientsWhere } from '@/services/notifications/methods/recipients'
 import { buildWeeklyDigestText } from '@/services/notifications/methods/dispatchWeekly'
-import { userFilterSelection } from '@/services/users/constants'
+import { userPrivateSelection } from '@/services/users/constants'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
+import { permissionOperations } from '@/services/permissions/operations'
 import { afterEach, describe, expect, test } from '@jest/globals'
 import type { NotificationMethods } from '@/services/notifications/types'
+import type { Permission } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
 
 // NOTE: The actual mail sending (dispatchEmail / sendWeeklyMail) is not exercised here since it
@@ -39,7 +41,7 @@ async function createTestUser(username: string): Promise<UserFiltered> {
     })
     return await prisma.user.findUniqueOrThrow({
         where: { id: user.id },
-        select: userFilterSelection,
+        select: userPrivateSelection,
     })
 }
 
@@ -68,6 +70,7 @@ async function createTestNotification(data: {
     title: string,
     targetUserIds?: number[],
     visibilityId?: number,
+    permission?: Permission,
     createdAt?: Date,
 }) {
     return await prisma.notification.create({
@@ -80,6 +83,7 @@ async function createTestNotification(data: {
                 ? { connect: data.targetUserIds.map(userId => ({ id: userId })) }
                 : undefined,
             visibilityId: data.visibilityId,
+            permission: data.permission,
         },
         include: notificationDispatchIncluder,
     })
@@ -90,8 +94,9 @@ async function resolveRecipientIds(notificationId: number, method: NotificationM
         where: { id: notificationId },
         include: notificationDispatchIncluder,
     })
+    const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })
     const recipients = await prisma.user.findMany({
-        where: recipientsWhere(notification, method),
+        where: recipientsWhere(notification, method, defaultPermissions),
         select: { id: true },
     })
     return recipients.map(user => user.id).sort()
@@ -173,6 +178,42 @@ describe('notification recipient resolution', () => {
         })
         expect(await resolveRecipientIds(notification.id, 'email'))
             .toEqual([member.id, outsider.id].sort())
+    })
+
+    test('a permission is held through an active membership of a group holding it, or as a default', async () => {
+        const channelId = await readRootChannelId()
+        const holder = await createTestUser('test-permission-holder')
+        const formerHolder = await createTestUser('test-permission-former')
+        const outsider = await createTestUser('test-permission-outsider')
+        await Promise.all([holder, formerHolder, outsider].map(user =>
+            subscribe(user.id, channelId, { email: true, emailWeekly: true })
+        ))
+
+        const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
+        const group = await prisma.group.create({
+            data: { groupType: 'MANUAL_GROUP', order, permissions: { create: [{ permission: 'OMBUL_USE' }] } },
+        })
+        testGroupIds.push(group.id)
+        await prisma.membership.create({
+            data: { userId: holder.id, groupId: group.id, admin: false, active: true, order },
+        })
+        await prisma.membership.create({
+            data: { userId: formerHolder.id, groupId: group.id, admin: false, active: false, order: order - 1 },
+        })
+        await prisma.defaultPermission.deleteMany({ where: { permission: 'OMBUL_USE' } })
+
+        const notification = await createTestNotification({
+            channelId,
+            title: 'test-permission',
+            permission: 'OMBUL_USE',
+        })
+
+        expect(await resolveRecipientIds(notification.id, 'email')).toEqual([holder.id])
+
+        await prisma.defaultPermission.create({ data: { permission: 'OMBUL_USE' } })
+        expect(await resolveRecipientIds(notification.id, 'email'))
+            .toEqual([holder.id, formerHolder.id, outsider.id].sort())
+        await prisma.defaultPermission.delete({ where: { permission: 'OMBUL_USE' } })
     })
 })
 

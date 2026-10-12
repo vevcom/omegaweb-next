@@ -155,12 +155,17 @@ export function implementDoubleLevelVisibilityOperations<
                 prisma,
                 implementationParams,
             })).adminLevel.id === params.visibilityId,
-            beforeRun: async ({ prisma, implementationParams, data }) => assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: (await readDoubleLevelMatrixInternal({
-                    params: implementationParams, prisma
-                })).regularLevel,
-                adminLevel: { requirements: data.requirements }
-            })
+            beforeRun: async ({ prisma, implementationParams, data }) => {
+                if (data.requirements.length === 0) {
+                    throw new ServiceError('BAD DATA', 'Du må velge hvem som kan administrere')
+                }
+                assertAdminLevelIsSubOfRegularLevel({
+                    regularLevel: (await readDoubleLevelMatrixInternal({
+                        params: implementationParams, prisma
+                    })).regularLevel,
+                    adminLevel: { requirements: data.requirements }
+                })
+            }
         })
     } as const
 }

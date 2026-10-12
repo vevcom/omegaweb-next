@@ -16,12 +16,6 @@ const COMMITS_PER_SCROLLED_ROW = 1
 const SCROLL_EASING = 0.15
 // Wheel events in line mode (deltaMode 1) report lines instead of pixels.
 const PIXELS_PER_WHEEL_LINE = 16
-const ROW_HEIGHT = 40
-const LANE_WIDTH = 30
-const LINE_WIDTH = 4
-const COMMIT_RADIUS = 7
-// Space between the graph and the text on either side of it.
-const TEXT_GAP = 32
 const TEXT_SPACING = 14
 // New commits appear at this fraction of the canvas height and push older commits down.
 // The canvas is tilted back, so the top part of it is far away (and hidden behind the countdown).
@@ -38,7 +32,7 @@ const SPOTLIGHT_BEAM_WIDTH = 150
 const SPOTLIGHT_PULSE_MS = 2400
 // Keeps the (oversized) canvas from getting too expensive to redraw every frame.
 const MAX_PIXEL_RATIO = 1.5
-const FONT = '20px ui-monospace, SFMono-Regular, Menlo, monospace'
+const FONT_FAMILY = 'ui-monospace, SFMono-Regular, Menlo, monospace'
 const LANE_COLORS = [
     '#3b9dff',
     '#3ee0d0',
@@ -56,6 +50,44 @@ const MUTED_COLOR = '#808080'
 
 const dateFormat = new Intl.DateTimeFormat('nb-NO', { dateStyle: 'medium', timeZone: 'Europe/Oslo' })
 
+type Layout = {
+    rowHeight: number,
+    laneWidth: number,
+    lineWidth: number,
+    commitRadius: number,
+    // Space between the graph and the text beside it.
+    textGap: number,
+    font: string,
+    spotlightScale: number,
+    // Whether the hash, author and date are drawn left of the graph. Without them the graph sits at the
+    // left edge of the screen, with the subject to its right.
+    showCommitInfo: boolean,
+}
+
+const WIDE_LAYOUT: Layout = {
+    rowHeight: 40,
+    laneWidth: 30,
+    lineWidth: 4,
+    commitRadius: 7,
+    textGap: 32,
+    font: `20px ${FONT_FAMILY}`,
+    spotlightScale: 1,
+    showCommitInfo: true,
+}
+
+// The mobile breakpoint ($mobileBreakpoint in styles/_variables.scss).
+const NARROW_LAYOUT_MAX_SCREEN_WIDTH = 800
+const NARROW_LAYOUT: Layout = {
+    rowHeight: 26,
+    laneWidth: 11,
+    lineWidth: 2.5,
+    commitRadius: 4,
+    textGap: 16,
+    font: `13px ${FONT_FAMILY}`,
+    spotlightScale: 0.5,
+    showCommitInfo: false,
+}
+
 type Edge = {
     child: number,
     parent: number,
@@ -70,6 +102,9 @@ type DrawGraphArgs = {
     progress: number,
     width: number,
     height: number,
+    // The canvas is wider than the screen: this is where the left edge of the screen is on it.
+    screenLeft: number,
+    layout: Layout,
     // 0 to 1: how much of the spotlight on the newest commit is showing.
     spotlight: number,
     time: number,
@@ -78,8 +113,8 @@ type DrawGraphArgs = {
 /**
  * The progress at which the newest commit rests at END_POSITION.
  */
-function endProgressFor(graph: GitGraph, height: number) {
-    return graph.commits.length + (END_POSITION - HEAD_POSITION) * height / ROW_HEIGHT
+function endProgressFor(graph: GitGraph, height: number, layout: Layout) {
+    return graph.commits.length + (END_POSITION - HEAD_POSITION) * height / layout.rowHeight
 }
 
 type DrawSpotlightArgs = {
@@ -87,59 +122,83 @@ type DrawSpotlightArgs = {
     x: number,
     y: number,
     intensity: number,
+    scale: number,
 }
 
 /**
  * A pool of light on the graph around the commit, and a beam falling onto it from above.
  * The canvas is tilted back, so "up" on the canvas is away from the viewer and the beam reads as coming from above.
  */
-function drawSpotlight({ context, x, y, intensity }: DrawSpotlightArgs) {
+function drawSpotlight({ context, x, y, intensity, scale }: DrawSpotlightArgs) {
     const light = (alpha: number) => `rgba(${SPOTLIGHT_COLOR}, ${alpha * intensity})`
+    const beamLength = SPOTLIGHT_BEAM_LENGTH * scale
+    const beamWidth = SPOTLIGHT_BEAM_WIDTH * scale
+    const poolRadius = SPOTLIGHT_POOL_RADIUS * scale
 
-    const beam = context.createLinearGradient(x, y - SPOTLIGHT_BEAM_LENGTH, x, y)
+    const beam = context.createLinearGradient(x, y - beamLength, x, y)
     beam.addColorStop(0, light(0))
     beam.addColorStop(1, light(0.22))
     context.fillStyle = beam
     context.beginPath()
-    context.moveTo(x - SPOTLIGHT_BEAM_WIDTH / 8, y - SPOTLIGHT_BEAM_LENGTH)
-    context.lineTo(x + SPOTLIGHT_BEAM_WIDTH / 8, y - SPOTLIGHT_BEAM_LENGTH)
-    context.lineTo(x + SPOTLIGHT_BEAM_WIDTH / 2, y)
-    context.lineTo(x - SPOTLIGHT_BEAM_WIDTH / 2, y)
+    context.moveTo(x - beamWidth / 8, y - beamLength)
+    context.lineTo(x + beamWidth / 8, y - beamLength)
+    context.lineTo(x + beamWidth / 2, y)
+    context.lineTo(x - beamWidth / 2, y)
     context.closePath()
     context.fill()
 
-    const pool = context.createRadialGradient(x, y, 0, x, y, SPOTLIGHT_POOL_RADIUS)
+    const pool = context.createRadialGradient(x, y, 0, x, y, poolRadius)
     pool.addColorStop(0, light(0.35))
     pool.addColorStop(0.35, light(0.12))
     pool.addColorStop(1, light(0))
     context.fillStyle = pool
-    const poolSize = 2 * SPOTLIGHT_POOL_RADIUS
-    context.fillRect(x - SPOTLIGHT_POOL_RADIUS, y - SPOTLIGHT_POOL_RADIUS, poolSize, poolSize)
+    context.fillRect(x - poolRadius, y - poolRadius, 2 * poolRadius, 2 * poolRadius)
 }
 
-function drawGraph({ context, graph, edges, progress, width, height, spotlight, time }: DrawGraphArgs) {
+function drawGraph({
+    context,
+    graph,
+    edges,
+    progress,
+    width,
+    height,
+    screenLeft,
+    layout,
+    spotlight,
+    time,
+}: DrawGraphArgs) {
+    const { rowHeight, laneWidth, commitRadius, textGap } = layout
     const revealedCount = Math.min(graph.commits.length, Math.floor(progress))
     // The lanes are centered, with commit info to the left and the subject to the right.
-    const originX = width / 2 - (graph.laneCount - 1) * LANE_WIDTH / 2
-    const laneX = (lane: number) => originX + lane * LANE_WIDTH
+    // Without the commit info they start at the left edge of the screen instead.
+    const originX = layout.showCommitInfo
+        ? width / 2 - (graph.laneCount - 1) * laneWidth / 2
+        : screenLeft + textGap
+    const laneX = (lane: number) => originX + lane * laneWidth
     // Newest on top: the fractional part of progress makes the rows glide down smoothly.
     // The first commit never rises above END_POSITION, so at the start (and where the rewind turns around)
     // it rests near the bottom and the graph grows upwards from it until it reaches HEAD_POSITION.
-    const firstCommitY = Math.max(height * HEAD_POSITION + (progress - 1) * ROW_HEIGHT, height * END_POSITION)
-    const rowY = (index: number) => firstCommitY - index * ROW_HEIGHT
+    const firstCommitY = Math.max(height * HEAD_POSITION + (progress - 1) * rowHeight, height * END_POSITION)
+    const rowY = (index: number) => firstCommitY - index * rowHeight
     const laneColor = (lane: number) => LANE_COLORS[lane % LANE_COLORS.length]
-    const leftTextX = laneX(0) - TEXT_GAP
-    const rightTextX = laneX(graph.laneCount - 1) + TEXT_GAP
+    const leftTextX = laneX(0) - textGap
+    const rightTextX = laneX(graph.laneCount - 1) + textGap
 
     context.clearRect(0, 0, width, height)
-    context.lineWidth = LINE_WIDTH
+    context.lineWidth = layout.lineWidth
     context.lineCap = 'round'
 
     const revealed = graph.commits.slice(0, revealedCount)
     const head = revealed[revealedCount - 1]
 
     if (head && spotlight > 0) {
-        drawSpotlight({ context, x: laneX(head[1]), y: rowY(revealedCount - 1), intensity: spotlight })
+        drawSpotlight({
+            context,
+            x: laneX(head[1]),
+            y: rowY(revealedCount - 1),
+            intensity: spotlight,
+            scale: layout.spotlightScale,
+        })
     }
 
     // Every edge whose parent has appeared is drawn. If the child has not appeared yet, the edge runs
@@ -156,7 +215,7 @@ function drawGraph({ context, graph, edges, progress, width, height, spotlight, 
         const parentLane = graph.commits[parent][1]
         const childX = laneX(lane)
         const parentX = laneX(parentLane)
-        const curveHeight = Math.min(ROW_HEIGHT, parentY - childY)
+        const curveHeight = Math.min(rowHeight, parentY - childY)
 
         context.beginPath()
         context.moveTo(parentX, parentY)
@@ -183,17 +242,17 @@ function drawGraph({ context, graph, edges, progress, width, height, spotlight, 
         context.stroke()
     })
 
-    context.font = FONT
+    context.font = layout.font
     context.textBaseline = 'middle'
     revealed.forEach(([hash, lane, parents, authorIndex, timestamp, subject], index) => {
         const y = rowY(index)
-        if (y < -ROW_HEIGHT || y > height + ROW_HEIGHT) return
+        if (y < -rowHeight || y > height + rowHeight) return
         const x = laneX(lane)
         const isHead = index === revealedCount - 1
 
         if (isHead && spotlight > 0) {
             const pulse = 1 + 0.2 * Math.sin(time / SPOTLIGHT_PULSE_MS * 2 * Math.PI)
-            const haloRadius = COMMIT_RADIUS * 6 * pulse
+            const haloRadius = commitRadius * 6 * pulse
             const halo = context.createRadialGradient(x, y, 0, x, y, haloRadius)
             halo.addColorStop(0, `rgba(${SPOTLIGHT_COLOR}, ${0.9 * spotlight})`)
             halo.addColorStop(1, `rgba(${SPOTLIGHT_COLOR}, 0)`)
@@ -202,28 +261,30 @@ function drawGraph({ context, graph, edges, progress, width, height, spotlight, 
         }
 
         context.beginPath()
-        context.arc(x, y, isHead ? COMMIT_RADIUS * 1.6 : COMMIT_RADIUS, 0, 2 * Math.PI)
+        context.arc(x, y, isHead ? commitRadius * 1.6 : commitRadius, 0, 2 * Math.PI)
         context.fillStyle = laneColor(lane)
         context.fill()
         if (parents.length > 1) {
             // Merge commits are drawn hollow.
             context.beginPath()
-            context.arc(x, y, COMMIT_RADIUS / 2, 0, 2 * Math.PI)
+            context.arc(x, y, commitRadius / 2, 0, 2 * Math.PI)
             context.fillStyle = BACKGROUND_COLOR
             context.fill()
         }
 
-        // Left of the graph, right-aligned and drawn from the graph outwards.
-        let cursorX = leftTextX
-        context.textAlign = 'right'
-        const drawLeftText = (text: string, color: string) => {
-            context.fillStyle = color
-            context.fillText(text, cursorX, y)
-            cursorX -= context.measureText(text).width + TEXT_SPACING
+        if (layout.showCommitInfo) {
+            // Left of the graph, right-aligned and drawn from the graph outwards.
+            let cursorX = leftTextX
+            context.textAlign = 'right'
+            const drawLeftText = (text: string, color: string) => {
+                context.fillStyle = color
+                context.fillText(text, cursorX, y)
+                cursorX -= context.measureText(text).width + TEXT_SPACING
+            }
+            drawLeftText(hash, HASH_COLOR)
+            drawLeftText(graph.authors[authorIndex], laneColor(lane))
+            drawLeftText(dateFormat.format(new Date(timestamp * 1000)), MUTED_COLOR)
         }
-        drawLeftText(hash, HASH_COLOR)
-        drawLeftText(graph.authors[authorIndex], laneColor(lane))
-        drawLeftText(dateFormat.format(new Date(timestamp * 1000)), MUTED_COLOR)
 
         context.textAlign = 'left'
         context.fillStyle = isHead ? '#fff' : SUBJECT_COLOR
@@ -277,10 +338,12 @@ export default function GitGraphPlayer() {
         let lastTime: number | null = null
         let reachedEndAt: number | null = null
         let animationFrame = 0
+        // Picked every frame, so it follows the screen when it is rotated or resized.
+        let layout = WIDE_LAYOUT
 
         // Scrolling moves the graph along with it: content moving down plays forward, up rewinds.
         const scrollBy = (pixels: number) => {
-            pendingScroll += pixels / ROW_HEIGHT * COMMITS_PER_SCROLLED_ROW
+            pendingScroll += pixels / layout.rowHeight * COMMITS_PER_SCROLLED_ROW
         }
         const onWheel = (event: WheelEvent) => {
             scrollBy(-event.deltaY * (event.deltaMode === 1 ? PIXELS_PER_WHEEL_LINE : 1))
@@ -340,7 +403,8 @@ export default function GitGraphPlayer() {
             // clientWidth/clientHeight ignore the CSS tilt, unlike getBoundingClientRect.
             const width = canvas.clientWidth
             const height = canvas.clientHeight
-            const endProgress = endProgressFor(graph, height)
+            layout = window.innerWidth <= NARROW_LAYOUT_MAX_SCREEN_WIDTH ? NARROW_LAYOUT : WIDE_LAYOUT
+            const endProgress = endProgressFor(graph, height, layout)
 
             progress ??= endProgress
             if (rewinding) {
@@ -358,7 +422,19 @@ export default function GitGraphPlayer() {
                 canvas.height = Math.round(height * pixelRatio)
             }
             context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
-            drawGraph({ context, graph, edges, progress, width, height, spotlight, time })
+            drawGraph({
+                context,
+                graph,
+                edges,
+                progress,
+                width,
+                height,
+                // The canvas sticks out past the left edge of the screen by its (negative) offset.
+                screenLeft: -canvas.offsetLeft,
+                layout,
+                spotlight,
+                time,
+            })
 
             animationFrame = requestAnimationFrame(frame)
         }

@@ -2,7 +2,7 @@
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { SelectNumber } from '@/components/UI/Select'
-import NotificationMethodSelector from '@/components/NotificaionMethodSelector/NotificaionMethodSelector'
+import NotificationMethodSelector from '@/components/NotificationMethodSelector/NotificationMethodSelector'
 import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
 import { createNotificationChannelAction } from '@/services/notifications/channel/actions'
 import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'

@@ -6,17 +6,21 @@ import RadioLarge from '@/components/UI/RadioLarge'
 import TextInput from '@/components/UI/TextInput'
 import NumberInput from '@/components/UI/NumberInput'
 import Checkbox from '@/components/UI/Checkbox'
-import Button from '@/components/UI/Button'
+import Form from '@/components/Form/Form'
 import CountDown from '@/components/countDown/CountDown'
 import CabinBookingPaymentModal from '@/components/Ledger/Modals/CabinBookingPaymentModal'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from '@/services/cabin/booking/cabinPriceCalculator'
 import { useSession } from '@/auth/session/useSession'
+import { cabinBookingAuth } from '@/services/cabin/booking/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { createActionError } from '@/services/actionError'
+import { configureAction } from '@/services/configureAction'
 import {
     createBedBookingNoUserAction,
     createBedBookingUserAttachedAction,
     createCabinBookingNoUserAction,
     createCabinBookingUserAttachedAction,
+    releaseCabinBookingReservationAction,
 } from '@/services/cabin/booking/actions'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CabinBookingReservation } from '@/components/Ledger/Modals/CabinBookingPaymentModal'
@@ -26,23 +30,26 @@ import type { DateRange } from './CabinCalendar'
 import type { BookingType, PricePeriod } from '@/prisma-generated-pn-types'
 import type { ActionReturn } from '@/services/actionTypes'
 
-// Persists a reservation across page refreshes (e.g. mid-Stripe-confirmation), including for
-// guest bookings which have no session to resume from. Never stores anything but this booking's
-// own id/secret/price - the secret is what proves ownership without a login.
-// TODO: This key is browser-wide and not bound to a session, so a later user of the same browser
-// can see a pending reservation and its payment-authority secret. Bind it to the intended
-// browser-session or guest lifecycle instead.
-const RESERVATION_STORAGE_KEY = 'cabinBookingReservation'
+/**
+ * Where a reservation is kept across page refreshes (e.g. mid-Stripe-confirmation), including for
+ * guest bookings which have no session to resume from. Never stores anything but this booking's
+ * own id/secret/price - the secret is what proves ownership without a login. It is kept in
+ * sessionStorage, which ends with the tab, under a key per user, so neither a later visitor of the
+ * same browser nor another user logging in in the same tab gets the reservation or its secret.
+ */
+function reservationStorageKey(userId: number | null) {
+    return `cabinBookingReservation:${userId ?? 'guest'}`
+}
 
-function readStoredReservation(): CabinBookingReservation | null {
+function readStoredReservation(storageKey: string): CabinBookingReservation | null {
     try {
-        const raw = window.localStorage.getItem(RESERVATION_STORAGE_KEY)
+        const raw = window.sessionStorage.getItem(storageKey)
         if (!raw) return null
 
         const stored = JSON.parse(raw) as CabinBookingReservation & { expiresAt: string }
         const expiresAt = new Date(stored.expiresAt)
         if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
-            window.localStorage.removeItem(RESERVATION_STORAGE_KEY)
+            window.sessionStorage.removeItem(storageKey)
             return null
         }
 
@@ -52,18 +59,18 @@ function readStoredReservation(): CabinBookingReservation | null {
     }
 }
 
-function storeReservation(reservation: CabinBookingReservation) {
+function storeReservation(storageKey: string, reservation: CabinBookingReservation) {
     try {
-        window.localStorage.setItem(RESERVATION_STORAGE_KEY, JSON.stringify(reservation))
+        window.sessionStorage.setItem(storageKey, JSON.stringify(reservation))
     } catch {
         // Best-effort: if storage is unavailable the payment can still complete now, it just
         // won't be resumable after a refresh.
     }
 }
 
-function clearStoredReservation() {
+function clearStoredReservation(storageKey: string) {
     try {
-        window.localStorage.removeItem(RESERVATION_STORAGE_KEY)
+        window.sessionStorage.removeItem(storageKey)
     } catch {
         // Ignore.
     }
@@ -73,8 +80,6 @@ export default function StateWrapper({
     cabinAvailability,
     releaseUntil,
     cabinProducts,
-    canBookCabin,
-    canBookBed,
     pricePeriods,
     availableBalance,
     customerSessionClientSecret,
@@ -82,23 +87,27 @@ export default function StateWrapper({
     cabinAvailability: BookingFiltered[],
     releaseUntil: Date,
     cabinProducts: CabinProductExtended[],
-    canBookCabin: boolean,
-    canBookBed: boolean,
     pricePeriods: PricePeriod[],
     availableBalance?: number,
     customerSessionClientSecret?: string,
 }) {
+    const canBookCabin = useAuthorizer({ authorizer: cabinBookingAuth.createCabinBookingNoUser }).authorized
+    const canBookBed = useAuthorizer({ authorizer: cabinBookingAuth.createBedBookingNoUser }).authorized
     const cabinProduct = cabinProducts.find(product => product.type === 'CABIN')
     if (!cabinProduct) {
         throw new Error('Ingen produkt med type CABIN.')
     }
-    const bedProducts = cabinProducts.filter(product => product.type === 'BED')
+    const bedProducts = useMemo(() => cabinProducts.filter(product => product.type === 'BED'), [cabinProducts])
 
-    const [bookingType, setBookingType] = useState<BookingType>(canBookCabin ? 'CABIN' : 'BED')
+    // canBookCabin is false until the session has loaded, which is after the first render, so the
+    // default booking type is derived here rather than fixed in the initial state.
+    const [chosenBookingType, setBookingType] = useState<BookingType | null>(null)
+    const bookingType = chosenBookingType ?? (canBookCabin ? 'CABIN' : 'BED')
     const [dateRange, setDateRange] = useState<DateRange>({})
 
-    const [selectedProducts, setSelectedProducts] = useState<CabinProductExtended[]>(
-        canBookCabin ? [cabinProduct] : bedProducts
+    const selectedProducts = useMemo(
+        () => (bookingType === 'CABIN' ? [cabinProduct] : bedProducts),
+        [bookingType, cabinProduct, bedProducts]
     )
     const [bedAmounts, setBedAmounts] = useState<number[]>(Array(bedProducts.length).fill(0))
 
@@ -113,7 +122,7 @@ export default function StateWrapper({
     const [mobile, setMobile] = useState('')
 
     // checked stays false until the effect below runs, so we don't briefly flash the booking
-    // form before knowing (from localStorage, unavailable during SSR) whether a pending
+    // form before knowing (from sessionStorage, unavailable during SSR) whether a pending
     // reservation should be resumed instead.
     const [reservationState, setReservationState] = useState<{
         checked: boolean,
@@ -127,12 +136,14 @@ export default function StateWrapper({
     const reservationCache = useRef<{ reservation: CabinBookingReservation, inputsKey: string } | null>(null)
 
     const session = useSession()
+    const storageKey = session.loading ? null : reservationStorageKey(session.session.user?.id ?? null)
 
     useEffect(() => {
-        // Syncs React state with localStorage, which cannot be read during render/SSR.
+        if (!storageKey) return
+        // Syncs React state with sessionStorage, which cannot be read during render/SSR.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setReservationState({ checked: true, reservation: readStoredReservation() })
-    }, [])
+        setReservationState({ checked: true, reservation: readStoredReservation(storageKey) })
+    }, [storageKey])
 
     const calendar = useMemo(() => (
         <CabinCalendar
@@ -174,12 +185,12 @@ export default function StateWrapper({
         }))
     }
 
-    if (!canBookCabin && !canBookBed) {
-        return <>Du kan ikke booke hytta.</>
+    if (session.loading || !reservationState.checked || !storageKey) {
+        return <>Laster session...</>
     }
 
-    if (session.loading || !reservationState.checked) {
-        return <>Laster session...</>
+    if (!canBookCabin && !canBookBed) {
+        return <>Du kan ikke booke hytta.</>
     }
 
     const { reservation } = reservationState
@@ -193,12 +204,9 @@ export default function StateWrapper({
     const contactEmail = user?.email ?? email
     const contactMobile = user?.mobile ?? mobile
 
-    // TODO: This only clears browser state. The server-side reservation (transactionTimeout)
-    // keeps blocking these dates until it expires on its own. Cancel it server-side too so the
-    // dates free up immediately.
     const startOver = () => {
         reservationCache.current = null
-        clearStoredReservation()
+        clearStoredReservation(storageKey)
         setReservationState({ checked: true, reservation: null })
     }
 
@@ -281,7 +289,14 @@ export default function StateWrapper({
             >
                 <p>Reservasjon #{reservation.bookingId}</p>
             </CabinBookingPaymentModal>
-            <Button onClick={startOver} color="red">Avbryt og start på nytt</Button>
+            <Form
+                action={configureAction(releaseCabinBookingReservationAction, {
+                    params: { bookingId: reservation.bookingId, secret: reservation.secret },
+                })}
+                successCallback={startOver}
+                submitText="Avbryt og start på nytt"
+                submitColor="red"
+            />
         </>
     }
 
@@ -302,14 +317,7 @@ export default function StateWrapper({
                     }
                 ]}
                 value={bookingType}
-                onChange={(newType) => {
-                    setBookingType(newType)
-                    if (newType === 'CABIN') {
-                        setSelectedProducts([cabinProduct])
-                    } else {
-                        setSelectedProducts(bedProducts)
-                    }
-                }}
+                onChange={setBookingType}
             />
         }
 
@@ -354,7 +362,7 @@ export default function StateWrapper({
             availableBalance={user ? availableBalance : undefined}
             customerSessionClientSecret={user ? customerSessionClientSecret : undefined}
             getReservation={getReservation}
-            onReservationCreated={storeReservation}
+            onReservationCreated={createdReservation => storeReservation(storageKey, createdReservation)}
         >
             <TextInput
                 name="firstname"

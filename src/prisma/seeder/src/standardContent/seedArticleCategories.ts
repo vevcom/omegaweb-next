@@ -6,7 +6,7 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { Data } from '@/services/serviceOperation'
 import type { SeedArticleConfig } from '@/seeder/src/buildArticleFromConfig'
 
-type SeedArticleCategoryConfig = Data<typeof articleCategoryOperations.create> & {
+type SeedArticleCategoryConfig = Pick<Data<typeof articleCategoryOperations.create>, 'name' | 'description'> & {
     articles: SeedArticleConfig[],
 }
 
@@ -117,9 +117,18 @@ export const seedArticleCategoriesConfig = [
 export const seedArticleCategories = defineSeedOperation(async (prisma) => {
     await Promise.all(seedArticleCategoriesConfig.map(async category => {
         const categoryResult = await upsert({
-            checkExistance: () => articleCategoryOperations.read({ params: { name: category.name } }),
+            checkExistence: () => articleCategoryOperations.read({ params: { name: category.name } }),
             create: () => articleCategoryOperations.create({
-                data: { name: category.name, description: category.description }
+                // Standard content is readable by everyone and edited through the
+                // ARTICLE_CATEGORY_ADMIN permission rather than by any group: a requirement with no
+                // conditions can never be satisfied, so the admin level admits only those who bypass
+                // it with that permission.
+                data: {
+                    name: category.name,
+                    description: category.description,
+                    visibilityRegularRequirements: [],
+                    visibilityAdminRequirements: [{ conditions: [] }],
+                }
             }),
             update: () => articleCategoryOperations.read({ params: { name: category.name } }),
         })
@@ -140,7 +149,7 @@ async function upsertArticleInCategory(
     article: SeedArticleConfig
 ) {
     return upsert({
-        checkExistance: () => prisma.article.findUnique({
+        checkExistence: () => prisma.article.findUnique({
             where: {
                 articleCategoryId_name: { articleCategoryId: articleCategory.id, name: article.name }
             },

@@ -6,6 +6,12 @@
         min-height: 150px;
     }
 }
+.visibility {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1em;
+}
 .openEditCategory {
     width: 30px;
     height: 30px;

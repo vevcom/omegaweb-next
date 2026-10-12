@@ -49,7 +49,7 @@ export const seedFlairs = defineSeedOperation(async (prisma: PrismaClient) => {
 
 async function upsertFlair(prisma: PrismaClient, flair: SeedFlairConfig) {
     return upsert({
-        checkExistance: () => prisma.flair.findFirst({
+        checkExistence: () => prisma.flair.findFirst({
             where: { name: flair.name },
             select: { id: true }
         }),

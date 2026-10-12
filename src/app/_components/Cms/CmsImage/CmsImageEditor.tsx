@@ -25,7 +25,7 @@ import type { ExpandedImageCollection } from '@/services/images/subservice/types
 import type { CmsImage } from '@/prisma-generated-pn-types'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { UpdateCmsImageAction } from '@/cms/images/types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 const collectionPagingDetails = { showOnlyCollectionsSessionAdministrates: true } as const
 const imagePageSize = 30
@@ -35,7 +35,7 @@ type PropTypes = {
         image: ExpandedImage | null
     },
     updateCmsImageAction: UpdateCmsImageAction
-    canEdit: AuthResultTypeAny
+    capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
 /**
@@ -44,8 +44,8 @@ type PropTypes = {
  * @param cmsImage - the cms image to edit
  * @returns
  */
-export default function CmsImageEditor({ cmsImage, updateCmsImageAction, canEdit }: PropTypes) {
-    const editable = useEditMode({ authResult: canEdit })
+export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabilities }: PropTypes) {
+    const editable = useEditMode({ authResult: capabilities.canEdit })
     const [currentCollectionId, setCurrentCollectionId] = useState<number | null>(
         cmsImage.image?.collectionId ?? null
     )

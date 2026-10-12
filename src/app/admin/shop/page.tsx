@@ -7,7 +7,6 @@ import { shopOperations } from '@/services/shop/shop/operations'
 import { serverPage } from '@/app/serverPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
-import { v4 as uuid } from 'uuid'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
@@ -33,7 +32,7 @@ const { page, generateMetadata } = serverPage({
                 </thead>
                 <tbody>
                     {sortObjectsByName(shops).map(shop =>
-                        <tr key={uuid()}>
+                        <tr key={shop.id}>
                             <td>
                                 <Link style={{ display: 'contents' }} href={`./shop/${shop.id}`} passHref>
                                     {shop.name}

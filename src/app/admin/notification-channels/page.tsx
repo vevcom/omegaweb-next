@@ -56,7 +56,7 @@ const { page, generateMetadata } = serverPage({
         return (
             <PageWrapper
                 headerItem={
-                    <AddHeaderItemPopUp popUpKey="createNewsPop">
+                    <AddHeaderItemPopUp popUpKey="CreateNotificationChannel">
                         <AddNotificationChannel channels={channels}/>
                     </AddHeaderItemPopUp>
                 }

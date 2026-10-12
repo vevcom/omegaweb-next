@@ -37,14 +37,14 @@ const { page, generateMetadata } = serverPage({
 
         return { studyProgramme, expanded, members }
     },
-    capabilityChecks: {
-        canAddMembers: (data) => studyProgrammeAuth.addMembers.data({
+    capabilities: (data) => ({
+        canAddMembers: studyProgrammeAuth.addMembers.data({
             groupId: data.studyProgramme.groupId,
         }),
-        canRemoveMembers: (data) => studyProgrammeAuth.removeMembers.data({
+        canRemoveMembers: studyProgrammeAuth.removeMembers.data({
             groupId: data.studyProgramme.groupId,
         }),
-    },
+    }),
     metadata: (data) => ({ title: data.studyProgramme.name }),
     render: ({ data, capabilities }) => {
         const { studyProgramme, expanded, members } = data

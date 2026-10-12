@@ -91,7 +91,7 @@ export const seedImages = defineSeedOperation(async (prisma: PrismaClient) => {
 
 async function upsertStandardImage(prisma: PrismaClient, standardImage: StandardImage) {
     return upsert({
-        checkExistance: () => prisma.image.findUnique({
+        checkExistence: () => prisma.image.findUnique({
             where: { standardImage },
             select: { id: true }
         }),
@@ -106,7 +106,7 @@ async function upsertStandardImage(prisma: PrismaClient, standardImage: Standard
 
 async function upsertSeededCmsImagesCollection(prisma: PrismaClient) {
     const collection = await upsert({
-        checkExistance: () => dynamicImageOperations.readCollection({
+        checkExistence: () => dynamicImageOperations.readCollection({
             params: { collectionName: SEEDED_CMS_IMAGES_COLLECTION_NAME }
         }),
         create: () => dynamicImageOperations.createCollection({
@@ -134,7 +134,7 @@ async function upsertDynamicImageForCms(
     imageConfig: typeof seedDynamicImagesForCms[number]
 ) {
     return upsert({
-        checkExistance: () => prisma.image.findFirst({
+        checkExistence: () => prisma.image.findFirst({
             where: { collectionId, name: imageConfig.name },
             select: { id: true }
         }),

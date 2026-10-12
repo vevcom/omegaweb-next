@@ -17,7 +17,7 @@ async function upsertTestImageCollection(prisma: PrismaClient, index: number) {
             name: `dev_images_${index}`,
             description: 'just a test',
             visibilityAdmin: {
-                create: {}
+                create: { requirements: { create: [{}] } }
             },
             visibilityRegular: {
                 create: {}

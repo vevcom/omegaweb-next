@@ -19,9 +19,9 @@ const { page, generateMetadata } = serverPage({
         ])
         return { committees, expandedGroups, currentOrder }
     },
-    capabilityChecks: {
-        canCreate: () => committeeAuth.create,
-    },
+    capabilities: () => ({
+        canCreate: committeeAuth.create,
+    }),
     metadata: () => ({ title: 'Komitéer' }),
     render: ({ data, capabilities }) => {
         const rows = data.committees.flatMap(committee => {

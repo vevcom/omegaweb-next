@@ -1,8 +1,9 @@
+import '@pn-server-only'
 import { ledgerAccountSchemas } from './schemas'
 import { ledgerAccountAuth } from './auth'
 import { resolveAccountOwnership, resolveAccountsOwnership } from './ownership'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { defineOperation } from '@/services/serviceOperation'
 import { LedgerAccountType } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
@@ -151,7 +152,7 @@ export const ledgerAccountOperations = {
                     { createdAt: 'desc' },
                     { id: 'desc' },
                 ],
-                ...cursorPageingSelection(paging.page),
+                ...cursorPagingSelection(paging.page),
             })
 
             const balances = accounts.length > 0
@@ -350,4 +351,4 @@ export const ledgerAccountOperations = {
             return balances[account.id]
         }
     }),
-}
+} as const

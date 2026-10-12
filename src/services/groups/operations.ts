@@ -11,7 +11,6 @@ import {
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { MigratedStraightAwayOnIncrement } from '@/services/omegaOrder/constants'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
-import { userFilterSelection } from '@/services/users/constants'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { getMembershipFilter } from '@/auth/getMembershipFilter'
@@ -27,7 +26,7 @@ import type {
     MembershipFiltered,
     MembershipSelectorType,
 } from './types'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
 const membershipSelectorSchema: z.ZodType<MembershipSelectorType> = z.union([
     z.number(),
@@ -236,14 +235,14 @@ export const groupOperations = {
                 MigratedStraightAwayOnIncrement[group.groupType]
 
             if (active) {
-                await prisma.membership.updateMany({
+                await Promise.all([true, false].map(admin => prisma.membership.updateMany({
                     where: {
                         groupId: params.groupId,
-                        userId: { in: userIds },
+                        userId: { in: data.users.filter(user => user.admin === admin).map(user => user.userId) },
                         order,
                     },
-                    data: { active: true },
-                })
+                    data: { active: true, admin },
+                })))
             }
 
             await prisma.membership.createMany({
@@ -549,7 +548,7 @@ export const groupOperations = {
                 admin: z.boolean(),
             })),
         }),
-        operation: () => async ({ prisma, params }): Promise<UserFiltered[]> => {
+        operation: () => async ({ prisma, params }): Promise<Pick<UserBasic, 'id'>[]> => {
             const memberships = await prisma.membership.findMany({
                 where: {
                     OR: params.groups.map(({ admin, groupId }) => ({
@@ -559,7 +558,7 @@ export const groupOperations = {
                 },
                 select: {
                     user: {
-                        select: userFilterSelection,
+                        select: { id: true },
                     }
                 }
             })
@@ -588,6 +587,25 @@ export const groupOperations = {
             })
 
             return memberships.map(membership => assertGroupValidity(membership.group))
+        },
+    }),
+
+    /**
+     * Deletes a group whose group type row has just been deleted in the same transaction. Its
+     * memberships and permissions go with it, so the users it returns - everyone who held a
+     * membership - carry permissions in their sessions that no longer exist. The caller invalidates
+     * those sessions once the transaction has committed.
+     */
+    destroy: defineSubOperation({
+        paramsSchema: () => groupSchemas.groupParams,
+        operation: () => async ({ prisma, params }) => {
+            const memberships = await prisma.membership.findMany({
+                where: { groupId: params.groupId },
+                select: { userId: true },
+                distinct: ['userId'],
+            })
+            await prisma.group.delete({ where: { id: params.groupId } })
+            return memberships.map(membership => membership.userId)
         },
     }),
 } as const

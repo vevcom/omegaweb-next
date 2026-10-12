@@ -16,9 +16,6 @@ const ownedCmsImages: Readonly<SpecialCmsImage[]> = [
     'FRONTPAGE_2',
     'FRONTPAGE_3',
     'FRONTPAGE_4',
-    'FOOTER_SPONSOR_1',
-    'FOOTER_SPONSOR_2',
-    'FOOTER_SPONSOR_3',
 ]
 
 export const frontpageOperations = {

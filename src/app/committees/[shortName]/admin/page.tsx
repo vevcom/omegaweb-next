@@ -38,15 +38,15 @@ const { page, generateMetadata } = serverPage({
 
         return { committee, expanded, members, currentOrder }
     },
-    capabilityChecks: {
-        canEditLogo: (data) => committeeAuth.updateLogo.data({ groupId: data.committee.groupId }),
-        canMigrate: (data) => committeeAuth.migrateGroup.data({ groupId: data.committee.groupId }),
-        canAddMembers: (data) => committeeAuth.addMembers.data({ groupId: data.committee.groupId }),
-        canSetMemberAdmin: (data) => committeeAuth.setMemberAdmin.data({ groupId: data.committee.groupId }),
-        canSetMemberTitle: (data) => committeeAuth.setMemberTitle.data({ groupId: data.committee.groupId }),
-        canRemoveMembers: (data) => committeeAuth.removeMembers.data({ groupId: data.committee.groupId }),
-        canPension: () => committeeAuth.pension,
-    },
+    capabilities: (data) => ({
+        canEditLogo: committeeAuth.updateLogo.data({ groupId: data.committee.groupId }),
+        canMigrate: committeeAuth.migrateGroup.data({ groupId: data.committee.groupId }),
+        canAddMembers: committeeAuth.addMembers.data({ groupId: data.committee.groupId }),
+        canSetMemberAdmin: committeeAuth.setMemberAdmin.data({ groupId: data.committee.groupId }),
+        canSetMemberTitle: committeeAuth.setMemberTitle.data({ groupId: data.committee.groupId }),
+        canRemoveMembers: committeeAuth.removeMembers.data({ groupId: data.committee.groupId }),
+        canPension: committeeAuth.pension,
+    }),
     metadata: (data) => ({ title: `Administrer ${data.committee.name}` }),
     render: ({ data, capabilities }) => {
         const { committee, expanded, members, currentOrder } = data

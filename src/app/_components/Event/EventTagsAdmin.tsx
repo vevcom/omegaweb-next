@@ -10,12 +10,11 @@ import { destroyEventTagAction, updateEventTagAction, createEventTagAction } fro
 import { configureAction } from '@/services/configureAction'
 import Link from 'next/link'
 import type { EventTag as EventTagT } from '@/prisma-generated-pn-types'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     eventTags: EventTagT[]
-    canUpdate?: boolean
-    canCreate?: boolean
-    canDestroy?: boolean
+    capabilities: Capabilities<'canCreateTags' | 'canUpdateTags' | 'canDestroyTags'>
     selectedTags: EventTagT[]
     page: 'EVENT' | 'EVENT_ARCHIVE'
 }
@@ -23,16 +22,13 @@ type PropTypes = {
 /**
  * Component that displays tags and admin for admins.
  * @param eventTags - the tags to display
- * @param canUpdate - if the user can update the tags
- * @param canCreate - if the user can create new tags
+ * @param capabilities - which of creating, updating and destroying tags to offer
  * @returns
  */
 export default function EventTagsAdmin({
     eventTags,
     selectedTags,
-    canUpdate = false,
-    canCreate = false,
-    canDestroy = false,
+    capabilities,
     page
 }: PropTypes) {
     const baseUrl = page === 'EVENT' ? '/events' : '/events/archive'
@@ -49,7 +45,7 @@ export default function EventTagsAdmin({
         <div className={styles.EventTagsAdmin}>
             <h1>Tagger</h1>
             {
-                canCreate && (
+                capabilities.canCreateTags.authorized && (
                     <span className={styles.create}>
                         <Form refreshOnSuccess action={createEventTagAction} submitText="Lag">
                             <TextInput name="name" label="Navn" />
@@ -75,9 +71,9 @@ export default function EventTagsAdmin({
                                 <EventTag eventTag={tag} />
                             </Link>
                             {
-                                canUpdate || canDestroy ? (
+                                capabilities.canUpdateTags.authorized || capabilities.canDestroyTags.authorized ? (
                                     <SettingsHeaderItemPopUp scale={25} popUpKey={`EventTagPopUp${tag.id}`}>
-                                        {canUpdate && <span className={styles.update}>
+                                        {capabilities.canUpdateTags.authorized && <span className={styles.update}>
                                             <Form
                                                 refreshOnSuccess
                                                 action={configureAction(updateEventTagAction, { params: { id: tag.id } })}
@@ -105,7 +101,7 @@ export default function EventTagsAdmin({
                                             </Form>
                                         </span>
                                         }
-                                        {canDestroy && <span className={styles.destroy}>
+                                        {capabilities.canDestroyTags.authorized && <span className={styles.destroy}>
                                             <Form
                                                 closePopUpOnSuccess={`EventTagPopUp${tag.id}`}
                                                 refreshOnSuccess

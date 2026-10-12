@@ -23,7 +23,6 @@ import {
     faBook,
     faComment,
     faCamera,
-    faCircleInfo,
     faNewspaper,
     faCalendar,
     faSuitcase,
@@ -38,7 +37,7 @@ import {
     faIdCard,
     faPoo,
 } from '@fortawesome/free-solid-svg-icons'
-import type { Authorizer, UserRequieredOutOpt } from '@/auth/authorizer/Authorizer'
+import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
 
@@ -51,7 +50,7 @@ export type NavItem = {
      * shown it - so a link is never offered to a page that would turn the viewer away. Filtering
      * authorizers are welcome: only whether they pass is looked at, not the filter they hand back.
      */
-    authorizers: () => Authorizer<UserRequieredOutOpt, object | undefined>[],
+    authorizers: () => Authorizer<UserRequiredOutOpt, object | undefined>[],
     /**
      * Who the entry is worded for, not who may open it: some pages are offered under one name to
      * visitors and another to members. Left out, the entry is for everyone the authorizers let in.
@@ -96,7 +95,7 @@ export const navDef: NavItem[] = [
         authorizers: () => [eventAuth.readManyCurrent],
     },
     {
-        name: 'Ombul',
+        name: 'OmBul',
         href: '/ombul',
         icon: faBook,
         authorizers: () => [ombulAuth.readLatest],
@@ -144,12 +143,6 @@ export const navDef: NavItem[] = [
         href: '/image-collections',
         icon: faCamera,
         authorizers: () => [dynamicImageAuth.readCollectionPage],
-    },
-    {
-        name: 'Om Omega',
-        href: '/articles/om%20omega',
-        icon: faCircleInfo,
-        authorizers: () => [articleCategoryAuth.read],
     },
     {
         name: 'Interessegrupper',

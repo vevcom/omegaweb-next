@@ -1,12 +1,11 @@
 import '@pn-server-only'
 import { applicationPeriodAuth } from './auth'
-import { applicationPeriodSchemas } from './schemas'
-import { committeesParticipatingincluder } from './constants'
-import { applicationOperations } from '@/services/applications/operations'
+import { applicationPeriodParamsSchemas, applicationPeriodSchemas, periodDatesInOrder, periodDatesMessage } from './schemas'
+import { committeesParticipatingIncluder } from './constants'
+import { renumberApplicationPriorities } from '@/services/applications/renumberPriorities'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
-import { z } from 'zod'
 
 export const applicationPeriodOperations = {
     readAll: defineOperation({
@@ -16,9 +15,7 @@ export const applicationPeriodOperations = {
 
     read: defineOperation({
         authorizer: () => applicationPeriodAuth.read,
-        paramsSchema: z.object({
-            name: z.string()
-        }),
+        paramsSchema: applicationPeriodParamsSchemas.read,
         operation: async ({ prisma, params }) => {
             // committee.logoImage is null unless the committee has its own uploaded logo -
             // resolve it to the shared default here so callers never see a null logo.
@@ -28,7 +25,7 @@ export const applicationPeriodOperations = {
 
             const period = await prisma.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },
-                include: committeesParticipatingincluder,
+                include: committeesParticipatingIncluder,
             })
 
             return {
@@ -66,91 +63,69 @@ export const applicationPeriodOperations = {
     update: defineOperation({
         authorizer: () => applicationPeriodAuth.update,
         dataSchema: applicationPeriodSchemas.update,
-        paramsSchema: z.object({
-            name: z.string()
-        }),
-        operation: async ({ prisma, data, params }) => {
-            const period = await prisma.applicationPeriod.update({
+        paramsSchema: applicationPeriodParamsSchemas.update,
+        opensTransaction: true,
+        operation: async ({ prisma, data, params }) => prisma.$transaction(async (tx) => {
+            const current = await tx.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },
+                select: { id: true, startDate: true, endDate: true, endPriorityDate: true },
+            })
+            if (!periodDatesInOrder({ ...current, ...data })) {
+                throw new ServiceError('BAD PARAMETERS', periodDatesMessage)
+            }
+
+            const period = await tx.applicationPeriod.update({
+                where: { id: current.id },
                 data: {
                     name: data.name,
                     startDate: data.startDate,
                     endDate: data.endDate,
                     endPriorityDate: data.endPriorityDate,
                 },
-                include: {
-                    committeesParticipating: {
-                        select: {
-                            committeeId: true
-                        },
-                    },
-                },
+                select: { id: true, name: true },
             })
 
             if (data.participatingCommitteeIds) {
-                // Remove applications to committees that are no longer participating
-                // This must be done through the applicationOperations.destroy method to ensure
-                // that reordering priorities is handled correctly.
-                await Promise.all(
-                    period.committeesParticipating
-                        .map(committee => committee.committeeId)
-                        .filter(id => !(data.participatingCommitteeIds ?? []).includes(id))
-                        .map(async id => {
-                            const removeApplications = await prisma.application.findMany({
-                                where: {
-                                    applicationPeriodId: period.id,
-                                    applicationPeriodCommitee: {
-                                        committeeId: id
-                                    }
-                                },
-                                select: {
-                                    userId: true,
-                                    applicationPeriodCommiteeId: true
-                                }
-                            })
-                            await Promise.all(
-                                removeApplications.map(async application =>
-                                    await applicationOperations.destroy({
-                                        params: {
-                                            userId: application.userId,
-                                            commiteeParticipationId: application.applicationPeriodCommiteeId
-                                        },
-                                    })
-                                )
-                            )
-                        })
-                )
-
-                await prisma.committeeParticipationInApplicationPeriod.createMany({
-                    data: data.participatingCommitteeIds.map(id => ({
+                // The applications to a committee that leaves the period go with it (the
+                // participation cascades), which leaves gaps in the priorities of whoever applied.
+                const applicants = await tx.application.findMany({
+                    where: {
                         applicationPeriodId: period.id,
-                        committeeId: id
+                        applicationPeriodCommitee: { committeeId: { notIn: data.participatingCommitteeIds } },
+                    },
+                    select: { userId: true },
+                    distinct: ['userId'],
+                })
+                await tx.committeeParticipationInApplicationPeriod.deleteMany({
+                    where: {
+                        applicationPeriodId: period.id,
+                        committeeId: { notIn: data.participatingCommitteeIds },
+                    }
+                })
+                await tx.committeeParticipationInApplicationPeriod.createMany({
+                    data: data.participatingCommitteeIds.map(committeeId => ({
+                        applicationPeriodId: period.id,
+                        committeeId,
                     })),
                     skipDuplicates: true
                 })
-                await prisma.committeeParticipationInApplicationPeriod.deleteMany({
-                    where: {
-                        applicationPeriodId: period.id,
-                        committeeId: {
-                            notIn: data.participatingCommitteeIds
-                        }
-                    }
+                await renumberApplicationPriorities(tx, {
+                    applicationPeriodId: period.id,
+                    userIds: applicants.map(applicant => applicant.userId),
                 })
             }
 
             return { name: period.name }
-        }
+        }),
     }),
 
     removeAllApplicationTexts: defineOperation({
-        paramsSchema: z.object({
-            name: z.string()
-        }),
+        paramsSchema: applicationPeriodParamsSchemas.removeAllApplicationTexts,
         authorizer: () => applicationPeriodAuth.removeAllApplicationTexts,
-        operation: async ({ prisma, params, session }) => {
-            const period = await applicationPeriodOperations.read({
-                params: { name: params.name },
-                session
+        operation: async ({ prisma, params }) => {
+            const period = await prisma.applicationPeriod.findUniqueOrThrow({
+                where: { name: params.name },
+                select: { id: true, endPriorityDate: true },
             })
             if (period.endPriorityDate.getTime() > Date.now()) {
                 throw new ServiceError(
@@ -170,9 +145,7 @@ export const applicationPeriodOperations = {
 
     destroy: defineOperation({
         authorizer: () => applicationPeriodAuth.destroy,
-        paramsSchema: z.object({
-            name: z.string()
-        }),
+        paramsSchema: applicationPeriodParamsSchemas.destroy,
         operation: async ({ prisma, params }) => {
             await prisma.applicationPeriod.delete({
                 where: { name: params.name }
@@ -182,9 +155,7 @@ export const applicationPeriodOperations = {
 
     readNumberOfApplications: defineOperation({
         authorizer: () => applicationPeriodAuth.readNumberOfApplications,
-        paramsSchema: z.object({
-            name: z.string()
-        }),
+        paramsSchema: applicationPeriodParamsSchemas.readNumberOfApplications,
         operation: async ({ prisma, params }) => {
             const period = await prisma.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },
@@ -199,4 +170,4 @@ export const applicationPeriodOperations = {
             })
         }
     }),
-}
+} as const

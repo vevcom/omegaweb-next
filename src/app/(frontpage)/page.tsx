@@ -4,6 +4,8 @@ import LoggedOutLandingPage from './LoggedOut'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { frontpageAuth } from '@/services/frontpage/auth'
+import { Require } from '@/auth/authorizer/Require'
+import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Link from 'next/link'
 import type { SearchParamsServerSide } from '@/lib/queryParams/types'
 
@@ -15,13 +17,12 @@ export default async function Home({ searchParams }: PropTypes) {
         return <LoggedOutLandingPage />
     }
     const frontpageVersion = QueryParams.frontpageVersion.decode(await searchParams)
-    const canEditFrontpage =
-        frontpageAuth.updateSpecialCmsParagraphContentSection.auth(
-            session
-        ).authorized
-        || frontpageAuth.updateSpecialCmsImage.auth(
-            session
-        ).authorized
+    const capabilities = runCapabilities(session, {
+        canEditFrontpage: Require.anyOf(
+            frontpageAuth.updateSpecialCmsParagraphContentSection,
+            frontpageAuth.updateSpecialCmsImage,
+        ),
+    })
     switch (frontpageVersion) {
         case 'logged-out':
             return (
@@ -40,7 +41,7 @@ export default async function Home({ searchParams }: PropTypes) {
             return (
                 <div className={styles.pageRoot}>
                     {
-                        canEditFrontpage && (
+                        capabilities.canEditFrontpage.authorized && (
                             <Link
                                 className={styles.link}
                                 href={`/?${QueryParams.frontpageVersion.encodeUrl('logged-out')}`}

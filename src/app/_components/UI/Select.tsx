@@ -1,9 +1,8 @@
 'use client'
 import styles from './Select.module.scss'
-import { v4 as uuid } from 'uuid'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
-import { type SelectHTMLAttributes } from 'react'
+import { useId, type SelectHTMLAttributes } from 'react'
 
 export type PropTypes<ValueType> = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> & {
     name: string,
@@ -33,8 +32,12 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
         color = 'black',
         background = 'base',
         className,
+        id,
         ...props
     }: PropTypes<ValueType>) {
+        const domId = useId()
+        const selectId = id ?? domId
+
         return (
             <div
                 className={
@@ -44,7 +47,7 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
             >
                 <select
                     {...props}
-                    id={name}
+                    id={selectId}
                     name={name}
                     className={styles.field}
                     {
@@ -60,7 +63,7 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                     {
                         options.map(option =>
                             <option
-                                key={option.key ?? uuid()}
+                                key={option.key ?? option.value}
                                 value={option.value}
                             >
                                 {option.label ?? option.value}
@@ -69,7 +72,7 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                     }
                 </select>
                 <FontAwesomeIcon icon={faChevronDown} className={styles.chevron} />
-                <label htmlFor={name} className={styles.labe}>{label ?? name}</label>
+                <label htmlFor={selectId} className={styles.labe}>{label ?? name}</label>
             </div>
         )
     }

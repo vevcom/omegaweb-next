@@ -98,7 +98,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
     ]
 
     await Promise.all(events.map(({ event, registrationCount }) => upsert({
-        checkExistance: () => prisma.event.findFirst({
+        checkExistence: () => prisma.event.findFirst({
             where: { name: event.name },
             select: { id: true },
         }),

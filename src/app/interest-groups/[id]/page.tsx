@@ -36,24 +36,24 @@ const { page, generateMetadata } = serverPage({
 
         return { interestGroup, members, expanded, currentOrder }
     },
-    capabilityChecks: {
-        canMigrate: (data) => interestGroupAuth.migrateGroup.data({
+    capabilities: (data) => ({
+        canMigrate: interestGroupAuth.migrateGroup.data({
             groupId: data.interestGroup.groupId,
         }),
-        canAddMembers: (data) => interestGroupAuth.addMembers.data({
+        canAddMembers: interestGroupAuth.addMembers.data({
             groupId: data.interestGroup.groupId,
         }),
-        canSetMemberAdmin: (data) => interestGroupAuth.setMemberAdmin.data({
+        canSetMemberAdmin: interestGroupAuth.setMemberAdmin.data({
             groupId: data.interestGroup.groupId,
         }),
-        canSetMemberTitle: (data) => interestGroupAuth.setMemberTitle.data({
+        canSetMemberTitle: interestGroupAuth.setMemberTitle.data({
             groupId: data.interestGroup.groupId,
         }),
-        canPension: () => interestGroupAuth.pension,
-        canRemoveMembers: (data) => interestGroupAuth.removeMembers.data({
+        canPension: interestGroupAuth.pension,
+        canRemoveMembers: interestGroupAuth.removeMembers.data({
             groupId: data.interestGroup.groupId,
         }),
-    },
+    }),
     metadata: (data) => ({ title: data.interestGroup.name }),
     render: ({ data, capabilities }) => {
         const { interestGroup, members, expanded, currentOrder } = data

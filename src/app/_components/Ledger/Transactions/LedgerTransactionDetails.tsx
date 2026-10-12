@@ -1,6 +1,9 @@
+'use client'
 import styles from './LedgerTransactionDetails.module.scss'
 import { displayAmount } from '@/lib/currency/convert'
 import { displayDate } from '@/lib/dates/displayDate'
+import { Require } from '@/auth/authorizer/Require'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { LedgerTransactionPurpose, LedgerTransactionState, PaymentProvider } from '@/prisma-generated-pn-types'
 import type { ReactNode } from 'react'
@@ -8,7 +11,6 @@ import type { ReactNode } from 'react'
 type Props = {
     transaction: ExpandedLedgerTransaction,
     accountId: number,
-    canViewFees?: boolean,
 }
 
 export const transactionPurposeNames: Record<LedgerTransactionPurpose, string> = {
@@ -39,7 +41,8 @@ function DetailRow({ label, value }: { label: string, value: ReactNode }) {
     </div>
 }
 
-export default function LedgerTransactionDetails({ transaction, accountId, canViewFees }: Props) {
+export default function LedgerTransactionDetails({ transaction, accountId }: Props) {
+    const canViewFees = useAuthorizer({ authorizer: Require.permission('LEDGER_ADMIN') }).authorized
     const totalFunds = (
         transaction.ledgerEntries.reduce((sum, entry) => sum + Math.abs(entry.funds), 0)
         + Math.abs(transaction.payment?.funds ?? 0)

@@ -4,7 +4,6 @@ import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { displayAmount } from '@/lib/currency/convert'
 import { productOperations } from '@/services/shop/product/operations'
 import { serverPage } from '@/app/serverPage'
-import { v4 as uuid } from 'uuid'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/serverPage'
 
@@ -25,7 +24,7 @@ const { page, generateMetadata } = serverPage({
                     </tr>
                 </thead>
                 <tbody>
-                    {product.ShopProduct.map(shopProduct => <tr key={uuid()}>
+                    {product.ShopProduct.map(shopProduct => <tr key={shopProduct.shopId}>
                         <td><Link href={`/admin/shop/${shopProduct.shopId}`}>{shopProduct.shop.name}</Link></td>
                         <td>{shopProduct.active ? 'AKTIV' : 'INAKTIV'}</td>
                         <td>{displayAmount(shopProduct.price, false)}</td>

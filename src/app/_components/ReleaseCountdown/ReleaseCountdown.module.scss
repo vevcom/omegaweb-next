@@ -33,9 +33,14 @@
 
 .units {
     display: flex;
-    flex-wrap: wrap;
     justify-content: center;
     gap: calc(2 * ohma.$gap);
+
+    @include ohma.screenMobile {
+        width: 100%;
+        max-width: 30rem;
+        gap: ohma.$gap;
+    }
 }
 
 .unit {
@@ -48,6 +53,12 @@
     border-radius: ohma.$cardRounding;
     background: rgb(0 0 0 / 60%);
     backdrop-filter: blur(4px);
+
+    @include ohma.screenMobile {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: ohma.$gap calc(ohma.$gap / 2);
+    }
 }
 
 .value {
@@ -56,6 +67,10 @@
     font-variant-numeric: tabular-nums;
     line-height: 1;
     color: ohma.$colors-accent-blue;
+
+    @include ohma.screenMobile {
+        font-size: clamp(1.75rem, 10vw, 3rem);
+    }
 }
 
 .label {
@@ -63,6 +78,11 @@
     color: ohma.$colors-text-muted;
     text-transform: uppercase;
     letter-spacing: 0.1em;
+
+    @include ohma.screenMobile {
+        font-size: clamp(8px, 2.5vw, 12px);
+        letter-spacing: 0.05em;
+    }
 }
 
 .releaseDate {

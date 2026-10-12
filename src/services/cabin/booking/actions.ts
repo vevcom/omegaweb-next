@@ -14,3 +14,4 @@ export const readSpecialCmsParagraphCabinContractAction = makeAction(
 export const updateSpecialCmsParagraphCabinContractAction = makeAction(
     cabinBookingOperations.updateSpecialCmsParagraphContentCabinContract
 )
+export const releaseCabinBookingReservationAction = makeAction(cabinBookingOperations.releaseReservation)

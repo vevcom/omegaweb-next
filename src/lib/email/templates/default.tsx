@@ -1,12 +1,12 @@
 import '@pn-server-only'
 
 import { Html } from '@react-email/components'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
 export function DefaultEmailTemplate({
     html,
 }: {
-    user: UserFiltered,
+    user: UserBasic,
     html: string,
 }) {
     return (

@@ -8,4 +8,4 @@ export const applicationPeriodAuth = {
     update: Require.permission('APPLICATION_ADMIN'),
     removeAllApplicationTexts: Require.permission('APPLICATION_ADMIN'),
     destroy: Require.permission('APPLICATION_ADMIN'),
-}
+} as const

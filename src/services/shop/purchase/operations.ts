@@ -5,7 +5,7 @@ import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { userOperations } from '@/services/users/operations'
 import { permissionOperations } from '@/services/permissions/operations'
-import { userFilterSelection } from '@/services/users/constants'
+import { userBasicSelection } from '@/services/users/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { PurchaseMethod } from '@/prisma-generated-pn-types'
@@ -32,7 +32,7 @@ const createPurchase = defineSubOperation({
             where: {
                 id: params.userId,
             },
-            select: userFilterSelection,
+            select: userBasicSelection,
         })
 
         const shop = await prisma.shop.findUniqueOrThrow({

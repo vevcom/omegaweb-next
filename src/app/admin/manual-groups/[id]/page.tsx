@@ -42,16 +42,16 @@ const { page, generateMetadata } = serverPage({
 
         return { manualGroup, expanded, members, currentOrder }
     },
-    capabilityChecks: {
-        canMigrate: (data) => manualGroupAuth.migrateGroup.data({ groupId: data.manualGroup.groupId }),
-        canAddMembers: (data) => manualGroupAuth.addMembers.data({ groupId: data.manualGroup.groupId }),
-        canSetMemberAdmin: (data) => manualGroupAuth.setMemberAdmin.data({ groupId: data.manualGroup.groupId }),
-        canSetMemberTitle: (data) => manualGroupAuth.setMemberTitle.data({
+    capabilities: (data) => ({
+        canMigrate: manualGroupAuth.migrateGroup.data({ groupId: data.manualGroup.groupId }),
+        canAddMembers: manualGroupAuth.addMembers.data({ groupId: data.manualGroup.groupId }),
+        canSetMemberAdmin: manualGroupAuth.setMemberAdmin.data({ groupId: data.manualGroup.groupId }),
+        canSetMemberTitle: manualGroupAuth.setMemberTitle.data({
             groupId: data.manualGroup.groupId,
         }),
-        canPension: () => manualGroupAuth.pension,
-        canRemoveMembers: (data) => manualGroupAuth.removeMembers.data({ groupId: data.manualGroup.groupId }),
-    },
+        canPension: manualGroupAuth.pension,
+        canRemoveMembers: manualGroupAuth.removeMembers.data({ groupId: data.manualGroup.groupId }),
+    }),
     metadata: (data) => ({ title: data.manualGroup.name }),
     render: ({ data, capabilities }) => {
         const { manualGroup, expanded, members, currentOrder } = data

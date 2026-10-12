@@ -174,6 +174,11 @@ export default function UserList({
         )
     }
 
+    const ariaSort = (field: SortField) => {
+        if (currentSort?.field !== field) return undefined
+        return currentSort.direction === 'asc' ? 'ascending' : 'descending'
+    }
+
     const handleGroupSelect = (groupId: number | 'NULL', type: GroupSelectionType) => {
         if (!groups) return
         setGroupSelection({
@@ -300,11 +305,15 @@ export default function UserList({
                         <tr>
                             {(usersSelection || userSelection) && <th></th>}
                             {displayForUser && <th></th>}
-                            <th className={styles.sortable} onClick={() => handleSort('name')}>
-                                Navn {sortIcon('name')}
+                            <th className={styles.sortable} aria-sort={ariaSort('name')}>
+                                <button type="button" onClick={() => handleSort('name')}>
+                                    Navn {sortIcon('name')}
+                                </button>
                             </th>
-                            <th className={styles.sortable} onClick={() => handleSort('username')}>
-                                Brukernavn {sortIcon('username')}
+                            <th className={styles.sortable} aria-sort={ariaSort('username')}>
+                                <button type="button" onClick={() => handleSort('username')}>
+                                    Brukernavn {sortIcon('username')}
+                                </button>
                             </th>
                             <th>Studie</th>
                             <th>Klasse</th>
@@ -334,6 +343,8 @@ export default function UserList({
                                     <td>
                                         <button
                                             className={usersSelection.includes(user) ? styles.selected : ''}
+                                            aria-label={`Velg ${user.firstname} ${user.lastname}`}
+                                            aria-pressed={usersSelection.includes(user)}
                                             onClick={(event) => {
                                                 stopSelectionClickPropagation(event)
                                                 usersSelection.toggle(user)
@@ -346,6 +357,8 @@ export default function UserList({
                                     <td>
                                         <button
                                             className={userSelection.user?.id === user.id ? styles.selected : ''}
+                                            aria-label={`Velg ${user.firstname} ${user.lastname}`}
+                                            aria-pressed={userSelection.user?.id === user.id}
                                             onClick={(event) => {
                                                 stopSelectionClickPropagation(event)
                                                 userSelection.setUser(user)
@@ -357,7 +370,11 @@ export default function UserList({
                                 {
                                     displayForUser && <td>{displayForUser(user)}</td>
                                 }
-                                <UserRow groupSelected={groupSelected} user={user} />
+                                <UserRow
+                                    groupSelected={groupSelected}
+                                    user={user}
+                                    href={linksToUser ? userHref(user) : undefined}
+                                />
                             </tr>
                         )} />
                     </tbody>

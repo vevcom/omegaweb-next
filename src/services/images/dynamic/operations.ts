@@ -11,7 +11,7 @@ import {
 } from '@/services/images/subservice/operations'
 import { allowedExtensions, expandedImageCollectionIncluder } from '@/services/images/subservice/constants'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
@@ -69,7 +69,7 @@ const readCollectionPage = defineOperation({
     authorizer: async () => dynamicImageAuth.readCollectionPage,
     operation: async ({ prisma, params }, prismaWhereFilter) => {
         const collections = await prisma.imageCollection.findMany({
-            ...cursorPageingSelection(params.paging.page),
+            ...cursorPagingSelection(params.paging.page),
             where: {
                 ...ownershipCheckWhereCondition(),
                 // The filter is undefined only when the session bypasses visibility with IMAGE_ADMIN,

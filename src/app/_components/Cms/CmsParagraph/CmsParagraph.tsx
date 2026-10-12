@@ -1,19 +1,20 @@
 import styles from './CmsParagraph.module.scss'
 import ParagraphEditor from './CmsParagraphEditor'
 import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
+import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import React from 'react'
 import type { CmsParagraph as CmsParagraphT } from '@/prisma-generated-pn-types'
 import type { UpdateCmsParagraphAction } from '@/cms/paragraphs/types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 export type PropTypes = {
     cmsParagraph: CmsParagraphT
     className?: string
     updateCmsParagraphAction: UpdateCmsParagraphAction
-    canEdit: AuthResultTypeAny
+    capabilities: Capabilities<'canEdit'>
 }
 
-export default function CmsParagraph({ cmsParagraph, className, updateCmsParagraphAction, canEdit }: PropTypes) {
+export default function CmsParagraph({ cmsParagraph, className, updateCmsParagraphAction, capabilities }: PropTypes) {
     return (
         <>
             <div className={`${styles.CmsParagraph} ${className}`}>
@@ -28,7 +29,7 @@ export default function CmsParagraph({ cmsParagraph, className, updateCmsParagra
                     <i>Her var det ikke noe innhold</i>
                 )}
                 <ParagraphEditor
-                    canEdit={canEdit}
+                    capabilities={capabilitiesToJsObject(capabilities)}
                     cmsParagraph={cmsParagraph}
                     updateCmsParagraphAction={updateCmsParagraphAction}
                 />

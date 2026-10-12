@@ -7,7 +7,7 @@ import type { UserFiltered } from '@/services/users/types'
 const user = { id: 1, username: 'harambe' } as UserFiltered
 const loggedIn = Session.fromJsObject({ user, permissions: ['USERS_ADMIN'], memberships: [] })
 
-type UserRequired = Authorizer<'USER_REQUIERED_FOR_AUTHORIZED'>
+type UserRequired = Authorizer<'USER_REQUIRED_FOR_AUTHORIZED'>
 
 /**
  * A chain that only passes with a logged-in user says so in its type, so the session of an

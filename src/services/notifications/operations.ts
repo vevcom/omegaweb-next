@@ -9,10 +9,10 @@ import type { NotificationResult } from './types'
 export const notificationOperations = {
     /**
      * Creates a notification. Nothing is sent here: the notification worker picks it up, resolves
-     * who should receive it at that point (channel subscriptions ∩ targeted users ∩ visibility,
-     * see methods/recipients.ts) and dispatches it through the channel's available methods.
+     * who should receive it at that point (channel subscriptions ∩ targeted users ∩ visibility ∩
+     * permission, see methods/recipients.ts) and dispatches it through the channel's available methods.
      *
-     * @param data - The notification, optionally restricted to target users and/or a visibility.
+     * @param data - The notification, optionally restricted to an audience of users, a visibility and a permission.
      * @returns The created notification.
      */
     create: defineOperation({
@@ -34,18 +34,19 @@ export const notificationOperations = {
                             id: data.channelId,
                         },
                     },
-                    ...(data.targetUserIds && data.targetUserIds.length > 0 ? {
+                    ...(data.audience?.userIds && data.audience.userIds.length > 0 ? {
                         usersTargeted: {
-                            connect: data.targetUserIds.map(userId => ({ id: userId })),
+                            connect: data.audience.userIds.map(userId => ({ id: userId })),
                         },
                     } : {}),
-                    ...(data.visibilityId ? {
+                    ...(data.audience?.visibilityId ? {
                         visibility: {
                             connect: {
-                                id: data.visibilityId,
+                                id: data.audience.visibilityId,
                             },
                         },
                     } : {}),
+                    permission: data.audience?.permission,
                 }
             })
 
@@ -80,10 +81,9 @@ export const notificationOperations = {
                     channelId: channel.id,
                     title: data.title,
                     message: data.message,
-                    targetUserIds: data.targetUserIds,
-                    visibilityId: data.visibilityId,
+                    audience: data.audience,
                 }
             })
         }
     }),
-}
+} as const

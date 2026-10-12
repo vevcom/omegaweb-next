@@ -9,6 +9,7 @@ services:
             dockerfile: ${PROJECT_ROOT:-.}/Dockerfile
             args:
                 NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
+                NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
         environment:
             DB_URI: ${DB_URI}
             MIGRATE_FROM_OW: ${MIGRATE_FROM_OW}

@@ -47,7 +47,7 @@ export const seedNews = defineSeedOperation(async (prisma: PrismaClient) => {
  */
 async function upsertNews(prisma: PrismaClient, news: SeedNewsConfig) {
     return upsert({
-        checkExistance: () => prisma.newsArticle.findFirst({
+        checkExistence: () => prisma.newsArticle.findFirst({
             where: { articleName: news.article.name },
             select: { id: true }
         }),

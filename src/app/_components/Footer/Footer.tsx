@@ -1,16 +1,9 @@
 import styles from './Footer.module.scss'
+import FooterSponsors from './FooterSponsors'
 import SocialIcons from '@/components/SocialIcons/SocialIcons'
-import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import StandardImageServer from '@/components/Image/StandardImageServer'
-import { readSpecialCmsImageFrontpage, updateSpecialCmsImageFrontpage } from '@/services/frontpage/actions'
-import Link from 'next/link'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
 
-type PropTypes = {
-    canEditSpecialCmsImage: AuthResultTypeAny
-}
-
-async function Footer({ canEditSpecialCmsImage }: PropTypes) {
+async function Footer() {
     const emailDomain = process.env.EMAIL_DOMAIN
 
     return (
@@ -29,16 +22,6 @@ async function Footer({ canEditSpecialCmsImage }: PropTypes) {
                 </p>
                 <p>Org. Nr. 890 384 692</p>
                 <div>
-                    {/* TODO: Uncomment when PWA an SVG
-                    <SpecialCmsImage
-                        canEdit={canEditSpecialCmsImage}
-                        special="FOOTER_1"
-                        width={200}
-                        readSpecialCmsImageAction={readSpecialCmsImageFrontpage}
-                        updateCmsImageAction={updateSpecialCmsImageFrontpage}
-                    >
-                        <Link className={styles.pwa} href="/infopages/pwa" />
-                    </SpecialCmsImage>*/}
                     <div className={styles.icons}>
                         <SocialIcons />
                     </div>
@@ -62,24 +45,7 @@ async function Footer({ canEditSpecialCmsImage }: PropTypes) {
                 </div>
             </div>
             <div className={styles.sponsors}>
-                <SpecialCmsImage
-                    canEdit={canEditSpecialCmsImage}
-                    special="FOOTER_SPONSOR_1"
-                    width={170}
-                    readSpecialCmsImageAction={readSpecialCmsImageFrontpage}
-                    updateCmsImageAction={updateSpecialCmsImageFrontpage}
-                >
-                    <Link href="http://www.nordicsemi.com" target="_blank" />
-                </SpecialCmsImage>
-                <SpecialCmsImage
-                    canEdit={canEditSpecialCmsImage}
-                    special="FOOTER_SPONSOR_2"
-                    width={100}
-                    readSpecialCmsImageAction={readSpecialCmsImageFrontpage}
-                    updateCmsImageAction={updateSpecialCmsImageFrontpage}
-                >
-                    <Link href="http://www.kongsberg.com" target="_blank" />
-                </SpecialCmsImage>
+                <FooterSponsors />
             </div>
         </footer>
     )

@@ -4,7 +4,7 @@ import { LinkFeideAccountTemplate } from '@/lib/email/templates/linkFeideAccount
 import { generateJWT } from '@/jwt/jwt'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import type { FeideIdentity } from '@/services/auth/types'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasicWithEmail } from '@/services/users/types'
 
 /**
  * Sends a mail to a migrated, unclaimed user with a link that confirms moving a
@@ -15,7 +15,7 @@ import type { UserFiltered } from '@/services/users/types'
  * @param targetUser - The migrated user the Feide login should be moved to.
  * @param feideIdentity - The Feide identity to move, and the fresh user currently holding it.
  */
-export async function sendLinkFeideAccountMail(targetUser: UserFiltered, feideIdentity: FeideIdentity) {
+export async function sendLinkFeideAccountMail(targetUser: UserBasicWithEmail, feideIdentity: FeideIdentity) {
     const jwt = generateJWT('linkfeideaccount', {
         sub: targetUser.id,
         feideUserId: feideIdentity.userId,

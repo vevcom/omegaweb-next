@@ -28,6 +28,7 @@ import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { eventAuth } from '@/services/events/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
+import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/serverPage'
 import Link from 'next/link'
 import { faCalendar, faExclamation, faLocationDot, faUsers } from '@fortawesome/free-solid-svg-icons'
@@ -96,43 +97,40 @@ const { page, generateMetadata } = serverPage({
             eventPaymentCustomerSessionSecret,
         }
     },
-    capabilityChecks: {
-        canEditCmsCoverImage: (data) => eventAuth.updateCmsCoverImage.data({
+    capabilities: (data, session) => ({
+        canEditCmsCoverImage: eventAuth.updateCmsCoverImage.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        canEditCmsParagraph: (data) => eventAuth.updateParagraphContent.data({
+        canEditCmsParagraph: eventAuth.updateParagraphContent.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        canDestroy: (data) => eventAuth.destroy.data({
+        canDestroy: eventAuth.destroy.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
         // Reading who is registered takes the regular level of the event, and registering on
         // behalf of others its admin level - offering any of it to someone without the level
         // would only produce an error when they act on it.
-        canReadRegistrations: (data) => eventRegistrationAuth.readPage.data({
+        canReadRegistrations: eventRegistrationAuth.readPage.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        canRegisterOthers: (data) => eventRegistrationAuth.createGuest.data({
+        canRegisterOthers: eventRegistrationAuth.createGuest.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-    },
-    metadata: (data) => ({ title: data.event.name }),
-    render: ({ data, capabilities, session }) => {
-        const { event, tags, doubleLevelVisibility, dotPunishment, ownRegistration } = data
-        const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
-
-        // Registering takes the regular level of the event; the authorizer needs the session's own
-        // user id, so it is run inline here rather than declared as a capability check.
-        const canRegister = session.user ? eventRegistrationAuth.create({
+        // Registering takes the regular level of the event, for the session's own user.
+        canRegister: session.user ? eventRegistrationAuth.create({
             userId: session.user.id,
-            doubleLevelMatrix,
-        }).auth(session).authorized : false
+            doubleLevelMatrix: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        }) : Require.user(),
+    }),
+    metadata: (data) => ({ title: data.event.name }),
+    render: ({ data, capabilities }) => {
+        const { event, tags, doubleLevelVisibility, dotPunishment, ownRegistration } = data
 
         return (
             <div className={styles.wrapper}>
                 <span className={styles.coverImage}>
                     <CmsImage
-                        canEdit={capabilities.canEditCmsCoverImage.toJsObject()}
+                        capabilities={{ canEdit: capabilities.canEditCmsCoverImage }}
                         cmsImage={event.coverImage}
                         width={900}
                         updateCmsImageAction={
@@ -208,7 +206,7 @@ const { page, generateMetadata } = serverPage({
                             dotPunishment={dotPunishment}
                             availableBalance={data.eventPaymentBalance}
                             customerSessionClientSecret={data.eventPaymentCustomerSessionSecret}
-                            canRegister={canRegister}
+                            capabilities={{ canRegister: capabilities.canRegister.toJsObject() }}
                         />
                     </> : <p>
                         <FontAwesomeIcon icon={faExclamation} />
@@ -218,7 +216,7 @@ const { page, generateMetadata } = serverPage({
                 </aside>
                 <main>
                     <CmsParagraph
-                        canEdit={capabilities.canEditCmsParagraph.toJsObject()}
+                        capabilities={{ canEdit: capabilities.canEditCmsParagraph }}
                         cmsParagraph={event.paragraph}
                         updateCmsParagraphAction={
                             configureAction(

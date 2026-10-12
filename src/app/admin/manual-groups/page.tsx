@@ -24,9 +24,9 @@ const { page, generateMetadata } = serverPage({
         ])
         return { manualGroups, expandedGroups, currentOrder }
     },
-    capabilityChecks: {
-        canAdmin: () => manualGroupAuth.update,
-    },
+    capabilities: () => ({
+        canAdmin: manualGroupAuth.update,
+    }),
     metadata: () => ({ title: 'Andre grupper' }),
     render: ({ data, capabilities }) => {
         const membersOfGroup = (groupId: number) =>

@@ -1,4 +1,4 @@
-import 'server-only'
+import '@pn-server-only'
 import { cabinPricePeriodAuth } from './auth'
 import { cabinPricePeriodSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
@@ -144,4 +144,4 @@ export const cabinPricePeriodOperations = {
             data,
         })
     }),
-}
+} as const

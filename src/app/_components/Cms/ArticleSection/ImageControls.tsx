@@ -12,21 +12,21 @@ import {
 import { useRouter } from 'next/navigation'
 import type { ArticleSection } from '@/prisma-generated-pn-types'
 import type { UpdateArticleSectionAction } from '@/cms/articleSections/types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     articleSection: ArticleSection
     className?: string
     updateArticleSectionAction: UpdateArticleSectionAction
-    canEdit: AuthResultTypeAny
+    capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
 /**
  * This component is used to control the image in the article section
  * i.e move it left or right and size it
  */
-export default function ImageControls({ articleSection, className, updateArticleSectionAction, canEdit }: PropTypes) {
-    const editable = useEditMode({ authResult: canEdit })
+export default function ImageControls({ articleSection, className, updateArticleSectionAction, capabilities }: PropTypes) {
+    const editable = useEditMode({ authResult: capabilities.canEdit })
     const { refresh } = useRouter()
 
     const moveLeft = async () => {

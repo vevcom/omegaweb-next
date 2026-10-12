@@ -174,4 +174,4 @@ export const apiKeyOperations = {
             })
         }
     }),
-}
+} as const

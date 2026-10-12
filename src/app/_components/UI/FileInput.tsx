@@ -5,7 +5,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperclip } from '@fortawesome/free-solid-svg-icons'
 import type { InputHTMLAttributes, ChangeEvent } from 'react'
 
-export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
+export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name'> & {
+    name: string,
     label: string,
     color?: 'primary' | 'secondary' | 'red' | 'black' | 'white',
     background?: 'base' | 'raised',
@@ -43,7 +44,6 @@ export default function FileInput({
 
     return (
         <div
-            id={props.name}
             className={
                 `${styles.FileInput} ${styles[color]} ` +
                 `${background === 'raised' ? styles.onRaised : ''} ${className ?? ''}`

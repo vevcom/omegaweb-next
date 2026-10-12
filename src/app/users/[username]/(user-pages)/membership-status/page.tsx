@@ -41,12 +41,12 @@ const { page, generateMetadata } = serverPage({
 
         return { profile, sittedTrials: trials.map(trial => trial.admission) }
     },
-    capabilityChecks: {
-        canReadTrials: (data) => admissionAuth.readTrial.data({ userId: data.profile.user.id }),
-        canRegisterTrial: () => admissionAuth.createTrial,
-        canChangeLevel: () => omegaMembershipGroupAuth.updateUserLevel,
-        canChangeOrder: () => omegaMembershipGroupAuth.updateUserOrder,
-    },
+    capabilities: (data) => ({
+        canReadTrials: admissionAuth.readTrial.data({ userId: data.profile.user.id }),
+        canRegisterTrial: admissionAuth.createTrial,
+        canChangeLevel: omegaMembershipGroupAuth.updateUserLevel,
+        canChangeOrder: omegaMembershipGroupAuth.updateUserOrder,
+    }),
     render: ({ data, capabilities }) => {
         const { profile } = data
         const { id: userId } = profile.user

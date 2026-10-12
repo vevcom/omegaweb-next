@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import type { EventExpanded } from '@/services/events/types'
 import type { DotPunishment, EventRegistrationWithWaitingList } from '@/services/events/registration/types'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 enum RegistrationButtonState {
     NOT_REGISTERED = 'NOT_REGISTERED',
@@ -35,14 +36,14 @@ export default function RegistrationUI({
     dotPunishment,
     availableBalance,
     customerSessionClientSecret,
-    canRegister,
+    capabilities,
 }: {
     event: EventExpanded,
     registration: (EventRegistrationWithWaitingList & { ledgerTransactions: { id: number }[] }) | null,
     dotPunishment: DotPunishment | null,
     availableBalance?: number,
     customerSessionClientSecret?: string,
-    canRegister: boolean,
+    capabilities: CapabilitiesJsObject<'canRegister'>,
 }) {
     if (!event.takesRegistration) {
         throw new Error('Kan bare vise påmeldingsknapp for arrangement som har påmelding')
@@ -64,7 +65,7 @@ export default function RegistrationUI({
             return RegistrationButtonState.BANNED_BY_DOTS
         }
         // The regular visibility level of the event decides who may register for it at all.
-        if (!canRegister) {
+        if (!capabilities.canRegister.authorized) {
             return RegistrationButtonState.NOT_ALLOWED
         }
         if (registrationStart > new Date()) {

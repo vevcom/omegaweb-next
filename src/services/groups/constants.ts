@@ -1,5 +1,5 @@
 import { createSelection } from '@/services/createSelection'
-import { userFilterSelection } from '@/services/users/constants'
+import { userCardSelection } from '@/services/users/constants'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { ClassLevel, GroupType, Membership, OmegaMembershipLevel, Prisma } from '@/prisma-generated-pn-types'
 import type { GroupTypeInfo } from './types'
@@ -137,7 +137,7 @@ export const membershipFilterSelection = createSelection([...membershipFieldsToE
 export const groupMembershipIncluder = {
     user: {
         select: {
-            ...userFilterSelection,
+            ...userCardSelection,
             image: { include: expandedImageIncluder },
         }
     }

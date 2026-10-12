@@ -12,7 +12,7 @@ import { visibilityOperations } from '@/services/visibility/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError, Smorekopp } from '@/services/error'
 import { implementStore } from '@/lib/store/implementStore'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import logger from '@/lib/logger'
 import sharp from 'sharp'
 import { File } from 'node:buffer'
@@ -328,7 +328,7 @@ export const imageOperations = {
     readPageOfImagesInCollection: defineSubOperation({
         paramsSchema: () => imageSchemas.paramsSchemaReadPageOfImagesInCollection,
         operation: () => async ({ prisma, params }) => {
-            const { cursor, ...rest } = cursorPageingSelection(params.paging.page)
+            const { cursor, ...rest } = cursorPagingSelection(params.paging.page)
             return await prisma.image.findMany({
                 where: {
                     collectionId: params.collectionId,

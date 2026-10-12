@@ -3,31 +3,26 @@ import PopUpProvider from '@/contexts/PopUp'
 import EventTagsAdmin from '@/components/Event/EventTagsAdmin'
 import React from 'react'
 import type { EventTag } from '@/prisma-generated-pn-types'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     eventTags: EventTag[],
     currentTags: EventTag[]
-    canCreate: boolean
-    canUpdate: boolean
-    canDestroy: boolean
+    capabilities: Capabilities<'canCreateTags' | 'canUpdateTags' | 'canDestroyTags'>
     page: 'EVENT' | 'EVENT_ARCHIVE'
 }
 
 export default function TagHeaderItem({
     eventTags,
     currentTags,
-    canCreate,
-    canUpdate,
-    canDestroy,
+    capabilities,
     page
 }: PropTypes) {
     return (
         <TagHeasderItemPopUp scale={35} popUpKey="TagEventPopUp">
             <PopUpProvider>
                 <EventTagsAdmin
-                    canCreate={canCreate}
-                    canUpdate={canUpdate}
-                    canDestroy={canDestroy}
+                    capabilities={capabilities}
                     eventTags={eventTags}
                     selectedTags={currentTags}
                     page={page}

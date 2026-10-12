@@ -9,17 +9,17 @@ import { faX } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { ArticleSectionPart, RemovePartFromArticleSectionAction } from '@/cms/articleSections/types'
 import type { ConfiguredAction } from '@/services/actionTypes'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     part: ArticleSectionPart,
     removePartFromArticleSectionAction: ConfiguredAction<RemovePartFromArticleSectionAction>
-    canEdit: AuthResultTypeAny
+    capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
-export default function RemovePart({ part, removePartFromArticleSectionAction, canEdit }: PropTypes) {
+export default function RemovePart({ part, removePartFromArticleSectionAction, capabilities }: PropTypes) {
     const { refresh } = useRouter()
-    const editable = useEditMode({ authResult: canEdit })
+    const editable = useEditMode({ authResult: capabilities.canEdit })
     const [confirmOpen, setConfirmOpen] = useState(false)
     const confirmRef = useClickOutsideRef(() => setConfirmOpen(false))
     const handleRemove = removePartFromArticleSectionAction.bind(null, { data: { part } })

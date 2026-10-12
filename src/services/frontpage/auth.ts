@@ -6,4 +6,4 @@ export const frontpageAuth = {
     updateSpecialCmsParagraphContentSection: Require.permission('FRONTPAGE_ADMIN'),
     readSpecialCmsImage: Require.nothing(),
     updateSpecialCmsImage: Require.permission('FRONTPAGE_ADMIN')
-}
+} as const

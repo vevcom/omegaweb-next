@@ -4,7 +4,7 @@ import {
     notificationMethodsArray,
 } from '@/services/notifications/constants'
 import type { NotificationMethodGeneral } from '@/services/notifications/types'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
 export function newAllMethodsOff() {
     return { ...allNotificationMethodsOff }
@@ -40,7 +40,7 @@ export function booleanOperationOnMethods(
     return ret
 }
 
-export function repalceSpecialSymbols(text: string, user: UserFiltered) {
+export function replaceSpecialSymbols(text: string, user: UserBasic) {
     return text
         .replaceAll('%u', user.username)
         .replaceAll('%n', user.firstname)

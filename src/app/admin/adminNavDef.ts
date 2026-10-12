@@ -43,7 +43,7 @@ import {
     faListDots,
     faMoneyBillWave,
 } from '@fortawesome/free-solid-svg-icons'
-import type { Authorizer, UserRequieredOutOpt } from '@/auth/authorizer/Authorizer'
+import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 
@@ -60,7 +60,7 @@ export type AdminNavLink = {
      * The same list is what `authorizeAdminPage` guards the page with, so a link is never shown to
      * a page that would turn the viewer away.
      */
-    authorizers: () => Authorizer<UserRequieredOutOpt, object | undefined>[],
+    authorizers: () => Authorizer<UserRequiredOutOpt, object | undefined>[],
 }
 
 export type AdminNavGroup = {
@@ -349,7 +349,7 @@ export const adminNavDef: AdminNavGroup[] = [
  */
 export function adminNavAuthorizers(
     { except }: { except?: string } = {}
-): Authorizer<UserRequieredOutOpt, object | undefined>[] {
+): Authorizer<UserRequiredOutOpt, object | undefined>[] {
     return adminNavDef.flatMap(group => group.links)
         .filter(link => link.path !== except)
         .flatMap(link => link.authorizers())

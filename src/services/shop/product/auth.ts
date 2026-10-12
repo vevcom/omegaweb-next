@@ -5,4 +5,4 @@ export const productAuth = {
     create: Require.permission('PRODUCT_ADMIN'),
     update: Require.permission('PRODUCT_ADMIN'),
     createShopConnection: Require.permission('SHOP_ADMIN'),
-}
+} as const

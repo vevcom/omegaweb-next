@@ -22,7 +22,7 @@ export async function sendBookingConfirmation(
             },
             data: {
                 ...mailData,
-                targetUserIds: [booking.userId],
+                audience: { userIds: [booking.userId] },
             },
         })
         return

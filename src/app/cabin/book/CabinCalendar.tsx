@@ -2,7 +2,6 @@
 import styles from './CabinCalendar.module.scss'
 import { dateInInterval, dateLessThan, datesEqual, getWeekNumber } from '@/lib/dates/comparison'
 import React, { useState } from 'react'
-import { v4 as uuid } from 'uuid'
 import type { BookingFiltered } from '@/services/cabin/booking/types'
 import type { ReactNode } from 'react'
 
@@ -289,7 +288,7 @@ export default function CabinCalendar({
         <div className={`${styles.week} ${styles.weekHeader}`}>
             <div className={styles.weekNumber}>Uke</div>
             <div className={styles.weekDays}>
-                {WEEKDAYS.map(day => <div key={uuid()}>{day}</div>)}
+                {WEEKDAYS.map(day => <div key={day}>{day}</div>)}
             </div>
         </div>
 
@@ -320,9 +319,9 @@ function CalendarWeek({
     return <div className={styles.week} >
         <div className={styles.weekNumber}>{week.number}</div>
         <div className={styles.weekDays}>
-            {week.days.map(day => {
-                if (day) return <CalendarDay day={day} key={uuid()} callback={callback} />
-                return <div key={uuid()} className={styles.day}></div>
+            {week.days.map((day, weekdayIndex) => {
+                if (day) return <CalendarDay day={day} key={weekdayIndex} callback={callback} />
+                return <div key={weekdayIndex} className={styles.day}></div>
             })}
         </div>
     </div>

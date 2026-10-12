@@ -21,7 +21,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { v4 as uuid } from 'uuid'
 import React from 'react'
 import type { PageOperationArgs } from '@/app/serverPage'
 
@@ -46,9 +45,9 @@ const { page, generateMetadata } = serverPage({
             flairs: [...flairs].sort((flairOne, flairTwo) => flairOne.rank - flairTwo.rank),
         }
     },
-    capabilityChecks: {
-        canUpdateBio: ({ profile }) => userAuth.updateBioParagraphContent.data({ userId: profile.user.id }),
-    },
+    capabilities: ({ profile }) => ({
+        canUpdateBio: userAuth.updateBioParagraphContent.data({ userId: profile.user.id }),
+    }),
     metadata: () => ({ title: 'Profil' }),
     render: ({ data, capabilities, session }) => {
         const { profile, flairs } = data
@@ -113,7 +112,10 @@ const { page, generateMetadata } = serverPage({
 
                                 <div className={styles.committeesWrapper}>
                                     {committeeMemberships.active.map(membership =>
-                                        <div className={styles.committee} key={uuid()}>
+                                        <div
+                                            className={styles.committee}
+                                            key={`${membership.committee.shortName}-${membership.order}`}
+                                        >
                                             <Link href={`/committees/${membership.committee.shortName}`}>
                                                 <p>{membership.title} i {membership.committee.name}</p>
                                             </Link>
@@ -128,7 +130,7 @@ const { page, generateMetadata } = serverPage({
                                         <h2>Komitémedlemskap:</h2>
                                         {committeeMembershipsByOrder.map(membership =>
                                             <Link
-                                                key={uuid()}
+                                                key={`${membership.committee.shortName}-${membership.order}`}
                                                 href={`/committees/${membership.committee.shortName}`}
                                             >
                                                 <p className={styles.studyProgramme}>
@@ -145,7 +147,7 @@ const { page, generateMetadata } = serverPage({
                                         <h2>Aktive Interessegruppemedlemskap:</h2>
                                         {activeInterestGroups.map(membership =>
                                             <Link
-                                                key={uuid()}
+                                                key={`${membership.interestGroup.id}-${membership.order}`}
                                                 href={`/interest-groups/${membership.interestGroup.id}`}
                                             >
                                                 <p className={styles.studyProgramme}>
@@ -208,7 +210,7 @@ const { page, generateMetadata } = serverPage({
                                                 updateUserBioParagraphContentAction,
                                                 { implementationParams: { userId: profile.user.id } }
                                             )}
-                                            canEdit={capabilities.canUpdateBio.toJsObject()}
+                                            capabilities={{ canEdit: capabilities.canUpdateBio }}
                                         />
                                     </div>
                                 }
@@ -234,10 +236,6 @@ const { page, generateMetadata } = serverPage({
                                 <p>
                                     <span className={styles.username}>Brukernavn:</span>
                                     {profile.user.username}
-                                </p>
-                                <p>
-                                    <span className={styles.username}>Mobilnummer:</span>
-                                    {profile.user.mobile}
                                 </p>
                                 <p>
                                     <span className={styles.username}>Klasse:</span>

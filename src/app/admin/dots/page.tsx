@@ -5,6 +5,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import UserSelectionProvider from '@/contexts/UserSelection'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import { dotAuth } from '@/services/dots/auth'
+import { Require } from '@/auth/authorizer/Require'
 import { dotOperations } from '@/services/dots/operations'
 import { userOperations } from '@/services/users/operations'
 import { serverPage } from '@/app/serverPage'
@@ -24,23 +25,23 @@ const { page, generateMetadata } = serverPage({
         }
 
         const [user, dots] = await Promise.all([
-            userOperations.read({ params: { id: userId } }),
+            userOperations.readBasic({ params: { id: userId } }),
             dotOperations.readForUser({ params: { userId, onlyActive } }),
         ])
 
         return { userId, onlyActive, user, dots } as const
     },
-    capabilityChecks: {
+    capabilities: (_, session) => ({
         // This page is only about administrating dots, so the crud of them is offered outright to
-        // whoever is authorized for it - no edit mode to enter first. The create authorizer needs
-        // the session's own user id, so it is run inline in render rather than declared here.
-        canUpdate: () => dotAuth.update,
-        canDestroy: () => dotAuth.destroy,
-    },
+        // whoever is authorized for it - no edit mode to enter first.
+        canCreate: session.user ? dotAuth.create.data({ userId: session.user.id }) : Require.user(),
+        canUpdate: dotAuth.update,
+        canDestroy: dotAuth.destroy,
+    }),
     metadata: (data) => ({
         title: data.userId === null ? 'Prikker' : `Prikker for ${data.user.firstname} ${data.user.lastname}`,
     }),
-    render: ({ data, capabilities, session }) => {
+    render: ({ data, capabilities }) => {
         if (data.userId === null) {
             return (
                 <PageWrapper>
@@ -75,9 +76,7 @@ const { page, generateMetadata } = serverPage({
                     <UserDots
                         userId={data.user.id}
                         dots={data.dots}
-                        showCreateForm={
-                            dotAuth.create.data({ userId: session.user?.id ?? 0 }).auth(session).authorized
-                        }
+                        showCreateForm={capabilities.canCreate.authorized}
                         showUpdateForm={capabilities.canUpdate.authorized}
                         showDestroyForm={capabilities.canDestroy.authorized}
                     />

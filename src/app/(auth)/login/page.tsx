@@ -36,6 +36,10 @@ export default function LogIn() {
             </Button>
             <p style={{ color: 'red' }}>
                 {error === 'CredentialsSignin' ? 'Feil brukernavn eller passord :(' : ''}
+                {error === 'FeideEmailInUse'
+                    ? 'Feide-kontoen kan ikke kobles automatisk til brukeren med samme e-postadresse. ' +
+                    'Logg inn med brukernavn og passord, eller ta kontakt med en administrator.'
+                    : ''}
             </p>
         </form>
 

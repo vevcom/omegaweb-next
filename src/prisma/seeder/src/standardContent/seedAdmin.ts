@@ -1,6 +1,6 @@
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import logger from '@/lib/logger'
-import { hashAndEncryptPassword } from '@/auth/passwordHash'
+import { decryptAndComparePassword, hashAndEncryptPassword } from '@/auth/passwordHash'
 import { Permission } from '@/prisma-generated-pn-types'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
@@ -127,15 +127,21 @@ export const seedAdmin = defineSeedOperation(async (prisma: PrismaClient) => {
     // also makes the env var the source of truth, so rotating SEED_ADMIN_PASSWORD
     // takes effect instead of silently keeping the old password.
     const passwordHash = await hashAndEncryptPassword(password)
-
-    await prisma.credentials.upsert({
+    const existingCredentials = await prisma.credentials.findUnique({
         where: { userId: user.id },
-        update: { passwordHash },
-        create: {
-            // connect, not the raw userId: Credentials keys off (userId, username,
-            // email), and connecting fills all three from the user being connected.
-            user: { connect: { id: user.id } },
-            passwordHash,
+        select: { passwordHash: true },
+    })
+    const passwordRotated = existingCredentials !== null
+        && !await decryptAndComparePassword(password, existingCredentials.passwordHash)
+
+    // Nested under the user: Credentials keys off (userId, username, email), and the nested write
+    // fills all three. Like updatePassword, a rotated password ends the sessions started with the old
+    // one in the same write - only on an actual change, since the hash is rewritten on every run.
+    await prisma.user.update({
+        where: { id: user.id },
+        data: {
+            credentials: { upsert: { create: { passwordHash }, update: { passwordHash } } },
+            ...(passwordRotated ? { sessionEpoch: { increment: 1 } } : {}),
         },
     })
 

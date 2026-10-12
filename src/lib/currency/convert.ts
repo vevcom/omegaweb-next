@@ -1,7 +1,5 @@
 import { currencySymbol } from './config'
 
-// TODO: Verify that @Pauliusj doesn't implement a similar function
-// I haven't :) -Paulius
 export function convertAmount(amount: string | number): number {
     if (typeof amount === 'string') {
         amount = amount.replace(',', '.')

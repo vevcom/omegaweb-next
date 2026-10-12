@@ -16,8 +16,8 @@ import { ombulOperations } from '@/services/ombul/operations'
 import { omegaquoteOperations } from '@/services/omegaquotes/operations'
 import { ombulAuth } from '@/services/ombul/auth'
 import { omegaQuotesAuth } from '@/services/omegaquotes/auth'
-import { frontpageAuth } from '@/services/frontpage/auth'
 import { withPageSession } from '@/app/serverPage'
+import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
@@ -28,8 +28,7 @@ export default async function LoggedInLandingPage() {
     const MAX_NUMBER_OF_ELEMENTS = 3
 
     const {
-        promo, news, jobAds, events, ombuls, omegaquotes,
-        canReadOmbul, canReadOmegaquotes, canEditSpecialCmsImage,
+        promo, news, jobAds, events, ombuls, omegaquotes, capabilities,
     } = await withPageSession(async (session) => {
         const [newsRead, jobAdsRead, eventsRead, promoRead] = await Promise.all([
             newsOperations.readCurrent({}),
@@ -40,13 +39,15 @@ export default async function LoggedInLandingPage() {
 
         // Ombul and omegaquotes are membership permissions rather than default ones, so a logged
         // in user without them gets the islands left out entirely instead of an error page.
-        const canReadOmbulResult = ombulAuth.readAll.auth(session)
-        const ombulsRead = canReadOmbulResult.authorized
+        const sessionCapabilities = runCapabilities(session, {
+            canReadOmbul: ombulAuth.readAll,
+            canReadOmegaquotes: omegaQuotesAuth.readPage,
+        })
+        const ombulsRead = sessionCapabilities.canReadOmbul.authorized
             ? (await ombulOperations.readAll({})).slice(0, MAX_NUMBER_OF_ELEMENTS)
             : []
 
-        const canReadOmegaquotesResult = omegaQuotesAuth.readPage.auth(session)
-        const omegaquotesRead = canReadOmegaquotesResult.authorized
+        const omegaquotesRead = sessionCapabilities.canReadOmegaquotes.authorized
             ? await omegaquoteOperations.readPage({
                 params: {
                     paging: {
@@ -68,10 +69,7 @@ export default async function LoggedInLandingPage() {
             events: eventsRead.slice(0, MAX_NUMBER_OF_ELEMENTS),
             ombuls: ombulsRead,
             omegaquotes: omegaquotesRead,
-            canReadOmbul: canReadOmbulResult.authorized,
-            canReadOmegaquotes: canReadOmegaquotesResult.authorized,
-            canEditSpecialCmsImage: frontpageAuth.updateSpecialCmsImage
-                .auth(session).toJsObject(),
+            capabilities: sessionCapabilities,
         }
     })
 
@@ -129,7 +127,7 @@ export default async function LoggedInLandingPage() {
                                 <JobAd key={key} jobAd={jobAd} />
                             ))}
                         </LoggedInSection>
-                        {canReadOmbul && (
+                        {capabilities.canReadOmbul.authorized && (
                             <LoggedInSection
                                 title="Ombul"
                                 link="/ombul"
@@ -142,7 +140,7 @@ export default async function LoggedInLandingPage() {
                                 ))}
                             </LoggedInSection>
                         )}
-                        {canReadOmegaquotes && (
+                        {capabilities.canReadOmegaquotes.authorized && (
                             <LoggedInSection
                                 title="Omegaquotes"
                                 link="/omegaquotes"
@@ -164,7 +162,7 @@ export default async function LoggedInLandingPage() {
                 </div>
             </div>
             <div className={styles.footer}>
-                <Footer canEditSpecialCmsImage={canEditSpecialCmsImage} />
+                <Footer />
             </div>
         </div>
     )

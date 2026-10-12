@@ -25,16 +25,16 @@ const { page, generateMetadata } = serverPage({
         const article = await committeeOperations.readArticle({ params: { shortName: committee.shortName } })
         return { article, committee }
     },
-    capabilityChecks: {
-        canEdit: (data) => committeeAuth.updateArticle.data({ groupId: data.committee.groupId }),
-    },
+    capabilities: (data) => ({
+        canEdit: committeeAuth.updateArticle.data({ groupId: data.committee.groupId }),
+    }),
     render: ({ data, capabilities }) => {
         const { shortName } = data.committee
 
         return (
             <div className={styles.wrapper}>
                 <Article
-                    canEdit={capabilities.canEdit.toJsObject()}
+                    capabilities={capabilities}
                     article={data.article}
                     hideCoverImage
                     noMargin

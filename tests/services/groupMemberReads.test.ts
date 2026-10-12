@@ -4,7 +4,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { manualGroupOperations } from '@/services/groups/manualGroups/operations'
 import { classOperations } from '@/services/groups/classes/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { userFilterSelection } from '@/services/users/constants'
+import { userPrivateSelection } from '@/services/users/constants'
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals'
 import type { UserFiltered } from '@/services/users/types'
 
@@ -45,7 +45,7 @@ beforeEach(async () => {
             bioParagraph: { create: {} },
             ledgerAccount: { create: { type: 'USER' } },
         },
-        select: userFilterSelection,
+        select: userPrivateSelection,
     })
     user = created
     userId = created.id

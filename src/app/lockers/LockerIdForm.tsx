@@ -15,6 +15,7 @@ export default function LockerIdForm() {
     return (
         <>
             <NumberInput
+                name="lockerId"
                 label="Skapnummer"
                 min="1"
                 value={lockerId}

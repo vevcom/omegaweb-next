@@ -34,9 +34,9 @@ const { page, generateMetadata } = serverPage({
 
         return { collections, details, showOnlyCollectionsSessionAdministrates }
     },
-    capabilityChecks: {
-        canCreateCollection: () => dynamicImageAuth.createCollection,
-    },
+    capabilities: () => ({
+        canCreateCollection: dynamicImageAuth.createCollection,
+    }),
     metadata: () => ({ title: 'Fotogalleri' }),
     render: ({ data, capabilities }) => (
         <PageWrapper headerItem={capabilities.canCreateCollection.authorized && <MakeNewCollection />}>

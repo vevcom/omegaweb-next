@@ -1,33 +1,19 @@
-import { createSelection } from '@/services/createSelection'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import type { Prisma, User, SEX } from '@/prisma-generated-pn-types'
+import type { Prisma, SEX } from '@/prisma-generated-pn-types'
 
 export const maxNumberOfGroupsInFilter = 7
 
 export const defaultSearchResultLimit = 5
 
-// TODO: This needs to be divived into seperate filters, depending on how much information is needed
-export const userFieldsToExpose = [
-    'id',
-    'username',
-    'firstname',
-    'lastname',
-    'email',
-    'emailVerified',
-    'mobile',
-    'createdAt',
-    'updatedAt',
-    'acceptedTerms',
-    'sex',
-    'allergies',
-    'studentCard',
-    'imageConsent',
-    'relationshipStatus',
-    'relationshipStatusText',
-] as const satisfies (keyof User)[]
+export const userBasicSelection = {
+    id: true,
+    username: true,
+    firstname: true,
+    lastname: true,
+} as const satisfies Prisma.UserSelect
 
-export const userFilterSelection = {
-    ...createSelection([...userFieldsToExpose]),
+export const userCardSelection = {
+    ...userBasicSelection,
     flairs: {
         select: {
             id: true,
@@ -38,6 +24,32 @@ export const userFilterSelection = {
             image: { include: expandedImageIncluder },
         },
     },
+} as const satisfies Prisma.UserSelect
+
+/**
+ * What a member may see of another member.
+ */
+export const userProfileSelection = {
+    ...userCardSelection,
+    email: true,
+    sex: true,
+    relationshipStatus: true,
+    relationshipStatusText: true,
+} as const satisfies Prisma.UserSelect
+
+/**
+ * Only for the user themselves and USERS_ADMIN.
+ */
+export const userPrivateSelection = {
+    ...userProfileSelection,
+    mobile: true,
+    emailVerified: true,
+    acceptedTerms: true,
+    allergies: true,
+    studentCard: true,
+    imageConsent: true,
+    createdAt: true,
+    updatedAt: true,
 } as const satisfies Prisma.UserSelect
 
 export const standardMembershipSelection = [

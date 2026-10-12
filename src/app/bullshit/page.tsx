@@ -6,7 +6,6 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { bullshitOperations } from '@/services/bullshit/operations'
 import { bullshitAuth } from '@/services/bullshit/auth'
 import { serverPage, withFallback } from '@/app/serverPage'
-import { v4 as uuid } from 'uuid'
 import type { PageSizeBullshit } from '@/contexts/paging/BullshitPaging'
 
 const pageSize: PageSizeBullshit = 20
@@ -29,9 +28,9 @@ const { page, generateMetadata } = serverPage({
         null,
         ['UNAUTHORIZED', 'UNAUTHENTICATED']
     ),
-    capabilityChecks: {
-        canCreate: () => bullshitAuth.create,
-    },
+    capabilities: () => ({
+        canCreate: bullshitAuth.create,
+    }),
     metadata: () => ({ title: 'Bullshit' }),
     render: ({ data: bullshits, capabilities, session }) => (
         <PageWrapper headerItem={
@@ -52,7 +51,7 @@ const { page, generateMetadata } = serverPage({
                 >
                     <main>
                         <BullshitList
-                            serverRendered={bullshits.map(bullshit => <Bullshit key={uuid()} quote={bullshit} />)}
+                            serverRendered={bullshits.map(bullshit => <Bullshit key={bullshit.id} quote={bullshit} />)}
                         />
                     </main>
                 </BullshitPagingProvider>

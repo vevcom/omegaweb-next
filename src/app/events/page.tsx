@@ -25,11 +25,11 @@ const { page, generateMetadata } = serverPage({
 
         return { tagNames, currentEvents, eventTags }
     },
-    capabilityChecks: {
-        canUpdateTags: () => eventTagAuth.update,
-        canCreateTags: () => eventTagAuth.create,
-        canDestroyTags: () => eventTagAuth.destroy,
-    },
+    capabilities: () => ({
+        canUpdateTags: eventTagAuth.update,
+        canCreateTags: eventTagAuth.create,
+        canDestroyTags: eventTagAuth.destroy,
+    }),
     metadata: () => ({ title: 'Hvad der hender' }),
     render: ({ data, capabilities }) => {
         const { tagNames, currentEvents, eventTags } = data
@@ -58,9 +58,7 @@ const { page, generateMetadata } = serverPage({
                         <TagHeaderItem
                             eventTags={eventTags}
                             currentTags={currentTags}
-                            canUpdate={capabilities.canUpdateTags.authorized}
-                            canCreate={capabilities.canCreateTags.authorized}
-                            canDestroy={capabilities.canDestroyTags.authorized}
+                            capabilities={capabilities}
                             page="EVENT"
                         />
                         <AddHeaderItemPopUp popUpKey="CreateEventPopUp">

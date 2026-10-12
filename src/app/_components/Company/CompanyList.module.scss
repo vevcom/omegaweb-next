@@ -1,10 +1,14 @@
 @use '@/styles/ohma';
 
 .CompanyList {
-    margin-top: 2em;
+    margin-top: calc(3 * #{ohma.$gap});
     display: grid;
-    grid-template-columns: repeat(auto-fill, 225px);
-    gap: 2em;
-    justify-content: space-between;
+    grid-template-columns: repeat(auto-fill, minmax(var(--company-card-min, 200px), 1fr));
+    align-items: stretch;
+    gap: calc(3 * #{ohma.$gap});
     width: 100%;
+}
+
+.loadingControl {
+    grid-column: 1 / -1;
 }

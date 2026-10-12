@@ -1,3 +1,4 @@
+'use client'
 import styles from './School.module.scss'
 import CmsLink from '@/cms/CmsLink/CmsLink'
 import CmsImage from '@/cms/CmsImage/CmsImage'
@@ -9,28 +10,27 @@ import {
 } from '@/services/education/schools/actions'
 import { configureAction } from '@/services/configureAction'
 import { schoolAuth } from '@/services/education/schools/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import type { ExpandedSchool } from '@/services/education/schools/types'
-import type{ SessionMaybeUser } from '@/auth/session/Session'
 
 type PropTypes = {
     school: ExpandedSchool
-    session: SessionMaybeUser
 }
 
-export default function School({ school, session }: PropTypes) {
+export default function School({ school }: PropTypes) {
     const updateCmsImageAction = configureAction(
         updateSchoolCmsImageAction,
         { implementationParams: { shortName: school.shortName } }
     )
 
-    const canEditCmsImage = schoolAuth.updateCmsImage.auth(session).toJsObject()
-    const canEditCmsParagraph = schoolAuth.updateCmsParagraphContent.auth(session).toJsObject()
-    const canEditCmsLink = schoolAuth.updateCmsLink.auth(session).toJsObject()
+    const canEditCmsImage = useAuthorizer({ authorizer: schoolAuth.updateCmsImage })
+    const canEditCmsParagraph = useAuthorizer({ authorizer: schoolAuth.updateCmsParagraphContent })
+    const canEditCmsLink = useAuthorizer({ authorizer: schoolAuth.updateCmsLink })
 
     return (
         <div className={styles.School}>
             <CmsImage
-                canEdit={canEditCmsImage}
+                capabilities={{ canEdit: canEditCmsImage }}
                 className={styles.cmsImage}
                 classNameImage={styles.image}
                 cmsImage={school.cmsImage}
@@ -50,7 +50,7 @@ export default function School({ school, session }: PropTypes) {
                             { implementationParams: { shortName: school.shortName } }
                         )
                     }
-                    canEdit={canEditCmsParagraph}
+                    capabilities={{ canEdit: canEditCmsParagraph }}
                 />
                 <CmsLink
                     cmsLink={school.cmsLink}
@@ -62,7 +62,7 @@ export default function School({ school, session }: PropTypes) {
                             { implementationParams: { shortName: school.shortName } }
                         )
                     }
-                    canEdit={canEditCmsLink}
+                    capabilities={{ canEdit: canEditCmsLink }}
                 />
             </div>
         </div>

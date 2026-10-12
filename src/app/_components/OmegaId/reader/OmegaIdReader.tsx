@@ -1,11 +1,10 @@
 'use client'
 import { qrCodeReaderConfig } from './ConfigVars'
 import styles from './OmegaIdReader.module.scss'
-import { parseJWT } from '@/jwt/parseJWTClient'
+import { parseJWTClient } from '@/jwt/parseJWTClient'
 import { decompressOmegaId } from '@/services/omegaid/compress'
 import { Html5QrcodeScanner } from 'html5-qrcode'
-import { useEffect, useState } from 'react'
-import { v4 as uuid } from 'uuid'
+import { useEffect, useId, useState } from 'react'
 
 /**
  * Renders a component for reading OmegaId QR codes.
@@ -43,7 +42,7 @@ export default function OmegaIdReader({
         text: '',
     })
 
-    const qrcodeRegionId = uuid()
+    const qrcodeRegionId = useId()
 
     useEffect(() => {
         const html5QrcodeScanner = new Html5QrcodeScanner(qrcodeRegionId, qrCodeReaderConfig, false)
@@ -60,7 +59,7 @@ export default function OmegaIdReader({
                 })
                 return
             }
-            const parse = await parseJWT(token.data, publicKey, expiryOffset ?? 100, 'omegaid')
+            const parse = await parseJWTClient(token.data, publicKey, expiryOffset ?? 100, 'omegaid')
             if (!parse.success) {
                 const msg = parse.error?.map(e => e.message).join(' / ') ?? 'Ukjent feil'
 

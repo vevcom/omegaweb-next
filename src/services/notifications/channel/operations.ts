@@ -247,4 +247,4 @@ export const notificationChannelOperations = {
             return results
         })
     }),
-}
+} as const

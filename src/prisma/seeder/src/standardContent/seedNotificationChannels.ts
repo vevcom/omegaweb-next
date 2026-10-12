@@ -188,7 +188,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
     }
 
     await upsert({
-        checkExistance: () => prisma.notificationChannel.findUnique({
+        checkExistence: () => prisma.notificationChannel.findUnique({
             where: { special: 'ROOT' },
             select: { id: true },
         }),

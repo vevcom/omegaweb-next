@@ -8,6 +8,7 @@ import StandardImageServer from '@/components/Image/StandardImageServer'
 import YouTube from '@/components/YouTube/YouTube'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { frontpageAuth } from '@/services/frontpage/auth'
+import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
@@ -16,12 +17,10 @@ import Link from 'next/link'
 
 export default async function LoggedOutLandingPage() {
     const session = await ServerSession.fromNextAuth()
-    const canEditSpecialCmsImage = frontpageAuth.updateSpecialCmsImage.auth(
-        session
-    ).toJsObject()
-    const canEditSpecialCmsParagraph = frontpageAuth.updateSpecialCmsParagraphContentSection.auth(
-        session
-    ).toJsObject()
+    const capabilities = runCapabilities(session, {
+        canEditSpecialCmsImage: frontpageAuth.updateSpecialCmsImage,
+        canEditSpecialCmsParagraph: frontpageAuth.updateSpecialCmsParagraphContentSection,
+    })
 
     return (
         <div className={styles.wrapper}>
@@ -47,8 +46,7 @@ export default async function LoggedOutLandingPage() {
                     </div>
                 </div>
                 <Section
-                    canEditSpecialCmsImage={canEditSpecialCmsImage}
-                    canEditSpecialCmsParagraph={canEditSpecialCmsParagraph}
+                    capabilities={capabilities}
                     position="left"
                     specialCmsImage="FRONTPAGE_1"
                     specialCmsParagraph="FRONTPAGE_1"
@@ -63,8 +61,7 @@ export default async function LoggedOutLandingPage() {
 
                 <InfoBubbles />
                 <Section
-                    canEditSpecialCmsImage={canEditSpecialCmsImage}
-                    canEditSpecialCmsParagraph={canEditSpecialCmsParagraph}
+                    capabilities={capabilities}
                     position="right"
                     specialCmsImage="FRONTPAGE_2"
                     specialCmsParagraph="FRONTPAGE_2"
@@ -74,10 +71,9 @@ export default async function LoggedOutLandingPage() {
 
             </div>
             <div className={`${styles.part} ${styles.omegamai}`}>
-                <YouTube src="https://www.youtube.com/watch?v=I-zNLW4ILu4" />
+                <YouTube src="https://www.youtube.com/watch?v=I-zNLW4ILu4" title="Master i kybernetikk og robotikk | NTNU" />
                 <Section
-                    canEditSpecialCmsImage={canEditSpecialCmsImage}
-                    canEditSpecialCmsParagraph={canEditSpecialCmsParagraph}
+                    capabilities={capabilities}
                     position="left"
                     specialCmsImage="FRONTPAGE_3"
                     specialCmsParagraph="FRONTPAGE_3"
@@ -85,8 +81,7 @@ export default async function LoggedOutLandingPage() {
                     imgWidth={760}
                 />
                 <Section
-                    canEditSpecialCmsImage={canEditSpecialCmsImage}
-                    canEditSpecialCmsParagraph={canEditSpecialCmsParagraph}
+                    capabilities={capabilities}
                     position="right"
                     specialCmsImage="FRONTPAGE_4"
                     specialCmsParagraph="FRONTPAGE_4"
@@ -99,7 +94,7 @@ export default async function LoggedOutLandingPage() {
                 <MazeMapLophtet height={'80vh'}/>
             </div>
             <div className={styles.footer}>
-                <Footer canEditSpecialCmsImage={canEditSpecialCmsImage} />
+                <Footer />
             </div>
         </div>
     )

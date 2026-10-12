@@ -1,4 +1,4 @@
-import { requireBookingAccess } from '@/auth/authorizer/RequireBookingAccess'
+import { requireBookingAccess, requireBookingHolder } from '@/auth/authorizer/RequireBookingAccess'
 import { Require } from '@/auth/authorizer/Require'
 
 export const cabinBookingAuth = {
@@ -27,5 +27,9 @@ export const cabinBookingAuth = {
     //
     // Needs `{ booking, providedSecret }` supplied via `.data()`.
     createPayment: requireBookingAccess('CABIN_ADMIN'),
+
+    // Only the holder of a reservation gives it up. Needs `{ booking, providedSecret }` supplied
+    // via `.data()`.
+    releaseReservation: requireBookingHolder(),
 } as const
 

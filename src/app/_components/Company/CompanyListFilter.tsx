@@ -7,7 +7,6 @@ import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch } from '@fortawesome/free-solid-svg-icons'
 import { useRouter } from 'next/navigation'
-import { v4 as uuid } from 'uuid'
 import { useContext } from 'react'
 
 type PropTypes = {
@@ -25,8 +24,13 @@ export default function CompanyListFilter({ currentName }: PropTypes) {
     }, 300)
     return (
         <span className={styles.CompanyListFilter}>
-            <FontAwesomeIcon icon={faSearch} />
-            <TextInput id={uuid()} onChange={(e) => setNameFilter(e.target.value)} defaultValue={currentName} label="Navn" />
+            <FontAwesomeIcon className={styles.icon} icon={faSearch} />
+            <TextInput
+                name="name"
+                onChange={(e) => setNameFilter(e.target.value)}
+                defaultValue={currentName}
+                label="Søk etter bedrift"
+            />
         </span>
     )
 }

@@ -142,6 +142,9 @@ enum Permission {
   // News
   NEWS_CREATE
   NEWS_ADMIN
+
+  // Article categories
+  ARTICLE_CATEGORY_ADMIN
 }
 
 model GroupPermission {

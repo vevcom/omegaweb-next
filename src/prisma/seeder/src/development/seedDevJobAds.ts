@@ -62,7 +62,7 @@ export const seedDevJobAds = defineSeedOperation(async (prisma: PrismaClient) =>
     })
 
     await Promise.all(jobAdData.map(jobAd => upsert({
-        checkExistance: () => prisma.jobAd.findFirst({
+        checkExistence: () => prisma.jobAd.findFirst({
             where: { articleName: jobAd.articleName },
             select: { id: true },
         }),

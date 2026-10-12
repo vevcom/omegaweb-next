@@ -3,7 +3,8 @@ import { sendNotificationEmails } from './dispatch'
 import { sendWeeklyEmailDigest } from './dispatchWeekly'
 import { notificationDispatchIncluder, recipientsWhere } from './recipients'
 import logger from '@/lib/logger'
-import { userFilterSelection } from '@/services/users/constants'
+import { userBasicSelection } from '@/services/users/constants'
+import { permissionOperations } from '@/services/permissions/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { z } from 'zod'
 
@@ -24,9 +25,10 @@ export const notificationMethodOperations = {
                 include: notificationDispatchIncluder,
             })
 
+            const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })
             const recipients = await prisma.user.findMany({
-                where: recipientsWhere(notification, 'email'),
-                select: userFilterSelection,
+                where: recipientsWhere(notification, 'email', defaultPermissions),
+                select: { ...userBasicSelection, email: true },
             })
 
             const sent = await sendNotificationEmails(notification.channel.mailAlias.address, notification, recipients)
@@ -74,9 +76,10 @@ export const notificationMethodOperations = {
 
             if (notifications.length === 0) return { notifications: 0, entries: 0 }
 
+            const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })
             const entries = (await Promise.all(notifications.map(async notification => {
                 const recipients = await prisma.user.findMany({
-                    where: recipientsWhere(notification, 'emailWeekly'),
+                    where: recipientsWhere(notification, 'emailWeekly', defaultPermissions),
                     select: { id: true },
                 })
                 return recipients.map(user => ({
@@ -127,7 +130,7 @@ export const notificationMethodOperations = {
                         },
                     },
                     user: {
-                        select: userFilterSelection,
+                        select: { ...userBasicSelection, email: true },
                     },
                 },
                 orderBy: {

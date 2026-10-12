@@ -1,3 +1,6 @@
+import { jest } from '@jest/globals'
+import type Mail from 'nodemailer/lib/mailer'
+
 /**
  * Waits for all promises to settle and returns their results.
  * Throws an error if any promise rejects, with `cause` containing all rejection reasons.
@@ -24,4 +27,20 @@ export async function allSettledOrThrow<T>(promises: Promise<T>[]): Promise<T[]>
 
     const fulfilled = results.filter(result => result.status === 'fulfilled')
     return fulfilled.map(result => result.value)
+}
+
+/**
+ * Swaps the mail handler for one that only records the mail it is handed, so a test can check
+ * what an operation sends without sending anything. Swapping the handler, rather than mocking the
+ * module sending through it, also catches mail from modules the seeding already loaded.
+ *
+ * @returns The mock every single mail is handed to.
+ */
+export function recordSentMail() {
+    const sendSingleMail = jest.fn<(mail: Mail.Options) => Promise<void>>(async () => {})
+    global.mailHandler = {
+        sendSingleMail,
+        sendBulkMail: jest.fn(async () => {}),
+    } as unknown as typeof global.mailHandler
+    return sendSingleMail
 }

@@ -29,6 +29,9 @@ model User {
   // Only set for a user created on a Feide login that matched no existing (migrated) user. Such a
   // user may hand its Feide account over to a migrated user using the admin and be deleted - no other user may.
   createdByFeideLoginOnProjectNext Boolean            @default(false)
+  // Bumped to end every session of the user, as a password change does. A session carries the value
+  // it was started with and is only valid while that still matches.
+  sessionEpoch                     Int                @default(0)
 
   bullshit    Bullshit[]
   image       Image?  @relation(fields: [imageId], references: [id])
@@ -121,13 +124,12 @@ model Credentials {
 
 // Associates each user with their Feide account.
 model FeideAccount {
-  id          String   @id
-  accessToken String   @db.Text
-  email       String   @unique
-  expiresAt   DateTime
-  issuedAt    DateTime
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId      Int      @unique
+  id        String   @id
+  email     String   @unique
+  expiresAt DateTime
+  issuedAt  DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId    Int      @unique
 }
 
 // Associates each user with their Stripe customer id.

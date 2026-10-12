@@ -11,12 +11,12 @@ import type { Authorizer } from '@/auth/authorizer/Authorizer'
 function useAuthorizer({
     authorizer
 }: {
-    authorizer: Authorizer<'USER_NOT_REQUIERED_FOR_AUTHORIZED'>
+    authorizer: Authorizer<'USER_NOT_REQUIRED_FOR_AUTHORIZED'>
 }): AuthResult<UserGuaranteeOption, boolean, object | undefined>
 function useAuthorizer({
     authorizer
 }: {
-    authorizer: Authorizer<'USER_REQUIERED_FOR_AUTHORIZED'>
+    authorizer: Authorizer<'USER_REQUIRED_FOR_AUTHORIZED'>
 }): AuthResult<UserGuaranteeOption, false, object | undefined> | AuthResult<'HAS_USER', true, object | undefined>
 function useAuthorizer({
     authorizer

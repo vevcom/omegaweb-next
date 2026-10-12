@@ -37,15 +37,15 @@ import type { PageOperationArgs } from '@/app/serverPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) =>
         jobAdOperations.read({ params: { id: decodeVevenUriHandleError(params.nameAndId) } }),
-    capabilityChecks: {
-        canEdit: () => jobAdAuth.updateArticle,
-    },
+    capabilities: () => ({
+        canEdit: jobAdAuth.updateArticle,
+    }),
     metadata: (jobAd) => ({ title: jobAd.article.name }),
-    render: ({ data: jobAd, capabilities, session }) => (
+    render: ({ data: jobAd, capabilities }) => (
         <div className={styles.wrapper}>
             <main className={styles.main}>
                 <Article
-                    canEdit={capabilities.canEdit.toJsObject()}
+                    capabilities={capabilities}
                     article={jobAd.article}
                     coverImageClass={styles.coverImage}
                     sideBarClassName={styles.sideBar}
@@ -141,7 +141,6 @@ const { page, generateMetadata } = serverPage({
                                     disableEdit
                                     squareLogo={false}
                                     company={jobAd.company}
-                                    session={session}
                                 />
                             </div>
                         </>

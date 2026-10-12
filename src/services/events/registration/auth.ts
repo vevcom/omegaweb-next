@@ -38,7 +38,7 @@ export const eventRegistrationAuth = {
 
     readDotPunishmentOfUser: userIdOrEventAdmin,
     readOfUser: registrationOfUser,
-    readPage: registerLevel,
+    readPage: Require.allOf(Require.user(), registerLevel),
     readPageDetailed: eventAdminLevel,
 
     updateNotes: registrationOfUser,

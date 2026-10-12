@@ -56,7 +56,7 @@ export default async function migrateImages(
                 create: {},
             },
             visibilityAdmin: {
-                create: {} //TODO: Require vevcom or something...
+                create: { requirements: { create: [{}] } }
             }
         },
     })

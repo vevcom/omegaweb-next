@@ -3,10 +3,10 @@ import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
 import { updateUserAction } from '@/services/users/actions'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
 type PropTypes = {
-    user: UserFiltered,
+    user: UserBasic,
 }
 
 /**

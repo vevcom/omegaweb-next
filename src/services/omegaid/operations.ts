@@ -12,7 +12,7 @@ export const omegaIdOperations = {
         authorizer: ({ params }) => omegaIdAuth.generate.data({ userId: params.userId }),
         paramsSchema: omegaIdSchemas.generate,
         operation: ({ params }) =>
-            generateJWT('omegaid', { sub: params.userId }, OmegaIdExpiryTime, true),
+            generateJWT('omegaid', { sub: params.userId }, OmegaIdExpiryTime),
     }),
     readPublicKey: defineOperation({
         authorizer: () => omegaIdAuth.readPublicKey,

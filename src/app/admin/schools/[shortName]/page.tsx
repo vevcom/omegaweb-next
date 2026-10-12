@@ -5,7 +5,6 @@ import { destroySchoolAction, readSchoolAction } from '@/education/schools/actio
 import Form from '@/components/Form/Form'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import School from '@/components/School/School'
-import { ServerSession } from '@/auth/session/ServerSession'
 import { configureAction } from '@/services/configureAction'
 
 type PropTypes = {
@@ -21,14 +20,12 @@ export default async function SchoolAdmin({ params }: PropTypes) {
     if (!res.success) throw new Error(res.error?.length ? res.error[0].message : 'Unknown error')
     const school = res.data
 
-    const session = await ServerSession.fromNextAuth()
-
     return (
         <PageWrapper>
             <PageTitleSetter title="Administrer skole" />
             <UpdateSchool school={school} />
             <div className={styles.preview}>
-                <School school={school} session={session.toJsObject()} />
+                <School school={school} />
             </div>
             <Form
                 action={configureAction(destroySchoolAction, { params: { id: school.id } })}

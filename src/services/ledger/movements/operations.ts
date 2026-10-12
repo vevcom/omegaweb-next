@@ -1,3 +1,4 @@
+import '@pn-server-only'
 import { ledgerMovementAuth } from './auth'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
@@ -126,4 +127,4 @@ export const ledgerMovementOperations = {
             return transaction
         })
     }),
-}
+} as const

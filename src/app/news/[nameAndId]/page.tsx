@@ -38,11 +38,11 @@ const { page, generateMetadata } = serverPage({
 
         return { news, doubleLevelVisibility }
     },
-    capabilityChecks: {
-        canEdit: (data) => newsAuth.updateArticle.data({
+    capabilities: (data) => ({
+        canEdit: newsAuth.updateArticle.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY
         }),
-    },
+    }),
     metadata: (data) => ({ title: data.news.article.name }),
     render: ({ data, capabilities }) => {
         const { news, doubleLevelVisibility } = data
@@ -50,7 +50,7 @@ const { page, generateMetadata } = serverPage({
         return (
             <div className={styles.wrapper}>
                 <Article
-                    canEdit={capabilities.canEdit.toJsObject()}
+                    capabilities={capabilities}
                     articleClassName={styles.article}
                     article={news.article}
                     actions={{

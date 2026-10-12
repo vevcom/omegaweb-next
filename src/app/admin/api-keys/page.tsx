@@ -6,7 +6,6 @@ import { apiKeyOperations } from '@/services/apiKeys/operations'
 import { serverPage } from '@/app/serverPage'
 import Date from '@/components/Date/Date'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import { v4 as uuid } from 'uuid'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/serverPage'
 
@@ -37,7 +36,7 @@ const { page, generateMetadata } = serverPage({
                     </thead>
                     <tbody>
                         {apiKeys.map(apiKey => (
-                            <Link href={`/admin/api-keys/${apiKey.name}`} key={uuid()} passHref>
+                            <Link href={`/admin/api-keys/${apiKey.name}`} key={apiKey.id} passHref>
                                 <tr className={apiKey.active ? styles.activated : styles.deactivated}>
                                     <td>{apiKey.name}</td>
                                     <td><Date date={apiKey.createdAt} /></td>

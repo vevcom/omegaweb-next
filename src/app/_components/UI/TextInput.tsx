@@ -1,19 +1,15 @@
 import styles from './TextInput.module.scss'
+import { useId } from 'react'
 import type { InputHTMLAttributes } from 'react'
 
 
-export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name' | 'id'> & {
+export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name'> & {
+    name: string,
     label: string,
     type?: 'text' | 'password',
     color?: 'primary' | 'secondary' | 'red' | 'black' | 'white',
     background?: 'base' | 'raised',
-} & ({
-    id: string,
-    name?: string | undefined,
-} | {
-    name: string,
-    id?: string | undefined,
-})
+}
 
 export default function TextInput({
     label = 'default',
@@ -21,17 +17,18 @@ export default function TextInput({
     color = 'black',
     background = 'base',
     className,
+    id,
     ...props
 }: PropTypes) {
-    props.id ??= `id_input_${props.name}`
+    const domId = useId()
+    const inputId = id ?? domId
 
     return (
         <div
-            id={props.name}
             className={`${styles.TextInput} ${styles[color]} ${background === 'raised' ? styles.onRaised : ''} ${className}`}
         >
-            <input {...props} type={type} className={styles.field} placeholder={label}/>
-            <label className={styles.labe}>{label}</label>
+            <input {...props} id={inputId} type={type} className={styles.field} placeholder={label}/>
+            <label htmlFor={inputId} className={styles.labe}>{label}</label>
         </div>
     )
 }

@@ -4,6 +4,7 @@ import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { Smorekopp } from '@/services/error'
 import { withServiceContext } from '@/services/serviceOperation'
 import { ServerSession } from '@/auth/session/ServerSession'
+import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { CURRENT_PATH_HEADER } from '@/proxy'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { notFound, redirect, unstable_rethrow as unstableRethrow } from 'next/navigation'
@@ -11,7 +12,7 @@ import { headers } from 'next/headers'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
 import type { AuthStatus } from '@/auth/authorizer/AuthResult'
-import type { Authorizer, UserRequieredOutOpt } from '@/auth/authorizer/Authorizer'
+import type { Capabilities, CapabilityAuthorizers, CapabilityKey } from '@/auth/authorizer/capabilities'
 import type { Session } from '@/auth/session/Session'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
@@ -36,16 +37,19 @@ type PageProps<Params extends object> = {
     searchParams: Promise<SearchParams>,
 }
 
-type CapabilityAuthorizer = Authorizer<UserRequieredOutOpt, object | undefined>
+/** The capabilities a page or layout declares, built from its data and the session of the request. */
+type CapabilitiesOf<Data, Authorizers> = (data: Data, session: ServerPageSession) => Authorizers
 
-/**
- * What the current user may do on a page - same keys as the capabilityChecks object (all of the
- * form `can[Something]`), but each value is the AuthResult of running that authorizer against the
- * session of the current request.
- */
-export type Capabilities<CapabilityKeys extends `can${string}`> = Record<
-    CapabilityKeys, ReturnType<CapabilityAuthorizer['auth']>
->
+type PageCapabilities<Authorizers> = Capabilities<Extract<keyof Authorizers, CapabilityKey>>
+
+function pageCapabilities<Data, Authorizers extends CapabilityAuthorizers<Authorizers>>(
+    capabilities: CapabilitiesOf<Data, Authorizers> | undefined,
+    data: Data,
+    session: ServerPageSession,
+): PageCapabilities<Authorizers> {
+    if (!capabilities) return {} as PageCapabilities<Authorizers>
+    return runCapabilities(session, capabilities(data, session))
+}
 
 /**
  * Rethrows everything that should not be handled by rendering an error view:
@@ -101,11 +105,11 @@ async function urlWithCallback(url: string) {
  * the page render and generateMetadata via React `cache`). Throwing a service error inside
  * it sends the user to the error view - wrap non-critical calls in {@link withFallback} when
  * a failure should not take the whole page down.
- * @param capabilityChecks - Optional record of `can[Something]` keys to authorizer getters.
- * Each getter receives the loaded data and returns a bound authorizer; the results of
- * running them against the session arrive in `render` as `capabilities` under the same keys.
- * They do not guard the page - a failing check only tells `render` to leave out what the user
- * may not do (an edit button, a form). Access to the page itself is decided in `operation`.
+ * @param capabilities - Optional: the authorizers of what the user may do on the page, under
+ * `can[Something]` keys, built from the loaded data and the session. They are run against the
+ * session and arrive in `render` as `capabilities` under the same keys. They do not guard the
+ * page - a failing one only tells `render` to leave out what the user may not do (an edit
+ * button, a form). Access to the page itself is decided in `operation`.
  * @param metadata - Optional Next.js metadata from the loaded data. Titles are plain -
  * the root layout's title template appends the site name.
  * @param render - Renders the page from the loaded data, the capabilities and the session.
@@ -114,9 +118,9 @@ async function urlWithCallback(url: string) {
  * const { page, generateMetadata } = serverPage({
  *     operation: async ({ params }: { params: { username: string } }) =>
  *         userOperations.readProfile({ params: { username: params.username } }),
- *     capabilityChecks: {
- *         canUpdate: (profile) => userAuth.update.data({ username: profile.user.username }),
- *     },
+ *     capabilities: (profile) => ({
+ *         canUpdate: userAuth.update.data({ username: profile.user.username }),
+ *     }),
  *     metadata: (profile) => ({ title: profile.user.username }),
  *     render: ({ data, capabilities }) => (
  *         <div>
@@ -132,14 +136,14 @@ async function urlWithCallback(url: string) {
 export function serverPage<
     Params extends object,
     Data,
-    CapabilityKeys extends `can${string}` = never,
->({ operation, capabilityChecks, metadata, render }: {
+    Authorizers extends CapabilityAuthorizers<Authorizers> = Record<never, never>,
+>({ operation, capabilities, metadata, render }: {
     operation: (args: PageOperationArgs<Params>) => Promise<Data>,
-    capabilityChecks?: Record<CapabilityKeys, (data: Data) => CapabilityAuthorizer>,
+    capabilities?: CapabilitiesOf<Data, Authorizers>,
     metadata?: (data: Data) => Metadata,
     render: (args: {
         data: Data,
-        capabilities: Capabilities<CapabilityKeys>,
+        capabilities: PageCapabilities<Authorizers>,
         session: ServerPageSession,
     }) => ReactNode | Promise<ReactNode>,
 }): {
@@ -165,18 +169,7 @@ export function serverPage<
             false,
             () => operation({ params, searchParams, session })
         )
-        // Object.entries erases the value types (capabilityChecks may be undefined), so the
-        // entries are asserted back to what the signature guarantees they are.
-        const capabilityCheckEntries = Object.entries(
-            capabilityChecks ?? {}
-        ) as [CapabilityKeys, (loadedData: Data) => CapabilityAuthorizer][]
-        const capabilities = Object.fromEntries(
-            capabilityCheckEntries.map(([capabilityName, authorizerGetter]) => [
-                capabilityName,
-                authorizerGetter(data).auth(session),
-            ])
-        ) as Capabilities<CapabilityKeys>
-        return { data, session, capabilities }
+        return { data, session, capabilities: pageCapabilities(capabilities, data, session) }
     })
 
     const page = async (props: PageProps<Params>): Promise<ReactNode> => {
@@ -238,7 +231,10 @@ type LayoutProps<Params extends object> = {
  *
  * @param operation - Loads everything the layout needs. Throwing a service error inside it
  * shows the error view instead of the layout and its pages.
- * @param render - Renders the layout around `children` from the loaded data and the session.
+ * @param capabilities - Optional, as for {@link serverPage}: what the user may do on the layout,
+ * run against the session and given to `render` under the same `can[Something]` keys.
+ * @param render - Renders the layout around `children` from the loaded data, the capabilities
+ * and the session.
  *
  * @example
  * export default serverLayout({
@@ -247,20 +243,26 @@ type LayoutProps<Params extends object> = {
  *     render: ({ data: category, children }) => <SideBar category={category}>{children}</SideBar>,
  * })
  */
-export function serverLayout<Params extends object, Data>({ operation, render }: {
+export function serverLayout<
+    Params extends object,
+    Data,
+    Authorizers extends CapabilityAuthorizers<Authorizers> = Record<never, never>,
+>({ operation, capabilities, render }: {
     operation: (args: LayoutOperationArgs<Params>) => Promise<Data>,
+    capabilities?: CapabilitiesOf<Data, Authorizers>,
     render: (args: {
         data: Data,
+        capabilities: PageCapabilities<Authorizers>,
         children: ReactNode,
         session: ServerPageSession,
     }) => ReactNode | Promise<ReactNode>,
 }): (props: LayoutProps<Params>) => Promise<ReactNode> {
     return async ({ params, children }) => {
         try {
-            const loaded = await withPageSession(async session => ({
-                data: await operation({ params: await params, session }),
-                session,
-            }))
+            const loaded = await withPageSession(async session => {
+                const data = await operation({ params: await params, session })
+                return { data, session, capabilities: pageCapabilities(capabilities, data, session) }
+            })
             return await render({ ...loaded, children })
         } catch (error) {
             return <ServiceErrorView error={await handleServiceError(error)} />

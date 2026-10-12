@@ -4,7 +4,7 @@ import { lockersSchemas } from './schemas'
 import { lockerAuth } from './auth'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { z } from 'zod'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { LockerWithReservation } from '@/services/lockers/types'
@@ -85,7 +85,7 @@ export const lockerOperations = {
         paramsSchema: lockersSchemas.readPage,
         operation: async ({ prisma, params }) => {
             const lockers = await prisma.locker.findMany({
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
                 orderBy: {
                     id: 'asc'
                 },
@@ -97,4 +97,4 @@ export const lockerOperations = {
             return lockers
         }
     }),
-}
+} as const

@@ -10,7 +10,7 @@ export const {
 } = implementSpecialCollection({
     special: 'PROMOIMAGES',
     allowedExtensions,
-    imagePanelAuther: promoImagesImagePanelAuth,
+    imagePanelAuth: promoImagesImagePanelAuth,
     config: {
         name: 'Promobilder',
         description: 'Bakgrunnsbilder brukt av promo-baren på forsiden. Hvert bilde tilhører nøyaktig én promo.',

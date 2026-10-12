@@ -3,7 +3,6 @@ import Permission from '@/components/Permission/Permission'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { permissionOperations } from '@/services/permissions/operations'
 import { serverPage } from '@/app/serverPage'
-import { v4 as uuid } from 'uuid'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
@@ -16,7 +15,7 @@ const { page, generateMetadata } = serverPage({
             <h2>Tillganger:</h2>
             <ul>
                 {permissions.map(permission =>
-                    <Permission key={uuid()} permission={permission} className={styles.permission} />
+                    <Permission key={permission} permission={permission} className={styles.permission} />
                 )}
             </ul>
         </div>

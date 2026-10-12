@@ -1,12 +1,19 @@
-import type { userFilterSelection } from './constants'
+import type {
+    userBasicSelection,
+    userCardSelection,
+    userProfileSelection,
+    userPrivateSelection
+} from './constants'
 import type { userSchemas } from './schemas'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
 import type { ClassLevel, OmegaMembershipLevel } from '@/prisma-generated-pn-types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-export type UserFiltered = Prisma.UserGetPayload<{
-    select: typeof userFilterSelection
-}>
+export type UserBasic = Prisma.UserGetPayload<{ select: typeof userBasicSelection }>
+export type UserCard = Prisma.UserGetPayload<{ select: typeof userCardSelection }>
+export type UserProfile = Prisma.UserGetPayload<{ select: typeof userProfileSelection }>
+export type UserFiltered = Prisma.UserGetPayload<{ select: typeof userPrivateSelection }>
+export type UserBasicWithEmail = UserBasic & Pick<UserProfile, 'email'>
 
 export type StandardMembeships = {
     class?: ClassLevel
@@ -14,7 +21,7 @@ export type StandardMembeships = {
     membershipType?: OmegaMembershipLevel
 }
 
-export type UserPagingReturn = UserFiltered & StandardMembeships & {
+export type UserPagingReturn = UserCard & StandardMembeships & {
     selectedGroupInfo?: {
         title?: string
         admin?: boolean

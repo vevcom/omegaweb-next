@@ -8,8 +8,10 @@ const userIdOrUsersAdmin = Require.permission('USERS_ADMIN').or().userId()
 
 export const userAuth = {
     readProfile: userFieldOrUsersUse,
-    read: userFieldOrUsersUse,
-    readOrNull: userFieldOrUsersUse,
+    readBasic: userFieldOrUsersUse,
+    read: userFieldOrUsersAdmin,
+    readOrNull: userFieldOrUsersAdmin,
+    readUserWithBalance: Require.permission('LEDGER_ADMIN').or().userField(),
     readPage: Require.permission('USERS_USE'),
     search: Require.permission('USERS_USE'),
     create: Require.permission('USERS_ADMIN'),

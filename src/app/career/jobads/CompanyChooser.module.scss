@@ -1,27 +1,41 @@
 @use '@/styles/ohma';
 
 .CompanyChooser {
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: calc(2 * #{ohma.$gap});
+    --company-card-min: 150px;
+}
+
+.header {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: ohma.$gap;
+    flex-shrink: 0;
+
     a {
         @include ohma.secondaryBtn;
+        margin: 0;
+        white-space: nowrap;
     }
-    @include ohma.screenLg {
-        padding-top: 3em;
-        a {
-            position: absolute;
-            top: 0;
-            right: 0;
-        }
-        .filter {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
+}
+
+.header .filter {
+    flex: 1 1 12em;
+    max-width: 20em;
+    margin-top: 0;
+}
+
+.list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: ohma.$gap;
+
+    > div {
+        margin-top: 0;
     }
-    @include ohma.screenMobile {
-        .filter, a {
-            margin: 2em 0;
-        }
-    }
-   
 }

@@ -72,12 +72,9 @@ const { page, generateMetadata } = serverPage({
             cabinBookingCustomerSessionSecret,
         }
     },
-    capabilityChecks: {
-        canBookCabin: () => cabinBookingAuth.createCabinBookingNoUser,
-        canBookBed: () => cabinBookingAuth.createBedBookingNoUser,
-        canEditSpecialCmsParagraphContract: () =>
-            cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract,
-    },
+    capabilities: () => ({
+        canEditSpecialCmsParagraphContract: cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract,
+    }),
     metadata: () => ({ title: 'Hyttebooking' }),
     render: ({ data, capabilities }) => {
         const releaseUntil = findCurrentReleasePeriod(data.releasePeriods)
@@ -101,15 +98,13 @@ const { page, generateMetadata } = serverPage({
                 cabinAvailability={data.cabinAvailability}
                 releaseUntil={releaseUntil}
                 cabinProducts={data.cabinProducts}
-                canBookCabin={capabilities.canBookCabin.authorized}
-                canBookBed={capabilities.canBookBed.authorized}
                 pricePeriods={data.pricePeriods}
                 availableBalance={data.cabinBookingBalance}
                 customerSessionClientSecret={data.cabinBookingCustomerSessionSecret}
             />
 
             <SpecialCmsParagraph
-                canEdit={capabilities.canEditSpecialCmsParagraphContract.toJsObject()}
+                capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraphContract }}
                 special="CABIN_CONTRACT"
                 readSpecialCmsParagraphAction={readSpecialCmsParagraphCabinContractAction}
                 updateCmsParagraphAction={updateSpecialCmsParagraphCabinContractAction}

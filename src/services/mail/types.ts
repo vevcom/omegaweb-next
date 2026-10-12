@@ -1,6 +1,6 @@
 
 import type { Group, MailAddressExternal, MailAlias, MailingList } from '@/prisma-generated-pn-types'
-import type { UserFiltered } from '@/services/users/types'
+import type { UserBasic } from '@/services/users/types'
 
 
 export const MailListTypeArray = ['alias', 'mailingList', 'group', 'user', 'mailaddressExternal'] as const
@@ -22,6 +22,6 @@ export type MailFlowObject = {
     alias: (MailAlias & ViaArrayType)[],
     mailingList: (MailingList & ViaArrayType)[],
     group: (Group & ViaArrayType)[],
-    user: (UserFiltered & ViaArrayType)[],
+    user: (UserBasic & ViaArrayType)[],
     mailaddressExternal: (MailAddressExternal & ViaArrayType)[],
 }

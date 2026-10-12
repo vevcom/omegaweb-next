@@ -11,6 +11,7 @@ import CmsParagraphEditorForm from '@/components/Cms/CmsParagraph/CmsParagraphEd
 import ImageUploader from '@/components/Image/ImageUploader'
 import { updateUserBioParagraphContentAction, updateUserProfileImageAction } from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
+import { userOperations } from '@/services/users/operations'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { studyProgrammeOperations } from '@/services/groups/studyProgrammes/operations'
@@ -32,30 +33,33 @@ const { page, generateMetadata } = serverPage({
         const studyProgrammes = studyProgrammeAuth.update.auth(session).authorized
             ? await studyProgrammeOperations.readMany({})
             : []
+        const privateUser = userAuth.read.data({ userField: { id: profile.user.id } }).auth(session).authorized
+            ? await userOperations.read({ params: { id: profile.user.id } })
+            : null
 
-        return { profile, studyProgrammes }
+        return { profile, studyProgrammes, privateUser }
     },
-    capabilityChecks: {
-        canUpdateProfile: ({ profile }) => userAuth.updateProfile.data({
+    capabilities: ({ profile }) => ({
+        canUpdateProfile: userAuth.updateProfile.data({
             userField: { username: profile.user.username }
         }),
-        canUpdateBio: ({ profile }) => userAuth.updateBioParagraphContent.data({ userId: profile.user.id }),
-        canRegisterNewEmail: ({ profile }) => userAuth.registerNewEmail.data({ userId: profile.user.id }),
-        canUpdateImage: ({ profile }) => userAuth.updateProfileImage.data({
+        canUpdateBio: userAuth.updateBioParagraphContent.data({ userId: profile.user.id }),
+        canRegisterNewEmail: userAuth.registerNewEmail.data({ userId: profile.user.id }),
+        canUpdateImage: userAuth.updateProfileImage.data({
             userField: { username: profile.user.username }
         }),
-        canUpdateUser: () => userAuth.update,
-        canChangeClass: () => classAuth.changeClassOfUser,
-        canManageStudyProgrammes: () => studyProgrammeAuth.update,
-    },
+        canUpdateUser: userAuth.update,
+        canChangeClass: classAuth.changeClassOfUser,
+        canManageStudyProgrammes: studyProgrammeAuth.update,
+    }),
     render: ({ data, capabilities }) => {
-        const { profile, studyProgrammes } = data
+        const { profile, studyProgrammes, privateUser } = data
 
         return (
             <div className={styles.wrapper}>
-                {capabilities.canUpdateProfile.authorized && (
+                {privateUser && capabilities.canUpdateProfile.authorized && (
                     <UserProfileSettingsCard>
-                        <UserSettingsForm user={profile.user} emailDomain={process.env.EMAIL_DOMAIN} />
+                        <UserSettingsForm user={privateUser} emailDomain={process.env.EMAIL_DOMAIN} />
                     </UserProfileSettingsCard>
                 )}
                 {capabilities.canUpdateBio.authorized && (
@@ -70,9 +74,9 @@ const { page, generateMetadata } = serverPage({
                         />
                     </UserProfileSettingsCard>
                 )}
-                {capabilities.canRegisterNewEmail.authorized && (
+                {privateUser && capabilities.canRegisterNewEmail.authorized && (
                     <UserProfileSettingsCard>
-                        <ChangeEmailForm user={profile.user} />
+                        <ChangeEmailForm user={privateUser} />
                     </UserProfileSettingsCard>
                 )}
                 {capabilities.canUpdateImage.authorized && (

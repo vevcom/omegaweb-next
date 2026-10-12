@@ -1,0 +1,50 @@
+@use '@/styles/ohma';
+
+.SponsorBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(1.25 * #{ohma.$gap});
+    padding: calc(0.5 * #{ohma.$gap}) calc(1.5 * #{ohma.$gap});
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background-color: ohma.$colors-surface-raised;
+    font-size: calc(#{ohma.$fonts-s} * 0.9);
+    font-weight: ohma.$fonts-weight-m;
+    line-height: 1.4;
+    white-space: nowrap;
+
+    svg {
+        width: 0.9em;
+        height: 0.9em;
+        flex-shrink: 0;
+    }
+}
+
+.label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tierMain {
+    color: ohma.$colors-accent-yellow;
+    border-color: color-mix(in srgb, ohma.$colors-accent-yellow, transparent 55%);
+    background-color: color-mix(in srgb, ohma.$colors-accent-yellow, ohma.$colors-surface-raised 85%);
+}
+
+.tierSponsor {
+    color: ohma.$colors-accent-cyan;
+    border-color: color-mix(in srgb, ohma.$colors-accent-cyan, transparent 60%);
+    background-color: color-mix(in srgb, ohma.$colors-accent-cyan, ohma.$colors-surface-raised 88%);
+}
+
+.labelHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}

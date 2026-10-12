@@ -2,15 +2,16 @@ import CmsImageEditor from './CmsImageEditor'
 import styles from './CmsImage.module.scss'
 import Image from '@/components/Image/Image'
 import StandardImageClient from '@/components/Image/StandardImageClient'
+import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import type { ExpandedCmsImage, UpdateCmsImageAction } from '@/cms/images/types'
 import type { PropTypes as ImagePropTypes } from '@/components/Image/Image'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 import type React from 'react'
 
 export type PropTypes = Omit<ImagePropTypes, 'className' | 'image' | 'children'> & {
     cmsImage: ExpandedCmsImage,
     updateCmsImageAction: UpdateCmsImageAction,
-    canEdit: AuthResultTypeAny
+    capabilities: Capabilities<'canEdit'>
     children?: React.ReactNode
     className?: string
     classNameImage?: string
@@ -29,7 +30,7 @@ export type PropTypes = Omit<ImagePropTypes, 'className' | 'image' | 'children'>
 export default function CmsImage({
     cmsImage,
     updateCmsImageAction,
-    canEdit,
+    capabilities,
     children,
     className = '',
     classNameImage,
@@ -41,7 +42,7 @@ export default function CmsImage({
             {!disableEditor && <CmsImageEditor
                 cmsImage={cmsImage}
                 updateCmsImageAction={updateCmsImageAction}
-                canEdit={canEdit}
+                capabilities={capabilitiesToJsObject(capabilities)}
             />}
             <div className={styles.children}>{children}</div>
             {cmsImage.image ? (

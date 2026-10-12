@@ -6,8 +6,8 @@ import CmsLink from '@/components/Cms/CmsLink/CmsLink'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import {
-    readSpecialCmsParagraphCareerInfo,
-    updateSpecialCmsParagraphContentCareerInfo,
+    readSpecialCmsParagraphCareerInfoAction,
+    updateSpecialCmsParagraphContentCareerInfoAction,
     updateCareerSpecialCmsLinkAction
 } from '@/services/career/actions'
 import { careerOperations } from '@/services/career/operations'
@@ -30,15 +30,15 @@ const { page, generateMetadata } = serverPage({
         ])
         return { contactorCmsLink, companyPresentationEventTag, isLoggedIn: Boolean(session.user) }
     },
-    capabilityChecks: {
-        canEditSpecialCmsLink: () => careerAuth.updateSpecialCmsLink,
-        canEditSpecialCmsParagraph: () => careerAuth.updateSpecialCmsParagraphContentCareerInfo,
-    },
+    capabilities: () => ({
+        canEditSpecialCmsLink: careerAuth.updateSpecialCmsLink,
+        canEditSpecialCmsParagraph: careerAuth.updateSpecialCmsParagraphContentCareerInfo,
+    }),
     metadata: (data) => ({ title: data.isLoggedIn ? 'Karriere' : 'For bedrifter' }),
     render: ({ data, capabilities }) => (
         <PageWrapper headerItem={
             data.contactorCmsLink ? <CmsLink
-                canEdit={capabilities.canEditSpecialCmsLink.toJsObject()}
+                capabilities={{ canEdit: capabilities.canEditSpecialCmsLink }}
                 className={styles.conactorLink}
                 cmsLink={data.contactorCmsLink}
                 updateCmsLinkAction={updateCareerSpecialCmsLinkAction}
@@ -46,11 +46,11 @@ const { page, generateMetadata } = serverPage({
         }>
             <div className={styles.wrapper}>
                 <SpecialCmsParagraph
-                    canEdit={capabilities.canEditSpecialCmsParagraph.toJsObject()}
+                    capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
                     className={styles.info}
                     special="CAREER_INFO"
-                    readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfo}
-                    updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfo}
+                    readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfoAction}
+                    updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfoAction}
                 />
                 <span className={styles.links}>
                     <Link href="/career/jobads">

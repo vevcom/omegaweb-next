@@ -1,9 +1,9 @@
-import { validMailAdressDomains } from '@/services/mail/constants'
+import { validMailAddressDomains } from '@/services/mail/constants'
 import { z } from 'zod'
 
 const validAddress = z.string().email().refine(
-    address => validMailAdressDomains.includes(address.split('@')[1].trim()),
-    `The domain is not valid, valid domains are: ${validMailAdressDomains.join(', ')}`
+    address => validMailAddressDomains.includes(address.split('@')[1].trim()),
+    `The domain is not valid, valid domains are: ${validMailAddressDomains.join(', ')}`
 )
 
 export const mailAliasSchemas = {

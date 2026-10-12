@@ -61,9 +61,9 @@ const { page, generateMetadata } = serverPage({
 
         return { filter, items }
     },
-    capabilityChecks: {
-        canCreate: ({ filter }) => mailParts[filter].createAuth(),
-    },
+    capabilities: ({ filter }) => ({
+        canCreate: mailParts[filter].createAuth(),
+    }),
     metadata: ({ filter }) => ({ title: mailParts[filter].title }),
     render: ({ data: { filter, items }, capabilities }) => <PageWrapper>
         <div className={styles.wrapper}>

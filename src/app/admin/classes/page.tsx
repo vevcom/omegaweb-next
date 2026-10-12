@@ -20,9 +20,9 @@ const { page, generateMetadata } = serverPage({
         ])
         return { classRows, expandedClasses, currentOrder }
     },
-    capabilityChecks: {
-        canBump: () => classAuth.bumpClasses,
-    },
+    capabilities: () => ({
+        canBump: classAuth.bumpClasses,
+    }),
     metadata: () => ({ title: 'Klasser' }),
     render: ({ data, capabilities }) => {
         // The expanded groups carry the name, member count and order; the class rows carry the level.

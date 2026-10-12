@@ -3,19 +3,25 @@
 .CreateJobAdForm {
     @include ohma.screenLg {
         display: grid;
-        grid-template-columns: 200px 1fr;
-        gap: 2em;
+        grid-template-columns: minmax(240px, 320px) 1fr;
+        gap: calc(4 * #{ohma.$gap});
         min-width: 80vw;
         max-height: 80vh;
+        align-items: start;
+
         .companyList {
-            max-height: 70vh;
-            padding-right: 1em;
-            overflow-y: scroll;
+            min-height: 0;
+            height: 80vh;
         }
     }
+
     @include ohma.screenMobile {
-        form {
-            max-width: 230px;
+        display: flex;
+        flex-direction: column;
+        gap: calc(3 * #{ohma.$gap});
+
+        .companyList {
+            max-height: 50vh;
         }
     }
 }

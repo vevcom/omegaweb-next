@@ -6,7 +6,7 @@ import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsLinkOperations } from '@/cms/links/operations'
 import { defineOperation } from '@/services/serviceOperation'
-import { cursorPageingSelection } from '@/lib/paging/cursorPageingSelection'
+import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
 import { StandardSchool } from '@/prisma-generated-pn-types'
@@ -154,7 +154,7 @@ export const schoolOperations = {
                     { shortName: 'asc' },
                     { id: 'asc' },
                 ],
-                ...cursorPageingSelection(params.paging.page),
+                ...cursorPagingSelection(params.paging.page),
             })
     }),
     readStandard: defineOperation({

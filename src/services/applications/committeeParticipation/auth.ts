@@ -5,4 +5,4 @@ const groupAdminOrApplicationAdmin = Require.permission('APPLICATION_ADMIN').or(
 export const committeeParticipationAuth = {
     read: groupAdminOrApplicationAdmin,
     readAll: groupAdminOrApplicationAdmin,
-}
+} as const

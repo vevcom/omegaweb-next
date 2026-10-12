@@ -16,9 +16,9 @@ const { page, generateMetadata } = serverPage({
         ])
         return { latestOmbul, ombuls }
     },
-    capabilityChecks: {
-        canCreate: () => ombulAuth.create,
-    },
+    capabilities: () => ({
+        canCreate: ombulAuth.create,
+    }),
     metadata: () => ({ title: 'Ombul' }),
     render: ({ data, capabilities }) => {
         const yearsWithOmbul = Object.entries(data.ombuls.reduce((groups, ombul) => {

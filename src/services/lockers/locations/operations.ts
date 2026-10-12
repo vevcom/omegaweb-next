@@ -1,3 +1,4 @@
+import '@pn-server-only'
 import { lockerLocationAuth } from './auth'
 import { lockersSchemas } from '@/services/lockers/schemas'
 import { defineOperation } from '@/services/serviceOperation'
@@ -30,4 +31,4 @@ export const lockerLocationOperations = {
         authorizer: () => lockerLocationAuth.readAll,
         operation: async ({ prisma }) => prisma.lockerLocation.findMany()
     }),
-}
+} as const

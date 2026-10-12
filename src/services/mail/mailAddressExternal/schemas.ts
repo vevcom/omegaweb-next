@@ -1,9 +1,9 @@
-import { NTNUEmailDomain, validMailAdressDomains } from '@/services/mail/constants'
+import { NTNUEmailDomain, validMailAddressDomains } from '@/services/mail/constants'
 import { z } from 'zod'
 
 const validAddress = z.string().email().min(2).max(50)
     .refine(
-        address => !validMailAdressDomains.includes(address.split('@')[1].trim()),
+        address => !validMailAddressDomains.includes(address.split('@')[1].trim()),
         'E-post adressen inneholder et forbudt domene navn.',
     )
     .refine(

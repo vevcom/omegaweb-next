@@ -9,22 +9,22 @@ import { configureAction } from '@/services/configureAction'
 import { useRouter } from 'next/navigation'
 import type { CmsLink } from '@/prisma-generated-pn-types'
 import type { UpdateCmsLinkAction } from '@/cms/links/types'
-import type { AuthResultTypeAny } from '@/auth/authorizer/AuthResult'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     cmsLink: CmsLink
     updateCmsLinkAction: UpdateCmsLinkAction
-    canEdit: AuthResultTypeAny
+    capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
-export default function CmsLinkEditor({ cmsLink, updateCmsLinkAction, canEdit }: PropTypes) {
-    const editable = useEditMode({ authResult: canEdit })
+export default function CmsLinkEditor({ cmsLink, updateCmsLinkAction, capabilities }: PropTypes) {
+    const editable = useEditMode({ authResult: capabilities.canEdit })
     const { refresh } = useRouter()
 
     if (!editable) return null
     return (
         <PopUp
-            popUpKey={cmsLink.id}
+            popUpKey={`EditCmsLink${cmsLink.id}`}
             showButtonClass={styles.openBtn}
             showButtonContent={
                 <EditOverlay />

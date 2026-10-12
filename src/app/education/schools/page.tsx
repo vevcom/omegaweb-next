@@ -20,11 +20,11 @@ const { page, generateMetadata } = serverPage({
             },
         },
     }),
-    capabilityChecks: {
-        canAdministrateSchools: () => schoolAuth.create,
-    },
+    capabilities: () => ({
+        canAdministrateSchools: schoolAuth.create,
+    }),
     metadata: () => ({ title: 'Skoler' }),
-    render: ({ data: serverRenderedData, capabilities, session }) => (
+    render: ({ data: serverRenderedData, capabilities }) => (
         <PageWrapper headerItem={
             capabilities.canAdministrateSchools.authorized ? (
                 <Link href="/admin/schools" className={styles.adminLink}>
@@ -38,7 +38,7 @@ const { page, generateMetadata } = serverPage({
                 startPage={{ pageSize: pageSizeSchool, page: 1 }}
             >
                 <div className={styles.wrapper}>
-                    <SchoolList serverRendered={serverRenderedData.map(schoolListRenderer(session.toJsObject()))} />
+                    <SchoolList serverRendered={serverRenderedData.map(schoolListRenderer)} />
                 </div>
             </SchoolPagingProvider>
         </PageWrapper>

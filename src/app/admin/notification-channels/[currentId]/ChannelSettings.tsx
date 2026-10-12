@@ -2,7 +2,7 @@
 
 import styles from './ChannelSettings.module.scss'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
-import NotificationMethodSelector from '@/components/NotificaionMethodSelector/NotificaionMethodSelector'
+import NotificationMethodSelector from '@/components/NotificationMethodSelector/NotificationMethodSelector'
 import TextInput from '@/components/UI/TextInput'
 import { SelectNumber } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'

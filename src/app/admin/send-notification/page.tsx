@@ -1,4 +1,4 @@
-import NotificaionForm from './notificationForm'
+import NotificationForm from './notificationForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
 import { serverPage } from '@/app/serverPage'
@@ -13,7 +13,7 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'Send varsel' }),
     render: ({ data: channels }) => (
         <PageWrapper>
-            <NotificaionForm channels={channels}/>
+            <NotificationForm channels={channels}/>
         </PageWrapper>
     ),
 })

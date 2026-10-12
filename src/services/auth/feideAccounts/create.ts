@@ -3,9 +3,12 @@ import { prismaCall } from '@/services/prismaCall'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { FeideAccount } from '@/prisma-generated-pn-types'
 
+/**
+ * Links a Feide account to a user. The Feide access token is only needed during sign-in, where it
+ * is read from the OAuth account, so it is never stored.
+ */
 export async function createFeideAccount({
     id,
-    accessToken,
     expiresAt,
     issuedAt,
     userId,
@@ -14,7 +17,6 @@ export async function createFeideAccount({
     return await prismaCall(() => prisma.feideAccount.create({
         data: {
             id,
-            accessToken,
             expiresAt,
             issuedAt,
             email,
