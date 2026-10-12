@@ -177,7 +177,7 @@ export const productOperations = {
             },
         })
     }),
-}
+} as const
 
 export function convertBarcode(barcode?: string | number) {
     if (typeof barcode === 'string' || typeof barcode === 'number') {

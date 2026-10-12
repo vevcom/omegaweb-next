@@ -8,4 +8,4 @@ export const jobAdAuth = {
     update: Require.permission('JOBAD_ADMIN'),
     updateArticle: Require.permission('JOBAD_ADMIN'),
     destroy: Require.permission('JOBAD_ADMIN'),
-}
+} as const

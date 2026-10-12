@@ -88,4 +88,4 @@ export const cabinReleasePeriodOperations = {
             },
         })
     }),
-}
+} as const

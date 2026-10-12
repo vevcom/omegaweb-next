@@ -97,4 +97,4 @@ export const lockerOperations = {
             return lockers
         }
     }),
-}
+} as const

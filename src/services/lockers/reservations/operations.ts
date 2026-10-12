@@ -130,5 +130,5 @@ export const lockerReservationOperations = {
             })
         },
     }),
-}
+} as const
 

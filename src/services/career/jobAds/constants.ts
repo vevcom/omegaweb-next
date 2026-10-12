@@ -1,4 +1,4 @@
-import { articleRealtionsIncluder } from '@/cms/articles/constants'
+import { articleRelationsIncluder } from '@/cms/articles/constants'
 import { JobType } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -14,7 +14,7 @@ export const jobAdType = {
 
 export const articleAndCompanyIncluder = {
     article: {
-        include: articleRealtionsIncluder
+        include: articleRelationsIncluder
     },
     company: true
 } as const satisfies Prisma.JobAdInclude

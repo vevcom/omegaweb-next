@@ -1,7 +1,7 @@
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-export const committeesParticipatingincluder = {
+export const committeesParticipatingIncluder = {
     committeesParticipating: {
         include: {
             committee: {

@@ -153,4 +153,4 @@ export const purchaseOperations = {
             }
         }
     })
-}
+} as const

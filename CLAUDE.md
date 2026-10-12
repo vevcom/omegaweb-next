@@ -84,9 +84,19 @@ export const fooAuth = {
   update: Require.permission('FOO_ADMIN').or().userId(),
 } as const
 
+// schemas.ts
+const fieldSchemas = z.object({ id: z.number(), name: z.string() })
+
+export const fooSchemas = {
+  update: fieldSchemas.pick({ name: true }),
+}
+export const fooParamsSchemas = {
+  update: fieldSchemas.pick({ id: true }),
+}
+
 // operations.ts
 const update = defineOperation({
-  paramsSchema: z.object({ id: z.number() }),
+  paramsSchema: fooParamsSchemas.update,
   dataSchema: fooSchemas.update,
   authorizer: async ({ params, prisma }) => {
     const foo = await prisma.foo.findUniqueOrThrow({ where: { id: params.id }, select: { ownerId: true } })
@@ -130,13 +140,14 @@ src/services/[domain]/
 ├── auth.ts         # Authorizer definitions (`Require` chains, shared with the frontend)
 ├── constants.ts    # Domain constants and config values (env vars, field selections)
 ├── operations.ts   # defineOperation() calls, exported as `{ ... } as const`
-├── schemas.ts      # Plain Zod schemas (no ValidationBase)
+├── schemas.ts      # Plain Zod schemas: data in `fooSchemas`, params in `fooParamsSchemas`
 └── types.ts        # TypeScript types specific to this domain (if needed)
 ```
 
 Rules:
 - **`constants.ts`** — not `ConfigVars.ts` or any other name
 - **`operations.ts`** — the exported object must end with `as const`
+- **`schemas.ts`** — holds every `dataSchema` and `paramsSchema` the service's operations use (see [Operation Naming Conventions](#operation-naming-conventions)); none are defined inline in `operations.ts`
 - **`actions.ts`** — must have `'use server'` at the top; only calls `makeAction()`
 - Sub-domains (e.g. `mail/alias/`) follow the same layout within their subfolder
 
@@ -325,14 +336,14 @@ What the user may do on a page is declared as capabilities: `can[Something]` key
 
 For every `defineOperation()` call, the operation key must align with its schema and authorizer keys:
 
-- `dataSchema` and `paramsSchema`: if taken from a schemas object, the key must match the operation name exactly — e.g. operation `destroyFoo` must use `fooSchemas.destroyFoo`, not `fooSchemas.createFoo`.
+- `dataSchema` comes from the service's `fooSchemas` and `paramsSchema` from its `fooParamsSchemas`, both exported from `schemas.ts`. The key must match the operation name exactly — e.g. operation `destroyFoo` uses `fooSchemas.destroyFoo` and `fooParamsSchemas.destroyFoo`, not `fooSchemas.createFoo`. The `implementationParamsSchema` of an implemented sub-operation goes in `fooParamsSchemas` too, under the key of the operation it implements. Sub-operations whose schemas are built from implementation fields are the exception: those stay in `defineSubOperation`.
 - `authorizer`: must reference the same operation name — e.g. `fooAuth.destroyFoo`, not `fooAuth.createFoo`.
 
-When create and destroy operations share the same schema shape, define a shared variable and reference it from both keys in the schemas object:
+Both objects pick their fields from one `fieldSchemas` object (a `z.object`) in `schemas.ts`, so a field such as `userId` or `name` has the same schema in every operation that takes it, whether as data or as params. When operations share the same schema shape, define a shared variable and reference it from each key in the schemas object (the same goes for `fooParamsSchemas`):
 
 ```typescript
 // schemas.ts
-const fooRelation = z.object({ ... })
+const fooRelation = fieldSchemas.pick({ userId: true, groupId: true })
 
 export const fooSchemas = {
     createFoo: fooRelation,

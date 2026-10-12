@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { articleSectionSchemas } from './schemas'
-import { articleSectionsRealtionsIncluder } from './constants'
+import { articleSectionsRelationsIncluder } from './constants'
 import { ServiceError } from '@/services/error'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
@@ -14,7 +14,7 @@ const create = defineSubOperation({
     operation: () => ({ prisma, data }) =>
         prisma.articleSection.create({
             data,
-            include: articleSectionsRealtionsIncluder
+            include: articleSectionsRelationsIncluder
         })
 })
 
@@ -23,7 +23,7 @@ const destroy = defineSubOperation({
     operation: () => ({ prisma, params }) =>
         prisma.articleSection.delete({
             where: params.articleSectionId ? { id: params.articleSectionId } : { name: params.articleSectionName },
-            include: articleSectionsRealtionsIncluder
+            include: articleSectionsRelationsIncluder
         })
 })
 
@@ -47,7 +47,7 @@ export const articleSectionOperations = {
                     imageSize: data.imageSize,
                     imagePosition: data.position,
                 },
-                include: articleSectionsRealtionsIncluder,
+                include: articleSectionsRelationsIncluder,
             })
     }),
 
@@ -86,7 +86,7 @@ export const articleSectionOperations = {
                     return await prisma.articleSection.update({
                         where,
                         data: { cmsImage: { connect: { id: cmsImage.id } } },
-                        include: articleSectionsRealtionsIncluder
+                        include: articleSectionsRelationsIncluder
                     })
                 }
                 case 'cmsParagraph':
@@ -98,7 +98,7 @@ export const articleSectionOperations = {
                     return await prisma.articleSection.update({
                         where,
                         data: { cmsParagraph: { connect: { id: cmsParagraph.id } } },
-                        include: articleSectionsRealtionsIncluder
+                        include: articleSectionsRelationsIncluder
                     })
                 }
                 case 'cmsLink':
@@ -110,7 +110,7 @@ export const articleSectionOperations = {
                     return await prisma.articleSection.update({
                         where,
                         data: { cmsLink: { connect: { id: cmsLink.id } } },
-                        include: articleSectionsRealtionsIncluder
+                        include: articleSectionsRelationsIncluder
                     })
                 }
                 default:

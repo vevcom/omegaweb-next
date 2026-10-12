@@ -11,4 +11,4 @@ export const authAuth = {
     verifyLinkFeideAccountToken: Require.nothing(),
     linkFeideAccount: Require.nothing(),
     adminLinkFeideAccount: Require.permission('USERS_ADMIN'),
-}
+} as const

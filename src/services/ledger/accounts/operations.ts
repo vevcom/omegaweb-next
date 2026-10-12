@@ -351,4 +351,4 @@ export const ledgerAccountOperations = {
             return balances[account.id]
         }
     }),
-}
+} as const

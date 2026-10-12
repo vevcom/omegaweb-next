@@ -17,7 +17,7 @@ const {
     generateCollectionFromConfig: generateStandardImagesCollectionFromConfig
 } = implementSpecialCollection({
     special: 'STANDARDIMAGES',
-    imagePanelAuther: standardImagesImagePanelAuth,
+    imagePanelAuth: standardImagesImagePanelAuth,
     allowedExtensions,
     config: {
         name: 'Standardbilder',

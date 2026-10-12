@@ -90,4 +90,4 @@ export const cabinProductOperations = {
             include: cabinProductPriceIncluder,
         })
     }),
-}
+} as const

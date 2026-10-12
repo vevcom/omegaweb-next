@@ -174,4 +174,4 @@ export const jobAdOperations = {
             await articleOperations.destroy.internalCall({ params: { articleId: jobAd.articleId } })
         }
     }),
-}
+} as const

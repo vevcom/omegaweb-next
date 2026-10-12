@@ -82,7 +82,10 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
     const { push, refresh } = useRouter()
 
     const handleDestroy = async (id: number) => {
-        const res = await removeArticleFromCategoryAction({ params: { id: category.id, articleId: id } })
+        const res = await removeArticleFromCategoryAction(
+            { implementationParams: { articleCategoryId: category.id } },
+            { params: { articleId: id } }
+        )
         if (!res.success) throw new Error('Kunne ikke slette artikkelen')
         push(`/articles/${category.name}`)
         refresh()
