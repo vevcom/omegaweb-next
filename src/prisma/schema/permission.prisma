@@ -103,7 +103,6 @@ enum Permission {
   CABIN_ADMIN
 
   // Shop
-  SHOP_USE
   SHOP_ADMIN
 
   PRODUCT_USE

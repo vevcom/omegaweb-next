@@ -9,6 +9,12 @@ model Shop {
   // clear error until an admin configures this.
   ledgerAccount   LedgerAccount? @relation(fields: [ledgerAccountId], references: [id])
   ledgerAccountId Int?           @unique
+
+  // Who may see the shop and buy in it (regular), and who may administer it (admin).
+  visibilityAdmin     Visibility @relation(name: "ShopAdminVisibility", fields: [visibilityAdminId], references: [id], onDelete: Restrict)
+  visibilityAdminId   Int        @unique
+  visibilityRegular   Visibility @relation(name: "ShopRegularVisibility", fields: [visibilityRegularId], references: [id], onDelete: Restrict)
+  visibilityRegularId Int        @unique
 }
 
 model Product {

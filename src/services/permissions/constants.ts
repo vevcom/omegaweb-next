@@ -254,14 +254,9 @@ export const permissionConfig = {
             Opprette, endre og gi kapper`,
         category: 'brukere',
     },
-    SHOP_USE: {
-        name: 'Les butikker',
-        description: 'kan lese butikker',
-        category: 'shop'
-    },
     SHOP_ADMIN: {
         name: 'Butikk administrator',
-        description: 'Kan administrere alle butikker',
+        description: 'Kan opprette butikker, og se og administrere alle butikker uansett synlighet',
         category: 'shop'
     },
     PRODUCT_USE: {
