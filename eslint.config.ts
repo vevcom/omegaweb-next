@@ -2,6 +2,11 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import nextVitals from 'eslint-config-next/core-web-vitals'
 import tsNextRules from 'eslint-config-next/typescript'
 import tsConfigs from 'typescript-eslint'
+import checkFile from 'eslint-plugin-check-file'
+
+// Next.js app-router special filenames are framework-fixed, so they're excluded from the
+// naming-convention rules below instead of flagged as violations.
+const nextSpecialFilenames = '!(page|layout|template|default|loading|error|global-error|not-found)'
 
 const eslintConfig = defineConfig([
     {
@@ -561,6 +566,54 @@ const eslintConfig = defineConfig([
                 }
             ]
         }
+    },
+    {
+        // Lets check-file's filename rules run on non-JS files, which ESLint otherwise skips
+        files: ['src/app/**/*.module.scss', 'src/prisma/schema/**/*.prisma'],
+        plugins: { 'check-file': checkFile },
+        processor: 'check-file/eslint-processor-check-file',
+    },
+    {
+        // File and folder naming conventions, by area of the codebase.
+        plugins: { 'check-file': checkFile },
+        files: [
+            'src/app/**/*',
+            'src/services/**/*',
+            'src/hooks/**/*',
+            'src/contexts/**/*',
+            'src/lib/**/*',
+            'tests/**/*',
+            'src/prisma/schema/**/*',
+        ],
+        rules: {
+            'check-file/filename-naming-convention': [
+                'error',
+                // TODO: drop the ConfigVars and Validation exclusions below
+                // once those files are renamed or removed.
+                {
+                    [`src/app/**/${nextSpecialFilenames}.tsx`]: 'PASCAL_CASE',
+                    'src/app/**/!(route|manifest|sitemap|robots|ConfigVars).ts': 'CAMEL_CASE',
+                    [`src/app/**/${nextSpecialFilenames}.module.scss`]: 'PASCAL_CASE',
+                    'src/services/**/!(ConfigVars|Validation).ts': 'CAMEL_CASE',
+                    'src/hooks/**/*.ts': 'CAMEL_CASE',
+                    'src/contexts/**/*.tsx': 'PASCAL_CASE',
+                    'src/lib/**/!(ConfigVars|pn-server-only).{ts,tsx}': 'CAMEL_CASE',
+                    'tests/**/*.test.ts': 'CAMEL_CASE',
+                    'src/prisma/schema/**/*.prisma': 'CAMEL_CASE',
+                },
+                { ignoreMiddleExtensions: true },
+            ],
+            'check-file/folder-naming-convention': [
+                'error',
+                {
+                    'src/app/_components/**/': 'PASCAL_CASE',
+                    'src/app/!(_components)/**/': 'NEXT_JS_APP_ROUTER_CASE',
+                    'src/services/**/': 'CAMEL_CASE',
+                    'src/contexts/**/': 'CAMEL_CASE',
+                    'src/lib/**/': 'CAMEL_CASE',
+                },
+            ],
+        },
     },
     globalIgnores([
         '.next/**',
