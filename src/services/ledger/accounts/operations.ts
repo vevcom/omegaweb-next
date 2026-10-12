@@ -1,13 +1,10 @@
 import '@pn-server-only'
-import { ledgerAccountSchemas } from './schemas'
+import { ledgerAccountParamsSchemas, ledgerAccountSchemas } from './schemas'
 import { ledgerAccountAuth } from './auth'
 import { resolveAccountOwnership, resolveAccountsOwnership } from './ownership'
-import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { defineOperation } from '@/services/serviceOperation'
-import { LedgerAccountType } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
-import type { LedgerAccount, Prisma } from '@/prisma-generated-pn-types'
+import type { LedgerAccount, LedgerAccountType, Prisma } from '@/prisma-generated-pn-types'
 import type { Balance, BalanceRecord, ExpandedLedgerAccount } from './types'
 
 // Nested calls between these operations are not bypassed unless noted otherwise: the checks
@@ -61,13 +58,7 @@ export const ledgerAccountOperations = {
         authorizer: async ({ params, prisma }) => ledgerAccountAuth.read.data({
             accounts: [await resolveAccountOwnership(prisma, params)],
         }),
-        paramsSchema: z.object({
-            userId: z.number().optional(),
-            ledgerAccountId: z.number().optional(),
-        }).refine(
-            ({ userId, ledgerAccountId }) => userId !== undefined || ledgerAccountId !== undefined,
-            'Enten bruker ID eller konto ID må være oppgitt.',
-        ),
+        paramsSchema: ledgerAccountParamsSchemas.read,
         operation: async ({ prisma, params }): Promise<ExpandedLedgerAccount> => {
             const account = await prisma.ledgerAccount.findFirstOrThrow({
                 where: {
@@ -105,15 +96,7 @@ export const ledgerAccountOperations = {
         authorizer: async ({ params, prisma }) => ledgerAccountAuth.readMany.data({
             accounts: await resolveAccountsOwnership(prisma, params),
         }),
-        paramsSchema: z.object({
-            ledgerAccountIds: z.number().array().optional(),
-            userIds: z.number().array().optional(),
-            groupIds: z.number().array().optional(),
-        }).refine(
-            ({ ledgerAccountIds, userIds, groupIds }) =>
-                Boolean(ledgerAccountIds?.length || userIds?.length || groupIds?.length),
-            'Minst én av konto ID-er, bruker ID-er eller gruppe ID-er må være oppgitt.',
-        ),
+        paramsSchema: ledgerAccountParamsSchemas.readMany,
         operation: async ({ prisma, params }): Promise<LedgerAccount[]> => {
             const filters: Prisma.LedgerAccountWhereInput[] = []
 
@@ -133,16 +116,40 @@ export const ledgerAccountOperations = {
         }
     }),
 
+    /**
+     * Reads every account the caller has access to: all of them with LEDGER_ADMIN, otherwise the
+     * caller's own account and the accounts of the groups it is an active member of. Lets a page
+     * list the accounts a user may act on without knowing that rule.
+     *
+     * **Note**: The balance of the accounts are not included in the response.
+     * Use the `calculateBalances` method to get the balances.
+     *
+     * @param params.includeGroupAccounts Whether GROUP accounts are included.
+     * @param params.includeUserAccounts Whether USER accounts are included.
+     *
+     * @returns List of account details.
+     */
+    readAccessible: defineOperation({
+        authorizer: () => ledgerAccountAuth.readAccessible,
+        paramsSchema: ledgerAccountParamsSchemas.readAccessible,
+        operation: async ({ prisma, params }, prismaWhereFilter): Promise<LedgerAccount[]> => {
+            const types: LedgerAccountType[] = [
+                ...(params.includeGroupAccounts ? ['GROUP' as const] : []),
+                ...(params.includeUserAccounts ? ['USER' as const] : []),
+            ]
+
+            return await prisma.ledgerAccount.findMany({
+                where: {
+                    type: { in: types },
+                    ...prismaWhereFilter,
+                },
+            })
+        }
+    }),
+
     readPage: defineOperation({
         authorizer: () => ledgerAccountAuth.readPage,
-        paramsSchema: readPageInputSchemaObject(
-            z.object({
-                id: z.number(),
-            }),
-            z.object({
-                accountType: z.nativeEnum(LedgerAccountType).optional(),
-            }),
-        ),
+        paramsSchema: ledgerAccountParamsSchemas.readPage,
         operation: async ({ params: { paging }, prisma }): Promise<(LedgerAccount & { balance: Balance })[]> => {
             const accounts = await prisma.ledgerAccount.findMany({
                 where: {
@@ -179,13 +186,7 @@ export const ledgerAccountOperations = {
             accounts: [await resolveAccountOwnership(prisma, params)],
             changesGroupLinks: Boolean(data.addGroupIds?.length || data.removeGroupIds?.length),
         }),
-        paramsSchema: z.object({
-            userId: z.number().optional(),
-            ledgerAccountId: z.number().optional(),
-        }).refine(
-            ({ userId, ledgerAccountId }) => userId !== undefined || ledgerAccountId !== undefined,
-            'Enten bruker ID eller konto ID må være oppgitt.',
-        ),
+        paramsSchema: ledgerAccountParamsSchemas.update,
         dataSchema: ledgerAccountSchemas.update,
         operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
             const account = await ledgerAccountOperations.read({ params })
@@ -236,16 +237,7 @@ export const ledgerAccountOperations = {
         authorizer: async ({ params, prisma }) => ledgerAccountAuth.calculateBalances.data({
             accounts: await resolveAccountsOwnership(prisma, params),
         }),
-        paramsSchema: z.object({
-            ledgerAccountIds: z.number().array().optional(),
-            userIds: z.number().array().optional(),
-            groupIds: z.number().array().optional(),
-            atTransactionId: z.number().optional(),
-        }).refine(
-            ({ ledgerAccountIds, userIds, groupIds }) =>
-                Boolean(ledgerAccountIds?.length || userIds?.length || groupIds?.length),
-            'Minst én av konto ID-er, bruker ID-er eller gruppe ID-er må være oppgitt.',
-        ),
+        paramsSchema: ledgerAccountParamsSchemas.calculateBalances,
         operation: async ({ prisma, params }): Promise<BalanceRecord> => {
             // Skip resolving userIds/groupIds to ledger account IDs when ledgerAccountIds
             // alone was given, since there is then nothing to resolve.
@@ -328,14 +320,7 @@ export const ledgerAccountOperations = {
         authorizer: async ({ params, prisma }) => ledgerAccountAuth.calculateBalance.data({
             accounts: [await resolveAccountOwnership(prisma, params)],
         }),
-        paramsSchema: z.object({
-            userId: z.number().optional(),
-            ledgerAccountId: z.number().optional(),
-            atTransactionId: z.number().optional(),
-        }).refine(
-            ({ userId, ledgerAccountId }) => userId !== undefined || ledgerAccountId !== undefined,
-            'Enten bruker ID eller konto ID må være oppgitt.',
-        ),
+        paramsSchema: ledgerAccountParamsSchemas.calculateBalance,
         operation: async ({ params }): Promise<Balance> => {
             const account = await ledgerAccountOperations.read({
                 params: { userId: params.userId, ledgerAccountId: params.ledgerAccountId },

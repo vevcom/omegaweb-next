@@ -2,7 +2,7 @@ import { Zpn } from '@/lib/fields/zpn'
 import { convertAmount } from '@/lib/currency/convert'
 import { z } from 'zod'
 
-const baseSchema = z.object({
+const fieldSchemas = z.object({
     shopId: z.coerce.number().int(),
     name: z.string().min(3),
     description: z.string(),
@@ -13,32 +13,32 @@ const baseSchema = z.object({
 })
 
 export const productSchemas = {
-    create: baseSchema.pick({
+    create: fieldSchemas.pick({
         name: true,
         description: true,
         barcode: true,
     }),
 
-    update: baseSchema.pick({
+    update: fieldSchemas.pick({
         productId: true,
         name: true,
         description: true,
         barcode: true,
     }),
 
-    readByBarCode: baseSchema.pick({
+    readByBarCode: fieldSchemas.pick({
         barcode: true,
         shopId: true,
     }),
 
-    createForShop: baseSchema.pick({
+    createForShop: fieldSchemas.pick({
         name: true,
         description: true,
         price: true,
         barcode: true,
     }),
 
-    updateForShop: baseSchema.pick({
+    updateForShop: fieldSchemas.pick({
         name: true,
         description: true,
         price: true,
@@ -46,7 +46,7 @@ export const productSchemas = {
         active: true,
     }),
 
-    createShopConnection: baseSchema.pick({
+    createShopConnection: fieldSchemas.pick({
         shopId: true,
         productId: true,
         price: true,

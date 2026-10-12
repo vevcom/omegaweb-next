@@ -6,18 +6,18 @@ const productSchema = z.array(z.object({
     quantity: z.number().int().min(1)
 }))
 
-const baseSchema = z.object({
+const fieldSchemas = z.object({
     shopId: z.coerce.number().int(),
     studentCard: studentCardSchema,
     products: productSchema,
 })
 
 export const purchaseSchemas = {
-    create: baseSchema.pick({
+    create: fieldSchemas.pick({
         shopId: true,
         products: true,
     }),
-    createByStudentCard: baseSchema.pick({
+    createByStudentCard: fieldSchemas.pick({
         shopId: true,
         products: true,
         studentCard: true,
