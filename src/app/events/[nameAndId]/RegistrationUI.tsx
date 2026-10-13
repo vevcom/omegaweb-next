@@ -249,7 +249,7 @@ export default function RegistrationUI({
                 pending={btnPending}
                 key={`admin-${btnKey}`}
             >
-                Meld meg på som administartor
+                Meld meg på som administrator
             </SubmitButton>
         )}
 
