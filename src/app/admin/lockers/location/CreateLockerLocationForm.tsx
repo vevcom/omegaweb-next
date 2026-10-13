@@ -1,6 +1,6 @@
 'use client'
 import Form from '@/components/Form/Form'
-import { createLockerLocationAction } from '@/services/lockers/actions'
+import { createLockerLocationAction } from '@/services/lockers/locations/actions'
 import TextInput from '@/components/UI/TextInput'
 import NumberInput from '@/components/UI/NumberInput'
 
