@@ -12,7 +12,6 @@ services:
                 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
         environment:
             DB_URI: ${DB_URI}
-            MIGRATE_FROM_OW: ${MIGRATE_FROM_OW}
             OW_STORE_URL: ${OW_STORE_URL}
             OW_DB_URI: ${OW_DB_URI}
             MIGRATION_WITH_LIMITS: ${MIGRATION_WITH_LIMITS}

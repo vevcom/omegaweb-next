@@ -30,10 +30,6 @@ services:
         build:
             target: tools
         command: ["npm", "run", "migrate:deploy-and-seed"]
-        environment:
-            # seed.ts runs DobbelOmega - a full import on top of the database - whenever this is
-            # 'true'. A value left in the stack env from an import must never do that on every deploy.
-            MIGRATE_FROM_OW: 'false'
         healthcheck:
             disable: true
         networks:
