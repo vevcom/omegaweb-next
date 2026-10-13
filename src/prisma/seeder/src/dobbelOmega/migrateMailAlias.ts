@@ -1,4 +1,5 @@
 import { createProgressBar } from './progressBar'
+import { resyncIdSequence } from './resyncIdSequence'
 import logger from '@/lib/logger'
 import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
 import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
@@ -64,6 +65,8 @@ export default async function migrateMailAliases(
     } finally {
         mailingListBar.stop()
     }
+
+    await resyncIdSequence(pnPrisma, 'MailingList')
 
     const omegaFilter = (a: typeof externalAdrs[number]) => a.address.trim().endsWith('@omega.ntnu.no')
     const studNtnuFilter = (a: typeof externalAdrs[number]) => a.address.trim().endsWith('@stud.ntnu.no')
