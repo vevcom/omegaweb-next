@@ -25,21 +25,22 @@ export const ledgerAccountAuth = {
     // Browses every account with no owner filter, so this is LEDGER_ADMIN only, not exempt.
     readPage: Require.permission('LEDGER_ADMIN'),
 
-    // Can reassign an account's group links or payout number, so ownership is required too,
-    // even though updating doesn't move money.
-    //
-    // Group links decide who can access the account (ledgerAccountAccess treats an owning group's
-    // members as owners), so changing them takes LEDGER_ADMIN on top, even of a caller who already
-    // owns the account. Require.allOf rather than chaining onto the ownership chain: chaining
-    // would add LEDGER_ADMIN to its last group only.
+    // An owner may rename an account and freeze it, which only stops spending. Some changes take
+    // LEDGER_ADMIN on top, even of a caller who owns the account (changesAdminFields):
+    // - the group links, which decide who owns the account (ledgerAccountAccess treats an owning
+    //   group's members as owners),
+    // - the payout account number, which decides where the money goes,
+    // - unfreezing, so an account an admin froze stays frozen.
+    // Require.allOf rather than chaining onto the ownership chain: chaining would add LEDGER_ADMIN
+    // to its last group only.
     //
     // A function since which rule applies depends on the update itself.
-    update: ({ accounts, changesGroupLinks }: {
+    update: ({ accounts, changesAdminFields }: {
         accounts: LedgerAccountOwnership[],
-        changesGroupLinks: boolean,
+        changesAdminFields: boolean,
     }) => {
         const ownAccount = Require.permission('LEDGER_USE').allOf(ownsEveryAccount.data({ accounts }))
-        return changesGroupLinks ? Require.allOf(ownAccount, Require.permission('LEDGER_ADMIN')) : ownAccount
+        return changesAdminFields ? Require.allOf(ownAccount, Require.permission('LEDGER_ADMIN')) : ownAccount
     },
 
     calculateBalances: ownsEveryAccount,

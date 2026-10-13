@@ -20,7 +20,11 @@ const { page, generateMetadata } = serverPage({
     capabilities: (data) => ({
         canDeposit: ledgerMovementAuth.createDeposit,
         canPayout: ledgerMovementAuth.createPayout.data({ accounts: [data.ledgerAccount.ownership] }),
-        canFreeze: ledgerAccountAuth.update({ accounts: [data.ledgerAccount.ownership], changesGroupLinks: false }),
+        // Unfreezing takes more than freezing, so the rule follows the state the button changes.
+        canFreeze: ledgerAccountAuth.update({
+            accounts: [data.ledgerAccount.ownership],
+            changesAdminFields: data.ledgerAccount.frozen,
+        }),
     }),
     render: ({ data, capabilities }) => (
         <div className={styles.wrapper}>

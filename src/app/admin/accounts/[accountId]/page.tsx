@@ -26,12 +26,17 @@ const { page, generateMetadata } = serverPage({
         return ledgerAccountOperations.read({ params: { ledgerAccountId: accountId } })
     },
     capabilities: (ledgerAccount) => ({
-        canUpdate: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesGroupLinks: false }),
-        canChangeGroups: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesGroupLinks: true }),
+        canUpdate: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesAdminFields: false }),
+        canChangePayout: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesAdminFields: true }),
+        canChangeGroups: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesAdminFields: true }),
         // Only MANUAL deposits are offered here, and those take the payment rule on top.
         canDeposit: Require.allOf(ledgerMovementAuth.createDeposit, paymentAuth.create({ provider: 'MANUAL' })),
         canPayout: ledgerMovementAuth.createPayout.data({ accounts: [ledgerAccount.ownership] }),
-        canFreeze: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesGroupLinks: false }),
+        // Unfreezing takes more than freezing, so the rule follows the state the button changes.
+        canFreeze: ledgerAccountAuth.update({
+            accounts: [ledgerAccount.ownership],
+            changesAdminFields: ledgerAccount.frozen,
+        }),
     }),
     render: ({ data: ledgerAccount, capabilities }) => (
         <div className={styles.wrapper}>
@@ -41,7 +46,11 @@ const { page, generateMetadata } = serverPage({
                     showButtonClass={styles.editButton}
                     showButtonContent={<FontAwesomeIcon icon={faPencil} />}
                 >
-                    <EditLedgerAccountDetailsForm ledgerAccount={ledgerAccount} popUpKey="editLedgerAccountDetails" />
+                    <EditLedgerAccountDetailsForm
+                        ledgerAccount={ledgerAccount}
+                        popUpKey="editLedgerAccountDetails"
+                        capabilities={{ canChangePayout: capabilities.canChangePayout.toJsObject() }}
+                    />
                 </PopUp>
             )}
             {ledgerAccount.type === 'GROUP' && (

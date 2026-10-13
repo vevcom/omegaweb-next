@@ -192,10 +192,25 @@ export const ledgerAccountOperations = {
      * @returns The updated account.
      */
     update: defineOperation({
-        authorizer: async ({ params, data, prisma }) => ledgerAccountAuth.update({
-            accounts: [await resolveAccountOwnership(prisma, params)],
-            changesGroupLinks: Boolean(data.addGroupIds?.length || data.removeGroupIds?.length),
-        }),
+        authorizer: async ({ params, data, prisma }) => {
+            const current = await prisma.ledgerAccount.findFirstOrThrow({
+                where: {
+                    id: params.ledgerAccountId,
+                    user: params.userId !== undefined ? { id: params.userId } : undefined,
+                },
+                select: { frozen: true, payoutAccountNumber: true },
+            })
+            // An empty payout field and no payout number at all are the same account number.
+            const changesPayout = data.payoutAccountNumber !== undefined
+                && (data.payoutAccountNumber || null) !== (current.payoutAccountNumber || null)
+
+            return ledgerAccountAuth.update({
+                accounts: [await resolveAccountOwnership(prisma, params)],
+                changesAdminFields: Boolean(data.addGroupIds?.length || data.removeGroupIds?.length)
+                    || changesPayout
+                    || (current.frozen && data.frozen === false),
+            })
+        },
         paramsSchema: ledgerAccountSchemas.params.update,
         dataSchema: ledgerAccountSchemas.data.update,
         operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
