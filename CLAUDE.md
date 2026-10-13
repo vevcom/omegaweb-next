@@ -379,6 +379,6 @@ Forms typically use Server Actions with FormData:
 ## Migration from OmegaWeb Basic
 
 The project includes migration tooling from an older system (OmegaWeb Basic):
-- Schema in `src/prisma/owSchema/`
-- Migration command: `npm run dobbelOmega:run`
+- Schema in `src/prisma/owSchema/`, code in `src/prisma/dobbelOmega/` (not part of the seeder)
+- Migration command: `npm run docker:dobbelOmega:run` (or `npm run dobbelOmega:run` inside the container)
 - Only relevant for data migration tasks
