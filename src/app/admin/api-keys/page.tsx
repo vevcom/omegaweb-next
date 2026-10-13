@@ -3,6 +3,7 @@ import CreateApiKeyForm from './CreateApiKeyForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { apiKeyOperations } from '@/services/apiKeys/operations'
+import { apiKeyAuth } from '@/services/apiKeys/auth'
 import { serverPage } from '@/app/serverPage'
 import Date from '@/components/Date/Date'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
@@ -16,9 +17,12 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('api-keys', session)
         return apiKeyOperations.readMany({})
     },
+    capabilities: () => ({
+        canCreateApiKey: apiKeyAuth.create,
+    }),
     metadata: () => ({ title: 'API-nøkler' }),
-    render: ({ data: apiKeys }) => (
-        <PageWrapper headerItem={
+    render: ({ data: apiKeys, capabilities }) => (
+        <PageWrapper headerItem={capabilities.canCreateApiKey.authorized &&
             <AddHeaderItemPopUp popUpKey={popUpKey}>
                 <CreateApiKeyForm popUpKey={popUpKey} />
             </AddHeaderItemPopUp>

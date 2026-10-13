@@ -1,12 +1,12 @@
 import '@pn-server-only'
 import { permissionsAuth } from './auth'
+import { permissionSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { invalidateAllUserSessionData, invalidateManyUserSessionData } from '@/services/auth/invalidateSession'
 import { groupsWithRelationsIncluder } from '@/services/groups/constants'
 import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
-import { Permission } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
+import type { Permission } from '@/prisma-generated-pn-types'
 
 
 export const permissionOperations = {
@@ -18,9 +18,7 @@ export const permissionOperations = {
 
     readPermissionsOfUser: defineOperation({
         authorizer: ({ params }) => permissionsAuth.readPermissionsOfUser.data({ userId: params.userId }),
-        paramsSchema: z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: permissionSchemas.params.readPermissionsOfUser,
         operation: async ({ prisma, params }) => {
             const [defaultPermissions, groupPermissions] = await Promise.all([
                 permissionOperations.readDefaultPermissions({}),
@@ -51,9 +49,7 @@ export const permissionOperations = {
 
     readPermissionsOfGroup: defineOperation({
         authorizer: () => permissionsAuth.readGroupPermissions,
-        paramsSchema: z.object({
-            groupId: z.number()
-        }),
+        paramsSchema: permissionSchemas.params.readPermissionsOfGroup,
         operation: async ({ prisma, params }) => (await prisma.groupPermission.findMany({
             where: {
                 groupId: params.groupId
@@ -81,9 +77,7 @@ export const permissionOperations = {
 
     updateDefaultPermissions: defineOperation({
         authorizer: () => permissionsAuth.updateDefaultPermissions,
-        dataSchema: z.object({
-            permissions: z.nativeEnum(Permission).array(),
-        }),
+        dataSchema: permissionSchemas.data.updateDefaultPermissions,
         operation: async ({ prisma, data }) => {
             await prisma.defaultPermission.deleteMany({
                 where: {
@@ -101,7 +95,7 @@ export const permissionOperations = {
             })
 
             // Invalidate all user sessions
-            await invalidateAllUserSessionData()
+            await invalidateAllUserSessionData(prisma)
 
             return data.permissions
         }
@@ -109,13 +103,8 @@ export const permissionOperations = {
 
     updateGroupPermission: defineOperation({
         authorizer: () => permissionsAuth.updateGroupPermission,
-        paramsSchema: z.object({
-            groupId: z.number(),
-            permission: z.nativeEnum(Permission),
-        }),
-        dataSchema: z.object({
-            value: z.boolean()
-        }),
+        paramsSchema: permissionSchemas.params.updateGroupPermission,
+        dataSchema: permissionSchemas.data.updateGroupPermission,
         operation: async ({ prisma, params, data }) => {
             if (data.value) {
                 await prisma.groupPermission.create({
@@ -152,7 +141,7 @@ export const permissionOperations = {
             })
 
             const userIds = group.memberships.map(membership => membership.userId)
-            await invalidateManyUserSessionData(userIds)
+            await invalidateManyUserSessionData(prisma, userIds)
 
             return data.value
         }

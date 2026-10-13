@@ -2,7 +2,7 @@ import { standardStoreFiles } from '@/lib/standardStore/files'
 import type { StandardStoreFile } from '@/lib/standardStore/files'
 import type { StandardImage } from '@/prisma-generated-pn/enums'
 
-export const StandardImageConfig = {
+export const standardImageConfig = {
     DEFAULT_IMAGE: {
         standardStoreFile: standardStoreFiles.defaultImage,
         name: 'default_image',

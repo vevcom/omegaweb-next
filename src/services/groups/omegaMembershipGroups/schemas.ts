@@ -1,27 +1,45 @@
 import { OmegaMembershipLevel } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-const userRelation = z.object({
+const dataFieldSchemas = z.object({
+    order: z.coerce.number().int().min(1),
+})
+
+const paramsFieldSchemas = z.object({
+    id: z.number(),
     userId: z.number(),
+    omegaMembershipLevel: z.nativeEnum(OmegaMembershipLevel),
+    /**
+     * When set, a user who already sits at the wanted level or a higher one is left alone.
+     */
+    onlyUpgrade: z.boolean().default(false),
+})
+
+const user = paramsFieldSchemas.pick({
+    userId: true,
+})
+
+const userLevel = paramsFieldSchemas.pick({
+    userId: true,
+    omegaMembershipLevel: true,
+    onlyUpgrade: true,
 })
 
 export const omegaMembershipGroupSchemas = {
-    read: z.union([
-        z.object({ id: z.number() }),
-        z.object({ omegaMembershipLevel: z.nativeEnum(OmegaMembershipLevel) }),
-    ]),
-    readUserLevel: userRelation,
-    inferUserLevel: userRelation,
-    updateUserOrderParams: userRelation,
-    updateUserOrder: z.object({
-        order: z.coerce.number().int().min(1),
-    }),
-    updateUserLevel: z.object({
-        userId: z.number(),
-        omegaMembershipLevel: z.nativeEnum(OmegaMembershipLevel),
-        /**
-         * When set, a user who already sits at the wanted level or a higher one is left alone.
-         */
-        onlyUpgrade: z.boolean().default(false),
-    }),
-} as const
+    data: {
+        updateUserOrder: dataFieldSchemas.pick({
+            order: true,
+        }),
+    },
+    params: {
+        read: z.union([
+            paramsFieldSchemas.pick({ id: true }),
+            paramsFieldSchemas.pick({ omegaMembershipLevel: true }),
+        ]),
+        readUserLevel: user,
+        inferUserLevel: user,
+        updateUserOrder: user,
+        updateUserLevel: userLevel,
+        writeUserLevel: userLevel,
+    },
+}

@@ -1,64 +1,41 @@
 import '@pn-server-only'
+import { cmsImageAuth } from './auth'
 import { cmsImageSchemas } from './schemas'
+import { cmsImageIncluder } from './constants'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { visibilityIncluder, toMatrix } from '@/services/visibility/implement'
-import { checkVisibility } from '@/auth/visibility/checkVisibility'
-import { specialImagePanels } from '@/services/images/specialPanels/constants'
 import { ServiceError, Smorekopp } from '@/services/error'
-import { SpecialCmsImage } from '@/prisma-generated-pn-types'
 import logger from '@/lib/logger'
-import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { z } from 'zod'
+import type { SpecialCmsImage } from '@/prisma-generated-pn-types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
-import type { SessionMaybeUser } from '@/auth/session/Session'
 
-/**
- * Checks whether the session administrates the collection an image belongs to.
- *
- * The two kinds of collection answer this question differently:
- * - a dynamic collection is administrated by the sessions fulfilling its admin visibility level
- *   (or by anyone holding IMAGE_ADMIN, the same bypass the dynamic image auth uses)
- * - a special collection has no meaningful visibility levels - it is administrated by the sessions
- *   passing the panel auth of the service owning it
- */
-async function sessionAdministratesCollectionOfImage({
-    prisma,
-    session,
-    imageId,
-}: {
-    prisma: PrismaPossibleTransaction<false>,
-    session: SessionMaybeUser,
-    imageId: number,
-}): Promise<boolean> {
+/** The collection an image is in, as the rule for linking the image wants it. */
+async function readCollectionOfImage(prisma: PrismaPossibleTransaction<false>, imageId: number) {
     const image = await prisma.image.findUnique({
-        where: {
-            id: imageId,
-        },
+        where: { id: imageId },
         select: {
             collection: {
                 select: {
                     special: true,
-                    visibilityAdmin: {
-                        include: visibilityIncluder,
-                    },
+                    visibilityAdmin: { include: visibilityIncluder },
+                    visibilityRegular: { include: visibilityIncluder },
                 },
             },
         },
     })
     if (!image) throw new ServiceError('NOT FOUND', `Image with id ${imageId} does not exist`)
 
-    const { special, visibilityAdmin } = image.collection
-
-    if (special) {
-        return specialImagePanels[special].auth.auth(session).authorized
+    return {
+        special: image.collection.special,
+        visibility: {
+            adminLevel: toMatrix(image.collection.visibilityAdmin),
+            regularLevel: toMatrix(image.collection.visibilityRegular),
+        },
     }
-
-    return checkVisibility(session.memberships, toMatrix(visibilityAdmin))
-        || session.permissions.includes('IMAGE_ADMIN')
 }
 
 const create = defineSubOperation({
-    dataSchema: () => cmsImageSchemas.create,
+    dataSchema: () => cmsImageSchemas.data.create,
     operation: (
         { special }: { special: SpecialCmsImage | null }
     ) => (
@@ -73,16 +50,12 @@ const create = defineSubOperation({
                 }
             } : undefined
         },
-        include: {
-            image: { include: expandedImageIncluder }
-        }
+        include: cmsImageIncluder,
     })
 })
 
 const generateSpecialCmsImageFromConfig = defineSubOperation({
-    paramsSchema: () => z.object({
-        special: z.nativeEnum(SpecialCmsImage)
-    }),
+    paramsSchema: () => cmsImageSchemas.params.generateSpecialCmsImageFromConfig,
     operation: () => async ({ params }) => create.internalCall({
         data: {
             name: params.special,
@@ -96,17 +69,13 @@ export const cmsImageOperations = {
     generateSpecialCmsImageFromConfig,
 
     readSpecial: defineSubOperation({
-        paramsSchema: () => z.object({
-            special: z.nativeEnum(SpecialCmsImage)
-        }),
+        paramsSchema: () => cmsImageSchemas.params.readSpecial,
         operation: () => async ({ prisma, params }) => {
             const image = await prisma.cmsImage.findUnique({
                 where: {
                     special: params.special
                 },
-                include: {
-                    image: { include: expandedImageIncluder }
-                }
+                include: cmsImageIncluder,
             })
             if (image) return image
             logger.error(`Could not find special cms image with special ${params.special} - creating it!`)
@@ -115,21 +84,14 @@ export const cmsImageOperations = {
     }),
 
     update: defineSubOperation({
-        paramsSchema: () => z.object({
-            cmsImageId: z.number()
-        }),
-        dataSchema: () => cmsImageSchemas.update,
+        paramsSchema: () => cmsImageSchemas.params.update,
+        dataSchema: () => cmsImageSchemas.data.update,
         operation: () => async ({ prisma, params, session, bypassAuth, data: { imageId, ...data } }) => {
             // The implementing service authorizes editing the cms image itself, but not the image
-            // being linked into it - a session may only point a cms image at an image from a
-            // collection it administrates.
+            // being linked into it - that is the rule in cmsImageAuth.linkImage.
             if (imageId !== undefined && !bypassAuth) {
-                const administrates = await sessionAdministratesCollectionOfImage({
-                    prisma,
-                    session,
-                    imageId,
-                })
-                if (!administrates) {
+                const collection = await readCollectionOfImage(prisma, imageId)
+                if (!cmsImageAuth.linkImage(collection).auth(session).authorized) {
                     throw new Smorekopp(
                         'UNAUTHORIZED',
                         'Du kan bare bruke bilder fra samlinger du administrerer'
@@ -149,17 +111,13 @@ export const cmsImageOperations = {
                         }
                     } : undefined
                 },
-                include: {
-                    image: { include: expandedImageIncluder }
-                }
+                include: cmsImageIncluder,
             })
         }
     }),
 
     destroy: defineSubOperation({
-        paramsSchema: () => z.object({
-            cmsImageId: z.number()
-        }),
+        paramsSchema: () => cmsImageSchemas.params.destroy,
         operation: () => async ({ prisma, params }) => {
             const cmsImage = await prisma.cmsImage.findUniqueOrThrow({
                 where: {
@@ -181,10 +139,7 @@ export const cmsImageOperations = {
      * This is useful to do ownership checks for services using special cms images.
      */
     isSpecial: defineSubOperation({
-        paramsSchema: () => z.object({
-            cmsImageId: z.number(),
-            special: z.array(z.nativeEnum(SpecialCmsImage))
-        }),
+        paramsSchema: () => cmsImageSchemas.params.isSpecial,
         operation: () => async ({ prisma, params }) => {
             const image = await prisma.cmsImage.findUnique({
                 where: {

@@ -1,16 +1,20 @@
 import styles from './page.module.scss'
 import CreateLockerForm from './CreateLockerForm'
-import { readAllLockerLocationsAction as readAllLockerLocationsAction } from '@/services/lockers/actions'
+import { lockerLocationOperations } from '@/services/lockers/locations/operations'
+import { lockerAuth } from '@/services/lockers/auth'
+import { serverPage } from '@/app/serverPage'
 
-
-export default async function Locker() {
-    const res = await readAllLockerLocationsAction()
-    if (!res.success) throw Error(':(')
-    const locations = res.data
-
-    return (
+const { page, generateMetadata } = serverPage({
+    operation: async () => lockerLocationOperations.readAll({}),
+    capabilities: () => ({
+        canCreateLocker: lockerAuth.create,
+    }),
+    render: ({ data: locations, capabilities }) => (
         <div className={styles.wrapper}>
-            <CreateLockerForm locations={locations}/>
+            {capabilities.canCreateLocker.authorized && <CreateLockerForm locations={locations}/>}
         </div>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

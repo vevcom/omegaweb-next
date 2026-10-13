@@ -1,4 +1,4 @@
-import { Permission } from '@/prisma-generated-pn-types'
+import { Permission, SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 export const notificationMethodSchema = z.object({
@@ -6,7 +6,7 @@ export const notificationMethodSchema = z.object({
     emailWeekly: z.boolean(),
 })
 
-const baseSchema = z.object({
+const dataFieldSchemas = z.object({
     channelId: z.coerce.number().min(1),
     title: z.string().min(2),
     message: z.string().min(10),
@@ -18,17 +18,27 @@ const baseSchema = z.object({
     }).optional(),
 })
 
-export const notificationSchemas = {
-    create: baseSchema.pick({
-        channelId: true,
-        title: true,
-        message: true,
-        audience: true,
-    }),
+const paramsFieldSchemas = z.object({
+    special: z.nativeEnum(SpecialNotificationChannel),
+})
 
-    createSpecial: baseSchema.pick({
-        title: true,
-        message: true,
-        audience: true,
-    }),
+export const notificationSchemas = {
+    data: {
+        create: dataFieldSchemas.pick({
+            channelId: true,
+            title: true,
+            message: true,
+            audience: true,
+        }),
+        createSpecial: dataFieldSchemas.pick({
+            title: true,
+            message: true,
+            audience: true,
+        }),
+    },
+    params: {
+        createSpecial: paramsFieldSchemas.pick({
+            special: true,
+        }),
+    },
 }

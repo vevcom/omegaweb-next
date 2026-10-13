@@ -1,7 +1,13 @@
 import { z } from 'zod'
 
+const paramsFieldSchemas = z.object({
+    userId: z.number(),
+})
+
 export const omegaIdSchemas = {
-    generate: z.object({
-        userId: z.number(),
-    }),
+    params: {
+        generate: paramsFieldSchemas.pick({
+            userId: true,
+        }),
+    },
 }

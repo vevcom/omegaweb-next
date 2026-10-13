@@ -41,7 +41,7 @@ const readMany = defineOperation({
 })
 
 const read = defineOperation({
-    paramsSchema: classSchemas.read,
+    paramsSchema: classSchemas.params.read,
     authorizer: () => classAuth.read,
     operation: async ({ prisma, params }) => prisma.class.findUniqueOrThrow({
         where: params,
@@ -60,7 +60,7 @@ const read = defineOperation({
  * The most recent order wins, since that is the placement that was made last.
  */
 const readClassOfUser = defineOperation({
-    paramsSchema: classSchemas.readClassOfUser,
+    paramsSchema: classSchemas.params.readClassOfUser,
     authorizer: () => classAuth.readClassOfUser,
     operation: async ({ prisma, params }): Promise<{ level: ClassLevel, order: number } | null> => {
         const memberships = await prisma.membership.findMany({
@@ -113,8 +113,8 @@ const readClassOfUser = defineOperation({
  * exists - the user's class is still the later one.
  */
 const changeClassOfUser = defineOperation({
-    paramsSchema: classSchemas.changeClassOfUserParams,
-    dataSchema: classSchemas.changeClassOfUser,
+    paramsSchema: classSchemas.params.changeClassOfUser,
+    dataSchema: classSchemas.data.changeClassOfUser,
     authorizer: () => classAuth.changeClassOfUser,
     opensTransaction: true,
     operation: async ({ prisma, params, data }) => {
@@ -182,6 +182,7 @@ const changeClassOfUser = defineOperation({
                 data: { active: true },
             })
 
+            await invalidateOneUserSessionData(tx, params.userId)
             return tx.membership.findUniqueOrThrow({
                 where: {
                     userId_groupId_order: {
@@ -193,7 +194,6 @@ const changeClassOfUser = defineOperation({
             })
         })
 
-        await invalidateOneUserSessionData(params.userId)
         return membership
     }
 })
@@ -296,11 +296,10 @@ const bumpClasses = defineOperation({
                 data: newMemberships,
                 skipDuplicates: true,
             })
+            await invalidateManyUserSessionData(tx, userIds)
 
             return { deactivated: count }
         })
-
-        await invalidateManyUserSessionData(userIds)
 
         return { bumped: newMemberships.length, deactivated }
     }

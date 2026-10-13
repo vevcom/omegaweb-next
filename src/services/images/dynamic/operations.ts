@@ -4,14 +4,12 @@ import { dynamicImageSchemas } from './schemas'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
-import {
-    imageOperations,
-    uniqueCollectionWhere,
-    expandImageCollection
-} from '@/services/images/subservice/operations'
+import { imageOperations } from '@/services/images/subservice/operations'
+import { expandImageCollection, uniqueCollectionWhere } from '@/services/images/subservice/collections'
 import { allowedExtensions, expandedImageCollectionIncluder } from '@/services/images/subservice/constants'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
+import type { imageCollectionIdOrNameSchema } from '@/services/images/subservice/schemas'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
@@ -22,7 +20,7 @@ async function readDefaultCollectionCover() {
 }
 
 const visibility = implementDoubleLevelVisibilityOperations({
-    implementationParamsSchema: dynamicImageSchemas.paramsSchemaCollection,
+    implementationParamsSchema: dynamicImageSchemas.params.visibility,
     authorizers: {
         readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
             dynamicImageAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix }),
@@ -51,7 +49,7 @@ const visibility = implementDoubleLevelVisibilityOperations({
 })
 
 const readCollection = defineOperation({
-    paramsSchema: dynamicImageSchemas.paramsSchemaCollection,
+    paramsSchema: dynamicImageSchemas.params.readCollection,
     authorizer: async ({ params, prisma }) => dynamicImageAuth.readCollection.data({
         visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
     }),
@@ -65,7 +63,7 @@ const readCollection = defineOperation({
 })
 
 const readCollectionPage = defineOperation({
-    paramsSchema: dynamicImageSchemas.readCollectionPage,
+    paramsSchema: dynamicImageSchemas.params.readCollectionPage,
     authorizer: async () => dynamicImageAuth.readCollectionPage,
     operation: async ({ prisma, params }, prismaWhereFilter) => {
         const collections = await prisma.imageCollection.findMany({
@@ -100,7 +98,7 @@ export const dynamicImageOperations = {
     readCollectionPage,
 
     createCollection: defineOperation({
-        dataSchema: dynamicImageSchemas.createCollection,
+        dataSchema: dynamicImageSchemas.data.createCollection,
         authorizer: () => dynamicImageAuth.createCollection,
         opensTransaction: true,
         operation: async ({ prisma, data }) => prisma.$transaction(async tx => {
@@ -203,7 +201,7 @@ export const dynamicImageOperations = {
     }),
 } as const
 
-function whereConditionWithOwnershipCheck(params: z.infer<typeof dynamicImageSchemas.paramsSchemaCollection>) {
+function whereConditionWithOwnershipCheck(params: z.infer<typeof imageCollectionIdOrNameSchema>) {
     return {
         ...uniqueCollectionWhere(params),
         ...ownershipCheckWhereCondition()
@@ -234,7 +232,7 @@ async function ownershipCheck({
     params,
     prisma
 }: {
-    params: z.infer<typeof dynamicImageSchemas.paramsSchemaCollection>
+    params: z.infer<typeof imageCollectionIdOrNameSchema>
     prisma: PrismaPossibleTransaction<false>
 }): Promise<boolean> {
     const collection = await prisma.imageCollection.findUnique({

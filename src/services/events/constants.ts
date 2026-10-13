@@ -1,6 +1,7 @@
 import { createSelection } from '@/services/createSelection'
+import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { EventCanView } from '@/prisma-generated-pn-types'
-import type { Event } from '@/prisma-generated-pn-types'
+import type { Event, Prisma } from '@/prisma-generated-pn-types'
 
 export const eventCanBeViewdBy = {
     ALL: { label: 'Alle' },
@@ -37,5 +38,20 @@ export const eventFilterSelection = {
         },
     },
 } as const
+
+/** What the lists of events select: the exposed fields, the cover image and the tags. */
+export const eventListSelection = {
+    ...eventFilterSelection,
+    coverImage: {
+        include: {
+            image: { include: expandedImageIncluder }
+        }
+    },
+    eventTagEvents: {
+        include: {
+            tag: true
+        }
+    },
+} as const satisfies Prisma.EventSelect
 
 export const defaultSearchResultLimit = 5

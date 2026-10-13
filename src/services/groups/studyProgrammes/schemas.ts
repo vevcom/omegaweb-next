@@ -23,28 +23,54 @@ const booleanFromForm = z.union([
     z.enum(['true', 'false']).transform(value => value === 'true'),
 ])
 
-const baseSchema = z.object({
+const dataFieldSchemas = z.object({
     name: z.string().min(1).trim(),
     code: z.string().min(1).trim(),
     insititueCode: optionalStringFromForm,
     classLevel: optionalClassLevelFromForm,
     yearsLength: optionalIntFromForm,
     partOfOmega: booleanFromForm.optional(),
+    studyProgrammeIds: z.number().array(),
 })
 
-const writableFields = {
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    userId: z.number(),
+})
+
+const studyProgramme = dataFieldSchemas.pick({
     name: true,
     code: true,
     insititueCode: true,
     classLevel: true,
     yearsLength: true,
     partOfOmega: true,
-} as const
+})
+
+const studyProgrammeId = paramsFieldSchemas.pick({
+    id: true,
+})
+
+const user = paramsFieldSchemas.pick({
+    userId: true,
+})
 
 export const studyProgrammeSchemas = {
-    create: baseSchema.pick(writableFields),
-    update: baseSchema.pick(writableFields).partial(),
-    upsertMany: z.object({
-        studyProgrammes: baseSchema.pick(writableFields).array(),
-    }),
-} as const
+    data: {
+        create: studyProgramme,
+        update: studyProgramme.partial(),
+        upsertMany: z.object({
+            studyProgrammes: studyProgramme.array(),
+        }),
+        recordFeideReturnedForUser: dataFieldSchemas.pick({
+            studyProgrammeIds: true,
+        }),
+    },
+    params: {
+        read: studyProgrammeId,
+        update: studyProgrammeId,
+        destroy: studyProgrammeId,
+        readFeideReturnedForUser: user,
+        recordFeideReturnedForUser: user,
+    },
+}

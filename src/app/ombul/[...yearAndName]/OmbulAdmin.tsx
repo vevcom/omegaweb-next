@@ -39,6 +39,9 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
         authorizer: ombulAuth.updateCoverImage
     })
     const canUpdateCover = useEditMode({ authResult: canUpdateCoverAuthResult })
+    const canUpdateFile = useEditMode({
+        authorizer: ombulAuth.updateFile
+    })
     const canDestroy = useEditMode({
         authorizer: ombulAuth.destroy
     })
@@ -62,7 +65,7 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
         push('/ombul')
         refresh()
     }
-    if (!canUpdate && !canDestroy && !canUpdateCover) return null
+    if (!canUpdate && !canUpdateFile && !canDestroy && !canUpdateCover) return null
 
     return (
         <div className={styles.OmbulAdmin}>
@@ -70,36 +73,38 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
             <div className={styles.left}>
                 {
                     canUpdate && (
-                        <>
-                            <Form
-                                action={updateOmbulActionBind}
-                                successCallback={handleChange}
-                                submitText="Oppdater"
-                            >
-                                <NumberInput
-                                    name="year"
-                                    label="År"
-                                    defaultValue={ombul.year}
-                                />
-                                <NumberInput
-                                    name="issueNumber"
-                                    label="Nummer"
-                                    defaultValue={ombul.issueNumber}
-                                />
-                                <Textarea
-                                    name="description"
-                                    label="Beskrivelse"
-                                    defaultValue={ombul.description ?? ''}
-                                />
-                            </Form>
-                            <Form
-                                action={updateOmbulFileActionBind}
-                                successCallback={handleChange}
-                                submitText="Oppdater fil"
-                            >
-                                <FileInput name="ombulFile" label="Ombul fil" color="primary" />
-                            </Form>
-                        </>
+                        <Form
+                            action={updateOmbulActionBind}
+                            successCallback={handleChange}
+                            submitText="Oppdater"
+                        >
+                            <NumberInput
+                                name="year"
+                                label="År"
+                                defaultValue={ombul.year}
+                            />
+                            <NumberInput
+                                name="issueNumber"
+                                label="Nummer"
+                                defaultValue={ombul.issueNumber}
+                            />
+                            <Textarea
+                                name="description"
+                                label="Beskrivelse"
+                                defaultValue={ombul.description ?? ''}
+                            />
+                        </Form>
+                    )
+                }
+                {
+                    canUpdateFile && (
+                        <Form
+                            action={updateOmbulFileActionBind}
+                            successCallback={handleChange}
+                            submitText="Oppdater fil"
+                        >
+                            <FileInput name="ombulFile" label="Ombul fil" color="primary" />
+                        </Form>
                     )
                 }
                 {

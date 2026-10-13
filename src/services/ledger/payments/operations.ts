@@ -1,13 +1,12 @@
 import '@pn-server-only'
 import { paymentAuth } from './auth'
+import { paymentSchemas } from './schemas'
 import { stripe } from '@/lib/stripe'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
-import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import logger from '@/lib/logger'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
-import { z } from 'zod'
 
 export const paymentOperations = {
     /**
@@ -17,14 +16,7 @@ export const paymentOperations = {
      */
     create: defineOperation({
         authorizer: ({ params }) => paymentAuth.create({ provider: params.provider }),
-        paramsSchema: z.object({
-            funds: z.number(),
-            descriptionLong: z.string().optional(),
-            descriptionShort: z.string().optional(),
-            provider: z.nativeEnum(PaymentProvider),
-            manualFees: z.number().optional(),
-            bankAccountNumber: z.string().optional(),
-        }),
+        paramsSchema: paymentSchemas.params.create,
         operation: async ({ prisma, params }) => prisma.payment.create({
             data: {
                 provider: params.provider,
@@ -63,9 +55,7 @@ export const paymentOperations = {
      */
     initiate: defineOperation({
         authorizer: () => paymentAuth.initiate,
-        paramsSchema: z.object({
-            paymentId: z.number(),
-        }),
+        paramsSchema: paymentSchemas.params.initiate,
         // This method does not actually open a transaction. However, it cannot be used
         // inside a transaction as it does external API calls which cannot be reversed.
         opensTransaction: true,
@@ -181,9 +171,7 @@ export const paymentOperations = {
      */
     cancel: defineOperation({
         authorizer: () => paymentAuth.cancel,
-        paramsSchema: z.object({
-            paymentId: z.number(),
-        }),
+        paramsSchema: paymentSchemas.params.cancel,
         operation: async ({ prisma, params }) => {
             const payment = await prisma.payment.findUniqueOrThrow({
                 where: { id: params.paymentId },

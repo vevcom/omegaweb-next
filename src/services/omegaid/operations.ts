@@ -10,7 +10,7 @@ import { ServiceError } from '@/services/error'
 export const omegaIdOperations = {
     generate: defineOperation({
         authorizer: ({ params }) => omegaIdAuth.generate.data({ userId: params.userId }),
-        paramsSchema: omegaIdSchemas.generate,
+        paramsSchema: omegaIdSchemas.params.generate,
         operation: ({ params }) =>
             generateJWT('omegaid', { sub: params.userId }, OmegaIdExpiryTime),
     }),

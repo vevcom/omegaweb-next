@@ -4,7 +4,6 @@ import { committeeExpandedIncluder, committeeLogoIncluder } from './constants'
 import { committeeSchemas } from './schemas'
 import { committeeLogoImageOperations } from './committeeLogoCollection'
 import { groupOperations } from '@/services/groups/operations'
-import { invalidateManyUserSessionData } from '@/services/auth/invalidateSession'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import {
@@ -17,18 +16,11 @@ import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { articleOperations } from '@/cms/articles/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { ServiceError } from '@/services/error'
+import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { GroupType } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { z } from 'zod'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Prisma } from '@/prisma-generated-pn-types'
-
-async function readDefaultCommitteeLogo() {
-    return standardImageCollectionOperations.readStandardImage({
-        params: { standardImage: 'DEFAULT_COMMITTEE_LOGO' },
-    })
-}
 
 const readAll = defineOperation({
     authorizer: () => committeeAuth.readAll,
@@ -48,10 +40,7 @@ const readAll = defineOperation({
 
 const read = defineOperation({
     authorizer: () => committeeAuth.read,
-    paramsSchema: z.union([
-        z.object({ id: z.number() }),
-        z.object({ shortName: z.string() })
-    ]),
+    paramsSchema: committeeSchemas.params.read,
     operation: async ({ prisma, params }) => {
         const defaultCommitteeLogo = await readDefaultCommitteeLogo()
 
@@ -70,9 +59,7 @@ const read = defineOperation({
 
 const readArticle = defineOperation({
     authorizer: () => committeeAuth.readArticle,
-    paramsSchema: z.object({
-        shortName: z.string(),
-    }),
+    paramsSchema: committeeSchemas.params.readArticle,
     operation: async ({ prisma, params }) => (await prisma.committee.findUniqueOrThrow({
         where: params,
         select: {
@@ -85,9 +72,7 @@ const readArticle = defineOperation({
 
 const readParagraph = defineOperation({
     authorizer: () => committeeAuth.readParagraph,
-    paramsSchema: z.object({
-        shortName: z.string(),
-    }),
+    paramsSchema: committeeSchemas.params.readParagraph,
     operation: async ({ prisma, params }) => (await prisma.committee.findUniqueOrThrow({
         where: params,
         select: {
@@ -96,62 +81,35 @@ const readParagraph = defineOperation({
     })).paragraph
 })
 
-/**
- * A pensioned committee is history: nothing about it may be changed until someone brings it back.
- * The check sits on every operation that writes, so the rule holds however the operation is reached.
- */
-async function assertNotPensioned(
-    prisma: PrismaPossibleTransaction<false>,
-    where: Prisma.CommitteeWhereUniqueInput,
-) {
-    const committee = await prisma.committee.findUniqueOrThrow({
-        where,
-        select: { name: true, pensioned: true },
-    })
-
-    if (committee.pensioned) {
-        throw new ServiceError(
-            'BAD PARAMETERS',
-            `${committee.name} er pensjonert og kan ikke endres. Gjenopprett komiteen først.`
-        )
-    }
-}
+/** The group behind a committee, for the authorizers and the pensioned check, without the rest of it. */
 
 const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
-    implementationParamsSchema: z.object({
-        shortName: z.string(),
-    }),
-    authorizer: async ({ implementationParams }) =>
+    implementationParamsSchema: committeeSchemas.params.updateParagraphContent,
+    authorizer: async ({ implementationParams, prisma }) =>
         committeeAuth.updateParagraphContent.data({
-            groupId: (await read({
-                params: { shortName: implementationParams.shortName },
-                bypassAuth: true
-            })).groupId
+            groupId: await readGroupIdOfCommittee(prisma, { shortName: implementationParams.shortName }),
         }),
     ownershipCheck: async ({ implementationParams, params }) =>
         (await readParagraph({
             params: { shortName: implementationParams.shortName },
             bypassAuth: true
         })).id === params.paragraphId,
-    beforeRun: ({ prisma, implementationParams }) =>
-        assertNotPensioned(prisma, { shortName: implementationParams.shortName }),
+    beforeRun: async ({ prisma, implementationParams }) => assertGroupNotPensioned(
+        prisma,
+        await readGroupIdOfCommittee(prisma, { shortName: implementationParams.shortName }),
+    ),
 })
 
 const updateLogo = defineOperation({
-    authorizer: async ({ params }) =>
+    authorizer: async ({ params, prisma }) =>
         committeeAuth.updateLogo.data({
-            groupId: (await read({
-                params: { shortName: params.shortName },
-                bypassAuth: true
-            })).groupId
+            groupId: await readGroupIdOfCommittee(prisma, { shortName: params.shortName }),
         }),
-    paramsSchema: z.object({
-        shortName: z.string(),
-    }),
-    dataSchema: committeeSchemas.updateLogo,
+    paramsSchema: committeeSchemas.params.updateLogo,
+    dataSchema: committeeSchemas.data.updateLogo,
     opensTransaction: true,
     operation: async ({ prisma, params, data }) => {
-        await assertNotPensioned(prisma, { shortName: params.shortName })
+        await assertGroupNotPensioned(prisma, await readGroupIdOfCommittee(prisma, { shortName: params.shortName }))
 
         const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
             const existingCommittee = await tx.committee.findUniqueOrThrow({
@@ -188,14 +146,14 @@ const updateLogo = defineOperation({
 
 const destroy = defineOperation({
     authorizer: () => committeeAuth.destroy,
-    paramsSchema: z.object({
-        id: z.number()
-    }),
+    paramsSchema: committeeSchemas.params.destroy,
     opensTransaction: true,
     operation: async ({ prisma, params }) => {
-        await assertNotPensioned(prisma, { id: params.id })
+        await assertGroupNotPensioned(prisma, await readGroupIdOfCommittee(prisma, { id: params.id }))
 
-        const { committee, memberIds } = await prisma.$transaction(async tx => {
+        // Everything the committee owns goes in one transaction. Only the logo's file waits until
+        // the transaction has committed, since a file cannot be rolled back.
+        const { committee, cleanupLogo } = await prisma.$transaction(async tx => {
             const deleted = await tx.committee.delete({
                 where: {
                     id: params.id,
@@ -209,21 +167,23 @@ const destroy = defineOperation({
                 prisma: tx,
                 params: { paragraphId: deleted.applicationParagraphId },
             })
-            const formerMemberIds = await groupOperations.destroy.internalCall({
+            await articleOperations.destroy.internalCall({
+                prisma: tx,
+                params: { articleId: deleted.committeeArticleId },
+            })
+            const logoCleanup = deleted.logoImageId
+                ? await committeeLogoImageOperations.destroyImageDbAndReturnCleanup.internalCall({
+                    prisma: tx,
+                    params: { imageId: deleted.logoImageId },
+                })
+                : async () => {}
+            await groupOperations.destroy.internalCall({
                 prisma: tx,
                 params: { groupId: deleted.groupId },
             })
-            return { committee: deleted, memberIds: formerMemberIds }
+            return { committee: deleted, cleanupLogo: logoCleanup }
         })
-        await invalidateManyUserSessionData(memberIds)
-
-        await articleOperations.destroy.internalCall({ params: { articleId: committee.committeeArticleId } })
-
-        if (committee.logoImageId) {
-            await committeeLogoImageOperations.destroyImage.internalCall({
-                params: { imageId: committee.logoImageId }
-            })
-        }
+        await cleanupLogo()
 
         return committee
     }
@@ -231,7 +191,7 @@ const destroy = defineOperation({
 
 const create = defineOperation({
     authorizer: () => committeeAuth.create,
-    dataSchema: committeeSchemas.create,
+    dataSchema: committeeSchemas.data.create,
     opensTransaction: true,
     operation: ({ prisma, data }) =>
         prisma.$transaction(async tx => {
@@ -308,12 +268,10 @@ const create = defineOperation({
 
 const update = defineOperation({
     authorizer: () => committeeAuth.update,
-    paramsSchema: z.object({
-        id: z.number()
-    }),
-    dataSchema: committeeSchemas.update,
+    paramsSchema: committeeSchemas.params.update,
+    dataSchema: committeeSchemas.data.update,
     operation: async ({ prisma, params, data }) => {
-        await assertNotPensioned(prisma, { id: params.id })
+        await assertGroupNotPensioned(prisma, await readGroupIdOfCommittee(prisma, { id: params.id }))
         const defaultCommitteeLogo = await readDefaultCommitteeLogo()
 
         const committee = await prisma.committee.update({
@@ -334,21 +292,18 @@ const update = defineOperation({
 })
 
 const updateArticle = implementUpdateArticleOperations({
-    authorizer: async ({ implementationParams }) => committeeAuth.updateArticle.data({
-        groupId: (await read({
-            params: { shortName: implementationParams.shortName },
-            bypassAuth: true
-        })).groupId
+    authorizer: async ({ implementationParams, prisma }) => committeeAuth.updateArticle.data({
+        groupId: await readGroupIdOfCommittee(prisma, { shortName: implementationParams.shortName }),
     }),
-    implementationParamsSchema: z.object({
-        shortName: z.string(),
-    }),
+    implementationParamsSchema: committeeSchemas.params.updateArticle,
     ownedArticles: async ({ implementationParams }) => {
         const article = await readArticle({ params: { shortName: implementationParams.shortName }, bypassAuth: true })
         return [article]
     },
-    beforeRun: ({ prisma, implementationParams }) =>
-        assertNotPensioned(prisma, { shortName: implementationParams.shortName }),
+    beforeRun: async ({ prisma, implementationParams }) => assertGroupNotPensioned(
+        prisma,
+        await readGroupIdOfCommittee(prisma, { shortName: implementationParams.shortName }),
+    ),
 })
 
 const commonGroupOperations = implementGroupType({
@@ -403,3 +358,16 @@ export const committeeOperations = {
     destroy,
     updateArticle,
 } as const
+
+async function readDefaultCommitteeLogo() {
+    return standardImageCollectionOperations.readStandardImage({
+        params: { standardImage: 'DEFAULT_COMMITTEE_LOGO' },
+    })
+}
+
+async function readGroupIdOfCommittee(
+    prisma: PrismaPossibleTransaction<false>,
+    where: Prisma.CommitteeWhereUniqueInput,
+) {
+    return (await prisma.committee.findUniqueOrThrow({ where, select: { groupId: true } })).groupId
+}

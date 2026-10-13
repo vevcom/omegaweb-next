@@ -6,11 +6,13 @@ import useEditMode from '@/hooks/useEditMode'
 import { configureAction } from '@/services/configureAction'
 import { updateInterestGroupAction, destroyInterestGroupAction } from '@/services/groups/interestGroups/actions'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
+import { Require } from '@/auth/authorizer/Require'
 
 type PropTypes = {
     interestGroupId: number
     interestGroupName: string
     groupId: number
+    pensioned: boolean
 }
 
 /**
@@ -21,9 +23,14 @@ export default function InterestGroupSettings({
     interestGroupId,
     interestGroupName,
     groupId,
+    pensioned,
 }: PropTypes) {
-    const editableUpdate = useEditMode({ authorizer: interestGroupAuth.update.data({ groupId }) })
-    const editableDestroy = useEditMode({ authorizer: interestGroupAuth.destroy })
+    // A pensioned group is history: the service refuses every change to it.
+    const notPensioned = Require.custom(() => !pensioned, { errorMessage: 'Gruppen er pensjonert' })
+    const editableUpdate = useEditMode({
+        authorizer: Require.allOf(interestGroupAuth.update.data({ groupId }), notPensioned),
+    })
+    const editableDestroy = useEditMode({ authorizer: Require.allOf(interestGroupAuth.destroy, notPensioned) })
 
     if (!editableUpdate && !editableDestroy) return null
 

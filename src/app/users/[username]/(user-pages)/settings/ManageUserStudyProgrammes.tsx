@@ -6,7 +6,9 @@ import {
     addStudyProgrammeMembersAction,
     removeStudyProgrammeMembersAction,
 } from '@/services/groups/studyProgrammes/actions'
+import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { configureAction } from '@/services/configureAction'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { useState } from 'react'
 
 export type StudyProgrammeOption = {
@@ -30,6 +32,68 @@ type PropTypes = {
     memberships: { groupId: number, order: number }[],
 }
 
+function RemoveStudyProgrammeMembershipForm({ userId, programme }: {
+    userId: number,
+    programme: StudyProgrammeOption & { order: number },
+}) {
+    const canRemove = useAuthorizer({
+        authorizer: studyProgrammeAuth.removeMembers.data({ groupId: programme.groupId })
+    }).authorized
+    if (!canRemove) return null
+
+    return (
+        <Form
+            className={styles.removeForm}
+            submitText="Fjern"
+            submitColor="red"
+            action={() => configureAction(
+                removeStudyProgrammeMembersAction,
+                { params: { groupId: programme.groupId, order: programme.order } }
+            )({ data: { userIds: [userId] } })}
+            refreshOnSuccess
+            confirmation={{
+                confirm: true,
+                text: `Fjerne brukeren fra ${programme.name}? `
+                    + 'Medlemskapet blir satt inaktivt, og Feide legger det ikke til igjen.',
+            }}
+        />
+    )
+}
+
+function AddStudyProgrammeMembershipForm({ userId, available }: {
+    userId: number,
+    available: StudyProgrammeOption[],
+}) {
+    const [groupIdToAdd, setGroupIdToAdd] = useState(available[0].groupId)
+    const canAdd = useAuthorizer({
+        authorizer: studyProgrammeAuth.addMembers.data({ groupId: groupIdToAdd })
+    }).authorized
+    if (!canAdd) return null
+
+    return (
+        <Form
+            className={styles.addForm}
+            submitText="Legg til"
+            action={() => configureAction(
+                addStudyProgrammeMembersAction, { params: { groupId: groupIdToAdd } }
+            )({ data: { users: [{ userId, admin: false }] } })}
+            refreshOnSuccess
+        >
+            <SelectNumber
+                name="studyProgramme"
+                label="Legg til studieprogram"
+                value={groupIdToAdd}
+                onChange={setGroupIdToAdd}
+                options={available.map(programme => ({
+                    value: programme.groupId,
+                    label: `${programme.name} (${programme.code})`,
+                    key: `${programme.id}`,
+                }))}
+            />
+        </Form>
+    )
+}
+
 /**
  * Puts a user on a study programme or takes them off it by hand.
  *
@@ -48,7 +112,6 @@ export default function ManageUserStudyProgrammes({
     })
     const memberOfGroupIds = new Set(memberships.map(membership => membership.groupId))
     const available = studyProgrammes.filter(programme => !memberOfGroupIds.has(programme.groupId))
-    const [groupIdToAdd, setGroupIdToAdd] = useState(available[0]?.groupId)
 
     return (
         <div className={styles.ManageUserStudyProgrammes}>
@@ -61,47 +124,14 @@ export default function ManageUserStudyProgrammes({
                     {memberOf.map(programme => (
                         <div className={styles.programme} key={`${programme.id}-${programme.order}`}>
                             <span>{programme.name} ({programme.code})</span>
-                            <Form
-                                className={styles.removeForm}
-                                submitText="Fjern"
-                                submitColor="red"
-                                action={() => configureAction(
-                                    removeStudyProgrammeMembersAction,
-                                    { params: { groupId: programme.groupId, order: programme.order } }
-                                )({ data: { userIds: [userId] } })}
-                                refreshOnSuccess
-                                confirmation={{
-                                    confirm: true,
-                                    text: `Fjerne brukeren fra ${programme.name}? `
-                                        + 'Medlemskapet blir satt inaktivt, og Feide legger det ikke til igjen.',
-                                }}
-                            />
+                            <RemoveStudyProgrammeMembershipForm userId={userId} programme={programme} />
                         </div>
                     ))}
                 </div>
             )}
 
-            {available.length > 0 && groupIdToAdd !== undefined && (
-                <Form
-                    className={styles.addForm}
-                    submitText="Legg til"
-                    action={() => configureAction(
-                        addStudyProgrammeMembersAction, { params: { groupId: groupIdToAdd } }
-                    )({ data: { users: [{ userId, admin: false }] } })}
-                    refreshOnSuccess
-                >
-                    <SelectNumber
-                        name="studyProgramme"
-                        label="Legg til studieprogram"
-                        value={groupIdToAdd}
-                        onChange={setGroupIdToAdd}
-                        options={available.map(programme => ({
-                            value: programme.groupId,
-                            label: `${programme.name} (${programme.code})`,
-                            key: `${programme.id}`,
-                        }))}
-                    />
-                </Form>
+            {available.length > 0 && (
+                <AddStudyProgrammeMembershipForm userId={userId} available={available} />
             )}
         </div>
     )

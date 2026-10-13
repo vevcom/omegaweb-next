@@ -3,6 +3,7 @@ import { UpdateCabinProductPriceForm } from './UpdateCabinProductPriceForm'
 import { AddHeaderItemPopUp } from '@/app/_components/HeaderItems/HeaderItemPopUp'
 import { cabinProductOperations } from '@/services/cabin/product/operations'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
+import { cabinProductAuth } from '@/services/cabin/product/auth'
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { serverPage } from '@/app/serverPage'
 import { displayDate } from '@/lib/dates/displayDate'
@@ -21,16 +22,21 @@ const { page, generateMetadata } = serverPage({
         ])
         return { product, pricePeriods }
     },
+    capabilities: () => ({
+        canCreatePrice: cabinProductAuth.createPrice,
+    }),
     metadata: (data) => ({ title: data.product.name }),
-    render: ({ data }) => (
+    render: ({ data, capabilities }) => (
         <PageWrapper
-            headerItem={<AddHeaderItemPopUp popUpKey="AddCabinProductPrice">
-                <UpdateCabinProductPriceForm
-                    productId={data.product.id}
-                    productType={data.product.type}
-                    pricePeriods={data.pricePeriods}
-                />
-            </AddHeaderItemPopUp>}
+            headerItem={capabilities.canCreatePrice.authorized &&
+                <AddHeaderItemPopUp popUpKey="AddCabinProductPrice">
+                    <UpdateCabinProductPriceForm
+                        productId={data.product.id}
+                        productType={data.product.type}
+                        pricePeriods={data.pricePeriods}
+                    />
+                </AddHeaderItemPopUp>
+            }
         >
             <div className={styles.infoDiv}>
                 <p>kanskje en måte å redigere på som en HeaderItem?</p>

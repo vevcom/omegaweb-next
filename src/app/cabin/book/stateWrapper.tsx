@@ -24,7 +24,7 @@ import {
 } from '@/services/cabin/booking/actions'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CabinBookingReservation } from '@/components/Ledger/Modals/CabinBookingPaymentModal'
-import type { CabinProductExtended } from '@/services/cabin/product/constants'
+import type { CabinProductExtended } from '@/services/cabin/product/types'
 import type { BookingFiltered } from '@/services/cabin/booking/types'
 import type { DateRange } from './CabinCalendar'
 import type { BookingType, PricePeriod } from '@/prisma-generated-pn-types'

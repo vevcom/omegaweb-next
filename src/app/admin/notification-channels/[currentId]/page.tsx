@@ -1,5 +1,6 @@
 import ChannelSettings from './ChannelSettings'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
+import { notificationChannelAuth } from '@/services/notifications/channel/auth'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { serverPage } from '@/app/serverPage'
 import { notFound } from 'next/navigation'
@@ -21,12 +22,16 @@ const { page, generateMetadata } = serverPage({
 
         return { channels, mailAliases, selected }
     },
+    capabilities: () => ({
+        canUpdateChannel: notificationChannelAuth.update,
+    }),
     metadata: (data) => ({ title: data.selected.name }),
-    render: ({ data }) => (
+    render: ({ data, capabilities }) => (
         <ChannelSettings
             channels={data.channels}
             currentChannel={data.selected}
             mailAliases={data.mailAliases}
+            capabilities={{ canUpdate: capabilities.canUpdateChannel.toJsObject() }}
         />
     ),
 })

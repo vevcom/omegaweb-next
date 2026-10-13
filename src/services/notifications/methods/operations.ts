@@ -2,11 +2,11 @@ import '@pn-server-only'
 import { sendNotificationEmails } from './dispatch'
 import { sendWeeklyEmailDigest } from './dispatchWeekly'
 import { notificationDispatchIncluder, recipientsWhere } from './recipients'
+import { notificationMethodSchemas } from './schemas'
 import logger from '@/lib/logger'
 import { userBasicSelection } from '@/services/users/constants'
 import { permissionOperations } from '@/services/permissions/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
-import { z } from 'zod'
 
 export const notificationMethodOperations = {
     /**
@@ -16,9 +16,7 @@ export const notificationMethodOperations = {
      * notification first, so two workers never dispatch the same one.
      */
     dispatchEmail: defineSubOperation({
-        paramsSchema: () => z.object({
-            notificationId: z.number(),
-        }),
+        paramsSchema: () => notificationMethodSchemas.params.dispatchEmail,
         operation: () => async ({ prisma, params }) => {
             const notification = await prisma.notification.findUniqueOrThrow({
                 where: { id: params.notificationId },
@@ -51,9 +49,7 @@ export const notificationMethodOperations = {
      * sendWeeklyMail.
      */
     materializeWeeklyOutbox: defineSubOperation({
-        paramsSchema: () => z.object({
-            before: z.date(),
-        }),
+        paramsSchema: () => notificationMethodSchemas.params.materializeWeeklyOutbox,
         opensTransaction: true,
         operation: () => async ({ prisma, params }) => {
             const notifications = await prisma.notification.findMany({

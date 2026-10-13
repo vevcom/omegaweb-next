@@ -75,21 +75,27 @@ export default function Company({
                 {
                     showSettings ? (
                         <SettingsHeaderItemPopUp showButtonClass={styles.showSettings} popUpKey={`Edit ${company.id}`}>
-                            <Form
-                                title="Rediger bedrift"
-                                action={configureAction(updateCompanyAction, { params: { id: company.id } })}
-                                refreshOnSuccess
-                                closePopUpOnSuccess={`Edit ${company.id}`}
-                                submitText="Lagre"
-                            >
-                                <TextInput name="name" label="Navn" defaultValue={company.name} />
-                                <TextInput name="description" label="Beskrivelse" defaultValue={company.description} />
-                                <TextInput
-                                    name="website"
-                                    label="Nettside"
-                                    defaultValue={company.website ?? ''}
-                                />
-                            </Form>
+                            {
+                                canUpdate.authorized && <Form
+                                    title="Rediger bedrift"
+                                    action={configureAction(updateCompanyAction, { params: { id: company.id } })}
+                                    refreshOnSuccess
+                                    closePopUpOnSuccess={`Edit ${company.id}`}
+                                    submitText="Lagre"
+                                >
+                                    <TextInput name="name" label="Navn" defaultValue={company.name} />
+                                    <TextInput
+                                        name="description"
+                                        label="Beskrivelse"
+                                        defaultValue={company.description}
+                                    />
+                                    <TextInput
+                                        name="website"
+                                        label="Nettside"
+                                        defaultValue={company.website ?? ''}
+                                    />
+                                </Form>
+                            }
                             {
                                 canUpdateSponsorTier.authorized && <CompanySponsorTierForm
                                     companyId={company.id}
@@ -97,17 +103,19 @@ export default function Company({
                                     closePopUpOnSuccess={`Edit ${company.id}`}
                                 />
                             }
-                            <Form
-                                action={configureAction(destroyCompanyAction, { params: { id: company.id } })}
-                                refreshOnSuccess
-                                closePopUpOnSuccess={`Edit ${company.id}`}
-                                submitText="Slett"
-                                submitColor="red"
-                                confirmation={{
-                                    confirm: true,
-                                    text: 'Er du sikker på at du vil slette denne bedriften?'
-                                }}
-                            />
+                            {
+                                canDestroy.authorized && <Form
+                                    action={configureAction(destroyCompanyAction, { params: { id: company.id } })}
+                                    refreshOnSuccess
+                                    closePopUpOnSuccess={`Edit ${company.id}`}
+                                    submitText="Slett"
+                                    submitColor="red"
+                                    confirmation={{
+                                        confirm: true,
+                                        text: 'Er du sikker på at du vil slette denne bedriften?'
+                                    }}
+                                />
+                            }
                         </SettingsHeaderItemPopUp>
                     ) : <></>
                 }

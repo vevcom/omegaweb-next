@@ -34,11 +34,11 @@ export type UserPagingReturn = UserCard & StandardMembeships & {
  * selectedGroup will also filter on that group, but will also return extra
  * info about that membership.
  */
-export type UserDetails = InferPagingDetails<typeof userSchemas.readPage>
+export type UserDetails = InferPagingDetails<typeof userSchemas.params.readPage>
 
 export type RegisterNewEmailType = {
     verified: boolean,
     email: string,
 }
 
-export type UserCursor = InferPagingCursor<typeof userSchemas.readPage>
+export type UserCursor = InferPagingCursor<typeof userSchemas.params.readPage>

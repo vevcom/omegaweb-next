@@ -6,6 +6,8 @@ import { booleanOperationOnMethods, newAllMethodsOff } from '@/services/notifica
 import SubmitButton from '@/components/UI/SubmitButton'
 import { SUCCESS_FEEDBACK_TIME } from '@/components/Form/constants'
 import { updateNotificationSubscriptionsAction } from '@/services/notifications/subscription/actions'
+import { notificationSubscriptionAuth } from '@/services/notifications/subscription/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { notificationMethodsArray, notificationMethodsDisplayMap } from '@/services/notifications/constants'
 import { useState } from 'react'
 import type { UserBasic } from '@/services/users/types'
@@ -143,6 +145,9 @@ export default function NotificationSettings({
     const [channelTree, setChannelTree] = useState(
         generateChannelTree(channels, subscriptions)
     )
+    const canUpdate = useAuthorizer({
+        authorizer: notificationSubscriptionAuth.update.data({ userId: user.id })
+    }).authorized
 
     const [hasChanged, setHasChanged] = useState<number>(new Date().getTime() - 1)
     const [lastSubmit, setLastSubmit] = useState<number>(new Date().getTime())
@@ -245,14 +250,16 @@ export default function NotificationSettings({
             </tbody>
         </table>
 
-        <div className={`${styles.submitButton} ${hasChanged > lastSubmit ? '' : styles.hideSubmitButton}`}>
-            <SubmitButton
-                color="primary"
-                success={formState.success}
-                pending={formState.pending}
-                generalErrors={formState.errors}
-                onClick={handleSubmit}
-            >Lagre</SubmitButton>
-        </div>
+        {canUpdate && (
+            <div className={`${styles.submitButton} ${hasChanged > lastSubmit ? '' : styles.hideSubmitButton}`}>
+                <SubmitButton
+                    color="primary"
+                    success={formState.success}
+                    pending={formState.pending}
+                    generalErrors={formState.errors}
+                    onClick={handleSubmit}
+                >Lagre</SubmitButton>
+            </div>
+        )}
     </>
 }
