@@ -3,7 +3,7 @@ import { flairImagesImagePanelOperations } from '@/services/flairs/flairImageCol
 import { ombulCoversImagePanelOperations } from '@/services/ombul/ombulCoverCollection'
 import { committeeLogosImagePanelOperations } from '@/services/groups/committees/committeeLogoCollection'
 import { profileImagesImagePanelOperations } from '@/services/users/profileImageCollection'
-import { standardImagesImagePanelOperations } from '@/services/images/standard/operations'
+import { standardImagesImagePanelOperations } from '@/services/images/standard/standardImageCollection'
 import { promoImagesImagePanelOperations } from '@/services/promo/promoImageCollection'
 
 /**
