@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { manualGroupAuth } from './auth'
 import { manualGroupSchemas } from './schemas'
+import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { groupOperations } from '@/services/groups/operations'
 import {
     implementGroupType,
@@ -9,7 +10,6 @@ import {
 } from '@/services/groups/implementGroupType'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServiceError } from '@/services/error'
 import { GroupType } from '@/prisma-generated-pn-types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
@@ -77,29 +77,14 @@ const read = defineOperation({
     })
 })
 
-/**
- * A pensioned group is history: nothing about it may be changed until someone brings it back.
- */
-async function assertNotPensioned(prisma: PrismaPossibleTransaction<false>, id: number) {
-    const manualGroup = await prisma.manualGroup.findUniqueOrThrow({
-        where: { id },
-        select: { name: true, pensioned: true },
-    })
-
-    if (manualGroup.pensioned) {
-        throw new ServiceError(
-            'BAD PARAMETERS',
-            `${manualGroup.name} er pensjonert og kan ikke endres. Gjenopprett gruppen først.`
-        )
-    }
-}
+/** The group behind a manual group, for the pensioned check. */
 
 const update = defineOperation({
     paramsSchema: manualGroupSchemas.params.update,
     dataSchema: manualGroupSchemas.data.update,
     authorizer: () => manualGroupAuth.update,
     operation: async ({ prisma, params, data }) => {
-        await assertNotPensioned(prisma, params.id)
+        await assertGroupNotPensioned(prisma, await readGroupIdOfManualGroup(prisma, params.id))
 
         return prisma.manualGroup.update({
             where: { id: params.id },
@@ -113,7 +98,7 @@ const destroy = defineOperation({
     authorizer: () => manualGroupAuth.destroy,
     opensTransaction: true,
     operation: async ({ prisma, params }) => {
-        await assertNotPensioned(prisma, params.id)
+        await assertGroupNotPensioned(prisma, await readGroupIdOfManualGroup(prisma, params.id))
 
         return prisma.$transaction(async tx => {
             const manualGroup = await tx.manualGroup.delete({
@@ -144,3 +129,7 @@ export const manualGroupOperations = {
     migrateGroup: migration.migrateGroup,
     pension: migration.pension,
 } as const
+
+async function readGroupIdOfManualGroup(prisma: PrismaPossibleTransaction<false>, id: number) {
+    return (await prisma.manualGroup.findUniqueOrThrow({ where: { id }, select: { groupId: true } })).groupId
+}

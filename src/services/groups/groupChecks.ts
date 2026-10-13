@@ -20,6 +20,19 @@ export async function isGroupOfType(
 }
 
 /**
+ * The row of the group's own type that carries the pensioned flag, with its name. Only the group
+ * types that are migrated by hand carry the flag; for the rest this is null.
+ */
+async function readPensionableGroup(prisma: PrismaPossibleTransaction<false>, groupId: number) {
+    const select = { select: { name: true, pensioned: true } } as const
+    const group = await prisma.group.findUnique({
+        where: { id: groupId },
+        select: { committee: select, interestGroup: select, manualGroup: select },
+    })
+    return group?.committee ?? group?.interestGroup ?? group?.manualGroup ?? null
+}
+
+/**
  * Whether the group has been pensioned - retired rather than migrated. Only the group types that are
  * migrated by hand carry the flag; for the rest this is always false.
  */
@@ -27,18 +40,7 @@ export async function isGroupPensioned(
     prisma: PrismaPossibleTransaction<false>,
     groupId: number,
 ): Promise<boolean> {
-    const group = await prisma.group.findUnique({
-        where: { id: groupId },
-        select: {
-            committee: { select: { pensioned: true } },
-            interestGroup: { select: { pensioned: true } },
-            manualGroup: { select: { pensioned: true } },
-        },
-    })
-
-    return Boolean(
-        group?.committee?.pensioned || group?.interestGroup?.pensioned || group?.manualGroup?.pensioned
-    )
+    return Boolean((await readPensionableGroup(prisma, groupId))?.pensioned)
 }
 
 /**
@@ -49,10 +51,11 @@ export async function assertGroupNotPensioned(
     prisma: PrismaPossibleTransaction<false>,
     groupId: number,
 ): Promise<void> {
-    if (await isGroupPensioned(prisma, groupId)) {
+    const group = await readPensionableGroup(prisma, groupId)
+    if (group?.pensioned) {
         throw new ServiceError(
             'BAD PARAMETERS',
-            'Gruppen er pensjonert og kan ikke endres. Gjenopprett den først.'
+            `${group.name} er pensjonert og kan ikke endres. Gjenopprett den først.`
         )
     }
 }

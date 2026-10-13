@@ -4,7 +4,7 @@ import { admissionAuth } from './auth'
 import { userBasicSelection } from '@/services/users/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import { omegaMembershipGroupOperations, writeUserLevel } from '@/services/groups/omegaMembershipGroups/operations'
+import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { Admission } from '@/prisma-generated-pn-types'
 import type { ExpandedAdmissionTrail } from './types'
@@ -101,10 +101,13 @@ export const admissionOperations = {
                 })
 
                 if (completedTrials) {
-                    await writeUserLevel(tx, {
-                        userId: data.userId,
-                        omegaMembershipLevel: 'SYSKEN',
-                        onlyUpgrade: true,
+                    await omegaMembershipGroupOperations.writeUserLevel.internalCall({
+                        params: {
+                            userId: data.userId,
+                            omegaMembershipLevel: 'SYSKEN',
+                            onlyUpgrade: true,
+                        },
+                        prisma: tx,
                     })
                     await invalidateOneUserSessionData(tx, data.userId)
                 }

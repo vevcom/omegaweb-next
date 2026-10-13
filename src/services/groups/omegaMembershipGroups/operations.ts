@@ -6,16 +6,12 @@ import { OMEGA_MEMBERSHIP_LEVEL_RANKING } from '@/services/groups/constants'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { admissionOperations } from '@/services/admission/operations'
 import { allAdmissions } from '@/services/admission/constants'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
 import { GroupType } from '@/prisma-generated-pn-types'
 import type { OmegaMembershipLevel, Prisma } from '@/prisma-generated-pn-types'
-
-function omegaMembershipGTEQ(lhs: OmegaMembershipLevel, rhs: OmegaMembershipLevel) {
-    return OMEGA_MEMBERSHIP_LEVEL_RANKING.indexOf(lhs) >= OMEGA_MEMBERSHIP_LEVEL_RANKING.indexOf(rhs)
-}
 
 const commonGroupOperations = implementGroupType({
     type: GroupType.OMEGA_MEMBERSHIP_GROUP,
@@ -79,33 +75,6 @@ const inferUserLevel = defineOperation({
 })
 
 /**
- * The active omega memberships of a user, with the level each one is in. There should be exactly
- * one - `readUserLevel` is what decides what to do when there is not.
- */
-async function readActiveOmegaMemberships(prisma: Prisma.TransactionClient, userId: number) {
-    const memberships = await prisma.membership.findMany({
-        where: {
-            userId,
-            active: true,
-            group: { groupType: GroupType.OMEGA_MEMBERSHIP_GROUP },
-        },
-        select: {
-            order: true,
-            group: {
-                select: {
-                    omegaMembershipGroup: { select: { omegaMembershipLevel: true } },
-                },
-            },
-        },
-    })
-
-    return memberships.flatMap(membership => {
-        const level = membership.group.omegaMembershipGroup?.omegaMembershipLevel
-        return level ? [{ level, order: membership.order }] : []
-    })
-}
-
-/**
  * The writes that put a user into the omega membership group of the given level: the omega
  * membership they held goes inactive, and the admission trials are brought into the state the level
  * implies.
@@ -115,103 +84,99 @@ async function readActiveOmegaMemberships(prisma: Prisma.TransactionClient, user
  * first - so a user put back at a level they held before gets that membership back, of the order
  * it was granted in, rather than a new one.
  *
- * The client to write with is handed in rather than opened here, so that a caller with more to
- * record in the same breath - the trial that earned the promotion - can pass its own transaction
- * and have the lot stand or fall together.
- *
- * Invalidating the user's session data is left to the caller, since that has to wait until the
- * transaction has committed - it writes to the user row on the global client, which the transaction
- * itself holds a lock on.
+ * It opens no transaction of its own, so that a caller with more to record in the same breath - the
+ * trial that earned the promotion - can call it on its own transaction and have the lot stand or
+ * fall together. Invalidating the user's session is left to the caller, on that same transaction.
  */
-export async function writeUserLevel(
-    prisma: Prisma.TransactionClient,
-    params: { userId: number, omegaMembershipLevel: OmegaMembershipLevel, onlyUpgrade: boolean },
-) {
-    const group = await read({
-        params: { omegaMembershipLevel: params.omegaMembershipLevel },
-        prisma,
-        bypassAuth: true,
-    })
+const writeUserLevel = defineSubOperation({
+    paramsSchema: () => omegaMembershipGroupSchemas.params.writeUserLevel,
+    operation: () => async ({ prisma, params }) => {
+        const group = await read({
+            params: { omegaMembershipLevel: params.omegaMembershipLevel },
+            prisma,
+            bypassAuth: true,
+        })
 
-    if (params.onlyUpgrade) {
-        const current = await readActiveOmegaMemberships(prisma, params.userId)
+        if (params.onlyUpgrade) {
+            const current = await readActiveOmegaMemberships(prisma, params.userId)
 
-        if (current.length === 1 && omegaMembershipGTEQ(current[0].level, params.omegaMembershipLevel)) {
-            return
+            if (current.length === 1 && omegaMembershipGTEQ(current[0].level, params.omegaMembershipLevel)) {
+                return
+            }
         }
-    }
 
-    const currentOmegaOrder = await omegaOrderOperations.readCurrent({ prisma, bypassAuth: true })
+        const currentOmegaOrder = await omegaOrderOperations.readCurrent({ prisma, bypassAuth: true })
 
-    const becomesSysken = omegaMembershipGTEQ(params.omegaMembershipLevel, 'SYSKEN')
+        const becomesSysken = omegaMembershipGTEQ(params.omegaMembershipLevel, 'SYSKEN')
 
-    if (becomesSysken) {
+        if (becomesSysken) {
         // Upserting by way of `skipDuplicates`, so a trial the user really did sit keeps
         // the date and the registrar it was sat with.
-        await prisma.admissionTrial.createMany({
-            data: allAdmissions.map(admission => ({
-                userId: params.userId,
-                admission,
-            })),
-            skipDuplicates: true,
-        })
-    } else {
-        await prisma.admissionTrial.deleteMany({
-            where: {
-                userId: params.userId,
-            }
-        })
-    }
-
-    await prisma.membership.updateMany({
-        where: {
-            userId: params.userId,
-            group: {
-                groupType: GroupType.OMEGA_MEMBERSHIP_GROUP,
-            },
-        },
-        data: { active: false },
-    })
-
-    const held = await prisma.membership.findFirst({
-        where: {
-            userId: params.userId,
-            groupId: group.groupId,
-        },
-        orderBy: { order: 'desc' },
-        select: { order: true },
-    })
-
-    if (held) {
-        await prisma.membership.update({
-            where: {
-                userId_groupId_order: {
+            await prisma.admissionTrial.createMany({
+                data: allAdmissions.map(admission => ({
                     userId: params.userId,
-                    groupId: group.groupId,
-                    order: held.order,
+                    admission,
+                })),
+                skipDuplicates: true,
+            })
+        } else {
+            await prisma.admissionTrial.deleteMany({
+                where: {
+                    userId: params.userId,
+                }
+            })
+        }
+
+        await prisma.membership.updateMany({
+            where: {
+                userId: params.userId,
+                group: {
+                    groupType: GroupType.OMEGA_MEMBERSHIP_GROUP,
                 },
             },
-            data: { active: true },
+            data: { active: false },
         })
-        return
-    }
 
-    await prisma.membership.create({
-        data: {
-            active: true,
-            user: {
-                connect: { id: params.userId },
+        const held = await prisma.membership.findFirst({
+            where: {
+                userId: params.userId,
+                groupId: group.groupId,
             },
-            group: {
-                connect: { id: group.groupId },
-            },
-            admin: false,
-            omegaOrder: {
-                connect: { order: currentOmegaOrder.order },
-            },
+            orderBy: { order: 'desc' },
+            select: { order: true },
+        })
+
+        if (held) {
+            await prisma.membership.update({
+                where: {
+                    userId_groupId_order: {
+                        userId: params.userId,
+                        groupId: group.groupId,
+                        order: held.order,
+                    },
+                },
+                data: { active: true },
+            })
+            return
         }
-    })
-}
+
+        await prisma.membership.create({
+            data: {
+                active: true,
+                user: {
+                    connect: { id: params.userId },
+                },
+                group: {
+                    connect: { id: group.groupId },
+                },
+                admin: false,
+                omegaOrder: {
+                    connect: { order: currentOmegaOrder.order },
+                },
+            }
+        })
+    },
+})
 
 /**
  * Moves the user into the omega membership group of the given level, leaving the one they held
@@ -224,7 +189,7 @@ const updateUserLevel = defineOperation({
     opensTransaction: true,
     operation: async ({ prisma, params }) => {
         await prisma.$transaction(async tx => {
-            await writeUserLevel(tx, params)
+            await writeUserLevel.internalCall({ params, prisma: tx })
             await invalidateOneUserSessionData(tx, params.userId)
         })
     }
@@ -248,6 +213,8 @@ const updateUserLevel = defineOperation({
 const readUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.params.readUserLevel,
     authorizer: () => omegaMembershipGroupAuth.readUserLevel,
+    // Putting a broken membership right goes through updateUserLevel, which opens a transaction.
+    opensTransaction: true,
     operation: async ({ prisma, params }): Promise<{ level: OmegaMembershipLevel, order: number }> => {
         const omegaMemberships = await readActiveOmegaMemberships(prisma, params.userId)
 
@@ -353,9 +320,41 @@ export const omegaMembershipGroupOperations = {
     readUserLevel,
     inferUserLevel,
     updateUserLevel,
+    writeUserLevel,
     updateUserOrder,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
     readMembershipsOfUser: commonGroupOperations.readMembershipsOfUser,
     migrateGroups: migration.migrateGroups,
 } as const
+
+function omegaMembershipGTEQ(lhs: OmegaMembershipLevel, rhs: OmegaMembershipLevel) {
+    return OMEGA_MEMBERSHIP_LEVEL_RANKING.indexOf(lhs) >= OMEGA_MEMBERSHIP_LEVEL_RANKING.indexOf(rhs)
+}
+
+/**
+ * The active omega memberships of a user, with the level each one is in. There should be exactly
+ * one - `readUserLevel` is what decides what to do when there is not.
+ */
+async function readActiveOmegaMemberships(prisma: Prisma.TransactionClient, userId: number) {
+    const memberships = await prisma.membership.findMany({
+        where: {
+            userId,
+            active: true,
+            group: { groupType: GroupType.OMEGA_MEMBERSHIP_GROUP },
+        },
+        select: {
+            order: true,
+            group: {
+                select: {
+                    omegaMembershipGroup: { select: { omegaMembershipLevel: true } },
+                },
+            },
+        },
+    })
+
+    return memberships.flatMap(membership => {
+        const level = membership.group.omegaMembershipGroup?.omegaMembershipLevel
+        return level ? [{ level, order: membership.order }] : []
+    })
+}

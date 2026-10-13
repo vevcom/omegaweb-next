@@ -26,7 +26,7 @@ export const interestGroupSchemas = {
         }),
     },
     params: {
-        read: interestGroupId.partial(),
+        read: interestGroupId,
         update: interestGroupId,
         destroy: interestGroupId,
         updateArticleSection: paramsFieldSchemas.pick({

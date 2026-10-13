@@ -19,6 +19,12 @@ const user = paramsFieldSchemas.pick({
     userId: true,
 })
 
+const userLevel = paramsFieldSchemas.pick({
+    userId: true,
+    omegaMembershipLevel: true,
+    onlyUpgrade: true,
+})
+
 export const omegaMembershipGroupSchemas = {
     data: {
         updateUserOrder: dataFieldSchemas.pick({
@@ -33,10 +39,7 @@ export const omegaMembershipGroupSchemas = {
         readUserLevel: user,
         inferUserLevel: user,
         updateUserOrder: user,
-        updateUserLevel: paramsFieldSchemas.pick({
-            userId: true,
-            omegaMembershipLevel: true,
-            onlyUpgrade: true,
-        }),
+        updateUserLevel: userLevel,
+        writeUserLevel: userLevel,
     },
 }
