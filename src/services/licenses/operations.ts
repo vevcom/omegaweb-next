@@ -5,15 +5,6 @@ import { licenseAuth } from './auth'
 import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 
-const getStandardLicenseConfig = (standardLicenseName: StandardLicenseName) => {
-    const licenseConfig = standardLicensesConfig.find((license) => license.name === standardLicenseName)
-    if (!licenseConfig) {
-        throw new ServiceError('SERVER ERROR', `Unknown standard license: ${standardLicenseName}`)
-    }
-
-    return licenseConfig
-}
-
 const generateStandardLicense = defineSubOperation({
     paramsSchema: () => licenseSchemas.params.generateStandardLicense,
     operation: () => async ({ prisma, params }) => {
@@ -112,3 +103,12 @@ export const licenseOperations = {
     generateStandardLicense,
     readStandardLicense,
 } as const
+
+function getStandardLicenseConfig(standardLicenseName: StandardLicenseName) {
+    const licenseConfig = standardLicensesConfig.find((license) => license.name === standardLicenseName)
+    if (!licenseConfig) {
+        throw new ServiceError('SERVER ERROR', `Unknown standard license: ${standardLicenseName}`)
+    }
+
+    return licenseConfig
+}
