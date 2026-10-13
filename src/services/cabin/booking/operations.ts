@@ -487,11 +487,26 @@ export const cabinBookingOperations = {
                 })
             })
 
-            let payment = transaction.payment
+            // transaction.payment only carries stripePayment's narrow fields, per
+            // ExpandedLedgerTransaction. That's fine here. The only branch below that reads
+            // stripePayment fields replaces `payment` with initiate()'s full result. Every
+            // other case has stripePayment null anyway, since it's MANUAL or there's no payment.
+            let payment = transaction.payment as ExpandedPayment | null
             if (payment?.state === 'PENDING') {
-                payment = await paymentOperations.initiate({
-                    params: { paymentId: payment.id },
-                })
+                try {
+                    payment = await paymentOperations.initiate({
+                        params: { paymentId: payment.id },
+                    })
+                } catch (error) {
+                    // Otherwise the reservation stays held with no way to pay for it. Cancel the
+                    // transaction and its hold-window extension so the booking can be paid for
+                    // again instead of sitting stuck.
+                    await ledgerTransactionOperations.cancel({
+                        params: { id: transaction.id },
+                        bypassAuth: true,
+                    })
+                    throw error
+                }
             }
 
             // Clearing the reservation window and sending the confirmation once the transaction
