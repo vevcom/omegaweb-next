@@ -19,7 +19,6 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { ServiceError } from '@/services/error'
 import { GroupType } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { z } from 'zod'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -47,10 +46,7 @@ const readAll = defineOperation({
 
 const read = defineOperation({
     authorizer: () => committeeAuth.read,
-    paramsSchema: z.union([
-        z.object({ id: z.number() }),
-        z.object({ shortName: z.string() })
-    ]),
+    paramsSchema: committeeSchemas.params.read,
     operation: async ({ prisma, params }) => {
         const defaultCommitteeLogo = await readDefaultCommitteeLogo()
 
@@ -69,9 +65,7 @@ const read = defineOperation({
 
 const readArticle = defineOperation({
     authorizer: () => committeeAuth.readArticle,
-    paramsSchema: z.object({
-        shortName: z.string(),
-    }),
+    paramsSchema: committeeSchemas.params.readArticle,
     operation: async ({ prisma, params }) => (await prisma.committee.findUniqueOrThrow({
         where: params,
         select: {
@@ -84,9 +78,7 @@ const readArticle = defineOperation({
 
 const readParagraph = defineOperation({
     authorizer: () => committeeAuth.readParagraph,
-    paramsSchema: z.object({
-        shortName: z.string(),
-    }),
+    paramsSchema: committeeSchemas.params.readParagraph,
     operation: async ({ prisma, params }) => (await prisma.committee.findUniqueOrThrow({
         where: params,
         select: {
@@ -117,9 +109,7 @@ async function assertNotPensioned(
 }
 
 const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
-    implementationParamsSchema: z.object({
-        shortName: z.string(),
-    }),
+    implementationParamsSchema: committeeSchemas.params.updateParagraphContent,
     authorizer: async ({ implementationParams }) =>
         committeeAuth.updateParagraphContent.data({
             groupId: (await read({
@@ -144,10 +134,8 @@ const updateLogo = defineOperation({
                 bypassAuth: true
             })).groupId
         }),
-    paramsSchema: z.object({
-        shortName: z.string(),
-    }),
-    dataSchema: committeeSchemas.updateLogo,
+    paramsSchema: committeeSchemas.params.updateLogo,
+    dataSchema: committeeSchemas.data.updateLogo,
     opensTransaction: true,
     operation: async ({ prisma, params, data }) => {
         await assertNotPensioned(prisma, { shortName: params.shortName })
@@ -187,9 +175,7 @@ const updateLogo = defineOperation({
 
 const destroy = defineOperation({
     authorizer: () => committeeAuth.destroy,
-    paramsSchema: z.object({
-        id: z.number()
-    }),
+    paramsSchema: committeeSchemas.params.destroy,
     opensTransaction: true,
     operation: async ({ prisma, params }) => {
         await assertNotPensioned(prisma, { id: params.id })
@@ -229,7 +215,7 @@ const destroy = defineOperation({
 
 const create = defineOperation({
     authorizer: () => committeeAuth.create,
-    dataSchema: committeeSchemas.create,
+    dataSchema: committeeSchemas.data.create,
     opensTransaction: true,
     operation: ({ prisma, data }) =>
         prisma.$transaction(async tx => {
@@ -306,10 +292,8 @@ const create = defineOperation({
 
 const update = defineOperation({
     authorizer: () => committeeAuth.update,
-    paramsSchema: z.object({
-        id: z.number()
-    }),
-    dataSchema: committeeSchemas.update,
+    paramsSchema: committeeSchemas.params.update,
+    dataSchema: committeeSchemas.data.update,
     operation: async ({ prisma, params, data }) => {
         await assertNotPensioned(prisma, { id: params.id })
         const defaultCommitteeLogo = await readDefaultCommitteeLogo()
@@ -338,9 +322,7 @@ const updateArticle = implementUpdateArticleOperations({
             bypassAuth: true
         })).groupId
     }),
-    implementationParamsSchema: z.object({
-        shortName: z.string(),
-    }),
+    implementationParamsSchema: committeeSchemas.params.updateArticle,
     ownedArticles: async ({ implementationParams }) => {
         const article = await readArticle({ params: { shortName: implementationParams.shortName }, bypassAuth: true })
         return [article]

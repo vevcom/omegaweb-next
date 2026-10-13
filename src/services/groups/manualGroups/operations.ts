@@ -11,7 +11,6 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { GroupType } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 const commonGroupOperations = implementGroupType({
@@ -46,7 +45,7 @@ const migration = implementManualMigrationPerGroup({
 })
 
 const create = defineOperation({
-    dataSchema: manualGroupSchemas.create,
+    dataSchema: manualGroupSchemas.data.create,
     authorizer: () => manualGroupAuth.create,
     operation: async ({ prisma, data }) => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
@@ -71,9 +70,7 @@ const readMany = defineOperation({
 })
 
 const read = defineOperation({
-    paramsSchema: z.object({
-        id: z.number(),
-    }),
+    paramsSchema: manualGroupSchemas.params.read,
     authorizer: () => manualGroupAuth.read,
     operation: async ({ prisma, params }) => prisma.manualGroup.findUniqueOrThrow({
         where: { id: params.id },
@@ -98,10 +95,8 @@ async function assertNotPensioned(prisma: PrismaPossibleTransaction<false>, id: 
 }
 
 const update = defineOperation({
-    paramsSchema: z.object({
-        id: z.number(),
-    }),
-    dataSchema: manualGroupSchemas.update,
+    paramsSchema: manualGroupSchemas.params.update,
+    dataSchema: manualGroupSchemas.data.update,
     authorizer: () => manualGroupAuth.update,
     operation: async ({ prisma, params, data }) => {
         await assertNotPensioned(prisma, params.id)
@@ -114,9 +109,7 @@ const update = defineOperation({
 })
 
 const destroy = defineOperation({
-    paramsSchema: z.object({
-        id: z.number(),
-    }),
+    paramsSchema: manualGroupSchemas.params.destroy,
     authorizer: () => manualGroupAuth.destroy,
     opensTransaction: true,
     operation: async ({ prisma, params }) => {

@@ -1,6 +1,6 @@
 import { INFINITE_LOOP_PREVENTION_MAX_ITERATIONS } from './constants'
 import { notificationMethodsArray } from '@/services/notifications/constants'
-import { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
+import { notificationMethodSchema } from '@/services/notifications/schemas'
 import { z } from 'zod'
 import type {
     ExpandedNotificationChannel,
@@ -66,25 +66,45 @@ export function findValidParents(
     return validParents
 }
 
-const baseSchema = z.object({
+const dataFieldSchemas = z.object({
     name: z.string().min(2),
     description: z.string(),
-    special: z.nativeEnum(SpecialNotificationChannel),
     parentId: z.coerce.number().min(1),
     mailAliasId: z.coerce.number().min(1),
 })
 
-export const notificationChannelSchemas = {
-    create: baseSchema.pick({
-        name: true,
-        description: true,
-        parentId: true,
-    }),
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    availableMethods: notificationMethodSchema,
+    defaultMethods: notificationMethodSchema,
+})
 
-    update: baseSchema.pick({
-        name: true,
-        description: true,
-        parentId: true,
-        mailAliasId: true,
-    }),
+export const notificationChannelSchemas = {
+    data: {
+        create: dataFieldSchemas.pick({
+            name: true,
+            description: true,
+            parentId: true,
+        }),
+        update: dataFieldSchemas.pick({
+            name: true,
+            description: true,
+            parentId: true,
+            mailAliasId: true,
+        }),
+    },
+    params: {
+        create: paramsFieldSchemas.pick({
+            availableMethods: true,
+            defaultMethods: true,
+        }),
+        update: paramsFieldSchemas.pick({
+            id: true,
+            availableMethods: true,
+            defaultMethods: true,
+        }),
+        destroy: paramsFieldSchemas.pick({
+            id: true,
+        }),
+    },
 }

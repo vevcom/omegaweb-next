@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { cabinReleasePeriodAuth } from './auth'
-import { cabinReleasePeriodParamsSchemas, cabinReleasePeriodSchemas } from './schemas'
+import { cabinReleasePeriodSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 
@@ -8,7 +8,7 @@ export const cabinReleasePeriodOperations = {
 
     create: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.create,
-        dataSchema: cabinReleasePeriodSchemas.create,
+        dataSchema: cabinReleasePeriodSchemas.data.create,
         operation: async ({ prisma, data }) => {
             const latestReleasePeriod = await prisma.releasePeriod.findFirst({
                 orderBy: {
@@ -32,7 +32,7 @@ export const cabinReleasePeriodOperations = {
 
     destroy: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.destroy,
-        paramsSchema: cabinReleasePeriodParamsSchemas.destroy,
+        paramsSchema: cabinReleasePeriodSchemas.params.destroy,
         operation: async ({ prisma, params }) => {
             const releasePeriod = await prisma.releasePeriod.findUniqueOrThrow({
                 where: params,
@@ -78,8 +78,8 @@ export const cabinReleasePeriodOperations = {
      */
     update: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.update,
-        paramsSchema: cabinReleasePeriodParamsSchemas.update,
-        dataSchema: cabinReleasePeriodSchemas.update,
+        paramsSchema: cabinReleasePeriodSchemas.params.update,
+        dataSchema: cabinReleasePeriodSchemas.data.update,
         operation: async ({ prisma, params, data }) => {
             const releasePeriod = await prisma.releasePeriod.findUniqueOrThrow({
                 where: params,

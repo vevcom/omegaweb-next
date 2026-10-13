@@ -16,7 +16,6 @@ import { ServiceError } from '@/services/error'
 import { getMembershipFilter } from '@/auth/getMembershipFilter'
 import { invalidateManyUserSessionData, invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
-import { z } from 'zod'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { SetPensioned } from './types'
 import type { GroupType } from '@/prisma-generated-pn-types'
@@ -24,15 +23,8 @@ import type {
     ExpandedGroup,
     GroupWithRelationsNameInferencer,
     MembershipFiltered,
-    MembershipSelectorType,
 } from './types'
 import type { UserBasic } from '@/services/users/types'
-
-const membershipSelectorSchema: z.ZodType<MembershipSelectorType> = z.union([
-    z.number(),
-    z.literal('ACTIVE'),
-    z.literal('ALL'),
-])
 
 /**
  * Whether the group is of the given type. Used as the ownership check of every common operation:
@@ -166,7 +158,7 @@ export const groupOperations = {
      * order first - each with its group's display name, since that is what someone reading them is after.
      */
     readMembershipsOfUserOfType: defineSubOperation({
-        paramsSchema: () => groupSchemas.readMembershipsOfUserOfType,
+        paramsSchema: () => groupSchemas.params.readMembershipsOfUserOfType,
         operation: ({ type }: { type: GroupType }) => async ({ prisma, params }) => {
             const memberships = await prisma.membership.findMany({
                 where: {
@@ -189,7 +181,7 @@ export const groupOperations = {
     }),
 
     readMembers: defineSubOperation({
-        paramsSchema: () => groupSchemas.readMembers,
+        paramsSchema: () => groupSchemas.params.readMembers,
         operation: () => async ({ prisma, params }) => {
             const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
                 params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
@@ -224,8 +216,8 @@ export const groupOperations = {
      * got it in - so for those the order makes no difference.
      */
     addMembers: defineSubOperation({
-        paramsSchema: () => groupSchemas.groupMemberParams,
-        dataSchema: () => groupSchemas.addMembers,
+        paramsSchema: () => groupSchemas.params.addMembers,
+        dataSchema: () => groupSchemas.data.addMembers,
         operation: () => async ({ prisma, params, data }) => {
             const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
@@ -266,8 +258,8 @@ export const groupOperations = {
      * the order stays intact.
      */
     removeMembers: defineSubOperation({
-        paramsSchema: () => groupSchemas.groupMemberParams,
-        dataSchema: () => groupSchemas.removeMembers,
+        paramsSchema: () => groupSchemas.params.removeMembers,
+        dataSchema: () => groupSchemas.data.removeMembers,
         operation: () => async ({ prisma, params, data }) => {
             const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
@@ -293,8 +285,8 @@ export const groupOperations = {
      * user's session has to be invalidated for the change to take effect.
      */
     setMemberAdmin: defineSubOperation({
-        paramsSchema: () => groupSchemas.groupMemberParams,
-        dataSchema: () => groupSchemas.setMemberAdmin,
+        paramsSchema: () => groupSchemas.params.setMemberAdmin,
+        dataSchema: () => groupSchemas.data.setMemberAdmin,
         operation: () => async ({ prisma, params, data }) => {
             const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
@@ -323,8 +315,8 @@ export const groupOperations = {
      * so no session has to be invalidated for it.
      */
     setMemberTitle: defineSubOperation({
-        paramsSchema: () => groupSchemas.groupMemberParams,
-        dataSchema: () => groupSchemas.setMemberTitle,
+        paramsSchema: () => groupSchemas.params.setMemberTitle,
+        dataSchema: () => groupSchemas.data.setMemberTitle,
         operation: () => async ({ prisma, params, data }) => {
             const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
@@ -357,8 +349,8 @@ export const groupOperations = {
      */
     pension: defineSubOperation({
         opensTransaction: true,
-        paramsSchema: () => groupSchemas.groupParams,
-        dataSchema: () => groupSchemas.pension,
+        paramsSchema: () => groupSchemas.params.pension,
+        dataSchema: () => groupSchemas.data.pension,
         operation: ({ setPensioned }: { setPensioned: SetPensioned }) => async ({ prisma, params, data }) => {
             const { order: currentOmegaOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -407,8 +399,8 @@ export const groupOperations = {
      */
     migrateManually: defineSubOperation({
         opensTransaction: true,
-        paramsSchema: () => groupSchemas.groupParams,
-        dataSchema: () => groupSchemas.migrateManually,
+        paramsSchema: () => groupSchemas.params.migrateManually,
+        dataSchema: () => groupSchemas.data.migrateManually,
         operation: () => async ({ prisma, params, data }) => {
             const { order: currentOmegaOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
             const { order: groupOrder } = await readGroupOrderAndType(prisma, params.groupId)
@@ -523,10 +515,7 @@ export const groupOperations = {
      * against at the point it is read.
      */
     readMembershipsOfUser: defineSubOperation({
-        paramsSchema: () => z.object({
-            userId: z.number(),
-            order: membershipSelectorSchema.optional(),
-        }),
+        paramsSchema: () => groupSchemas.params.readMembershipsOfUser,
         operation: () => async ({ prisma, params }): Promise<MembershipFiltered[]> => prisma.membership.findMany({
             where: {
                 userId: params.userId,
@@ -541,12 +530,7 @@ export const groupOperations = {
      * reservation covers.
      */
     readUsersOfGroups: defineSubOperation({
-        paramsSchema: () => z.object({
-            groups: z.array(z.object({
-                groupId: z.number(),
-                admin: z.boolean(),
-            })),
-        }),
+        paramsSchema: () => groupSchemas.params.readUsersOfGroups,
         operation: () => async ({ prisma, params }): Promise<Pick<UserBasic, 'id'>[]> => {
             const memberships = await prisma.membership.findMany({
                 where: {
@@ -570,9 +554,7 @@ export const groupOperations = {
      * Cross-type: every group the user is a member of, with its type relation resolved.
      */
     readGroupsOfUser: defineSubOperation({
-        paramsSchema: () => z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: () => groupSchemas.params.readGroupsOfUser,
         operation: () => async ({ prisma, params }) => {
             const memberships = await prisma.membership.findMany({
                 where: {
@@ -596,7 +578,7 @@ export const groupOperations = {
      * those sessions once the transaction has committed.
      */
     destroy: defineSubOperation({
-        paramsSchema: () => groupSchemas.groupParams,
+        paramsSchema: () => groupSchemas.params.destroy,
         operation: () => async ({ prisma, params }) => {
             const memberships = await prisma.membership.findMany({
                 where: { groupId: params.groupId },

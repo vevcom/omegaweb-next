@@ -18,6 +18,7 @@ import sharp from 'sharp'
 import { File } from 'node:buffer'
 import type { Prisma, StandardImage } from '@/prisma-generated-pn-types'
 import type { ExpandedImage, ExpandedImageCollection } from './types'
+import type { imageCollectionIdOrNameSchema } from './schemas'
 import type { z } from 'zod'
 
 const imageStore = implementStore({
@@ -27,7 +28,7 @@ const imageStore = implementStore({
 
 export const imageOperations = {
     destroyCollection: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaCollection,
+        paramsSchema: () => imageSchemas.params.destroyCollection,
         opensTransaction: true,
         operation: () => async ({ prisma, params }) => {
             const collection = await prisma.imageCollection.findUnique({
@@ -65,8 +66,8 @@ export const imageOperations = {
         }
     }),
     updateCollection: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaCollection,
-        dataSchema: () => imageSchemas.updateCollection,
+        paramsSchema: () => imageSchemas.params.updateCollection,
+        dataSchema: () => imageSchemas.data.updateCollection,
         operation: () => async ({ prisma, params, data }) => {
             if (data.coverImageId !== undefined) {
                 const image = await prisma.image.findUnique({
@@ -120,8 +121,8 @@ export const imageOperations = {
      * take svg only, profile images and ombul covers take raster only, and the rest take everything.
      */
     uploadImage: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaCollection,
-        dataSchema: () => imageSchemas.uploadImage,
+        paramsSchema: () => imageSchemas.params.uploadImage,
+        dataSchema: () => imageSchemas.data.uploadImage,
         operation: (
             { uploadAsStandardImage, allowedExtensions }: {
                 uploadAsStandardImage: StandardImage | null,
@@ -181,8 +182,8 @@ export const imageOperations = {
      * call on every run for an image whose source of truth lives outside the database.
      */
     replaceImageFile: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
-        dataSchema: () => imageSchemas.replaceImageFile,
+        paramsSchema: () => imageSchemas.params.replaceImageFile,
+        dataSchema: () => imageSchemas.data.replaceImageFile,
         opensTransaction: true,
         operation: (
             { allowedExtensions }: { allowedExtensions: readonly ImageExtension[] }
@@ -236,7 +237,7 @@ export const imageOperations = {
      * Called by the background worker container (src/lib/images/worker.ts), never directly from a request.
      */
     processImageVariants: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        paramsSchema: () => imageSchemas.params.processImageVariants,
         operation: () => async ({ prisma, params }) => {
             const image = await prisma.image.findUniqueOrThrow({ where: { id: params.imageId } })
             if (image.type !== 'RASTER') {
@@ -287,7 +288,7 @@ export const imageOperations = {
      * so the next worker tick picks it up again.
      */
     retryImageProcessing: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        paramsSchema: () => imageSchemas.params.retryImageProcessing,
         operation: () => async ({ prisma, params }) => {
             await prisma.image.update({
                 where: { id: params.imageId },
@@ -301,8 +302,8 @@ export const imageOperations = {
     }),
 
     uploadManyImages: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaUploadManyImages,
-        dataSchema: () => imageSchemas.uploadManyImages,
+        paramsSchema: () => imageSchemas.params.uploadManyImages,
+        dataSchema: () => imageSchemas.data.uploadManyImages,
         operation: (
             { allowedExtensions }: { allowedExtensions: readonly ImageExtension[] }
         ) => async ({ params, data }) => {
@@ -326,7 +327,7 @@ export const imageOperations = {
     }),
 
     readPageOfImagesInCollection: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaReadPageOfImagesInCollection,
+        paramsSchema: () => imageSchemas.params.readPageOfImagesInCollection,
         operation: () => async ({ prisma, params }) => {
             const { cursor, ...rest } = cursorPagingSelection(params.paging.page)
             return await prisma.image.findMany({
@@ -341,8 +342,8 @@ export const imageOperations = {
     }),
 
     updateImageMeta: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
-        dataSchema: () => imageSchemas.updateImageMeta,
+        paramsSchema: () => imageSchemas.params.updateImageMeta,
+        dataSchema: () => imageSchemas.data.updateImageMeta,
         operation: () => async ({ prisma, params, data }) =>
             await prisma.image.update({
                 where: {
@@ -366,7 +367,7 @@ export const imageOperations = {
      * Prevents files from being deleted if the transaction rolls back.
      */
     destroyImageDbAndReturnCleanup: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        paramsSchema: () => imageSchemas.params.destroyImageDbAndReturnCleanup,
         operation: () => async ({ prisma, params }): Promise<() => Promise<void>> => {
             const image = await prisma.image.findUniqueOrThrow({
                 where: {
@@ -390,7 +391,7 @@ export const imageOperations = {
      * For use inside transactions, use destroyImageDbAndReturnCleanup and call the returned cleanup function.
      */
     destroyImage: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        paramsSchema: () => imageSchemas.params.destroyImage,
         operation: () => async ({ prisma, params }) => {
             const cleanup =
                 await imageOperations.destroyImageDbAndReturnCleanup.internalCall({
@@ -402,7 +403,7 @@ export const imageOperations = {
     }),
 
     readCollectionOfImage: defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        paramsSchema: () => imageSchemas.params.readCollectionOfImage,
         operation: () => async ({ prisma, params }) =>
             (await prisma.image.findUniqueOrThrow({
                 where: {
@@ -499,7 +500,7 @@ async function destroyStoredFiles(fsLocations: string[], context: string): Promi
     }
 }
 
-export function uniqueCollectionWhere(params: z.infer<typeof imageSchemas.paramsSchemaCollection>) {
+export function uniqueCollectionWhere(params: z.infer<typeof imageCollectionIdOrNameSchema>) {
     return (
         'collectionId' in params ? { id: params.collectionId } : { name: params.collectionName }
     ) satisfies Prisma.ImageCollectionWhereUniqueInput

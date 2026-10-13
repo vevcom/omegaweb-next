@@ -39,7 +39,7 @@ const readMany = defineOperation({
 })
 
 const read = defineOperation({
-    paramsSchema: omegaMembershipGroupSchemas.read,
+    paramsSchema: omegaMembershipGroupSchemas.params.read,
     authorizer: () => omegaMembershipGroupAuth.read,
     operation: async ({ prisma, params }) => prisma.omegaMembershipGroup.findUniqueOrThrow({
         where: params,
@@ -60,7 +60,7 @@ const read = defineOperation({
  * returned.
  */
 const inferUserLevel = defineOperation({
-    paramsSchema: omegaMembershipGroupSchemas.inferUserLevel,
+    paramsSchema: omegaMembershipGroupSchemas.params.inferUserLevel,
     authorizer: () => omegaMembershipGroupAuth.inferUserLevel,
     operation: async ({ prisma, params }): Promise<OmegaMembershipLevel> => {
         const partOfOmega = await prisma.membership.findFirst({
@@ -219,7 +219,7 @@ export async function writeUserLevel(
  * drives it, and `createTrial` makes the same move as part of recording the trial that earned it.
  */
 const updateUserLevel = defineOperation({
-    paramsSchema: omegaMembershipGroupSchemas.updateUserLevel,
+    paramsSchema: omegaMembershipGroupSchemas.params.updateUserLevel,
     authorizer: () => omegaMembershipGroupAuth.updateUserLevel,
     opensTransaction: true,
     operation: async ({ prisma, params }) => {
@@ -246,7 +246,7 @@ const updateUserLevel = defineOperation({
  * user whose membership has gone missing is assumed to have been somewhere in omega, not outside it.
  */
 const readUserLevel = defineOperation({
-    paramsSchema: omegaMembershipGroupSchemas.readUserLevel,
+    paramsSchema: omegaMembershipGroupSchemas.params.readUserLevel,
     authorizer: () => omegaMembershipGroupAuth.readUserLevel,
     operation: async ({ prisma, params }): Promise<{ level: OmegaMembershipLevel, order: number }> => {
         const omegaMemberships = await readActiveOmegaMemberships(prisma, params.userId)
@@ -291,8 +291,8 @@ const readUserLevel = defineOperation({
  * carried over from omegaweb basic with the wrong year against it.
  */
 const updateUserOrder = defineOperation({
-    paramsSchema: omegaMembershipGroupSchemas.updateUserOrderParams,
-    dataSchema: omegaMembershipGroupSchemas.updateUserOrder,
+    paramsSchema: omegaMembershipGroupSchemas.params.updateUserOrder,
+    dataSchema: omegaMembershipGroupSchemas.data.updateUserOrder,
     authorizer: () => omegaMembershipGroupAuth.updateUserOrder,
     opensTransaction: true,
     operation: async ({ prisma, params, data }) => {

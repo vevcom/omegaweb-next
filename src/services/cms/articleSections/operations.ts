@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { articleSectionParamsSchemas, articleSectionSchemas } from './schemas'
+import { articleSectionSchemas } from './schemas'
 import { articleSectionParts, articleSectionsRelationsIncluder } from './constants'
 import { createArticleSectionPart } from './createPart'
 import { ServiceError } from '@/services/error'
@@ -13,7 +13,7 @@ import type { ArticleSectionPart } from './types'
 import type { z } from 'zod'
 
 /** An article section is addressed by id or by name. */
-const articleSectionWhere = (params: z.infer<typeof articleSectionParamsSchemas.addPart>) => (
+const articleSectionWhere = (params: z.infer<typeof articleSectionSchemas.params.addPart>) => (
     params.articleSectionId !== undefined ? { id: params.articleSectionId } : { name: params.articleSectionName }
 )
 
@@ -24,7 +24,7 @@ const destroyPart = {
 } as const satisfies Record<ArticleSectionPart, (id: number) => Promise<void>>
 
 const create = defineSubOperation({
-    dataSchema: () => articleSectionSchemas.create,
+    dataSchema: () => articleSectionSchemas.data.create,
     operation: () => ({ prisma, data }) =>
         prisma.articleSection.create({
             data,
@@ -33,7 +33,7 @@ const create = defineSubOperation({
 })
 
 const destroy = defineSubOperation({
-    paramsSchema: () => articleSectionParamsSchemas.destroy,
+    paramsSchema: () => articleSectionSchemas.params.destroy,
     operation: () => ({ prisma, params }) =>
         prisma.articleSection.delete({
             where: articleSectionWhere(params),
@@ -52,8 +52,8 @@ export const articleSectionOperations = {
      * @param data - The position and size data
      */
     update: defineSubOperation({
-        paramsSchema: () => articleSectionParamsSchemas.update,
-        dataSchema: () => articleSectionSchemas.update,
+        paramsSchema: () => articleSectionSchemas.params.update,
+        dataSchema: () => articleSectionSchemas.data.update,
         operation: () => ({ prisma, params, data }) =>
             prisma.articleSection.update({
                 where: articleSectionWhere(params),
@@ -74,8 +74,8 @@ export const articleSectionOperations = {
      * @returns - The updated article section
      */
     addPart: defineSubOperation({
-        paramsSchema: () => articleSectionParamsSchemas.addPart,
-        dataSchema: () => articleSectionSchemas.addPart,
+        paramsSchema: () => articleSectionSchemas.params.addPart,
+        dataSchema: () => articleSectionSchemas.data.addPart,
         opensTransaction: true,
         operation: () => async ({ prisma, params, data }) => prisma.$transaction(async (tx) => {
             const where = articleSectionWhere(params)
@@ -109,8 +109,8 @@ export const articleSectionOperations = {
      * @returns - The updated article section
      */
     removePart: defineSubOperation({
-        paramsSchema: () => articleSectionParamsSchemas.removePart,
-        dataSchema: () => articleSectionSchemas.removePart,
+        paramsSchema: () => articleSectionSchemas.params.removePart,
+        dataSchema: () => articleSectionSchemas.data.removePart,
         operation: ({ destroyOnEmpty }: { destroyOnEmpty: boolean }) => async ({ prisma, params, data }) => {
             const where = articleSectionWhere(params)
             const articleSection = await prisma.articleSection.findUnique({

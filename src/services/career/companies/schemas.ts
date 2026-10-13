@@ -2,8 +2,7 @@ import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-const fieldSchemas = z.object({
-    id: z.number(),
+const dataFieldSchemas = z.object({
     name: z.string().trim().min(
         2, 'Navnet må være minst 2 tegn langt'
     ).max(
@@ -26,38 +25,43 @@ const fieldSchemas = z.object({
     }),
 })
 
-export const companySchemas = {
-    create: fieldSchemas.pick({
-        name: true,
-        description: true,
-    }),
-    update: fieldSchemas.partial().pick({
-        name: true,
-        description: true,
-        website: true,
-    }),
-    updateSponsorTier: fieldSchemas.pick({
-        sponsorTier: true,
-    }),
-} as const
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    companyId: z.number(),
+    name: z.string().max(100).optional(),
+})
 
-const companyId = fieldSchemas.pick({
+const id = paramsFieldSchemas.pick({
     id: true,
 })
 
-export const companyParamsSchemas = {
-    readPage: readPageInputSchemaObject(
-        fieldSchemas.pick({
-            id: true,
+export const companySchemas = {
+    data: {
+        create: dataFieldSchemas.pick({
+            name: true,
+            description: true,
         }),
-        z.object({
-            name: z.string().max(100).optional(),
+        update: dataFieldSchemas.partial().pick({
+            name: true,
+            description: true,
+            website: true,
         }),
-    ),
-    update: companyId,
-    updateSponsorTier: companyId,
-    updateCmsImageLogo: z.object({
-        companyId: fieldSchemas.shape.id,
-    }),
-    destroy: companyId,
-} as const
+        updateSponsorTier: dataFieldSchemas.pick({
+            sponsorTier: true,
+        }),
+    },
+    params: {
+        readPage: readPageInputSchemaObject(
+            id,
+            paramsFieldSchemas.pick({
+                name: true,
+            }),
+        ),
+        update: id,
+        updateSponsorTier: id,
+        updateCmsImageLogo: paramsFieldSchemas.pick({
+            companyId: true,
+        }),
+        destroy: id,
+    },
+}

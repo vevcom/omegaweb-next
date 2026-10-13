@@ -8,7 +8,6 @@ import { availableNotificationMethodIncluder } from '@/services/notifications/ch
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import { z } from 'zod'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { Subscription } from './types'
 import type { NotificationMethodGeneral } from '@/services/notifications/types'
@@ -110,9 +109,7 @@ async function createTransactionPart(
 
 export const notificationSubscriptionOperations = {
     read: defineOperation({
-        paramsSchema: z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: subscriptionSchemas.params.read,
         authorizer: ({ params }) => notificationSubscriptionAuth.read.data({ userId: params.userId }),
         operation: async ({ prisma, params }) => await prisma.notificationSubscription.findMany({
             where: {
@@ -123,9 +120,7 @@ export const notificationSubscriptionOperations = {
     }),
 
     createDefault: defineSubOperation({
-        paramsSchema: () => z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: () => subscriptionSchemas.params.createDefault,
         opensTransaction: true,
         operation: () => async ({ prisma, params, session }) => {
             const channels = await notificationChannelOperations.readDefault({
@@ -158,10 +153,8 @@ export const notificationSubscriptionOperations = {
 
     update: defineOperation({
         authorizer: ({ params }) => notificationSubscriptionAuth.update.data({ userId: params.userId }),
-        paramsSchema: z.object({
-            userId: z.number(),
-        }),
-        dataSchema: subscriptionSchemas.update,
+        paramsSchema: subscriptionSchemas.params.update,
+        dataSchema: subscriptionSchemas.data.update,
         operation: async ({ prisma, params, data }): Promise<Subscription[]> => {
             // Prepare updates and validate the data with the data in the database
             const transactionParts = (await Promise.all(

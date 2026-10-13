@@ -1,7 +1,7 @@
 import '@pn-server-only'
 
 import { cabinProductAuth } from './auth'
-import { cabinProductParamsSchemas, cabinProductSchemas } from './schemas'
+import { cabinProductSchemas } from './schemas'
 import { cabinProductPriceIncluder } from './constants'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { defineOperation } from '@/services/serviceOperation'
@@ -12,7 +12,7 @@ export const cabinProductOperations = {
 
     create: defineOperation({
         authorizer: () => cabinProductAuth.create,
-        dataSchema: cabinProductSchemas.create,
+        dataSchema: cabinProductSchemas.data.create,
         operation: ({ prisma, data }) => prisma.cabinProduct.create({
             data,
         })
@@ -20,8 +20,8 @@ export const cabinProductOperations = {
 
     createPrice: defineOperation({
         authorizer: () => cabinProductAuth.createPrice,
-        paramsSchema: cabinProductParamsSchemas.createPrice,
-        dataSchema: cabinProductSchemas.createPrice,
+        paramsSchema: cabinProductSchemas.params.createPrice,
+        dataSchema: cabinProductSchemas.data.createPrice,
         operation: async ({ prisma, params, data }) => {
             const [pricePeriod, releasePeriod] = await Promise.all([
                 prisma.pricePeriod.findUniqueOrThrow({
@@ -76,7 +76,7 @@ export const cabinProductOperations = {
 
     read: defineOperation({
         authorizer: () => cabinProductAuth.read,
-        paramsSchema: cabinProductParamsSchemas.read,
+        paramsSchema: cabinProductSchemas.params.read,
         operation: ({ prisma, params }) => prisma.cabinProduct.findUniqueOrThrow({
             where: params,
             include: cabinProductPriceIncluder,

@@ -1,6 +1,7 @@
+import { standardLicenseNames } from './constants'
 import { z } from 'zod'
 
-const baseSchema = z.object({
+const dataFieldSchemas = z.object({
     name: z.string().min(
         5, 'Navn må være minst 5 tegn langt'
     ).max(
@@ -11,13 +12,33 @@ const baseSchema = z.object({
     )
 })
 
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    standardLicenseName: z.enum(standardLicenseNames),
+})
+
+const license = dataFieldSchemas.pick({
+    name: true,
+    link: true,
+})
+
+const licenseId = paramsFieldSchemas.pick({
+    id: true,
+})
+
+const standardLicenseName = paramsFieldSchemas.pick({
+    standardLicenseName: true,
+})
+
 export const licenseSchemas = {
-    create: baseSchema.pick({
-        name: true,
-        link: true,
-    }),
-    update: baseSchema.partial().pick({
-        name: true,
-        link: true,
-    }),
+    data: {
+        create: license,
+        update: license.partial(),
+    },
+    params: {
+        destroy: licenseId,
+        update: licenseId,
+        generateStandardLicense: standardLicenseName,
+        readStandardLicense: standardLicenseName,
+    },
 }

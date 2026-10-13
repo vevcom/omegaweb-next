@@ -10,13 +10,10 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
 import { StandardSchool } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 
 const read = defineOperation({
     authorizer: () => schoolAuth.read,
-    paramsSchema: z.object({
-        shortName: z.string()
-    }),
+    paramsSchema: schoolSchemas.params.read,
     operation: ({ params, prisma }) =>
         prisma.school.findUniqueOrThrow({
             where: {
@@ -31,7 +28,7 @@ const read = defineOperation({
 
 const create = defineOperation({
     authorizer: () => schoolAuth.create,
-    dataSchema: schoolSchemas.create,
+    dataSchema: schoolSchemas.data.create,
     operation: async ({ prisma, data }) => {
         const cmsImage = await cmsImageOperations.create.internalCall({
             data: {},
@@ -74,9 +71,7 @@ const create = defineOperation({
 
 const createStandard = defineOperation({
     authorizer: () => schoolAuth.createStandard,
-    paramsSchema: z.object({
-        standardSchool: z.nativeEnum(StandardSchool)
-    }),
+    paramsSchema: schoolSchemas.params.createStandard,
     operation: ({ params }) =>
         // Called only internally by readStandard to lazily seed missing standard schools, so it
         // bypasses the SCHOOLS_ADMIN authorizer while inheriting the ambient prisma/session.
@@ -91,9 +86,7 @@ const createStandard = defineOperation({
 
 const updateCmsParagraphContent = cmsParagraphOperations.updateContent.implement({
     authorizer: () => schoolAuth.updateCmsParagraphContent,
-    implementationParamsSchema: z.object({
-        shortName: z.string()
-    }),
+    implementationParamsSchema: schoolSchemas.params.updateCmsParagraphContent,
     ownershipCheck: async ({ params, implementationParams }) => {
         const school = await read({ params: implementationParams })
         return school.cmsParagraph.id === params.paragraphId
@@ -102,9 +95,7 @@ const updateCmsParagraphContent = cmsParagraphOperations.updateContent.implement
 
 const updateCmsImage = cmsImageOperations.update.implement({
     authorizer: () => schoolAuth.updateCmsImage,
-    implementationParamsSchema: z.object({
-        shortName: z.string()
-    }),
+    implementationParamsSchema: schoolSchemas.params.updateCmsImage,
     ownershipCheck: async ({ params, implementationParams }) => {
         const school = await read({ params: implementationParams })
         return school.cmsImage.id === params.cmsImageId
@@ -113,9 +104,7 @@ const updateCmsImage = cmsImageOperations.update.implement({
 
 const updateCmsLink = cmsLinkOperations.update.implement({
     authorizer: () => schoolAuth.updateCmsLink,
-    implementationParamsSchema: z.object({
-        shortName: z.string()
-    }),
+    implementationParamsSchema: schoolSchemas.params.updateCmsLink,
     ownershipCheck: async ({ params, implementationParams }) => {
         const school = await read({ params: implementationParams })
         return school.cmsLink.id === params.linkId
@@ -128,9 +117,7 @@ export const schoolOperations = {
     createStandard,
     destroy: defineOperation({
         authorizer: () => schoolAuth.destroy,
-        paramsSchema: z.object({
-            id: z.number()
-        }),
+        paramsSchema: schoolSchemas.params.destroy,
         operation: async ({ prisma, params }) => {
             const school = await prisma.school.findUniqueOrThrow({
                 where: { id: params.id },
@@ -142,7 +129,7 @@ export const schoolOperations = {
     }),
     readExpandedPage: defineOperation({
         authorizer: () => schoolAuth.readExpandedPage,
-        paramsSchema: schoolSchemas.readPage,
+        paramsSchema: schoolSchemas.params.readExpandedPage,
         operation: ({ prisma, params }) =>
             prisma.school.findMany({
                 select: {
@@ -174,7 +161,7 @@ export const schoolOperations = {
     }),
     readMany: defineOperation({
         authorizer: () => schoolAuth.readMany,
-        paramsSchema: schoolSchemas.readMany,
+        paramsSchema: schoolSchemas.params.readMany,
         operation: ({ prisma, params }) =>
             prisma.school.findMany({
                 where: params.onlyNonStandard ? {
@@ -185,10 +172,8 @@ export const schoolOperations = {
     }),
     update: defineOperation({
         authorizer: () => schoolAuth.update,
-        paramsSchema: z.object({
-            id: z.number()
-        }),
-        dataSchema: schoolSchemas.update,
+        paramsSchema: schoolSchemas.params.update,
+        dataSchema: schoolSchemas.data.update,
         operation: ({ prisma, params, data }) =>
             prisma.school.update({
                 where: { id: params.id },

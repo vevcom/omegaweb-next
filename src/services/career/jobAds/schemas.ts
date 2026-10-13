@@ -3,7 +3,7 @@ import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { JobType } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-const baseSchema = z.object({
+const dataFieldSchemas = z.object({
     companyId: z.coerce.number({
         errorMap: () => ({ message: 'Velg en bedrift' }),
     }).int().positive().int(),
@@ -15,30 +15,49 @@ const baseSchema = z.object({
     location: z.string().optional(),
 })
 
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    jobAdId: z.number(),
+    name: z.string().max(100).nullable(),
+    type: z.nativeEnum(JobType).nullable(),
+})
+
+const id = paramsFieldSchemas.pick({
+    id: true,
+})
+
 export const jobAdSchemas = {
-    create: baseSchema.pick({
-        companyId: true,
-        articleName: true,
-        description: true,
-        type: true,
-        applicationDeadline: true,
-        location: true,
-    }),
-    update: baseSchema.partial().pick({
-        companyId: true,
-        description: true,
-        type: true,
-        applicationDeadline: true,
-        active: true,
-        location: true,
-    }),
-    readInactivePage: readPageInputSchemaObject(
-        z.object({
-            id: z.number(),
+    data: {
+        create: dataFieldSchemas.pick({
+            companyId: true,
+            articleName: true,
+            description: true,
+            type: true,
+            applicationDeadline: true,
+            location: true,
         }),
-        z.object({
-            name: z.string().max(100).nullable(),
-            type: z.nativeEnum(JobType).nullable(),
+        update: dataFieldSchemas.partial().pick({
+            companyId: true,
+            description: true,
+            type: true,
+            applicationDeadline: true,
+            active: true,
+            location: true,
         }),
-    ),
+    },
+    params: {
+        read: id,
+        readInactivePage: readPageInputSchemaObject(
+            id,
+            paramsFieldSchemas.pick({
+                name: true,
+                type: true,
+            }),
+        ),
+        update: id,
+        updateArticle: paramsFieldSchemas.pick({
+            jobAdId: true,
+        }),
+        destroy: id,
+    },
 }

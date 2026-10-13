@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { cmsImageAuth } from './auth'
-import { cmsImageParamsSchemas, cmsImageSchemas } from './schemas'
+import { cmsImageSchemas } from './schemas'
 import { cmsImageIncluder } from './constants'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { visibilityIncluder, toMatrix } from '@/services/visibility/implement'
@@ -35,7 +35,7 @@ async function readCollectionOfImage(prisma: PrismaPossibleTransaction<false>, i
 }
 
 const create = defineSubOperation({
-    dataSchema: () => cmsImageSchemas.create,
+    dataSchema: () => cmsImageSchemas.data.create,
     operation: (
         { special }: { special: SpecialCmsImage | null }
     ) => (
@@ -55,7 +55,7 @@ const create = defineSubOperation({
 })
 
 const generateSpecialCmsImageFromConfig = defineSubOperation({
-    paramsSchema: () => cmsImageParamsSchemas.generateSpecialCmsImageFromConfig,
+    paramsSchema: () => cmsImageSchemas.params.generateSpecialCmsImageFromConfig,
     operation: () => async ({ params }) => create.internalCall({
         data: {
             name: params.special,
@@ -69,7 +69,7 @@ export const cmsImageOperations = {
     generateSpecialCmsImageFromConfig,
 
     readSpecial: defineSubOperation({
-        paramsSchema: () => cmsImageParamsSchemas.readSpecial,
+        paramsSchema: () => cmsImageSchemas.params.readSpecial,
         operation: () => async ({ prisma, params }) => {
             const image = await prisma.cmsImage.findUnique({
                 where: {
@@ -84,8 +84,8 @@ export const cmsImageOperations = {
     }),
 
     update: defineSubOperation({
-        paramsSchema: () => cmsImageParamsSchemas.update,
-        dataSchema: () => cmsImageSchemas.update,
+        paramsSchema: () => cmsImageSchemas.params.update,
+        dataSchema: () => cmsImageSchemas.data.update,
         operation: () => async ({ prisma, params, session, bypassAuth, data: { imageId, ...data } }) => {
             // The implementing service authorizes editing the cms image itself, but not the image
             // being linked into it - that is the rule in cmsImageAuth.linkImage.
@@ -117,7 +117,7 @@ export const cmsImageOperations = {
     }),
 
     destroy: defineSubOperation({
-        paramsSchema: () => cmsImageParamsSchemas.destroy,
+        paramsSchema: () => cmsImageSchemas.params.destroy,
         operation: () => async ({ prisma, params }) => {
             const cmsImage = await prisma.cmsImage.findUniqueOrThrow({
                 where: {
@@ -139,7 +139,7 @@ export const cmsImageOperations = {
      * This is useful to do ownership checks for services using special cms images.
      */
     isSpecial: defineSubOperation({
-        paramsSchema: () => cmsImageParamsSchemas.isSpecial,
+        paramsSchema: () => cmsImageSchemas.params.isSpecial,
         operation: () => async ({ prisma, params }) => {
             const image = await prisma.cmsImage.findUnique({
                 where: {

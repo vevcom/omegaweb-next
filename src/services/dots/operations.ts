@@ -4,13 +4,10 @@ import { dotSchemas } from './schemas'
 import { dotsIncluder } from './constants'
 import { expandDots } from './expandDots'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
-import { z } from 'zod'
 import type { DotExpanded } from './types'
 
 const numberOfActiveDotsForUser = defineSubOperation({
-    paramsSchema: () => z.object({
-        userId: z.coerce.number(),
-    }),
+    paramsSchema: () => dotSchemas.params.numberOfActiveDotsForUser,
     operation: () => async ({ prisma, params }) => {
         const dots = await prisma.dot.findMany({
             where: {
@@ -27,10 +24,8 @@ const numberOfActiveDotsForUser = defineSubOperation({
 })
 
 const createInternal = defineSubOperation({
-    paramsSchema: () => z.object({
-        accuserId: z.coerce.number(),
-    }),
-    dataSchema: () => dotSchemas.create,
+    paramsSchema: () => dotSchemas.params.createInternal,
+    dataSchema: () => dotSchemas.data.createInternal,
     operation: () => async ({ prisma, params, data }) => prisma.dot.create({
         data: {
             ...data,
@@ -50,10 +45,8 @@ export const dotOperations = {
     }),
 
     update: defineOperation({
-        paramsSchema: z.object({
-            id: z.coerce.number(),
-        }),
-        dataSchema: dotSchemas.update,
+        paramsSchema: dotSchemas.params.update,
+        dataSchema: dotSchemas.data.update,
         authorizer: () => dotAuth.update,
         operation: async ({ prisma, params, data }) => prisma.dot.update({
             where: {
@@ -64,9 +57,7 @@ export const dotOperations = {
     }),
 
     destroy: defineOperation({
-        paramsSchema: z.object({
-            id: z.coerce.number(),
-        }),
+        paramsSchema: dotSchemas.params.destroy,
         authorizer: () => dotAuth.destroy,
         operation: async ({ prisma, params }) => prisma.dot.delete({
             where: {
@@ -83,10 +74,7 @@ export const dotOperations = {
      * @returns The dots in ascending order of expiry, i.e the dot that expires first comes first.
      */
     readForUser: defineOperation({
-        paramsSchema: z.object({
-            userId: z.coerce.number(),
-            onlyActive: z.boolean().default(false),
-        }),
+        paramsSchema: dotSchemas.params.readForUser,
         authorizer: ({ params }) => dotAuth.readForUser.data({ userId: params.userId }),
         operation: async ({ prisma, params }): Promise<DotExpanded[]> => {
             const [dots, freezePeriods] = await Promise.all([

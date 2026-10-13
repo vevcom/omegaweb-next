@@ -6,9 +6,9 @@ import { z } from 'zod'
 import type { ArgsAuthGetterAndOwnershipCheck, PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { Prisma, SpecialCmsArticle } from '@/prisma-generated-pn-types'
-import type { articleParamsSchemas } from './schemas'
+import type { articleSchemas } from './schemas'
 
-type ParamsSchema = typeof articleParamsSchemas.update
+type ParamsSchema = typeof articleSchemas.params.update
 type OwnedArticle = Prisma.ArticleGetPayload<{
     include: {
         coverImage: true,

@@ -20,8 +20,6 @@ import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
-import { PaymentProvider } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
@@ -80,7 +78,7 @@ async function registrationOwnerAndEventVisibility(
  * What the dots of a user hold them back from when registering to an event.
  */
 const readDotPunishmentOfUser = defineSubOperation({
-    paramsSchema: () => z.object({ userId: z.number().min(0) }),
+    paramsSchema: () => eventRegistrationSchemas.params.readDotPunishmentOfUser,
     operation: () => async ({ prisma, params }): Promise<DotPunishment> => {
         const dots = await dotOperations.internal.numberOfActiveDotsForUser.internalCall({
             params,
@@ -134,10 +132,7 @@ async function validateDotPunishmentOfRegistration(
 
 export const eventRegistrationOperations = {
     create: defineOperation({
-        paramsSchema: z.object({
-            userId: z.number().min(0),
-            eventId: z.number().min(0),
-        }),
+        paramsSchema: eventRegistrationSchemas.params.create,
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.create({
             userId: params.userId,
             doubleLevelMatrix: await eventVisibility(prisma, params.eventId),
@@ -177,10 +172,8 @@ export const eventRegistrationOperations = {
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.createGuest.data({
             visibility: await eventVisibility(prisma, params.eventId)
         }),
-        paramsSchema: z.object({
-            eventId: z.number(),
-        }),
-        dataSchema: eventRegistrationSchemas.createGuest,
+        paramsSchema: eventRegistrationSchemas.params.createGuest,
+        dataSchema: eventRegistrationSchemas.data.createGuest,
         opensTransaction: true,
         operation: async ({ prisma, params, data }): Promise<EventRegistrationWithWaitingList> => {
             await preValidateRegistration(prisma, params.eventId, true)
@@ -224,10 +217,7 @@ export const eventRegistrationOperations = {
             userId: params.userId,
             doubleLevelMatrix: await eventVisibility(prisma, params.eventId),
         }),
-        paramsSchema: z.object({
-            eventId: z.number().min(0),
-            userId: z.number().min(0),
-        }),
+        paramsSchema: eventRegistrationSchemas.params.readOfUser,
         operation: async (
             { prisma, params }
         ): Promise<(EventRegistrationWithWaitingList & { ledgerTransactions: { id: number }[] }) | null> => {
@@ -268,7 +258,7 @@ export const eventRegistrationOperations = {
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPage.data({
             visibility: await eventVisibility(prisma, params.paging.details.eventId)
         }),
-        paramsSchema: eventRegistrationSchemas.readPage,
+        paramsSchema: eventRegistrationSchemas.params.readPage,
         operation: async ({ prisma, params }): Promise<EventRegistrationExpanded[]> => {
             const segment = await queueSegmentFilter(prisma, params.paging.details)
             if (!segment) return []
@@ -295,7 +285,7 @@ export const eventRegistrationOperations = {
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPageDetailed.data({
             visibility: await eventVisibility(prisma, params.paging.details.eventId)
         }),
-        paramsSchema: eventRegistrationSchemas.readPageDetailed,
+        paramsSchema: eventRegistrationSchemas.params.readPageDetailed,
         operation: async ({ prisma, params }) => {
             const segment = await queueSegmentFilter(prisma, params.paging.details)
             if (!segment) return []
@@ -313,10 +303,8 @@ export const eventRegistrationOperations = {
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.updateNotes(
             await registrationOwnerAndEventVisibility(prisma, params.registrationId)
         ),
-        paramsSchema: z.object({
-            registrationId: z.number().min(0),
-        }),
-        dataSchema: eventRegistrationSchemas.updateNotes,
+        paramsSchema: eventRegistrationSchemas.params.updateNotes,
+        dataSchema: eventRegistrationSchemas.data.updateNotes,
         operation: async ({ prisma, params, data }) => {
             const registration = await prisma.eventRegistration.findUniqueOrThrow({
                 where: {
@@ -346,9 +334,7 @@ export const eventRegistrationOperations = {
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.destroy(
             await registrationOwnerAndEventVisibility(prisma, params.registrationId)
         ),
-        paramsSchema: z.object({
-            registrationId: z.number().min(0),
-        }),
+        paramsSchema: eventRegistrationSchemas.params.destroy,
         operation: async ({ prisma, params, session }) => {
             const registration = await prisma.eventRegistration.findUniqueOrThrow({
                 where: {
@@ -425,14 +411,7 @@ export const eventRegistrationOperations = {
      * only required when the balance doesn't cover the full price.
      */
     createPayment: defineOperation({
-        paramsSchema: z.object({
-            userId: z.number().min(0),
-            eventId: z.number().min(0),
-            provider: z.nativeEnum(PaymentProvider).optional(),
-            amountFromBalance: z.coerce.number().nonnegative().default(0),
-            manualFees: z.coerce.number().nonnegative().default(0),
-            description: z.string().optional(),
-        }),
+        paramsSchema: eventRegistrationSchemas.params.createPayment,
         authorizer: ({ params }) => eventRegistrationAuth.createPayment.data({ userId: params.userId }),
         opensTransaction: true,
         operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {

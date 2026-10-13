@@ -10,7 +10,6 @@ import {
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import { GroupType } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 
 const commonGroupOperations = implementGroupType({
     type: GroupType.STUDY_PROGRAMME,
@@ -45,7 +44,7 @@ const migration = implementStraightAwayMigration({
 })
 
 const create = defineOperation({
-    dataSchema: studyProgrammeSchemas.create,
+    dataSchema: studyProgrammeSchemas.data.create,
     authorizer: () => studyProgrammeAuth.create,
     operation: async ({ prisma, data }) => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
@@ -69,7 +68,7 @@ const create = defineOperation({
  * ones as they are stored. Used when Feide tells us which programmes a user belongs to.
  */
 const upsertMany = defineOperation({
-    dataSchema: studyProgrammeSchemas.upsertMany,
+    dataSchema: studyProgrammeSchemas.data.upsertMany,
     authorizer: () => studyProgrammeAuth.upsertMany,
     opensTransaction: true,
     operation: async ({ prisma, data }) => {
@@ -116,9 +115,7 @@ const readMany = defineOperation({
 })
 
 const read = defineOperation({
-    paramsSchema: z.object({
-        id: z.number(),
-    }),
+    paramsSchema: studyProgrammeSchemas.params.read,
     authorizer: () => studyProgrammeAuth.read,
     operation: async ({ prisma, params }) => prisma.studyProgramme.findUniqueOrThrow({
         where: { id: params.id },
@@ -126,10 +123,8 @@ const read = defineOperation({
 })
 
 const update = defineOperation({
-    paramsSchema: z.object({
-        id: z.number(),
-    }),
-    dataSchema: studyProgrammeSchemas.update,
+    paramsSchema: studyProgrammeSchemas.params.update,
+    dataSchema: studyProgrammeSchemas.data.update,
     authorizer: () => studyProgrammeAuth.update,
     operation: async ({ prisma, params, data }) => prisma.studyProgramme.update({
         where: { id: params.id },
@@ -138,9 +133,7 @@ const update = defineOperation({
 })
 
 const destroy = defineOperation({
-    paramsSchema: z.object({
-        id: z.number(),
-    }),
+    paramsSchema: studyProgrammeSchemas.params.destroy,
     authorizer: () => studyProgrammeAuth.destroy,
     opensTransaction: true,
     operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
@@ -163,9 +156,7 @@ const destroy = defineOperation({
  * keeps reporting the programme whether we act on it or not.
  */
 const readFeideReturnedForUser = defineOperation({
-    paramsSchema: z.object({
-        userId: z.number(),
-    }),
+    paramsSchema: studyProgrammeSchemas.params.readFeideReturnedForUser,
     authorizer: () => studyProgrammeAuth.readFeideReturnedForUser,
     operation: async ({ prisma, params }) => prisma.studyProgramme.findMany({
         where: {
@@ -180,12 +171,8 @@ const readFeideReturnedForUser = defineOperation({
  * again. Recording one that is already recorded changes nothing.
  */
 const recordFeideReturnedForUser = defineOperation({
-    paramsSchema: z.object({
-        userId: z.number(),
-    }),
-    dataSchema: z.object({
-        studyProgrammeIds: z.number().array(),
-    }),
+    paramsSchema: studyProgrammeSchemas.params.recordFeideReturnedForUser,
+    dataSchema: studyProgrammeSchemas.data.recordFeideReturnedForUser,
     authorizer: () => studyProgrammeAuth.recordFeideReturnedForUser,
     operation: async ({ prisma, params, data }) => prisma.user.update({
         where: { id: params.userId },

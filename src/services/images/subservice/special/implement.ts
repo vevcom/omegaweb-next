@@ -116,7 +116,7 @@ export function implementSpecialCollection({
     })
 
     const uploadImage = defineSubOperation({
-        dataSchema: () => imageSchemas.uploadImage,
+        dataSchema: () => imageSchemas.data.uploadImage,
         operation: () => async ({ prisma, data }) =>
             imageOperations.uploadImage.internalCall({
                 params: {
@@ -133,7 +133,7 @@ export function implementSpecialCollection({
     // However, for sanity, and to catch any potential bugs, the subservice will
     // enforce ownership of imageId.
     const destroyImageDbAndReturnCleanup = defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        paramsSchema: () => imageSchemas.params.destroyImageDbAndReturnCleanup,
         operation: () => async ({ prisma, params }): Promise<() => Promise<void>> => {
             const collection = await readCollectionInternal({ prisma })
             const image = await prisma.image.findFirst({
@@ -154,7 +154,7 @@ export function implementSpecialCollection({
     })
 
     const destroyImage = defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        paramsSchema: () => imageSchemas.params.destroyImage,
         operation: () => async ({ prisma, params }) => {
             const collection = await readCollectionInternal({ prisma })
             const image = await prisma.image.findFirst({
@@ -176,7 +176,7 @@ export function implementSpecialCollection({
 
     const readPageOfImagesInCollection = defineOperation({
         authorizer: () => imagePanelAuth,
-        paramsSchema: imageSchemas.paramsSchemaReadPageOfImagesInSpecialCollection,
+        paramsSchema: imageSchemas.params.readPageOfImagesInSpecialCollection,
         operation: async ({ prisma, params }) => {
             const collection = await readCollectionInternal({ prisma })
             return imageOperations.readPageOfImagesInCollection.internalCall({

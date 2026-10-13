@@ -5,7 +5,7 @@ import {
     logoIncluder,
     sponsorSelection,
 } from './constants'
-import { companyParamsSchemas, companySchemas } from './schemas'
+import { companySchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
@@ -15,7 +15,7 @@ import type { SponsorCompany } from './types'
 
 export const companyOperations = {
     create: defineOperation({
-        dataSchema: companySchemas.create,
+        dataSchema: companySchemas.data.create,
         authorizer: () => companyAuth.create,
         opensTransaction: true,
         operation: async ({ prisma, data }) => prisma.$transaction(async (tx) => {
@@ -43,7 +43,7 @@ export const companyOperations = {
         })
     }),
     readPage: defineOperation({
-        paramsSchema: companyParamsSchemas.readPage,
+        paramsSchema: companySchemas.params.readPage,
         authorizer: () => companyAuth.readPage,
         operation: async ({ prisma, params }) => await prisma.company.findMany({
             ...cursorPagingSelection(params.paging.page),
@@ -58,8 +58,8 @@ export const companyOperations = {
         })
     }),
     update: defineOperation({
-        paramsSchema: companyParamsSchemas.update,
-        dataSchema: companySchemas.update,
+        paramsSchema: companySchemas.params.update,
+        dataSchema: companySchemas.data.update,
         authorizer: () => companyAuth.update,
         operation: async ({ prisma, params: { id }, data }) => {
             await prisma.company.update({
@@ -69,8 +69,8 @@ export const companyOperations = {
         },
     }),
     updateSponsorTier: defineOperation({
-        paramsSchema: companyParamsSchemas.updateSponsorTier,
-        dataSchema: companySchemas.updateSponsorTier,
+        paramsSchema: companySchemas.params.updateSponsorTier,
+        dataSchema: companySchemas.data.updateSponsorTier,
         authorizer: () => companyAuth.updateSponsorTier,
         opensTransaction: true,
         operation: async ({ prisma, params: { id }, data: { sponsorTier } }) =>
@@ -93,7 +93,7 @@ export const companyOperations = {
             })
     }),
     updateCmsImageLogo: cmsImageOperations.update.implement({
-        implementationParamsSchema: companyParamsSchemas.updateCmsImageLogo,
+        implementationParamsSchema: companySchemas.params.updateCmsImageLogo,
         authorizer: () => companyAuth.updateCmsImageLogo,
         ownershipCheck: async ({ implementationParams, params, prisma }) =>
             (await prisma.company.findUniqueOrThrow({
@@ -102,7 +102,7 @@ export const companyOperations = {
             }))?.logoId === params.cmsImageId
     }),
     destroy: defineOperation({
-        paramsSchema: companyParamsSchemas.destroy,
+        paramsSchema: companySchemas.params.destroy,
         authorizer: () => companyAuth.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params: { id } }) => prisma.$transaction(async (tx) => {

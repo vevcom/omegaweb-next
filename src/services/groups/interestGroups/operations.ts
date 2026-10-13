@@ -14,7 +14,6 @@ import { GroupType } from '@/prisma-generated-pn-types'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { implementUpdateArticleSectionOperations } from '@/cms/articleSections/implement'
 import { ServiceError } from '@/services/error'
-import { z } from 'zod'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 const commonGroupOperations = implementGroupType({
@@ -77,7 +76,7 @@ export const interestGroupOperations = {
     migrateGroup: migration.migrateGroup,
     pension: migration.pension,
     create: defineOperation({
-        dataSchema: interestGroupSchemas.create,
+        dataSchema: interestGroupSchemas.data.create,
         authorizer: () => interestGroupAuth.create,
         operation: async ({ prisma, data }) => {
             const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
@@ -119,9 +118,7 @@ export const interestGroupOperations = {
     }),
 
     read: defineOperation({
-        paramsSchema: z.object({
-            id: z.number().optional(),
-        }),
+        paramsSchema: interestGroupSchemas.params.read,
         authorizer: () => interestGroupAuth.read,
         operation: async ({ prisma, params: { id } }) => await prisma.interestGroup.findUniqueOrThrow({
             where: {
@@ -136,10 +133,8 @@ export const interestGroupOperations = {
     }),
 
     update: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
-        dataSchema: interestGroupSchemas.update,
+        paramsSchema: interestGroupSchemas.params.update,
+        dataSchema: interestGroupSchemas.data.update,
         authorizer: async ({ prisma, params }) => {
             const { groupId } = await prisma.interestGroup.findUniqueOrThrow({
                 where: { id: params.id },
@@ -159,9 +154,7 @@ export const interestGroupOperations = {
     }),
 
     destroy: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: interestGroupSchemas.params.destroy,
         authorizer: () => interestGroupAuth.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params: { id } }) => {
@@ -195,9 +188,7 @@ export const interestGroupOperations = {
             })
     }),
     updateArticleSection: implementUpdateArticleSectionOperations({
-        implementationParamsSchema: z.object({
-            interestGroupId: z.number()
-        }),
+        implementationParamsSchema: interestGroupSchemas.params.updateArticleSection,
         authorizer: async ({ implementationParams, prisma }) => {
             const { groupId } = await prisma.interestGroup.findUniqueOrThrow({
                 where: { id: implementationParams.interestGroupId },

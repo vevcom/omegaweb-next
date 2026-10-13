@@ -1,5 +1,6 @@
 import '@pn-server-only'
 import { StandardImageConfig } from './constants'
+import { standardImageCollectionSchemas } from './schemas'
 import { standardImageCollectionAuth, standardImagesImagePanelAuth } from './auth'
 import { implementSpecialCollection } from '@/services/images/subservice/special/implement'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
@@ -9,7 +10,6 @@ import { StandardImage } from '@/prisma-generated-pn-types'
 import { imageOperations } from '@/services/images/subservice/operations'
 import { licenseOperations } from '@/services/licenses/operations'
 import { allowedExtensions, expandedImageIncluder } from '@/services/images/subservice/constants'
-import { z } from 'zod'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
 const {
@@ -31,9 +31,7 @@ const {
 })
 
 const generateStandardImageFromConfig = defineSubOperation({
-    paramsSchema: () => z.object({
-        standardImage: z.nativeEnum(StandardImage)
-    }),
+    paramsSchema: () => standardImageCollectionSchemas.params.generateStandardImageFromConfig,
     operation: () => async ({ prisma, params }) => {
         const config = StandardImageConfig[params.standardImage]
         const existingImage = await prisma.image.findUnique({
@@ -73,9 +71,7 @@ const generateStandardImageFromConfig = defineSubOperation({
  * to it survive, and its file is only re-stored when it actually differs from the configured one.
  */
 const updateStandardImageFromConfig = defineSubOperation({
-    paramsSchema: () => z.object({
-        standardImage: z.nativeEnum(StandardImage)
-    }),
+    paramsSchema: () => standardImageCollectionSchemas.params.updateStandardImageFromConfig,
     opensTransaction: true,
     operation: () => async ({ prisma, params }) => {
         const config = StandardImageConfig[params.standardImage]
@@ -113,9 +109,7 @@ const updateStandardImageFromConfig = defineSubOperation({
 
 const readStandardImage = defineOperation({
     authorizer: () => standardImageCollectionAuth.readStandardImage,
-    paramsSchema: z.object({
-        standardImage: z.nativeEnum(StandardImage)
-    }),
+    paramsSchema: standardImageCollectionSchemas.params.readStandardImage,
     operation: async ({ prisma, params }) => {
         const image = await prisma.image.findUnique({
             where: {

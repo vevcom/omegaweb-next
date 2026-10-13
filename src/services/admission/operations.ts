@@ -7,12 +7,11 @@ import { ServiceError } from '@/services/error'
 import { omegaMembershipGroupOperations, writeUserLevel } from '@/services/groups/omegaMembershipGroups/operations'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { Admission } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 import type { ExpandedAdmissionTrail } from './types'
 
 export const admissionOperations = {
     readTrial: defineOperation({
-        paramsSchema: admissionSchemas.readTrial,
+        paramsSchema: admissionSchemas.params.readTrial,
         authorizer: ({ params }) => admissionAuth.readTrial.data({ userId: params.userId }),
         operation: async ({ prisma, params: { userId } }) => await prisma.admissionTrial.findMany({
             where: {
@@ -26,7 +25,7 @@ export const admissionOperations = {
      * as a sysken. A user holds at most one trial per admission, so counting them is enough.
      */
     userCompletedTrials: defineOperation({
-        paramsSchema: admissionSchemas.userCompletedTrials,
+        paramsSchema: admissionSchemas.params.userCompletedTrials,
         authorizer: ({ params }) => admissionAuth.userCompletedTrials.data({ userId: params.userId }),
         operation: async ({ prisma, params: { userId } }): Promise<boolean> => {
             const trials = await prisma.admissionTrial.count({
@@ -47,10 +46,8 @@ export const admissionOperations = {
      */
     createTrial: defineOperation({
         authorizer: () => admissionAuth.createTrial,
-        paramsSchema: z.object({
-            admission: z.nativeEnum(Admission),
-        }),
-        dataSchema: admissionSchemas.createTrial,
+        paramsSchema: admissionSchemas.params.createTrial,
+        dataSchema: admissionSchemas.data.createTrial,
         opensTransaction: true,
         operation: async ({ prisma, session, params, data }): Promise<ExpandedAdmissionTrail> => {
             // Read before the transaction is opened: a user whose omega memberships are in a broken

@@ -3,13 +3,13 @@ import { articleSectionOperations } from './operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsLinkOperations } from '@/cms/links/operations'
-import type { articleSectionParamsSchemas } from './schemas'
+import type { articleSectionSchemas } from './schemas'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 import type { ArgsAuthGetterAndOwnershipCheck, PrismaPossibleTransaction } from '@/services/serviceOperation'
 
-type ParamsSchema = typeof articleSectionParamsSchemas.addPart
+type ParamsSchema = typeof articleSectionSchemas.params.addPart
 type OwnedArticleSection = Prisma.ArticleSectionGetPayload<{
     include: {
         cmsImage: true,

@@ -14,7 +14,7 @@ export type StandardStoreFile = {
     credit: () => string | null,
     license: () => StandardLicenseName | null,
     originOfFile: () => URL | string
-    imageUploadData: (imageData: { name: string, alt: string }) => Promise<z.input<typeof imageSchemas.uploadImage>>
+    imageUploadData: (imageData: { name: string, alt: string }) => Promise<z.input<typeof imageSchemas.data.uploadImage>>
 }
 
 const standardStoreFile = (config: {

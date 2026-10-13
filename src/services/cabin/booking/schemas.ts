@@ -3,19 +3,7 @@ import { Zpn } from '@/lib/fields/zpn'
 import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-const fieldSchemas = z.object({
-    id: z.number(),
-    userId: z.number(),
-    bookingId: z.number(),
-    secret: z.string().min(1),
-    bookingProducts: z.array(z.object({
-        cabinProductId: z.number(),
-        quantity: z.number().int().min(1),
-    })),
-    provider: z.nativeEnum(PaymentProvider).optional(),
-    amountFromBalance: z.coerce.number().nonnegative().default(0),
-    manualFees: z.coerce.number().nonnegative().default(0),
-    description: z.string().optional(),
+const dataFieldSchemas = z.object({
     start: z.coerce.date(),
     end: z.coerce.date(),
     tenantNotes: z.string().optional(),
@@ -31,11 +19,26 @@ const fieldSchemas = z.object({
     })
 })
 
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    userId: z.number(),
+    bookingId: z.number(),
+    secret: z.string().min(1),
+    bookingProducts: z.array(z.object({
+        cabinProductId: z.number(),
+        quantity: z.number().int().min(1),
+    })),
+    provider: z.nativeEnum(PaymentProvider).optional(),
+    amountFromBalance: z.coerce.number().nonnegative().default(0),
+    manualFees: z.coerce.number().nonnegative().default(0),
+    description: z.string().optional(),
+})
+
 const startsBeforeEndAndNotInThePast = (data: { start: Date, end: Date }) =>
     dateLessThan(data.start, data.end) && dateLessThanOrEqualTo(new Date(), data.start)
 const datesMessage = 'Startdatoen må være før sluttdatoen, og kan ikke være i fortiden.'
 
-const bookingUserAttached = fieldSchemas.pick({
+const bookingUserAttached = dataFieldSchemas.pick({
     start: true,
     end: true,
     tenantNotes: true,
@@ -44,7 +47,7 @@ const bookingUserAttached = fieldSchemas.pick({
     numberOfNonMembers: true,
 }).refine(startsBeforeEndAndNotInThePast, datesMessage)
 
-const bookingNoUser = fieldSchemas.pick({
+const bookingNoUser = dataFieldSchemas.pick({
     start: true,
     end: true,
     tenantNotes: true,
@@ -55,42 +58,43 @@ const bookingNoUser = fieldSchemas.pick({
     mobile: true,
 }).refine(startsBeforeEndAndNotInThePast, datesMessage)
 
-export const cabinBookingSchemas = {
-    createCabinBookingUserAttached: bookingUserAttached,
-    createBedBookingUserAttached: bookingUserAttached,
-    createCabinBookingNoUser: bookingNoUser,
-    createBedBookingNoUser: bookingNoUser,
-} as const
-
-const bookingUserAttachedParams = fieldSchemas.pick({
+const bookingUserAttachedParams = paramsFieldSchemas.pick({
     userId: true,
     bookingProducts: true,
 })
 
-const bookingNoUserParams = fieldSchemas.pick({
+const bookingNoUserParams = paramsFieldSchemas.pick({
     bookingProducts: true,
 })
 
-const bookingAccess = fieldSchemas.pick({
+const bookingAccess = paramsFieldSchemas.pick({
     bookingId: true,
     secret: true,
 })
 
-export const cabinBookingParamsSchemas = {
-    createCabinBookingUserAttached: bookingUserAttachedParams,
-    createBedBookingUserAttached: bookingUserAttachedParams,
-    createCabinBookingNoUser: bookingNoUserParams,
-    createBedBookingNoUser: bookingNoUserParams,
-    read: fieldSchemas.pick({
-        id: true,
-    }),
-    createPayment: fieldSchemas.pick({
-        bookingId: true,
-        secret: true,
-        provider: true,
-        amountFromBalance: true,
-        manualFees: true,
-        description: true,
-    }),
-    releaseReservation: bookingAccess,
-} as const
+export const cabinBookingSchemas = {
+    data: {
+        createCabinBookingUserAttached: bookingUserAttached,
+        createBedBookingUserAttached: bookingUserAttached,
+        createCabinBookingNoUser: bookingNoUser,
+        createBedBookingNoUser: bookingNoUser,
+    },
+    params: {
+        createCabinBookingUserAttached: bookingUserAttachedParams,
+        createBedBookingUserAttached: bookingUserAttachedParams,
+        createCabinBookingNoUser: bookingNoUserParams,
+        createBedBookingNoUser: bookingNoUserParams,
+        read: paramsFieldSchemas.pick({
+            id: true,
+        }),
+        createPayment: paramsFieldSchemas.pick({
+            bookingId: true,
+            secret: true,
+            provider: true,
+            amountFromBalance: true,
+            manualFees: true,
+            description: true,
+        }),
+        releaseReservation: bookingAccess,
+    },
+}

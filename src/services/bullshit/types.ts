@@ -5,4 +5,4 @@ import type { Bullshit } from '@/prisma-generated-pn-types'
 
 export type BullshitFiltered = Pick<Bullshit, typeof bullshitFieldsToExpose[number]>
 
-export type BullshitCursor = InferPagingCursor<typeof bullshitSchemas.readPage>
+export type BullshitCursor = InferPagingCursor<typeof bullshitSchemas.params.readPage>

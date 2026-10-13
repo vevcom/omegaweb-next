@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from './cabinPriceCalculator'
-import { cabinBookingParamsSchemas, cabinBookingSchemas } from './schemas'
+import { cabinBookingSchemas } from './schemas'
 import { cabinBookingAuth } from './auth'
 import {
     cabinBookingFilterSelection,
@@ -42,7 +42,7 @@ const blocksCalendar = (): Prisma.BookingWhereInput => ({
     ],
 })
 
-type BookingProductParams = z.infer<typeof cabinBookingParamsSchemas.createCabinBookingNoUser>['bookingProducts']
+type BookingProductParams = z.infer<typeof cabinBookingSchemas.params.createCabinBookingNoUser>['bookingProducts']
 
 type Booker = { userId: number } | {
     guest: { firstname: string, lastname: string, email: string, mobile: string },
@@ -62,7 +62,7 @@ type Reservation = {
 const withUser = (
     bookingType: BookingType,
     params: { userId: number, bookingProducts: BookingProductParams },
-    data: z.infer<typeof cabinBookingSchemas.createCabinBookingUserAttached>,
+    data: z.infer<typeof cabinBookingSchemas.data.createCabinBookingUserAttached>,
 ): Reservation => ({
     bookingType,
     bookingProducts: params.bookingProducts,
@@ -77,7 +77,7 @@ const withUser = (
 const asGuest = (
     bookingType: BookingType,
     params: { bookingProducts: BookingProductParams },
-    data: z.infer<typeof cabinBookingSchemas.createCabinBookingNoUser>,
+    data: z.infer<typeof cabinBookingSchemas.data.createCabinBookingNoUser>,
 ): Reservation => ({
     bookingType,
     bookingProducts: params.bookingProducts,
@@ -204,33 +204,33 @@ async function reserve(prisma: PrismaClient, { bookingType, bookingProducts, boo
 
 export const cabinBookingOperations = {
     createCabinBookingUserAttached: defineOperation({
-        paramsSchema: cabinBookingParamsSchemas.createCabinBookingUserAttached,
+        paramsSchema: cabinBookingSchemas.params.createCabinBookingUserAttached,
         authorizer: ({ params }) => cabinBookingAuth.createCabinBookingUserAttached.data({ userId: params.userId }),
-        dataSchema: cabinBookingSchemas.createCabinBookingUserAttached,
+        dataSchema: cabinBookingSchemas.data.createCabinBookingUserAttached,
         opensTransaction: true,
         operation: ({ prisma, params, data }) => reserve(prisma, withUser('CABIN', params, data)),
     }),
 
     createBedBookingUserAttached: defineOperation({
-        paramsSchema: cabinBookingParamsSchemas.createBedBookingUserAttached,
+        paramsSchema: cabinBookingSchemas.params.createBedBookingUserAttached,
         authorizer: ({ params }) => cabinBookingAuth.createBedBookingUserAttached.data({ userId: params.userId }),
-        dataSchema: cabinBookingSchemas.createBedBookingUserAttached,
+        dataSchema: cabinBookingSchemas.data.createBedBookingUserAttached,
         opensTransaction: true,
         operation: ({ prisma, params, data }) => reserve(prisma, withUser('BED', params, data)),
     }),
 
     createCabinBookingNoUser: defineOperation({
-        paramsSchema: cabinBookingParamsSchemas.createCabinBookingNoUser,
+        paramsSchema: cabinBookingSchemas.params.createCabinBookingNoUser,
         authorizer: () => cabinBookingAuth.createCabinBookingNoUser,
-        dataSchema: cabinBookingSchemas.createCabinBookingNoUser,
+        dataSchema: cabinBookingSchemas.data.createCabinBookingNoUser,
         opensTransaction: true,
         operation: ({ prisma, params, data }) => reserve(prisma, asGuest('CABIN', params, data)),
     }),
 
     createBedBookingNoUser: defineOperation({
-        paramsSchema: cabinBookingParamsSchemas.createBedBookingNoUser,
+        paramsSchema: cabinBookingSchemas.params.createBedBookingNoUser,
         authorizer: () => cabinBookingAuth.createBedBookingNoUser,
-        dataSchema: cabinBookingSchemas.createBedBookingNoUser,
+        dataSchema: cabinBookingSchemas.data.createBedBookingNoUser,
         opensTransaction: true,
         operation: ({ prisma, params, data }) => reserve(prisma, asGuest('BED', params, data)),
     }),
@@ -267,7 +267,7 @@ export const cabinBookingOperations = {
 
     read: defineOperation({
         authorizer: () => cabinBookingAuth.read,
-        paramsSchema: cabinBookingParamsSchemas.read,
+        paramsSchema: cabinBookingSchemas.params.read,
         operation: ({ prisma, params }) => prisma.booking.findUniqueOrThrow({
             where: params,
             include: cabinBookingIncluder,
@@ -298,7 +298,7 @@ export const cabinBookingOperations = {
      * cover the full price.
      */
     createPayment: defineOperation({
-        paramsSchema: cabinBookingParamsSchemas.createPayment,
+        paramsSchema: cabinBookingSchemas.params.createPayment,
         authorizer: async ({ params, prisma }) => {
             const booking = await prisma.booking.findUnique({
                 where: { id: params.bookingId },
@@ -458,7 +458,7 @@ export const cabinBookingOperations = {
      * releasing while a new payment attempt is being started fails and asks for a retry.
      */
     releaseReservation: defineOperation({
-        paramsSchema: cabinBookingParamsSchemas.releaseReservation,
+        paramsSchema: cabinBookingSchemas.params.releaseReservation,
         authorizer: async ({ params, prisma }) => {
             const booking = await prisma.booking.findUnique({
                 where: { id: params.bookingId },

@@ -9,7 +9,7 @@ export const StandardSchoolsConfig = {
         name: 'Norges tekniske og naturvitenskapelige universitet',
         shortName: 'NTNU',
     }
-} as const satisfies Record<StandardSchool, Pick<z.infer<typeof schoolSchemas.create>, 'name' | 'shortName'>>
+} as const satisfies Record<StandardSchool, Pick<z.infer<typeof schoolSchemas.data.create>, 'name' | 'shortName'>>
 
 export const SchoolFieldsToExpose = [
     'name',

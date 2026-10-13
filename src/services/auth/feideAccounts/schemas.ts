@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const fieldSchemas = z.object({
+const dataFieldSchemas = z.object({
     id: z.string(),
     userId: z.number(),
     email: z.string().trim().toLowerCase(),
@@ -8,24 +8,29 @@ const fieldSchemas = z.object({
     issuedAt: z.date(),
 })
 
-export const feideAccountSchemas = {
-    create: fieldSchemas.pick({
-        id: true,
-        userId: true,
-        email: true,
-        expiresAt: true,
-        issuedAt: true,
-    }),
-    updateEmail: fieldSchemas.pick({
-        email: true,
-    }),
-} as const
-
-const feideAccountId = z.object({
-    feideAccountId: fieldSchemas.shape.id,
+const paramsFieldSchemas = z.object({
+    feideAccountId: z.string(),
 })
 
-export const feideAccountParamsSchemas = {
-    readUser: feideAccountId,
-    updateEmail: feideAccountId,
-} as const
+const feideAccountId = paramsFieldSchemas.pick({
+    feideAccountId: true,
+})
+
+export const feideAccountSchemas = {
+    data: {
+        create: dataFieldSchemas.pick({
+            id: true,
+            userId: true,
+            email: true,
+            expiresAt: true,
+            issuedAt: true,
+        }),
+        updateEmail: dataFieldSchemas.pick({
+            email: true,
+        }),
+    },
+    params: {
+        readUser: feideAccountId,
+        updateEmail: feideAccountId,
+    },
+}

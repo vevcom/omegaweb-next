@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { feideAccountParamsSchemas, feideAccountSchemas } from './schemas'
+import { feideAccountSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
 
 /**
@@ -7,7 +7,7 @@ import { defineSubOperation } from '@/services/serviceOperation'
  */
 export const feideAccountOperations = {
     create: defineSubOperation({
-        dataSchema: () => feideAccountSchemas.create,
+        dataSchema: () => feideAccountSchemas.data.create,
         operation: () => ({ prisma, data: { userId, ...feideAccount } }) => prisma.feideAccount.create({
             data: {
                 ...feideAccount,
@@ -18,7 +18,7 @@ export const feideAccountOperations = {
 
     /** The user a Feide account is linked to - null when there is no account with the id. */
     readUser: defineSubOperation({
-        paramsSchema: () => feideAccountParamsSchemas.readUser,
+        paramsSchema: () => feideAccountSchemas.params.readUser,
         operation: () => async ({ prisma, params }) => {
             const feideAccount = await prisma.feideAccount.findUnique({
                 where: { id: params.feideAccountId },
@@ -29,8 +29,8 @@ export const feideAccountOperations = {
     }),
 
     updateEmail: defineSubOperation({
-        paramsSchema: () => feideAccountParamsSchemas.updateEmail,
-        dataSchema: () => feideAccountSchemas.updateEmail,
+        paramsSchema: () => feideAccountSchemas.params.updateEmail,
+        dataSchema: () => feideAccountSchemas.data.updateEmail,
         operation: () => ({ prisma, params, data }) => prisma.feideAccount.update({
             where: { id: params.feideAccountId },
             data,

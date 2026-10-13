@@ -1,16 +1,15 @@
 import '@pn-server-only'
 import { flairAuth } from './auth'
-import { flairSchema } from './schemas'
+import { flairSchemas } from './schemas'
 import { flairImageOperations } from './flairImageCollection'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { z } from 'zod'
 
 export const flairOperations = {
     create: defineOperation({
         authorizer: () => flairAuth.create,
-        dataSchema: flairSchema.create,
+        dataSchema: flairSchemas.data.create,
         opensTransaction: true,
         operation: ({ prisma, data }) =>
             prisma.$transaction(async tx => {
@@ -32,10 +31,8 @@ export const flairOperations = {
     }),
     update: defineOperation({
         authorizer: () => flairAuth.update,
-        dataSchema: flairSchema.update,
-        paramsSchema: z.object({
-            flairId: z.number()
-        }),
+        dataSchema: flairSchemas.data.update,
+        paramsSchema: flairSchemas.params.update,
         operation: ({ prisma, params, data }) =>
             prisma.flair.update({
                 where: {
@@ -51,10 +48,8 @@ export const flairOperations = {
     }),
     updateImage: defineOperation({
         authorizer: () => flairAuth.updateImage,
-        paramsSchema: z.object({
-            flairId: z.number()
-        }),
-        dataSchema: flairSchema.updateImage,
+        paramsSchema: flairSchemas.params.updateImage,
+        dataSchema: flairSchemas.data.updateImage,
         opensTransaction: true,
         operation: async ({ prisma, params, data }) => {
             const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
@@ -87,9 +82,7 @@ export const flairOperations = {
     }),
     read: defineOperation({
         authorizer: () => flairAuth.read,
-        paramsSchema: z.object({
-            flairId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.read,
         operation: async ({ prisma, params: { flairId } }) =>
             await prisma.flair.findUniqueOrThrow({
                 where: {
@@ -129,9 +122,7 @@ export const flairOperations = {
     }),
     readUserFlairs: defineOperation({
         authorizer: ({ params }) => flairAuth.readUserFlairs.data({ userId: params.userId }),
-        paramsSchema: z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.readUserFlairs,
         operation: async ({ prisma, params: { userId } }) =>
             await prisma.user.findUniqueOrThrow({
                 where: {
@@ -148,10 +139,7 @@ export const flairOperations = {
     }),
     assignToUser: defineOperation({
         authorizer: () => flairAuth.assignToUser,
-        paramsSchema: z.object({
-            flairId: z.number(),
-            userId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.assignToUser,
         operation: async ({ prisma, params }) => {
             const flair = await prisma.flair.findUnique({
                 where: { id: params.flairId }
@@ -178,10 +166,7 @@ export const flairOperations = {
     }),
     unAssignToUser: defineOperation({
         authorizer: () => flairAuth.unAssignToUser,
-        paramsSchema: z.object({
-            flairId: z.number(),
-            userId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.unAssignToUser,
         operation: async ({ prisma, params }) =>
             await prisma.flair.update({
                 where: {
@@ -199,9 +184,7 @@ export const flairOperations = {
     }),
     destroy: defineOperation({
         authorizer: () => flairAuth.destroy,
-        paramsSchema: z.object({
-            flairId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params: { flairId } }) => {
             const { cleanup } = await prisma.$transaction(async tx => {
@@ -225,9 +208,7 @@ export const flairOperations = {
     }),
     increaseRank: defineOperation({
         authorizer: () => flairAuth.increaseRank,
-        paramsSchema: z.object({
-            flairId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.increaseRank,
         operation: async ({ prisma, params: { flairId } }) => {
             const flair = await prisma.flair.findUniqueOrThrow({
                 where: { id: flairId }
@@ -262,9 +243,7 @@ export const flairOperations = {
     }),
     decreaseRank: defineOperation({
         authorizer: () => flairAuth.decreaseRank,
-        paramsSchema: z.object({
-            flairId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.decreaseRank,
         operation: async ({ prisma, params: { flairId } }) => {
             const flair = await prisma.flair.findUniqueOrThrow({
                 where: { id: flairId }

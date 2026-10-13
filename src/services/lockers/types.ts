@@ -7,4 +7,4 @@ export type LockerWithReservation = Prisma.LockerGetPayload<{
     include: typeof lockerReservationIncluder,
 }>
 
-export type LockerCursor = InferPagingCursor<typeof lockersSchemas.readPage>
+export type LockerCursor = InferPagingCursor<typeof lockersSchemas.params.readPage>

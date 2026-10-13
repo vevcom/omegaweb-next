@@ -21,6 +21,6 @@ export type EventExpanded = EventFiltered & {
     tags: EventTag[],
 }
 
-export type EventArchiveCursor = InferPagingCursor<typeof eventSchemas.readManyArchivedPage>
+export type EventArchiveCursor = InferPagingCursor<typeof eventSchemas.params.readManyArchivedPage>
 
-export type EventArchiveDetails = InferPagingDetails<typeof eventSchemas.readManyArchivedPage>
+export type EventArchiveDetails = InferPagingDetails<typeof eventSchemas.params.readManyArchivedPage>

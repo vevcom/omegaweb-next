@@ -2,8 +2,6 @@ import '@pn-server-only'
 import { notificationAuth } from './auth'
 import { notificationSchemas } from './schemas'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
-import { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 import type { NotificationResult } from './types'
 
 export const notificationOperations = {
@@ -17,7 +15,7 @@ export const notificationOperations = {
      */
     create: defineOperation({
         authorizer: () => notificationAuth.create,
-        dataSchema: notificationSchemas.create,
+        dataSchema: notificationSchemas.data.create,
         operation: async ({ prisma, data }): Promise<NotificationResult> => {
             // This prevents notifications from being created - and later dispatched by the
             // notification worker - during seeding.
@@ -63,10 +61,8 @@ export const notificationOperations = {
      * @returns A promise that resolves with an object containing the dispatched notification and the number of recipients.
      */
     createSpecial: defineSubOperation({
-        paramsSchema: () => z.object({
-            special: z.nativeEnum(SpecialNotificationChannel),
-        }),
-        dataSchema: () => notificationSchemas.createSpecial,
+        paramsSchema: () => notificationSchemas.params.createSpecial,
+        dataSchema: () => notificationSchemas.data.createSpecial,
         operation: () => async ({ prisma, params, data, session }): Promise<NotificationResult> => {
             const channel = await prisma.notificationChannel.findUniqueOrThrow({
                 where: {

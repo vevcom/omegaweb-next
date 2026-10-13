@@ -7,23 +7,18 @@ import {
     allNotificationMethodsOn,
     notificationMethodsArray,
 } from '@/services/notifications/constants'
-import { notificationMethodSchema } from '@/services/notifications/schemas'
 import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
 import { defineOperation } from '@/services/serviceOperation'
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
 import { ServiceError } from '@/services/error'
-import { z } from 'zod'
 import type { ExpandedNotificationChannel, NotificationMethodGeneral } from '@/services/notifications/types'
 
 export const notificationChannelOperations = {
     create: defineOperation({
         authorizer: () => notificationChannelAuth.create,
-        dataSchema: notificationChannelSchemas.create,
+        dataSchema: notificationChannelSchemas.data.create,
         opensTransaction: true,
-        paramsSchema: z.object({
-            availableMethods: notificationMethodSchema,
-            defaultMethods: notificationMethodSchema,
-        }),
+        paramsSchema: notificationChannelSchemas.params.create,
         operation: async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
             if (!validateMethods(params.availableMethods, params.defaultMethods)) {
                 throw new ServiceError('BAD PARAMETERS', 'Default methods cannot exceed available methods.')
@@ -127,12 +122,8 @@ export const notificationChannelOperations = {
 
     update: defineOperation({
         authorizer: () => notificationChannelAuth.update,
-        dataSchema: notificationChannelSchemas.update,
-        paramsSchema: z.object({
-            id: z.number(),
-            availableMethods: notificationMethodSchema,
-            defaultMethods: notificationMethodSchema,
-        }),
+        dataSchema: notificationChannelSchemas.data.update,
+        paramsSchema: notificationChannelSchemas.params.update,
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => {
             if (!validateMethods(params.availableMethods, params.defaultMethods)) {
@@ -221,9 +212,7 @@ export const notificationChannelOperations = {
     // It doesn't seem that this function is used yet. -Theodor
     destroy: defineOperation({
         authorizer: () => notificationChannelAuth.destroy,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: notificationChannelSchemas.params.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params }) => prisma.$transaction(async (tx) => {
             // NOTE: this should maybe be just a archive not a delete

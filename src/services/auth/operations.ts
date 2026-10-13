@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { authAuth } from './auth'
-import { authParamsSchemas, authSchemas } from './schemas'
+import { authSchemas, linkFeideAccountClaimsSchema } from './schemas'
 import { moveFeideAccountToUser } from './feideAccounts/move'
 import { userBasicSelection } from '@/services/users/constants'
 import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
@@ -14,7 +14,7 @@ import logger from '@/lib/logger'
 
 /** Verifies and reads the claims of a link Feide account token. */
 function readLinkFeideAccountClaims(token: string) {
-    const claims = authSchemas.linkFeideAccountClaims.safeParse(verifyJWT(token, 'linkfeideaccount'))
+    const claims = linkFeideAccountClaimsSchema.safeParse(verifyJWT(token, 'linkfeideaccount'))
 
     if (!claims.success) {
         throw new ServiceError('JWT INVALID', 'The JWT does not contain the mandatory fields')
@@ -25,7 +25,7 @@ function readLinkFeideAccountClaims(token: string) {
 
 export const authOperations = {
     verifyEmail: defineOperation({
-        paramsSchema: authParamsSchemas.verifyEmail,
+        paramsSchema: authSchemas.params.verifyEmail,
         authorizer: () => authAuth.verifyEmail,
         operation: async ({ prisma, params }) => {
             const payload = verifyJWT(params.token, 'verifyemail')
@@ -71,7 +71,7 @@ export const authOperations = {
     }),
 
     verifyResetPasswordToken: defineOperation({
-        paramsSchema: authParamsSchemas.verifyResetPasswordToken,
+        paramsSchema: authSchemas.params.verifyResetPasswordToken,
         authorizer: () => authAuth.verifyResetPasswordToken,
         operation: async ({ prisma, params }) => {
             const payload = verifyJWT(params.token, 'resetpassword')
@@ -100,8 +100,8 @@ export const authOperations = {
     }),
 
     resetPassword: defineOperation({
-        paramsSchema: authParamsSchemas.resetPassword,
-        dataSchema: authSchemas.resetPassword,
+        paramsSchema: authSchemas.params.resetPassword,
+        dataSchema: authSchemas.data.resetPassword,
         authorizer: () => authAuth.resetPassword,
         operation: async ({ params, data }) => {
             const userId = await authOperations.verifyResetPasswordToken({ params })
@@ -117,8 +117,8 @@ export const authOperations = {
     }),
 
     sendLinkFeideAccountEmail: defineOperation({
-        paramsSchema: authParamsSchemas.sendLinkFeideAccountEmail,
-        dataSchema: authSchemas.sendLinkFeideAccountEmail,
+        paramsSchema: authSchemas.params.sendLinkFeideAccountEmail,
+        dataSchema: authSchemas.data.sendLinkFeideAccountEmail,
         authorizer: ({ params }) => authAuth.sendLinkFeideAccountEmail.data({ userId: params.userId }),
         operation: async ({ prisma, data, params }) => {
             // Only a user created by a Feide login that has not completed registration may ask
@@ -189,7 +189,7 @@ export const authOperations = {
      * the user has no Feide account.
      */
     readFeideLoginMatch: defineOperation({
-        paramsSchema: authParamsSchemas.readFeideLoginMatch,
+        paramsSchema: authSchemas.params.readFeideLoginMatch,
         authorizer: ({ params }) => authAuth.readFeideLoginMatch.data({ userId: params.userId }),
         operation: async ({ prisma, params }) => {
             const user = await prisma.user.findUniqueOrThrow({
@@ -210,7 +210,7 @@ export const authOperations = {
     }),
 
     verifyLinkFeideAccountToken: defineOperation({
-        paramsSchema: authParamsSchemas.verifyLinkFeideAccountToken,
+        paramsSchema: authSchemas.params.verifyLinkFeideAccountToken,
         authorizer: () => authAuth.verifyLinkFeideAccountToken,
         operation: async ({ prisma, params }) => {
             const claims = readLinkFeideAccountClaims(params.token)
@@ -231,7 +231,7 @@ export const authOperations = {
     }),
 
     linkFeideAccount: defineOperation({
-        paramsSchema: authParamsSchemas.linkFeideAccount,
+        paramsSchema: authSchemas.params.linkFeideAccount,
         authorizer: () => authAuth.linkFeideAccount,
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
@@ -246,7 +246,7 @@ export const authOperations = {
     }),
 
     adminLinkFeideAccount: defineOperation({
-        dataSchema: authSchemas.adminLinkFeideAccount,
+        dataSchema: authSchemas.data.adminLinkFeideAccount,
         authorizer: () => authAuth.adminLinkFeideAccount,
         opensTransaction: true,
         operation: async ({ prisma, data }) => {
@@ -267,7 +267,7 @@ export const authOperations = {
     }),
 
     sendResetPasswordEmail: defineOperation({
-        dataSchema: authSchemas.sendResetPasswordEmail,
+        dataSchema: authSchemas.data.sendResetPasswordEmail,
         authorizer: () => authAuth.sendResetPasswordEmail,
         operation: async ({ data }) => {
             // Not awaited: the response must not wait on the lookup or the mail server, or how long

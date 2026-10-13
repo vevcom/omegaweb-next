@@ -3,8 +3,7 @@ import { convertAmount } from '@/lib/currency/convert'
 import { BookingType } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-const fieldSchemas = z.object({
-    id: z.number(),
+const dataFieldSchemas = z.object({
     type: z.nativeEnum(BookingType),
     amount: z.coerce.number().int().min(0),
     name: z.string().min(2),
@@ -15,27 +14,32 @@ const fieldSchemas = z.object({
     pricePeriodId: z.coerce.number(),
 })
 
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    cabinProductId: z.number(),
+})
+
 export const cabinProductSchemas = {
-    create: fieldSchemas.pick({
-        name: true,
-        type: true,
-        amount: true,
-    }),
-
-    createPrice: fieldSchemas.pick({
-        description: true,
-        price: true,
-        cronInterval: true,
-        memberShare: true,
-        pricePeriodId: true,
-    }),
-} as const
-
-export const cabinProductParamsSchemas = {
-    createPrice: z.object({
-        cabinProductId: fieldSchemas.shape.id,
-    }),
-    read: fieldSchemas.pick({
-        id: true,
-    }),
-} as const
+    data: {
+        create: dataFieldSchemas.pick({
+            name: true,
+            type: true,
+            amount: true,
+        }),
+        createPrice: dataFieldSchemas.pick({
+            description: true,
+            price: true,
+            cronInterval: true,
+            memberShare: true,
+            pricePeriodId: true,
+        }),
+    },
+    params: {
+        createPrice: paramsFieldSchemas.pick({
+            cabinProductId: true,
+        }),
+        read: paramsFieldSchemas.pick({
+            id: true,
+        }),
+    },
+}

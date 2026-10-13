@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { cabinPricePeriodAuth } from './auth'
-import { cabinPricePeriodParamsSchemas, cabinPricePeriodSchemas } from './schemas'
+import { cabinPricePeriodSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { ServiceError } from '@/services/error'
@@ -8,7 +8,7 @@ import { ServiceError } from '@/services/error'
 export const cabinPricePeriodOperations = {
     create: defineOperation({
         authorizer: () => cabinPricePeriodAuth.create,
-        dataSchema: cabinPricePeriodSchemas.create,
+        dataSchema: cabinPricePeriodSchemas.data.create,
         opensTransaction: true,
         operation: async ({ prisma, data }) => prisma.$transaction(async (tx) => {
             const currentReleaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
@@ -62,7 +62,7 @@ export const cabinPricePeriodOperations = {
 
     destroy: defineOperation({
         authorizer: () => cabinPricePeriodAuth.destroy,
-        paramsSchema: cabinPricePeriodParamsSchemas.destroy,
+        paramsSchema: cabinPricePeriodSchemas.params.destroy,
         operation: async ({ prisma, params }) => {
             const currentReleasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 
@@ -139,8 +139,8 @@ export const cabinPricePeriodOperations = {
      */
     update: defineOperation({
         authorizer: () => cabinPricePeriodAuth.update,
-        dataSchema: cabinPricePeriodSchemas.update,
-        paramsSchema: cabinPricePeriodParamsSchemas.update,
+        dataSchema: cabinPricePeriodSchemas.data.update,
+        paramsSchema: cabinPricePeriodSchemas.params.update,
         operation: async ({ prisma, data, params }) => {
             const currentReleasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 
