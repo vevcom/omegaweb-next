@@ -214,7 +214,7 @@ export const authOptions: AuthOptions = {
                     },
                     bypassAuth: true,
                 }),
-                memberships: await groupOperations.readMembershipsOfUser.internalCall({
+                memberships: await groupOperations.readMembershipsOfUserOfAllTypes.internalCall({
                     params: {
                         userId,
                     }

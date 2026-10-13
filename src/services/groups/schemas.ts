@@ -85,7 +85,7 @@ export const groupSchemas = {
         pension: dataFieldSchemas.pick({
             pensioned: true,
         }),
-        migrateManually: dataFieldSchemas.pick({
+        migrateGroup: dataFieldSchemas.pick({
             keep: true,
         }),
     },
@@ -100,12 +100,12 @@ export const groupSchemas = {
         setMemberAdmin: groupMember,
         setMemberTitle: groupMember,
         pension: group,
-        migrateManually: group,
+        migrateGroup: group,
         /**
          * The order here selects memberships rather than naming one order: a number, 'ACTIVE' or
          * 'ALL' - see `MembershipSelectorType`.
          */
-        readMembershipsOfUser: user.extend({
+        readMembershipsOfUserOfAllTypes: user.extend({
             order: membershipSelectorSchema.optional(),
         }),
         readUsersOfGroups: paramsFieldSchemas.pick({

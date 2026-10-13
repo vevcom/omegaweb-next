@@ -1,5 +1,6 @@
 import '@pn-server-only'
 import { assertGroupValidity } from './assertGroupValidity'
+import { isGroupPensioned } from './groupChecks'
 import { groupSchemas } from './schemas'
 import {
     groupMembershipIncluder,
@@ -27,112 +28,6 @@ import type {
 import type { UserBasic } from '@/services/users/types'
 
 /**
- * Whether the group is of the given type. Used as the ownership check of every common operation:
- * a group type's implementation must never be able to reach a group of another type through it.
- */
-export async function isGroupOfType(
-    prisma: PrismaPossibleTransaction<false>,
-    groupId: number,
-    type: GroupType,
-): Promise<boolean> {
-    const group = await prisma.group.findUnique({
-        where: { id: groupId },
-        select: { groupType: true },
-    })
-    return group?.groupType === type
-}
-
-/**
- * Whether the group has been pensioned - retired rather than migrated. Only the group types that are
- * migrated by hand carry the flag; for the rest this is always false.
- */
-export async function isGroupPensioned(
-    prisma: PrismaPossibleTransaction<false>,
-    groupId: number,
-): Promise<boolean> {
-    const group = await prisma.group.findUnique({
-        where: { id: groupId },
-        select: {
-            committee: { select: { pensioned: true } },
-            interestGroup: { select: { pensioned: true } },
-            manualGroup: { select: { pensioned: true } },
-        },
-    })
-
-    return Boolean(
-        group?.committee?.pensioned || group?.interestGroup?.pensioned || group?.manualGroup?.pensioned
-    )
-}
-
-/**
- * Refuses anything that would change a pensioned group. A pensioned group is history: the only thing
- * that may still happen to it is being brought back.
- */
-export async function assertGroupNotPensioned(
-    prisma: PrismaPossibleTransaction<false>,
-    groupId: number,
-): Promise<void> {
-    if (await isGroupPensioned(prisma, groupId)) {
-        throw new ServiceError(
-            'BAD PARAMETERS',
-            'Gruppen er pensjonert og kan ikke endres. Gjenopprett den først.'
-        )
-    }
-}
-
-async function expandGroup(
-    group: GroupWithRelationsNameInferencer & { memberships: { order: number }[] },
-    prisma: PrismaPossibleTransaction<false>,
-): Promise<ExpandedGroup> {
-    const members = await prisma.membership.count({
-        where: getMembershipFilter('ACTIVE', group.id),
-    })
-    const ordersSorted = group.memberships
-        .map(membership => membership.order)
-        .sort((orderOne, orderTwo) => orderOne - orderTwo)
-
-    return {
-        ...group,
-        members,
-        firstOrder: ordersSorted.length ? ordersSorted[0] : group.order,
-        name: inferGroupName(group),
-    }
-}
-
-type GroupOrderAndType = {
-    order: number,
-    groupType: GroupType,
-}
-
-async function readGroupOrderAndType(
-    prisma: PrismaPossibleTransaction<false>,
-    groupId: number,
-): Promise<GroupOrderAndType> {
-    return prisma.group.findUniqueOrThrow({
-        where: { id: groupId },
-        select: { order: true, groupType: true },
-    })
-}
-
-/**
- * The order the member management operations act on: the one asked for, or the group's own current
- * order when none is. A group cannot hold memberships of an order it has not reached itself, so an
- * order above the group's own is refused.
- */
-function resolveMembershipOrder(group: GroupOrderAndType, order?: number): number {
-    if (order === undefined) return group.order
-
-    if (order > group.order) {
-        throw new ServiceError(
-            'BAD PARAMETERS',
-            `Gruppen står i orden ${group.order} og kan ikke ha medlemskap i orden ${order}`
-        )
-    }
-
-    return order
-}
-
-/**
  * The group operations shared by every group type, plus the few group reads that are inherently
  * cross-type (building a session, resolving the groups behind a locker reservation).
  *
@@ -144,12 +39,12 @@ function resolveMembershipOrder(group: GroupOrderAndType, order?: number): numbe
 export const groupOperations = {
     readExpandedOfType: defineSubOperation({
         operation: ({ type }: { type: GroupType }) => async ({ prisma }): Promise<ExpandedGroup[]> => {
-            const groups = (await prisma.group.findMany({
+            const groups = await prisma.group.findMany({
                 where: { groupType: type },
                 include: groupsExpandedIncluder,
-            })).map(assertGroupValidity)
+            })
 
-            return Promise.all(groups.map(group => expandGroup(group, prisma)))
+            return groups.map(({ _count, ...group }) => expandGroup({ ...assertGroupValidity(group), _count }))
         }
     }),
 
@@ -397,10 +292,10 @@ export const groupOperations = {
      *
      * After this the group holds no active memberships below its own order.
      */
-    migrateManually: defineSubOperation({
+    migrateGroup: defineSubOperation({
         opensTransaction: true,
-        paramsSchema: () => groupSchemas.params.migrateManually,
-        dataSchema: () => groupSchemas.data.migrateManually,
+        paramsSchema: () => groupSchemas.params.migrateGroup,
+        dataSchema: () => groupSchemas.data.migrateGroup,
         operation: () => async ({ prisma, params, data }) => {
             const { order: currentOmegaOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
             const { order: groupOrder } = await readGroupOrderAndType(prisma, params.groupId)
@@ -514,8 +409,8 @@ export const groupOperations = {
      * regardless of type. It is a sub-operation because the session cannot yet be authorized
      * against at the point it is read.
      */
-    readMembershipsOfUser: defineSubOperation({
-        paramsSchema: () => groupSchemas.params.readMembershipsOfUser,
+    readMembershipsOfUserOfAllTypes: defineSubOperation({
+        paramsSchema: () => groupSchemas.params.readMembershipsOfUserOfAllTypes,
         operation: () => async ({ prisma, params }): Promise<MembershipFiltered[]> => prisma.membership.findMany({
             where: {
                 userId: params.userId,
@@ -527,13 +422,14 @@ export const groupOperations = {
 
     /**
      * Cross-type: resolves the users behind a set of groups, used to work out who a locker
-     * reservation covers.
+     * reservation covers. Only active memberships count: a former member is not behind the group.
      */
     readUsersOfGroups: defineSubOperation({
         paramsSchema: () => groupSchemas.params.readUsersOfGroups,
         operation: () => async ({ prisma, params }): Promise<Pick<UserBasic, 'id'>[]> => {
             const memberships = await prisma.membership.findMany({
                 where: {
+                    active: true,
                     OR: params.groups.map(({ admin, groupId }) => ({
                         admin: admin !== true ? undefined : true,
                         groupId,
@@ -590,3 +486,55 @@ export const groupOperations = {
         },
     }),
 } as const
+
+/**
+ * A group as the lists show it: how many active members it has, the first order it had members in
+ * (its own order if it never had any), and its display name. `groupsExpandedIncluder` reads the
+ * first membership and the count with the group, so this does no queries of its own.
+ */
+function expandGroup(
+    { _count, ...group }: GroupWithRelationsNameInferencer & {
+        memberships: { order: number }[],
+        _count: { memberships: number },
+    },
+): ExpandedGroup {
+    return {
+        ...group,
+        members: _count.memberships,
+        firstOrder: group.memberships[0]?.order ?? group.order,
+        name: inferGroupName(group),
+    }
+}
+
+type GroupOrderAndType = {
+    order: number,
+    groupType: GroupType,
+}
+
+async function readGroupOrderAndType(
+    prisma: PrismaPossibleTransaction<false>,
+    groupId: number,
+): Promise<GroupOrderAndType> {
+    return prisma.group.findUniqueOrThrow({
+        where: { id: groupId },
+        select: { order: true, groupType: true },
+    })
+}
+
+/**
+ * The order the member management operations act on: the one asked for, or the group's own current
+ * order when none is. A group cannot hold memberships of an order it has not reached itself, so an
+ * order above the group's own is refused.
+ */
+function resolveMembershipOrder(group: GroupOrderAndType, order?: number): number {
+    if (order === undefined) return group.order
+
+    if (order > group.order) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            `Gruppen står i orden ${group.order} og kan ikke ha medlemskap i orden ${order}`
+        )
+    }
+
+    return order
+}
