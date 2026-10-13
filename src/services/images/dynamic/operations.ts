@@ -1,18 +1,15 @@
 import '@pn-server-only'
 import { dynamicImageAuth } from './auth'
 import { dynamicImageSchemas } from './schemas'
-import type { imageCollectionIdOrNameSchema } from '@/services/images/subservice/schemas'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
-import {
-    imageOperations,
-    uniqueCollectionWhere,
-    expandImageCollection
-} from '@/services/images/subservice/operations'
+import { imageOperations } from '@/services/images/subservice/operations'
+import { expandImageCollection, uniqueCollectionWhere } from '@/services/images/subservice/collections'
 import { allowedExtensions, expandedImageCollectionIncluder } from '@/services/images/subservice/constants'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
+import type { imageCollectionIdOrNameSchema } from '@/services/images/subservice/schemas'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
