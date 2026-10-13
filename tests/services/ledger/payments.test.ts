@@ -83,7 +83,10 @@ async function startStripeDeposit(ledgerAccountId: number) {
         params: { ledgerAccountId, provider: 'STRIPE', funds: DEPOSIT },
         bypassAuth: true,
     })
-    const paymentIntentId = transaction.payment?.stripePayment?.paymentIntentId
+    const stripePayment = transaction.payment
+        ? await prisma.stripePayment.findUnique({ where: { paymentId: transaction.payment.id } })
+        : null
+    const paymentIntentId = stripePayment?.paymentIntentId
     if (!paymentIntentId) throw new Error('The deposit was not sent to Stripe.')
 
     return { transactionId: transaction.id, paymentIntentId }

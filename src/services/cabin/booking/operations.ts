@@ -421,6 +421,7 @@ export const cabinBookingOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsmetode må oppgis.')
             }
 
+            let payment: ExpandedPayment | undefined
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
                 // Extends the reservation window to cover the full lifetime a pending attempt is
                 // allowed to stay open for (see stalePendingTransactionMs above), so the dates
@@ -443,10 +444,8 @@ export const cabinBookingOperations = {
                     )
                 }
 
-                let paymentId: number | undefined
-
                 if (shortfall > 0) {
-                    const payment = await paymentOperations.create({
+                    payment = await paymentOperations.create({
                         params: {
                             provider: params.provider!,
                             funds: shortfall,
@@ -456,7 +455,6 @@ export const cabinBookingOperations = {
                         },
                         prisma: tx,
                     })
-                    paymentId = payment.id
                 }
 
                 // Outer authorizer (cabinBookingAuth.createPayment) already covers whether this
@@ -479,7 +477,7 @@ export const cabinBookingOperations = {
                                 ? [{ ledgerAccountId: payerAccount.id, funds: -params.amountFromBalance }]
                                 : []),
                         ],
-                        paymentId,
+                        paymentId: payment?.id,
                         bookingId: booking.id,
                         description: params.provider === 'MANUAL' ? params.description : undefined,
                     },
@@ -487,11 +485,9 @@ export const cabinBookingOperations = {
                 })
             })
 
-            // transaction.payment only carries stripePayment's narrow fields, per
-            // ExpandedLedgerTransaction. That's fine here. The only branch below that reads
-            // stripePayment fields replaces `payment` with initiate()'s full result. Every
-            // other case has stripePayment null anyway, since it's MANUAL or there's no payment.
-            let payment = transaction.payment as ExpandedPayment | null
+            // The payer needs the live clientSecret, which ExpandedLedgerTransaction's payment
+            // never carries. `payment`, captured above, already has the full shape, so there is
+            // nothing to re-derive from transaction.payment here.
             if (payment?.state === 'PENDING') {
                 try {
                     payment = await paymentOperations.initiate({
@@ -515,7 +511,7 @@ export const cabinBookingOperations = {
             // ledgerTransactionOperations.advance - called synchronously above via .create() for
             // MANUAL/balance-only payments, or later from the Stripe webhook for STRIPE ones.
 
-            return { payment }
+            return { payment: payment ?? null }
         },
     }),
 

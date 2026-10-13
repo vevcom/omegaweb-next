@@ -59,7 +59,8 @@ export const ledgerTransactionOperations = {
                     ledgerEntries: true,
                     payment: {
                         include: {
-                            stripePayment: true,
+                            // See ExpandedLedgerTransaction's comment: no clientSecret/paymentIntentId here.
+                            stripePayment: { select: { createdAt: true, updatedAt: true } },
                             manualPayment: true,
                         },
                     },
@@ -156,7 +157,8 @@ export const ledgerTransactionOperations = {
                 ledgerEntries: true,
                 payment: {
                     include: {
-                        stripePayment: true,
+                        // See ExpandedLedgerTransaction's comment: no clientSecret/paymentIntentId here.
+                        stripePayment: { select: { createdAt: true, updatedAt: true } },
                         manualPayment: true,
                     },
                 },

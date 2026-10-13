@@ -27,7 +27,7 @@ export const ledgerMovementOperations = {
         opensTransaction: true,
         paramsSchema: ledgerMovementSchemas.params.createDeposit,
         operation: async ({ prisma, params }) => {
-            const transaction = await prisma.$transaction(async tx => {
+            const created = await prisma.$transaction(async tx => {
                 const payment = await paymentOperations.create({
                     params: {
                         provider: params.provider,
@@ -39,7 +39,7 @@ export const ledgerMovementOperations = {
                     prisma: tx,
                 })
 
-                return await ledgerTransactionOperations.create({
+                const transaction = await ledgerTransactionOperations.create({
                     params: {
                         purpose: 'DEPOSIT',
                         ledgerEntries: [{
@@ -51,15 +51,21 @@ export const ledgerMovementOperations = {
                     },
                     prisma: tx,
                 })
+
+                return { transaction, payment }
             })
 
-            if (transaction.payment?.state === 'PENDING') {
-                transaction.payment = await paymentOperations.initiate({
-                    params: { paymentId: transaction.payment.id },
+            let resolvedPayment = created.payment
+            if (resolvedPayment.state === 'PENDING') {
+                resolvedPayment = await paymentOperations.initiate({
+                    params: { paymentId: resolvedPayment.id },
                 })
             }
 
-            return transaction
+            // The depositor is paying through this very response. LedgerTransactionModal reads
+            // payment.stripePayment.clientSecret off it, so return the full payment already in
+            // hand instead of transaction's narrowed copy of it.
+            return { ...created.transaction, payment: resolvedPayment }
         }
     }),
 
@@ -109,7 +115,10 @@ export const ledgerMovementOperations = {
                 prisma: tx,
             })
 
-            return transaction
+            // The caller's own modal reads payment.stripePayment off this response directly, so
+            // return the full payment already in hand instead of transaction's narrowed copy of
+            // it.
+            return { ...transaction, payment }
         })
     }),
 } as const

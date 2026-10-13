@@ -297,6 +297,29 @@ export const eventRegistrationOperations = {
                 }
 
                 const heldPlace = await queuePosition(tx, registration) < registration.event.places
+
+                const paidTransaction = await tx.ledgerTransaction.findFirst({
+                    where: { eventRegistrationId: params.registrationId, state: 'SUCCEEDED' },
+                    include: { ledgerEntries: true },
+                })
+                if (paidTransaction) {
+                    // This is a full reversal, not a single-sided credit. The original
+                    // transaction SUCCEEDED, so both sides, the debited payer and the credited
+                    // committee, actually took effect and both need undoing.
+                    await ledgerTransactionOperations.refund({
+                        params: {
+                            originalTransactionId: paidTransaction.id,
+                            reason: 'Avregistrert fra betalt arrangement.',
+                            ledgerEntries: paidTransaction.ledgerEntries.map(entry => ({
+                                ledgerAccountId: entry.ledgerAccountId,
+                                funds: -entry.funds,
+                            })),
+                        },
+                        prisma: tx,
+                        bypassAuth: true,
+                    })
+                }
+
                 await tx.eventRegistration.delete({
                     where: {
                         id: params.registrationId,
@@ -420,6 +443,25 @@ export const eventRegistrationOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet krever ikke betaling.')
             }
 
+            // Waiting-list membership isn't a stored column. It's the registration's queue
+            // position relative to event.places, the same computation readOfUser uses to gate
+            // the "pay" button in the UI. Re-derive and enforce it here too, since the UI gate
+            // doesn't stop a direct call to this operation.
+            const queue = await prisma.event.findUniqueOrThrow({
+                where: { id: params.eventId },
+                select: {
+                    places: true,
+                    eventRegistrations: {
+                        orderBy: eventRegistrationQueueOrder,
+                        select: { id: true },
+                    },
+                },
+            })
+            const queuePosition = queue.eventRegistrations.findIndex(reg => reg.id === registration.id)
+            if (queuePosition === -1 || queuePosition >= queue.places) {
+                throw new Smorekopp('BAD PARAMETERS', 'Du står på ventelisten og kan ikke betale før du får en plass.')
+            }
+
             const now = new Date()
             if (!event.paymentStart || !event.paymentEnd || now < event.paymentStart || now > event.paymentEnd) {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
@@ -440,6 +482,7 @@ export const eventRegistrationOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsmetode må oppgis.')
             }
 
+            let payment: ExpandedPayment | undefined
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
                 // Locks the registration row so concurrent payment attempts for it serialize
                 // instead of racing the existingAttempt check below.
@@ -470,10 +513,8 @@ export const eventRegistrationOperations = {
                     })
                 }
 
-                let paymentId: number | undefined
-
                 if (shortfall > 0) {
-                    const payment = await paymentOperations.create({
+                    payment = await paymentOperations.create({
                         params: {
                             provider: params.provider!,
                             funds: shortfall,
@@ -483,7 +524,6 @@ export const eventRegistrationOperations = {
                         },
                         prisma: tx,
                     })
-                    paymentId = payment.id
                 }
 
                 // Outer authorizer (eventRegistrationAuth.createPayment) already covers
@@ -506,7 +546,7 @@ export const eventRegistrationOperations = {
                                 ? [{ ledgerAccountId: payerAccount.id, funds: -params.amountFromBalance }]
                                 : []),
                         ],
-                        paymentId,
+                        paymentId: payment?.id,
                         eventRegistrationId: registration.id,
                         description: params.provider === 'MANUAL' ? params.description : undefined,
                     },
@@ -514,14 +554,26 @@ export const eventRegistrationOperations = {
                 })
             })
 
-            let payment = transaction.payment
+            // The payer needs the live clientSecret, which ExpandedLedgerTransaction's payment
+            // never carries. `payment`, captured above, already has the full shape, so there is
+            // nothing to re-derive from transaction.payment here.
             if (payment?.state === 'PENDING') {
-                payment = await paymentOperations.initiate({
-                    params: { paymentId: payment.id },
-                })
+                try {
+                    payment = await paymentOperations.initiate({
+                        params: { paymentId: payment.id },
+                    })
+                } catch (error) {
+                    // Otherwise the attempt stays held with no way to pay for it. Cancel it so
+                    // the registration can be paid for again instead of sitting stuck.
+                    await ledgerTransactionOperations.cancel({
+                        params: { id: transaction.id },
+                        bypassAuth: true,
+                    })
+                    throw error
+                }
             }
 
-            return { payment }
+            return { payment: payment ?? null }
         },
     }),
 } as const
