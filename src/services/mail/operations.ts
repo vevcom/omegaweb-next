@@ -14,7 +14,6 @@ import {
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import type { MailFlowObject } from './types'
-import type { UserBasic } from '@/services/users/types'
 import type {
     MailAlias,
     MailAliasMailingList,
@@ -137,7 +136,6 @@ export const mailOperations = {
             alias: MailAlias[],
             mailingList: MailingList[],
             mailaddressExternal: MailAddressExternal[],
-            users: UserBasic[],
         }> => {
             const results = await Promise.all([
                 aliasOperations.readMany({ bypassAuth: true }),
@@ -149,7 +147,6 @@ export const mailOperations = {
                 alias: results[0],
                 mailingList: results[1],
                 mailaddressExternal: results[2],
-                users: [],
             }
         },
     }),

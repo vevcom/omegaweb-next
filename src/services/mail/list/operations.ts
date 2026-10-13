@@ -19,15 +19,13 @@ export const mailingListOperations = {
     }),
 
     update: defineOperation({
+        paramsSchema: mailingListSchemas.params.update,
         dataSchema: mailingListSchemas.data.update,
         authorizer: () => mailingListAuth.update,
-        operation: async ({ prisma, data }): Promise<MailingList> =>
+        operation: async ({ prisma, params, data }): Promise<MailingList> =>
             prisma.mailingList.update({
-                where: { id: data.id },
-                data: {
-                    name: data.name,
-                    description: data.description,
-                },
+                where: { id: params.id },
+                data,
             }),
     }),
 

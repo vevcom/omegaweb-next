@@ -1,4 +1,4 @@
-import { MailListTypeArray } from './types'
+import { MailListTypeArray } from './constants'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({

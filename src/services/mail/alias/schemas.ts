@@ -7,13 +7,16 @@ const validAddress = z.string().email().refine(
 )
 
 const dataFieldSchemas = z.object({
-    id: z.coerce.number().min(1),
     address: validAddress,
     description: z.string(),
 })
 
 const paramsFieldSchemas = z.object({
     id: z.coerce.number().min(1),
+})
+
+const alias = paramsFieldSchemas.pick({
+    id: true,
 })
 
 export const mailAliasSchemas = {
@@ -23,14 +26,12 @@ export const mailAliasSchemas = {
             description: true,
         }),
         update: dataFieldSchemas.pick({
-            id: true,
             address: true,
             description: true,
         }),
     },
     params: {
-        destroy: paramsFieldSchemas.pick({
-            id: true,
-        }),
+        update: alias,
+        destroy: alias,
     },
 }
