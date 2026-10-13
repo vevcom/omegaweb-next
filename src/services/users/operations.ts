@@ -371,7 +371,25 @@ export const userOperations = {
         paramsSchema: userSchemas.params.connectStudentCard,
         dataSchema: userSchemas.data.connectStudentCard,
         authorizer: ({ params }) => userAuth.connectStudentCard.data({ userId: params.id }),
-        operation: async ({ prisma, params, data }) => {
+        operation: async ({ prisma, params, data: { confirmReplace, ...data } }) => {
+            const currentUser = await prisma.user.findUniqueOrThrow({
+                where: { id: params.id },
+                select: { studentCard: true },
+            })
+
+            // A bare link can silently bind any card to the clicking session. Require
+            // confirmation when it would overwrite a card already registered.
+            if (
+                currentUser.studentCard &&
+                currentUser.studentCard !== data.studentCard &&
+                !confirmReplace
+            ) {
+                throw new ServiceError(
+                    'DUPLICATE',
+                    'Du har allerede et annet studentkort registrert. Bekreft for å erstatte det.'
+                )
+            }
+
             await prisma.user.update({
                 where: { id: params.id },
                 data,
