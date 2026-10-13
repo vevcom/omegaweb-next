@@ -1,0 +1,19 @@
+@use '@/styles/ohma';
+
+.links {
+    padding: 1em 0;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-between;
+    > * {
+        flex: 1;
+        margin: 0 1em;
+    }
+    @include ohma.screenMobile {
+        justify-content: center;
+        gap: 1em;   
+        > * {
+            width: 100%; 
+        }
+    }
+}

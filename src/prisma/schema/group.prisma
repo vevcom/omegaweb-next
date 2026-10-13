@@ -153,6 +153,7 @@ model StudyProgramme {
   /// Which class a student of this programme starts in, i.e. a 2 year master starts in FOUR.
   classLevel         ClassLevel?
   partOfOmega        Boolean              @default(false)
+  CourseStudyProgram CourseStudyProgram[]
 
   /// The users Feide has already reported this programme for - see the matching field on User.
   usersFeideHasAlreadyReturnedItFor User[] @relation("StudyProgrammesFeideHasAlreadyReturned")

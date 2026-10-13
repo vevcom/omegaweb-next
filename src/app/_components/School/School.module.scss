@@ -1,0 +1,68 @@
+@use '@/styles/ohma';
+
+$imageWidth: 300px;
+
+.School {
+    position: relative;
+    display: flex;
+    background-color: ohma.$colors-surface-base;
+    @include ohma.card();
+    @include ohma.boxShadow('');
+    &:hover {
+        @include ohma.boxShadow('hover');
+    }
+    overflow: hidden;
+    min-height: calc($imageWidth + 3em);
+    .cmsImage {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: $imageWidth;
+        > * {
+            width: 100%;
+            height: 100%;
+        }
+        .image {
+            width: $imageWidth;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+    }
+    .text {
+        padding-left: $imageWidth;
+        .cmsLink {
+            margin-top: .5em;
+            width: 200px;
+        }
+        .name {
+            h2 {
+                font-size: ohma.$fonts-xl;
+            }
+            p {
+                font-size: ohma.$fonts-xl;
+                font-weight: ohma.$fonts-weight-s;
+            }
+            margin-bottom: 1em;
+        }
+    }
+    @include ohma.screenMobile {
+        flex-flow: column;
+        .cmsImage {
+            width: 100%;
+            height: 300px;
+            > * {
+                width: 100%  !important;
+            }
+            .image {
+                height: 300px;
+                width: 100%;
+            }
+        }
+        .text {
+            padding-top: calc(300px - 3em);
+            padding-left: 0;
+        }
+    }
+}
