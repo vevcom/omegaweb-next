@@ -8,6 +8,7 @@ import type { Prisma } from '@/prisma-generated-pn-types'
 const advisoryLockKeys = {
     companySponsorTier: 581_000_001,
     cabinBooking: 581_000_002,
+    flairRanks: 581_000_003,
 } as const
 
 /**
