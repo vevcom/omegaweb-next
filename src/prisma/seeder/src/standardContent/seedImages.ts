@@ -1,7 +1,5 @@
-import {
-    standardImageCollectionOperations,
-    generateStandardImagesCollectionFromConfig
-} from '@/services/images/standard/operations'
+import { standardImageCollectionOperations } from '@/services/images/standard/operations'
+import { generateStandardImagesCollectionFromConfig } from '@/services/images/standard/standardImageCollection'
 import { StandardImage } from '@/prisma-generated-pn/enums'
 import { dynamicImageOperations } from '@/services/images/dynamic/operations'
 import { standardStoreFiles } from '@/lib/standardStore/files'

@@ -84,10 +84,23 @@ export const fooAuth = {
   update: Require.permission('FOO_ADMIN').or().userId(),
 } as const
 
+// schemas.ts
+const dataFieldSchemas = z.object({ name: z.string().trim().min(2).max(40) })
+const paramsFieldSchemas = z.object({ id: z.number() })
+
+export const fooSchemas = {
+  data: {
+    update: dataFieldSchemas.pick({ name: true }),
+  },
+  params: {
+    update: paramsFieldSchemas.pick({ id: true }),
+  },
+}
+
 // operations.ts
 const update = defineOperation({
-  paramsSchema: z.object({ id: z.number() }),
-  dataSchema: fooSchemas.update,
+  paramsSchema: fooSchemas.params.update,
+  dataSchema: fooSchemas.data.update,
   authorizer: async ({ params, prisma }) => {
     const foo = await prisma.foo.findUniqueOrThrow({ where: { id: params.id }, select: { ownerId: true } })
     return fooAuth.update.data({ userId: foo.ownerId })
@@ -117,6 +130,7 @@ Rules are written once in the service's `auth.ts` as `Require` chains, so the sa
   - `ownershipCheck`: does the sub-resource actually belong to the owning resource (e.g. the paragraph is the career page's special paragraph)? Returning false rejects the call. It is resource-to-resource integrity, not user permission.
   - `beforeRun`: optional extra checks that run after both and may throw.
 - **`.internalCall({ params, data, ... })`** runs a sub-operation from server code with no authorizer and no ownership check. Only for calls from other operations or server code that has already authorized the user.
+- A service that owns a CMS image, paragraph or link creates it through that sub-service's `create.internalCall`, inside its own transaction when it creates the owning row (see `companyOperations.create`), and never by nesting the CMS row in the owner's Prisma write.
 - **`bypassAuth: true`** skips the authorizer of a top-level operation when calling it from trusted server code (e.g. NextAuth callbacks, seeders). Clients cannot set it; `makeAction` never passes it.
 - Operations called inside another operation inherit its context (prisma client or transaction, session, `bypassAuth`) through async local storage; pass `prisma: tx` explicitly to run one inside a transaction.
 
@@ -130,13 +144,14 @@ src/services/[domain]/
 ├── auth.ts         # Authorizer definitions (`Require` chains, shared with the frontend)
 ├── constants.ts    # Domain constants and config values (env vars, field selections)
 ├── operations.ts   # defineOperation() calls, exported as `{ ... } as const`
-├── schemas.ts      # Plain Zod schemas (no ValidationBase)
+├── schemas.ts      # Plain Zod schemas: `fooSchemas.data` and `fooSchemas.params`, keyed by operation
 └── types.ts        # TypeScript types specific to this domain (if needed)
 ```
 
 Rules:
 - **`constants.ts`** — not `ConfigVars.ts` or any other name
 - **`operations.ts`** — the exported object must end with `as const`
+- **`schemas.ts`** — holds every `dataSchema` and `paramsSchema` the service's operations use (see [Operation Naming Conventions](#operation-naming-conventions)); none are defined inline in `operations.ts`
 - **`actions.ts`** — must have `'use server'` at the top; only calls `makeAction()`
 - Sub-domains (e.g. `mail/alias/`) follow the same layout within their subfolder
 
@@ -325,20 +340,24 @@ What the user may do on a page is declared as capabilities: `can[Something]` key
 
 For every `defineOperation()` call, the operation key must align with its schema and authorizer keys:
 
-- `dataSchema` and `paramsSchema`: if taken from a schemas object, the key must match the operation name exactly — e.g. operation `destroyFoo` must use `fooSchemas.destroyFoo`, not `fooSchemas.createFoo`.
+- `dataSchema` comes from `fooSchemas.data` and `paramsSchema` from `fooSchemas.params`, one `fooSchemas` object exported from `schemas.ts`. The key must match the operation name exactly — e.g. operation `destroyFoo` uses `fooSchemas.data.destroyFoo` and `fooSchemas.params.destroyFoo`, not `fooSchemas.data.createFoo`. The `implementationParamsSchema` of an implemented sub-operation goes in `fooSchemas.params` too, under the key of the operation it implements. Sub-operations whose schemas are built from implementation fields are the exception: those stay in `defineSubOperation`. A service with no data schemas has no `data` key, and vice versa.
 - `authorizer`: must reference the same operation name — e.g. `fooAuth.destroyFoo`, not `fooAuth.createFoo`.
 
-When create and destroy operations share the same schema shape, define a shared variable and reference it from both keys in the schemas object:
+Data and params are different kinds of input and have separate field objects in `schemas.ts`: `fooSchemas.data` picks from `dataFieldSchemas`, what a user writes (trimmed, length-checked, form-coerced), and `fooSchemas.params` picks from `paramsFieldSchemas`, what identifies the thing acted on (ids, names used as keys, cursors) — looser rules, since a lookup that finds nothing is a NOT FOUND, not a validation error. A field such as `name` may appear in both with different rules; never pick a params schema from `dataFieldSchemas` or the other way round. When operations share the same shape, define a shared variable and reference it from each key:
 
 ```typescript
 // schemas.ts
-const fooRelation = z.object({ ... })
+const fooRelation = paramsFieldSchemas.pick({ userId: true, groupId: true })
 
 export const fooSchemas = {
-    createFoo: fooRelation,
-    destroyFoo: fooRelation,
+    params: {
+        createFoo: fooRelation,
+        destroyFoo: fooRelation,
+    },
 }
 ```
+
+Another service that validates the same kind of input (the auth service taking an email the way the users service does) imports the field object, exported under its service's name (`userDataFieldSchemas`), rather than re-declaring the rule.
 
 ### Form Handling
 

@@ -2,6 +2,7 @@ import FlairTable from './FlairTable'
 import styles from './page.module.scss'
 import { createFlairAction, updateFlairImageAction } from '@/services/flairs/actions'
 import { flairOperations } from '@/services/flairs/operations'
+import { flairAuth } from '@/services/flairs/auth'
 import { serverPage } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
@@ -23,12 +24,17 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('flairs', session)
         return flairOperations.readAll({})
     },
+    capabilities: () => ({
+        canCreateFlair: flairAuth.create,
+        canUpdateFlairImage: flairAuth.updateImage,
+    }),
     metadata: () => ({ title: 'Administrer flairs' }),
-    render: ({ data: flairs }) => {
+    render: ({ data: flairs, capabilities }) => {
         const rows: FlairRow[] = [...flairs].sort((one, two) => one.rank - two.rank).map(flair => ({
             id: flair.id,
             image: <>
                 <Flair flair={flair} width={100} />
+                {capabilities.canUpdateFlairImage.authorized &&
                 <PopUp
                     popUpKey={`EditFlairImage${flair.id}`}
                     showButtonContent="Endre bilde"
@@ -44,6 +50,7 @@ const { page, generateMetadata } = serverPage({
                         )}
                     />
                 </PopUp>
+                }
             </>,
             name: flair.name,
             colorStyle: { backgroundColor: `rgb(${flair.colorR}, ${flair.colorG}, ${flair.colorB})` },
@@ -51,7 +58,7 @@ const { page, generateMetadata } = serverPage({
         }))
 
         return (
-            <PageWrapper headerItem={
+            <PageWrapper headerItem={capabilities.canCreateFlair.authorized &&
                 <AddHeaderItemPopUp popUpKey="CreateFlair">
                     <Form
                         title="Opprett ny flair"

@@ -5,4 +5,4 @@ import type { OmegaQuote } from '@/prisma-generated-pn-types'
 
 export type OmegaquoteFiltered = Pick<OmegaQuote, typeof omegaQuoteFieldsToExpose[number]>
 
-export type OmegaquoteCursor = InferPagingCursor<typeof omegaquoteSchemas.readPage>
+export type OmegaquoteCursor = InferPagingCursor<typeof omegaquoteSchemas.params.readPage>

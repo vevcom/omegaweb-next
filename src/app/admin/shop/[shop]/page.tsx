@@ -7,6 +7,7 @@ import { displayAmount } from '@/lib/currency/convert'
 import { sortObjectsByName } from '@/lib/sortObjects'
 import { shopOperations } from '@/services/shop/shop/operations'
 import { productOperations } from '@/services/shop/product/operations'
+import { productAuth } from '@/services/shop/product/auth'
 import { serverPage } from '@/app/serverPage'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -29,28 +30,37 @@ const { page, generateMetadata } = serverPage({
 
         return { shopId, shopData, unconnectedProducts }
     },
+    capabilities: () => ({
+        canCreateShopConnection: productAuth.createShopConnection,
+        canCreateProduct: productAuth.create,
+        canUpdateProduct: productAuth.update,
+    }),
     metadata: (data) => ({ title: data.shopData.name }),
-    render: ({ data }) => {
+    render: ({ data, capabilities }) => {
         const { shopId, shopData, unconnectedProducts } = data
 
         return (
             <PageWrapper>
                 <p>{shopData.description}</p>
 
+                {(capabilities.canCreateShopConnection.authorized || capabilities.canCreateProduct.authorized) &&
                 <PopUp
                     showButtonClass={styles.button}
                     showButtonContent="Legg til Produkt"
                     popUpKey="createProductForShop"
                 >
-                    <FindProductForm shopId={shopId} products={unconnectedProducts} />
+                    {capabilities.canCreateShopConnection.authorized &&
+                        <FindProductForm shopId={shopId} products={unconnectedProducts} />
+                    }
                     <br />
-                    <EditProductForShopForm shopId={shopId} />
+                    {capabilities.canCreateProduct.authorized && <EditProductForShopForm shopId={shopId} />}
                 </PopUp>
+                }
 
                 <table className={styles.table}>
                     <thead>
                         <tr>
-                            <th>Rediger</th>
+                            {capabilities.canUpdateProduct.authorized && <th>Rediger</th>}
                             <th>Produkt</th>
                             <th>Beskrivelse</th>
                             <th>Pris</th>
@@ -61,6 +71,7 @@ const { page, generateMetadata } = serverPage({
                             key={product.id}
                             className={product.active ? '' : styles.deactivatedProduct}
                         >
+                            {capabilities.canUpdateProduct.authorized &&
                             <td className={styles.editButtonWrapper}>
                                 <PopUp
                                     showButtonContent={<FontAwesomeIcon icon={faPencil} />}
@@ -69,6 +80,7 @@ const { page, generateMetadata } = serverPage({
                                     <EditProductForShopForm shopId={shopId} product={product} />
                                 </PopUp>
                             </td>
+                            }
                             <td>{product.name}</td>
                             <td>{product.description}</td>
                             <td>{displayAmount(product.price, false)}</td>

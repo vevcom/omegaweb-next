@@ -5,4 +5,4 @@ export const dotAuth = {
     update: Require.permission('DOTS_ADMIN'),
     destroy: Require.permission('DOTS_ADMIN'),
     readForUser: Require.permission('DOTS_ADMIN').or().userId(),
-}
+} as const

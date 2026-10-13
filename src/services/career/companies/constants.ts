@@ -49,5 +49,3 @@ export const sponsorSelection = {
         }
     },
 } as const satisfies Prisma.CompanySelect
-
-export const companySponsorTierLockKey = 581_000_001

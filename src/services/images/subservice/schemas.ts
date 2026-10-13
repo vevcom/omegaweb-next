@@ -5,7 +5,7 @@ import {
     maxImageFileSizeMb
 } from './constants'
 import { extensionForMimeType } from '@/lib/store/fileExtensions'
-import { readPageInputSchema } from '@/lib/paging/schema'
+import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { zfd } from 'zod-form-data'
 import { z } from 'zod'
 import { File } from 'node:buffer'
@@ -26,7 +26,11 @@ export const imageFileSchema = z.instanceof(File).refine(
     `File type must be one of ${allowedExtensions.join(', ')}`
 )
 
-export const baseSchema = z.object({
+/**
+ * Exported so the services that implement an image collection (dynamic collections, the special
+ * collections) can validate collection fields the way the subservice does.
+ */
+export const imageDataFieldSchemas = z.object({
     collectionName: z.string().max(40).min(2).trim(),
     collectionDescription: z.string().max(500).min(2).trim(),
     coverImageId: z.number().optional(),
@@ -42,71 +46,95 @@ export const baseSchema = z.object({
         files => files.length <= maxImageCountInOneBatch && files.length > 0,
         `Du kan bare laste opp mellom 1 og ${maxImageCountInOneBatch} bilder av gangen`
     ),
-    imageName: z.string().max(50, 'max length in 50').min(2, 'min length is 2').optional(),
-    imageAlt: z.string().max(100, 'max length in 50').min(2, 'min length is 2'),
-    imageLicenseId: z.union([
-        z.string().optional().nullable(),
-        z.coerce.number().optional().or(z.literal('NULL')),
-    ]).transform(
-        value => {
-            if (typeof value === 'string' && value === 'NULL') return null
-            if (typeof value === 'string') return parseInt(value, 10)
-            return value
-        }
+    imageName: z.string().max(50, 'max length is 50').min(2, 'min length is 2').optional(),
+    imageAlt: z.string().max(100, 'max length is 100').min(2, 'min length is 2'),
+    // The license chooser sends 'NULL' for no license, and the id as a string otherwise.
+    imageLicenseId: z.preprocess(
+        value => (value === 'NULL' ? null : value),
+        z.coerce.number().int().nullable().optional(),
     ),
     imageCredit: z.string().optional(),
 })
 
-const pageSchema = readPageInputSchema(
-    z.object({
-        imageId: z.number(),
+const paramsFieldSchemas = z.object({
+    collectionId: z.number(),
+    collectionName: z.string(),
+    imageId: z.number(),
+    useFileName: z.boolean(),
+})
+
+/**
+ * A collection is identified either by its id or by its name. Exported because the services
+ * implementing the collection operations take the same identifier.
+ */
+export const imageCollectionIdOrNameSchema = z.union([
+    paramsFieldSchemas.pick({
+        collectionId: true,
+    }),
+    paramsFieldSchemas.pick({
+        collectionName: true,
+    }),
+])
+
+const imageId = paramsFieldSchemas.pick({
+    imageId: true,
+})
+
+const imagePage = readPageInputSchemaObject(
+    paramsFieldSchemas.pick({
+        imageId: true,
     }),
     z.undefined(),
 )
 
 export const imageSchemas = {
-    paramsSchemaCollection: z.union([
-        z.object({ collectionId: z.number() }),
-        z.object({ collectionName: z.string() })
-    ]),
-    paramsSchemaImage: z.object({
-        imageId: z.number(),
-    }),
-    paramsSchemaUploadManyImages: z.object({
-        collectionId: z.number(),
-        useFileName: z.boolean(),
-    }),
-    paramsSchemaReadPageOfImagesInCollection: z.object({
-        paging: pageSchema,
-        collectionId: z.number(),
-    }),
-    paramsSchemaReadPageOfImagesInSpecialCollection: z.object({
-        paging: pageSchema,
-    }),
-    updateCollection: baseSchema.partial().pick({
-        collectionName: true,
-        collectionDescription: true,
-        coverImageId: true,
-    }),
-    uploadImage: baseSchema.pick({
-        imageName: true,
-        imageAlt: true,
-        imageFile: true,
-        imageLicenseId: true,
-        imageCredit: true,
-    }),
-    uploadManyImages: baseSchema.pick({
-        imageFiles: true,
-        imageLicenseId: true,
-        imageCredit: true,
-    }),
-    replaceImageFile: baseSchema.pick({
-        imageFile: true,
-    }),
-    updateImageMeta: baseSchema.partial().pick({
-        imageName: true,
-        imageAlt: true,
-        imageLicenseId: true,
-        imageCredit: true,
-    }),
-} as const
+    data: {
+        updateCollection: imageDataFieldSchemas.partial().pick({
+            collectionName: true,
+            collectionDescription: true,
+            coverImageId: true,
+        }),
+        uploadImage: imageDataFieldSchemas.pick({
+            imageName: true,
+            imageAlt: true,
+            imageFile: true,
+            imageLicenseId: true,
+            imageCredit: true,
+        }),
+        uploadManyImages: imageDataFieldSchemas.pick({
+            imageFiles: true,
+            imageLicenseId: true,
+            imageCredit: true,
+        }),
+        replaceImageFile: imageDataFieldSchemas.pick({
+            imageFile: true,
+        }),
+        updateImageMeta: imageDataFieldSchemas.partial().pick({
+            imageName: true,
+            imageAlt: true,
+            imageLicenseId: true,
+            imageCredit: true,
+        }),
+    },
+    params: {
+        destroyCollection: imageCollectionIdOrNameSchema,
+        updateCollection: imageCollectionIdOrNameSchema,
+        uploadImage: imageCollectionIdOrNameSchema,
+        replaceImageFile: imageId,
+        processImageVariants: imageId,
+        retryImageProcessing: imageId,
+        uploadManyImages: paramsFieldSchemas.pick({
+            collectionId: true,
+            useFileName: true,
+        }),
+        readPageOfImagesInCollection: imagePage.merge(paramsFieldSchemas.pick({
+            collectionId: true,
+        })),
+        // The special collection panel's readPageOfImagesInCollection: the panel knows its collection.
+        readPageOfImagesInSpecialCollection: imagePage,
+        updateImageMeta: imageId,
+        destroyImageDbAndReturnCleanup: imageId,
+        destroyImage: imageId,
+        readCollectionOfImage: imageId,
+    },
+}

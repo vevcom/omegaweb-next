@@ -8,7 +8,7 @@ import { userSchemas } from '@/services/users/schemas'
 import type { UserBasic } from '@/services/users/types'
 
 export async function sendVerifyEmail(user: UserBasic, email: string) {
-    const parse = userSchemas.verifyEmail.parse({ email })
+    const parse = userSchemas.data.verifyEmail.parse({ email })
 
     const jwt = generateJWT('verifyemail', {
         email: parse.email,

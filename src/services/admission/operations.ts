@@ -4,15 +4,14 @@ import { admissionAuth } from './auth'
 import { userBasicSelection } from '@/services/users/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import { omegaMembershipGroupOperations, writeUserLevel } from '@/services/groups/omegaMembershipGroups/operations'
+import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { Admission } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 import type { ExpandedAdmissionTrail } from './types'
 
 export const admissionOperations = {
     readTrial: defineOperation({
-        paramsSchema: admissionSchemas.readTrial,
+        paramsSchema: admissionSchemas.params.readTrial,
         authorizer: ({ params }) => admissionAuth.readTrial.data({ userId: params.userId }),
         operation: async ({ prisma, params: { userId } }) => await prisma.admissionTrial.findMany({
             where: {
@@ -26,7 +25,7 @@ export const admissionOperations = {
      * as a sysken. A user holds at most one trial per admission, so counting them is enough.
      */
     userCompletedTrials: defineOperation({
-        paramsSchema: admissionSchemas.userCompletedTrials,
+        paramsSchema: admissionSchemas.params.userCompletedTrials,
         authorizer: ({ params }) => admissionAuth.userCompletedTrials.data({ userId: params.userId }),
         operation: async ({ prisma, params: { userId } }): Promise<boolean> => {
             const trials = await prisma.admissionTrial.count({
@@ -47,10 +46,8 @@ export const admissionOperations = {
      */
     createTrial: defineOperation({
         authorizer: () => admissionAuth.createTrial,
-        paramsSchema: z.object({
-            admission: z.nativeEnum(Admission),
-        }),
-        dataSchema: admissionSchemas.createTrial,
+        paramsSchema: admissionSchemas.params.createTrial,
+        dataSchema: admissionSchemas.data.createTrial,
         opensTransaction: true,
         operation: async ({ prisma, session, params, data }): Promise<ExpandedAdmissionTrail> => {
             // Read before the transaction is opened: a user whose omega memberships are in a broken
@@ -72,7 +69,7 @@ export const admissionOperations = {
             // The trial and the promotion it earns are written together. Were the promotion to fail
             // on its own, the user would be left holding every trial as a soelle - and unable to be
             // put right by sitting the last one again, since they already hold it.
-            const { results, becameSysken } = await prisma.$transaction(async tx => {
+            return prisma.$transaction(async tx => {
                 const trial = await tx.admissionTrial.create({
                     data: {
                         user: {
@@ -104,21 +101,19 @@ export const admissionOperations = {
                 })
 
                 if (completedTrials) {
-                    await writeUserLevel(tx, {
-                        userId: data.userId,
-                        omegaMembershipLevel: 'SYSKEN',
-                        onlyUpgrade: true,
+                    await omegaMembershipGroupOperations.writeUserLevel.internalCall({
+                        params: {
+                            userId: data.userId,
+                            omegaMembershipLevel: 'SYSKEN',
+                            onlyUpgrade: true,
+                        },
+                        prisma: tx,
                     })
+                    await invalidateOneUserSessionData(tx, data.userId)
                 }
 
-                return { results: trial, becameSysken: completedTrials }
+                return trial
             })
-
-            if (becameSysken) {
-                await invalidateOneUserSessionData(data.userId)
-            }
-
-            return results
         }
     }),
-}
+} as const

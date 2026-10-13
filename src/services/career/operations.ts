@@ -32,4 +32,4 @@ export const careerOperations = {
                 }
             })
     }),
-}
+} as const

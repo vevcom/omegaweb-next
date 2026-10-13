@@ -5,14 +5,10 @@ import { eventTagSchemas } from './schemas'
 import logger from '@/lib/logger'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import { SpecialEventTags } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 
 export const eventTagOperations = {
     read: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: eventTagSchemas.params.read,
         authorizer: () => eventTagAuth.read,
         operation: async ({ prisma, params: { id } }) => await prisma.eventTag.findUniqueOrThrow({
             where: {
@@ -21,9 +17,7 @@ export const eventTagOperations = {
         })
     }),
     readSpecial: defineOperation({
-        paramsSchema: z.object({
-            special: z.nativeEnum(SpecialEventTags),
-        }),
+        paramsSchema: eventTagSchemas.params.readSpecial,
         authorizer: () => eventTagAuth.readSpecial,
         operation: async ({ prisma, params: { special } }) => {
             const tag = await prisma.eventTag.findUnique({
@@ -48,7 +42,7 @@ export const eventTagOperations = {
         operation: async ({ prisma }) => await prisma.eventTag.findMany()
     }),
     create: defineOperation({
-        dataSchema: eventTagSchemas.create,
+        dataSchema: eventTagSchemas.data.create,
         authorizer: () => eventTagAuth.create,
         operation: async ({ prisma, data: { color, ...data } }) =>
             await prisma.eventTag.create({
@@ -61,10 +55,8 @@ export const eventTagOperations = {
             })
     }),
     update: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
-        dataSchema: eventTagSchemas.update,
+        paramsSchema: eventTagSchemas.params.update,
+        dataSchema: eventTagSchemas.data.update,
         authorizer: () => eventTagAuth.update,
         operation: async ({ prisma, params: { id }, data: { color, ...data } }) => {
             const colorR = color ? color.red : undefined
@@ -84,9 +76,7 @@ export const eventTagOperations = {
         }
     }),
     destroy: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: eventTagSchemas.params.destroy,
         authorizer: () => eventTagAuth.destroy,
         operation: async ({ prisma, params }) => {
             const tag = await prisma.eventTag.findUniqueOrThrow({
@@ -100,4 +90,4 @@ export const eventTagOperations = {
             })
         }
     }),
-}
+} as const

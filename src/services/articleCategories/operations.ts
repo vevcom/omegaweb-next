@@ -11,13 +11,17 @@ import {
     assertAdminLevelIsSubOfRegularLevel,
     implementDoubleLevelVisibilityOperations
 } from '@/services/visibility/implement'
-import { z } from 'zod'
-import type { ExpandedArticleCategory } from './types'
-import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
+/** The cover of a category is the cover image of its newest article. */
+const coverImageSelection = {
+    coverImage: {
+        select: { image: { include: expandedImageIncluder } },
+    },
+} as const
+
 const visibility = implementDoubleLevelVisibilityOperations({
-    implementationParamsSchema: articleCategorySchemas.params,
+    implementationParamsSchema: articleCategorySchemas.params.visibility,
     authorizers: {
         readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
             articleCategoryAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix }),
@@ -57,7 +61,7 @@ export const articleCategoryOperations = {
 
     create: defineOperation({
         authorizer: () => articleCategoryAuth.create,
-        dataSchema: articleCategorySchemas.create,
+        dataSchema: articleCategorySchemas.data.create,
         opensTransaction: true,
         operation: async ({ prisma, data }) => {
             assertAdminLevelIsSubOfRegularLevel({
@@ -100,49 +104,38 @@ export const articleCategoryOperations = {
 
     destroy: defineOperation({
         authorizer: () => articleCategoryAuth.destroy,
-        paramsSchema: articleCategorySchemas.params,
+        paramsSchema: articleCategorySchemas.params.destroy,
         opensTransaction: true,
-        operation: async ({ prisma, params }) => {
-            // There is onDelete cascade on articles when article category is deleted
-            // however coverImages of articles on articles are not cascade deleted when articles are
-            // Thus we call the destroy operation on all articles to fix this
-            const allArticles = await prisma.article.findMany({
-                where: {
-                    articleCategoryId: params.id
-                }
+        operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
+            // The articles cascade with the category, but their cover images would stay behind:
+            // the relation is on the article. Destroying each article takes its cover with it.
+            const articles = await tx.article.findMany({
+                where: { articleCategoryId: params.id },
+                select: { id: true },
             })
-            await Promise.all(allArticles.map(article =>
-                articleOperations.destroy.internalCall({ params: { articleId: article.id } })
+            await Promise.all(articles.map(article =>
+                articleOperations.destroy.internalCall({ params: { articleId: article.id }, prisma: tx })
             ))
 
-            return await prisma.$transaction(async tx => {
-                const category = await tx.articleCategory.delete({
-                    where: {
-                        id: params.id
-                    },
-                    include: {
-                        articles: true
-                    }
-                })
-                await visibilityOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { visibilityId: category.visibilityAdminId },
-                })
-                await visibilityOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { visibilityId: category.visibilityRegularId },
-                })
-                return category
+            const category = await tx.articleCategory.delete({ where: { id: params.id } })
+            await visibilityOperations.destroy.internalCall({
+                prisma: tx,
+                params: { visibilityId: category.visibilityAdminId },
             })
-        }
+            await visibilityOperations.destroy.internalCall({
+                prisma: tx,
+                params: { visibilityId: category.visibilityRegularId },
+            })
+            return category
+        }),
     }),
 
     update: defineOperation({
         authorizer: async ({ params, prisma }) => articleCategoryAuth.update.data({
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
         }),
-        paramsSchema: articleCategorySchemas.params,
-        dataSchema: articleCategorySchemas.update,
+        paramsSchema: articleCategorySchemas.params.update,
+        dataSchema: articleCategorySchemas.data.update,
         operation: ({ prisma, data, params }) =>
             prisma.articleCategory.update({
                 where: {
@@ -159,7 +152,7 @@ export const articleCategoryOperations = {
         authorizer: async ({ params, prisma }) => articleCategoryAuth.addArticleToCategory.data({
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
         }),
-        paramsSchema: articleCategorySchemas.params,
+        paramsSchema: articleCategorySchemas.params.addArticleToCategory,
         opensTransaction: true,
         operation: ({ prisma, params }) =>
             prisma.$transaction(async (tx) => {
@@ -185,29 +178,21 @@ export const articleCategoryOperations = {
             })
     }),
 
-    removeArticleFromCategory: defineOperation({
-        authorizer: async ({ params, prisma }) => articleCategoryAuth.removeArticleFromCategory.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params: { id: params.id }, prisma })
-        }),
-        paramsSchema: articleCategorySchemas.params.extend({
-            articleId: z.number()
-        }),
-        operation: async ({ prisma, params }) => {
-            //check ownership:
-            const article = await prisma.article.findUnique({
-                where: {
-                    id: params.articleId
-                }
+    removeArticleFromCategory: articleOperations.destroy.implement({
+        authorizer: async ({ implementationParams, prisma }) => articleCategoryAuth.removeArticleFromCategory.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({
+                params: { id: implementationParams.articleCategoryId },
+                prisma
             })
-            if (!article) throw new ServiceError('NOT FOUND', `Article ${params.articleId} not found`)
-            if (article.articleCategoryId !== params.id) {
-                throw new ServiceError(
-                    'BAD PARAMETERS',
-                    `Article ${params.articleId} does not belong to category ${params.id}`
-                )
-            }
-
-            await articleOperations.destroy.internalCall({ params: { articleId: params.articleId } })
+        }),
+        implementationParamsSchema: articleCategorySchemas.params.removeArticleFromCategory,
+        ownershipCheck: async ({ prisma, params, implementationParams }) => {
+            const article = await prisma.article.findUnique({
+                where: { id: params.articleId },
+                select: { articleCategoryId: true },
+            })
+            if (!article) throw new ServiceError('NOT FOUND', 'Artikkel ikke funnet.')
+            return article.articleCategoryId === implementationParams.articleCategoryId
         }
     }),
 
@@ -218,9 +203,7 @@ export const articleCategoryOperations = {
                 prisma
             })
         }),
-        implementationParamsSchema: z.object({
-            articleCategoryId: z.number(),
-        }),
+        implementationParamsSchema: articleCategorySchemas.params.updateArticle,
         ownedArticles: ({ implementationParams, prisma }) => prisma.article.findMany({
             where: {
                 articleCategoryId: implementationParams.articleCategoryId
@@ -247,22 +230,18 @@ export const articleCategoryOperations = {
                 include: {
                     articles: {
                         take: 1,
-                        include: {
-                            coverImage: true
-                        }
+                        orderBy: { createdAt: 'desc' },
+                        select: coverImageSelection,
                     },
                 },
                 orderBy: {
                     createdAt: 'desc'
                 }
             })
-            const categoriesWithCover = await Promise.all(categories.map(async category => (
-                {
-                    ...category,
-                    coverImage: (await getCoverImage(prisma, category))
-                }
-            )))
-            return categoriesWithCover
+            return categories.map(({ articles, ...category }) => ({
+                ...category,
+                coverImage: articles[0]?.coverImage.image ?? null,
+            }))
         }
     }),
 
@@ -274,9 +253,7 @@ export const articleCategoryOperations = {
         authorizer: async ({ params, prisma }) => articleCategoryAuth.read.data({
             visibility: await readDoubleLevelMatrixByName(prisma, params.name)
         }),
-        paramsSchema: z.object({
-            name: z.string()
-        }),
+        paramsSchema: articleCategorySchemas.params.read,
         operation: async ({ prisma, params }) => {
             const category = await prisma.articleCategory.findUnique({
                 where: {
@@ -291,12 +268,16 @@ export const articleCategoryOperations = {
                 },
             })
             if (!category) throw new ServiceError('NOT FOUND', `Category ${params.name} not found`)
-            const categoryWithCover = {
+            const newestArticle = category.articles[0]
+            const coverImage = newestArticle ? await prisma.cmsImage.findUniqueOrThrow({
+                where: { id: newestArticle.coverImageId },
+                select: coverImageSelection.coverImage.select,
+            }).then(cover => cover.image) : null
+            return {
                 ...category,
-                coverImage: await getCoverImage(prisma, category),
+                coverImage,
                 visibility: await visibility.readDoubleLevelMatrixInternal({ params: { id: category.id }, prisma }),
             }
-            return categoryWithCover
         }
     }),
 
@@ -304,50 +285,18 @@ export const articleCategoryOperations = {
         authorizer: async ({ implementationParams, prisma }) => articleCategoryAuth.readArticleInCategory.data({
             visibility: await readDoubleLevelMatrixByName(prisma, implementationParams.articleCategoryName)
         }),
-        implementationParamsSchema: z.object({
-            articleCategoryName: z.string()
-        }),
+        implementationParamsSchema: articleCategorySchemas.params.readArticleInCategory,
         ownershipCheck: async ({ prisma, params, implementationParams }) => {
             const article = await prisma.article.findUnique({
-                where: {
-                    id: params.articleId
-                }
+                where: { id: params.articleId },
+                select: { articleCategoryId: true },
             })
-            const articleCategoryId = await prisma.articleCategory.findUniqueOrThrow({
-                where: {
-                    name: implementationParams.articleCategoryName
-                },
-                select: {
-                    id: true
-                }
-            }).then(res => res.id)
             if (!article) throw new ServiceError('NOT FOUND', 'Artikkel ikke funnet.')
-            return article.articleCategoryId ? article.articleCategoryId === articleCategoryId : false
+            const category = await prisma.articleCategory.findUniqueOrThrow({
+                where: { name: implementationParams.articleCategoryName },
+                select: { id: true },
+            })
+            return article.articleCategoryId === category.id
         }
     })
 } as const
-
-/**
- * Get coverimage (not cmsImage just the image it relates to) for article category
- * Returns coverImage of a article in the category. The cover image for the category is the cover
- * image of the first article in the category.
- * @param category - The category to get cover image for
- * @returns The cover image of the category
- */
-async function getCoverImage(
-    prisma: PrismaPossibleTransaction<false>,
-    category: ExpandedArticleCategory
-): Promise<ExpandedImage | null> {
-    if (category.articles.length === 0) return null
-    const coverImage = await prisma.cmsImage.findUnique({
-        where: {
-            id: category.articles[0].coverImageId
-        },
-        include: {
-            image: { include: expandedImageIncluder }
-        }
-    })
-    if (!coverImage) return null
-    if (!coverImage.image) return null
-    return coverImage.image
-}

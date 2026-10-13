@@ -6,8 +6,8 @@ import CmsLink from '@/components/Cms/CmsLink/CmsLink'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import {
-    readSpecialCmsParagraphCareerInfo,
-    updateSpecialCmsParagraphContentCareerInfo,
+    readSpecialCmsParagraphCareerInfoAction,
+    updateSpecialCmsParagraphContentCareerInfoAction,
     updateCareerSpecialCmsLinkAction
 } from '@/services/career/actions'
 import { careerOperations } from '@/services/career/operations'
@@ -49,8 +49,8 @@ const { page, generateMetadata } = serverPage({
                     capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
                     className={styles.info}
                     special="CAREER_INFO"
-                    readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfo}
-                    updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfo}
+                    readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfoAction}
+                    updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfoAction}
                 />
                 <span className={styles.links}>
                     <Link href="/career/jobads">

@@ -1,6 +1,8 @@
 'use client'
 import styles from './page.module.scss'
 import { updateApplicationAction } from '@/services/applications/actions'
+import { applicationAuth } from '@/services/applications/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons'
@@ -10,17 +12,18 @@ import type { PointerEvent, ReactNode } from 'react'
 
 export type PrioritizedCommittee = {
     /** The id of the committee's participation in this period - what an application points at. */
-    commiteeParticipationId: number,
+    committeeParticipationId: number,
     card: ReactNode,
 }
 
 type ItemPropTypes = {
     item: PrioritizedCommittee,
     priority: number,
-    onDragEnd: (commiteeParticipationId: number) => void,
+    canReorder: boolean,
+    onDragEnd: (committeeParticipationId: number) => void,
 }
 
-function PrioritizedCommittee({ item, priority, onDragEnd }: ItemPropTypes) {
+function PrioritizedCommittee({ item, priority, canReorder, onDragEnd }: ItemPropTypes) {
     const dragControls = useDragControls()
 
     const startDrag = (event: PointerEvent) => dragControls.start(event)
@@ -31,7 +34,7 @@ function PrioritizedCommittee({ item, priority, onDragEnd }: ItemPropTypes) {
             value={item}
             dragListener={false}
             dragControls={dragControls}
-            onDragEnd={() => onDragEnd(item.commiteeParticipationId)}
+            onDragEnd={() => onDragEnd(item.committeeParticipationId)}
             whileDrag={{ scale: 1.01, boxShadow: '0 8px 20px rgba(0, 0, 0, 0.35)' }}
             className={`${styles.committeeCard} ${styles.prioritizedCard}`}
         >
@@ -39,9 +42,11 @@ function PrioritizedCommittee({ item, priority, onDragEnd }: ItemPropTypes) {
                 {/* The priority comes from the position in the list rather than from the server
                     so that the numbers follow along while the card is being dragged. */}
                 <span className={styles.priority}>{priority}</span>
-                <span className={styles.dragHandle} onPointerDown={startDrag}>
-                    <FontAwesomeIcon icon={faGripVertical} />
-                </span>
+                {canReorder && (
+                    <span className={styles.dragHandle} onPointerDown={startDrag}>
+                        <FontAwesomeIcon icon={faGripVertical} />
+                    </span>
+                )}
             </div>
             <div className={styles.committeeCardBody}>
                 {item.card}
@@ -65,6 +70,7 @@ export default function PrioritizedCommittees({ items, userId }: PropTypes) {
     const [order, setOrder] = useState(items)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
+    const canReorder = useAuthorizer({ authorizer: applicationAuth.update.data({ userId }) }).authorized
 
     useEffect(() => {
         setOrder(items)
@@ -75,12 +81,12 @@ export default function PrioritizedCommittees({ items, userId }: PropTypes) {
         setTimeout(() => setError(null), 3000)
     }, [])
 
-    const commitOrder = useCallback(async (commiteeParticipationId: number) => {
+    const commitOrder = useCallback(async (committeeParticipationId: number) => {
         const originalIndex = items.findIndex(
-            item => item.commiteeParticipationId === commiteeParticipationId
+            item => item.committeeParticipationId === committeeParticipationId
         )
         const newIndex = order.findIndex(
-            item => item.commiteeParticipationId === commiteeParticipationId
+            item => item.committeeParticipationId === committeeParticipationId
         )
         const steps = originalIndex - newIndex
         if (originalIndex === -1 || steps === 0) return
@@ -90,7 +96,7 @@ export default function PrioritizedCommittees({ items, userId }: PropTypes) {
         const direction = steps > 0 ? 'UP' : 'DOWN'
         for (let step = 0; step < Math.abs(steps); step++) {
             const res = await updateApplicationAction(
-                { params: { userId, commiteeParticipationId } },
+                { params: { userId, committeeParticipationId } },
                 { data: { priority: direction } }
             )
             if (!res.success) {
@@ -117,9 +123,10 @@ export default function PrioritizedCommittees({ items, userId }: PropTypes) {
             >
                 {order.map((item, index) => (
                     <PrioritizedCommittee
-                        key={item.commiteeParticipationId}
+                        key={item.committeeParticipationId}
                         item={item}
                         priority={index + 1}
+                        canReorder={canReorder}
                         onDragEnd={commitOrder}
                     />
                 ))}

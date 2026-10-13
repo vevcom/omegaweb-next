@@ -3,6 +3,7 @@ import ProductForm from '@/app/admin/product/productForm'
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { displayAmount } from '@/lib/currency/convert'
 import { productOperations } from '@/services/shop/product/operations'
+import { productAuth } from '@/services/shop/product/auth'
 import { serverPage } from '@/app/serverPage'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/serverPage'
@@ -10,10 +11,13 @@ import type { PageOperationArgs } from '@/app/serverPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ productId: string }>) =>
         productOperations.read({ params: { productId: Number(params.productId) } }),
+    capabilities: () => ({
+        canUpdateProduct: productAuth.update,
+    }),
     metadata: (product) => ({ title: product.name }),
-    render: ({ data: product }) => (
+    render: ({ data: product, capabilities }) => (
         <PageWrapper>
-            <ProductForm product={product} />
+            {capabilities.canUpdateProduct.authorized && <ProductForm product={product} />}
 
             <table className={styles.table}>
                 <thead>

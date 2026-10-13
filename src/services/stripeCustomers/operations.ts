@@ -1,9 +1,9 @@
 import '@pn-server-only'
 import { stripeCustomerAuth } from './auth'
+import { stripeCustomerSchemas } from './schemas'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { stripe } from '@/lib/stripe'
-import { z } from 'zod'
 
 export const stripeCustomerOperations = {
     /**
@@ -12,9 +12,7 @@ export const stripeCustomerOperations = {
      */
     readOrCreate: defineOperation({
         authorizer: ({ params: { userId } }) => stripeCustomerAuth.readOrCreate.data({ userId }),
-        paramsSchema: z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: stripeCustomerSchemas.params.readOrCreate,
         operation: async ({ params: { userId }, prisma }) => {
             // We query the user table and not the StripeCustomer table here
             // because we also need to fetch the user's email and name in
@@ -109,9 +107,7 @@ export const stripeCustomerOperations = {
      */
     createSession: defineOperation({
         authorizer: ({ params: { userId } }) => stripeCustomerAuth.createSession.data({ userId }),
-        paramsSchema: z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: stripeCustomerSchemas.params.createSession,
         operation: async ({ params: { userId } }) => {
             const { customerId } = await stripeCustomerOperations.readOrCreate({ params: { userId } })
 
@@ -157,9 +153,7 @@ export const stripeCustomerOperations = {
      */
     createSetupIntent: defineOperation({
         authorizer: ({ params: { userId } }) => stripeCustomerAuth.createSetupIntent.data({ userId }),
-        paramsSchema: z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: stripeCustomerSchemas.params.createSetupIntent,
         operation: async ({ params: { userId } }) => {
             const customerId: string = (await stripeCustomerOperations.readOrCreate({ params: { userId } })).customerId
 
@@ -183,9 +177,7 @@ export const stripeCustomerOperations = {
      */
     readSavedPaymentMethods: defineOperation({
         authorizer: ({ params: { userId } }) => stripeCustomerAuth.readSavedPaymentMethods.data({ userId }),
-        paramsSchema: z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: stripeCustomerSchemas.params.readSavedPaymentMethods,
         operation: async ({ params: { userId }, session }) => {
             // readOrCreate is strictly self-service, but this operation's own authorizer above
             // already allows LEDGER_ADMIN, so bypass it here rather than blocking admins.
@@ -221,10 +213,7 @@ export const stripeCustomerOperations = {
      */
     deleteSavedPaymentMethod: defineOperation({
         authorizer: ({ params: { userId } }) => stripeCustomerAuth.deleteSavedPaymentMethod.data({ userId }),
-        paramsSchema: z.object({
-            userId: z.number(),
-            paymentMethodId: z.string(),
-        }),
+        paramsSchema: stripeCustomerSchemas.params.deleteSavedPaymentMethod,
         operation: async ({ params: { userId, paymentMethodId }, session }) => {
             // readOrCreate is strictly self-service, but this operation's own authorizer above
             // already allows LEDGER_ADMIN, so bypass it here rather than blocking admins.
@@ -247,4 +236,4 @@ export const stripeCustomerOperations = {
             }
         }
     }),
-}
+} as const

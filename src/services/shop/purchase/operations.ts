@@ -38,7 +38,7 @@ export const purchaseOperations = {
 
             return purchaseAuth.createByStudentCard.data({ permissionsOfUser: permissions })
         },
-        dataSchema: purchaseSchemas.createFromStudentCard,
+        dataSchema: purchaseSchemas.data.createByStudentCard,
         opensTransaction: true,
         operation: async ({ prisma, data }) => {
             if (data.products.length === 0) {
@@ -153,4 +153,4 @@ export const purchaseOperations = {
             }
         }
     })
-}
+} as const

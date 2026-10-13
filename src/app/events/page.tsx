@@ -9,6 +9,7 @@ import { eventOperations } from '@/services/events/operations'
 import EventCard from '@/components/Event/EventCard'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { eventTagAuth } from '@/services/events/tags/auth'
+import { eventAuth } from '@/services/events/auth'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage } from '@/app/serverPage'
 import Link from 'next/link'
@@ -29,6 +30,7 @@ const { page, generateMetadata } = serverPage({
         canUpdateTags: eventTagAuth.update,
         canCreateTags: eventTagAuth.create,
         canDestroyTags: eventTagAuth.destroy,
+        canCreate: eventAuth.create,
     }),
     metadata: () => ({ title: 'Hvad der hender' }),
     render: ({ data, capabilities }) => {
@@ -61,11 +63,13 @@ const { page, generateMetadata } = serverPage({
                             capabilities={capabilities}
                             page="EVENT"
                         />
-                        <AddHeaderItemPopUp popUpKey="CreateEventPopUp">
-                            <div className={styles.createEvent}>
-                                <CreateOrUpdateEventForm eventTags={eventTags} />
-                            </div>
-                        </AddHeaderItemPopUp>
+                        {capabilities.canCreate.authorized && (
+                            <AddHeaderItemPopUp popUpKey="CreateEventPopUp">
+                                <div className={styles.createEvent}>
+                                    <CreateOrUpdateEventForm eventTags={eventTags} />
+                                </div>
+                            </AddHeaderItemPopUp>
+                        )}
                         <ArchiveLink href={tagNames?.length ?
                             `/events/archive?${QueryParams.eventTags.encodeUrl(tagNames)}`
                             :

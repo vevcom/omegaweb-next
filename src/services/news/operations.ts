@@ -15,10 +15,9 @@ import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { ServiceError } from '@/services/error'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
-import { z } from 'zod'
 
 const visibility = implementDoubleLevelVisibilityOperations({
-    implementationParamsSchema: newsSchemas.params,
+    implementationParamsSchema: newsSchemas.params.visibility,
     authorizers: {
         readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
             newsAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix }),
@@ -59,7 +58,7 @@ const read = defineOperation({
             }
         })
     },
-    paramsSchema: newsSchemas.params,
+    paramsSchema: newsSchemas.params.read,
     operation: async ({ prisma, params }) => {
         const news = await prisma.newsArticle.findUnique({
             where: {
@@ -76,7 +75,7 @@ export const newsOperations = {
     visibility,
     create: defineOperation({
         authorizer: () => newsAuth.create,
-        dataSchema: newsSchemas.create,
+        dataSchema: newsSchemas.data.create,
         operation: async ({ prisma, data }) => {
             const { name, description, endDateTime } = data
 
@@ -131,7 +130,7 @@ export const newsOperations = {
             newsAuth.destroy.data({
                 visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
             }),
-        paramsSchema: newsSchemas.params,
+        paramsSchema: newsSchemas.params.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
             const news = await prisma.newsArticle.findUnique({ where: { id: params.id } })
@@ -181,7 +180,7 @@ export const newsOperations = {
         }
     }),
     readOldPage: defineOperation({
-        paramsSchema: newsSchemas.readOldPage,
+        paramsSchema: newsSchemas.params.readOldPage,
         authorizer: () => newsAuth.readOldPage,
         operation: async ({ prisma, params }, prismaWhereFilter) => {
             const news = await prisma.newsArticle.findMany({
@@ -216,8 +215,8 @@ export const newsOperations = {
             newsAuth.update.data({
                 visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
             }),
-        paramsSchema: newsSchemas.params,
-        dataSchema: newsSchemas.update,
+        paramsSchema: newsSchemas.params.update,
+        dataSchema: newsSchemas.data.update,
         operation: async ({ prisma, params, data }) =>
             prisma.newsArticle.update({
                 where: { id: params.id },
@@ -242,8 +241,8 @@ export const newsOperations = {
             newsAuth.setPublished.data({
                 visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
             }),
-        paramsSchema: newsSchemas.params,
-        dataSchema: newsSchemas.setPublished,
+        paramsSchema: newsSchemas.params.setPublished,
+        dataSchema: newsSchemas.data.setPublished,
         operation: async ({ prisma, params, data }) => {
             const previous = await prisma.newsArticle.findUniqueOrThrow({
                 where: { id: params.id },
@@ -275,9 +274,7 @@ export const newsOperations = {
         }
     }),
     updateArticle: implementUpdateArticleOperations({
-        implementationParamsSchema: z.object({
-            newsId: z.number(),
-        }),
+        implementationParamsSchema: newsSchemas.params.updateArticle,
         authorizer: async ({ implementationParams, prisma }) =>
             newsAuth.updateArticle.data({
                 visibility: await visibility.readDoubleLevelMatrixInternal({

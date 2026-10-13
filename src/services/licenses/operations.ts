@@ -1,24 +1,12 @@
 import '@pn-server-only'
 import { licenseSchemas } from './schemas'
-import { standardLicenseNames, standardLicensesConfig, type StandardLicenseName } from './constants'
+import { standardLicensesConfig, type StandardLicenseName } from './constants'
 import { licenseAuth } from './auth'
 import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
-import { z } from 'zod'
-
-const getStandardLicenseConfig = (standardLicenseName: StandardLicenseName) => {
-    const licenseConfig = standardLicensesConfig.find((license) => license.name === standardLicenseName)
-    if (!licenseConfig) {
-        throw new ServiceError('SERVER ERROR', `Unknown standard license: ${standardLicenseName}`)
-    }
-
-    return licenseConfig
-}
 
 const generateStandardLicense = defineSubOperation({
-    paramsSchema: () => z.object({
-        standardLicenseName: z.enum(standardLicenseNames),
-    }),
+    paramsSchema: () => licenseSchemas.params.generateStandardLicense,
     operation: () => async ({ prisma, params }) => {
         const licenseConfig = getStandardLicenseConfig(params.standardLicenseName)
 
@@ -36,9 +24,7 @@ const generateStandardLicense = defineSubOperation({
 })
 
 const readStandardLicense = defineSubOperation({
-    paramsSchema: () => z.object({
-        standardLicenseName: z.enum(standardLicenseNames),
-    }),
+    paramsSchema: () => licenseSchemas.params.readStandardLicense,
     operation: () => async ({ prisma, params }) => {
         const license = await prisma.license.findUnique({
             where: { name: params.standardLicenseName },
@@ -67,19 +53,17 @@ const readStandardLicense = defineSubOperation({
 export const licenseOperations = {
     create: defineOperation({
         authorizer: () => licenseAuth.create,
-        dataSchema: licenseSchemas.create,
+        dataSchema: licenseSchemas.data.create,
         operation: async ({ prisma, data }) => await prisma.license.create({
             data,
         }),
     }),
     readAll: defineOperation({
-        authorizer: () => licenseAuth.destroy,
+        authorizer: () => licenseAuth.readAll,
         operation: async ({ prisma }) => await prisma.license.findMany()
     }),
     destroy: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: licenseSchemas.params.destroy,
         authorizer: () => licenseAuth.destroy,
         operation: async ({ prisma, params }) => {
             const { name: licenseName } = await prisma.license.findUniqueOrThrow({
@@ -104,10 +88,8 @@ export const licenseOperations = {
         }
     }),
     update: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
-        dataSchema: licenseSchemas.update,
+        paramsSchema: licenseSchemas.params.update,
+        dataSchema: licenseSchemas.data.update,
         authorizer: () => licenseAuth.update,
         operation: async ({ prisma, params, data }) => {
             await prisma.license.update({
@@ -120,4 +102,13 @@ export const licenseOperations = {
     }),
     generateStandardLicense,
     readStandardLicense,
+} as const
+
+function getStandardLicenseConfig(standardLicenseName: StandardLicenseName) {
+    const licenseConfig = standardLicensesConfig.find((license) => license.name === standardLicenseName)
+    if (!licenseConfig) {
+        throw new ServiceError('SERVER ERROR', `Unknown standard license: ${standardLicenseName}`)
+    }
+
+    return licenseConfig
 }

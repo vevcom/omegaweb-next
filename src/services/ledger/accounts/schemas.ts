@@ -1,28 +1,90 @@
+import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Zpn } from '@/lib/fields/zpn'
+import { LedgerAccountType } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-const ledgerAcccountSchema = z.object({
+const dataFieldSchemas = z.object({
     // Display name for the account. Only meaningful for GROUP accounts (see LedgerAccount.name).
     name: z.string().optional(),
     groupIds: Zpn.numberListCheckboxFriendly({ label: 'Grupper' }).optional(),
     payoutAccountNumber: z.string().optional(),
     frozen: z.boolean(),
+    addGroupIds: z.number().array().optional(),
+    removeGroupIds: z.number().array().optional(),
 })
 
-export const ledgerAccountSchemas = {
-    create: ledgerAcccountSchema.partial().pick({
-        name: true,
-        groupIds: true,
-        payoutAccountNumber: true,
-        frozen: true,
-    }),
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    userId: z.number().optional(),
+    ledgerAccountId: z.number().optional(),
+    ledgerAccountIds: z.number().array().optional(),
+    userIds: z.number().array().optional(),
+    groupIds: z.number().array().optional(),
+    atTransactionId: z.number().optional(),
+    accountType: z.nativeEnum(LedgerAccountType).optional(),
+})
 
-    update: ledgerAcccountSchema.partial().pick({
-        name: true,
-        payoutAccountNumber: true,
-        frozen: true,
-    }).extend({
-        addGroupIds: z.number().array().optional(),
-        removeGroupIds: z.number().array().optional(),
-    })
+/** One account is identified by its own id or by its owning user. */
+const oneAccountKey = [
+    ({ userId, ledgerAccountId }: { userId?: number, ledgerAccountId?: number }) =>
+        userId !== undefined || ledgerAccountId !== undefined,
+    'Enten bruker ID eller konto ID må være oppgitt.',
+] as const
+
+/** A batch of accounts needs at least one non-empty id list to match against. */
+const atLeastOneIdList = [
+    ({ ledgerAccountIds, userIds, groupIds }: { ledgerAccountIds?: number[], userIds?: number[], groupIds?: number[] }) =>
+        Boolean(ledgerAccountIds?.length || userIds?.length || groupIds?.length),
+    'Minst én av konto ID-er, bruker ID-er eller gruppe ID-er må være oppgitt.',
+] as const
+
+const account = paramsFieldSchemas.pick({
+    userId: true,
+    ledgerAccountId: true,
+}).refine(...oneAccountKey)
+
+export const ledgerAccountSchemas = {
+    data: {
+        create: dataFieldSchemas.pick({
+            name: true,
+            groupIds: true,
+            payoutAccountNumber: true,
+            frozen: true,
+        }).partial(),
+        update: dataFieldSchemas.pick({
+            name: true,
+            payoutAccountNumber: true,
+            frozen: true,
+            addGroupIds: true,
+            removeGroupIds: true,
+        }).partial(),
+    },
+    params: {
+        read: account,
+        readMany: paramsFieldSchemas.pick({
+            ledgerAccountIds: true,
+            userIds: true,
+            groupIds: true,
+        }).refine(...atLeastOneIdList),
+        readPage: readPageInputSchemaObject(
+            paramsFieldSchemas.pick({
+                id: true,
+            }),
+            paramsFieldSchemas.pick({
+                accountType: true,
+            }),
+        ),
+        update: account,
+        calculateBalances: paramsFieldSchemas.pick({
+            ledgerAccountIds: true,
+            userIds: true,
+            groupIds: true,
+            atTransactionId: true,
+        }).refine(...atLeastOneIdList),
+        calculateBalance: paramsFieldSchemas.pick({
+            userId: true,
+            ledgerAccountId: true,
+            atTransactionId: true,
+        }).refine(...oneAccountKey),
+    },
 }

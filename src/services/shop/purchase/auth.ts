@@ -8,4 +8,4 @@ export const purchaseAuth = {
         ({ permissionsOfUser }) => permissionsOfUser.includes('PURCHASE_USE'),
         { errorMessage: 'Brukeren har ikke lov til å handle i butikker.' }
     )
-}
+} as const

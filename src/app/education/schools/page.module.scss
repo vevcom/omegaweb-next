@@ -1,9 +1,0 @@
-@use '@/styles/ohma';
-
-.wrapper {
-    padding: 2em 0;
-}
-
-.adminLink {
-    @include ohma.btn(ohma.$colors-accent-blue);
-}

@@ -28,9 +28,9 @@ export default async function LinkOwUser({ searchParams }: PropTypes) {
         return <ConfirmLinkOwUserForm token={token} linkRequest={linkRequest.data} />
     }
 
-    const { authorized } = Require.user().auth(await ServerSession.fromNextAuth())
+    const authResult = Require.user().auth(await ServerSession.fromNextAuth())
 
-    if (!authorized) notFound()
+    if (!authResult.authorized) notFound()
 
-    return <LinkOwUserForm />
+    return <LinkOwUserForm userId={authResult.session.user.id} />
 }

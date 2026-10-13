@@ -10,7 +10,7 @@ export const {
 } = implementSpecialCollection({
     special: 'PROFILEIMAGES',
     allowedExtensions: rasterExtensions,
-    imagePanelAuther: profileImagesImagePanelAuth,
+    imagePanelAuth: profileImagesImagePanelAuth,
     config: {
         name: 'Profilbilder',
         description: 'Bilder brukt som profilbilder. Hvert bilde i denne samlingen tilhører nøyaktig én bruker.',

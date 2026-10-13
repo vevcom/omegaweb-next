@@ -8,6 +8,8 @@ import StripePayment from '@/components/Stripe/StripePayment'
 import StripeProvider from '@/components/Stripe/StripeProvider'
 import { createActionError } from '@/services/actionError'
 import { createSetupIntentAction } from '@/services/stripeCustomers/actions'
+import { stripeCustomerAuth } from '@/services/stripeCustomers/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { useRef } from 'react'
 import type { StripePaymentRef } from '@/components/Stripe/StripePayment'
 
@@ -17,6 +19,8 @@ type PropTypes = {
 
 export default function PaymentMethodModal({ userId }: PropTypes) {
     const stripePaymentRef = useRef<StripePaymentRef>(null)
+    const canAddPaymentMethod = useAuthorizer({ authorizer: stripeCustomerAuth.createSetupIntent.data({ userId }) })
+        .authorized
 
     const handleSubmit = async () => {
         if (!stripePaymentRef.current) return createActionError('UNKNOWN ERROR', 'Noe gikk galt ved innhenting av Stripe.')
@@ -38,6 +42,8 @@ export default function PaymentMethodModal({ userId }: PropTypes) {
             data: undefined,
         } as const
     }
+
+    if (!canAddPaymentMethod) return null
 
     return (
         <PopUp

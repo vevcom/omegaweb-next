@@ -7,7 +7,6 @@ import { apiFilterSelection, apiKeyLength } from './constants'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
-import { z } from 'zod'
 import crypto from 'crypto'
 import type { ApiKeyFiltered, ApiKeyFilteredWithKey } from './types'
 
@@ -19,11 +18,7 @@ import type { ApiKeyFiltered, ApiKeyFilteredWithKey } from './types'
  */
 const updateIfExpired = defineOperation({
     authorizer: () => apiKeyAuth.updateIfExpired,
-    paramsSchema: z.object({
-        id: z.number(),
-        expiresAt: z.date().nullable(),
-        active: z.boolean(),
-    }),
+    paramsSchema: apiKeySchemas.params.updateIfExpired,
     operation: async ({ prisma, params: apiKey }) => {
         if (!apiKey) {
             throw new ServiceError('NOT FOUND', 'Nøkkelen finnes ikke')
@@ -46,7 +41,7 @@ const updateIfExpired = defineOperation({
 export const apiKeyOperations = {
     create: defineOperation({
         authorizer: () => apiKeyAuth.create,
-        dataSchema: apiKeySchemas.create,
+        dataSchema: apiKeySchemas.data.create,
         operation: async ({ prisma, data }): Promise<ApiKeyFilteredWithKey> => {
             const NODE_ENV = process.env.NODE_ENV
             const prepend = NODE_ENV === 'production' ? 'prod' : 'dev'
@@ -67,7 +62,7 @@ export const apiKeyOperations = {
     }),
     read: defineOperation({
         authorizer: () => apiKeyAuth.read,
-        paramsSchema: z.union([z.object({ id: z.number() }), z.object({ name: z.string() })]),
+        paramsSchema: apiKeySchemas.params.read,
         operation: async ({ prisma, params }): Promise<ApiKeyFiltered> => {
             const apiKey = await prisma.apiKey.findUnique({
                 where: {
@@ -109,9 +104,7 @@ export const apiKeyOperations = {
     }),
     readWithHash: defineOperation({
         authorizer: () => apiKeyAuth.readWithHash,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: apiKeySchemas.params.readWithHash,
         operation: async ({ prisma, params }) => {
             const apiKey = await prisma.apiKey.findUniqueOrThrow({
                 where: { id: params.id },
@@ -135,10 +128,8 @@ export const apiKeyOperations = {
     }),
     update: defineOperation({
         authorizer: () => apiKeyAuth.update,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
-        dataSchema: apiKeySchemas.update,
+        paramsSchema: apiKeySchemas.params.update,
+        dataSchema: apiKeySchemas.data.update,
         operation: async ({ prisma, params, data }) => {
             if (data.active && data.expiresAt && data.expiresAt < new Date()) {
                 throw new ServiceError('BAD PARAMETERS', 'Hvis du vil aktivere en nøkkel, kan den ikke ha utløpt')
@@ -153,9 +144,7 @@ export const apiKeyOperations = {
     }),
     destroy: defineOperation({
         authorizer: () => apiKeyAuth.destroy,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: apiKeySchemas.params.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params }): Promise<void> => {
             await prisma.$transaction(async (tx) => {
@@ -174,4 +163,4 @@ export const apiKeyOperations = {
             })
         }
     }),
-}
+} as const

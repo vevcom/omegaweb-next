@@ -5,6 +5,7 @@ import UpdateLockerReservationForm from './UpdateLockerReservationForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { lockerOperations } from '@/services/lockers/operations'
 import { groupOperations } from '@/services/groups/operations'
+import { lockerReservationAuth } from '@/services/lockers/reservations/auth'
 import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
 import { Require } from '@/auth/authorizer/Require'
@@ -43,8 +44,12 @@ const { page, generateMetadata } = serverPage({
 
         return { lockerId, locker, groupsFormData, user } as const
     },
+    capabilities: () => ({
+        canCreateReservation: lockerReservationAuth.create,
+        canUpdateReservation: lockerReservationAuth.update,
+    }),
     metadata: () => ({ title: 'Skapreservasjon' }),
-    render: ({ data }) => {
+    render: ({ data, capabilities }) => {
         if (!data.locker) {
             return <LockerNotFound />
         }
@@ -82,7 +87,7 @@ const { page, generateMetadata } = serverPage({
                             <>
                                 <p>Dette skapet er reservert av {firstname} {lastname} {groupText} {endDateText}</p>
                                 {
-                                    user.id === reservation.user.id
+                                    user.id === reservation.user.id && capabilities.canUpdateReservation.authorized
                                         ?
                                         <UpdateLockerReservationForm
                                             reservationId={reservation.id}
@@ -95,10 +100,12 @@ const { page, generateMetadata } = serverPage({
                             :
                             <>
                                 <p>Dette skapet er ledig</p>
-                                <CreateLockerReservationForm
-                                    lockerId={lockerId}
-                                    groupsFormData={groupsFormData}
-                                />
+                                {capabilities.canCreateReservation.authorized && (
+                                    <CreateLockerReservationForm
+                                        lockerId={lockerId}
+                                        groupsFormData={groupsFormData}
+                                    />
+                                )}
                             </>
                     }
                 </div>

@@ -1,5 +1,6 @@
 import { createPromoAction } from '@/services/promo/actions'
 import { promoOperations } from '@/services/promo/operations'
+import { promoAuth } from '@/services/promo/auth'
 import { serverPage } from '@/app/serverPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
@@ -20,12 +21,15 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('promo', session)
         return promoOperations.readAll({})
     },
+    capabilities: () => ({
+        canCreatePromo: promoAuth.create,
+    }),
     metadata: () => ({ title: 'Administrer promo' }),
-    render: ({ data: promos }) => {
+    render: ({ data: promos, capabilities }) => {
         const now = new Date()
 
         return (
-            <PageWrapper headerItem={
+            <PageWrapper headerItem={capabilities.canCreatePromo.authorized &&
                 <AddHeaderItemPopUp popUpKey="CreatePromo">
                     <Form
                         title="Opprett ny promo"

@@ -23,9 +23,12 @@ import {
     removeAllApplicationTextsAction,
 } from '@/services/applications/periods/actions'
 import { applicationPeriodOperations } from '@/services/applications/periods/operations'
+import { applicationPeriodAuth } from '@/services/applications/periods/auth'
+import { applicationAuth } from '@/services/applications/auth'
 import { configureAction } from '@/services/configureAction'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
+import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/serverPage'
 import { faVideo } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -52,8 +55,22 @@ const { page, generateMetadata } = serverPage({
         ])
         return { period, applications, committees }
     },
+    capabilities: (data, session) => ({
+        canUpdatePeriod: applicationPeriodAuth.update,
+        canRemoveAllApplicationTexts: applicationPeriodAuth.removeAllApplicationTexts,
+        canDestroyPeriod: applicationPeriodAuth.destroy,
+        canCreateApplication: session.user
+            ? applicationAuth.create.data({ userId: session.user.id })
+            : Require.user(),
+        canUpdateApplication: session.user
+            ? applicationAuth.update.data({ userId: session.user.id })
+            : Require.user(),
+        canDestroyApplication: session.user
+            ? applicationAuth.destroy.data({ userId: session.user.id })
+            : Require.user(),
+    }),
     metadata: () => ({ title: 'Søknadsperiode' }),
-    render: ({ data, session }) => {
+    render: ({ data, session, capabilities }) => {
         const { period, applications, committees } = data
         const userId = session.user?.id
 
@@ -94,7 +111,10 @@ const { page, generateMetadata } = serverPage({
                     <CmsParagraph
                         className={styles.committeeParagraph}
                         capabilities={runCapabilities(sessionOfRequest, {
-                            canEdit: committeeAuth.updateParagraphContent.data({ groupId: part.committee.groupId }),
+                            canEdit: Require.allOf(
+                                committeeAuth.updateParagraphContent.data({ groupId: part.committee.groupId }),
+                                Require.custom(() => !part.committee.pensioned, { errorMessage: 'Komiteen er pensjonert' }),
+                            ),
                         })}
                         cmsParagraph={part.committee.paragraph}
                         updateCmsParagraphAction={
@@ -117,31 +137,38 @@ const { page, generateMetadata } = serverPage({
                                     showButtonClass={styles.applyButton}
                                 >
                                     <h1>Søknad til {part.committee.name}</h1>
-                                    <Form
-                                        closePopUpOnSuccess={
-                                            `committee-${part.committee.shortName}-apply`
-                                        }
-                                        refreshOnSuccess
-                                        action={part.priority === null ?
-                                            configureAction(createApplicationAction, {
-                                                params: { userId, commiteeParticipationId: part.id }
-                                            }) : configureAction(updateApplicationAction, {
-                                                params: { userId, commiteeParticipationId: part.id }
-                                            })
-                                        }
-                                        submitText={
-                                            part.priority === null ? 'Send søknad' : 'Endre søknad'
-                                        }
-                                    >
-                                        <Textarea
-                                            name="text"
-                                            label="Søknadstekst"
-                                            defaultValue={part.text}
-                                            className={styles.textarea}
-                                        />
-                                    </Form>
                                     {
-                                        part.priority !== null && (
+                                        (part.priority === null
+                                            ? capabilities.canCreateApplication.authorized
+                                            : capabilities.canUpdateApplication.authorized
+                                        ) && (
+                                            <Form
+                                                closePopUpOnSuccess={
+                                                    `committee-${part.committee.shortName}-apply`
+                                                }
+                                                refreshOnSuccess
+                                                action={part.priority === null ?
+                                                    configureAction(createApplicationAction, {
+                                                        params: { userId, committeeParticipationId: part.id }
+                                                    }) : configureAction(updateApplicationAction, {
+                                                        params: { userId, committeeParticipationId: part.id }
+                                                    })
+                                                }
+                                                submitText={
+                                                    part.priority === null ? 'Send søknad' : 'Endre søknad'
+                                                }
+                                            >
+                                                <Textarea
+                                                    name="text"
+                                                    label="Søknadstekst"
+                                                    defaultValue={part.text}
+                                                    className={styles.textarea}
+                                                />
+                                            </Form>
+                                        )
+                                    }
+                                    {
+                                        part.priority !== null && capabilities.canDestroyApplication.authorized && (
                                             <Form
                                                 refreshOnSuccess
                                                 closePopUpOnSuccess={
@@ -150,7 +177,7 @@ const { page, generateMetadata } = serverPage({
                                                 action={configureAction(destroyApplicationAction, {
                                                     params: {
                                                         userId,
-                                                        commiteeParticipationId: part.id
+                                                        committeeParticipationId: part.id
                                                     }
                                                 })}
                                                 confirmation={{
@@ -190,53 +217,73 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper headerItem={
-                <SettingsHeaderItemPopUp popUpKey={`period-${period.name}-settings`} scale={35}>
-                    <CreateUpdateApplicationPeriodForm
-                        committees={committees}
-                        closePopUpOnSuccess={`period-${period.name}-settings`}
-                        period={period}
-                    />
-                    <p>
-                        Etter søknadsperioden er over og plasser fordelt anbefales det av personvernshensyn å
-                        fjerne alle søknadstekster. Dette kan gjøres her. Dette sletter ikke historikk om hvem
-                        som har søkt og på hva men sletter alle søknadstekstene og bytter de ut med en tom tekst:
-                        &quot; SLETTET TEKST &quot;.
-                    </p>
-                    <Form
-                        action={configureAction(removeAllApplicationTextsAction, { params: { name: period.name } })}
-                        confirmation={{
-                            confirm: true,
-                            text: `
-                                Er du sikker på at du vil fjerne alle søknadstekster i denne perioden?
-                                Dette kan ikke angres!
-                            `,
-                        }}
-                        submitColor="red"
-                        submitText="Fjern alle søknadstekster"
-                        closePopUpOnSuccess={`period-${period.name}-settings`}
-                        refreshOnSuccess
-                    />
-                    <p>
-                        Du kan slette en søknadsperiode dette vil slette alle asosierte søknader,
-                        men det er anbefalt å heller fjerne alle søknadstekster istedenfor å slette søknadsperioden.
-                    </p>
-                    <Form
-                        action={configureAction(destroyApplicationPeriodAction, { params: { name: period.name } })}
-                        confirmation={{
-                            confirm: true,
-                            text: `
-                                Er du sikker på at du vil slette denne søknadsperioden?
-                                Dette kan ikke angres!
-                            `,
-                        }}
-                        submitColor="red"
-                        submitText="Slett søknadsperiode"
-                        closePopUpOnSuccess={`period-${period.name}-settings`}
-                        refreshOnSuccess
-                        navigateOnSuccess={'/applications'}
-                    />
-
-                </SettingsHeaderItemPopUp>
+                (
+                    capabilities.canUpdatePeriod.authorized
+                    || capabilities.canRemoveAllApplicationTexts.authorized
+                    || capabilities.canDestroyPeriod.authorized
+                ) && (
+                    <SettingsHeaderItemPopUp popUpKey={`period-${period.name}-settings`} scale={35}>
+                        {capabilities.canUpdatePeriod.authorized && (
+                            <CreateUpdateApplicationPeriodForm
+                                committees={committees}
+                                closePopUpOnSuccess={`period-${period.name}-settings`}
+                                period={period}
+                            />
+                        )}
+                        {capabilities.canRemoveAllApplicationTexts.authorized && (
+                            <>
+                                <p>
+                                    Etter søknadsperioden er over og plasser fordelt anbefales det av
+                                    personvernshensyn å fjerne alle søknadstekster. Dette kan gjøres her. Dette
+                                    sletter ikke historikk om hvem som har søkt og på hva men sletter alle
+                                    søknadstekstene og bytter de ut med en tom tekst: &quot; SLETTET TEKST &quot;.
+                                </p>
+                                <Form
+                                    action={configureAction(
+                                        removeAllApplicationTextsAction, { params: { name: period.name } }
+                                    )}
+                                    confirmation={{
+                                        confirm: true,
+                                        text: `
+                                            Er du sikker på at du vil fjerne alle søknadstekster i denne perioden?
+                                            Dette kan ikke angres!
+                                        `,
+                                    }}
+                                    submitColor="red"
+                                    submitText="Fjern alle søknadstekster"
+                                    closePopUpOnSuccess={`period-${period.name}-settings`}
+                                    refreshOnSuccess
+                                />
+                            </>
+                        )}
+                        {capabilities.canDestroyPeriod.authorized && (
+                            <>
+                                <p>
+                                    Du kan slette en søknadsperiode dette vil slette alle asosierte søknader,
+                                    men det er anbefalt å heller fjerne alle søknadstekster istedenfor å slette
+                                    søknadsperioden.
+                                </p>
+                                <Form
+                                    action={configureAction(
+                                        destroyApplicationPeriodAction, { params: { name: period.name } }
+                                    )}
+                                    confirmation={{
+                                        confirm: true,
+                                        text: `
+                                            Er du sikker på at du vil slette denne søknadsperioden?
+                                            Dette kan ikke angres!
+                                        `,
+                                    }}
+                                    submitColor="red"
+                                    submitText="Slett søknadsperiode"
+                                    closePopUpOnSuccess={`period-${period.name}-settings`}
+                                    refreshOnSuccess
+                                    navigateOnSuccess={'/applications'}
+                                />
+                            </>
+                        )}
+                    </SettingsHeaderItemPopUp>
+                )
             }>
                 <div className={styles.periodContent}>
                     <div className={styles.top} />
@@ -275,7 +322,7 @@ const { page, generateMetadata } = serverPage({
                                 <PrioritizedCommittees
                                     userId={userId}
                                     items={appliedTo.map(part => ({
-                                        commiteeParticipationId: part.id,
+                                        committeeParticipationId: part.id,
                                         card: renderCommitteeCard(part, session),
                                     }))}
                                 />

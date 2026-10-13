@@ -8,4 +8,4 @@ export const companyAuth = {
     updateSponsorTier: Require.permission('COMPANY_ADMIN'),
     updateCmsImageLogo: Require.permission('COMPANY_ADMIN'),
     destroy: Require.permission('COMPANY_ADMIN'),
-}
+} as const

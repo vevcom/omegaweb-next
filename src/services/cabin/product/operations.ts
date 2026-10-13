@@ -7,13 +7,12 @@ import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/ope
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
-import { z } from 'zod'
 
 export const cabinProductOperations = {
 
     create: defineOperation({
         authorizer: () => cabinProductAuth.create,
-        dataSchema: cabinProductSchemas.createProduct,
+        dataSchema: cabinProductSchemas.data.create,
         operation: ({ prisma, data }) => prisma.cabinProduct.create({
             data,
         })
@@ -21,21 +20,16 @@ export const cabinProductOperations = {
 
     createPrice: defineOperation({
         authorizer: () => cabinProductAuth.createPrice,
-        paramsSchema: z.object({
-            cabinProductId: z.number(),
-        }),
-        dataSchema: cabinProductSchemas.createProductPrice,
-        operation: async ({ prisma, params, data, session }) => {
+        paramsSchema: cabinProductSchemas.params.createPrice,
+        dataSchema: cabinProductSchemas.data.createPrice,
+        operation: async ({ prisma, params, data }) => {
             const [pricePeriod, releasePeriod] = await Promise.all([
                 prisma.pricePeriod.findUniqueOrThrow({
                     where: {
                         id: data.pricePeriodId,
                     }
                 }),
-                cabinReleasePeriodOperations.getCurrentReleasePeriod({
-                    bypassAuth: true,
-                    session
-                })
+                cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
             ])
 
             if (releasePeriod && pricePeriod.validFrom <= releasePeriod.releaseUntil) {
@@ -82,12 +76,10 @@ export const cabinProductOperations = {
 
     read: defineOperation({
         authorizer: () => cabinProductAuth.read,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: cabinProductSchemas.params.read,
         operation: ({ prisma, params }) => prisma.cabinProduct.findUniqueOrThrow({
             where: params,
             include: cabinProductPriceIncluder,
         })
     }),
-}
+} as const

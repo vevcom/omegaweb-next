@@ -5,7 +5,6 @@ import { lockerReservationSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { Smorekopp } from '@/services/error'
 import { groupOperations } from '@/services/groups/operations'
-import { z } from 'zod'
 
 export const lockerReservationOperations = {
     /**
@@ -18,10 +17,8 @@ export const lockerReservationOperations = {
      */
     create: defineOperation({
         authorizer: () => lockerReservationAuth.create,
-        paramsSchema: z.object({
-            lockerId: z.number(),
-        }),
-        dataSchema: lockerReservationSchemas.create,
+        paramsSchema: lockerReservationSchemas.params.create,
+        dataSchema: lockerReservationSchemas.data.create,
         operation: async ({ prisma, session, data, params }) => {
             // TODO: Use authorizers for authing in stead of this
             // Verify that user is in group
@@ -64,9 +61,7 @@ export const lockerReservationOperations = {
      */
     read: defineOperation({
         authorizer: () => lockerReservationAuth.read,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: lockerReservationSchemas.params.read,
         operation: ({ prisma, params: { id } }) => prisma.lockerReservation.findUniqueOrThrow({
             where: {
                 id,
@@ -84,10 +79,8 @@ export const lockerReservationOperations = {
      */
     update: defineOperation({
         authorizer: () => lockerReservationAuth.update,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
-        dataSchema: lockerReservationSchemas.update,
+        paramsSchema: lockerReservationSchemas.params.update,
+        dataSchema: lockerReservationSchemas.data.update,
         operation: async ({ prisma, session, data, params: { id } }) => {
             // TODO: Use authorizers for authing in stead of this
             // Verify that the user updating is the creator of the reservation
@@ -130,5 +123,5 @@ export const lockerReservationOperations = {
             })
         },
     }),
-}
+} as const
 

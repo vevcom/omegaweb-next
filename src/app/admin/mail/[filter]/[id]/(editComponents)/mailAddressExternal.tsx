@@ -30,8 +30,11 @@ export default function EditMailAddressExternal({
     const focusedExternal = data.mailaddressExternal.find(external => external.id === id)
     if (!focusedExternal) throw new Error('Fant ikke den eksterne adressen')
 
-    const canAdmin = useAuthorizer({
+    const canUpdateExternal = useAuthorizer({
         authorizer: mailAddressExternalAuth.update
+    }).authorized
+    const canDestroyExternal = useAuthorizer({
+        authorizer: mailAddressExternalAuth.destroy
     }).authorized
     const canAddRelation = useAuthorizer({
         authorizer: mailAuth.createMailingListExternalRelation
@@ -41,7 +44,7 @@ export default function EditMailAddressExternal({
     const availableLists = mailingLists.filter(list => !connectedListIds.has(list.id))
 
     return <>
-        {canAdmin && <Form
+        {canUpdateExternal && <Form
             title="Rediger ekstern adresse"
             submitText="Oppdater"
             action={updateMailAddressExternalAction}
@@ -65,7 +68,7 @@ export default function EditMailAddressExternal({
             />
         </Form>}
 
-        {canAdmin && <Form
+        {canDestroyExternal && <Form
             action={configureAction(destroyMailAddressExternalAction, { params: { id: focusedExternal.id } })}
             successCallback={() => push('/admin/mail/mailaddressExternal')}
             submitText="Slett adressen"

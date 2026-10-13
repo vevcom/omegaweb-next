@@ -12,7 +12,7 @@ export const cabinSettingsOperations = {
 
     update: defineOperation({
         authorizer: () => cabinSettingsAuth.update,
-        dataSchema: cabinSettingsSchemas.update,
+        dataSchema: cabinSettingsSchemas.data.update,
         operation: async ({ prisma, data }) => {
             const existing = await prisma.cabinSettings.findFirst()
 
@@ -26,4 +26,4 @@ export const cabinSettingsOperations = {
             return await prisma.cabinSettings.create({ data })
         },
     }),
-}
+} as const

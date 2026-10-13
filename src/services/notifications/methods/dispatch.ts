@@ -25,7 +25,7 @@ export async function sendNotificationEmails(
     const senderAlias = senderAddress ?? DEFAULT_NOTIFICATION_ALIAS
 
     const mails = (await Promise.all(users.map(async user => {
-        const parsed = sendMailSchemas.sendMail.safeParse({
+        const parsed = sendMailSchemas.data.sendMail.safeParse({
             from: senderAlias,
             to: user.email,
             subject: replaceSpecialSymbols(notification.title, user),

@@ -6,7 +6,10 @@ import PopUp from '@/app/_components/PopUp/PopUp'
 import { displayDate } from '@/lib/dates/displayDate'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
 import Form from '@/app/_components/Form/Form'
-import { destoryPricePeriodAction } from '@/services/cabin/pricePeriod/actions'
+import useAuthorizer from '@/hooks/useAuthorizer'
+import { cabinPricePeriodAuth } from '@/services/cabin/pricePeriod/auth'
+import { cabinReleasePeriodAuth } from '@/services/cabin/releasePeriod/auth'
+import { destroyPricePeriodAction } from '@/services/cabin/pricePeriod/actions'
 import { destroyReleasePeriodAction } from '@/services/cabin/releasePeriod/actions'
 import { configureAction } from '@/services/configureAction'
 import type { PricePeriod, ReleasePeriod } from '@/prisma-generated-pn-types'
@@ -19,6 +22,13 @@ export default function PageStateWrapper({
     releasePeriods: ReleasePeriod[],
     pricePeriods: PricePeriod[],
 }) {
+    const canCreateReleasePeriod = useAuthorizer({ authorizer: cabinReleasePeriodAuth.create }).authorized
+    const canUpdateReleasePeriod = useAuthorizer({ authorizer: cabinReleasePeriodAuth.update }).authorized
+    const canDestroyReleasePeriod = useAuthorizer({ authorizer: cabinReleasePeriodAuth.destroy }).authorized
+    const canCreatePricePeriod = useAuthorizer({ authorizer: cabinPricePeriodAuth.create }).authorized
+    const canUpdatePricePeriod = useAuthorizer({ authorizer: cabinPricePeriodAuth.update }).authorized
+    const canDestroyPricePeriod = useAuthorizer({ authorizer: cabinPricePeriodAuth.destroy }).authorized
+
     function isPricePeriodReleased(pricePeriod: PricePeriod): boolean {
         return releasePeriods
             .filter(period => period.releaseTime <= new Date())
@@ -27,24 +37,35 @@ export default function PageStateWrapper({
 
     return <>
 
-        <PopUp
-            popUpKey="CreateNewReleasePeriod"
-            showButtonContent="Ny Slipp Periode"
-            showButtonClass={styles.button}
-        >
-            <ReleasePeriodForm />
-        </PopUp>
+        {canCreateReleasePeriod &&
+            <PopUp
+                popUpKey="CreateNewReleasePeriod"
+                showButtonContent="Ny Slipp Periode"
+                showButtonClass={styles.button}
+            >
+                <ReleasePeriodForm closePopUpOnSuccess="CreateNewReleasePeriod" />
+            </PopUp>
+        }
 
         <SimpleTable
             header={[
                 'Slipptidspunkt',
                 'Slipp til dato',
+                'Endre',
                 'Slett',
             ]}
             body={releasePeriods.map(period => [
                 displayDate(period.releaseTime, false),
                 displayDate(period.releaseUntil, false),
-                period.releaseTime < new Date() ? 'Slipp perioden er publisert.' :
+                !canUpdateReleasePeriod || period.releaseTime < new Date() ? '' :
+                    <PopUp
+                        key={period.id}
+                        popUpKey={`UpdateReleasePeriod${period.id}`}
+                        showButtonContent="Endre"
+                    >
+                        <ReleasePeriodForm period={period} closePopUpOnSuccess={`UpdateReleasePeriod${period.id}`} />
+                    </PopUp>,
+                period.releaseTime < new Date() ? 'Slipp perioden er publisert.' : canDestroyReleasePeriod &&
                     <Form
                         key={period.id}
                         action={configureAction(destroyReleasePeriodAction, {
@@ -60,38 +81,46 @@ export default function PageStateWrapper({
             ])}
         />
 
-        <PopUp
-            popUpKey="CreateNewPricePeriod"
-            showButtonContent="Ny Pris Periode"
-            showButtonClass={styles.button}
-        >
-            <PricePeriodForm />
-        </PopUp>
+        {canCreatePricePeriod &&
+            <PopUp
+                popUpKey="CreateNewPricePeriod"
+                showButtonContent="Ny Pris Periode"
+                showButtonClass={styles.button}
+            >
+                <PricePeriodForm closePopUpOnSuccess="CreateNewPricePeriod" />
+            </PopUp>
+        }
 
         <SimpleTable
             header={[
                 'Start dato',
+                'Endre',
                 'Slett'
             ]}
             body={pricePeriods.map(period => [
                 displayDate(period.validFrom, false),
-                <>
-                    {isPricePeriodReleased(period) ? 'Pris perioden er publisert.' :
-                        <Form
-                            key={period.id}
-                            action={configureAction(destoryPricePeriodAction, {
-                                params: { id: period.id },
-                            })}
-                            submitText="Slett"
-                            submitColor="red"
-                            confirmation={{
-                                confirm: true,
-                                // eslint-disable-next-line max-len
-                                text: 'Er du sikker på at du vil slette denne pris perioden? Dette vil slette alle priser forbundet til perioden.'
-                            }}
-                        />
-                    }
-                </>
+                !canUpdatePricePeriod || isPricePeriodReleased(period) ? '' :
+                    <PopUp
+                        key={period.id}
+                        popUpKey={`UpdatePricePeriod${period.id}`}
+                        showButtonContent="Endre"
+                    >
+                        <PricePeriodForm period={period} closePopUpOnSuccess={`UpdatePricePeriod${period.id}`} />
+                    </PopUp>,
+                isPricePeriodReleased(period) ? 'Pris perioden er publisert.' : canDestroyPricePeriod &&
+                    <Form
+                        key={period.id}
+                        action={configureAction(destroyPricePeriodAction, {
+                            params: { id: period.id },
+                        })}
+                        submitText="Slett"
+                        submitColor="red"
+                        confirmation={{
+                            confirm: true,
+                            // eslint-disable-next-line max-len
+                            text: 'Er du sikker på at du vil slette denne pris perioden? Dette vil slette alle priser forbundet til perioden.'
+                        }}
+                    />
             ])}
         />
 

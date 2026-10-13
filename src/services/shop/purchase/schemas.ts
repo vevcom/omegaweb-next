@@ -1,21 +1,21 @@
 import { studentCardSchema } from '@/services/users/schemas'
 import { z } from 'zod'
 
-const productSchema = z.array(z.object({
-    id: z.number().int(),
-    quantity: z.number().int().min(1)
-}))
-
-const baseSchema = z.object({
+const dataFieldSchemas = z.object({
     shopId: z.coerce.number().int(),
     studentCard: studentCardSchema,
-    products: productSchema,
+    products: z.array(z.object({
+        id: z.number().int(),
+        quantity: z.number().int().min(1)
+    })),
 })
 
 export const purchaseSchemas = {
-    createFromStudentCard: baseSchema.pick({
-        shopId: true,
-        products: true,
-        studentCard: true,
-    })
+    data: {
+        createByStudentCard: dataFieldSchemas.pick({
+            shopId: true,
+            products: true,
+            studentCard: true,
+        }),
+    },
 }

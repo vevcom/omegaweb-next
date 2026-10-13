@@ -2,7 +2,7 @@ import { maxImageSize, minImageSize } from './constants'
 import { Position } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-export const baseSchema = z.object({
+export const articleSectionDataFieldSchemas = z.object({
     name: z.string().min(2).max(100).optional(),
     imageSize: z.number().transform(val => {
         if (val < minImageSize) return minImageSize
@@ -13,28 +13,43 @@ export const baseSchema = z.object({
     part: z.union([z.literal('cmsLink'), z.literal('cmsImage'), z.literal('cmsParagraph')])
 })
 
+const paramsFieldSchemas = z.object({
+    articleSectionId: z.number(),
+    articleSectionName: z.string(),
+})
+
+/** An article section is addressed by its id or by its name. */
+const articleSectionAddress = z.union([
+    z.object({
+        articleSectionId: paramsFieldSchemas.shape.articleSectionId,
+        articleSectionName: z.undefined().optional()
+    }),
+    z.object({
+        articleSectionId: z.undefined().optional(),
+        articleSectionName: paramsFieldSchemas.shape.articleSectionName
+    })
+])
+
+const part = articleSectionDataFieldSchemas.pick({
+    part: true
+})
+
 export const articleSectionSchemas = {
-    create: baseSchema.pick({
-        name: true,
-    }),
-    update: baseSchema.pick({
-        imageSize: true,
-        position: true
-    }).partial(),
-    addPart: baseSchema.pick({
-        part: true
-    }),
-    removePart: baseSchema.pick({
-        part: true
-    }),
-    params: z.union([
-        z.object({
-            articleSectionId: z.number(),
-            articleSectionName: z.undefined().optional()
+    data: {
+        create: articleSectionDataFieldSchemas.pick({
+            name: true,
         }),
-        z.object({
-            articleSectionId: z.undefined().optional(),
-            articleSectionName: z.string()
-        })
-    ]),
-} as const
+        update: articleSectionDataFieldSchemas.pick({
+            imageSize: true,
+            position: true
+        }).partial(),
+        addPart: part,
+        removePart: part,
+    },
+    params: {
+        destroy: articleSectionAddress,
+        update: articleSectionAddress,
+        addPart: articleSectionAddress,
+        removePart: articleSectionAddress,
+    },
+}

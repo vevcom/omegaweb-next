@@ -1,11 +1,10 @@
 import '@pn-server-only'
 import { ledgerMovementAuth } from './auth'
+import { ledgerMovementSchemas } from './schemas'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { defineOperation } from '@/services/serviceOperation'
-import { PaymentProvider } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 
 // `ledgerMovementOperations` provides functions to orchestrate account related actions,
 // such as depositing funds or creating payouts. If the ledger is needed for
@@ -26,16 +25,7 @@ export const ledgerMovementOperations = {
     createDeposit: defineOperation({
         authorizer: () => ledgerMovementAuth.createDeposit,
         opensTransaction: true,
-        paramsSchema: z.object({
-            ledgerAccountId: z.number(),
-            provider: z.nativeEnum(PaymentProvider),
-            funds: z.coerce.number().nonnegative(),
-            manualFees: z.coerce.number().nonnegative().default(0),
-            // Only honored for MANUAL deposits, which already require LEDGER_ADMIN (see auth.ts).
-            // For every other provider the transaction's description is left unset so that it
-            // falls back to a translated purpose label instead (see LedgerTransactionRow).
-            description: z.string().optional(),
-        }),
+        paramsSchema: ledgerMovementSchemas.params.createDeposit,
         operation: async ({ prisma, params }) => {
             const transaction = await prisma.$transaction(async tx => {
                 const payment = await paymentOperations.create({
@@ -86,12 +76,7 @@ export const ledgerMovementOperations = {
         authorizer: async ({ params, prisma }) => ledgerMovementAuth.createPayout.data({
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.ledgerAccountId })],
         }),
-        paramsSchema: z.object({
-            ledgerAccountId: z.number(),
-            funds: z.number().nonnegative().default(0),
-            fees: z.number().nonnegative().default(0),
-            description: z.string().optional(),
-        }).refine((data) => data.funds || data.fees, 'Både beløp og avgifter kan ikke være 0 samtidig.'),
+        paramsSchema: ledgerMovementSchemas.params.createPayout,
         opensTransaction: true,
         operation: async ({ prisma, params, session }) => prisma.$transaction(async tx => {
             const payment = await paymentOperations.create({
@@ -127,4 +112,4 @@ export const ledgerMovementOperations = {
             return transaction
         })
     }),
-}
+} as const

@@ -2,9 +2,8 @@ import '@pn-server-only'
 import { interestGroupAuth } from './auth'
 import { interestGroupSchemas } from './schemas'
 import { groupOperations } from '@/services/groups/operations'
-import { invalidateManyUserSessionData } from '@/services/auth/invalidateSession'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { articleSectionsRealtionsIncluder } from '@/services/cms/articleSections/constants'
+import { articleSectionsRelationsIncluder } from '@/services/cms/articleSections/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import {
     implementGroupType,
@@ -14,8 +13,8 @@ import {
 import { GroupType } from '@/prisma-generated-pn-types'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { implementUpdateArticleSectionOperations } from '@/cms/articleSections/implement'
-import { ServiceError } from '@/services/error'
-import { z } from 'zod'
+import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
+import { articleSectionOperations } from '@/cms/articleSections/operations'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 const commonGroupOperations = implementGroupType({
@@ -49,24 +48,7 @@ const migration = implementManualMigrationPerGroup({
     }),
 })
 
-/**
- * A pensioned interest group is history: nothing about it may be changed until someone brings it
- * back. The check sits on every operation that writes.
- */
-async function assertNotPensioned(prisma: PrismaPossibleTransaction<false>, id: number) {
-    const interestGroup = await prisma.interestGroup.findUniqueOrThrow({
-        where: { id },
-        select: { name: true, pensioned: true },
-    })
-
-    if (interestGroup.pensioned) {
-        throw new ServiceError(
-            'BAD PARAMETERS',
-            `${interestGroup.name} er pensjonert og kan ikke endres. Gjenopprett gruppen først.`
-        )
-    }
-}
-
+/** The group behind an interest group, for the authorizers and the pensioned check. */
 export const interestGroupOperations = {
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
@@ -78,28 +60,28 @@ export const interestGroupOperations = {
     migrateGroup: migration.migrateGroup,
     pension: migration.pension,
     create: defineOperation({
-        dataSchema: interestGroupSchemas.create,
+        dataSchema: interestGroupSchemas.data.create,
         authorizer: () => interestGroupAuth.create,
+        opensTransaction: true,
         operation: async ({ prisma, data }) => {
             const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
-            await prisma.interestGroup.create({
-                data: {
-                    ...data,
-                    articleSection: {
-                        create: {
-                            cmsImage: {},
-                            cmsParagraph: {},
-                            cmsLink: {},
-                        }
-                    },
-                    group: {
-                        create: {
-                            groupType: 'INTEREST_GROUP',
-                            order,
+            return await prisma.$transaction(async tx => {
+                const articleSection = await articleSectionOperations.create.internalCall({ data: {}, prisma: tx })
+                return await tx.interestGroup.create({
+                    data: {
+                        ...data,
+                        articleSection: {
+                            connect: { id: articleSection.id },
+                        },
+                        group: {
+                            create: {
+                                groupType: 'INTEREST_GROUP',
+                                order,
+                            }
                         }
                     }
-                }
+                })
             })
         }
     }),
@@ -109,7 +91,7 @@ export const interestGroupOperations = {
         operation: ({ prisma }) => prisma.interestGroup.findMany({
             include: {
                 articleSection: {
-                    include: articleSectionsRealtionsIncluder,
+                    include: articleSectionsRelationsIncluder,
                 },
             },
             orderBy: [
@@ -120,9 +102,7 @@ export const interestGroupOperations = {
     }),
 
     read: defineOperation({
-        paramsSchema: z.object({
-            id: z.number().optional(),
-        }),
+        paramsSchema: interestGroupSchemas.params.read,
         authorizer: () => interestGroupAuth.read,
         operation: async ({ prisma, params: { id } }) => await prisma.interestGroup.findUniqueOrThrow({
             where: {
@@ -130,27 +110,20 @@ export const interestGroupOperations = {
             },
             include: {
                 articleSection: {
-                    include: articleSectionsRealtionsIncluder,
+                    include: articleSectionsRelationsIncluder,
                 },
             }
         })
     }),
 
     update: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
+        paramsSchema: interestGroupSchemas.params.update,
+        dataSchema: interestGroupSchemas.data.update,
+        authorizer: async ({ prisma, params }) => interestGroupAuth.update.data({
+            groupId: await readGroupIdOfInterestGroup(prisma, params.id),
         }),
-        dataSchema: interestGroupSchemas.update,
-        authorizer: async ({ prisma, params }) => {
-            const { groupId } = await prisma.interestGroup.findUniqueOrThrow({
-                where: { id: params.id },
-                select: { groupId: true },
-            })
-
-            return interestGroupAuth.update.data({ groupId })
-        },
         operation: async ({ prisma, params: { id }, data }) => {
-            await assertNotPensioned(prisma, id)
+            await assertGroupNotPensioned(prisma, await readGroupIdOfInterestGroup(prisma, id))
 
             return prisma.interestGroup.update({
                 where: { id },
@@ -160,24 +133,26 @@ export const interestGroupOperations = {
     }),
 
     destroy: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: interestGroupSchemas.params.destroy,
         authorizer: () => interestGroupAuth.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params: { id } }) => {
-            await assertNotPensioned(prisma, id)
+            await assertGroupNotPensioned(prisma, await readGroupIdOfInterestGroup(prisma, id))
 
-            const memberIds = await prisma.$transaction(async tx => {
-                const intrestGroup = await tx.interestGroup.delete({
+            await prisma.$transaction(async tx => {
+                const interestGroup = await tx.interestGroup.delete({
                     where: { id }
                 })
-                return groupOperations.destroy.internalCall({
+                // The section's image, paragraph and link go with it.
+                await articleSectionOperations.destroy.internalCall({
                     prisma: tx,
-                    params: { groupId: intrestGroup.groupId },
+                    params: { articleSectionId: interestGroup.articleSectionId },
+                })
+                await groupOperations.destroy.internalCall({
+                    prisma: tx,
+                    params: { groupId: interestGroup.groupId },
                 })
             })
-            await invalidateManyUserSessionData(memberIds)
         }
     }),
 
@@ -197,18 +172,14 @@ export const interestGroupOperations = {
             })
     }),
     updateArticleSection: implementUpdateArticleSectionOperations({
-        implementationParamsSchema: z.object({
-            interestGroupId: z.number()
+        implementationParamsSchema: interestGroupSchemas.params.updateArticleSection,
+        authorizer: async ({ implementationParams, prisma }) => interestGroupAuth.updateArticleSection.data({
+            groupId: await readGroupIdOfInterestGroup(prisma, implementationParams.interestGroupId),
         }),
-        authorizer: async ({ implementationParams, prisma }) => {
-            const { groupId } = await prisma.interestGroup.findUniqueOrThrow({
-                where: { id: implementationParams.interestGroupId },
-                select: { groupId: true }
-            })
-            return interestGroupAuth.updateArticleSection.data({ groupId })
-        },
-        beforeRun: ({ prisma, implementationParams }) =>
-            assertNotPensioned(prisma, implementationParams.interestGroupId),
+        beforeRun: async ({ prisma, implementationParams }) => assertGroupNotPensioned(
+            prisma,
+            await readGroupIdOfInterestGroup(prisma, implementationParams.interestGroupId),
+        ),
         ownedArticleSections: ({ prisma, implementationParams }) =>
             prisma.interestGroup.findUniqueOrThrow({
                 where: { id: implementationParams.interestGroupId },
@@ -224,4 +195,8 @@ export const interestGroupOperations = {
             }).then(articleGroup => [articleGroup.articleSection]),
         destroyOnEmpty: false,
     }),
+} as const
+
+async function readGroupIdOfInterestGroup(prisma: PrismaPossibleTransaction<false>, id: number) {
+    return (await prisma.interestGroup.findUniqueOrThrow({ where: { id }, select: { groupId: true } })).groupId
 }

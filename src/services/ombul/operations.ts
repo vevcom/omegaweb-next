@@ -8,7 +8,6 @@ import { implementStore } from '@/lib/store/implementStore'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { z } from 'zod'
 
 export const ombulStore = implementStore({
     staticStorePrefix: 'ombul',
@@ -17,18 +16,7 @@ export const ombulStore = implementStore({
 
 const read = defineOperation({
     authorizer: () => ombulAuth.read,
-    paramsSchema: z.union([
-        z.object({
-            id: z.number(),
-            name: z.undefined().optional(),
-            year: z.undefined().optional()
-        }),
-        z.object({
-            id: z.undefined().optional(),
-            name: z.string(),
-            year: z.number()
-        })
-    ]),
+    paramsSchema: ombulSchemas.params.read,
     operation: ({ params, prisma }) =>
         prisma.ombul.findUniqueOrThrow({
             where: typeof params.id === 'number' ? {
@@ -77,10 +65,8 @@ const readLatest = defineOperation({
 
 const updateCoverImage = defineOperation({
     authorizer: () => ombulAuth.updateCoverImage,
-    paramsSchema: z.object({
-        ombulId: z.number()
-    }),
-    dataSchema: ombulSchemas.updateCoverImage,
+    paramsSchema: ombulSchemas.params.updateCoverImage,
+    dataSchema: ombulSchemas.data.updateCoverImage,
     opensTransaction: true,
     operation: async ({ prisma, params, data }) => {
         const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
@@ -120,9 +106,7 @@ const updateCoverImage = defineOperation({
  */
 const destroy = defineOperation({
     authorizer: () => ombulAuth.destroy,
-    paramsSchema: z.object({
-        id: z.number()
-    }),
+    paramsSchema: ombulSchemas.params.destroy,
     operation: async ({ params, prisma }) => {
         const ombul = await prisma.ombul.findUnique({
             where: {
@@ -152,7 +136,7 @@ const destroy = defineOperation({
 
 const create = defineOperation({
     authorizer: () => ombulAuth.create,
-    dataSchema: ombulSchemas.create,
+    dataSchema: ombulSchemas.data.create,
     opensTransaction: true,
     operation: ({ data, prisma }) =>
         prisma.$transaction(async tx => {
@@ -229,10 +213,8 @@ const create = defineOperation({
 
 const update = defineOperation({
     authorizer: () => ombulAuth.update,
-    dataSchema: ombulSchemas.update,
-    paramsSchema: z.object({
-        id: z.number()
-    }),
+    dataSchema: ombulSchemas.data.update,
+    paramsSchema: ombulSchemas.params.update,
     operation: ({ data, prisma, params }) =>
         prisma.ombul.update({
             where: {
@@ -248,10 +230,8 @@ const update = defineOperation({
 
 const updateFile = defineOperation({
     authorizer: () => ombulAuth.updateFile,
-    dataSchema: ombulSchemas.updateFile,
-    paramsSchema: z.object({
-        id: z.number()
-    }),
+    dataSchema: ombulSchemas.data.updateFile,
+    paramsSchema: ombulSchemas.params.updateFile,
     operation: async ({ data, prisma, params }) => {
         const { fsLocation } = await ombulStore.createFile(data.ombulFile, ['pdf'])
 
@@ -285,9 +265,7 @@ const updateFile = defineOperation({
 })
 
 const updateParagraphContent = cmsParagraphOperations.updateContent.implement({
-    implementationParamsSchema: z.object({
-        ombulId: z.number()
-    }),
+    implementationParamsSchema: ombulSchemas.params.updateParagraphContent,
     authorizer: () => ombulAuth.updateParagraphContent,
     ownershipCheck: async ({ implementationParams, params }) =>
         (await read({

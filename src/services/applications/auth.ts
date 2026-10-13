@@ -7,4 +7,4 @@ export const applicationAuth = {
     create: userIdOrApplicationAdmin,
     update: userIdOrApplicationAdmin,
     destroy: userIdOrApplicationAdmin,
-}
+} as const

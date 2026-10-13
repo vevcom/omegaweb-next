@@ -8,13 +8,10 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
-import { z } from 'zod'
 import type { ExpandedJobAd, SimpleJobAd } from './types'
 
 const read = defineOperation({
-    paramsSchema: z.object({
-        id: z.number()
-    }),
+    paramsSchema: jobAdSchemas.params.read,
     authorizer: () => jobAdAuth.read,
     operation: async ({ prisma, params }): Promise<ExpandedJobAd> => await prisma.jobAd.findUniqueOrThrow({
         where: {
@@ -31,7 +28,7 @@ const read = defineOperation({
 
 export const jobAdOperations = {
     create: defineOperation({
-        dataSchema: jobAdSchemas.create,
+        dataSchema: jobAdSchemas.data.create,
         authorizer: () => jobAdAuth.create,
         operation: async ({ prisma, data: { articleName, companyId, ...data } }) => {
             const article = await articleOperations.create.internalCall({
@@ -110,7 +107,7 @@ export const jobAdOperations = {
      * @param paging - the page to read, includes details to filter by name (articleName) and the type.
      */
     readInactivePage: defineOperation({
-        paramsSchema: jobAdSchemas.readInactivePage,
+        paramsSchema: jobAdSchemas.params.readInactivePage,
         authorizer: () => jobAdAuth.readInactivePage,
         operation: async ({ prisma, params }): Promise<SimpleJobAd[]> => {
             const jobAds = await prisma.jobAd.findMany({
@@ -142,10 +139,8 @@ export const jobAdOperations = {
      * @returns
      */
     update: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
-        dataSchema: jobAdSchemas.update,
+        paramsSchema: jobAdSchemas.params.update,
+        dataSchema: jobAdSchemas.data.update,
         authorizer: () => jobAdAuth.update,
         operation: async ({ prisma, params: { id }, data }) => await prisma.jobAd.update({
             where: { id },
@@ -154,18 +149,14 @@ export const jobAdOperations = {
     }),
     updateArticle: implementUpdateArticleOperations({
         authorizer: () => jobAdAuth.updateArticle,
-        implementationParamsSchema: z.object({
-            jobAdId: z.number(),
-        }),
+        implementationParamsSchema: jobAdSchemas.params.updateArticle,
         ownedArticles: async ({ implementationParams }) => {
             const jobAd = await read({ params: { id: implementationParams.jobAdId }, bypassAuth: true })
             return [jobAd.article]
         }
     }),
     destroy: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: jobAdSchemas.params.destroy,
         authorizer: () => jobAdAuth.destroy,
         operation: async ({ prisma, params: { id } }) => {
             const jobAd = await prisma.jobAd.delete({
@@ -174,4 +165,4 @@ export const jobAdOperations = {
             await articleOperations.destroy.internalCall({ params: { articleId: jobAd.articleId } })
         }
     }),
-}
+} as const

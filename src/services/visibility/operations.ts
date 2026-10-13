@@ -60,7 +60,7 @@ export const visibilityOperations = {
      * checkVisibility, so anything created empty is open to everyone until it is updated.
      */
     createWithRequirements: defineSubOperation({
-        dataSchema: () => visibilitySchemas.createWithRequirements,
+        dataSchema: () => visibilitySchemas.data.createWithRequirements,
         operation: () => async ({ prisma, data }) =>
             prisma.visibility.create({
                 data: {
@@ -70,14 +70,14 @@ export const visibilityOperations = {
     }),
 
     destroy: defineSubOperation({
-        paramsSchema: () => visibilitySchemas.params,
+        paramsSchema: () => visibilitySchemas.params.destroy,
         operation: () => ({ prisma, params }) =>
             prisma.visibility.delete({ where: { id: params.visibilityId } })
     }),
 
     update: defineSubOperation({
-        paramsSchema: () => visibilitySchemas.params,
-        dataSchema: () => visibilitySchemas.update,
+        paramsSchema: () => visibilitySchemas.params.update,
+        dataSchema: () => visibilitySchemas.data.update,
         opensTransaction: true,
         operation: () => async ({ prisma, params, data }) => {
             const requirements = await buildRequirementsCreateInput(data.requirements)

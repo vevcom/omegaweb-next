@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const baseSchema = z.object({
+const dataFieldSchemas = z.object({
     text: z.string().trim().min(
         1, { message: 'Søknadsteksten kan ikke være tom.' }
     ).max(
@@ -9,13 +9,34 @@ const baseSchema = z.object({
     priority: z.literal('UP').or(z.literal('DOWN'))
 })
 
-export const applicationSchemas = {
-    create: baseSchema.pick({
-        text: true,
-    }),
+const paramsFieldSchemas = z.object({
+    userId: z.number(),
+    committeeParticipationId: z.number(),
+    periodId: z.number(),
+})
 
-    update: baseSchema.pick({
-        text: true,
-        priority: true
-    }).partial(),
+const application = paramsFieldSchemas.pick({
+    userId: true,
+    committeeParticipationId: true,
+})
+
+export const applicationSchemas = {
+    data: {
+        create: dataFieldSchemas.pick({
+            text: true,
+        }),
+        update: dataFieldSchemas.pick({
+            text: true,
+            priority: true
+        }).partial(),
+    },
+    params: {
+        readForUser: paramsFieldSchemas.pick({
+            userId: true,
+            periodId: true,
+        }),
+        create: application,
+        update: application,
+        destroy: application,
+    },
 }

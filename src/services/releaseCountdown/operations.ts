@@ -80,7 +80,7 @@ export const releaseCountdownOperations = {
      */
     unlock: defineOperation({
         authorizer: () => releaseCountdownAuth.unlock,
-        dataSchema: releaseCountdownSchemas.unlock,
+        dataSchema: releaseCountdownSchemas.data.unlock,
         operation: async ({ data }) => {
             assertPassword(data.password)
             await setUnlockCookie('admin', await readSettings())
@@ -101,7 +101,7 @@ export const releaseCountdownOperations = {
     }),
     updateSettings: defineOperation({
         authorizer: () => releaseCountdownAuth.updateSettings,
-        dataSchema: releaseCountdownSchemas.updateSettings,
+        dataSchema: releaseCountdownSchemas.data.updateSettings,
         operation: async ({ data }) => {
             assertPassword(data.password)
             await writeSettings({
@@ -115,7 +115,7 @@ export const releaseCountdownOperations = {
      */
     updateGitGraph: defineOperation({
         authorizer: () => releaseCountdownAuth.updateGitGraph,
-        dataSchema: releaseCountdownSchemas.updateGitGraph,
+        dataSchema: releaseCountdownSchemas.data.updateGitGraph,
         operation: async ({ data }) => {
             assertPassword(data.password)
             const graph = await fetchGitGraph()

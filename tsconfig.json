@@ -79,10 +79,6 @@
       "@/api/*": [
         "src/app/api/*"
       ],
-      "@/education/*": [
-        "src/services/education/*",
-        "src/app/education/*"
-      ],
       "@/career/*": [
         "src/services/career/*",
         "src/app/career/*"

@@ -1,5 +1,6 @@
 import { updateDefaultPermissionsAction } from '@/services/permissions/actions'
 import { permissionOperations } from '@/services/permissions/operations'
+import { permissionsAuth } from '@/services/permissions/auth'
 import Form from '@/components/Form/Form'
 import DisplayAllPermissions from '@/components/Permission/DisplayAllPermissions'
 import { serverPage } from '@/app/serverPage'
@@ -12,11 +13,15 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('default-permissions', session)
         return permissionOperations.readDefaultPermissions({})
     },
+    capabilities: () => ({
+        canUpdateDefaultPermissions: permissionsAuth.updateDefaultPermissions,
+    }),
     metadata: () => ({ title: 'Standard Tilganger' }),
-    render: ({ data: defaultPermissions }) => (
+    render: ({ data: defaultPermissions, capabilities }) => (
         <>
             <h1>Standard Tilganger</h1>
             <i>Dette er tilganger alle har på nettsiden uavhengig av innlogging og gruppeafiliasjoner</i>
+            {capabilities.canUpdateDefaultPermissions.authorized &&
             <Form submitText="Lagre" action={updateDefaultPermissionsAction}>
                 <DisplayAllPermissions renderBesidePermission={
                     permission => (
@@ -32,6 +37,7 @@ const { page, generateMetadata } = serverPage({
                 }
                 />
             </Form>
+            }
         </>
 
     ),

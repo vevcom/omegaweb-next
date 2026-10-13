@@ -17,7 +17,6 @@ model CmsImage {
   coverImageforArticle Article?
   special              SpecialCmsImage? @unique
   screenPage           ScreenPage?
-  school               School?
   event                Event?
   company              Company?
 }
@@ -45,8 +44,6 @@ model CmsParagraph {
   articleSectionId    Int?                 @unique
   special             SpecialCmsParagraph? @unique
   ScreenPage          ScreenPage?
-  Course              Course?
-  School              School?
   Event               Event?
   Committee           Committee?           @relation(name: "committeeParagraph")
   CommitteApplication Committee?           @relation(name: "applicationParagraph")
@@ -68,7 +65,6 @@ model CmsLink {
   special          SpecialCmsLink? @unique
   articleSection   ArticleSection? @relation(fields: [articleSectionId], references: [id], onDelete: Cascade)
   articleSectionId Int?            @unique
-  school           School?
 }
 
 enum Position {

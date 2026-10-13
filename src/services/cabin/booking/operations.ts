@@ -2,10 +2,17 @@ import '@pn-server-only'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from './cabinPriceCalculator'
 import { cabinBookingSchemas } from './schemas'
 import { cabinBookingAuth } from './auth'
-import { cabinReservationWindowMs, cabinBookingFilerSelection, cabinBookingIncluder } from './constants'
+import {
+    cabinBookingFilterSelection,
+    cabinBookingIncluder,
+    cabinReservationWindowMs,
+    maxCabinBookingNights,
+    maxUnpaidReservationsPerBooker,
+} from './constants'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
 import { cabinProductPriceIncluder } from '@/services/cabin/product/constants'
-import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import { defineOperation } from '@/services/serviceOperation'
+import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
@@ -13,330 +20,238 @@ import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
-import { BookingType, PaymentProvider } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 import crypto from 'crypto'
-import type { CabinProductExtended } from '@/services/cabin/product/constants'
+import type { z } from 'zod'
+import type { BookingFiltered } from './types'
+import type { BookingType, Prisma } from '@/prisma-generated-pn-types'
+import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
-import logger from '@/lib/logger'
 
-const cabinAvailable = defineSubOperation({
-    paramsSchema: () => z.object({
-        start: z.date(),
-        end: z.date()
-    }),
-    operation: () => async ({ prisma, params }) => {
-        const results = await prisma.booking.findMany({
-            where: {
-                start: {
-                    lt: params.end,
-                },
-                end: {
-                    gt: params.start,
-                },
-                canceled: null,
-                // An unpaid reservation stops blocking the calendar once its payment window
-                // (transactionTimeout) has passed. Confirmed bookings have it cleared to null.
-                OR: [
-                    { transactionTimeout: null },
-                    { transactionTimeout: { gt: new Date() } },
-                ],
-            }
-        })
-        return results.length === 0
-    }
+const dayMs = 24 * 60 * 60 * 1000
+
+/**
+ * What blocks the calendar: a booking that is not canceled and either is paid (its window is
+ * cleared) or is still inside the window its payment must start in.
+ */
+const blocksCalendar = (): Prisma.BookingWhereInput => ({
+    canceled: null,
+    OR: [
+        { transactionTimeout: null },
+        { transactionTimeout: { gt: new Date() } },
+    ],
 })
 
-const bookingProductParams = z.array(z.object({
-    cabinProductId: z.number(),
-    quantity: z.number().int().min(1),
-}))
+type BookingProductParams = z.infer<typeof cabinBookingSchemas.params.createCabinBookingNoUser>['bookingProducts']
 
+type Booker = { userId: number } | {
+    guest: { firstname: string, lastname: string, email: string, mobile: string },
+}
 
-const create = defineSubOperation({
-    paramsSchema: () => z.object({
-        bookingType: z.nativeEnum(BookingType),
-        bookingProducts: bookingProductParams,
-    }),
-    dataSchema: () => cabinBookingSchemas.createBookingUserAttached,
-    operation: () => async ({ prisma, params, data }) => {
-        // TODO: Prevent Race conditions
+type Reservation = {
+    bookingType: BookingType,
+    bookingProducts: BookingProductParams,
+    booker: Booker,
+    start: Date,
+    end: Date,
+    tenantNotes?: string,
+    numberOfMembers: number,
+    numberOfNonMembers: number,
+}
 
-        const latestReleaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
+const withUser = (
+    bookingType: BookingType,
+    params: { userId: number, bookingProducts: BookingProductParams },
+    data: z.infer<typeof cabinBookingSchemas.data.createCabinBookingUserAttached>,
+): Reservation => ({
+    bookingType,
+    bookingProducts: params.bookingProducts,
+    booker: { userId: params.userId },
+    start: data.start,
+    end: data.end,
+    tenantNotes: data.tenantNotes,
+    numberOfMembers: data.numberOfMembers,
+    numberOfNonMembers: data.numberOfNonMembers,
+})
+
+const asGuest = (
+    bookingType: BookingType,
+    params: { bookingProducts: BookingProductParams },
+    data: z.infer<typeof cabinBookingSchemas.data.createCabinBookingNoUser>,
+): Reservation => ({
+    bookingType,
+    bookingProducts: params.bookingProducts,
+    booker: { guest: { firstname: data.firstname, lastname: data.lastname, email: data.email, mobile: data.mobile } },
+    start: data.start,
+    end: data.end,
+    tenantNotes: data.tenantNotes,
+    numberOfMembers: 0,
+    numberOfNonMembers: 0,
+})
+
+/** The products of a booking in the order asked for, checked against its type and the stock. */
+async function readBookingProducts(
+    tx: Prisma.TransactionClient,
+    bookingType: BookingType,
+    bookingProducts: BookingProductParams,
+) {
+    if (bookingType === 'EVENT' && bookingProducts.length !== 0) {
+        throw new ServiceError('BAD PARAMETERS', 'Arrangementbookinger kan ikke inneholde produkter.')
+    }
+    if (bookingType === 'CABIN' && (bookingProducts.length !== 1 || bookingProducts[0].quantity !== 1)) {
+        throw new ServiceError('BAD PARAMETERS', 'Hyttebookinger kan bare inneholde ett produkt med mengde 1.')
+    }
+    if (bookingType === 'BED' && bookingProducts.length === 0) {
+        throw new ServiceError('BAD PARAMETERS', 'Sengebookinger må inneholde minst ett produkt.')
+    }
+
+    const products = await tx.cabinProduct.findMany({
+        where: { id: { in: bookingProducts.map(product => product.cabinProductId) } },
+        include: cabinProductPriceIncluder,
+    })
+    if (products.length !== bookingProducts.length) {
+        throw new ServiceError('BAD PARAMETERS', 'Kunne ikke finne alle hytta produktene. Duplikater er ikke tillat.')
+    }
+
+    return bookingProducts.map(({ cabinProductId, quantity }) => {
+        const product = products.find(candidate => candidate.id === cabinProductId)
+        if (!product) throw new ServiceError('UNKNOWN ERROR', 'Kunne ikke finne mengden av produktet.')
+        if (product.type !== bookingType) {
+            throw new ServiceError('BAD PARAMETERS', 'Alle produktene må ha samme type som bookingen.')
+        }
+        if (product.amount < quantity) {
+            throw new ServiceError('BAD PARAMETERS', 'Det er ikke nok av produktet til å oppfylle bookingen.')
+        }
+        return { product, quantity }
+    })
+}
+
+/**
+ * Reserves the cabin: the booking is created unpaid and holds its dates for the payment window
+ * (cabinReservationWindowMs). Every reservation queues behind one lock for its transaction, so
+ * the availability check and the insert of one never interleave with another's - two bookers
+ * cannot both find the same dates free.
+ */
+async function reserve(prisma: PrismaClient, { bookingType, bookingProducts, booker, ...booking }: Reservation) {
+    return prisma.$transaction(async (tx) => {
+        await takeAdvisoryLock(tx, 'cabinBooking')
+
+        const releasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
             bypassAuth: true,
+            prisma: tx,
         })
-
-        if (latestReleaseDate === null) {
+        if (releasePeriod === null) {
             throw new ServiceError('SERVER ERROR', 'Hyttebooking siden er ikke tilgjengelig.')
         }
-
-        if (data.end > latestReleaseDate.releaseUntil) {
+        if (booking.end > releasePeriod.releaseUntil) {
             throw new ServiceError('BAD PARAMETERS', 'Hytta kan ikke bookes etter siste slippdato.')
         }
+        if (booking.end.getTime() - booking.start.getTime() > maxCabinBookingNights * dayMs) {
+            throw new ServiceError('BAD PARAMETERS', `Hytta kan bookes for maks ${maxCabinBookingNights} netter om gangen.`)
+        }
 
-        if (!await cabinAvailable.internalCall({
-            params: data,
-        })) {
+        const overlapping = await tx.booking.count({
+            where: { start: { lt: booking.end }, end: { gt: booking.start }, ...blocksCalendar() },
+        })
+        if (overlapping > 0) {
             throw new ServiceError('BAD PARAMETERS', 'Hytta er ikke tilgjengelig i den perioden.')
         }
 
-        const products = await prisma.cabinProduct.findMany({
+        const unpaidHolds = await tx.booking.count({
             where: {
-                id: {
-                    in: params.bookingProducts.map(product => product.cabinProductId),
-                }
+                canceled: null,
+                transactionTimeout: { gt: new Date() },
+                ...('userId' in booker ? { userId: booker.userId } : { guestUser: { email: booker.guest.email } }),
             },
-            include: cabinProductPriceIncluder,
         })
-        if (products.length !== params.bookingProducts.length) {
-            throw new ServiceError('BAD PARAMETERS', 'Kunne ikke finne alle hytta produktene. Duplikater er ikke tillat.')
+        if (unpaidHolds >= maxUnpaidReservationsPerBooker) {
+            throw new ServiceError(
+                'BAD PARAMETERS',
+                'Du har allerede reservasjoner som venter på betaling. Betal eller frigi dem før du reserverer flere.'
+            )
         }
 
-        const productsInOrder: CabinProductExtended[] = []
-
-        for (const paramProduct of params.bookingProducts) {
-            const product = products.find(prodItem => prodItem.id === paramProduct.cabinProductId)
-            if (!product) {
-                throw new ServiceError('UNKNOWN ERROR', 'Kunne ikke finne mengden av produktet.')
-            }
-            productsInOrder.push(product)
-
-            if (product.type !== params.bookingType) {
-                throw new ServiceError('BAD PARAMETERS', 'Alle produktene må ha samme type som bookingen.')
-            }
-
-            if (product.amount < paramProduct.quantity) {
-                throw new ServiceError('BAD PARAMETERS', 'Det er ikke nok av produktet til å oppfylle bookingen.')
-            }
-        }
-
-        if (params.bookingType === 'EVENT' && params.bookingProducts.length !== 0) {
-            throw new ServiceError('BAD PARAMETERS', 'Arrangementbookinger kan ikke inneholde produkter.')
-        }
-
-        if (params.bookingType === 'CABIN' &&
-            params.bookingProducts.length !== 1 &&
-            params.bookingProducts[0].quantity !== 1
-        ) {
-            throw new ServiceError('BAD PARAMETERS', 'Hyttebookinger kan bare inneholde ett produkt med mengde 1.')
-        }
-
-        if (params.bookingType === 'BED' && params.bookingProducts.length === 0) {
-            throw new ServiceError('BAD PARAMETERS', 'Sengebookinger må inneholde minst ett produkt.')
-        }
-
-        const pricePeriods = await cabinPricePeriodOperations.readMany({ bypassAuth: true })
-
-        const priceObjects = calculateCabinBookingPrice({
+        const products = await readBookingProducts(tx, bookingType, bookingProducts)
+        const pricePeriods = await cabinPricePeriodOperations.readMany({ bypassAuth: true, prisma: tx })
+        const totalPrice = calculateTotalCabinBookingPrice(calculateCabinBookingPrice({
             pricePeriods,
-            products: productsInOrder,
-            productAmounts: params.bookingProducts.map(prod => prod.quantity),
-            startDate: data.start,
-            endDate: data.end,
-            numberOfMembers: data.numberOfMembers,
-            numberOfNonMembers: data.numberOfNonMembers
-        })
+            products: products.map(({ product }) => product),
+            productAmounts: products.map(({ quantity }) => quantity),
+            startDate: booking.start,
+            endDate: booking.end,
+            numberOfMembers: booking.numberOfMembers,
+            numberOfNonMembers: booking.numberOfNonMembers,
+        }))
 
-        const totalPrice = calculateTotalCabinBookingPrice(priceObjects)
-        logger.debug(`Total price: ${totalPrice}`)
-
-        return await prisma.booking.create({
+        return tx.booking.create({
             data: {
-                type: params.bookingType,
-                start: data.start,
-                end: data.end,
-                tenantNotes: data.tenantNotes,
-                numberOfMembers: data.numberOfMembers,
-                numberOfNonMembers: data.numberOfNonMembers,
+                type: bookingType,
+                ...booking,
                 totalPrice,
                 secret: crypto.randomBytes(24).toString('hex'),
                 // The reservation must be paid within this window, or it stops blocking the
-                // calendar for others (see cabinAvailable). Cleared once payment succeeds.
+                // calendar for others. Cleared once payment succeeds.
                 transactionTimeout: new Date(Date.now() + cabinReservationWindowMs),
-                BookingProduct: {
-                    create: params.bookingProducts.map(product => ({
-                        cabinProductId: product.cabinProductId,
-                        quantity: product.quantity,
-                    }))
-                }
-            }
-        })
-    }
-})
-
-const createBookingWithUser = defineSubOperation({
-    paramsSchema: () => z.object({
-        userId: z.number(),
-        bookingType: z.nativeEnum(BookingType),
-        bookingProducts: bookingProductParams,
-    }),
-    dataSchema: () => cabinBookingSchemas.createBookingUserAttached,
-    operation: () => async ({ prisma, params, data }) => {
-        const result = await create.internalCall({
-            params,
-            data,
-        })
-
-        await prisma.booking.update({
-            where: {
-                id: result.id,
+                BookingProduct: { create: bookingProducts },
+                ...('userId' in booker
+                    ? { user: { connect: { id: booker.userId } } }
+                    : { guestUser: { create: booker.guest } }),
             },
-            data: {
-                user: {
-                    connect: {
-                        id: params.userId,
-                    }
-                }
-            }
+            select: { id: true, secret: true, totalPrice: true, transactionTimeout: true },
         })
-
-        return {
-            id: result.id,
-            secret: result.secret,
-            totalPrice: result.totalPrice,
-            transactionTimeout: result.transactionTimeout,
-        }
-    }
-})
-
-const createBookingNoUser = defineSubOperation({
-    paramsSchema: () => z.object({
-        bookingType: z.nativeEnum(BookingType),
-        bookingProducts: bookingProductParams,
-    }),
-    dataSchema: () => cabinBookingSchemas.createBookingNoUser,
-    operation: () => async ({ prisma, params, data }) => {
-        const result = await create.internalCall({
-            params,
-            data: {
-                ...data,
-                numberOfMembers: 0,
-                numberOfNonMembers: 0,
-            },
-        })
-
-        await prisma.booking.update({
-            where: {
-                id: result.id,
-            },
-            data: {
-                guestUser: {
-                    create: {
-                        firstname: data.firstname,
-                        lastname: data.lastname,
-                        email: data.email,
-                        mobile: data.mobile,
-                    }
-                }
-            }
-        })
-
-        return {
-            id: result.id,
-            secret: result.secret,
-            totalPrice: result.totalPrice,
-            transactionTimeout: result.transactionTimeout,
-        }
-    }
-})
+    })
+}
 
 export const cabinBookingOperations = {
     createCabinBookingUserAttached: defineOperation({
-        paramsSchema: z.object({
-            userId: z.number(),
-            bookingProducts: bookingProductParams,
-        }),
+        paramsSchema: cabinBookingSchemas.params.createCabinBookingUserAttached,
         authorizer: ({ params }) => cabinBookingAuth.createCabinBookingUserAttached.data({ userId: params.userId }),
-        dataSchema: cabinBookingSchemas.createBookingUserAttached,
-        operation: async ({ params, data }) =>
-            createBookingWithUser.internalCall({
-                params: {
-                    userId: params.userId,
-                    bookingType: BookingType.CABIN,
-                    bookingProducts: params.bookingProducts,
-                },
-                data,
-            })
+        dataSchema: cabinBookingSchemas.data.createCabinBookingUserAttached,
+        opensTransaction: true,
+        operation: ({ prisma, params, data }) => reserve(prisma, withUser('CABIN', params, data)),
     }),
 
     createBedBookingUserAttached: defineOperation({
-        paramsSchema: z.object({
-            userId: z.number(),
-            bookingProducts: bookingProductParams,
-        }),
+        paramsSchema: cabinBookingSchemas.params.createBedBookingUserAttached,
         authorizer: ({ params }) => cabinBookingAuth.createBedBookingUserAttached.data({ userId: params.userId }),
-        dataSchema: cabinBookingSchemas.createBookingUserAttached,
-        operation: async ({ params, data }) =>
-            createBookingWithUser.internalCall({
-                params: {
-                    userId: params.userId,
-                    bookingType: BookingType.BED,
-                    bookingProducts: params.bookingProducts,
-                },
-                data,
-            })
+        dataSchema: cabinBookingSchemas.data.createBedBookingUserAttached,
+        opensTransaction: true,
+        operation: ({ prisma, params, data }) => reserve(prisma, withUser('BED', params, data)),
     }),
 
     createCabinBookingNoUser: defineOperation({
-        paramsSchema: z.object({
-            bookingProducts: bookingProductParams,
-        }),
+        paramsSchema: cabinBookingSchemas.params.createCabinBookingNoUser,
         authorizer: () => cabinBookingAuth.createCabinBookingNoUser,
-        dataSchema: cabinBookingSchemas.createBookingNoUser,
-        operation: async ({ params, data }) => createBookingNoUser.internalCall({
-            params: {
-                bookingType: BookingType.CABIN,
-                bookingProducts: params.bookingProducts,
-            },
-            data,
-        })
+        dataSchema: cabinBookingSchemas.data.createCabinBookingNoUser,
+        opensTransaction: true,
+        operation: ({ prisma, params, data }) => reserve(prisma, asGuest('CABIN', params, data)),
     }),
 
     createBedBookingNoUser: defineOperation({
-        paramsSchema: z.object({
-            bookingProducts: bookingProductParams,
-        }),
+        paramsSchema: cabinBookingSchemas.params.createBedBookingNoUser,
         authorizer: () => cabinBookingAuth.createBedBookingNoUser,
-        dataSchema: cabinBookingSchemas.createBookingNoUser,
-        operation: async ({ params, data }) => createBookingNoUser.internalCall({
-            params: {
-                bookingType: BookingType.BED,
-                bookingProducts: params.bookingProducts,
-            },
-            data,
-        })
+        dataSchema: cabinBookingSchemas.data.createBedBookingNoUser,
+        opensTransaction: true,
+        operation: ({ prisma, params, data }) => reserve(prisma, asGuest('BED', params, data)),
     }),
 
     readAvailability: defineOperation({
         authorizer: () => cabinBookingAuth.readAvailability,
         operation: async ({ prisma }) => {
-            const results = await prisma.booking.findMany({
-                select: cabinBookingFilerSelection,
-                orderBy: {
-                    start: 'asc'
-                },
-                where: {
-                    canceled: null,
-                    end: {
-                        gte: new Date(),
-                    },
-                    OR: [
-                        { transactionTimeout: null },
-                        { transactionTimeout: { gt: new Date() } },
-                    ],
-                },
+            const bookings = await prisma.booking.findMany({
+                select: cabinBookingFilterSelection,
+                orderBy: { start: 'asc' },
+                where: { end: { gte: new Date() }, ...blocksCalendar() },
             })
 
-            // Anonymize the bookings a bit
-            for (let i = results.length - 1; i > 0; i--) {
-                if (results[i].start === results[i - 1].end) {
-                    results[i - 1].end = results[i].end
-                    results.splice(i)
-                }
-            }
-
-            return results
+            // Bookings that follow each other directly are shown as one span, so the calendar
+            // gives away that the cabin is taken but not where one booking ends and the next begins.
+            return bookings.reduce<BookingFiltered[]>((spans, booking) => {
+                const last = spans[spans.length - 1]
+                return last && last.end.getTime() === booking.start.getTime()
+                    ? [...spans.slice(0, -1), { ...last, end: booking.end }]
+                    : [...spans, booking]
+            }, [])
         }
     }),
 
@@ -352,9 +267,7 @@ export const cabinBookingOperations = {
 
     read: defineOperation({
         authorizer: () => cabinBookingAuth.read,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: cabinBookingSchemas.params.read,
         operation: ({ prisma, params }) => prisma.booking.findUniqueOrThrow({
             where: params,
             include: cabinBookingIncluder,
@@ -385,14 +298,7 @@ export const cabinBookingOperations = {
      * cover the full price.
      */
     createPayment: defineOperation({
-        paramsSchema: z.object({
-            bookingId: z.number(),
-            secret: z.string().min(1),
-            provider: z.nativeEnum(PaymentProvider).optional(),
-            amountFromBalance: z.coerce.number().nonnegative().default(0),
-            manualFees: z.coerce.number().nonnegative().default(0),
-            description: z.string().optional(),
-        }),
+        paramsSchema: cabinBookingSchemas.params.createPayment,
         authorizer: async ({ params, prisma }) => {
             const booking = await prisma.booking.findUnique({
                 where: { id: params.bookingId },
@@ -464,8 +370,8 @@ export const cabinBookingOperations = {
 
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
                 // Extends the reservation window to cover the full lifetime a pending attempt is
-                // allowed to stay open for (see stalePendingTransactionMs above), so cabinAvailable
-                // can't release these dates to another booker while this attempt can still succeed.
+                // allowed to stay open for (see stalePendingTransactionMs above), so the dates
+                // can't be released to another booker while this attempt can still succeed.
                 // Matching on the window read above also serializes this attempt against a
                 // concurrent release or attempt: whichever of them got to the row first changed
                 // it, and the loser matches nothing.
@@ -552,10 +458,7 @@ export const cabinBookingOperations = {
      * releasing while a new payment attempt is being started fails and asks for a retry.
      */
     releaseReservation: defineOperation({
-        paramsSchema: z.object({
-            bookingId: z.number(),
-            secret: z.string().min(1),
-        }),
+        paramsSchema: cabinBookingSchemas.params.releaseReservation,
         authorizer: async ({ params, prisma }) => {
             const booking = await prisma.booking.findUnique({
                 where: { id: params.bookingId },
@@ -617,4 +520,4 @@ export const cabinBookingOperations = {
             }
         },
     }),
-}
+} as const

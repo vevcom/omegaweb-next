@@ -12,6 +12,7 @@ import CompanyChooser from '@/app/career/jobads/CompanyChooser'
 import { destroyJobAdAction, updateJobAdAction } from '@/career/jobAds/actions'
 import { jobAdOptions } from '@/services/career/jobAds/constants'
 import useEditMode from '@/hooks/useEditMode'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { jobAdAuth } from '@/services/career/jobAds/auth'
 import { configureAction } from '@/services/configureAction'
 import { formatVevenUri } from '@/lib/urlEncoding'
@@ -33,6 +34,7 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
     const canEdit = useEditMode({
         authorizer: jobAdAuth.update
     })
+    const canDestroy = useAuthorizer({ authorizer: jobAdAuth.destroy }).authorized
     const companyPagingCtx = useContext(CompanyPagingContext)
     if (!canEdit) return children
     if (!companyPagingCtx) {
@@ -83,21 +85,23 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
                             color="primary"
                         />
                     </Form>
-                    <div className={styles.destroy}>
-                        <Form
-                            action={configureAction(destroyJobAdAction, { params: { id: jobAd.id } })}
-                            navigateOnSuccess="/career/jobads"
-                            submitText="Slett annonse"
-                            confirmation={{
-                                confirm: true,
-                                text: 'Er du sikker på at du vil slette denne annonsen? ' +
-                                'Dette kan ikke angres. Vi anbefaler å sette annonsen ' +
-                                'til inaktiv i stedet.'
-                            }}
-                            submitColor="red"
-                        >
-                        </Form>
-                    </div>
+                    {canDestroy && (
+                        <div className={styles.destroy}>
+                            <Form
+                                action={configureAction(destroyJobAdAction, { params: { id: jobAd.id } })}
+                                navigateOnSuccess="/career/jobads"
+                                submitText="Slett annonse"
+                                confirmation={{
+                                    confirm: true,
+                                    text: 'Er du sikker på at du vil slette denne annonsen? ' +
+                                    'Dette kan ikke angres. Vi anbefaler å sette annonsen ' +
+                                    'til inaktiv i stedet.'
+                                }}
+                                submitColor="red"
+                            >
+                            </Form>
+                        </div>
+                    )}
                 </div>
             </div>
             <div className={styles.column}>

@@ -7,4 +7,4 @@ export const eventTagAuth = {
     readAll: Require.nothing(),
     update: Require.permission('EVENT_ADMIN'),
     destroy: Require.permission('EVENT_ADMIN'),
-}
+} as const

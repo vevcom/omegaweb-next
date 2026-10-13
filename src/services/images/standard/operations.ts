@@ -1,7 +1,8 @@
 import '@pn-server-only'
-import { StandardImageConfig } from './constants'
-import { standardImageCollectionAuth, standardImagesImagePanelAuth } from './auth'
-import { implementSpecialCollection } from '@/services/images/subservice/special/implement'
+import { standardImageConfig } from './constants'
+import { standardImageCollectionSchemas } from './schemas'
+import { standardImageCollectionAuth } from './auth'
+import { standardImagesImagePanelOperations } from './standardImageCollection'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
@@ -9,33 +10,12 @@ import { StandardImage } from '@/prisma-generated-pn-types'
 import { imageOperations } from '@/services/images/subservice/operations'
 import { licenseOperations } from '@/services/licenses/operations'
 import { allowedExtensions, expandedImageIncluder } from '@/services/images/subservice/constants'
-import { z } from 'zod'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
-const {
-    specialCollectionPanelOperations: standardImagesImagePanelOperations,
-    generateCollectionFromConfig: generateStandardImagesCollectionFromConfig
-} = implementSpecialCollection({
-    special: 'STANDARDIMAGES',
-    imagePanelAuther: standardImagesImagePanelAuth,
-    allowedExtensions,
-    config: {
-        name: 'Standardbilder',
-        description: `
-            Bilder som er nødvendige for nettsiden.
-            Denne koleksjonen er helt \'statisk\' og skal og kan ikke modifiseres.
-            Dersom et standardbilde (et bilde i denne kolleksjonen) mangler vil bildet genereres ut fra
-            sin statisk bestemte konfigurasjon.
-        `,
-    }
-})
-
 const generateStandardImageFromConfig = defineSubOperation({
-    paramsSchema: () => z.object({
-        standardImage: z.nativeEnum(StandardImage)
-    }),
+    paramsSchema: () => standardImageCollectionSchemas.params.generateStandardImageFromConfig,
     operation: () => async ({ prisma, params }) => {
-        const config = StandardImageConfig[params.standardImage]
+        const config = standardImageConfig[params.standardImage]
         const existingImage = await prisma.image.findUnique({
             where: {
                 standardImage: params.standardImage
@@ -73,12 +53,10 @@ const generateStandardImageFromConfig = defineSubOperation({
  * to it survive, and its file is only re-stored when it actually differs from the configured one.
  */
 const updateStandardImageFromConfig = defineSubOperation({
-    paramsSchema: () => z.object({
-        standardImage: z.nativeEnum(StandardImage)
-    }),
+    paramsSchema: () => standardImageCollectionSchemas.params.updateStandardImageFromConfig,
     opensTransaction: true,
     operation: () => async ({ prisma, params }) => {
-        const config = StandardImageConfig[params.standardImage]
+        const config = standardImageConfig[params.standardImage]
         const image = await prisma.image.findUniqueOrThrow({
             where: { standardImage: params.standardImage },
             select: { id: true },
@@ -113,9 +91,7 @@ const updateStandardImageFromConfig = defineSubOperation({
 
 const readStandardImage = defineOperation({
     authorizer: () => standardImageCollectionAuth.readStandardImage,
-    paramsSchema: z.object({
-        standardImage: z.nativeEnum(StandardImage)
-    }),
+    paramsSchema: standardImageCollectionSchemas.params.readStandardImage,
     operation: async ({ prisma, params }) => {
         const image = await prisma.image.findUnique({
             where: {
@@ -166,7 +142,7 @@ const readStandardImage = defineOperation({
  * just a maintenance reminder that this list and the enum must stay in sync.
  */
 const readAllStandardImages = defineOperation({
-    authorizer: () => standardImageCollectionAuth.readStandardImage,
+    authorizer: () => standardImageCollectionAuth.readAllStandardImages,
     operation: async ({ prisma }): Promise<Record<StandardImage, ExpandedImage>> => {
         const standardCollection = await standardImagesImagePanelOperations.readCollection({})
         const imagesInCollection = await prisma.image.findMany({
@@ -212,8 +188,6 @@ const readAllStandardImages = defineOperation({
         }
     }
 })
-
-export { standardImagesImagePanelOperations, generateStandardImagesCollectionFromConfig }
 
 /**
  * The standard images are housed in the standardcollection - a special image collection.
