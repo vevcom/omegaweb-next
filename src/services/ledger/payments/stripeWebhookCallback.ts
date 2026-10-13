@@ -166,7 +166,7 @@ async function flagForManualReview(paymentIntentId: string, note: string) {
  * If this ever changes this function needs to be changed to handle uncaptured payments.
  * (That is payments which are authorized, but we have not actually taken the money yet.)
  *
- * This is not implemented using `ServiceMethod` because it does not need any of its features.
+ * This is not implemented as a `ServiceOperation` because it does not need any of its features.
  * Firstly, the webhook callback is not part of the interface of the payment service.
  * This function will only ever be used one place. Secondly, authentication and data validation
  * is already handled by the Stripe package.

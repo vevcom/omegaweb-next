@@ -30,7 +30,10 @@ const { page, generateMetadata } = serverPage({
         canChangePayout: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesAdminFields: true }),
         canChangeGroups: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesAdminFields: true }),
         // Only MANUAL deposits are offered here, and those take the payment rule on top.
-        canDeposit: Require.allOf(ledgerMovementAuth.createDeposit, paymentAuth.create({ provider: 'MANUAL' })),
+        canDeposit: Require.allOf(
+            ledgerMovementAuth.createDeposit.data({ accounts: [ledgerAccount.ownership] }),
+            paymentAuth.create({ provider: 'MANUAL' }),
+        ),
         canPayout: ledgerMovementAuth.createPayout.data({ accounts: [ledgerAccount.ownership] }),
         // Unfreezing takes more than freezing, so the rule follows the state the button changes.
         canFreeze: ledgerAccountAuth.update({

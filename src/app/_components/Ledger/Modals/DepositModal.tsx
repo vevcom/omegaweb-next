@@ -41,7 +41,7 @@ export default function DepositModal({ ledgerAccountId, customerSessionClientSec
             label="Beløp"
             name="funds"
             step={1}
-            min={0}
+            min={MINIMUM_PAYMENT_AMOUNT / 100}
             defaultValue={funds / 100}
             onChange={e => setFunds(convertAmount(e.target.value))}
             required
