@@ -3,18 +3,17 @@ import {
     eventRegistrationSelectionDetailed,
     eventRegistrationQueueOrder,
     eventRegistrationSelection,
-    REGISTRATION_READER_TYPE,
 } from './constants'
-import { eventRegistrationAuth } from './auth'
+import { eventAdminLevel, eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
 import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'
+import { lockEvent, queuePosition, queueSegmentFilter } from './queue'
 import { dotOperations } from '@/services/dots/operations'
 import { displayDate } from '@/lib/dates/displayDate'
 import { Smorekopp } from '@/services/error'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { eventOperations } from '@/services/events/operations'
-import { checkVisibility } from '@/auth/visibility/checkVisibility'
-import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
+import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
@@ -27,59 +26,16 @@ import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/t
 import type {
     DotPunishment,
     EventRegistrationExpanded,
-    EventRegistrationPageDetails,
     EventRegistrationWithWaitingList,
 } from './types'
 
 /**
- * The visibility levels of one event - the regular level is what it takes to register for it, the
- * admin level what it takes to act on the registrations of everyone else.
- */
-async function eventVisibility(prisma: PrismaPossibleTransaction<false>, eventId: number) {
-    return await eventOperations.visibility.readDoubleLevelMatrixInternal({
-        params: { id: eventId },
-        prisma,
-    })
-}
-
-/**
- * Whether the session administrates one event - what lets it register people outside the
- * registration window, past their dots, and unregister them after the deadline. The admin level of
- * the event grants this, and EVENT_ADMIN administrates every event.
- */
-async function sessionAdministratesEvent(
-    prisma: PrismaPossibleTransaction<false>,
-    session: SessionMaybeUser,
-    eventId: number
-) {
-    if (session.permissions.includes('EVENT_ADMIN')) return true
-    return checkVisibility(session.memberships, (await eventVisibility(prisma, eventId)).adminLevel)
-}
-
-/**
- * The same levels for the event one registration belongs to, together with the user that owns the
- * registration - null for a guest registered by an administrator.
- */
-async function registrationOwnerAndEventVisibility(
-    prisma: PrismaPossibleTransaction<false>,
-    registrationId: number
-) {
-    const registration = await prisma.eventRegistration.findUniqueOrThrow({
-        where: { id: registrationId },
-        select: { userId: true, eventId: true },
-    })
-    return {
-        userId: registration.userId,
-        doubleLevelMatrix: await eventVisibility(prisma, registration.eventId),
-    }
-}
-
-/**
  * What the dots of a user hold them back from when registering to an event.
  */
-const readDotPunishmentOfUser = defineSubOperation({
-    paramsSchema: () => eventRegistrationSchemas.params.readDotPunishmentOfUser,
-    operation: () => async ({ prisma, params }): Promise<DotPunishment> => {
+const readDotPunishmentOfUser = defineOperation({
+    paramsSchema: eventRegistrationSchemas.params.readDotPunishmentOfUser,
+    authorizer: ({ params }) => eventRegistrationAuth.readDotPunishmentOfUser.data({ userId: params.userId }),
+    operation: async ({ prisma, params }): Promise<DotPunishment> => {
         const dots = await dotOperations.internal.numberOfActiveDotsForUser.internalCall({
             params,
             prisma,
@@ -93,43 +49,6 @@ const readDotPunishmentOfUser = defineSubOperation({
     }
 })
 
-/**
- * Checks the dots of the user registering: dots either hold the user back until a while after the
- * ordinary registration start of the event, or ban them from registering at all.
- *
- * @param registrationStart - The ordinary registration start of the event. A timeout counts from it.
- * @param userId - The user being registered.
- * @param isAdmin - Admins register on behalf of others, and are not held back by the dots of anyone.
- */
-async function validateDotPunishmentOfRegistration(
-    prisma: Prisma.TransactionClient,
-    registrationStart: Date,
-    userId: number,
-    isAdmin: boolean
-) {
-    if (isAdmin) return
-
-    const punishment = await readDotPunishmentOfUser.internalCall({
-        params: { userId },
-        prisma,
-    })
-
-    if (punishment.type === 'ban') {
-        throw new Smorekopp('BAD PARAMETERS', 'Du har for mange prikker til å melde deg på arrangementer.')
-    }
-
-    if (punishment.type === 'none') return
-
-    const startForUser = new Date(registrationStart.getTime() + punishment.punishmentMinutes * 60 * 1000)
-
-    if (startForUser > new Date()) {
-        throw new Smorekopp(
-            'BAD PARAMETERS',
-            `Du har prikker, og kan derfor først melde deg på ${displayDate(startForUser)}.`
-        )
-    }
-}
-
 export const eventRegistrationOperations = {
     create: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.create,
@@ -140,31 +59,31 @@ export const eventRegistrationOperations = {
         opensTransaction: true,
         operation: async ({ prisma, params, session }): Promise<EventRegistrationWithWaitingList> => {
             const isAdmin = await sessionAdministratesEvent(prisma, session, params.eventId)
-            const event = await preValidateRegistration(prisma, params.eventId, isAdmin)
 
-            await validateDotPunishmentOfRegistration(prisma, event.registrationStart, params.userId, isAdmin)
+            return await prisma.$transaction(async tx => {
+                const event = await lockEventOpenForRegistration(tx, params.eventId, isAdmin)
+                await validateDotPunishmentOfRegistration(tx, event.registrationStart, params.userId, isAdmin)
 
-            const registration = await prisma.eventRegistration.create({
-                data: {
-                    user: {
-                        connect: {
-                            id: params.userId,
+                const registration = await tx.eventRegistration.create({
+                    data: {
+                        user: {
+                            connect: {
+                                id: params.userId,
+                            },
+                        },
+                        event: {
+                            connect: {
+                                id: params.eventId,
+                            },
                         },
                     },
-                    event: {
-                        connect: {
-                            id: params.eventId,
-                        },
-                    },
-                },
+                })
+
+                return {
+                    ...registration,
+                    onWaitingList: event._count.eventRegistrations >= event.places,
+                }
             })
-
-            const updatedEvent = await postValidateRegistration(prisma, registration.id, params.eventId)
-
-            return {
-                ...registration,
-                onWaitingList: updatedEvent.places < updatedEvent._count.eventRegistrations,
-            }
         },
     }),
 
@@ -175,37 +94,34 @@ export const eventRegistrationOperations = {
         paramsSchema: eventRegistrationSchemas.params.createGuest,
         dataSchema: eventRegistrationSchemas.data.createGuest,
         opensTransaction: true,
-        operation: async ({ prisma, params, data }): Promise<EventRegistrationWithWaitingList> => {
-            await preValidateRegistration(prisma, params.eventId, true)
-            const registration = await prisma.eventRegistration.create({
-                data: {
-                    event: {
-                        connect: {
-                            id: params.eventId,
+        operation: async ({ prisma, params, data }): Promise<EventRegistrationWithWaitingList> =>
+            await prisma.$transaction(async tx => {
+                const event = await lockEventOpenForRegistration(tx, params.eventId, true)
+
+                const registration = await tx.eventRegistration.create({
+                    data: {
+                        event: {
+                            connect: {
+                                id: params.eventId,
+                            },
+                        },
+                        note: data.note,
+                        contact: {
+                            create: {
+                                name: data.name,
+                            },
                         },
                     },
-                    note: data.note,
-                    contact: {
-                        create: {
-                            name: data.name,
-                        },
-                    },
-                },
-            })
+                })
 
-            const updatedEvent = await postValidateRegistration(prisma, registration.id, params.eventId)
-
-            return {
-                ...registration,
-                onWaitingList: updatedEvent.places < updatedEvent._count.eventRegistrations,
-            }
-        },
+                return {
+                    ...registration,
+                    onWaitingList: event._count.eventRegistrations >= event.places,
+                }
+            }),
     }),
 
-    readDotPunishmentOfUser: readDotPunishmentOfUser.implement({
-        authorizer: ({ params }) => eventRegistrationAuth.readDotPunishmentOfUser.data({ userId: params.userId }),
-        ownershipCheck: () => true,
-    }),
+    readDotPunishmentOfUser,
 
     /**
      * The registration of one user to one event, or null if that user is not registered. Tells
@@ -221,35 +137,29 @@ export const eventRegistrationOperations = {
         operation: async (
             { prisma, params }
         ): Promise<(EventRegistrationWithWaitingList & { ledgerTransactions: { id: number }[] }) | null> => {
-            const event = await prisma.event.findUniqueOrThrow({
+            const registration = await prisma.eventRegistration.findUnique({
                 where: {
-                    id: params.eventId,
+                    eventId_userId: {
+                        eventId: params.eventId,
+                        userId: params.userId,
+                    },
                 },
-                select: {
-                    places: true,
-                    eventRegistrations: {
-                        orderBy: eventRegistrationQueueOrder,
-                        include: {
-                            // Only need to know whether a successful payment exists, to gate the
-                            // "pay for registration" UI once it's already been paid for.
-                            ledgerTransactions: {
-                                where: { state: 'SUCCEEDED' },
-                                select: { id: true },
-                            },
-                        },
+                include: {
+                    event: { select: { places: true } },
+                    // Only need to know whether a successful payment exists, to gate the
+                    // "pay for registration" UI once it's already been paid for.
+                    ledgerTransactions: {
+                        where: { state: 'SUCCEEDED' },
+                        select: { id: true },
                     },
                 },
             })
+            if (!registration) return null
 
-            const queuePosition = event.eventRegistrations.findIndex(
-                registration => registration.userId === params.userId
-            )
-
-            if (queuePosition === -1) return null
-
+            const { event, ...rest } = registration
             return {
-                ...event.eventRegistrations[queuePosition],
-                onWaitingList: queuePosition >= event.places,
+                ...rest,
+                onWaitingList: await queuePosition(prisma, registration) >= event.places,
             }
         },
     }),
@@ -330,77 +240,67 @@ export const eventRegistrationOperations = {
         }
     }),
 
+    /**
+     * Unregisters. When the registration held a place and someone queued on the waiting list, the
+     * first of them takes the place and is told so once the change is saved. The event is locked
+     * while the queue changes, so a registration arriving at the same time cannot be skipped.
+     */
     destroy: defineOperation({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.destroy(
             await registrationOwnerAndEventVisibility(prisma, params.registrationId)
         ),
         paramsSchema: eventRegistrationSchemas.params.destroy,
+        opensTransaction: true,
         operation: async ({ prisma, params, session }) => {
-            const registration = await prisma.eventRegistration.findUniqueOrThrow({
-                where: {
-                    id: params.registrationId,
-                },
-                select: {
-                    event: {
-                        include: {
-                            _count: {
-                                select: {
-                                    eventRegistrations: true,
-                                },
-                            },
-                            eventRegistrations: {
-                                orderBy: eventRegistrationQueueOrder,
-                                select: {
-                                    id: true,
-                                },
-                            }
-                        }
+            const { eventId } = await prisma.eventRegistration.findUniqueOrThrow({
+                where: { id: params.registrationId },
+                select: { eventId: true },
+            })
+            const isAdmin = await sessionAdministratesEvent(prisma, session, eventId)
+
+            const promoted = await prisma.$transaction(async tx => {
+                await lockEvent(tx, eventId)
+                const registration = await tx.eventRegistration.findUniqueOrThrow({
+                    where: { id: params.registrationId },
+                    select: {
+                        id: true,
+                        eventId: true,
+                        event: { select: { name: true, places: true, registrationEnd: true } },
                     },
-                    userId: true,
-                },
-            })
+                })
 
-            const isAdmin = await sessionAdministratesEvent(prisma, session, registration.event.id)
-
-            if (registration.event.registrationEnd < new Date() && !isAdmin) {
-                throw new Smorekopp(
-                    'BAD PARAMETERS',
-                    'Kan ikke avregistrere etter påmeldingsfristen. Ta kontakt med de som arrangerer.'
-                )
-            }
-
-            await prisma.eventRegistration.delete({
-                where: {
-                    id: params.registrationId,
-                },
-            })
-
-            // FIXME: there is potentially a race contidition,
-            // where a person is added to the waiting list,
-            // after the event was fetched, and before the registration was deleted.
-            // I this a OCC can be a solution, with a version number on the event.
-            if (registration.event._count.eventRegistrations <= registration.event.places ||
-                registration.event.eventRegistrations
-                    .map(reg => reg.id)
-                    .indexOf(params.registrationId) >= registration.event.places
-            ) {
-                return
-            }
-
-            const nextInLine = await prisma.eventRegistration.findFirst({
-                where: {
-                    eventId: registration.event.id,
-                },
-                skip: registration.event.places - 1,
-                orderBy: eventRegistrationQueueOrder,
-                include: {
-                    contact: true,
+                if (registration.event.registrationEnd < new Date() && !isAdmin) {
+                    throw new Smorekopp(
+                        'BAD PARAMETERS',
+                        'Kan ikke avregistrere etter påmeldingsfristen. Ta kontakt med de som arrangerer.'
+                    )
                 }
+
+                const heldPlace = await queuePosition(tx, registration) < registration.event.places
+                await tx.eventRegistration.delete({
+                    where: {
+                        id: params.registrationId,
+                    },
+                })
+                if (!heldPlace) return null
+
+                // The first one past the places, now that this one is gone, has taken its place.
+                const nextInLine = await tx.eventRegistration.findFirst({
+                    where: {
+                        eventId: registration.eventId,
+                    },
+                    skip: registration.event.places - 1,
+                    orderBy: eventRegistrationQueueOrder,
+                    include: {
+                        contact: true,
+                    }
+                })
+                return nextInLine ? { eventName: registration.event.name, nextInLine } : null
             })
 
-            if (!nextInLine) return
-
-            await notifyPromotedFromWaitingList(registration.event.name, [nextInLine])
+            if (promoted) {
+                await notifyPromotedFromWaitingList(promoted.eventName, [promoted.nextInLine])
+            }
         }
     }),
 
@@ -556,12 +456,100 @@ export const eventRegistrationOperations = {
     }),
 } as const
 
-async function preValidateRegistration(
+/**
+ * The visibility levels of one event - the regular level is what it takes to register for it, the
+ * admin level what it takes to act on the registrations of everyone else.
+ */
+async function eventVisibility(prisma: PrismaPossibleTransaction<false>, eventId: number) {
+    return await eventOperations.visibility.readDoubleLevelMatrixInternal({
+        params: { id: eventId },
+        prisma,
+    })
+}
+
+/**
+ * Whether the session administrates one event - what lets it register people outside the
+ * registration window, past their dots, and unregister them after the deadline.
+ */
+async function sessionAdministratesEvent(
+    prisma: PrismaPossibleTransaction<false>,
+    session: SessionMaybeUser,
+    eventId: number
+) {
+    return eventAdminLevel.data({ visibility: await eventVisibility(prisma, eventId) }).auth(session).authorized
+}
+
+/**
+ * The same levels for the event one registration belongs to, together with the user that owns the
+ * registration - null for a guest registered by an administrator.
+ */
+async function registrationOwnerAndEventVisibility(
+    prisma: PrismaPossibleTransaction<false>,
+    registrationId: number
+) {
+    const registration = await prisma.eventRegistration.findUniqueOrThrow({
+        where: { id: registrationId },
+        select: { userId: true, eventId: true },
+    })
+    return {
+        userId: registration.userId,
+        doubleLevelMatrix: await eventVisibility(prisma, registration.eventId),
+    }
+}
+
+/**
+ * Checks the dots of the user registering: dots either hold the user back until a while after the
+ * ordinary registration start of the event, or ban them from registering at all.
+ *
+ * @param registrationStart - The ordinary registration start of the event. A timeout counts from it.
+ * @param userId - The user being registered.
+ * @param isAdmin - Admins register on behalf of others, and are not held back by the dots of anyone.
+ */
+async function validateDotPunishmentOfRegistration(
     prisma: Prisma.TransactionClient,
+    registrationStart: Date,
+    userId: number,
+    isAdmin: boolean
+) {
+    if (isAdmin) return
+
+    const punishment = await readDotPunishmentOfUser({
+        params: { userId },
+        prisma,
+        bypassAuth: true,
+    })
+
+    if (punishment.type === 'ban') {
+        throw new Smorekopp('BAD PARAMETERS', 'Du har for mange prikker til å melde deg på arrangementer.')
+    }
+
+    if (punishment.type === 'none') return
+
+    const startForUser = new Date(registrationStart.getTime() + punishment.punishmentMinutes * 60 * 1000)
+
+    if (startForUser > new Date()) {
+        throw new Smorekopp(
+            'BAD PARAMETERS',
+            `Du har prikker, og kan derfor først melde deg på ${displayDate(startForUser)}.`
+        )
+    }
+}
+
+/**
+ * Locks the event and checks it takes a registration now: it takes registrations at all, the
+ * registration period is open (administrators may register outside it), and it has a place or a
+ * waiting list left. Run it in the transaction that creates the registration, so two registrations
+ * cannot both take the last place.
+ *
+ * @returns The event, with how many registrations it had before this one.
+ */
+async function lockEventOpenForRegistration(
+    tx: Prisma.TransactionClient,
     eventId: number,
     isAdmin: boolean
 ) {
-    const event = await prisma.event.findUniqueOrThrow({
+    await lockEvent(tx, eventId)
+    const event = await tx.event.findUniqueOrThrow({
         where: {
             id: eventId
         },
@@ -573,7 +561,6 @@ async function preValidateRegistration(
             },
         },
     })
-
 
     if (!event.takesRegistration) {
         throw new Smorekopp('BAD PARAMETERS', 'Cannot register for an event without registration')
@@ -592,93 +579,4 @@ async function preValidateRegistration(
     }
 
     return event
-}
-
-async function postValidateRegistration(
-    prisma: Prisma.TransactionClient,
-    registrationId: number,
-    eventId: number
-) {
-    const event = await prisma.event.findUniqueOrThrow({
-        where: {
-            id: eventId
-        },
-        select: {
-            waitingList: true,
-            places: true,
-            _count: {
-                select: {
-                    eventRegistrations: {
-                        where: {
-                            id: {
-                                lte: registrationId,
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    })
-
-    if (event.places < event._count.eventRegistrations && !event.waitingList) {
-        await prisma.eventRegistration.delete({
-            where: {
-                id: registrationId,
-            },
-        })
-
-        throw new Smorekopp('BAD PARAMETERS', 'The event is full.')
-    }
-
-    return event
-}
-
-/**
- * Narrows to one segment of the registration queue of an event: the registrations that took the
- * places of the event, or the ones queueing on the waiting list past them. The first registration
- * past the places is the boundary, and since the queue is ordered by id, each segment is simply the
- * ids on one side of it.
- *
- * @returns The filter to read the segment with, or null if the segment holds no registrations.
- */
-async function queueSegmentFilter(
-    prisma: Prisma.TransactionClient,
-    details: EventRegistrationPageDetails
-): Promise<Prisma.EventRegistrationWhereInput | null> {
-    const event = await prisma.event.findUniqueOrThrow({
-        where: {
-            id: details.eventId,
-        },
-        select: {
-            places: true,
-        },
-    })
-
-    const firstOnWaitingList = await prisma.eventRegistration.findFirst({
-        where: {
-            eventId: details.eventId,
-        },
-        orderBy: eventRegistrationQueueOrder,
-        skip: event.places,
-        select: {
-            id: true,
-        },
-    })
-
-    if (details.type === REGISTRATION_READER_TYPE.WAITING_LIST) {
-        if (!firstOnWaitingList) return null
-
-        return {
-            eventId: details.eventId,
-            id: { gte: firstOnWaitingList.id },
-        }
-    }
-
-    // Without anyone past the places of the event, every registration took a place.
-    if (!firstOnWaitingList) return { eventId: details.eventId }
-
-    return {
-        eventId: details.eventId,
-        id: { lt: firstOnWaitingList.id },
-    }
 }

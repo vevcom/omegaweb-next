@@ -7,7 +7,9 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
  * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`.
  */
 const registerLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
-const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
+// Exported for the operations to tell whether the session administrates an event, which lets it
+// register and unregister outside the registration period and past anyone's dots.
+export const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
 const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
 
 /**

@@ -1,4 +1,3 @@
-import '@pn-server-only'
 import { REGISTRATION_READER_TYPE } from './constants'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { PaymentProvider } from '@/prisma-generated-pn-types'
