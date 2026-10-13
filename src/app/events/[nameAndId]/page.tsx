@@ -119,13 +119,16 @@ const { page, generateMetadata } = serverPage({
         canReadRegistrationsDetailed: eventRegistrationAuth.readPageDetailed.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        canRegisterOthers: eventRegistrationAuth.createGuest.data({
+        canRegisterAsAdmin: eventRegistrationAuth.createAsAdmin.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        }),
+        canRegisterGuest: eventRegistrationAuth.createGuest.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
         // Registering takes the regular level of the event, for the session's own user.
-        canRegister: session.user ? eventRegistrationAuth.create({
+        canRegister: session.user ? eventRegistrationAuth.create.data({
             userId: session.user.id,
-            doubleLevelMatrix: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }) : Require.user(),
     }),
     metadata: (data) => ({ title: data.event.name }),
@@ -158,9 +161,17 @@ const { page, generateMetadata } = serverPage({
                         </ul>
                     </div>
                     <div className={styles.settings}>
-                        {event.takesRegistration && capabilities.canRegisterOthers.authorized &&
+                        {event.takesRegistration && (
+                            capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
+                        ) &&
                             <UsersHeaderItemPopUp scale={30} popUpKey="Users">
-                                <ManualRegistrationForm eventId={event.id} />
+                                <ManualRegistrationForm
+                                    eventId={event.id}
+                                    capabilities={{
+                                        canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
+                                        canRegisterGuest: capabilities.canRegisterGuest.toJsObject(),
+                                    }}
+                                />
                             </UsersHeaderItemPopUp>
                         }
                         <SettingsHeaderItemPopUp scale={30} popUpKey="EditEvent">
@@ -214,7 +225,10 @@ const { page, generateMetadata } = serverPage({
                             dotPunishment={dotPunishment}
                             availableBalance={data.eventPaymentBalance}
                             customerSessionClientSecret={data.eventPaymentCustomerSessionSecret}
-                            capabilities={{ canRegister: capabilities.canRegister.toJsObject() }}
+                            capabilities={{
+                                canRegister: capabilities.canRegister.toJsObject(),
+                                canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
+                            }}
                         />
                     </> : <p>
                         <FontAwesomeIcon icon={faExclamation} />

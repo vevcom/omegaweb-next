@@ -13,7 +13,7 @@ import { displayDate } from '@/lib/dates/displayDate'
 import { Smorekopp } from '@/services/error'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { eventOperations } from '@/services/events/operations'
-import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
@@ -49,20 +49,19 @@ const readDotPunishmentOfUser = defineOperation({
     }
 })
 
-export const eventRegistrationOperations = {
-    create: defineOperation({
-        paramsSchema: eventRegistrationSchemas.params.create,
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.create({
-            userId: params.userId,
-            doubleLevelMatrix: await eventVisibility(prisma, params.eventId),
-        }),
-        opensTransaction: true,
-        operation: async ({ prisma, params, session }): Promise<EventRegistrationWithWaitingList> => {
-            const isAdmin = await sessionAdministratesEvent(prisma, session, params.eventId)
-
-            return await prisma.$transaction(async tx => {
-                const event = await lockEventOpenForRegistration(tx, params.eventId, isAdmin)
-                await validateDotPunishmentOfRegistration(tx, event.registrationStart, params.userId, isAdmin)
+/**
+ * Registers a user to an event. Implemented twice below: as `create`, where users register
+ * themselves and the registration period and their dots apply, and as `createAsAdmin`, where an
+ * administrator of the event registers anyone, at any time, regardless of dots.
+ */
+const createRegistration = defineSubOperation({
+    paramsSchema: () => eventRegistrationSchemas.params.create,
+    opensTransaction: true,
+    operation: ({ asAdmin }: { asAdmin: boolean }) =>
+        async ({ prisma, params }): Promise<EventRegistrationWithWaitingList> =>
+            await prisma.$transaction(async tx => {
+                const event = await lockEventOpenForRegistration(tx, params.eventId, asAdmin)
+                await validateDotPunishmentOfRegistration(tx, event.registrationStart, params.userId, asAdmin)
 
                 const registration = await tx.eventRegistration.create({
                     data: {
@@ -83,8 +82,25 @@ export const eventRegistrationOperations = {
                     ...registration,
                     onWaitingList: event._count.eventRegistrations >= event.places,
                 }
-            })
-        },
+            }),
+})
+
+export const eventRegistrationOperations = {
+    create: createRegistration.implement({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.create.data({
+            userId: params.userId,
+            visibility: await eventVisibility(prisma, params.eventId),
+        }),
+        ownershipCheck: () => true,
+        operationImplementationFields: { asAdmin: false },
+    }),
+
+    createAsAdmin: createRegistration.implement({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.createAsAdmin.data({
+            visibility: await eventVisibility(prisma, params.eventId),
+        }),
+        ownershipCheck: () => true,
+        operationImplementationFields: { asAdmin: true },
     }),
 
     createGuest: defineOperation({
@@ -468,8 +484,8 @@ async function eventVisibility(prisma: PrismaPossibleTransaction<false>, eventId
 }
 
 /**
- * Whether the session administrates one event - what lets it register people outside the
- * registration window, past their dots, and unregister them after the deadline.
+ * Whether the session administrates one event - what lets it unregister anyone after the
+ * registration deadline.
  */
 async function sessionAdministratesEvent(
     prisma: PrismaPossibleTransaction<false>,

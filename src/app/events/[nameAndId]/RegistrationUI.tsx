@@ -7,6 +7,7 @@ import SubmitButton from '@/components/UI/SubmitButton'
 import EventPaymentModal from '@/components/Ledger/Modals/EventPaymentModal'
 import {
     createEventRegistrationAction,
+    createEventRegistrationAsAdminAction,
     destroyEventRegistrationAction,
     updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
@@ -46,7 +47,7 @@ export default function RegistrationUI({
     dotPunishment: DotPunishment | null,
     availableBalance?: number,
     customerSessionClientSecret?: string,
-    capabilities: CapabilitiesJsObject<'canRegister'>,
+    capabilities: CapabilitiesJsObject<'canRegister' | 'canRegisterAsAdmin'>,
 }) {
     if (!event.takesRegistration) {
         throw new Error('Kan bare vise påmeldingsknapp for arrangement som har påmelding')
@@ -120,6 +121,31 @@ export default function RegistrationUI({
         return <>Logg inn for å melde deg på</>
     }
 
+    const userId = session.data.user.id
+
+    const register = async (
+        createAction: typeof createEventRegistrationAction | typeof createEventRegistrationAsAdminAction
+    ) => {
+        const result = await createAction({
+            params: {
+                userId,
+                eventId: event.id,
+            }
+        })
+
+        if (result.success) {
+            setBtnState(getInitialBtnState(result.data))
+            setRegistrationState(result.data)
+        } else if (result.error && result.error.length > 0) {
+            const message = result.error[0].message
+            setErrorText(message)
+            setBtnState(RegistrationButtonState.ERROR)
+        } else {
+            setErrorText('Kunne ikke melde deg på.')
+            setBtnState(RegistrationButtonState.ERROR)
+        }
+    }
+
     const buttonOnClick = async () => {
         setBtnPending(true)
 
@@ -139,26 +165,18 @@ export default function RegistrationUI({
                 setBtnState(RegistrationButtonState.ERROR)
             }
         } else {
-            const result = await createEventRegistrationAction({
-                params: {
-                    userId: session.data.user.id,
-                    eventId: event.id,
-                }
-            })
-
-            if (result.success) {
-                setBtnState(getInitialBtnState(result.data))
-                setRegistrationState(result.data)
-            } else if (result.error && result.error.length > 0) {
-                const message = result.error[0].message
-                setErrorText(message)
-                setBtnState(RegistrationButtonState.ERROR)
-            } else {
-                setErrorText('Kunne ikke melde deg på.')
-                setBtnState(RegistrationButtonState.ERROR)
-            }
+            await register(createEventRegistrationAction)
         }
 
+        setBtnPending(false)
+        setBtnKey(btnKey + 1)
+    }
+
+    // Administrators of the event register outside the registration period and past their own dots
+    // - through a button of its own, so that it is clear it is not an ordinary registration.
+    const adminButtonOnClick = async () => {
+        setBtnPending(true)
+        await register(createEventRegistrationAsAdminAction)
         setBtnPending(false)
         setBtnKey(btnKey + 1)
     }
@@ -220,6 +238,19 @@ export default function RegistrationUI({
 
         {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && (
             <p>Påmeldingen åpner om <CountDown referenceDate={registrationStart} /></p>
+        )}
+
+        {!registrationState && capabilities.canRegisterAsAdmin.authorized && (
+            <SubmitButton
+                success={false}
+                color="secondary"
+                className={styles.registrationButton}
+                onClick={adminButtonOnClick}
+                pending={btnPending}
+                key={`admin-${btnKey}`}
+            >
+                Meld meg på som administartor
+            </SubmitButton>
         )}
 
         {showPayment && canPay && event.price && paymentOpen && (

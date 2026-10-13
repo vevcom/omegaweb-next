@@ -3,6 +3,7 @@ import { makeAction } from '@/services/serverAction'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 
 export const createEventRegistrationAction = makeAction(eventRegistrationOperations.create)
+export const createEventRegistrationAsAdminAction = makeAction(eventRegistrationOperations.createAsAdmin)
 export const createGuestEventRegistrationAction = makeAction(eventRegistrationOperations.createGuest)
 
 export const readEventRegistrationsPageAction = makeAction(eventRegistrationOperations.readPage)
