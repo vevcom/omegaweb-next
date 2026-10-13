@@ -36,10 +36,12 @@ import {
     faPeopleLine,
     faIdCard,
     faPoo,
+    faShoppingCart,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
+import { shopAuth } from '@/services/shop/shop/auth'
 
 export type NavItem = {
     name: string,
@@ -73,6 +75,12 @@ export const navDef: NavItem[] = [
         href: '/career/jobads',
         icon: faBriefcase,
         authorizers: () => [jobAdAuth.readActive],
+    },
+    {
+        name: 'Butikker',
+        href: '/shop',
+        icon: faShoppingCart,
+        authorizers: () => [shopAuth.readMany],
     },
     {
         name: 'For bedrifter',
