@@ -1,19 +1,31 @@
 import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
-const baseSchema = z.object({
-    id: z.coerce.number(),
+const dataFieldSchemas = z.object({
     validFrom: z.coerce.date(),
     copyPreviousPrices: Zpn.checkboxOrBoolean({ label: '' }),
 })
 
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+})
+
+const pricePeriodId = paramsFieldSchemas.pick({
+    id: true,
+})
+
 export const cabinPricePeriodSchemas = {
-    createPricePeriod: baseSchema.pick({
-        validFrom: true,
-        copyPreviousPrices: true,
-    }),
-    updatePricePeriod: baseSchema.pick({
-        id: true,
-        validFrom: true,
-    }),
+    data: {
+        create: dataFieldSchemas.pick({
+            validFrom: true,
+            copyPreviousPrices: true,
+        }),
+        update: dataFieldSchemas.pick({
+            validFrom: true,
+        }),
+    },
+    params: {
+        destroy: pricePeriodId,
+        update: pricePeriodId,
+    },
 }

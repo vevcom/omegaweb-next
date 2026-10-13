@@ -4,13 +4,17 @@ import EditableTextField from '@/components/EditableTextField/EditableTextField'
 import { updateEventAction } from '@/services/events/actions'
 import { configureAction } from '@/services/configureAction'
 import { formatVevenUri } from '@/lib/urlEncoding'
+import useEditMode from '@/hooks/useEditMode'
 import type { Event } from '@/prisma-generated-pn-types'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
-    event: Event
+    event: Event,
+    capabilities: CapabilitiesJsObject<'canUpdate'>,
 }
 
-export default function ShowAndEditName({ event }: PropTypes) {
+export default function ShowAndEditName({ event, capabilities }: PropTypes) {
+    const editable = useEditMode({ authResult: capabilities.canUpdate })
     const updateAction = configureAction(updateEventAction, { params: { id: event.id } })
 
     return (
@@ -21,7 +25,7 @@ export default function ShowAndEditName({ event }: PropTypes) {
                     ? `/events/${formatVevenUri(data.name, data.id)}`
                     : '/events'),
             }}
-            editable={true} //TODO: authorizer
+            editable={editable}
             inputName="name"
             submitButton={{
                 text: 'Lagre',

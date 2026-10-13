@@ -7,6 +7,7 @@ import UserCard from '@/components/User/UserCard'
 import { configureAction } from '@/services/configureAction'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { serverPage } from '@/app/serverPage'
+import { Require } from '@/auth/authorizer/Require'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 export type PropTypes = {
@@ -32,9 +33,11 @@ const { page, generateMetadata } = serverPage({
         return { committee, paragraph, members }
     },
     capabilities: (data) => ({
-        canEditCommitteeParagraph: committeeAuth.updateParagraphContent.data({
-            groupId: data.committee.groupId,
-        }),
+        // A pensioned committee is history: the service refuses every change to it.
+        canEditCommitteeParagraph: Require.allOf(
+            committeeAuth.updateParagraphContent.data({ groupId: data.committee.groupId }),
+            Require.custom(() => !data.committee.pensioned, { errorMessage: 'Komiteen er pensjonert' }),
+        ),
     }),
     metadata: (data) => ({ title: data.committee.name }),
     render: ({ data, capabilities }) => (

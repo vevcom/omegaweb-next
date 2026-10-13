@@ -1,12 +1,16 @@
 import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
-const fieldSchemas = z.object({
+const dataFieldSchemas = z.object({
     name: z.string().trim().min(2, { message: 'Navnet må være minst 2 tegn.' }),
     startDate: Zpn.date({ label: 'Start' }),
     endDate: Zpn.date({ label: 'Siste frist for søknader' }),
     endPriorityDate: Zpn.date({ label: 'Siste frist for prioritering' }),
     participatingCommitteeIds: Zpn.numberListCheckboxFriendly({ label: 'Deltakende komiteer' })
+})
+
+const paramsFieldSchemas = z.object({
+    name: z.string(),
 })
 
 /**
@@ -26,32 +30,28 @@ export const periodDatesInOrder = ({ startDate, endDate, endPriorityDate }: {
 export const periodDatesMessage =
     'Søknadsfristen må være etter starten, og prioriteringsfristen kan ikke være før søknadsfristen.'
 
-export const applicationPeriodSchemas = {
-    create: fieldSchemas.pick({
-        name: true,
-        startDate: true,
-        endDate: true,
-        endPriorityDate: true,
-        participatingCommitteeIds: true
-    }).refine(periodDatesInOrder, periodDatesMessage),
+const period = dataFieldSchemas.pick({
+    name: true,
+    startDate: true,
+    endDate: true,
+    endPriorityDate: true,
+    participatingCommitteeIds: true
+})
 
-    update: fieldSchemas.pick({
-        name: true,
-        startDate: true,
-        endDate: true,
-        endPriorityDate: true,
-        participatingCommitteeIds: true
-    }).partial().refine(periodDatesInOrder, periodDatesMessage),
-}
-
-const periodName = fieldSchemas.pick({
+const periodName = paramsFieldSchemas.pick({
     name: true,
 })
 
-export const applicationPeriodParamsSchemas = {
-    read: periodName,
-    update: periodName,
-    removeAllApplicationTexts: periodName,
-    destroy: periodName,
-    readNumberOfApplications: periodName,
+export const applicationPeriodSchemas = {
+    data: {
+        create: period.refine(periodDatesInOrder, periodDatesMessage),
+        update: period.partial().refine(periodDatesInOrder, periodDatesMessage),
+    },
+    params: {
+        read: periodName,
+        update: periodName,
+        removeAllApplicationTexts: periodName,
+        destroy: periodName,
+        readNumberOfApplications: periodName,
+    },
 }

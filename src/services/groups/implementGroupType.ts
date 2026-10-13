@@ -1,5 +1,6 @@
 import '@pn-server-only'
-import { assertGroupNotPensioned, groupOperations, isGroupOfType } from './operations'
+import { groupOperations } from './operations'
+import { assertGroupNotPensioned, isGroupOfType } from './groupChecks'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { GroupType } from '@/prisma-generated-pn-types'
@@ -114,7 +115,7 @@ export function implementManualMigrationPerGroup({ type, auth, setPensioned }: {
     setPensioned: SetPensioned,
 }) {
     return {
-        migrateGroup: groupOperations.migrateManually.implement({
+        migrateGroup: groupOperations.migrateGroup.implement({
             authorizer: ({ params }) => auth.migrateGroup({ groupId: params.groupId }),
             ownershipCheck: ownershipCheckOfType(type),
             beforeRun: ({ prisma, params }) => assertGroupNotPensioned(prisma, params.groupId),

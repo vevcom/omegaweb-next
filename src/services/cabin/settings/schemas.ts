@@ -1,7 +1,13 @@
 import { z } from 'zod'
 
+const dataFieldSchemas = z.object({
+    ledgerAccountId: z.number().nullable(),
+})
+
 export const cabinSettingsSchemas = {
-    update: z.object({
-        ledgerAccountId: z.number().nullable(),
-    }),
+    data: {
+        update: dataFieldSchemas.pick({
+            ledgerAccountId: true,
+        }),
+    },
 }

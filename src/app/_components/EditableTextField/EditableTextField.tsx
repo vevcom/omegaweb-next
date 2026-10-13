@@ -1,17 +1,11 @@
 'use client'
 import styles from './EditableTextField.module.scss'
 import Form from '@/components/Form/Form'
-import useEditMode from '@/hooks/useEditMode'
-import { Require } from '@/auth/authorizer/Require'
 import useKeyPress from '@/hooks/useKeyPress'
 import React, { useEffect, useState, useRef, useEffectEvent } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import type { PropTypes as FormPropTypes } from '@/components/Form/Form'
-
-// Hoisted so useEditMode's authorizer dependency stays referentially stable across renders -
-// Require.nothing() takes no dynamic args, so there's nothing to recompute per render/instance.
-const requireNothingAuthorizer = Require.nothing()
 
 type PropTypes<ReturnType> = {
     props?: Omit<React.HTMLAttributes<HTMLElement>, 'children' | 'contentEditable'>
@@ -43,10 +37,6 @@ export default function EditableTextField<ReturnType>({
 }: PropTypes<ReturnType>) {
     const [value, setValue] = useState('')
     const [noChange, setNoChange] = useState(true)
-    //TODO: Authorizer must be passed in....
-    const canEdit = useEditMode({
-        authorizer: requireNothingAuthorizer
-    })
     const ref = useRef<HTMLInputElement>(null)
     const submitRef = useRef<HTMLButtonElement>(null)
     useKeyPress('Enter', () => {
@@ -58,7 +48,7 @@ export default function EditableTextField<ReturnType>({
 
     useEffect(() => {
         resetNoChange()
-    }, [canEdit])
+    }, [editable])
 
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
         setNoChange(false)
@@ -69,7 +59,7 @@ export default function EditableTextField<ReturnType>({
         ref.current?.setAttribute('value', value)
     }, [value])
 
-    if (!canEdit || !editable) {
+    if (!editable) {
         return (
             <>{children}</>
         )

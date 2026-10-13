@@ -1,13 +1,13 @@
 import '@pn-server-only'
 import { committeeParticipationAuth } from './auth'
-import { committeeParticipationParamsSchemas } from './schemas'
+import { committeeParticipationSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 
 export const committeeParticipationOperations = {
     read: defineOperation({
-        paramsSchema: committeeParticipationParamsSchemas.read,
+        paramsSchema: committeeParticipationSchemas.params.read,
         authorizer: async ({ prisma, params }) => committeeParticipationAuth.read.data({
             groupId: await prisma.committeeParticipationInApplicationPeriod.findUniqueOrThrow({
                 where: {
@@ -62,7 +62,7 @@ export const committeeParticipationOperations = {
         }
     }),
     readAll: defineOperation({
-        paramsSchema: committeeParticipationParamsSchemas.readAll,
+        paramsSchema: committeeParticipationSchemas.params.readAll,
         authorizer: async ({ prisma, params }) => committeeParticipationAuth.readAll.data({
             groupId: await prisma.committee.findUniqueOrThrow({
                 where: {

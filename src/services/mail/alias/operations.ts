@@ -7,7 +7,7 @@ import type { MailAlias } from '@/prisma-generated-pn-types'
 
 export const aliasOperations = {
     create: defineOperation({
-        dataSchema: mailAliasSchemas.create,
+        dataSchema: mailAliasSchemas.data.create,
         authorizer: () => mailAliasAuth.create,
         operation: async ({ prisma, data }): Promise<MailAlias> =>
             prisma.mailAlias.create({ data }),
@@ -20,7 +20,7 @@ export const aliasOperations = {
     }),
 
     update: defineOperation({
-        dataSchema: mailAliasSchemas.update,
+        dataSchema: mailAliasSchemas.data.update,
         authorizer: () => mailAliasAuth.update,
         operation: async ({ prisma, data }): Promise<MailAlias> =>
             prisma.mailAlias.update({
@@ -33,7 +33,7 @@ export const aliasOperations = {
     }),
 
     destroy: defineOperation({
-        paramsSchema: mailAliasSchemas.destroy,
+        paramsSchema: mailAliasSchemas.params.destroy,
         authorizer: () => mailAliasAuth.destroy,
         operation: async ({ prisma, params }): Promise<MailAlias> => {
             const alias = await prisma.mailAlias.findUniqueOrThrow({

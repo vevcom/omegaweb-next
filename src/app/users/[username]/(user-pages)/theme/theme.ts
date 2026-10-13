@@ -3,7 +3,8 @@ export enum ThemeName {
     Light = 'Light',
     Solarized = 'Solarized',
     StjerneInnbygger = 'StjerneInnbygger',
-    HotDogStand = 'HotDogStand',
+    HotDogStand = 'Pølsebod',
+    owBasic = 'Alt var bedre før',
 }
 
 type ThemeColors = {
@@ -102,6 +103,25 @@ export const themes: Record<ThemeName, ThemeColors> = {
         'accent-blue': 'hsl(207, 91%, 65%)',
         'accent-magenta': 'hsl(300, 80%, 60%)',
         'accent-violet': 'hsl(260, 80%, 60%)',
+    },
+    [ThemeName.owBasic]: {
+        layer: '#f7f8fa',
+        text: '#1c1c1c',
+        'text-muted': 'hsl(0, 0%, 20%)',
+        'surface-base': '#ffffff',
+        'surface-raised': '#f7f8fa',
+        'surface-hover': '#ffd600',
+        'surface-subtle': 'hsl(210, 10%, 80%)',
+        'ink-hover': '#1c1c1c',
+        'ink-strong': '#1c1c1c',
+        'accent-red': 'hsl(0, 70%, 45%)',
+        'accent-orange': 'hsl(40, 70%, 40%)',
+        'accent-yellow': 'hsl(50, 80%, 35%)',
+        'accent-green': 'hsl(120, 60%, 32%)',
+        'accent-cyan': 'hsl(185, 70%, 32%)',
+        'accent-blue': '#ffd600',
+        'accent-magenta': '#556a82',
+        'accent-violet': '#556a82',
     },
     [ThemeName.HotDogStand]: {
         layer: 'hsl(0, 100%, 50%)',

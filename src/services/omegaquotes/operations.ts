@@ -5,15 +5,12 @@ import { omegaQuoteFilterSelection } from './constants'
 import { notificationOperations } from '@/services/notifications/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
-import { z } from 'zod'
 
 export const omegaquoteOperations = {
     create: defineOperation({
         authorizer: ({ params }) => omegaQuotesAuth.create.data({ userId: params.userPosterId }),
-        dataSchema: omegaquoteSchemas.create,
-        paramsSchema: z.object({
-            userPosterId: z.number()
-        }),
+        dataSchema: omegaquoteSchemas.data.create,
+        paramsSchema: omegaquoteSchemas.params.create,
         operation: async ({ prisma, data, params }) => {
             const results = await prisma.omegaQuote.create({
                 data: {
@@ -40,7 +37,7 @@ export const omegaquoteOperations = {
         }
     }),
     readPage: defineOperation({
-        paramsSchema: omegaquoteSchemas.readPage,
+        paramsSchema: omegaquoteSchemas.params.readPage,
         authorizer: () => omegaQuotesAuth.readPage,
         operation: async ({ prisma, params }) =>
             prisma.omegaQuote.findMany({

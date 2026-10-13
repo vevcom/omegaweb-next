@@ -14,15 +14,18 @@ import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 import type { MailAlias } from '@/prisma-generated-pn-types'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 export default function ChannelSettings({
     currentChannel,
     channels,
     mailAliases,
+    capabilities,
 }: {
     currentChannel: ExpandedNotificationChannel,
     channels: ExpandedNotificationChannel[],
     mailAliases: MailAlias[],
+    capabilities: CapabilitiesJsObject<'canUpdate'>,
 }) {
     const [currentChannelState, setCurrentChannel] = useState(currentChannel)
 
@@ -33,6 +36,7 @@ export default function ChannelSettings({
         <PageTitleSetter title={currentChannelState.name} />
         <div className={styles.channelSettings}>
             {currentChannelState.special ? <p>Spesiell: {currentChannelState.special}</p> : null}
+            {capabilities.canUpdate.authorized &&
             <Form
                 action={configureAction(updateNotificationChannelAction, {
                     params: {
@@ -119,6 +123,7 @@ export default function ChannelSettings({
 
 
             </Form>
+            }
         </div>
     </PageWrapper>
 }

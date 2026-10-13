@@ -5,7 +5,6 @@ import { lockerAuth } from './auth'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
-import { z } from 'zod'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { LockerWithReservation } from '@/services/lockers/types'
 
@@ -41,7 +40,7 @@ export const lockerOperations = {
      */
     create: defineOperation({
         authorizer: () => lockerAuth.create,
-        dataSchema: lockersSchemas.create,
+        dataSchema: lockersSchemas.data.create,
         operation: async ({ prisma, data }) => await prisma.locker.create({
             data,
         })
@@ -56,9 +55,7 @@ export const lockerOperations = {
      */
     read: defineOperation({
         authorizer: () => lockerAuth.read,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: lockersSchemas.params.read,
         operation: async ({ prisma, params: { id } }) => {
             const locker = await prisma.locker.findUniqueOrThrow({
                 where: {
@@ -82,7 +79,7 @@ export const lockerOperations = {
      */
     readPage: defineOperation({
         authorizer: () => lockerAuth.readPage,
-        paramsSchema: lockersSchemas.readPage,
+        paramsSchema: lockersSchemas.params.readPage,
         operation: async ({ prisma, params }) => {
             const lockers = await prisma.locker.findMany({
                 ...cursorPagingSelection(params.paging.page),

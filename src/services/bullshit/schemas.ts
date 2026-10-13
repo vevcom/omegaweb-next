@@ -1,19 +1,26 @@
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { z } from 'zod'
 
-export const baseSchemas = z.object({
+const dataFieldSchemas = z.object({
     quote: z.string().min(1, 'Sitatet kan ikke være tomt'),
 })
 
-export const bullshitSchemas = {
-    create: baseSchemas.pick({
-        quote: true,
-    }),
-    readPage: readPageInputSchemaObject(
-        z.object({
-            id: z.number(),
-        }),
-        z.undefined()
-    ),
-}
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+})
 
+export const bullshitSchemas = {
+    data: {
+        create: dataFieldSchemas.pick({
+            quote: true,
+        }),
+    },
+    params: {
+        readPage: readPageInputSchemaObject(
+            paramsFieldSchemas.pick({
+                id: true,
+            }),
+            z.undefined()
+        ),
+    },
+}

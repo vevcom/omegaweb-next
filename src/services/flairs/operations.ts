@@ -1,23 +1,27 @@
 import '@pn-server-only'
 import { flairAuth } from './auth'
-import { flairSchema } from './schemas'
+import { flairSchemas } from './schemas'
 import { flairImageOperations } from './flairImageCollection'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { z } from 'zod'
+import { takeAdvisoryLock } from '@/lib/advisoryLocks'
+import type { Prisma } from '@/prisma-generated-pn-types'
 
 export const flairOperations = {
     create: defineOperation({
         authorizer: () => flairAuth.create,
-        dataSchema: flairSchema.create,
+        dataSchema: flairSchemas.data.create,
         opensTransaction: true,
         operation: ({ prisma, data }) =>
             prisma.$transaction(async tx => {
                 const image = await flairImageOperations.uploadImage.internalCall({ prisma: tx, data })
+                await lockRanks(tx)
+                const { _max: { rank: lastRank } } = await tx.flair.aggregate({ _max: { rank: true } })
                 return await tx.flair.create({
                     data: {
                         name: data.name,
+                        rank: (lastRank ?? 0) + 1,
                         colorR: data.color.red,
                         colorG: data.color.green,
                         colorB: data.color.blue,
@@ -32,10 +36,8 @@ export const flairOperations = {
     }),
     update: defineOperation({
         authorizer: () => flairAuth.update,
-        dataSchema: flairSchema.update,
-        paramsSchema: z.object({
-            flairId: z.number()
-        }),
+        dataSchema: flairSchemas.data.update,
+        paramsSchema: flairSchemas.params.update,
         operation: ({ prisma, params, data }) =>
             prisma.flair.update({
                 where: {
@@ -51,10 +53,8 @@ export const flairOperations = {
     }),
     updateImage: defineOperation({
         authorizer: () => flairAuth.updateImage,
-        paramsSchema: z.object({
-            flairId: z.number()
-        }),
-        dataSchema: flairSchema.updateImage,
+        paramsSchema: flairSchemas.params.updateImage,
+        dataSchema: flairSchemas.data.updateImage,
         opensTransaction: true,
         operation: async ({ prisma, params, data }) => {
             const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
@@ -87,9 +87,7 @@ export const flairOperations = {
     }),
     read: defineOperation({
         authorizer: () => flairAuth.read,
-        paramsSchema: z.object({
-            flairId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.read,
         operation: async ({ prisma, params: { flairId } }) =>
             await prisma.flair.findUniqueOrThrow({
                 where: {
@@ -102,36 +100,16 @@ export const flairOperations = {
     }),
     readAll: defineOperation({
         authorizer: () => flairAuth.readAll,
-        operation: async ({ prisma }) => {
-            const flairs = (await prisma.flair.findMany({
-                include: {
-                    image: { include: expandedImageIncluder }
-                }
-            })).sort((a, b) => a.rank - b.rank || a.id - b.id)
-            // Assign new ranks: 1, 2, 3, ... so there are no gaps
-            for (let i = 0; i < flairs.length; i++) {
-                const newRank = i + 1
-                if (flairs[i].rank !== newRank) {
-                    await prisma.flair.update({
-                        where: { id: flairs[i].id },
-                        data: { rank: newRank }
-                    })
-                }
-            }
-            const normalizedFlairs = await prisma.flair.findMany({
-                include: {
-                    image: { include: expandedImageIncluder }
-                },
-                orderBy: { rank: 'asc' }
-            })
-            return normalizedFlairs
-        }
+        operation: async ({ prisma }) => await prisma.flair.findMany({
+            include: {
+                image: { include: expandedImageIncluder }
+            },
+            orderBy: { rank: 'asc' }
+        })
     }),
     readUserFlairs: defineOperation({
         authorizer: ({ params }) => flairAuth.readUserFlairs.data({ userId: params.userId }),
-        paramsSchema: z.object({
-            userId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.readUserFlairs,
         operation: async ({ prisma, params: { userId } }) =>
             await prisma.user.findUniqueOrThrow({
                 where: {
@@ -148,20 +126,9 @@ export const flairOperations = {
     }),
     assignToUser: defineOperation({
         authorizer: () => flairAuth.assignToUser,
-        paramsSchema: z.object({
-            flairId: z.number(),
-            userId: z.number(),
-        }),
-        operation: async ({ prisma, params }) => {
-            const flair = await prisma.flair.findUnique({
-                where: { id: params.flairId }
-            })
-            if (!flair) {
-                throw new Error(`Flair with id ${params.flairId} not found`)
-            }
-
-
-            return await prisma.flair.update({
+        paramsSchema: flairSchemas.params.assignToUser,
+        operation: async ({ prisma, params }) =>
+            await prisma.flair.update({
                 where: {
                     id: params.flairId,
                 },
@@ -172,16 +139,11 @@ export const flairOperations = {
                         }
                     }
                 }
-            })
-        }
-        ,
+            }),
     }),
     unAssignToUser: defineOperation({
         authorizer: () => flairAuth.unAssignToUser,
-        paramsSchema: z.object({
-            flairId: z.number(),
-            userId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.unAssignToUser,
         operation: async ({ prisma, params }) =>
             await prisma.flair.update({
                 where: {
@@ -194,22 +156,30 @@ export const flairOperations = {
                         }
                     }
                 }
-            })
-        ,
+            }),
     }),
     destroy: defineOperation({
         authorizer: () => flairAuth.destroy,
-        paramsSchema: z.object({
-            flairId: z.number(),
-        }),
+        paramsSchema: flairSchemas.params.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params: { flairId } }) => {
             const { cleanup } = await prisma.$transaction(async tx => {
+                await lockRanks(tx)
                 const flair = await tx.flair.delete({
                     where: {
                         id: flairId,
                     }
                 })
+                // The flairs below move up one step to close the gap. One at a time, from the top: each
+                // move frees the rank the next one moves into, which keeps the unique rank satisfied.
+                const flairsBelow = await tx.flair.findMany({
+                    where: { rank: { gt: flair.rank } },
+                    orderBy: { rank: 'asc' },
+                    select: { id: true, rank: true },
+                })
+                await flairsBelow.reduce((previousMove, flairBelow) => previousMove.then(async () => {
+                    await tx.flair.update({ where: { id: flairBelow.id }, data: { rank: flairBelow.rank - 1 } })
+                }), Promise.resolve())
                 const fileCleanup =
                     await flairImageOperations.destroyImageDbAndReturnCleanup.internalCall({
                         prisma: tx,
@@ -223,79 +193,57 @@ export const flairOperations = {
             await cleanup()
         }
     }),
+    /** Moves a flair one step towards rank 1, the flair shown first. */
     increaseRank: defineOperation({
         authorizer: () => flairAuth.increaseRank,
-        paramsSchema: z.object({
-            flairId: z.number(),
-        }),
-        operation: async ({ prisma, params: { flairId } }) => {
-            const flair = await prisma.flair.findUniqueOrThrow({
-                where: { id: flairId }
-            })
-            const lowerFlair = await prisma.flair.findFirst({
-                where: {
-                    rank: {
-                        lt: flair.rank
-                    }
-                },
-                orderBy: {
-                    rank: 'desc'
-                }
-            })
-            if (!lowerFlair) {
-                throw new ServiceError('BAD PARAMETERS', 'Flair is already at lowest rank')
-            }
-            const tempRank = -99999999
-            await prisma.flair.update({
-                where: { id: lowerFlair.id },
-                data: { rank: tempRank }
-            })
-            await prisma.flair.update({
-                where: { id: flair.id },
-                data: { rank: lowerFlair.rank }
-            })
-            await prisma.flair.update({
-                where: { id: lowerFlair.id },
-                data: { rank: flair.rank }
-            })
-        }
+        paramsSchema: flairSchemas.params.increaseRank,
+        opensTransaction: true,
+        operation: async ({ prisma, params: { flairId } }) =>
+            prisma.$transaction(tx => moveRank(tx, flairId, 'UP')),
     }),
+    /** Moves a flair one step away from rank 1. */
     decreaseRank: defineOperation({
         authorizer: () => flairAuth.decreaseRank,
-        paramsSchema: z.object({
-            flairId: z.number(),
-        }),
-        operation: async ({ prisma, params: { flairId } }) => {
-            const flair = await prisma.flair.findUniqueOrThrow({
-                where: { id: flairId }
-            })
-            const higherFlair = await prisma.flair.findFirst({
-                where: {
-                    rank: {
-                        gt: flair.rank
-                    }
-                },
-                orderBy: {
-                    rank: 'asc'
-                }
-            })
-            if (!higherFlair) {
-                throw new ServiceError('BAD PARAMETERS', 'Flair is already at highest rank')
-            }
-            // Use a temporary rank to avoid unique constraint violation
-            const tempRank = -99999999
-            await prisma.flair.update({
-                where: { id: higherFlair.id },
-                data: { rank: tempRank }
-            })
-            await prisma.flair.update({
-                where: { id: flair.id },
-                data: { rank: higherFlair.rank }
-            })
-            await prisma.flair.update({
-                where: { id: higherFlair.id },
-                data: { rank: flair.rank }
-            })
-        }
+        paramsSchema: flairSchemas.params.decreaseRank,
+        opensTransaction: true,
+        operation: async ({ prisma, params: { flairId } }) =>
+            prisma.$transaction(tx => moveRank(tx, flairId, 'DOWN')),
     }),
 } as const
+
+/**
+ * Flairs are ordered by rank, and rank 1 is shown first. Every operation that changes ranks takes
+ * this lock, which keeps the ranks 1, 2, 3, ... with no gaps and no two moves crossing.
+ */
+async function lockRanks(tx: Prisma.TransactionClient) {
+    await takeAdvisoryLock(tx, 'flairRanks')
+}
+
+/**
+ * Swaps the rank of a flair with its neighbour: towards rank 1 for 'UP', away from it for 'DOWN'.
+ * Rank 0 is never a real rank, so it holds one of them while the two trade places.
+ */
+async function moveRank(prisma: Prisma.TransactionClient, flairId: number, direction: 'UP' | 'DOWN') {
+    await lockRanks(prisma)
+    const flair = await prisma.flair.findUniqueOrThrow({
+        where: { id: flairId }
+    })
+    const neighbour = await prisma.flair.findFirst({
+        where: {
+            rank: direction === 'UP' ? { lt: flair.rank } : { gt: flair.rank },
+        },
+        orderBy: {
+            rank: direction === 'UP' ? 'desc' : 'asc',
+        },
+    })
+    if (!neighbour) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            direction === 'UP' ? 'Flairen er allerede øverst.' : 'Flairen er allerede nederst.'
+        )
+    }
+
+    await prisma.flair.update({ where: { id: neighbour.id }, data: { rank: 0 } })
+    await prisma.flair.update({ where: { id: flair.id }, data: { rank: neighbour.rank } })
+    await prisma.flair.update({ where: { id: neighbour.id }, data: { rank: flair.rank } })
+}

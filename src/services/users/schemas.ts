@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 export const studentCardSchema = z.string()
 
-export const userSchema = z.object({
+export const userDataFieldSchemas = z.object({
     username: z.string().max(50).min(2).toLowerCase(),
     sex: z.nativeEnum(SEX).optional().nullable(),
     email: z.string().trim().toLowerCase()
@@ -20,12 +20,12 @@ export const userSchema = z.object({
     allergies: z.string().max(150).optional().nullable(),
     relationshipStatusText: z.string().max(150).optional(),
     relationshipStatus: z.nativeEnum(RelationshipStatus).optional(),
-    studentCard: studentCardSchema,
     password: z.string().max(50).min(12, {
         // eslint-disable-next-line
         message: 'Passoret må minst ha 12 tegn, en stor og en liten bokstav, et tall, en rune, to emojier, en musikk note, en magisk sopp og en dråpe smørekopp-blod (avsky).'
     }),
     confirmPassword: z.string().max(50).min(12),
+    currentPassword: z.string().max(50).optional(),
     imageConsent: Zpn.checkboxOrBoolean({
         label: 'Accepted images'
     }).optional(),
@@ -33,97 +33,151 @@ export const userSchema = z.object({
         label: 'Accepted terms',
     }).refine(value => value, 'Du må godta vilkårene for å bruke siden.'),
 })
+
+const groupFilter = z.object({
+    groupOrder: z.union([z.number(), z.literal('ACTIVE')]),
+    groupId: z.number()
+})
+
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    userId: z.number(),
+    username: z.string(),
+    email: z.string().trim().toLowerCase(),
+    studentCard: z.string(),
+    query: z.string().trim().min(1).max(100),
+    limit: z.number().int().min(1).max(25)
+        .optional(),
+    partOfName: z.string().max(100),
+    groups: z.array(groupFilter),
+    selectedGroup: groupFilter.nullable().optional(),
+    sort: z.object({
+        field: z.enum(['name', 'username']),
+        direction: z.enum(['asc', 'desc']),
+    }).optional(),
+})
+
 const refinePassword = {
     fcn: (data: { password?: string, confirmPassword?: string }) => data.password === data.confirmPassword,
     message: 'Passordene må være like'
 }
 
+const id = paramsFieldSchemas.pick({
+    id: true,
+})
+
+const username = paramsFieldSchemas.pick({
+    username: true,
+})
+
+const userLookup = paramsFieldSchemas.pick({
+    username: true,
+    id: true,
+    email: true,
+    studentCard: true,
+}).partial()
+
+// The reads take the id out of a query string too, so it is coerced there.
+const coercedId = z.coerce.number().optional()
+
 export const userSchemas = {
-    search: z.object({
-        query: z.string().trim().min(1).max(100),
-        limit: z.number().int().min(1).max(25)
-            .optional(),
-    }),
-
-    create: userSchema.pick({
-        email: true,
-        firstname: true,
-        lastname: true,
-        username: true,
-        emailVerified: true,
-    }),
-
-    update: userSchema.partial().pick({
-        firstname: true,
-        lastname: true,
-        username: true,
-        mobile: true,
-        allergies: true,
-        sex: true,
-        imageConsent: true,
-        relationshipStatusText: true,
-        relationshipStatus: true,
-    }),
-
-    updateProfile: userSchema.partial().pick({
-        allergies: true,
-        sex: true,
-        imageConsent: true,
-        relationshipStatusText: true,
-        relationshipStatus: true,
-    }).extend({
-        mobile: userSchema.shape.mobile.or(z.literal('').transform(() => null)).optional(),
-    }),
-
-    register: userSchema.pick({
-        mobile: true,
-        allergies: true,
-        password: true,
-        confirmPassword: true,
-        sex: true,
-        imageConsent: true,
-        acceptedTerms: true,
-    }).refine(refinePassword.fcn, refinePassword.message),
-
-    updatePassword: userSchema.pick({
-        password: true,
-        confirmPassword: true,
-    }).refine(refinePassword.fcn, refinePassword.message),
-
-    registerNewEmail: userSchema.pick({
-        email: true,
-    }).extend({
-        currentPassword: z.string().max(50).optional(),
-    }),
-
-    connectStudentCard: userSchema.pick({
-        studentCard: true,
-    }),
-
-    verifyEmail: userSchema.pick({
-        email: true,
-    }),
-
-    updateProfileImage: imageSchemas.uploadImage,
-
-    readPage: readPageInputSchemaObject(
-        z.object({
-            id: z.number()
+    data: {
+        create: userDataFieldSchemas.pick({
+            email: true,
+            firstname: true,
+            lastname: true,
+            username: true,
+            emailVerified: true,
         }),
-        z.object({
-            partOfName: z.string().max(100),
-            groups: z.array(z.object({
-                groupOrder: z.union([z.number(), z.literal('ACTIVE')]),
-                groupId: z.number()
-            })),
-            selectedGroup: z.object({
-                groupOrder: z.union([z.number(), z.literal('ACTIVE')]),
-                groupId: z.number()
-            }).nullable().optional(),
-            sort: z.object({
-                field: z.enum(['name', 'username']),
-                direction: z.enum(['asc', 'desc']),
-            }).optional()
-        })
-    ),
+
+        update: userDataFieldSchemas.partial().pick({
+            firstname: true,
+            lastname: true,
+            username: true,
+            mobile: true,
+            allergies: true,
+            sex: true,
+            imageConsent: true,
+            relationshipStatusText: true,
+            relationshipStatus: true,
+        }),
+
+        updateProfile: userDataFieldSchemas.partial().pick({
+            allergies: true,
+            sex: true,
+            imageConsent: true,
+            relationshipStatusText: true,
+            relationshipStatus: true,
+        }).extend({
+            mobile: userDataFieldSchemas.shape.mobile.or(z.literal('').transform(() => null)).optional(),
+        }),
+
+        register: userDataFieldSchemas.pick({
+            mobile: true,
+            allergies: true,
+            password: true,
+            confirmPassword: true,
+            sex: true,
+            imageConsent: true,
+            acceptedTerms: true,
+        }).refine(refinePassword.fcn, refinePassword.message),
+
+        updatePassword: userDataFieldSchemas.pick({
+            password: true,
+            confirmPassword: true,
+        }).refine(refinePassword.fcn, refinePassword.message),
+
+        registerNewEmail: userDataFieldSchemas.pick({
+            email: true,
+            currentPassword: true,
+        }),
+
+        // Not an operation: the email a verification mail is sent to, validated by sendVerifyEmail.
+        verifyEmail: userDataFieldSchemas.pick({
+            email: true,
+        }),
+
+        updateProfileImage: imageSchemas.data.uploadImage,
+    },
+    params: {
+        read: userLookup.extend({ id: coercedId }),
+        readBasic: paramsFieldSchemas.pick({
+            username: true,
+            id: true,
+        }).partial().extend({ id: coercedId }),
+        readOrNull: userLookup.extend({ id: coercedId }),
+        readProfile: username,
+        readUserWithBalance: userLookup,
+
+        readPage: readPageInputSchemaObject(
+            id,
+            paramsFieldSchemas.pick({
+                partOfName: true,
+                groups: true,
+                selectedGroup: true,
+                sort: true,
+            })
+        ),
+
+        search: paramsFieldSchemas.pick({
+            query: true,
+            limit: true,
+        }),
+
+        // The card number is scanned in, so the operation takes it as a param rather than a lookup string.
+        connectStudentCard: z.object({
+            studentCard: z.coerce.number().int().min(0).optional(),
+        }),
+
+        update: z.union([id, username]),
+        updateProfile: username,
+        updateBioParagraphContent: paramsFieldSchemas.pick({
+            userId: true,
+        }),
+        updatePassword: id,
+        registerNewEmail: id,
+        register: id,
+        destroy: id,
+        updateProfileImage: username,
+    },
 }

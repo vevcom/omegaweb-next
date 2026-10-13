@@ -23,18 +23,29 @@ export const visibilityRequirementsSchema = z.array(
     })
 )
 
-const baseSchema = z.object({
+const dataFieldSchemas = z.object({
     requirements: visibilityRequirementsSchema
 })
 
+const paramsFieldSchemas = z.object({
+    visibilityId: z.number()
+})
+
+const requirements = dataFieldSchemas.pick({
+    requirements: true,
+})
+
+const visibilityId = paramsFieldSchemas.pick({
+    visibilityId: true,
+})
+
 export const visibilitySchemas = {
-    update: baseSchema.pick({
-        requirements: true
-    }),
-    createWithRequirements: baseSchema.pick({
-        requirements: true
-    }),
-    params: z.object({
-        visibilityId: z.number()
-    })
-} as const
+    data: {
+        createWithRequirements: requirements,
+        update: requirements,
+    },
+    params: {
+        destroy: visibilityId,
+        update: visibilityId,
+    },
+}

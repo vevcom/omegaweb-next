@@ -88,7 +88,7 @@ describe('changing the email of a user', () => {
     })
 
     test('lowercases and trims the email', () => {
-        expect(userSchemas.registerNewEmail.parse({ email: '  Ny.Epost@Example.COM ' }).email)
+        expect(userSchemas.data.registerNewEmail.parse({ email: '  Ny.Epost@Example.COM ' }).email)
             .toBe('ny.epost@example.com')
     })
 })

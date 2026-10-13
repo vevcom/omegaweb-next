@@ -12,6 +12,7 @@ import {
     updatePromoImageAction
 } from '@/services/promo/actions'
 import { promoOperations } from '@/services/promo/operations'
+import { promoAuth } from '@/services/promo/auth'
 import { serverPage } from '@/app/serverPage'
 import { configureAction } from '@/services/configureAction'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -20,11 +21,17 @@ import type { PageOperationArgs } from '@/app/serverPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ id: string }>) =>
         promoOperations.read({ params: { promoId: Number(params.id) } }),
+    capabilities: () => ({
+        canUpdatePromoImage: promoAuth.updateImage,
+        canUpdatePromo: promoAuth.update,
+        canDestroyPromo: promoAuth.destroy,
+    }),
     metadata: (promo) => ({ title: `Rediger promo: ${promo.title}` }),
-    render: ({ data: promo }) => (
+    render: ({ data: promo, capabilities }) => (
         <PageWrapper>
             <div className={styles.image}>
                 <Image width={400} image={promo.image} hideCredit hideCopyRight />
+                {capabilities.canUpdatePromoImage.authorized &&
                 <PopUp
                     popUpKey="EditPromoImage"
                     showButtonContent="Endre bilde"
@@ -40,7 +47,9 @@ const { page, generateMetadata } = serverPage({
                         )}
                     />
                 </PopUp>
+                }
             </div>
+            {capabilities.canUpdatePromo.authorized &&
             <Form
                 title="Oppdater promo"
                 submitText="Oppdater promo"
@@ -53,6 +62,8 @@ const { page, generateMetadata } = serverPage({
                 <DateInput defaultValue={promo.startDate} includeTime label="Fra" name="startDate" />
                 <DateInput defaultValue={promo.endDate} includeTime label="Til" name="endDate" />
             </Form>
+            }
+            {capabilities.canDestroyPromo.authorized &&
             <Form
                 title="Slett promo"
                 submitText="Slett promo"
@@ -67,6 +78,7 @@ const { page, generateMetadata } = serverPage({
                     `
                 }}
             />
+            }
         </PageWrapper>
     ),
 })

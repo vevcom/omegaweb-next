@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { applicationPeriodAuth } from './auth'
-import { applicationPeriodParamsSchemas, applicationPeriodSchemas, periodDatesInOrder, periodDatesMessage } from './schemas'
+import { applicationPeriodSchemas, periodDatesInOrder, periodDatesMessage } from './schemas'
 import { committeesParticipatingIncluder } from './constants'
 import { renumberApplicationPriorities } from '@/services/applications/renumberPriorities'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
@@ -15,7 +15,7 @@ export const applicationPeriodOperations = {
 
     read: defineOperation({
         authorizer: () => applicationPeriodAuth.read,
-        paramsSchema: applicationPeriodParamsSchemas.read,
+        paramsSchema: applicationPeriodSchemas.params.read,
         operation: async ({ prisma, params }) => {
             // committee.logoImage is null unless the committee has its own uploaded logo -
             // resolve it to the shared default here so callers never see a null logo.
@@ -43,7 +43,7 @@ export const applicationPeriodOperations = {
 
     create: defineOperation({
         authorizer: () => applicationPeriodAuth.create,
-        dataSchema: applicationPeriodSchemas.create,
+        dataSchema: applicationPeriodSchemas.data.create,
         operation: async ({ prisma, data }) => {
             await prisma.applicationPeriod.create({
                 data: {
@@ -62,8 +62,8 @@ export const applicationPeriodOperations = {
 
     update: defineOperation({
         authorizer: () => applicationPeriodAuth.update,
-        dataSchema: applicationPeriodSchemas.update,
-        paramsSchema: applicationPeriodParamsSchemas.update,
+        dataSchema: applicationPeriodSchemas.data.update,
+        paramsSchema: applicationPeriodSchemas.params.update,
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => prisma.$transaction(async (tx) => {
             const current = await tx.applicationPeriod.findUniqueOrThrow({
@@ -120,7 +120,7 @@ export const applicationPeriodOperations = {
     }),
 
     removeAllApplicationTexts: defineOperation({
-        paramsSchema: applicationPeriodParamsSchemas.removeAllApplicationTexts,
+        paramsSchema: applicationPeriodSchemas.params.removeAllApplicationTexts,
         authorizer: () => applicationPeriodAuth.removeAllApplicationTexts,
         operation: async ({ prisma, params }) => {
             const period = await prisma.applicationPeriod.findUniqueOrThrow({
@@ -145,7 +145,7 @@ export const applicationPeriodOperations = {
 
     destroy: defineOperation({
         authorizer: () => applicationPeriodAuth.destroy,
-        paramsSchema: applicationPeriodParamsSchemas.destroy,
+        paramsSchema: applicationPeriodSchemas.params.destroy,
         operation: async ({ prisma, params }) => {
             await prisma.applicationPeriod.delete({
                 where: { name: params.name }
@@ -155,7 +155,7 @@ export const applicationPeriodOperations = {
 
     readNumberOfApplications: defineOperation({
         authorizer: () => applicationPeriodAuth.readNumberOfApplications,
-        paramsSchema: applicationPeriodParamsSchemas.readNumberOfApplications,
+        paramsSchema: applicationPeriodSchemas.params.readNumberOfApplications,
         operation: async ({ prisma, params }) => {
             const period = await prisma.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },
