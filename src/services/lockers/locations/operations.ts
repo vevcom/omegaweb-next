@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { lockerLocationAuth } from './auth'
-import { lockersSchemas } from '@/services/lockers/schemas'
+import { lockerLocationSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 
 export const lockerLocationOperations = {
@@ -13,7 +13,7 @@ export const lockerLocationOperations = {
      */
     create: defineOperation({
         authorizer: () => lockerLocationAuth.create,
-        dataSchema: lockersSchemas.createLocation,
+        dataSchema: lockerLocationSchemas.data.create,
         operation: async ({ prisma, data }) => prisma.lockerLocation.create({
             data: {
                 building: data.building,

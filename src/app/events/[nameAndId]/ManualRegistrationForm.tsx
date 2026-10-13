@@ -5,11 +5,15 @@ import UserList from '@/components/User/UserList/UserList'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import UserSelectionProvider, { UserSelectionContext } from '@/contexts/UserSelection'
 import TextInput from '@/components/UI/TextInput'
-import { createEventRegistrationAction, createGuestEventRegistrationAction } from '@/services/events/registration/actions'
+import {
+    createEventRegistrationAsAdminAction,
+    createGuestEventRegistrationAction,
+} from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
 import { useContext } from 'react'
 import type { EventRegistrationWithWaitingList } from '@/services/events/registration/types'
 import type { ActionReturn } from '@/services/actionTypes'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 function ManualRegistrationFormInner({
     eventId,
@@ -31,7 +35,7 @@ function ManualRegistrationFormInner({
             }
         }
 
-        return await createEventRegistrationAction(
+        return await createEventRegistrationAsAdminAction(
             {
                 params: {
                     eventId,
@@ -42,7 +46,7 @@ function ManualRegistrationFormInner({
     }
 
     return <Form
-        submitText="Registrer valgt bruker"
+        submitText="Registrer valgt bruker som arrangør"
         title="Registrer bruker manuelt"
         action={action}
     >
@@ -51,19 +55,21 @@ function ManualRegistrationFormInner({
 
 export default function ManualRegistrationForm({
     eventId,
+    capabilities,
 }: {
     eventId: number,
+    capabilities: CapabilitiesJsObject<'canRegisterAsAdmin' | 'canRegisterGuest'>,
 }) {
     return <div className={styles.ManualRegistrationForm}>
-        <Form
+        {capabilities.canRegisterGuest.authorized && <Form
             submitText="Registrer gjest"
             title="Registrer gjest uten bruker"
             action={configureAction(createGuestEventRegistrationAction, { params: { eventId } })}
         >
             <TextInput name="name" label="Navn" />
             <TextInput name="note" label="Notat" />
-        </Form>
-        <UserPagingProvider
+        </Form>}
+        {capabilities.canRegisterAsAdmin.authorized && <UserPagingProvider
             serverRenderedData={[]}
             startPage={{
                 pageSize: 50,
@@ -78,6 +84,6 @@ export default function ManualRegistrationForm({
                 <ManualRegistrationFormInner eventId={eventId} />
                 <UserList />
             </UserSelectionProvider>
-        </UserPagingProvider>
+        </UserPagingProvider>}
     </div>
 }

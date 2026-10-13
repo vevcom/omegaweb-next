@@ -4,16 +4,23 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import UserList from '@/components/User/UserList/UserList'
 import CreateUserForm from '@/components/User/CreateUserForm'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
-import PageTitleSetter from '@/contexts/PageTitleSetter'
+import { userAuth } from '@/services/users/auth'
+import { serverPage } from '@/app/serverPage'
 
-export default async function Users() {
-    return (
+const { page, generateMetadata } = serverPage({
+    operation: async () => ({}),
+    capabilities: () => ({
+        canCreate: userAuth.create,
+    }),
+    metadata: () => ({ title: 'Brukere' }),
+    render: ({ capabilities }) => (
         <PageWrapper fillHeight headerItem={
-            <AddHeaderItemPopUp popUpKey="createUser">
-                <CreateUserForm className={styles.makeUser} />
-            </AddHeaderItemPopUp>
+            capabilities.canCreate.authorized && (
+                <AddHeaderItemPopUp popUpKey="createUser">
+                    <CreateUserForm className={styles.makeUser} />
+                </AddHeaderItemPopUp>
+            )
         }>
-            <PageTitleSetter title={'Brukere'}/>
             <div className={styles.wrapper}>
                 <UserPagingProvider
                     serverRenderedData={[]}
@@ -30,6 +37,8 @@ export default async function Users() {
                 </UserPagingProvider>
             </div>
         </PageWrapper>
+    ),
+})
 
-    )
-}
+export default page
+export { generateMetadata }

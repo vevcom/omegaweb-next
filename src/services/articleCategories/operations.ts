@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { articleCategoryAuth } from './auth'
-import { articleCategoryParamsSchemas, articleCategorySchemas } from './schemas'
+import { articleCategorySchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
@@ -21,7 +21,7 @@ const coverImageSelection = {
 } as const
 
 const visibility = implementDoubleLevelVisibilityOperations({
-    implementationParamsSchema: articleCategoryParamsSchemas.visibility,
+    implementationParamsSchema: articleCategorySchemas.params.visibility,
     authorizers: {
         readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
             articleCategoryAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix }),
@@ -61,7 +61,7 @@ export const articleCategoryOperations = {
 
     create: defineOperation({
         authorizer: () => articleCategoryAuth.create,
-        dataSchema: articleCategorySchemas.create,
+        dataSchema: articleCategorySchemas.data.create,
         opensTransaction: true,
         operation: async ({ prisma, data }) => {
             assertAdminLevelIsSubOfRegularLevel({
@@ -104,7 +104,7 @@ export const articleCategoryOperations = {
 
     destroy: defineOperation({
         authorizer: () => articleCategoryAuth.destroy,
-        paramsSchema: articleCategoryParamsSchemas.destroy,
+        paramsSchema: articleCategorySchemas.params.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
             // The articles cascade with the category, but their cover images would stay behind:
@@ -134,8 +134,8 @@ export const articleCategoryOperations = {
         authorizer: async ({ params, prisma }) => articleCategoryAuth.update.data({
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
         }),
-        paramsSchema: articleCategoryParamsSchemas.update,
-        dataSchema: articleCategorySchemas.update,
+        paramsSchema: articleCategorySchemas.params.update,
+        dataSchema: articleCategorySchemas.data.update,
         operation: ({ prisma, data, params }) =>
             prisma.articleCategory.update({
                 where: {
@@ -152,7 +152,7 @@ export const articleCategoryOperations = {
         authorizer: async ({ params, prisma }) => articleCategoryAuth.addArticleToCategory.data({
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
         }),
-        paramsSchema: articleCategoryParamsSchemas.addArticleToCategory,
+        paramsSchema: articleCategorySchemas.params.addArticleToCategory,
         opensTransaction: true,
         operation: ({ prisma, params }) =>
             prisma.$transaction(async (tx) => {
@@ -185,7 +185,7 @@ export const articleCategoryOperations = {
                 prisma
             })
         }),
-        implementationParamsSchema: articleCategoryParamsSchemas.removeArticleFromCategory,
+        implementationParamsSchema: articleCategorySchemas.params.removeArticleFromCategory,
         ownershipCheck: async ({ prisma, params, implementationParams }) => {
             const article = await prisma.article.findUnique({
                 where: { id: params.articleId },
@@ -203,7 +203,7 @@ export const articleCategoryOperations = {
                 prisma
             })
         }),
-        implementationParamsSchema: articleCategoryParamsSchemas.updateArticle,
+        implementationParamsSchema: articleCategorySchemas.params.updateArticle,
         ownedArticles: ({ implementationParams, prisma }) => prisma.article.findMany({
             where: {
                 articleCategoryId: implementationParams.articleCategoryId
@@ -253,7 +253,7 @@ export const articleCategoryOperations = {
         authorizer: async ({ params, prisma }) => articleCategoryAuth.read.data({
             visibility: await readDoubleLevelMatrixByName(prisma, params.name)
         }),
-        paramsSchema: articleCategoryParamsSchemas.read,
+        paramsSchema: articleCategorySchemas.params.read,
         operation: async ({ prisma, params }) => {
             const category = await prisma.articleCategory.findUnique({
                 where: {
@@ -285,7 +285,7 @@ export const articleCategoryOperations = {
         authorizer: async ({ implementationParams, prisma }) => articleCategoryAuth.readArticleInCategory.data({
             visibility: await readDoubleLevelMatrixByName(prisma, implementationParams.articleCategoryName)
         }),
-        implementationParamsSchema: articleCategoryParamsSchemas.readArticleInCategory,
+        implementationParamsSchema: articleCategorySchemas.params.readArticleInCategory,
         ownershipCheck: async ({ prisma, params, implementationParams }) => {
             const article = await prisma.article.findUnique({
                 where: { id: params.articleId },

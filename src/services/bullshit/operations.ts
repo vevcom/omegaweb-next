@@ -9,7 +9,7 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 export const bullshitOperations = {
     create: defineOperation({
         authorizer: () => bullshitAuth.create,
-        dataSchema: bullshitSchemas.create,
+        dataSchema: bullshitSchemas.data.create,
         operation: async ({ prisma, data, session }) => {
             if (!session.user) {
                 throw new Smorekopp('UNAUTHORIZED', 'Du må være logget inn for å legge ut bullshit.')
@@ -28,7 +28,7 @@ export const bullshitOperations = {
         }
     }),
     readPage: defineOperation({
-        paramsSchema: bullshitSchemas.readPage,
+        paramsSchema: bullshitSchemas.params.readPage,
         authorizer: () => bullshitAuth.readPage,
         operation: async ({ prisma, params }) =>
             prisma.bullshit.findMany({

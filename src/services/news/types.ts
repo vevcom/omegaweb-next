@@ -13,4 +13,4 @@ export type SimpleNewsArticle = NewsArticle & {
     coverImage: ExpandedImage | null
 }
 
-export type NewsCursor = InferPagingCursor<typeof newsSchemas.readOldPage>
+export type NewsCursor = InferPagingCursor<typeof newsSchemas.params.readOldPage>

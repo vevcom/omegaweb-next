@@ -7,7 +7,9 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
  * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`.
  */
 const registerLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
-const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
+// Exported for the operations to tell whether the session administrates an event, which lets it
+// unregister anyone after the registration period.
+export const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
 const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
 
 /**
@@ -24,16 +26,11 @@ const registrationOfUser = ({ userId, doubleLevelMatrix }: {
 
 export const eventRegistrationAuth = {
     /**
-     * Registering takes the regular level of the event, and registering anyone but yourself takes
-     * its admin level on top of that.
+     * Registering yourself takes the regular level of the event. Registering as an administrator -
+     * anyone, outside the registration period, past their dots - takes its admin level.
      */
-    create: (fields: {
-        userId: number,
-        doubleLevelMatrix: DoubleLevelVisibilityMatrix,
-    }) => Require.allOf(
-        registerLevel.data({ visibility: fields.doubleLevelMatrix }),
-        registrationOfUser(fields),
-    ),
+    create: Require.allOf(registerLevel, Require.userId()),
+    createAsAdmin: eventAdminLevel,
     createGuest: eventAdminLevel,
 
     readDotPunishmentOfUser: userIdOrEventAdmin,

@@ -1,15 +1,14 @@
 import '@pn-server-only'
 import { promoAuth } from './auth'
-import { promoSchema } from './schemas'
+import { promoSchemas } from './schemas'
 import { promoImageOperations } from './promoImageCollection'
 import { promoWithImageIncluder } from './constants'
 import { defineOperation } from '@/services/serviceOperation'
-import { z } from 'zod'
 
 export const promoOperations = {
     create: defineOperation({
         authorizer: () => promoAuth.create,
-        dataSchema: promoSchema.create,
+        dataSchema: promoSchemas.data.create,
         opensTransaction: true,
         operation: ({ prisma, data }) =>
             prisma.$transaction(async tx => {
@@ -33,10 +32,8 @@ export const promoOperations = {
     }),
     update: defineOperation({
         authorizer: () => promoAuth.update,
-        paramsSchema: z.object({
-            promoId: z.number()
-        }),
-        dataSchema: promoSchema.update,
+        paramsSchema: promoSchemas.params.update,
+        dataSchema: promoSchemas.data.update,
         operation: ({ prisma, params, data }) =>
             prisma.promo.update({
                 where: {
@@ -53,10 +50,8 @@ export const promoOperations = {
     }),
     updateImage: defineOperation({
         authorizer: () => promoAuth.updateImage,
-        paramsSchema: z.object({
-            promoId: z.number()
-        }),
-        dataSchema: promoSchema.updateImage,
+        paramsSchema: promoSchemas.params.updateImage,
+        dataSchema: promoSchemas.data.updateImage,
         opensTransaction: true,
         operation: async ({ prisma, params, data }) => {
             const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
@@ -87,9 +82,7 @@ export const promoOperations = {
     }),
     read: defineOperation({
         authorizer: () => promoAuth.read,
-        paramsSchema: z.object({
-            promoId: z.number(),
-        }),
+        paramsSchema: promoSchemas.params.read,
         operation: async ({ prisma, params: { promoId } }) =>
             await prisma.promo.findUniqueOrThrow({
                 where: {
@@ -124,9 +117,7 @@ export const promoOperations = {
     }),
     destroy: defineOperation({
         authorizer: () => promoAuth.destroy,
-        paramsSchema: z.object({
-            promoId: z.number(),
-        }),
+        paramsSchema: promoSchemas.params.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params: { promoId } }) => {
             const { cleanup } = await prisma.$transaction(async tx => {

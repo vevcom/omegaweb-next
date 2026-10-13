@@ -7,7 +7,7 @@ import type { Image, ImageCollection, ProcessedImageFiles } from '@/prisma-gener
  * The action type for uploading/updating an image.
  */
 export type UploadSpecialCollectionImageAction = ActionFromSubServiceOperation<
-    SubServiceOperation<unknown, false, undefined, typeof imageSchemas.uploadImage>
+    SubServiceOperation<unknown, false, undefined, typeof imageSchemas.data.uploadImage>
 >
 
 /**

@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { articleSectionSchemas } from './schemas'
-import { articleSectionsRelationsIncluder } from './constants'
+import { articleSectionParts, articleSectionsRelationsIncluder } from './constants'
+import { createArticleSectionPart } from './createPart'
 import { ServiceError } from '@/services/error'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
@@ -8,9 +9,22 @@ import { cmsLinkOperations } from '@/cms/links/operations'
 import {
     defineSubOperation,
 } from '@/services/serviceOperation'
+import type { ArticleSectionPart } from './types'
+import type { z } from 'zod'
+
+/** An article section is addressed by id or by name. */
+const articleSectionWhere = (params: z.infer<typeof articleSectionSchemas.params.addPart>) => (
+    params.articleSectionId !== undefined ? { id: params.articleSectionId } : { name: params.articleSectionName }
+)
+
+const destroyPart = {
+    cmsImage: (id: number) => cmsImageOperations.destroy.internalCall({ params: { cmsImageId: id } }),
+    cmsParagraph: (id: number) => cmsParagraphOperations.destroy.internalCall({ params: { paragraphId: id } }),
+    cmsLink: (id: number) => cmsLinkOperations.destroy.internalCall({ params: { linkId: id } }),
+} as const satisfies Record<ArticleSectionPart, (id: number) => Promise<void>>
 
 const create = defineSubOperation({
-    dataSchema: () => articleSectionSchemas.create,
+    dataSchema: () => articleSectionSchemas.data.create,
     operation: () => ({ prisma, data }) =>
         prisma.articleSection.create({
             data,
@@ -19,10 +33,10 @@ const create = defineSubOperation({
 })
 
 const destroy = defineSubOperation({
-    paramsSchema: () => articleSectionSchemas.params,
+    paramsSchema: () => articleSectionSchemas.params.destroy,
     operation: () => ({ prisma, params }) =>
         prisma.articleSection.delete({
-            where: params.articleSectionId ? { id: params.articleSectionId } : { name: params.articleSectionName },
+            where: articleSectionWhere(params),
             include: articleSectionsRelationsIncluder
         })
 })
@@ -38,11 +52,11 @@ export const articleSectionOperations = {
      * @param data - The position and size data
      */
     update: defineSubOperation({
-        paramsSchema: () => articleSectionSchemas.params,
-        dataSchema: () => articleSectionSchemas.update,
+        paramsSchema: () => articleSectionSchemas.params.update,
+        dataSchema: () => articleSectionSchemas.data.update,
         operation: () => ({ prisma, params, data }) =>
             prisma.articleSection.update({
-                where: params.articleSectionId ? { id: params.articleSectionId } : { name: params.articleSectionName },
+                where: articleSectionWhere(params),
                 data: {
                     imageSize: data.imageSize,
                     imagePosition: data.position,
@@ -52,22 +66,23 @@ export const articleSectionOperations = {
     }),
 
     /**
-     * This is the function that adds a part to an article section. The part can be a cmsImage, cmsParagraph.
-     * If the part already exists in the article section, it will return an error
-     * If it does not it will create the part and add it to the article section
+     * Adds a part - a cmsImage, cmsParagraph or cmsLink - to an article section, created empty by
+     * its own service in the same transaction. An article section holds at most one of each, so
+     * adding a part it already has is an error.
      * @param params - The name or id of the article section to add the part to
-     * @param part - The part to add to the article section cmsImage, cmsParagraph or cmsLink
+     * @param data - Which part to add
      * @returns - The updated article section
      */
     addPart: defineSubOperation({
-        paramsSchema: () => articleSectionSchemas.params,
-        dataSchema: () => articleSectionSchemas.addPart,
-        operation: () => async ({ prisma, params, data }) => {
-            const where = params.articleSectionId ? { id: params.articleSectionId } : { name: params.articleSectionName }
+        paramsSchema: () => articleSectionSchemas.params.addPart,
+        dataSchema: () => articleSectionSchemas.data.addPart,
+        opensTransaction: true,
+        operation: () => async ({ prisma, params, data }) => prisma.$transaction(async (tx) => {
+            const where = articleSectionWhere(params)
 
-            const articleSection = await prisma.articleSection.findUnique({
+            const articleSection = await tx.articleSection.findUnique({
                 where,
-                include: { [data.part]: true }
+                select: { [data.part]: { select: { id: true } } },
             })
             if (!articleSection) {
                 throw new ServiceError('NOT FOUND', 'ArticleSection not found')
@@ -76,124 +91,51 @@ export const articleSectionOperations = {
                 throw new ServiceError('BAD PARAMETERS', `ArticleSection already has ${data.part}`)
             }
 
-            switch (data.part) {
-                case 'cmsImage':
-                {
-                    const cmsImage = await cmsImageOperations.create.internalCall({
-                        data: {},
-                        operationImplementationFields: { special: null }
-                    })
-                    return await prisma.articleSection.update({
-                        where,
-                        data: { cmsImage: { connect: { id: cmsImage.id } } },
-                        include: articleSectionsRelationsIncluder
-                    })
-                }
-                case 'cmsParagraph':
-                {
-                    const cmsParagraph = await cmsParagraphOperations.create.internalCall({
-                        data: {},
-                        operationImplementationFields: { special: null }
-                    })
-                    return await prisma.articleSection.update({
-                        where,
-                        data: { cmsParagraph: { connect: { id: cmsParagraph.id } } },
-                        include: articleSectionsRelationsIncluder
-                    })
-                }
-                case 'cmsLink':
-                {
-                    const cmsLink = await cmsLinkOperations.create.internalCall({
-                        data: { text: 'lenke', url: './' },
-                        operationImplementationFields: { special: null }
-                    })
-                    return await prisma.articleSection.update({
-                        where,
-                        data: { cmsLink: { connect: { id: cmsLink.id } } },
-                        include: articleSectionsRelationsIncluder
-                    })
-                }
-                default:
-                    break
-            }
-            throw new ServiceError('BAD PARAMETERS', 'Invalid part')
-        }
+            return tx.articleSection.update({
+                where,
+                data: await createArticleSectionPart[data.part](tx),
+                include: articleSectionsRelationsIncluder,
+            })
+        }),
     }),
 
     /**
-     * This is a function that removes a part from an article section. The part can be a cmsImage, cmsParagraph.
-     * It does so by deleting the associated part from the database, in tern setting the part to null in the article section
-     * If the attribute destroyOnEmpty is true, it will also remove the article section if all parts are removed
+     * Removes a part - a cmsImage, cmsParagraph or cmsLink - from an article section by deleting
+     * it, which sets the part to null on the section. With destroyOnEmpty, the section itself is
+     * removed once its last part goes: an article wants its empty sections gone, while a service
+     * that uses one article section keeps it however empty.
      * @param params - The name or id of the article section to remove the part from
-     * @param part - The part to remove from the article section cmsImage, cmsParagraph or cmsLink
-     * @param operationImplementationFields - destroyOnEmpty - this is an imporant atribute as when articles use a
-     * articleSection it wishes to remove the article section if all parts are removed, but if a service only uses
-     * one articleSection you do not want to delete it even if it has no content.
+     * @param data - Which part to remove
      * @returns - The updated article section
      */
     removePart: defineSubOperation({
-        paramsSchema: () => articleSectionSchemas.params,
-        dataSchema: () => articleSectionSchemas.removePart,
+        paramsSchema: () => articleSectionSchemas.params.removePart,
+        dataSchema: () => articleSectionSchemas.data.removePart,
         operation: ({ destroyOnEmpty }: { destroyOnEmpty: boolean }) => async ({ prisma, params, data }) => {
-            const where = params.articleSectionId ? { id: params.articleSectionId } : { name: params.articleSectionName }
+            const where = articleSectionWhere(params)
             const articleSection = await prisma.articleSection.findUnique({
                 where,
-                include: { cmsLink: true, cmsParagraph: true, cmsImage: true }
+                select: { id: true, cmsLink: true, cmsParagraph: true, cmsImage: true },
             })
             if (!articleSection) {
                 throw new ServiceError('NOT FOUND', 'ArticleSection not found')
             }
-            if (!articleSection[data.part]) {
+            const part = articleSection[data.part]
+            if (!part) {
                 throw new ServiceError('BAD PARAMETERS', `ArticleSection does not have ${data.part}`)
             }
 
-            switch (data.part) {
-                case 'cmsLink':
-                    if (articleSection.cmsLink) {
-                        await cmsLinkOperations.destroy.internalCall({
-                            params: { linkId: articleSection.cmsLink.id },
-                        })
-                    }
-                    break
-                case 'cmsParagraph':
-                    if (articleSection.cmsParagraph) {
-                        await cmsParagraphOperations.destroy.internalCall({
-                            params: { paragraphId: articleSection.cmsParagraph.id },
-                        })
-                    }
-                    break
-                case 'cmsImage':
-                    if (articleSection.cmsImage) {
-                        await cmsImageOperations.destroy.internalCall({
-                            params: { cmsImageId: articleSection.cmsImage.id },
-                        })
-                    }
-                    break
-                default:
-                    break
+            await destroyPart[data.part](part.id)
+
+            const isEmptyNow = articleSectionParts.every(kind => kind === data.part || !articleSection[kind])
+            if (destroyOnEmpty && isEmptyNow) {
+                return destroy.internalCall({ params: { articleSectionId: articleSection.id } })
             }
 
-            // check if all Parts are removed and if so, remove the articleSection,
-            // but only if destroyOnEmpty is true
-            const afterDelete = await prisma.articleSection.findUnique({
+            return prisma.articleSection.findUniqueOrThrow({
                 where,
-                include: { cmsParagraph: true, cmsImage: true, cmsLink: true }
+                include: articleSectionsRelationsIncluder,
             })
-            if (!afterDelete) {
-                throw new ServiceError('UNKNOWN ERROR', 'Noe uventet skjedde etter sletting av del av artclesection')
-            }
-            if (
-                destroyOnEmpty &&
-                !afterDelete.cmsImage &&
-                !afterDelete.cmsParagraph &&
-                !afterDelete.cmsLink
-            ) {
-                return await destroy.internalCall({
-                    params: { articleSectionId: articleSection.id },
-                })
-            }
-
-            return afterDelete
         }
     })
 } as const

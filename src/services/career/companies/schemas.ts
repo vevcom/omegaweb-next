@@ -2,15 +2,15 @@ import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-const baseSchema = z.object({
-    name: z.string().min(
-        2, 'Navnet må være minst 3 tegn langt'
+const dataFieldSchemas = z.object({
+    name: z.string().trim().min(
+        2, 'Navnet må være minst 2 tegn langt'
     ).max(
         100, 'Navnet kan maks være 100 tegn langt'
-    ).trim(),
-    description: z.string().max(
+    ),
+    description: z.string().trim().max(
         200, 'Beskrivelsen kan maks være 200 tegn langt'
-    ).trim(),
+    ),
     website: z.union([
         z.literal('').transform(() => null),
         z.string().trim()
@@ -25,25 +25,43 @@ const baseSchema = z.object({
     }),
 })
 
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    companyId: z.number(),
+    name: z.string().max(100).optional(),
+})
+
+const id = paramsFieldSchemas.pick({
+    id: true,
+})
+
 export const companySchemas = {
-    create: baseSchema.pick({
-        name: true,
-        description: true,
-    }),
-    update: baseSchema.partial().pick({
-        name: true,
-        description: true,
-        website: true,
-    }),
-    updateSponsorTier: baseSchema.pick({
-        sponsorTier: true,
-    }),
-    readPage: readPageInputSchemaObject(
-        z.object({
-            id: z.number(),
+    data: {
+        create: dataFieldSchemas.pick({
+            name: true,
+            description: true,
         }),
-        z.object({
-            name: z.string().max(100).optional(),
+        update: dataFieldSchemas.partial().pick({
+            name: true,
+            description: true,
+            website: true,
         }),
-    ),
+        updateSponsorTier: dataFieldSchemas.pick({
+            sponsorTier: true,
+        }),
+    },
+    params: {
+        readPage: readPageInputSchemaObject(
+            id,
+            paramsFieldSchemas.pick({
+                name: true,
+            }),
+        ),
+        update: id,
+        updateSponsorTier: id,
+        updateCmsImageLogo: paramsFieldSchemas.pick({
+            companyId: true,
+        }),
+        destroy: id,
+    },
 }

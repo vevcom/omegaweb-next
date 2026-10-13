@@ -3,6 +3,8 @@ import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOve
 import LedgerAccountPaymentMethods from '@/components/Ledger/Accounts/LedgerAccountPaymentMethodsCard'
 import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
+import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/serverPage'
 import type { PageOperationArgs } from '@/app/serverPage'
@@ -15,13 +17,16 @@ const { page, generateMetadata } = serverPage({
         const ledgerAccount = await ledgerAccountOperations.read({ params: { userId: user.id } })
         return { ledgerAccount, userId: user.id }
     },
-    render: ({ data }) => (
+    capabilities: (data) => ({
+        canDeposit: ledgerMovementAuth.createDeposit,
+        canPayout: ledgerMovementAuth.createPayout.data({ accounts: [data.ledgerAccount.ownership] }),
+        canFreeze: ledgerAccountAuth.update({ accounts: [data.ledgerAccount.ownership], changesGroupLinks: false }),
+    }),
+    render: ({ data, capabilities }) => (
         <div className={styles.wrapper}>
             <LedgerAccountOverview
                 ledgerAccount={data.ledgerAccount}
-                showPayoutButton
-                showDepositButton
-                showDeactivateButton
+                capabilities={capabilities}
                 showFees
             />
             <LedgerAccountPaymentMethods userId={data.userId} />

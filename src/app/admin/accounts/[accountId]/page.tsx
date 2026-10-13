@@ -7,6 +7,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOverviewCard'
 import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
+import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
+import { paymentAuth } from '@/services/ledger/payments/auth'
+import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/serverPage'
 import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/serverPage'
@@ -21,9 +25,17 @@ const { page, generateMetadata } = serverPage({
 
         return ledgerAccountOperations.read({ params: { ledgerAccountId: accountId } })
     },
-    render: ({ data: ledgerAccount }) => (
+    capabilities: (ledgerAccount) => ({
+        canUpdate: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesGroupLinks: false }),
+        canChangeGroups: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesGroupLinks: true }),
+        // Only MANUAL deposits are offered here, and those take the payment rule on top.
+        canDeposit: Require.allOf(ledgerMovementAuth.createDeposit, paymentAuth.create({ provider: 'MANUAL' })),
+        canPayout: ledgerMovementAuth.createPayout.data({ accounts: [ledgerAccount.ownership] }),
+        canFreeze: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesGroupLinks: false }),
+    }),
+    render: ({ data: ledgerAccount, capabilities }) => (
         <div className={styles.wrapper}>
-            {ledgerAccount.type === 'GROUP' && (
+            {ledgerAccount.type === 'GROUP' && capabilities.canUpdate.authorized && (
                 <PopUp
                     popUpKey="editLedgerAccountDetails"
                     showButtonClass={styles.editButton}
@@ -33,14 +45,16 @@ const { page, generateMetadata } = serverPage({
                 </PopUp>
             )}
             {ledgerAccount.type === 'GROUP' && (
-                <LedgerAccountGroupsCard ledgerAccountId={ledgerAccount.id} groupIds={ledgerAccount.groupIds} />
+                <LedgerAccountGroupsCard
+                    ledgerAccountId={ledgerAccount.id}
+                    groupIds={ledgerAccount.groupIds}
+                    capabilities={{ canChangeGroups: capabilities.canChangeGroups }}
+                />
             )}
             <LedgerAccountOverview
                 ledgerAccount={ledgerAccount}
-                showDepositButton
                 depositPaymentMethods={['MANUAL']}
-                showPayoutButton
-                showDeactivateButton
+                capabilities={capabilities}
                 showFees
             />
             {/* Add link to products overview */}

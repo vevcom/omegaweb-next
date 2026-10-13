@@ -31,7 +31,7 @@ export function buildWeeklyDigestText(user: UserBasicWithEmail, notifications: W
  * @returns Whether the digest was sent.
  */
 export async function sendWeeklyEmailDigest(user: UserBasicWithEmail, notifications: WeeklyDigestNotification[]) {
-    const parsed = sendMailSchemas.sendMail.safeParse({
+    const parsed = sendMailSchemas.data.sendMail.safeParse({
         from: DEFAULT_NOTIFICATION_ALIAS,
         to: user.email,
         subject: weeklyDigest.subject,

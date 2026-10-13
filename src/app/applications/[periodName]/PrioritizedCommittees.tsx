@@ -1,6 +1,8 @@
 'use client'
 import styles from './page.module.scss'
 import { updateApplicationAction } from '@/services/applications/actions'
+import { applicationAuth } from '@/services/applications/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons'
@@ -17,10 +19,11 @@ export type PrioritizedCommittee = {
 type ItemPropTypes = {
     item: PrioritizedCommittee,
     priority: number,
+    canReorder: boolean,
     onDragEnd: (committeeParticipationId: number) => void,
 }
 
-function PrioritizedCommittee({ item, priority, onDragEnd }: ItemPropTypes) {
+function PrioritizedCommittee({ item, priority, canReorder, onDragEnd }: ItemPropTypes) {
     const dragControls = useDragControls()
 
     const startDrag = (event: PointerEvent) => dragControls.start(event)
@@ -39,9 +42,11 @@ function PrioritizedCommittee({ item, priority, onDragEnd }: ItemPropTypes) {
                 {/* The priority comes from the position in the list rather than from the server
                     so that the numbers follow along while the card is being dragged. */}
                 <span className={styles.priority}>{priority}</span>
-                <span className={styles.dragHandle} onPointerDown={startDrag}>
-                    <FontAwesomeIcon icon={faGripVertical} />
-                </span>
+                {canReorder && (
+                    <span className={styles.dragHandle} onPointerDown={startDrag}>
+                        <FontAwesomeIcon icon={faGripVertical} />
+                    </span>
+                )}
             </div>
             <div className={styles.committeeCardBody}>
                 {item.card}
@@ -65,6 +70,7 @@ export default function PrioritizedCommittees({ items, userId }: PropTypes) {
     const [order, setOrder] = useState(items)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
+    const canReorder = useAuthorizer({ authorizer: applicationAuth.update.data({ userId }) }).authorized
 
     useEffect(() => {
         setOrder(items)
@@ -120,6 +126,7 @@ export default function PrioritizedCommittees({ items, userId }: PropTypes) {
                         key={item.committeeParticipationId}
                         item={item}
                         priority={index + 1}
+                        canReorder={canReorder}
                         onDragEnd={commitOrder}
                     />
                 ))}

@@ -1,3 +1,4 @@
+import type { LedgerAccountOwnership } from './ownership'
 import type { LedgerAccount } from '@/prisma-generated-pn-types'
 
 // NOTE: `amount` and `fees` are stored as integers representing
@@ -10,6 +11,8 @@ export type Balance = {
 
 export type ExpandedLedgerAccount = LedgerAccount & {
     groupIds: number[],
+    /** Who owns the account, for the pages to run the ownership rules of what they offer on it. */
+    ownership: LedgerAccountOwnership,
 }
 
 // TODO: Should this also be partial? It cannot possibly contain all number IDs.

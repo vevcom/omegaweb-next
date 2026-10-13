@@ -2,6 +2,8 @@
 
 import Checkbox from '@/components/UI/Checkbox'
 import { updateGroupPermissionAction } from '@/services/permissions/actions'
+import { permissionsAuth } from '@/services/permissions/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { useState } from 'react'
 import type { Permission } from '@/prisma-generated-pn-types'
 
@@ -17,6 +19,7 @@ export default function PermissionCheckbox({
 }) {
     const [hasPermission, setHasPermission] = useState(value)
     const [working, setWorking] = useState<boolean>(false)
+    const canUpdateGroupPermission = useAuthorizer({ authorizer: permissionsAuth.updateGroupPermission }).authorized
 
     async function onClick() {
         setWorking(true)
@@ -45,6 +48,7 @@ export default function PermissionCheckbox({
         </> : <Checkbox
             name="abcd"
             checked={hasPermission}
+            disabled={!canUpdateGroupPermission}
             onClick={onClick}
         />}
     </>

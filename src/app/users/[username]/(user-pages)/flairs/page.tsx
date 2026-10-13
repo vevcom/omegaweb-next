@@ -4,6 +4,7 @@ import {
     unAssignFlairToUserAction
 } from '@/services/flairs/actions'
 import { flairOperations } from '@/services/flairs/operations'
+import { flairAuth } from '@/services/flairs/auth'
 import Form from '@/components/Form/Form'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { serverPage } from '@/app/serverPage'
@@ -27,7 +28,11 @@ const { page, generateMetadata } = serverPage({
 
         return { profile, flairs }
     },
-    render: ({ data }) => (
+    capabilities: () => ({
+        canAssign: flairAuth.assignToUser,
+        canUnAssign: flairAuth.unAssignToUser,
+    }),
+    render: ({ data, capabilities }) => (
         <div className={styles.wrapper}>
             <div className={styles.flairContainer}>
                 <p>
@@ -55,28 +60,33 @@ const { page, generateMetadata } = serverPage({
                                 }}>
                                 </td>
                                 <td>
-                                    <Form
-                                        submitText={flair.assignedToUser ? 'Fjern' : 'Tildel'}
-                                        refreshOnSuccess
-                                        submitColor={flair.assignedToUser ? 'red' : 'green'}
-                                        action={
-                                            flair.assignedToUser
-                                                ? configureAction(
-                                                    unAssignFlairToUserAction,
-                                                    { params: {
-                                                        userId: data.profile.user.id,
-                                                        flairId: flair.id,
-                                                    } }
-                                                )
-                                                : configureAction(
-                                                    assignFlairToUserAction,
-                                                    { params: {
-                                                        userId: data.profile.user.id,
-                                                        flairId: flair.id,
-                                                    } }
-                                                )
-                                        }
-                                    />
+                                    {(flair.assignedToUser
+                                        ? capabilities.canUnAssign.authorized
+                                        : capabilities.canAssign.authorized
+                                    ) && (
+                                        <Form
+                                            submitText={flair.assignedToUser ? 'Fjern' : 'Tildel'}
+                                            refreshOnSuccess
+                                            submitColor={flair.assignedToUser ? 'red' : 'green'}
+                                            action={
+                                                flair.assignedToUser
+                                                    ? configureAction(
+                                                        unAssignFlairToUserAction,
+                                                        { params: {
+                                                            userId: data.profile.user.id,
+                                                            flairId: flair.id,
+                                                        } }
+                                                    )
+                                                    : configureAction(
+                                                        assignFlairToUserAction,
+                                                        { params: {
+                                                            userId: data.profile.user.id,
+                                                            flairId: flair.id,
+                                                        } }
+                                                    )
+                                            }
+                                        />
+                                    )}
                                 </td>
                             </tr>
                         ))}

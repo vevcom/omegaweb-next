@@ -8,7 +8,7 @@ import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { Prisma, SpecialCmsArticle } from '@/prisma-generated-pn-types'
 import type { articleSchemas } from './schemas'
 
-type ParamsSchema = typeof articleSchemas.params
+type ParamsSchema = typeof articleSchemas.params.update
 type OwnedArticle = Prisma.ArticleGetPayload<{
     include: {
         coverImage: true,

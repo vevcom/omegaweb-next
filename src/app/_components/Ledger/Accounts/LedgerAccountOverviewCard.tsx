@@ -9,17 +9,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faWarning } from '@fortawesome/free-solid-svg-icons'
 import type { LedgerAccount } from '@/prisma-generated-pn-types'
 import type { LedgerTransactionPaymentMethod } from '@/components/Ledger/Modals/LedgerTransactionModal'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 type Props = {
     ledgerAccount: LedgerAccount,
     showFees?: boolean,
-    showDepositButton?: boolean,
-    // Overrides DepositModal's own admin-based default. Used by the admin accounts page, where a
-    // Stripe checkout would incorrectly charge the viewing admin's own card rather than the
-    // viewed account's owner.
+    // Restricts the deposit methods offered. Used by the admin accounts page, where a Stripe
+    // checkout would incorrectly charge the viewing admin's own card rather than the viewed
+    // account's owner.
     depositPaymentMethods?: LedgerTransactionPaymentMethod[],
-    showPayoutButton?: boolean,
-    showDeactivateButton?: boolean,
+    capabilities: Capabilities<'canDeposit' | 'canPayout' | 'canFreeze'>,
 }
 
 const getCustomerSessionClientSecret = async () => {
@@ -40,13 +39,11 @@ const getCustomerSessionClientSecret = async () => {
 export default async function LedgerAccountOverview({
     showFees,
     ledgerAccount,
-    showPayoutButton,
-    showDepositButton,
     depositPaymentMethods,
-    showDeactivateButton,
+    capabilities,
 }: Props) {
     const stripeAvailable = depositPaymentMethods === undefined || depositPaymentMethods.includes('STRIPE')
-    const customerSessionClientSecret = showDepositButton && stripeAvailable
+    const customerSessionClientSecret = capabilities.canDeposit.authorized && stripeAvailable
         ? await getCustomerSessionClientSecret()
         : undefined
 
@@ -61,16 +58,16 @@ export default async function LedgerAccountOverview({
         }
         <div className={styles.ledgerAccountOverviewButtons}>
             {
-                showDepositButton &&
+                capabilities.canDeposit.authorized &&
                 <DepositModal
                     ledgerAccountId={ledgerAccount.id}
                     customerSessionClientSecret={customerSessionClientSecret}
                     availablePaymentMethods={depositPaymentMethods}
                 />
             }
-            { showPayoutButton && <PayoutModal ledgerAccountId={ledgerAccount.id} /> }
+            { capabilities.canPayout.authorized && <PayoutModal ledgerAccountId={ledgerAccount.id} /> }
             {
-                showDeactivateButton &&
+                capabilities.canFreeze.authorized &&
                 <LedgerAccountFreezeButton ledgerAccount={ledgerAccount} className={styles.rightAligned} />
             }
         </div>

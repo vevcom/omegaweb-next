@@ -3,17 +3,15 @@ import { calculateCreditFees, calculateDebitFees } from './calculateFees'
 import { determineTransactionState } from './determineTransactionState'
 import { runPaymentCompletionHook } from './paymentCompletionHooks'
 import { ledgerTransactionAuth } from './auth'
+import { ledgerTransactionSchemas } from './schemas'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { resolveAccountOwnership, resolveAccountsOwnership } from '@/services/ledger/accounts/ownership'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
-import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
-import { LedgerTransactionPurpose } from '@/prisma-generated-pn-types'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
-import { z } from 'zod'
 import type { ExpandedLedgerTransaction } from './types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -51,9 +49,7 @@ export const ledgerTransactionOperations = {
         authorizer: async ({ params, prisma }) => ledgerTransactionAuth.read.data({
             accounts: await resolveTransactionAccounts(prisma, params.id),
         }),
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: ledgerTransactionSchemas.params.read,
         operation: async ({ prisma, params }) => {
             const transaction = await prisma.ledgerTransaction.findUniqueOrThrow({
                 where: {
@@ -100,9 +96,7 @@ export const ledgerTransactionOperations = {
         authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
             accounts: await resolveTransactionAccounts(prisma, params.id),
         }),
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: ledgerTransactionSchemas.params.cancel,
         operation: async ({ prisma, params }) => {
             const transaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
                 params: { id: params.id },
@@ -149,14 +143,7 @@ export const ledgerTransactionOperations = {
         authorizer: async ({ params, prisma }) => ledgerTransactionAuth.readPage.data({
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.paging.details.accountId })],
         }),
-        paramsSchema: readPageInputSchemaObject(
-            z.object({
-                id: z.number(),
-            }),
-            z.object({
-                accountId: z.number(),
-            }),
-        ),
+        paramsSchema: ledgerTransactionSchemas.params.readPage,
         operation: async ({ prisma, params }) => await prisma.ledgerTransaction.findMany({
             where: {
                 ledgerEntries: {
@@ -204,9 +191,7 @@ export const ledgerTransactionOperations = {
      */
     advance: defineOperation({
         authorizer: () => ledgerTransactionAuth.advance,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: ledgerTransactionSchemas.params.advance,
         operation: async ({ prisma, params }) => {
             // advance recomputes the whole transaction, which can span two unrelated parties
             // (e.g. a purchase debits the buyer and credits a shop group). Every call below is
@@ -336,21 +321,7 @@ export const ledgerTransactionOperations = {
                 debitAccounts: await resolveAccountsOwnership(prisma, { ledgerAccountIds: debitLedgerAccountIds }),
             })
         },
-        paramsSchema: z.object({
-            purpose: z.nativeEnum(LedgerTransactionPurpose),
-            ledgerEntries: z.object({
-                funds: z.number(),
-                fees: z.number().optional(),
-                ledgerAccountId: z.number(),
-            }).array(),
-            paymentId: z.number().optional(),
-            description: z.string().optional(),
-            // Traceability back to what the transaction paid for. At most one is ever set,
-            // depending on `purpose`.
-            eventRegistrationId: z.number().optional(),
-            bookingId: z.number().optional(),
-            purchaseId: z.number().optional(),
-        }),
+        paramsSchema: ledgerTransactionSchemas.params.create,
         operation: async ({ prisma, params }) => {
             // Calculate the balance for all accounts which are going to be deducted.
             const debitEntries = params.ledgerEntries.filter(entry => entry.funds < 0)

@@ -2,6 +2,7 @@ import styles from './page.module.scss'
 import UpdateApiKeyForm from './UpdateApiKeyForm'
 import { destroyApiKeyAction } from '@/services/apiKeys/actions'
 import { apiKeyOperations } from '@/services/apiKeys/operations'
+import { apiKeyAuth } from '@/services/apiKeys/auth'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import Form from '@/components/Form/Form'
 import DateInput from '@/components/UI/DateInput'
@@ -17,8 +18,12 @@ import type { PageOperationArgs } from '@/app/serverPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ name: string }>) =>
         apiKeyOperations.read({ params: { name: decodeURIComponent(params.name) } }),
+    capabilities: () => ({
+        canUpdateApiKey: apiKeyAuth.update,
+        canDestroyApiKey: apiKeyAuth.destroy,
+    }),
     metadata: () => ({ title: 'API nøkkel' }),
-    render: ({ data: apiKey }) => (
+    render: ({ data: apiKey, capabilities }) => (
         <PageWrapper>
             <div className={styles.wrapper}>
                 <h2>Navn: {apiKey.name}</h2>
@@ -31,6 +36,7 @@ const { page, generateMetadata } = serverPage({
 
                 <div className={styles.admin}>
                     <h2>Endre på nøkkel</h2>
+                    {capabilities.canUpdateApiKey.authorized &&
                     <UpdateApiKeyForm id={apiKey.id}>
                         <TextInput name="name" label="Navn" defaultValue={apiKey.name} />
                         <Slider label="Aktiv" name="active" defaultChecked={apiKey.active} />
@@ -49,6 +55,8 @@ const { page, generateMetadata } = serverPage({
                         )}
                         />
                     </UpdateApiKeyForm>
+                    }
+                    {capabilities.canDestroyApiKey.authorized &&
                     <Form
                         submitText="Slett nøkkel"
                         action={configureAction(destroyApiKeyAction, { params: { id: apiKey.id } })}
@@ -60,6 +68,7 @@ const { page, generateMetadata } = serverPage({
                         submitColor="red"
                         navigateOnSuccess="/admin/api-keys"
                     />
+                    }
                 </div>
             </div>
         </PageWrapper>

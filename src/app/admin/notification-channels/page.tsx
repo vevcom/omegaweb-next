@@ -3,6 +3,7 @@ import AddNotificationChannel from './addNotificationChannel'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
+import { notificationChannelAuth } from '@/services/notifications/channel/auth'
 import { serverPage } from '@/app/serverPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
@@ -49,13 +50,16 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('notification-channels', session)
         return notificationChannelOperations.readMany({})
     },
+    capabilities: () => ({
+        canCreateChannel: notificationChannelAuth.create,
+    }),
     metadata: () => ({ title: 'Varslingskanaler' }),
-    render: ({ data: channels }) => {
+    render: ({ data: channels, capabilities }) => {
         const rows = orderByHierarchy(channels)
 
         return (
             <PageWrapper
-                headerItem={
+                headerItem={capabilities.canCreateChannel.authorized &&
                     <AddHeaderItemPopUp popUpKey="CreateNotificationChannel">
                         <AddNotificationChannel channels={channels}/>
                     </AddHeaderItemPopUp>

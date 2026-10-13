@@ -1,6 +1,7 @@
 import { UpdateCabinProductForm } from './UpdateCabinProductForm'
 import { AddHeaderItemPopUp } from '@/app/_components/HeaderItems/HeaderItemPopUp'
 import { cabinProductOperations } from '@/services/cabin/product/operations'
+import { cabinProductAuth } from '@/services/cabin/product/auth'
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { serverPage } from '@/app/serverPage'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
@@ -12,12 +13,17 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('cabin-product', session)
         return cabinProductOperations.readMany({})
     },
+    capabilities: () => ({
+        canCreate: cabinProductAuth.create,
+    }),
     metadata: () => ({ title: 'Heutte produkter' }),
-    render: ({ data: products }) => (
+    render: ({ data: products, capabilities }) => (
         <PageWrapper
-            headerItem={<AddHeaderItemPopUp popUpKey="UpdateCabinProductForm">
-                <UpdateCabinProductForm />
-            </AddHeaderItemPopUp>}
+            headerItem={capabilities.canCreate.authorized &&
+                <AddHeaderItemPopUp popUpKey="UpdateCabinProductForm">
+                    <UpdateCabinProductForm />
+                </AddHeaderItemPopUp>
+            }
         >
             <SimpleTable
                 header={[

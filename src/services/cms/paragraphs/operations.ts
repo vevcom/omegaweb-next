@@ -2,22 +2,19 @@ import '@pn-server-only'
 import { cmsParagraphSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import { SpecialCmsParagraph } from '@/prisma-generated-pn-types'
 import logger from '@/lib/logger'
 import { markdownToSafeHtml } from '@/lib/html/safeHtml'
-import { z } from 'zod'
+import type { SpecialCmsParagraph } from '@/prisma-generated-pn-types'
 
 const create = defineSubOperation({
-    dataSchema: () => cmsParagraphSchemas.create,
+    dataSchema: () => cmsParagraphSchemas.data.create,
     operation: (
         { special }: { special: SpecialCmsParagraph | null }
     ) => async ({ data, prisma }) => await prisma.cmsParagraph.create({ data: { ...data, special } })
 })
 
 const generateSpecialCmsParagraphFromConfig = defineSubOperation({
-    paramsSchema: () => z.object({
-        special: z.nativeEnum(SpecialCmsParagraph)
-    }),
+    paramsSchema: () => cmsParagraphSchemas.params.generateSpecialCmsParagraphFromConfig,
     operation: () => async ({ params }) => create.internalCall({
         data: {},
         operationImplementationFields: { special: params.special }
@@ -29,7 +26,7 @@ export const cmsParagraphOperations = {
     generateSpecialCmsParagraphFromConfig,
 
     destroy: defineSubOperation({
-        paramsSchema: () => z.object({ paragraphId: z.number() }),
+        paramsSchema: () => cmsParagraphSchemas.params.destroy,
         operation: () => async ({ params, prisma }) => {
             const paragraph = await prisma.cmsParagraph.findUniqueOrThrow({ where: { id: params.paragraphId } })
             if (paragraph.special) {
@@ -40,9 +37,7 @@ export const cmsParagraphOperations = {
     }),
 
     readSpecial: defineSubOperation({
-        paramsSchema: () => z.object({
-            special: z.nativeEnum(SpecialCmsParagraph)
-        }),
+        paramsSchema: () => cmsParagraphSchemas.params.readSpecial,
         operation: () => async ({ params, prisma }) => {
             const paragraph = await prisma.cmsParagraph.findUnique({ where: { special: params.special } })
             if (paragraph) return paragraph
@@ -52,10 +47,8 @@ export const cmsParagraphOperations = {
     }),
 
     update: defineSubOperation({
-        paramsSchema: () => z.object({
-            paragraphId: z.number(),
-        }),
-        dataSchema: () => cmsParagraphSchemas.update,
+        paramsSchema: () => cmsParagraphSchemas.params.update,
+        dataSchema: () => cmsParagraphSchemas.data.update,
         operation: () => async ({ params, prisma, data }) => {
             const paragraph = await prisma.cmsParagraph.findUniqueOrThrow({ where: { id: params.paragraphId } })
             if (paragraph.special) {
@@ -66,10 +59,8 @@ export const cmsParagraphOperations = {
     }),
 
     updateContent: defineSubOperation({
-        paramsSchema: () => z.object({
-            paragraphId: z.number(),
-        }),
-        dataSchema: () => cmsParagraphSchemas.updateContent,
+        paramsSchema: () => cmsParagraphSchemas.params.updateContent,
+        dataSchema: () => cmsParagraphSchemas.data.updateContent,
         operation: () => async ({ params, prisma, data }) => {
             try {
                 const contentHtml = (await markdownToSafeHtml(data.markdown))
@@ -95,10 +86,7 @@ export const cmsParagraphOperations = {
      * This is useful to do ownership checks for services using special paragraphs.
      */
     isSpecial: defineSubOperation({
-        paramsSchema: () => z.object({
-            paragraphId: z.number(),
-            special: z.array(z.nativeEnum(SpecialCmsParagraph))
-        }),
+        paramsSchema: () => cmsParagraphSchemas.params.isSpecial,
         operation: () => async ({ params, prisma }) => {
             const paragraph = await prisma.cmsParagraph.findUnique({
                 where: {

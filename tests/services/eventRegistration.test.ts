@@ -97,6 +97,12 @@ const register = (user: UserFiltered, eventId: number, session = sessionOf(user)
         session,
     })
 
+const registerAsAdmin = (user: UserFiltered, eventId: number, session: ReturnType<typeof sessionOf>) =>
+    eventRegistrationOperations.createAsAdmin({
+        params: { userId: user.id, eventId },
+        session,
+    })
+
 const unregister = (registrationId: number, session: ReturnType<typeof sessionOf>) =>
     eventRegistrationOperations.destroy({
         params: { registrationId },
@@ -214,9 +220,23 @@ describe('registering for an event', () => {
         const user = await createTestUser('registerbyorganiser')
         const organiser = await createTestUser('registerorganiser')
 
-        await register(user, eventId, organiserSessionOf(organiser))
+        // Only as an administrator: the ordinary registration holds organisers to the period too.
+        await expect(register(user, eventId, organiserSessionOf(organiser)))
+            .rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+        await expect(register(organiser, eventId, organiserSessionOf(organiser)))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        await registerAsAdmin(user, eventId, organiserSessionOf(organiser))
 
         expect(await countRegistrations(eventId, user)).toBe(1)
+    })
+
+    test('registering as an administrator takes the admin level of the event', async () => {
+        const eventId = await createEvent({ places: 5, waitingList: true })
+        const user = await createTestUser('registerasadminuser')
+        const member = await createTestUser('registerasadminmember')
+
+        await expect(registerAsAdmin(user, eventId, sessionOf(member))).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+        expect(await countRegistrations(eventId, user)).toBe(0)
     })
 })
 

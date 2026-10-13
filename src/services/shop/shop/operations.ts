@@ -2,12 +2,11 @@ import '@pn-server-only'
 import { shopSchemas } from './schemas'
 import { shopAuth } from './auth'
 import { defineOperation } from '@/services/serviceOperation'
-import { z } from 'zod'
 import type { ExtendedShop } from './types'
 
 export const shopOperations = {
     create: defineOperation({
-        dataSchema: shopSchemas.create,
+        dataSchema: shopSchemas.data.create,
         authorizer: () => shopAuth.create,
         operation: async ({ prisma, data }) => prisma.shop.create({
             data
@@ -21,9 +20,7 @@ export const shopOperations = {
 
     read: defineOperation({
         authorizer: () => shopAuth.read,
-        paramsSchema: z.object({
-            shopId: z.number(),
-        }),
+        paramsSchema: shopSchemas.params.read,
         operation: async ({ prisma, params }): Promise<ExtendedShop | null> => {
             const results = await prisma.shop.findFirst({
                 where: {
