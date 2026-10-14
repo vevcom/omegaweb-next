@@ -1,3 +1,4 @@
+import { SpecialCmsLink } from '@/prisma-generated-pn-types'
 import { isSafeLink, safeLinkMessage } from '@/lib/fields/safeLink'
 import { z } from 'zod'
 
@@ -9,10 +10,15 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     linkId: z.number(),
+    special: z.nativeEnum(SpecialCmsLink),
 })
 
 const linkId = paramsFieldSchemas.pick({
     linkId: true,
+})
+
+const special = paramsFieldSchemas.pick({
+    special: true,
 })
 
 export const cmsLinkSchemas = {
@@ -28,7 +34,14 @@ export const cmsLinkSchemas = {
         }).partial(),
     },
     params: {
+        generateSpecialCmsLinkFromConfig: special,
         destroy: linkId,
         update: linkId,
+        readSpecial: special,
+        // Takes every special the owning service holds, not one: a link is special if it is any of them.
+        isSpecial: z.object({
+            linkId: paramsFieldSchemas.shape.linkId,
+            special: paramsFieldSchemas.shape.special.array(),
+        }),
     },
 }

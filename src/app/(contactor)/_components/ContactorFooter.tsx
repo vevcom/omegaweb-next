@@ -1,11 +1,18 @@
 import styles from './ContactorFooter.module.scss'
 import ContactorWordmark from './ContactorWordmark'
-import { CONTACTOR_EMAIL, CONTACTOR_SOCIALS } from './contactorSite'
+import { CONTACTOR_SOCIALS } from './contactorSite'
+import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
+import { readCareerSpecialCmsLinkAction, updateCareerSpecialCmsLinkAction } from '@/services/career/actions'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFacebookSquare, faInstagram, faLinkedin } from '@fortawesome/free-brands-svg-icons'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 
-export default function ContactorFooter() {
+type PropTypes = {
+    capabilities: Capabilities<'canEditSpecialCmsLink'>,
+}
+
+export default function ContactorFooter({ capabilities }: PropTypes) {
     return (
         <footer className={styles.footer}>
             <div className={styles.inner}>
@@ -29,7 +36,13 @@ export default function ContactorFooter() {
                 </div>
                 <div>
                     <h3>Kontakt</h3>
-                    <p><Link href={`mailto:${CONTACTOR_EMAIL}`}>{CONTACTOR_EMAIL}</Link></p>
+                    <SpecialCmsLink
+                        special="CAREER_CONTACT"
+                        className={styles.contactLink}
+                        capabilities={{ canEdit: capabilities.canEditSpecialCmsLink }}
+                        readSpecialCmsLinkAction={readCareerSpecialCmsLinkAction}
+                        updateCmsLinkAction={updateCareerSpecialCmsLinkAction}
+                    />
                 </div>
                 <div>
                     <h3>Adresse</h3>

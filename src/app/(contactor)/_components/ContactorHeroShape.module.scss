@@ -1,0 +1,56 @@
+@use '@/styles/ohma';
+
+.accent {
+    fill: var(--contactor-accent);
+}
+
+.navy {
+    fill: var(--contactor-navy);
+}
+
+.desktop svg, .mobile svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+// Covers the whole (full-width) hero: the field right of the page column, and the sweep inside it.
+.desktop {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    .fill {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        left: calc(50% + var(--contactor-max-width) / 2 - 1rem);
+        background: var(--contactor-navy);
+    }
+
+    .shape {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: min(100%, var(--contactor-max-width));
+        transform: translateX(-50%);
+    }
+
+    @include ohma.screenMobile {
+        display: none;
+    }
+}
+
+// Sits in the flow above the hero text, bleeding out to the page edges.
+.mobile {
+    display: none;
+    height: 7rem;
+    margin: 0 calc(-1 * var(--contactor-page-padding)) calc(2 * #{ohma.$gap});
+    pointer-events: none;
+
+    @include ohma.screenMobile {
+        display: block;
+    }
+}

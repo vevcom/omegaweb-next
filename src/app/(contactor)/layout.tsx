@@ -3,9 +3,10 @@ import ContactorNavBar from './_components/ContactorNavBar'
 import ContactorFooter from './_components/ContactorFooter'
 import { karla, sora } from './_components/contactorFonts'
 import { contactorTheme } from './_components/contactorTheme'
-import { careerSections, CONTACTOR_EMAIL } from './_components/contactorSite'
+import { careerNavLinks } from './_components/contactorSite'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import { eventTagOperations } from '@/services/events/tags/operations'
+import { careerAuth } from '@/services/career/auth'
 import { serverLayout, withFallback } from '@/app/ServerPage'
 import type { Metadata } from 'next'
 
@@ -31,17 +32,17 @@ export default serverLayout({
             null
         ),
     }),
-    render: ({ data, children }) => (
+    capabilities: () => ({
+        canEditSpecialCmsLink: careerAuth.updateSpecialCmsLink,
+    }),
+    render: ({ data, capabilities, children }) => (
         <div className={`${styles.site} ${karla.variable} ${sora.variable}`} data-tone="light">
             <SiteTheme colors={contactorTheme} />
-            <ContactorNavBar links={[
-                ...careerSections(data.companyPresentationEventTag),
-                { name: 'Kontakt', href: `mailto:${CONTACTOR_EMAIL}` },
-            ]} />
+            <ContactorNavBar links={careerNavLinks(data.companyPresentationEventTag)} />
             <main className={styles.content}>
                 {children}
             </main>
-            <ContactorFooter />
+            <ContactorFooter capabilities={capabilities} />
         </div>
     ),
 })

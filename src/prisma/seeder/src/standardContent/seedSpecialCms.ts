@@ -29,7 +29,7 @@ const seedSpecialCmsImageConfig: Record<SpecialCmsImage, ImagesAvailablieForCms>
     FRONTPAGE_2: { dynamicImageSeededForCmsName: 'ohma' },
     FRONTPAGE_3: { dynamicImageSeededForCmsName: 'ov' },
     FRONTPAGE_4: { dynamicImageSeededForCmsName: 'ohma' },
-    CAREER_HERO: { dynamicImageSeededForCmsName: 'omega_mai' },
+    CAREER_ABOUT: { dynamicImageSeededForCmsName: 'omega_mai' },
 }
 
 /**
@@ -42,8 +42,10 @@ const seedSpecialCmsParagraphConfig: Record<SpecialCmsParagraph, string> = {
     FRONTPAGE_3: 'frontpage/frontpage_3.md',
     FRONTPAGE_4: 'frontpage/frontpage_4.md',
     INTEREST_GROUP_GENERAL_INFO: 'interest_groups/general_info.md',
-    CAREER_HERO: 'career/career_hero.md',
-    CAREER_INFO: 'career/career_info.md',
+    CAREER_ABOUT: 'career/career_about.md',
+    CAREER_PROGRAMMES: 'career/career_programmes.md',
+    CAREER_PROGRAMME_CYBERNETICS: 'career/career_programme_cybernetics.md',
+    CAREER_PROGRAMME_ELECTRONICS: 'career/career_programme_electronics.md',
     CABIN_CONTRACT: 'cabin/cabin_contract.md',
 }
 
@@ -53,6 +55,11 @@ const seedSpecialCmsParagraphConfig: Record<SpecialCmsParagraph, string> = {
 type SeedCmsLinkConfig = Required<Parameters<typeof cmsLinkOperations.update.internalCall>[0]['data']>
 
 const seedSpecialCmsLinkConfig: Record<SpecialCmsLink, SeedCmsLinkConfig> = {
+    CAREER_CONTACT: { url: 'mailto:post@contactor.no', text: 'Ta kontakt' },
+    CAREER_CYBERNETICS_FIVE_YEAR: { url: 'https://www.ntnu.no/studier/mttk', text: '5-årig master' },
+    CAREER_CYBERNETICS_TWO_YEAR: { url: 'https://www.ntnu.no/studier/mitk', text: '2-årig master' },
+    CAREER_ELECTRONICS_FIVE_YEAR: { url: 'https://www.ntnu.no/studier/mtelsys', text: '5-årig master' },
+    CAREER_ELECTRONICS_TWO_YEAR: { url: 'https://www.ntnu.edu/studies/mselsys', text: '2-årig master' },
     FRONTPAGE_1: {
         url: '/articles',
         text: 'Les mer'

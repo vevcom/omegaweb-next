@@ -38,6 +38,28 @@
         margin-top: calc(2 * #{ohma.$gap});
     }
 
+    // The contact link is a CmsLink, which sizes its box for a small inline link; here it is text.
+    .inner .contactLink {
+        display: inline-flex;
+        height: auto;
+        min-width: 0;
+
+        > a {
+            position: static;
+            margin: 0;
+            padding: 0;
+            background: none;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: ohma.$fonts-m;
+            font-weight: 400;
+
+            &:hover {
+                background: none;
+                color: #fff;
+            }
+        }
+    }
+
     .socials {
         display: flex;
         gap: calc(2 * #{ohma.$gap});
