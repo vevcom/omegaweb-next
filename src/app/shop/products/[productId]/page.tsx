@@ -1,6 +1,6 @@
 import styles from './page.module.scss'
-import ProductForm from '@/app/admin/product/productForm'
-import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
+import ProductForm from '@/app/shop/products/ProductForm'
+import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { displayAmount } from '@/lib/currency/convert'
 import { productOperations } from '@/services/shop/product/operations'
 import { productAuth } from '@/services/shop/product/auth'
@@ -8,6 +8,7 @@ import { serverPage } from '@/app/serverPage'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/serverPage'
 
+/** One product of the catalogue: what it is, and the shops that sell it. */
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ productId: string }>) =>
         productOperations.read({ params: { productId: Number(params.productId) } }),
@@ -22,14 +23,14 @@ const { page, generateMetadata } = serverPage({
             <table className={styles.table}>
                 <thead>
                     <tr>
-                        <th>Navn</th>
+                        <th>Butikk</th>
                         <th>Aktiv</th>
                         <th>Pris</th>
                     </tr>
                 </thead>
                 <tbody>
                     {product.ShopProduct.map(shopProduct => <tr key={shopProduct.shopId}>
-                        <td><Link href={`/admin/shop/${shopProduct.shopId}`}>{shopProduct.shop.name}</Link></td>
+                        <td><Link href={`/shop/${shopProduct.shopId}`}>{shopProduct.shop.name}</Link></td>
                         <td>{shopProduct.active ? 'AKTIV' : 'INAKTIV'}</td>
                         <td>{displayAmount(shopProduct.price, false)}</td>
                     </tr>)}

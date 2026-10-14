@@ -1,9 +1,3 @@
-@use '@/styles/ohma';
-
-.button {
-    @include ohma.btn(ohma.$colors-accent-blue);
-}
-
 .visibility {
     display: flex;
     flex-direction: column;

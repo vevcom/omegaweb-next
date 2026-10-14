@@ -1,25 +1,28 @@
 'use client'
-import styles from './shopForm.module.scss'
+import styles from './CreateShopForm.module.scss'
 import { createShopAction } from '@/services/shop/shop/actions'
-import Form from '@/app/_components/Form/Form'
-import TextInput from '@/app/_components/UI/TextInput'
+import Form from '@/components/Form/Form'
+import TextInput from '@/components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
 
-
-export default function ShopForm() {
+export default function CreateShopForm() {
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
 
     return <Form
         action={createShopAction}
-        className={styles.ShopForm}
+        className={styles.CreateShopForm}
         submitText="Lag ny butikk"
-        refreshOnSuccess
+        navigateOnSuccess={shop => (shop ? `/shop/${shop.id}` : '/shop')}
     >
         <TextInput name="name" label="Butikk" />
         <TextInput name="description" label="Beskrivelse" />
+        {/*
+          * The levels are collected here rather than after the fact: a shop created with an empty
+          * admin level would be administrable by anyone until it was narrowed.
+          */}
         <div className={styles.visibility}>
             <h3>Hvem kan administrere butikken?</h3>
             <VisibilityMatrixEditor

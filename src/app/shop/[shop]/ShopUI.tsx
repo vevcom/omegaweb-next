@@ -1,12 +1,14 @@
 'use client'
 
 import styles from './ShopUI.module.scss'
-import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { displayAmount } from '@/lib/currency/convert'
+import { EditProductForShopForm } from './EditProductForShopForm'
+import PopUp from '@/components/PopUp/PopUp'
 import Button from '@/components/UI/Button'
+import { displayAmount } from '@/lib/currency/convert'
 import { createPurchaseAction } from '@/services/shop/purchase/actions'
 import { useState } from 'react'
-import Link from 'next/link'
+import { faPencil } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { ExtendedProduct } from '@/services/shop/product/types'
 import type { ExtendedShop } from '@/services/shop/shop/types'
 import type { Dispatch, SetStateAction } from 'react'
@@ -25,33 +27,36 @@ type Receipt = {
 
 type EditShoppingCart = Dispatch<SetStateAction<ShoppingCart>>
 
+/**
+ * The shop's products as a cart to buy from. Those who administer the shop's products also see
+ * the ones taken off sale, and get to edit each product in place.
+ */
 export default function ShopUI({ shop, userId, capabilities }: {
     shop: ExtendedShop,
     /** The viewer, who is charged for what they buy. Null for a visitor, who cannot buy. */
     userId: number | null,
-    capabilities: CapabilitiesJsObject<'canAdminister' | 'canPurchase'>,
+    capabilities: CapabilitiesJsObject<'canPurchase' | 'canUpdateProduct'>,
 }) {
     const [shoppingCart, editShoppingCart] = useState<ShoppingCart>({
         products: Object.fromEntries(
-            shop.products.map(product => [
-                product.id,
-                {
-                    ...product,
-                    quantity: 0,
-                },
-            ])
+            shop.products
+                .filter(product => product.active || capabilities.canUpdateProduct.authorized)
+                .map(product => [
+                    product.id,
+                    {
+                        ...product,
+                        quantity: 0,
+                    },
+                ])
         ),
     })
     const [receipt, editReceipt] = useState<Receipt | null>(null)
 
-    return <PageWrapper>
-        <p>{shop.description}</p>
-        {capabilities.canAdminister.authorized && (
-            <Link href={`/admin/shop/${shop.id}`}>Administrer butikken</Link>
-        )}
+    return <>
         <table className={styles.table}>
             <thead>
                 <tr>
+                    {capabilities.canUpdateProduct.authorized && <th>Rediger</th>}
                     <th>Produkt</th>
                     <th>Beskrivelse</th>
                     <th>Pris pr.stykk</th>
@@ -61,26 +66,43 @@ export default function ShopUI({ shop, userId, capabilities }: {
                 </tr>
             </thead>
             <tbody>
-                {Object.entries(shoppingCart.products).map(([id, product]) =>
-                    <tr key={id}>
+                {Object.values(shoppingCart.products).map(product =>
+                    <tr key={product.id} className={product.active ? '' : styles.deactivatedProduct}>
+                        {capabilities.canUpdateProduct.authorized && (
+                            <td className={styles.editButtonWrapper}>
+                                <PopUp
+                                    showButtonContent={<FontAwesomeIcon icon={faPencil} />}
+                                    popUpKey={`editProductForShop-${product.id}`}
+                                >
+                                    <EditProductForShopForm
+                                        shopId={shop.id}
+                                        product={product}
+                                        closePopUpOnSuccess={`editProductForShop-${product.id}`}
+                                    />
+                                </PopUp>
+                            </td>
+                        )}
                         <td>{product.name}</td>
                         <td>{product.description}</td>
                         <td>{displayAmount(product.price, false)}</td>
                         <td>{product.quantity}</td>
                         <td>{displayAmount(product.quantity * product.price, false)}</td>
                         <td>
-                            <Button
-                                onClick={() => addProduct(product, shoppingCart, editShoppingCart)}
-                            >+</Button>
-                            {product.quantity > 0 && (
+                            {product.active && <>
                                 <Button
-                                    onClick={() => removeProduct(product, shoppingCart, editShoppingCart)}
-                                >-</Button>
-                            )}
+                                    onClick={() => addProduct(product, shoppingCart, editShoppingCart)}
+                                >+</Button>
+                                {product.quantity > 0 && (
+                                    <Button
+                                        onClick={() => removeProduct(product, shoppingCart, editShoppingCart)}
+                                    >-</Button>
+                                )}
+                            </>}
                         </td>
                     </tr>
                 )}
                 <tr>
+                    {capabilities.canUpdateProduct.authorized && <td></td>}
                     <td>SUM:</td>
                     <td></td>
                     <td></td>
@@ -128,7 +150,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
             </table>
             <p>Gjenstående saldo: {displayAmount(receipt.remainingBalance, false)}</p>
         </div>}
-    </PageWrapper>
+    </>
 }
 
 async function createPurchase(

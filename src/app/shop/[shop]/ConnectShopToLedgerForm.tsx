@@ -1,8 +1,8 @@
 'use client'
 import { connectShopToLedgerAction } from '@/services/shop/shop/actions'
 import { configureAction } from '@/services/configureAction'
-import Form from '@/app/_components/Form/Form'
-import { SelectNumber } from '@/app/_components/UI/Select'
+import Form from '@/components/Form/Form'
+import { SelectNumber } from '@/components/UI/Select'
 import type { LedgerAccount } from '@/prisma-generated-pn-types'
 
 export default function ConnectShopToLedgerForm({
@@ -20,7 +20,7 @@ export default function ConnectShopToLedgerForm({
         action={configureAction(connectShopToLedgerAction, { params: { shopId } })}
         submitText="Knytt til konto"
         refreshOnSuccess
-        closePopUpOnSuccess="connectShopToLedger"
+        closePopUpOnSuccess="shopSettings"
     >
         <SelectNumber
             name="ledgerAccountId"
