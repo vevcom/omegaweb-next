@@ -7,6 +7,38 @@
 .EasyMDEContainer .CodeMirror {
     border: none;
     background-color: transparent;
+    color: ohma.$colors-text;
+}
+
+.EasyMDEContainer .CodeMirror-cursor {
+    border-left-color: ohma.$colors-text;
+}
+
+.EasyMDEContainer .CodeMirror-selected,
+.EasyMDEContainer .CodeMirror-focused .CodeMirror-selected {
+    background: ohma.$colors-surface-hover;
+}
+
+.EasyMDEContainer .cm-s-easymde {
+    .cm-link, .cm-tag {
+        color: ohma.$colors-accent-blue;
+    }
+    .cm-url {
+        color: ohma.$colors-accent-cyan;
+    }
+    .cm-string, .cm-attribute {
+        color: ohma.$colors-accent-violet;
+    }
+    .cm-quote {
+        color: ohma.$colors-text-muted;
+    }
+    .cm-comment {
+        background: ohma.$colors-surface-subtle;
+        color: ohma.$colors-accent-orange;
+    }
+    .cm-hr {
+        color: ohma.$colors-text-muted;
+    }
 }
 
 .CodeMirror-wrap {
@@ -14,8 +46,8 @@
     pre.CodeMirror-line {
         .cm-header {
             font-size: ohma.$fonts-s;
-            font-weight: 200;
-            color: ohma.$colors-surface-base;
+            font-weight: 600;
+            color: ohma.$colors-accent-blue;
         }
         .cm-formatting-header {
             font-weight: 900;
