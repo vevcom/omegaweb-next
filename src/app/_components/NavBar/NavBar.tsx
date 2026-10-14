@@ -39,7 +39,7 @@ export default async function NavBar({ isLoggedIn, profileImage, navItems }: Pro
                 </li>
 
                 <PageTitleSetter title="" />
-                <li className={styles.pageTitleLi}>
+                <li className={styles.pageTitleLi} data-nav-title>
                     <NavBarTitle />
                 </li>
                 <li className={styles.grower}></li>

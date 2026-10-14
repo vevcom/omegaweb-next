@@ -9,8 +9,10 @@
     .content {
         display: flex;
         flex-direction: column;
+        min-width: 0;
         .name {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: .4em;
             > h3 {
@@ -18,6 +20,7 @@
             }
             > i {
                 font-size: ohma.$fonts-s;
+                overflow-wrap: anywhere;
             }
         }
         .info {
