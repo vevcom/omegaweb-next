@@ -1,6 +1,4 @@
-import styles from './layout.module.scss'
 import { SessionProvider } from '@/auth/session/useSession'
-import MobileNavBar from '@/components/NavBar/MobileNavBar'
 import { authOptions } from '@/auth/nextAuth/authOptions'
 import EditModeProvider from '@/contexts/EditMode'
 import PopUpProvider from '@/contexts/PopUp'
@@ -9,24 +7,14 @@ import { PageTitleProvider } from '@/contexts/PageTitle'
 import GlobalSearchProvider from '@/contexts/GlobalSearch'
 import { permissionOperations } from '@/services/permissions/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
-import { userOperations } from '@/services/users/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
 import ReleaseCountdownGate from '@/components/ReleaseCountdown/ReleaseCountdownGate'
-import { Theme, themeCssVars, themes } from '@/lib/theme'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
-import GlobalSearch from '@/UI/GlobalSearch'
-import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
-import { visibleNavItems } from '@/components/NavBar/navDef'
-import NavBar from '@/components/NavBar/NavBar'
-import { isCareerPath } from '@/app/career/_components/contactorSite'
-import { contactorTheme } from '@/app/career/_components/contactorTheme'
-import { CURRENT_PATH_HEADER } from '@/proxy'
 import { Inter } from 'next/font/google'
 import '@/styles/globals.scss'
 import { config } from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 import { getServerSession } from 'next-auth'
-import { headers } from 'next/headers'
 import type { ReactNode } from 'react'
 import type { Metadata, Viewport } from 'next'
 
@@ -38,7 +26,7 @@ export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
     // Lets the page paint into the status bar and home indicator areas instead of
-    // being letterboxed between them. The safe-area insets in layout.module.scss
+    // being letterboxed between them. The safe-area insets in (omegaweb)/layout.module.scss
     // are what then keep the nav bars clear of the system UI.
     viewportFit: 'cover',
 }
@@ -64,45 +52,30 @@ type PropTypes = {
     children: ReactNode
 }
 
+/**
+ * The document and what every page shares: the session, the client data and the contexts. What
+ * the pages look like is up to the route groups - (omegaweb) is Omega's site with its navigation
+ * and the user's theme, (contactor) is Contactor's under /career with its own - so nothing here
+ * paints a theme or a nav.
+ */
 export default async function RootLayout({ children }: PropTypes) {
     const nextAuthSession = await getServerSession(authOptions)
-    // The career pages are Contactor's site inside Omega's (see src/app/career/layout.tsx): they get
-    // Contactor's fixed theme and none of Omega's navigation. The path comes from the header the
-    // proxy stamps, as a layout cannot read its own URL.
-    const isContactorSite = isCareerPath((await headers()).get(CURRENT_PATH_HEADER) ?? '')
 
-    const {
-        serverSession, defaultPermissions, standardImages, navUser,
-    } = await withPageSession(async (session) => {
+    const { serverSession, defaultPermissions, standardImages } = await withPageSession(async (session) => {
         const [defaultPermissions_, standardImages_] = await Promise.all([
             withFallback(permissionOperations.readDefaultPermissions({}), undefined),
             withFallback(standardImageCollectionOperations.readAllStandardImages({}), undefined),
         ])
-        const profileRead = session.user
-            ? await withFallback(userOperations.readProfile({ params: { username: session.user.username } }), null)
-            : null
         return {
             serverSession: session,
             defaultPermissions: defaultPermissions_,
             standardImages: standardImages_,
-            // The nav components get the fields they actually render rather than the whole
-            // profile, so nothing beyond these reaches the client components among them.
-            navUser: profileRead?.user ?? null,
         }
     })
-    const navItems = visibleNavItems(serverSession)
-    // Rendering the theme's variables server side is what keeps the first paint from flashing the
-    // default theme. Anyone not logged in gets the default, which globals.scss already holds.
-    const themeColors = isContactorSite
-        ? contactorTheme
-        : themes[serverSession.user?.theme ?? Theme.STANDARD]
 
     return (
-        <html lang="nb" style={themeCssVars(themeColors)}>
-            <body className={`${inter.className} ${isContactorSite ? styles.contactorBody : styles.body}`}>
-                {/* Hoisted into the head by React. Keeps the browser chrome in step with the theme;
-                    picking another one refreshes the page, which renders it anew. */}
-                <meta name="theme-color" content={themeColors['surface-base']} />
+        <html lang="nb">
+            <body className={inter.className}>
                 <ServiceWorkerRegister />
                 <SessionProvider session={nextAuthSession}>
                     <ClientDataProvider
@@ -111,34 +84,11 @@ export default async function RootLayout({ children }: PropTypes) {
                         standardImages={standardImages}
                     >
                         <GlobalSearchProvider>
-                            {!isContactorSite && <GlobalSearch navItems={navItems} />}
                             <EditModeProvider>
                                 <PopUpProvider>
                                     <PageTitleProvider>
                                         <ReleaseCountdownGate>
-                                            {isContactorSite ? children : (
-                                                <div className={styles.wrapper}>
-                                                    <div className={styles.navBar}>
-                                                        <NavBar
-                                                            isLoggedIn={navUser !== null}
-                                                            profileImage={navUser?.image ?? null}
-                                                            navItems={navItems}
-                                                        />
-                                                    </div>
-                                                    <aside className={styles.sideBar}>
-                                                        <DesktopSideBar navItems={navItems} />
-                                                    </aside>
-                                                    <main className={styles.content}>
-                                                        {children}
-                                                    </main>
-                                                    <div className={styles.mobileNavBar}>
-                                                        <MobileNavBar
-                                                            isLoggedIn={navUser !== null}
-                                                            navItems={navItems}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
+                                            {children}
                                         </ReleaseCountdownGate>
                                     </PageTitleProvider>
                                 </PopUpProvider>

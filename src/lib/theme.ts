@@ -1,5 +1,4 @@
 import { Theme } from '@/prisma-generated-pn-types'
-import type { CSSProperties } from 'react'
 
 export { Theme }
 
@@ -149,8 +148,8 @@ export const themes: Record<Theme, ThemeColors> = {
     },
 }
 
-export function themeCssVars(colors: ThemeColors): CSSProperties {
-    return Object.fromEntries(
-        Object.entries(colors).map(([key, value]) => [`--${key}`, value])
-    )
+/** The theme as a stylesheet setting its variables on :root, for SiteTheme. */
+export function themeCss(colors: ThemeColors): string {
+    const declarations = Object.entries(colors).map(([key, value]) => `--${key}:${value}`)
+    return `:root{${declarations.join(';')}}`
 }

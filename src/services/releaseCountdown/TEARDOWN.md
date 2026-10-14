@@ -7,8 +7,8 @@ If you are Claude doing this: do each step below, then run the checks at the end
 ## Remove
 
 1. `src/app/layout.tsx`: delete the `ReleaseCountdownGate` import and unwrap its children - the
-   `<div className={styles.wrapper}>` tree goes back to sitting directly inside `PageTitleProvider`.
-   That is the only line of the countdown outside its own folders.
+   `{children}` it wraps goes back to sitting directly inside `PageTitleProvider`. That is the only
+   line of the countdown outside its own folders.
 2. Delete the folder `src/app/_components/ReleaseCountdown/`.
 3. Delete the folder `src/services/releaseCountdown/` (this file included).
 4. Delete `src/instrumentation.ts`, unless something else has been added to `register` since - then

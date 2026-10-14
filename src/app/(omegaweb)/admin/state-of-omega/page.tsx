@@ -1,0 +1,52 @@
+import styles from './page.module.scss'
+import CreateOrder from './CreateOrder'
+import Requirements from './Requirements'
+import { omegaOrderOperations } from '@/services/omegaOrder/operations'
+import { omegaOrderAuth } from '@/services/omegaOrder/auth'
+import { serverPage } from '@/app/ServerPage'
+import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
+import Date from '@/components/Date/Date'
+import type { PageOperationArgs } from '@/app/ServerPage'
+
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => {
+        // The page's whole point is incrementing the order, so it is gated on `create`
+        // rather than the read auth the operations themselves enforce.
+        authorizeAdminPage('state-of-omega', session)
+
+        const [currentOrder, requirements] = await Promise.all([
+            omegaOrderOperations.readCurrent({}),
+            omegaOrderOperations.readRequirements({}),
+        ])
+        return { currentOrder, requirements }
+    },
+    capabilities: () => ({
+        canCreateOrder: omegaOrderAuth.create,
+    }),
+    metadata: () => ({ title: 'Omegas tilstand' }),
+    render: ({ data, capabilities }) => {
+        const allRequirementsFulfilled = data.requirements.every(requirement => requirement.fulfilled)
+
+        return (
+            <div className={styles.wrapper}>
+                <div className={styles.plaque}>
+                    <p className={styles.label}>Omega er i orden</p>
+                    <h1 className={styles.order}>{ data.currentOrder.order }</h1>
+                </div>
+                <p className={styles.lastIncremented}>
+                    Ordenen til Omega ble sist inkrementert{' '}
+                    <Date date={data.currentOrder.createdAt} includeTime={false} />
+                </p>
+                <div className={styles.requirements}>
+                    <Requirements requirements={data.requirements} />
+                </div>
+                {capabilities.canCreateOrder.authorized &&
+                    <CreateOrder allRequirementsFulfilled={allRequirementsFulfilled} />
+                }
+            </div>
+        )
+    },
+})
+
+export default page
+export { generateMetadata }
