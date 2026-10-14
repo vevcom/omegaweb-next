@@ -1,14 +1,20 @@
 import LockerIdForm from './LockerIdForm'
 import LockerList from './LockerList'
 import QRButton from './QRButton'
-import PageTitleSetter from '@/contexts/PageTitleSetter'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { LockerPagingProvider } from '@/contexts/paging/LockerPaging'
+import { lockerAuth } from '@/services/lockers/auth'
+import { serverPage } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
-export default async function Lockers() {
-    return (
+const { page, generateMetadata } = serverPage({
+    // The list is fetched by the client, so the page checks the rule of that read itself.
+    operation: async ({ session }: PageOperationArgs) => {
+        lockerAuth.readPage.auth(session).requireAuthorized()
+    },
+    metadata: () => ({ title: 'Skap' }),
+    render: () => (
         <PageWrapper>
-            <PageTitleSetter title="Skap" />
             <LockerIdForm />
             <br/>
             <QRButton />
@@ -25,5 +31,8 @@ export default async function Lockers() {
                 <LockerList />
             </LockerPagingProvider>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

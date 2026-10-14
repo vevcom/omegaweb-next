@@ -16,6 +16,7 @@ import { cabinArticleAuth } from '@/services/cabin/article/auth'
 import { userAuth } from '@/services/users/auth'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
 import { bullshitAuth } from '@/services/bullshit/auth'
+import { lockerAuth } from '@/services/lockers/auth'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
 import {
     faGamepad,
@@ -34,6 +35,7 @@ import {
     faPeopleLine,
     faIdCard,
     faPoo,
+    faLock,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -152,6 +154,12 @@ export const navDef: NavItem[] = [
         href: '/users',
         icon: faPeopleLine,
         authorizers: () => [userAuth.readPage],
+    },
+    {
+        name: 'Skap',
+        href: '/lockers',
+        icon: faLock,
+        authorizers: () => [lockerAuth.readPage],
     },
     {
         name: 'Søknadsperioder',
