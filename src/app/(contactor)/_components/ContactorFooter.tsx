@@ -41,7 +41,7 @@ export default function ContactorFooter() {
             <div className={styles.bottom}>
                 <div className={styles.inner}>
                     <span>© Contactor NTNU</span>
-                    <Link href="/">Tilbake til omega.ntnu.no</Link>
+                    <Link href="/">Tilbake til Omegaveven</Link>
                 </div>
             </div>
         </footer>

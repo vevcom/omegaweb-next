@@ -1,57 +1,23 @@
 @use '@/styles/ohma';
 
-.inner {
-    width: 100%;
-    max-width: var(--contactor-max-width);
-    margin: 0 auto;
-    padding: 0 var(--contactor-page-padding);
-    display: flex;
-    align-items: center;
-    gap: calc(3 * #{ohma.$gap});
-}
-
 .header {
     position: sticky;
     top: 0;
     z-index: 3;
-}
-
-.backBar {
-    background: var(--contactor-navy-dark);
-    font-size: ohma.$fonts-s;
-
-    .inner {
-        justify-content: flex-end;
-        min-height: 32px;
-    }
-
-    .back {
-        display: inline-flex;
-        align-items: center;
-        gap: ohma.$gap;
-        color: #fff;
-        opacity: 0.85;
-
-        &:hover {
-            opacity: 1;
-            text-decoration: none;
-        }
-
-        svg {
-            width: 0.8em;
-            height: 0.8em;
-        }
-    }
+    background: ohma.$colors-surface-raised;
+    border-bottom: 1px solid var(--contactor-line);
 }
 
 .nav {
-    background: ohma.$colors-surface-raised;
-    border-bottom: 1px solid var(--contactor-line);
-
-    .inner {
-        min-height: ohma.$nav-height;
-        flex-wrap: wrap;
-    }
+    width: 100%;
+    max-width: var(--contactor-max-width);
+    min-height: ohma.$nav-height;
+    margin: 0 auto;
+    padding: 0 var(--contactor-page-padding);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(3 * #{ohma.$gap});
 
     .brand {
         margin-right: auto;
@@ -61,20 +27,43 @@
     .links {
         list-style: none;
         display: flex;
+        align-items: center;
         gap: calc(3 * #{ohma.$gap});
 
         a {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: ohma.$gap;
             padding: ohma.$gap 0;
             border-bottom: 2px solid transparent;
             color: var(--contactor-navy);
             font-size: ohma.$fonts-m;
             font-weight: 500;
-            transition: border-color ohma.$transitionTime;
+            transition: border-color ohma.$transitionTime, color ohma.$transitionTime;
 
             &:hover {
                 text-decoration: none;
                 border-bottom-color: var(--contactor-accent);
+            }
+        }
+
+        // The way back to Omega's site: set apart from Contactor's own links.
+        .back {
+            margin-left: calc(2 * #{ohma.$gap});
+            padding-left: calc(3 * #{ohma.$gap});
+            border-left: 1px solid var(--contactor-line);
+
+            a {
+                color: ohma.$colors-text-muted;
+
+                &:hover {
+                    color: var(--contactor-navy);
+                }
+
+                svg {
+                    width: 0.8em;
+                    height: 0.8em;
+                }
             }
         }
     }
@@ -89,15 +78,19 @@
     }
 
     @include ohma.screenMobile {
-        .inner {
-            padding-bottom: ohma.$gap;
-        }
+        padding-bottom: ohma.$gap;
 
         .links {
             order: 3;
             width: 100%;
             flex-wrap: wrap;
             gap: 0 calc(3 * #{ohma.$gap});
+
+            .back {
+                margin-left: 0;
+                padding-left: 0;
+                border-left: none;
+            }
         }
     }
 }
