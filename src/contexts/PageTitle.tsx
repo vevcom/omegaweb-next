@@ -2,17 +2,21 @@
 
 import React, { createContext, useContext, useState } from 'react'
 
-type PageTitleContextType = {
+export type PageTitle = {
     title: string
-    setTitle: (t: string) => void
+    subtitle?: string
+}
+
+type PageTitleContextType = PageTitle & {
+    setTitle: (title: PageTitle) => void
 }
 
 const PageTitleContext = createContext<PageTitleContextType | undefined>(undefined)
 
 export function PageTitleProvider({ children }: { children: React.ReactNode }) {
-    const [title, setTitle] = useState('')
+    const [pageTitle, setTitle] = useState<PageTitle>({ title: '' })
     return (
-        <PageTitleContext.Provider value={{ title, setTitle }}>
+        <PageTitleContext.Provider value={{ ...pageTitle, setTitle }}>
             {children}
         </PageTitleContext.Provider>
     )

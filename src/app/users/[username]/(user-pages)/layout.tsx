@@ -9,18 +9,19 @@ import type { LayoutOperationArgs } from '@/app/serverPage'
 import type { PropTypes } from '@/app/users/[username]/page'
 import type { Metadata } from 'next'
 import type { SessionMaybeUser } from '@/auth/session/Session'
+import type { PageTitle } from '@/contexts/PageTitle'
 
 /**
- * "Min Side | Navn" on your own pages, "Navns sider" on someone else's - a name already ending in
- * an s-sound takes only the apostrophe, as Norwegian spells the genitive.
+ * "Min Side" with your name as subtitle on your own pages, "Navns sider" on someone else's - a name
+ * already ending in an s-sound takes only the apostrophe, as Norwegian spells the genitive.
  */
 function userPagesTitle(
     user: { firstname: string, lastname: string, username: string },
     session: SessionMaybeUser,
-) {
+): PageTitle {
     const name = `${user.firstname} ${user.lastname}`
-    if (session.user?.username === user.username) return `Min Side | ${name}`
-    return /[sxz]$/i.test(name) ? `${name}' sider` : `${name}s sider`
+    if (session.user?.username === user.username) return { title: 'Min Side', subtitle: name }
+    return { title: /[sxz]$/i.test(name) ? `${name}' sider` : `${name}s sider` }
 }
 
 export async function generateMetadata({ params }: PropTypes): Promise<Metadata> {
@@ -31,7 +32,8 @@ export async function generateMetadata({ params }: PropTypes): Promise<Metadata>
 
         const profile = await withFallback(userOperations.readProfile({ params: { username } }), null)
         if (!profile) return {}
-        return { title: userPagesTitle(profile.user, session) }
+        const { title, subtitle } = userPagesTitle(profile.user, session)
+        return { title: subtitle ? `${title} | ${subtitle}` : title }
     })
 }
 
@@ -49,7 +51,7 @@ export default serverLayout({
     },
     render: ({ data: { username, user }, children, session }) => (
         <PageWrapper fillHeight transparent hideTitle>
-            <PageTitleSetter title={userPagesTitle(user, session)} />
+            <PageTitleSetter {...userPagesTitle(user, session)} />
             <div className={styles.userAdminLayout}>
                 <main className={styles.main}>
                     <div className={styles.mainInner}>

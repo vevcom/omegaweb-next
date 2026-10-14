@@ -5,7 +5,7 @@ import { usePageTitle } from '@/contexts/PageTitle'
 import React from 'react'
 
 export default function NavBarTitle() {
-    const { title } = usePageTitle()
+    const { title, subtitle } = usePageTitle()
     if (!title) {
         return (
             <div className={styles.pageTitlePlaceholder} aria-hidden={true}>
@@ -17,6 +17,7 @@ export default function NavBarTitle() {
     return (
         <div className={styles.pageTitle} aria-hidden={false}>
             {title}
+            {subtitle && <span className={styles.pageSubtitle}> | {subtitle}</span>}
         </div>
     )
 }
