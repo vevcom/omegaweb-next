@@ -1,6 +1,6 @@
 'use client'
 import styles from './shopForm.module.scss'
-import { createShopAction } from '@/services/shop/actions'
+import { createShopAction } from '@/services/shop/shop/actions'
 import Form from '@/app/_components/Form/Form'
 import TextInput from '@/app/_components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'

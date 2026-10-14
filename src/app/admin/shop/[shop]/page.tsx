@@ -3,6 +3,7 @@ import styles from './page.module.scss'
 import FindProductForm from './FindProductForm'
 import ConnectShopToLedgerForm from './ConnectShopToLedgerForm'
 import ShopVisibilityAdmin from './ShopVisibilityAdmin'
+import UpdateShopForm from './UpdateShopForm'
 import { authorizeShopAdminPage } from './authorizeShopAdminPage'
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import PopUp from '@/app/_components/PopUp/PopUp'
@@ -20,103 +21,108 @@ import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ shop: string }>) => {
-        const shopId = parseInt(params.shop, 10)
-        const shopData = await shopOperations.read({ params: { shopId } })
-        authorizeShopAdminPage(shopData.visibility).auth(session).requireAuthorized()
+        const shop = await shopOperations.read({ params: { shopId: parseInt(params.shop, 10) } })
+        authorizeShopAdminPage(shop.visibility).auth(session).requireAuthorized()
 
         const [allProducts, ledgerAccounts] = await Promise.all([
             productOperations.readMany({}),
             ledgerAccountOperations.readAccessible({ params: { includeGroupAccounts: true, includeUserAccounts: false } }),
         ])
 
-        const existingProductIds = new Set(shopData.products.map(product => product.id))
-        const unconnectedProducts = allProducts.filter(product => !existingProductIds.has(product.id))
+        const soldProductIds = new Set(shop.products.map(product => product.id))
+        const unconnectedProducts = allProducts.filter(product => !soldProductIds.has(product.id))
 
-        return { shopId, shopData, unconnectedProducts, ledgerAccounts }
+        return { shop, unconnectedProducts, ledgerAccounts }
     },
     capabilities: (data) => ({
-        canCreateProduct: productAuth.createForShop.data({ visibility: data.shopData.visibility }),
-        canAddProduct: productAuth.createShopConnection.data({ visibility: data.shopData.visibility }),
-        canUpdateProduct: productAuth.updateForShop.data({ visibility: data.shopData.visibility }),
+        canUpdateShop: shopAuth.update.data({ visibility: data.shop.visibility }),
+        canCreateProduct: productAuth.createForShop.data({ visibility: data.shop.visibility }),
+        canAddProduct: productAuth.createShopConnection.data({ visibility: data.shop.visibility }),
+        canUpdateProduct: productAuth.updateForShop.data({ visibility: data.shop.visibility }),
         canConnectToLedger: shopAuth.connectToLedger.data({
-            visibility: data.shopData.visibility,
+            visibility: data.shop.visibility,
             accounts: data.ledgerAccounts.map(account => account.ownership),
         }),
     }),
-    metadata: (data) => ({ title: data.shopData.name }),
-    render: ({ data, capabilities }) => {
-        const { shopId, shopData, unconnectedProducts, ledgerAccounts } = data
+    metadata: (data) => ({ title: data.shop.name }),
+    render: ({ data: { shop, unconnectedProducts, ledgerAccounts }, capabilities }) => (
+        <PageWrapper>
+            <p>{shop.description}</p>
+            {capabilities.canUpdateShop.authorized && (
+                <PopUp
+                    showButtonClass={styles.button}
+                    showButtonContent="Rediger butikk"
+                    popUpKey="updateShop"
+                >
+                    <UpdateShopForm shop={shop} />
+                </PopUp>
+            )}
+            <p>
+                Konto: {shop.ledgerAccount
+                    ? (shop.ledgerAccount.name ?? `Konto ${shop.ledgerAccount.id}`)
+                    : 'ingen. Kjøp feiler til butikken er knyttet til en konto.'}
+            </p>
+            {capabilities.canConnectToLedger.authorized && (
+                <PopUp
+                    showButtonClass={styles.button}
+                    showButtonContent="Knytt til konto"
+                    popUpKey="connectShopToLedger"
+                >
+                    <ConnectShopToLedgerForm
+                        shopId={shop.id}
+                        currentLedgerAccountId={shop.ledgerAccountId}
+                        ledgerAccounts={ledgerAccounts}
+                    />
+                </PopUp>
+            )}
+            <ShopVisibilityAdmin shop={shop} />
 
-        return (
-            <PageWrapper>
-                <p>{shopData.description}</p>
-                <p>
-                    Konto: {shopData.ledgerAccount
-                        ? (shopData.ledgerAccount.name ?? `Konto ${shopData.ledgerAccount.id}`)
-                        : 'ingen. Kjøp feiler til butikken er knyttet til en konto.'}
-                </p>
-                {capabilities.canConnectToLedger.authorized && (
-                    <PopUp
-                        showButtonClass={styles.button}
-                        showButtonContent="Knytt til konto"
-                        popUpKey="connectShopToLedger"
-                    >
-                        <ConnectShopToLedgerForm
-                            shopId={shopId}
-                            currentLedgerAccountId={shopData.ledgerAccountId}
-                            ledgerAccounts={ledgerAccounts}
-                        />
-                    </PopUp>
-                )}
-                <ShopVisibilityAdmin shop={shopData} />
+            {(capabilities.canAddProduct.authorized || capabilities.canCreateProduct.authorized) && (
+                <PopUp
+                    showButtonClass={styles.button}
+                    showButtonContent="Legg til Produkt"
+                    popUpKey="createProductForShop"
+                >
+                    {capabilities.canAddProduct.authorized && (
+                        <FindProductForm shopId={shop.id} products={unconnectedProducts} />
+                    )}
+                    <br />
+                    {capabilities.canCreateProduct.authorized && <EditProductForShopForm shopId={shop.id} />}
+                </PopUp>
+            )}
 
-                {(capabilities.canAddProduct.authorized || capabilities.canCreateProduct.authorized) && (
-                    <PopUp
-                        showButtonClass={styles.button}
-                        showButtonContent="Legg til Produkt"
-                        popUpKey="createProductForShop"
+            <table className={styles.table}>
+                <thead>
+                    <tr>
+                        {capabilities.canUpdateProduct.authorized && <th>Rediger</th>}
+                        <th>Produkt</th>
+                        <th>Beskrivelse</th>
+                        <th>Pris</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {sortObjectsByName(shop.products).map(product => <tr
+                        key={product.id}
+                        className={product.active ? '' : styles.deactivatedProduct}
                     >
-                        {capabilities.canAddProduct.authorized && (
-                            <FindProductForm shopId={shopId} products={unconnectedProducts} />
+                        {capabilities.canUpdateProduct.authorized && (
+                            <td className={styles.editButtonWrapper}>
+                                <PopUp
+                                    showButtonContent={<FontAwesomeIcon icon={faPencil} />}
+                                    popUpKey={`EditProductForShop-${product.id}`}
+                                >
+                                    <EditProductForShopForm shopId={shop.id} product={product} />
+                                </PopUp>
+                            </td>
                         )}
-                        <br />
-                        {capabilities.canCreateProduct.authorized && <EditProductForShopForm shopId={shopId} />}
-                    </PopUp>
-                )}
-
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            {capabilities.canUpdateProduct.authorized && <th>Rediger</th>}
-                            <th>Produkt</th>
-                            <th>Beskrivelse</th>
-                            <th>Pris</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sortObjectsByName(shopData.products).map(product => <tr
-                            key={product.id}
-                            className={product.active ? '' : styles.deactivatedProduct}
-                        >
-                            {capabilities.canUpdateProduct.authorized && (
-                                <td className={styles.editButtonWrapper}>
-                                    <PopUp
-                                        showButtonContent={<FontAwesomeIcon icon={faPencil} />}
-                                        popUpKey={`EditProductForShop-${product.id}`}
-                                    >
-                                        <EditProductForShopForm shopId={shopId} product={product} />
-                                    </PopUp>
-                                </td>
-                            )}
-                            <td>{product.name}</td>
-                            <td>{product.description}</td>
-                            <td>{displayAmount(product.price, false)}</td>
-                        </tr>)}
-                    </tbody>
-                </table>
-            </PageWrapper>
-        )
-    },
+                        <td>{product.name}</td>
+                        <td>{product.description}</td>
+                        <td>{displayAmount(product.price, false)}</td>
+                    </tr>)}
+                </tbody>
+            </table>
+        </PageWrapper>
+    ),
 })
 
 export default page

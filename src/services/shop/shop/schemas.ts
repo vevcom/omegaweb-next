@@ -24,6 +24,12 @@ const paramsFieldSchemas = z.object({
     shopId: z.number(),
 })
 
+/** What a shop is called and how it is described. */
+const shopDetails = dataFieldSchemas.pick({
+    name: true,
+    description: true,
+})
+
 const shopId = paramsFieldSchemas.pick({
     shopId: true,
 })
@@ -36,6 +42,7 @@ export const shopSchemas = {
             visibilityAdminRequirements: true,
             visibilityRegularRequirements: true,
         }),
+        update: shopDetails,
         connectToLedger: dataFieldSchemas.pick({
             ledgerAccountId: true,
         }),
@@ -43,6 +50,7 @@ export const shopSchemas = {
     params: {
         visibility: shopId,
         read: shopId,
+        update: shopId,
         connectToLedger: shopId,
     },
 }

@@ -1,8 +1,9 @@
-import { createProductAction, updateProductAction } from '@/services/shop/actions'
+'use client'
+import { createProductAction, updateProductAction } from '@/services/shop/product/actions'
+import { configureAction } from '@/services/configureAction'
 import Form from '@/app/_components/Form/Form'
 import TextInput from '@/app/_components/UI/TextInput'
 import type { Product } from '@/prisma-generated-pn-types'
-
 
 export default function ProductForm({
     product
@@ -10,7 +11,7 @@ export default function ProductForm({
     product?: Product
 }) {
     const submitForm = product
-        ? updateProductAction
+        ? configureAction(updateProductAction, { params: { productId: product.id } })
         : createProductAction
 
     return <Form
@@ -20,7 +21,6 @@ export default function ProductForm({
     >
         <TextInput name="name" label="Navn" defaultValue={product?.name} />
         <TextInput name="description" label="Beskrivelse" defaultValue={product?.description} />
-        <TextInput name="barcode" label="Strekkode" defaultValue={product?.barcode ? product.barcode : ''} />
-        {product && <input type="hidden" name="productId" value={product.id} /> }
+        <TextInput name="barcode" label="Strekkode" defaultValue={product?.barcode ?? ''} />
     </Form>
 }

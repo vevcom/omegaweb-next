@@ -22,6 +22,7 @@ export const shopAuth = {
     readDoubleLevelMatrix: shopRegularLevel,
     updateRegularLevel: shopAdminLevel,
     updateAdminLevel: shopAdminLevel,
+    update: shopAdminLevel,
 
     // A shop's purchases are credited to the account it is linked to, so linking takes access to
     // that account on top of administering the shop. Needs `{ accounts }` via `.data()` as well.

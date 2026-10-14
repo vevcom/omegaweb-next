@@ -14,18 +14,14 @@ import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/t
 
 /**
  * The one way a purchase is made: the buyer is a user id, however the caller got hold of it.
- * Implemented as `create` (the session user buying for themselves) and called internally by
- * `createByStudentCard` after it has resolved the card to a user.
+ * Implemented as `create` (the session user buying for themselves) and `createOnBehalf` (the
+ * kiosk charging the owner of a student card).
  */
 const createPurchase = defineSubOperation({
     paramsSchema: () => purchaseSchemas.params.create,
     dataSchema: () => purchaseSchemas.data.create,
     opensTransaction: true,
     operation: ({ method }: { method: PurchaseMethod }) => async ({ prisma, params, data }) => {
-        if (data.products.length === 0) {
-            throw new ServiceError('BAD PARAMETERS', 'The list of products to buy cannot be empty')
-        }
-
         const user = await prisma.user.findUniqueOrThrow({
             where: {
                 id: params.userId,
@@ -37,37 +33,33 @@ const createPurchase = defineSubOperation({
             where: { id: data.shopId },
             select: { ledgerAccountId: true },
         })
-        if (!shop.ledgerAccountId) {
+        const shopAccountId = shop.ledgerAccountId
+        if (!shopAccountId) {
             throw new ServiceError('SERVER ERROR', 'Denne butikken har ingen tilknyttet konto.')
         }
 
-        // Find the price of the different products
-        const productPrices = await prisma.shopProduct.findMany({
+        // The unit prices the shop sells the products at. A product it does not sell, or has
+        // taken off sale, is missing from the list, which the count check catches.
+        const shopProducts = await prisma.shopProduct.findMany({
             where: {
                 shopId: data.shopId,
                 active: true,
-                OR: data.products.map(product => ({
-                    productId: product.id,
-                }))
-            }
+                productId: { in: data.products.map(product => product.id) },
+            },
         })
-
-        if (productPrices.length !== data.products.length) {
-            throw new ServiceError(
-                'BAD PARAMETERS',
-                'The product list contains invalid product ids for the specified shop'
-            )
+        if (shopProducts.length !== data.products.length) {
+            throw new ServiceError('BAD PARAMETERS', 'Noen av produktene selges ikke i denne butikken.')
         }
 
-        const productPriceMap = Object.fromEntries(
-            productPrices.map(product => ([product.productId, product.price]))
+        const unitPrices = Object.fromEntries(
+            shopProducts.map(shopProduct => [shopProduct.productId, shopProduct.price])
         )
 
-        // Note: price here is a *unit* price - the line total is price * quantity.
+        // Each line is charged at its unit price - the line total is price * quantity.
         const productList = data.products.map(product => ({
             productId: product.id,
             quantity: product.quantity,
-            price: productPriceMap[product.id] ?? 0
+            price: unitPrices[product.id] ?? 0,
         }))
 
         const totalPrice = productList.reduce((sum, product) => sum + product.price * product.quantity, 0)
@@ -89,24 +81,23 @@ const createPurchase = defineSubOperation({
                     PurchaseProduct: {
                         createMany: {
                             data: productList,
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             })
 
             if (totalPrice === 0) return
 
-            // bypassAuth: the outer authorizer (`create`: the session user with PURCHASE_CREATE
-            // buying for themselves; `createByStudentCard`: an API-key session with
-            // PURCHASE_CREATE_ONBEHALF paying on behalf of a card user with PURCHASE_CREATE)
-            // already replaces the generic ledger-ownership check, which would otherwise reject
-            // an API-key session outright since it owns no ledger account itself - the same
-            // precedent as ledgerTransactionOperations.advance's own bypass.
+            // bypassAuth: who pays has already been decided by the authorizer of the implementation
+            // (`create`: the session user, buying for themselves in a shop they can see;
+            // `createOnBehalf`: the kiosk, charging a card whose owner may shop there). The generic
+            // ledger-ownership check would reject the kiosk outright, as its API-key session owns
+            // no account - the same precedent as ledgerTransactionOperations.advance's own bypass.
             const transaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.create({
                 params: {
                     purpose: 'SHOP_PURCHASE',
                     ledgerEntries: [
-                        { ledgerAccountId: shop.ledgerAccountId!, funds: totalPrice },
+                        { ledgerAccountId: shopAccountId, funds: totalPrice },
                         { ledgerAccountId: buyerAccount.id, funds: -totalPrice },
                     ],
                     purchaseId: purchase.id,
@@ -133,7 +124,23 @@ const createPurchase = defineSubOperation({
             user,
             productList,
         }
-    }
+    },
+})
+
+/**
+ * The kiosk buying for a user it has identified, charged to that user's account. Defined outside
+ * the operations object so `createByStudentCard` can call it without referring to the object.
+ */
+const createOnBehalf = createPurchase.implement({
+    authorizer: async ({ params, data, prisma }) => {
+        const [membershipsOfUser, visibility] = await Promise.all([
+            groupOperations.readMembershipsOfUserOfAllTypes.internalCall({ params: { userId: params.userId } }),
+            shopOperations.visibility.readDoubleLevelMatrixInternal({ params: { shopId: data.shopId }, prisma }),
+        ])
+        return purchaseAuth.createOnBehalf.data({ membershipsOfUser, visibility })
+    },
+    ownershipCheck: () => true,
+    operationImplementationFields: { method: PurchaseMethod.STUDENT_CARD },
 })
 
 export const purchaseOperations = {
@@ -148,50 +155,39 @@ export const purchaseOperations = {
         ownershipCheck: () => true,
         operationImplementationFields: { method: PurchaseMethod.WEB },
     }),
+
+    createOnBehalf,
+
+    /**
+     * Resolves a student card to its owner and buys on their behalf. The caller's permission is
+     * checked before the card is looked up, so the endpoint tells no one else whether a card is
+     * bound to a user; the owner's own access to the shop is checked by `createOnBehalf`.
+     */
     createByStudentCard: defineOperation({
-        authorizer: async ({ data, prisma }) => {
-            let user
-            try {
-                user = await userOperations.read({
-                    params: {
-                        studentCard: data.studentCard,
-                    },
-                    bypassAuth: true,
-                })
-            } catch (e) {
-                if (e instanceof ServiceError && e.errorCode === 'NOT FOUND') {
-                    throw new ServiceError('NOT FOUND', 'Ingen brukere er koblet til studentkortet.')
-                }
-                throw e
-            }
-
-            const [membershipsOfUser, visibility] = await Promise.all([
-                groupOperations.readMembershipsOfUserOfAllTypes.internalCall({ params: { userId: user.id } }),
-                shopOperations.visibility.readDoubleLevelMatrixInternal({ params: { shopId: data.shopId }, prisma }),
-            ])
-
-            return purchaseAuth.createByStudentCard.data({ membershipsOfUser, visibility })
-        },
+        authorizer: () => purchaseAuth.createByStudentCard,
         dataSchema: purchaseSchemas.data.createByStudentCard,
         opensTransaction: true,
         operation: async ({ data }) => {
-            const user = await userOperations.read({
-                params: {
-                    studentCard: data.studentCard,
-                },
-                bypassAuth: true,
+            const user = await readCardOwner(data.studentCard)
+            return createOnBehalf({
+                params: { userId: user.id },
+                data: { shopId: data.shopId, products: data.products },
             })
-
-            return await createPurchase.internalCall({
-                operationImplementationFields: { method: PurchaseMethod.STUDENT_CARD },
-                params: {
-                    userId: user.id,
-                },
-                data: {
-                    shopId: data.shopId,
-                    products: data.products,
-                },
-            })
-        }
-    })
+        },
+    }),
 } as const
+
+/** The user a student card is bound to, with the kiosk's own message when there is none. */
+async function readCardOwner(studentCard: string) {
+    try {
+        return await userOperations.read({
+            params: { studentCard },
+            bypassAuth: true,
+        })
+    } catch (error) {
+        if (error instanceof ServiceError && error.errorCode === 'NOT FOUND') {
+            throw new ServiceError('NOT FOUND', 'Ingen brukere er koblet til studentkortet.')
+        }
+        throw error
+    }
+}

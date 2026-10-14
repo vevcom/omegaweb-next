@@ -1,10 +1,10 @@
-import { defineOperation } from '@/services/serviceOperation'
 import '@pn-server-only'
-import { ServiceError } from '@/services/error'
-import { shopOperations } from '@/services/shop/shop/operations'
-import type { ExtendedProduct } from './types'
 import { productAuth } from './auth'
 import { productSchemas } from './schemas'
+import { ServiceError } from '@/services/error'
+import { defineOperation } from '@/services/serviceOperation'
+import { shopOperations } from '@/services/shop/shop/operations'
+import type { ExtendedProduct } from './types'
 
 export const productOperations = {
     create: defineOperation({
@@ -12,13 +12,14 @@ export const productOperations = {
         dataSchema: productSchemas.data.create,
         operation: async ({ prisma, data }) => prisma.product.create({
             data: {
-                ...data,
+                name: data.name.toUpperCase(),
+                description: data.description,
                 barcode: convertBarcode(data.barcode),
-                name: data.name.toUpperCase()
-            }
-        })
+            },
+        }),
     }),
 
+    /** Creates a product and puts it on sale in one shop in the same write. */
     createForShop: defineOperation({
         authorizer: async ({ params, prisma }) => productAuth.createForShop.data({
             visibility: await shopOperations.visibility.readDoubleLevelMatrixInternal({ params, prisma }),
@@ -41,23 +42,22 @@ export const productOperations = {
                     },
                 },
             },
-        })
+        }),
     }),
 
+    /** Puts a product that already exists on sale in a shop. */
     createShopConnection: defineOperation({
-        authorizer: async ({ data, prisma }) => productAuth.createShopConnection.data({
-            visibility: await shopOperations.visibility.readDoubleLevelMatrixInternal({
-                params: { shopId: data.shopId },
-                prisma,
-            }),
+        authorizer: async ({ params, prisma }) => productAuth.createShopConnection.data({
+            visibility: await shopOperations.visibility.readDoubleLevelMatrixInternal({ params, prisma }),
         }),
+        paramsSchema: productSchemas.params.createShopConnection,
         dataSchema: productSchemas.data.createShopConnection,
-        operation: async ({ prisma, data }) => prisma.shopProduct.create({
+        operation: async ({ prisma, params, data }) => prisma.shopProduct.create({
             data: {
                 shop: {
                     connect: {
-                        id: data.shopId,
-                    }
+                        id: params.shopId,
+                    },
                 },
                 product: {
                     connect: {
@@ -65,89 +65,88 @@ export const productOperations = {
                     },
                 },
                 price: data.price,
-            }
-        })
+            },
+        }),
     }),
 
     readMany: defineOperation({
-        authorizer: () => productAuth.read,
-        operation: async ({ prisma }) => await prisma.product.findMany()
+        authorizer: () => productAuth.readMany,
+        operation: async ({ prisma }) => prisma.product.findMany(),
     }),
 
     read: defineOperation({
         authorizer: () => productAuth.read,
         paramsSchema: productSchemas.params.read,
-        operation: async ({ prisma, params }) => await prisma.product.findUniqueOrThrow({
+        operation: async ({ prisma, params }) => prisma.product.findUniqueOrThrow({
             where: {
-                id: params.productId
+                id: params.productId,
             },
             include: {
                 ShopProduct: {
                     include: {
-                        shop: true
-                    }
-                }
-            }
-        })
+                        shop: true,
+                    },
+                },
+            },
+        }),
     }),
 
+    /**
+     * The product behind a barcode as one shop sells it, for the kiosk. A product the shop does
+     * not sell, or has taken off sale, is NOT FOUND there even though it exists.
+     */
     readByBarCode: defineOperation({
-        authorizer: () => productAuth.read,
+        authorizer: () => productAuth.readByBarCode,
         paramsSchema: productSchemas.params.readByBarCode,
-        operation: async ({ prisma, params }): Promise<ExtendedProduct | null> => {
-            if (!params.barcode) {
-                throw new ServiceError('BAD PARAMETERS', 'Barcode is required.')
-            }
-
-            const results = await prisma.product.findUnique({
+        operation: async ({ prisma, params }): Promise<ExtendedProduct> => {
+            const product = await prisma.product.findUnique({
                 where: {
-                    barcode: params.barcode.toString()
+                    barcode: params.barcode,
                 },
                 include: {
                     ShopProduct: {
                         where: {
                             shopId: params.shopId,
                             active: true,
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             })
+            const notFound = () => new ServiceError(
+                'NOT FOUND',
+                `Fant ingen vare med strekkode ${params.barcode} i butikk ${params.shopId}.`
+            )
+            if (!product) throw notFound()
 
-            if (!results || results.ShopProduct.length === 0) {
-                throw new ServiceError(
-                    'NOT FOUND',
-                    `Could not find any prduct with barcode ${params.barcode} in shop ${params.shopId}.`
-                )
+            const { ShopProduct: shopProducts, ...productFields } = product
+            const [shopProduct] = shopProducts
+            if (!shopProduct) throw notFound()
+
+            return {
+                ...productFields,
+                price: shopProduct.price,
+                active: shopProduct.active,
             }
-
-            const ret = {
-                ...results,
-                price: 0,
-                active: true,
-            }
-            Reflect.deleteProperty(ret, 'ShopProduct')
-            ret.price = results.ShopProduct[0].price
-            ret.active = results.ShopProduct[0].active
-
-            return ret
-        }
+        },
     }),
 
     update: defineOperation({
         authorizer: () => productAuth.update,
+        paramsSchema: productSchemas.params.update,
         dataSchema: productSchemas.data.update,
-        operation: async ({ prisma, data }) => prisma.product.update({
+        operation: async ({ prisma, params, data }) => prisma.product.update({
             where: {
-                id: data.productId,
+                id: params.productId,
             },
             data: {
                 name: data.name.toUpperCase(),
                 description: data.description,
                 barcode: convertBarcode(data.barcode),
             },
-        })
+        }),
     }),
 
+    /** Updates a product together with its price and whether it is on sale in one shop. */
     updateForShop: defineOperation({
         authorizer: async ({ params, prisma }) => productAuth.updateForShop.data({
             visibility: await shopOperations.visibility.readDoubleLevelMatrixInternal({
@@ -155,8 +154,8 @@ export const productOperations = {
                 prisma,
             }),
         }),
-        dataSchema: productSchemas.data.updateForShop,
         paramsSchema: productSchemas.params.updateForShop,
+        dataSchema: productSchemas.data.updateForShop,
         operation: async ({ prisma, params, data }) => prisma.product.update({
             where: {
                 id: params.productId,
@@ -180,11 +179,12 @@ export const productOperations = {
                     },
                 },
             },
-        })
+        }),
     }),
 } as const
 
-export function convertBarcode(barcode?: string | number) {
+/** The barcode as stored: trimmed, and null when the form left it empty. */
+function convertBarcode(barcode?: string | number) {
     if (typeof barcode === 'string' || typeof barcode === 'number') {
         const stringBarcode = String(barcode).trim()
         if (stringBarcode.length > 0) {
@@ -193,4 +193,3 @@ export function convertBarcode(barcode?: string | number) {
     }
     return null
 }
-

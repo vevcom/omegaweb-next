@@ -4,9 +4,7 @@ import styles from './ShopUI.module.scss'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { displayAmount } from '@/lib/currency/convert'
 import Button from '@/components/UI/Button'
-import useAuthorizer from '@/hooks/useAuthorizer'
-import { createPurchaseAction } from '@/services/shop/actions'
-import { purchaseAuth } from '@/services/shop/purchase/auth'
+import { createPurchaseAction } from '@/services/shop/purchase/actions'
 import { useState } from 'react'
 import Link from 'next/link'
 import type { ExtendedProduct } from '@/services/shop/product/types'
@@ -14,30 +12,28 @@ import type { ExtendedShop } from '@/services/shop/shop/types'
 import type { Dispatch, SetStateAction } from 'react'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
-type ProductType = ExtendedProduct & { quantity: number }
+type ProductInCart = ExtendedProduct & { quantity: number }
 
-type PurchaseOrderType = {
-    products: Record<number, ProductType>;
-};
-
-type receiptType = {
-    products: ProductType[];
-    remainingBalance: number;
+type ShoppingCart = {
+    products: Record<number, ProductInCart>,
 }
 
-type EditShoppingCartType = Dispatch<SetStateAction<PurchaseOrderType>>
+type Receipt = {
+    products: ProductInCart[],
+    remainingBalance: number,
+}
 
-export default function ShopUI({ userId, shopData, capabilities }: {
-    userId: number,
-    shopData: ExtendedShop,
-    capabilities: CapabilitiesJsObject<'canAdminister'>,
+type EditShoppingCart = Dispatch<SetStateAction<ShoppingCart>>
+
+export default function ShopUI({ shop, userId, capabilities }: {
+    shop: ExtendedShop,
+    /** The viewer, who is charged for what they buy. Null for a visitor, who cannot buy. */
+    userId: number | null,
+    capabilities: CapabilitiesJsObject<'canAdminister' | 'canPurchase'>,
 }) {
-    const canPurchase = useAuthorizer({
-        authorizer: purchaseAuth.create.data({ userId, visibility: shopData.visibility })
-    }).authorized
-    const [shoppingCart, editShoppingCart] = useState<PurchaseOrderType>({
+    const [shoppingCart, editShoppingCart] = useState<ShoppingCart>({
         products: Object.fromEntries(
-            shopData.products.map(product => [
+            shop.products.map(product => [
                 product.id,
                 {
                     ...product,
@@ -46,12 +42,12 @@ export default function ShopUI({ userId, shopData, capabilities }: {
             ])
         ),
     })
-    const [receipt, editReceipt] = useState<receiptType | null>(null)
+    const [receipt, editReceipt] = useState<Receipt | null>(null)
 
     return <PageWrapper>
-        <p>{shopData.description}</p>
+        <p>{shop.description}</p>
         {capabilities.canAdminister.authorized && (
-            <Link href={`/admin/shop/${shopData.id}`}>Administrer butikken</Link>
+            <Link href={`/admin/shop/${shop.id}`}>Administrer butikken</Link>
         )}
         <table className={styles.table}>
             <thead>
@@ -76,15 +72,11 @@ export default function ShopUI({ userId, shopData, capabilities }: {
                             <Button
                                 onClick={() => addProduct(product, shoppingCart, editShoppingCart)}
                             >+</Button>
-                            {
-                                product.quantity <= 0
-                                    ?
-                                    ''
-                                    :
-                                    <Button
-                                        onClick={() => removeProduct(product, shoppingCart, editShoppingCart)}
-                                    >-</Button>
-                            }
+                            {product.quantity > 0 && (
+                                <Button
+                                    onClick={() => removeProduct(product, shoppingCart, editShoppingCart)}
+                                >-</Button>
+                            )}
                         </td>
                     </tr>
                 )}
@@ -100,9 +92,9 @@ export default function ShopUI({ userId, shopData, capabilities }: {
                         ), false)}
                     </td>
                     <td>
-                        {canPurchase && (
+                        {capabilities.canPurchase.authorized && userId !== null && (
                             <Button
-                                onClick={() => createPurchase(shoppingCart, shopData.id, userId, editReceipt)}>
+                                onClick={() => createPurchase(shoppingCart, shop.id, userId, editReceipt)}>
                                 Kjøp
                             </Button>
                         )}
@@ -135,32 +127,26 @@ export default function ShopUI({ userId, shopData, capabilities }: {
                 </tbody>
             </table>
             <p>Gjenstående saldo: {displayAmount(receipt.remainingBalance, false)}</p>
-        </div>
-        }
-
+        </div>}
     </PageWrapper>
 }
 
 async function createPurchase(
-    shoppingCart: PurchaseOrderType,
+    shoppingCart: ShoppingCart,
     shopId: number,
     userId: number,
-    editReceipt: Dispatch<SetStateAction<receiptType | null>>) {
-    const products = Object.entries(shoppingCart.products).map(
-        ([id, product]) => ({
-            id: Number(id),
+    editReceipt: Dispatch<SetStateAction<Receipt | null>>,
+) {
+    const products = Object.values(shoppingCart.products)
+        .filter(product => product.quantity > 0)
+        .map(product => ({
+            id: product.id,
             quantity: product.quantity,
-        })
-    )
+        }))
 
     const purchaseResult = await createPurchaseAction(
         { params: { userId } },
-        {
-            data: {
-                shopId,
-                products: products.filter(product => product.quantity > 0),
-            },
-        }
+        { data: { shopId, products } },
     )
 
     if (purchaseResult.success) {
@@ -177,27 +163,21 @@ async function createPurchase(
     }
 }
 
-function addProduct(product: ExtendedProduct, shoppingCart: PurchaseOrderType, editShoppingCart: EditShoppingCartType) {
-    const updatedCart: PurchaseOrderType = {
-        ...shoppingCart,
-        products: {
-            ...shoppingCart.products,
-        },
-    }
-    updatedCart.products[product.id].quantity += 1
-    editShoppingCart(updatedCart)
+function addProduct(product: ExtendedProduct, shoppingCart: ShoppingCart, editShoppingCart: EditShoppingCart) {
+    editShoppingCart(withQuantity(shoppingCart, product.id, shoppingCart.products[product.id].quantity + 1))
 }
 
-function removeProduct(product: ExtendedProduct, shoppingCart: PurchaseOrderType, editShoppingCart: EditShoppingCartType) {
-    const updatedCart: PurchaseOrderType = {
+function removeProduct(product: ExtendedProduct, shoppingCart: ShoppingCart, editShoppingCart: EditShoppingCart) {
+    editShoppingCart(withQuantity(shoppingCart, product.id, Math.max(0, shoppingCart.products[product.id].quantity - 1)))
+}
+
+/** The cart with one product's quantity changed, as a new object so React re-renders. */
+function withQuantity(shoppingCart: ShoppingCart, productId: number, quantity: number): ShoppingCart {
+    return {
         ...shoppingCart,
         products: {
             ...shoppingCart.products,
+            [productId]: { ...shoppingCart.products[productId], quantity },
         },
     }
-    updatedCart.products[product.id].quantity -= 1
-    if (updatedCart.products[product.id].quantity <= 0) {
-        updatedCart.products[product.id].quantity = 0
-    }
-    editShoppingCart(updatedCart)
 }

@@ -6,7 +6,7 @@ import useAuthorizer from '@/hooks/useAuthorizer'
 import {
     updateShopAdminLevelVisibilityAction,
     updateShopRegularLevelVisibilityAction,
-} from '@/services/shop/actions'
+} from '@/services/shop/shop/actions'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { configureAction } from '@/services/configureAction'
 import type { ExtendedShop } from '@/services/shop/shop/types'

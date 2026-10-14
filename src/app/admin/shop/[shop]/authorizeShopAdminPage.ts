@@ -13,6 +13,7 @@ export const authorizeShopAdminPage = (visibility: DoubleLevelVisibilityMatrix) 
     productAuth.createForShop,
     productAuth.createShopConnection,
     productAuth.updateForShop,
+    shopAuth.update,
     shopAuth.updateRegularLevel,
     shopAuth.updateAdminLevel,
 ).data({ visibility })

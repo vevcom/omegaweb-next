@@ -3,34 +3,39 @@ import { convertAmount } from '@/lib/currency/convert'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
-    shopId: z.coerce.number().int(),
+    productId: z.coerce.number().int(),
     name: z.string().min(3),
     description: z.string(),
-    price: z.coerce.number().int().min(1).transform((val) => convertAmount(val)),
+    price: z.coerce.number().int().min(1).transform(amount => convertAmount(amount)),
     barcode: z.string().or(z.number()).optional(),
     active: Zpn.checkboxOrBoolean({ label: 'Active' }),
-    productId: z.coerce.number().int(),
 })
 
 const paramsFieldSchemas = z.object({
     shopId: z.coerce.number(),
     productId: z.number(),
-    barcode: z.string().or(z.number()).optional(),
+    barcode: z.string().min(1),
+})
+
+/** What a product is, apart from where and at what price it is sold. */
+const productFields = dataFieldSchemas.pick({
+    name: true,
+    description: true,
+    barcode: true,
+})
+
+const product = paramsFieldSchemas.pick({
+    productId: true,
+})
+
+const shop = paramsFieldSchemas.pick({
+    shopId: true,
 })
 
 export const productSchemas = {
     data: {
-        create: dataFieldSchemas.pick({
-            name: true,
-            description: true,
-            barcode: true,
-        }),
-        update: dataFieldSchemas.pick({
-            productId: true,
-            name: true,
-            description: true,
-            barcode: true,
-        }),
+        create: productFields,
+        update: productFields,
         createForShop: dataFieldSchemas.pick({
             name: true,
             description: true,
@@ -45,25 +50,22 @@ export const productSchemas = {
             active: true,
         }),
         createShopConnection: dataFieldSchemas.pick({
-            shopId: true,
             productId: true,
             price: true,
         }),
     },
     params: {
-        createForShop: paramsFieldSchemas.pick({
-            shopId: true,
-        }),
-        read: paramsFieldSchemas.pick({
-            productId: true,
-        }),
+        read: product,
         readByBarCode: paramsFieldSchemas.pick({
             barcode: true,
             shopId: true,
         }),
+        update: product,
+        createForShop: shop,
         updateForShop: paramsFieldSchemas.pick({
             shopId: true,
             productId: true,
         }),
+        createShopConnection: shop,
     },
 }
