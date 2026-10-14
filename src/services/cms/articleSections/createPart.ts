@@ -29,6 +29,7 @@ export const createArticleSectionPart = {
         cmsLink: { connect: { id: (await cmsLinkOperations.create.internalCall({
             data: { text: 'lenke', url: './' },
             prisma,
+            operationImplementationFields: { special: null },
         })).id } },
     }),
 } as const satisfies Record<

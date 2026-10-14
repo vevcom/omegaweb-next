@@ -8,3 +8,5 @@ export const updateCareerSpecialCmsParagraphContentAction = makeAction(
 )
 export const readCareerSpecialCmsImageAction = makeAction(careerOperations.readSpecialCmsImage)
 export const updateCareerSpecialCmsImageAction = makeAction(careerOperations.updateSpecialCmsImage)
+export const readCareerSpecialCmsLinkAction = makeAction(careerOperations.readSpecialCmsLink)
+export const updateCareerSpecialCmsLinkAction = makeAction(careerOperations.updateSpecialCmsLink)

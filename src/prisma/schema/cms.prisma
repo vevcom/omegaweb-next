@@ -4,7 +4,7 @@ enum SpecialCmsImage {
   FRONTPAGE_3
   FRONTPAGE_4
 
-  CAREER_HERO
+  CAREER_ABOUT
 }
 
 model CmsImage {
@@ -29,8 +29,11 @@ enum SpecialCmsParagraph {
   FRONTPAGE_4
 
   INTEREST_GROUP_GENERAL_INFO
-  CAREER_HERO
-  CAREER_INFO
+
+  CAREER_ABOUT
+  CAREER_PROGRAMMES
+  CAREER_PROGRAMME_CYBERNETICS
+  CAREER_PROGRAMME_ELECTRONICS
 
   CABIN_CONTRACT
 }
@@ -53,6 +56,14 @@ model CmsParagraph {
   committeeParticipation CommitteeParticipationInApplicationPeriod?
 }
 
+enum SpecialCmsLink {
+  CAREER_CONTACT
+  CAREER_CYBERNETICS_FIVE_YEAR
+  CAREER_CYBERNETICS_TWO_YEAR
+  CAREER_ELECTRONICS_FIVE_YEAR
+  CAREER_ELECTRONICS_TWO_YEAR
+}
+
 model CmsLink {
   id               Int             @id @default(autoincrement())
   name             String          @unique @default(cuid())
@@ -60,6 +71,7 @@ model CmsLink {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   text             String          @default("Link")
+  special          SpecialCmsLink? @unique
   articleSection   ArticleSection? @relation(fields: [articleSectionId], references: [id], onDelete: Cascade)
   articleSectionId Int?            @unique
 
