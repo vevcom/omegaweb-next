@@ -38,7 +38,7 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
 
     return (
         <div className={styles.site}>
-            <SiteTheme name={theme} colors={themes[theme]} />
+            <SiteTheme colors={themes[theme]} />
             <GlobalSearch navItems={navItems} />
             <div className={styles.wrapper}>
                 <div className={styles.navBar}>

@@ -2,22 +2,24 @@ import { themeCss } from '@/lib/theme'
 import type { ThemeColors } from '@/lib/theme'
 
 type PropTypes = {
-    /** What tells one theme from another, e.g. the Theme enum value. */
-    name: string,
     colors: ThemeColors,
 }
 
 /**
  * Sets a theme for the whole document: its variables on :root, and the colour of the browser
- * chrome. React hoists both into <head>, so a layout below the root can set the theme for the
- * pages under it, and the first paint has it rather than the default theme in globals.scss.
- * Picking another theme refreshes the page, which renders it anew.
+ * chrome. Rendered by a group layout, so each route group has its own, and server rendered, so
+ * the first paint has it rather than the default theme in globals.scss.
+ *
+ * The style is deliberately not hoisted (no `precedence`): React never removes a hoisted
+ * stylesheet, so after a visit to another group both themes would sit in <head> and the later one
+ * would win. As an ordinary element it leaves with the layout that rendered it.
  */
-export default function SiteTheme({ name, colors }: PropTypes) {
+export default function SiteTheme({ colors }: PropTypes) {
     return (
         <>
+            {/* Hoisted into <head> by React, and removed again when the layout unmounts. */}
             <meta name="theme-color" content={colors['surface-base']} />
-            <style href={`theme-${name}`} precedence="theme">{themeCss(colors)}</style>
+            <style>{themeCss(colors)}</style>
         </>
     )
 }
