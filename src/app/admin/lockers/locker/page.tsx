@@ -3,9 +3,14 @@ import CreateLockerForm from './CreateLockerForm'
 import { lockerLocationOperations } from '@/services/lockers/locations/operations'
 import { lockerAuth } from '@/services/lockers/auth'
 import { serverPage } from '@/app/serverPage'
+import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => lockerLocationOperations.readAll({}),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('lockers', session)
+        return lockerLocationOperations.readAll({})
+    },
     capabilities: () => ({
         canCreateLocker: lockerAuth.create,
     }),
