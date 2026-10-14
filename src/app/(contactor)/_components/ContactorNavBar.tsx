@@ -11,36 +11,32 @@ type PropTypes = {
 }
 
 /**
- * Contactor's navigation: a strip with the way back to Omega's site, then the wordmark and the
- * links. The edit mode switch is there for those who may edit the CMS content of the pages - it
- * renders nothing for everyone else.
+ * Contactor's navigation: the wordmark, the links, and the way back to Omega's site. The edit
+ * mode switch is there for those who may edit the CMS content of the pages - it renders nothing
+ * for everyone else.
  */
 export default function ContactorNavBar({ links }: PropTypes) {
     return (
         <header className={styles.header}>
-            <div className={styles.backBar}>
-                <div className={styles.inner}>
-                    <Link href="/" className={styles.back}>
-                        <FontAwesomeIcon icon={faArrowLeft} />
-                        <span>Tilbake til omega.ntnu.no</span>
-                    </Link>
-                </div>
-            </div>
             <nav className={styles.nav}>
-                <div className={styles.inner}>
-                    <Link href={CAREER_PATH} className={styles.brand} aria-label="Contactor, til forsiden">
-                        <ContactorWordmark />
-                    </Link>
-                    <ul className={styles.links}>
-                        {links.map(link => (
-                            <li key={link.href}>
-                                <Link href={link.href}>{link.name}</Link>
-                            </li>
-                        ))}
-                    </ul>
-                    <div className={styles.editMode}>
-                        <EditModeSwitch />
-                    </div>
+                <Link href={CAREER_PATH} className={styles.brand} aria-label="Contactor, til forsiden">
+                    <ContactorWordmark />
+                </Link>
+                <ul className={styles.links}>
+                    {links.map(link => (
+                        <li key={link.href}>
+                            <Link href={link.href}>{link.name}</Link>
+                        </li>
+                    ))}
+                    <li className={styles.back}>
+                        <Link href="/">
+                            <FontAwesomeIcon icon={faArrowLeft} />
+                            <span>Tilbake til Omegaveven</span>
+                        </Link>
+                    </li>
+                </ul>
+                <div className={styles.editMode}>
+                    <EditModeSwitch />
                 </div>
             </nav>
         </header>
