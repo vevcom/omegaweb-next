@@ -37,16 +37,24 @@ const { page, generateMetadata } = serverPage({
             },
         })
 
-        const groupsFormData = groups.map(group => {
+        // Groups the user has left are not offered: reserving on behalf of a group takes an active membership.
+        const groupsFormData = groups.filter(group => lockerReservationAuth.create.data({
+            userId: user.id,
+            groupId: group.id,
+        }).auth(session).authorized).map(group => {
             const name = inferGroupName(group)
             return { value: group.id.toString(), label: name }
         })
 
         return { lockerId, locker, groupsFormData, user } as const
     },
-    capabilities: () => ({
-        canCreateReservation: lockerReservationAuth.create,
-        canUpdateReservation: lockerReservationAuth.update,
+    capabilities: (data) => ({
+        canCreateReservation: data.user
+            ? lockerReservationAuth.create.data({ userId: data.user.id, groupId: null })
+            : Require.user(),
+        canUpdateReservation: data.locker?.LockerReservation.length
+            ? lockerReservationAuth.update.data({ userId: data.locker.LockerReservation[0].user.id, groupId: null })
+            : Require.custom(() => false, { errorMessage: 'Skapet er ikke reservert.' }),
     }),
     metadata: () => ({ title: 'Skapreservasjon' }),
     render: ({ data, capabilities }) => {
@@ -87,7 +95,7 @@ const { page, generateMetadata } = serverPage({
                             <>
                                 <p>Dette skapet er reservert av {firstname} {lastname} {groupText} {endDateText}</p>
                                 {
-                                    user.id === reservation.user.id && capabilities.canUpdateReservation.authorized
+                                    capabilities.canUpdateReservation.authorized
                                         ?
                                         <UpdateLockerReservationForm
                                             reservationId={reservation.id}
@@ -103,6 +111,7 @@ const { page, generateMetadata } = serverPage({
                                 {capabilities.canCreateReservation.authorized && (
                                     <CreateLockerReservationForm
                                         lockerId={lockerId}
+                                        userId={user.id}
                                         groupsFormData={groupsFormData}
                                     />
                                 )}

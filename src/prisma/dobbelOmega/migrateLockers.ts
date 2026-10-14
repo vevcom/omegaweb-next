@@ -40,10 +40,9 @@ function parseFloor(locker: OwLocker): number | null {
 }
 
 /**
- * PN allows a locker exactly one reservation row - LockerReservation.lockerId is unique -
- * whereas Omegaweb-basic kept every reservation a locker ever had. Only the most recent
- * one is still meaningful, so that is the one that comes across and the rest of the
- * history is dropped.
+ * PN allows a locker one active reservation at a time, whereas Omegaweb-basic kept every
+ * reservation a locker ever had. Only the most recent one is still meaningful, so that is
+ * the one that comes across and the rest of the history is dropped.
  */
 function latestReservation(locker: OwLocker): OwLockerReservation | null {
     const reservations = locker.LockerReservations.filter(reservation => reservation.UserId !== null)

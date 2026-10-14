@@ -1,4 +1,4 @@
-import type { lockerReservationIncluder } from './reservations/constants'
+import type { lockerReservationIncluder } from './constants'
 import type { lockersSchemas } from './schemas'
 import type { InferPagingCursor } from '@/lib/paging/schema'
 import type { Prisma } from '@/prisma-generated-pn-types'

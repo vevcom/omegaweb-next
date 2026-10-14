@@ -399,6 +399,18 @@ export const userOperations = {
         })
     }),
 
+    updateTheme: defineOperation({
+        paramsSchema: userSchemas.params.updateTheme,
+        dataSchema: userSchemas.data.updateTheme,
+        authorizer: ({ params }) => userAuth.updateTheme.data({ userField: { username: params.username } }),
+        operation: async ({ prisma, params, data }) => {
+            await prisma.user.update({
+                where: { username: params.username },
+                data,
+            })
+        }
+    }),
+
     updateBioParagraphContent: cmsParagraphOperations.updateContent.implement({
         implementationParamsSchema: userSchemas.params.updateBioParagraphContent,
         authorizer: ({ implementationParams }) =>

@@ -1,7 +1,7 @@
 import { Zpn } from '@/lib/fields/zpn'
 import { imageSchemas } from '@/services/images/subservice/schemas'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
-import { SEX, RelationshipStatus } from '@/prisma-generated-pn-types'
+import { SEX, RelationshipStatus, Theme } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 export const studentCardSchema = z.string()
@@ -20,6 +20,7 @@ export const userDataFieldSchemas = z.object({
     allergies: z.string().max(150).optional().nullable(),
     relationshipStatusText: z.string().max(150).optional(),
     relationshipStatus: z.nativeEnum(RelationshipStatus).optional(),
+    theme: z.nativeEnum(Theme),
     password: z.string().max(50).min(12, {
         // eslint-disable-next-line
         message: 'Passoret må minst ha 12 tegn, en stor og en liten bokstav, et tall, en rune, to emojier, en musikk note, en magisk sopp og en dråpe smørekopp-blod (avsky).'
@@ -102,6 +103,10 @@ export const userSchemas = {
             relationshipStatus: true,
         }),
 
+        updateTheme: userDataFieldSchemas.pick({
+            theme: true,
+        }),
+
         updateProfile: userDataFieldSchemas.partial().pick({
             allergies: true,
             sex: true,
@@ -175,6 +180,7 @@ export const userSchemas = {
             userId: true,
         }),
         updatePassword: id,
+        updateTheme: username,
         registerNewEmail: id,
         register: id,
         destroy: id,

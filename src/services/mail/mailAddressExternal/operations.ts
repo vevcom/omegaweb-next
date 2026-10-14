@@ -19,15 +19,13 @@ export const mailAddressExternalOperations = {
     }),
 
     update: defineOperation({
+        paramsSchema: mailAddressExternalSchemas.params.update,
         dataSchema: mailAddressExternalSchemas.data.update,
         authorizer: () => mailAddressExternalAuth.update,
-        operation: async ({ prisma, data }): Promise<MailAddressExternal> =>
+        operation: async ({ prisma, params, data }): Promise<MailAddressExternal> =>
             prisma.mailAddressExternal.update({
-                where: { id: data.id },
-                data: {
-                    address: data.address,
-                    description: data.description,
-                },
+                where: { id: params.id },
+                data,
             }),
     }),
 

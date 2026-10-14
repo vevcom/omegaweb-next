@@ -11,5 +11,3 @@ export const destroyAliasMailingListRelationAction = makeAction(mailOperations.d
 export const destroyMailingListExternalRelationAction = makeAction(mailOperations.destroyMailingListExternalRelation)
 export const destroyMailingListUserRelationAction = makeAction(mailOperations.destroyMailingListUserRelation)
 export const destroyMailingListGroupRelationAction = makeAction(mailOperations.destroyMailingListGroupRelation)
-
-export const readMailOptionsAction = makeAction(mailOperations.readMailOptions)

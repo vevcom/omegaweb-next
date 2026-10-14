@@ -65,9 +65,8 @@ export default function EditMailingList({
         {canUpdateMailingList && <Form
             title="Rediger e-postliste"
             submitText="Oppdater"
-            action={updateMailingListAction}
+            action={configureAction(updateMailingListAction, { params: { id: focusedMailingList.id } })}
         >
-            <input type="hidden" name="id" value={focusedMailingList.id} />
             <TextInput name="name" label="Navn" defaultValue={focusedMailingList.name} />
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedMailingList.description} />
         </Form>}

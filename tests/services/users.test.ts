@@ -205,3 +205,43 @@ describe('updatePassword', () => {
         expect(await passwordMatches(user.id, PASSWORD)).toBe(true)
     })
 })
+
+describe('updateTheme', () => {
+    test('stores the theme on the user, and only the user themself sets it', async () => {
+        const user = await createInvitedUser('themeone')
+        const other = await createInvitedUser('themetwo')
+
+        await userOperations.updateTheme({
+            params: { username: user.username },
+            data: { theme: 'SOLARIZED' },
+            session: sessionOf(user),
+        })
+        await expect(userOperations.updateTheme({
+            params: { username: other.username },
+            data: { theme: 'SOLARIZED' },
+            session: sessionOf(user),
+        })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+
+        expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).theme).toBe('SOLARIZED')
+        expect((await prisma.user.findUniqueOrThrow({ where: { id: other.id } })).theme).toBe('STANDARD')
+    })
+
+    test('requires a logged in user and a theme that exists', async () => {
+        const user = await createInvitedUser('themethree')
+
+        await expect(userOperations.updateTheme({
+            params: { username: user.username },
+            data: { theme: 'SOLARIZED' },
+            session: Session.empty(),
+        })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
+
+        await expect(userOperations.updateTheme({
+            params: { username: user.username },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data: { theme: 'NOT_A_THEME' as any },
+            session: sessionOf(user),
+        })).rejects.toThrow(ParseError)
+
+        expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).theme).toBe('STANDARD')
+    })
+})

@@ -47,9 +47,8 @@ export default function EditMailAddressExternal({
         {canUpdateExternal && <Form
             title="Rediger ekstern adresse"
             submitText="Oppdater"
-            action={updateMailAddressExternalAction}
+            action={configureAction(updateMailAddressExternalAction, { params: { id: focusedExternal.id } })}
         >
-            <input type="hidden" name="id" value={focusedExternal.id} />
             <TextInput name="address" label="Adresse" defaultValue={focusedExternal.address} />
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedExternal.description ?? ''} />
         </Form>}

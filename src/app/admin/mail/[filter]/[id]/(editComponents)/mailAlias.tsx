@@ -40,9 +40,8 @@ export default function EditMailAlias({
         {canUpdateAlias && <Form
             title="Rediger alias"
             submitText="Oppdater"
-            action={updateMailAliasAction}
+            action={configureAction(updateMailAliasAction, { params: { id: focusedAlias.id } })}
         >
-            <input type="hidden" name="id" value={focusedAlias.id} />
             <TextInput name="address" label="Adresse" defaultValue={focusedAlias.address} />
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedAlias.description} />
         </Form>}

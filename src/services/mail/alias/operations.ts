@@ -20,15 +20,13 @@ export const aliasOperations = {
     }),
 
     update: defineOperation({
+        paramsSchema: mailAliasSchemas.params.update,
         dataSchema: mailAliasSchemas.data.update,
         authorizer: () => mailAliasAuth.update,
-        operation: async ({ prisma, data }): Promise<MailAlias> =>
+        operation: async ({ prisma, params, data }): Promise<MailAlias> =>
             prisma.mailAlias.update({
-                where: { id: data.id },
-                data: {
-                    address: data.address,
-                    description: data.description,
-                },
+                where: { id: params.id },
+                data,
             }),
     }),
 
