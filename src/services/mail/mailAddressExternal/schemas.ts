@@ -12,13 +12,16 @@ const validAddress = z.string().email().min(2).max(50)
     )
 
 const dataFieldSchemas = z.object({
-    id: z.coerce.number().min(1),
     address: validAddress,
     description: z.string().max(200).optional(),
 })
 
 const paramsFieldSchemas = z.object({
     id: z.coerce.number().min(1),
+})
+
+const mailAddressExternal = paramsFieldSchemas.pick({
+    id: true,
 })
 
 export const mailAddressExternalSchemas = {
@@ -28,14 +31,12 @@ export const mailAddressExternalSchemas = {
             description: true,
         }),
         update: dataFieldSchemas.pick({
-            id: true,
             address: true,
             description: true,
         }),
     },
     params: {
-        destroy: paramsFieldSchemas.pick({
-            id: true,
-        }),
+        update: mailAddressExternal,
+        destroy: mailAddressExternal,
     },
 }

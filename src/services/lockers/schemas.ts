@@ -2,9 +2,9 @@ import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
-    building: z.string(),
-    floor: z.coerce.number(),
-    id: z.coerce.number(),
+    building: z.string().trim().min(1),
+    floor: z.coerce.number().int(),
+    id: z.coerce.number().int().nonnegative(),
 })
 
 const paramsFieldSchemas = z.object({
