@@ -154,18 +154,3 @@ export function themeCssVars(theme: Theme): CSSProperties {
         Object.entries(themes[theme]).map(([key, value]) => [`--${key}`, value])
     )
 }
-
-/**
- * Repaints the page in the given theme without a reload. The server renders the user's stored theme
- * onto <html> on every request (see RootLayout), so this is only for showing a change immediately.
- */
-export function applyTheme(theme: Theme): void {
-    const colors = themes[theme]
-    const root = document.documentElement
-    // Keeps the Android/desktop browser chrome in step with the theme. The meta itself is
-    // rendered by RootLayout; without that there is no node here to update.
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', colors['surface-base'])
-    Object.entries(colors).forEach(([key, value]) => {
-        root.style.setProperty(`--${key}`, value)
-    })
-}

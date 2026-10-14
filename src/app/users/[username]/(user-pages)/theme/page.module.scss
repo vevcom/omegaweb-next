@@ -12,7 +12,6 @@
     border-radius: ohma.$rounding;
     border: 2px solid transparent;
     padding: calc(2 * #{ohma.$gap});
-    cursor: pointer;
     transition: border-color ohma.$transitionTime, box-shadow ohma.$transitionTime;
     overflow: hidden;
     display: flex;

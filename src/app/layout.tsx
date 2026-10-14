@@ -91,7 +91,7 @@ export default async function RootLayout({ children }: PropTypes) {
         <html lang="en" style={themeCssVars(theme)}>
             <body className={`${inter.className} ${styles.body}`}>
                 {/* Hoisted into the head by React. Keeps the browser chrome in step with the theme;
-                    applyTheme() rewrites it when the user picks another one. */}
+                    picking another one refreshes the page, which renders it anew. */}
                 <meta name="theme-color" content={themes[theme]['surface-base']} />
                 <ServiceWorkerRegister />
                 <SessionProvider session={nextAuthSession}>
