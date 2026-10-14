@@ -1,7 +1,6 @@
 import { getImageForCmsImageRelation } from './seedImages'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import { cmsLinkOperations } from '@/cms/links/operations'
 import { articleOperations } from '@/cms/articles/operations'
 import { newStudentOperations } from '@/services/newStudent/operations'
 import { reportOperations } from '@/services/report/operations'
@@ -9,7 +8,7 @@ import { cabinArticleOperations } from '@/services/cabin/article/operations'
 import { buildArticleFromConfig, CMS_PARAGRAPHS_DIR } from '@/seeder/src/buildArticleFromConfig'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
-import { SpecialCmsArticle, SpecialCmsImage, SpecialCmsLink, SpecialCmsParagraph } from '@/prisma-generated-pn/enums'
+import { SpecialCmsArticle, SpecialCmsImage, SpecialCmsParagraph } from '@/prisma-generated-pn/enums'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import type { ImagesAvailablieForCms } from './seedImages'
@@ -29,6 +28,7 @@ const seedSpecialCmsImageConfig: Record<SpecialCmsImage, ImagesAvailablieForCms>
     FRONTPAGE_2: { dynamicImageSeededForCmsName: 'ohma' },
     FRONTPAGE_3: { dynamicImageSeededForCmsName: 'ov' },
     FRONTPAGE_4: { dynamicImageSeededForCmsName: 'ohma' },
+    CAREER_HERO: { dynamicImageSeededForCmsName: 'omega_mai' },
 }
 
 /**
@@ -41,20 +41,9 @@ const seedSpecialCmsParagraphConfig: Record<SpecialCmsParagraph, string> = {
     FRONTPAGE_3: 'frontpage/frontpage_3.md',
     FRONTPAGE_4: 'frontpage/frontpage_4.md',
     INTEREST_GROUP_GENERAL_INFO: 'interest_groups/general_info.md',
+    CAREER_HERO: 'career/career_hero.md',
     CAREER_INFO: 'career/career_info.md',
     CABIN_CONTRACT: 'cabin/cabin_contract.md',
-}
-
-/**
- * Same idea as seedSpecialCmsImageConfig, but for special cms links.
- */
-type SeedCmsLinkConfig = Required<Parameters<typeof cmsLinkOperations.update.internalCall>[0]['data']>
-
-const seedSpecialCmsLinkConfig: Record<SpecialCmsLink, SeedCmsLinkConfig> = {
-    CAREER_LINK_TO_CONTACTOR: {
-        url: 'mailto:naeringsliv@omega.ntnu.no',
-        text: 'Kontakt oss'
-    },
 }
 
 /**
@@ -112,9 +101,9 @@ const seedSpecialCmsArticleConfig: Record<SpecialCmsArticle, SeedSpecialArticleC
 }
 
 /**
- * Seeds the special cms images, paragraphs, links and articles - the pieces of content addressed
- * by a fixed `special` enum value rather than by id (frontpage images and paragraphs, the career
- * contact link, and special articles like the report page). None of this is strictly necessary,
+ * Seeds the special cms images, paragraphs and articles - the pieces of content addressed
+ * by a fixed `special` enum value rather than by id (the frontpage and career images and
+ * paragraphs, and special articles like the report page). None of this is strictly necessary,
  * as every one of these self-heals with blank/placeholder content on first read if missing - this
  * just gives a nicer initial state for development.
  */
@@ -125,9 +114,6 @@ export const seedSpecialCms = defineSeedOperation(async prisma => {
         ),
         ...Object.values(SpecialCmsParagraph).map(
             special => upsertSpecialCmsParagraph(prisma, special, seedSpecialCmsParagraphConfig[special])
-        ),
-        ...Object.values(SpecialCmsLink).map(
-            special => upsertSpecialCmsLink(prisma, special, seedSpecialCmsLinkConfig[special])
         ),
         ...Object.values(SpecialCmsArticle).map(
             special => upsertSpecialCmsArticle(prisma, special, seedSpecialCmsArticleConfig[special])
@@ -176,29 +162,6 @@ async function upsertSpecialCmsParagraph(
             return cmsParagraphOperations.updateContent.internalCall({
                 params: { paragraphId: paragraph.id },
                 data: { markdown: readFileSync(join(CMS_PARAGRAPHS_DIR, file), 'utf-8') }
-            })
-        },
-        update: () => Promise.resolve(),
-    })
-}
-
-async function upsertSpecialCmsLink(
-    prisma: PrismaClient,
-    special: SpecialCmsLink,
-    link: SeedCmsLinkConfig
-) {
-    return upsert({
-        checkExistence: () => prisma.cmsLink.findUnique({
-            where: { special },
-            select: { id: true }
-        }),
-        create: async () => {
-            const cmsLink = await cmsLinkOperations.generateSpecialCmsLinkFromConfig.internalCall({
-                params: { special }
-            })
-            return cmsLinkOperations.update.internalCall({
-                params: { linkId: cmsLink.id },
-                data: link
             })
         },
         update: () => Promise.resolve(),

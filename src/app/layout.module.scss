@@ -7,6 +7,13 @@
     color: ohma.$colors-text;
 }
 
+// Under /career, Contactor's site, the body is a plain canvas: the gradient above is Omega's, and
+// the career layout paints its own surfaces.
+.contactorBody {
+    background: ohma.$colors-surface-base;
+    color: ohma.$colors-text;
+}
+
 .wrapper {
     display: grid;
     grid-template-columns: ohma.$nav-height minmax(0, 1fr);

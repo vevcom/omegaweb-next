@@ -2,13 +2,9 @@
 import { careerOperations } from './operations'
 import { makeAction } from '@/services/serverAction'
 
-export const readSpecialCmsParagraphCareerInfoAction = makeAction(
-    careerOperations.readSpecialCmsParagraphCareerInfo
+export const readCareerSpecialCmsParagraphAction = makeAction(careerOperations.readSpecialCmsParagraph)
+export const updateCareerSpecialCmsParagraphContentAction = makeAction(
+    careerOperations.updateSpecialCmsParagraphContent
 )
-export const updateSpecialCmsParagraphContentCareerInfoAction = makeAction(
-    careerOperations.updateSpecialCmsParagraphContentCareerInfo
-)
-
-export const updateCareerSpecialCmsLinkAction = makeAction(
-    careerOperations.updateSpecialCmsLink
-)
+export const readCareerSpecialCmsImageAction = makeAction(careerOperations.readSpecialCmsImage)
+export const updateCareerSpecialCmsImageAction = makeAction(careerOperations.updateSpecialCmsImage)

@@ -1,0 +1,103 @@
+@use '@/styles/ohma';
+
+.inner {
+    width: 100%;
+    max-width: var(--contactor-max-width);
+    margin: 0 auto;
+    padding: 0 var(--contactor-page-padding);
+    display: flex;
+    align-items: center;
+    gap: calc(3 * #{ohma.$gap});
+}
+
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+}
+
+.backBar {
+    background: var(--contactor-navy-dark);
+    font-size: ohma.$fonts-s;
+
+    .inner {
+        justify-content: flex-end;
+        min-height: 32px;
+    }
+
+    .back {
+        display: inline-flex;
+        align-items: center;
+        gap: ohma.$gap;
+        color: #fff;
+        opacity: 0.85;
+
+        &:hover {
+            opacity: 1;
+            text-decoration: none;
+        }
+
+        svg {
+            width: 0.8em;
+            height: 0.8em;
+        }
+    }
+}
+
+.nav {
+    background: ohma.$colors-surface-raised;
+    border-bottom: 1px solid var(--contactor-line);
+
+    .inner {
+        min-height: ohma.$nav-height;
+        flex-wrap: wrap;
+    }
+
+    .brand {
+        margin-right: auto;
+        text-decoration: none;
+    }
+
+    .links {
+        list-style: none;
+        display: flex;
+        gap: calc(3 * #{ohma.$gap});
+
+        a {
+            display: inline-block;
+            padding: ohma.$gap 0;
+            border-bottom: 2px solid transparent;
+            color: var(--contactor-navy);
+            font-size: ohma.$fonts-m;
+            font-weight: 500;
+            transition: border-color ohma.$transitionTime;
+
+            &:hover {
+                text-decoration: none;
+                border-bottom-color: var(--contactor-accent);
+            }
+        }
+    }
+
+    .editMode {
+        width: 40px;
+        height: 40px;
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    @include ohma.screenMobile {
+        .inner {
+            padding-bottom: ohma.$gap;
+        }
+
+        .links {
+            order: 3;
+            width: 100%;
+            flex-wrap: wrap;
+            gap: 0 calc(3 * #{ohma.$gap});
+        }
+    }
+}

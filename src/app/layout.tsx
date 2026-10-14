@@ -18,11 +18,15 @@ import GlobalSearch from '@/UI/GlobalSearch'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
 import { visibleNavItems } from '@/components/NavBar/navDef'
 import NavBar from '@/components/NavBar/NavBar'
+import { isCareerPath } from '@/app/career/_components/contactorSite'
+import { contactorTheme } from '@/app/career/_components/contactorTheme'
+import { CURRENT_PATH_HEADER } from '@/proxy'
 import { Inter } from 'next/font/google'
 import '@/styles/globals.scss'
 import { config } from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 import { getServerSession } from 'next-auth'
+import { headers } from 'next/headers'
 import type { ReactNode } from 'react'
 import type { Metadata, Viewport } from 'next'
 
@@ -62,6 +66,10 @@ type PropTypes = {
 
 export default async function RootLayout({ children }: PropTypes) {
     const nextAuthSession = await getServerSession(authOptions)
+    // The career pages are Contactor's site inside Omega's (see src/app/career/layout.tsx): they get
+    // Contactor's fixed theme and none of Omega's navigation. The path comes from the header the
+    // proxy stamps, as a layout cannot read its own URL.
+    const isContactorSite = isCareerPath((await headers()).get(CURRENT_PATH_HEADER) ?? '')
 
     const {
         serverSession, defaultPermissions, standardImages, navUser,
@@ -85,14 +93,16 @@ export default async function RootLayout({ children }: PropTypes) {
     const navItems = visibleNavItems(serverSession)
     // Rendering the theme's variables server side is what keeps the first paint from flashing the
     // default theme. Anyone not logged in gets the default, which globals.scss already holds.
-    const theme = serverSession.user?.theme ?? Theme.STANDARD
+    const themeColors = isContactorSite
+        ? contactorTheme
+        : themes[serverSession.user?.theme ?? Theme.STANDARD]
 
     return (
-        <html lang="nb" style={themeCssVars(theme)}>
-            <body className={`${inter.className} ${styles.body}`}>
+        <html lang="nb" style={themeCssVars(themeColors)}>
+            <body className={`${inter.className} ${isContactorSite ? styles.contactorBody : styles.body}`}>
                 {/* Hoisted into the head by React. Keeps the browser chrome in step with the theme;
                     picking another one refreshes the page, which renders it anew. */}
-                <meta name="theme-color" content={themes[theme]['surface-base']} />
+                <meta name="theme-color" content={themeColors['surface-base']} />
                 <ServiceWorkerRegister />
                 <SessionProvider session={nextAuthSession}>
                     <ClientDataProvider
@@ -101,32 +111,34 @@ export default async function RootLayout({ children }: PropTypes) {
                         standardImages={standardImages}
                     >
                         <GlobalSearchProvider>
-                            <GlobalSearch navItems={navItems} />
+                            {!isContactorSite && <GlobalSearch navItems={navItems} />}
                             <EditModeProvider>
                                 <PopUpProvider>
                                     <PageTitleProvider>
                                         <ReleaseCountdownGate>
-                                            <div className={styles.wrapper}>
-                                                <div className={styles.navBar}>
-                                                    <NavBar
-                                                        isLoggedIn={navUser !== null}
-                                                        profileImage={navUser?.image ?? null}
-                                                        navItems={navItems}
-                                                    />
+                                            {isContactorSite ? children : (
+                                                <div className={styles.wrapper}>
+                                                    <div className={styles.navBar}>
+                                                        <NavBar
+                                                            isLoggedIn={navUser !== null}
+                                                            profileImage={navUser?.image ?? null}
+                                                            navItems={navItems}
+                                                        />
+                                                    </div>
+                                                    <aside className={styles.sideBar}>
+                                                        <DesktopSideBar navItems={navItems} />
+                                                    </aside>
+                                                    <main className={styles.content}>
+                                                        {children}
+                                                    </main>
+                                                    <div className={styles.mobileNavBar}>
+                                                        <MobileNavBar
+                                                            isLoggedIn={navUser !== null}
+                                                            navItems={navItems}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <aside className={styles.sideBar}>
-                                                    <DesktopSideBar navItems={navItems} />
-                                                </aside>
-                                                <main className={styles.content}>
-                                                    {children}
-                                                </main>
-                                                <div className={styles.mobileNavBar}>
-                                                    <MobileNavBar
-                                                        isLoggedIn={navUser !== null}
-                                                        navItems={navItems}
-                                                    />
-                                                </div>
-                                            </div>
+                                            )}
                                         </ReleaseCountdownGate>
                                     </PageTitleProvider>
                                 </PopUpProvider>

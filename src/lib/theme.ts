@@ -12,7 +12,7 @@ export const themeLabels: Record<Theme, string> = {
     [Theme.OW_BASIC]: 'Alt var bedre før',
 }
 
-type ThemeColors = {
+export type ThemeColors = {
     layer: string;
     text: string;
     'text-muted': string;
@@ -149,8 +149,8 @@ export const themes: Record<Theme, ThemeColors> = {
     },
 }
 
-export function themeCssVars(theme: Theme): CSSProperties {
+export function themeCssVars(colors: ThemeColors): CSSProperties {
     return Object.fromEntries(
-        Object.entries(themes[theme]).map(([key, value]) => [`--${key}`, value])
+        Object.entries(colors).map(([key, value]) => [`--${key}`, value])
     )
 }

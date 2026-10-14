@@ -27,7 +27,6 @@ async function createParticipations(
         const videoLink = await cmsLinkOperations.create.internalCall({
             prisma: tx,
             data: { text: videoLinkDefaultText, url: videoLinkUnsetUrl },
-            operationImplementationFields: { special: null },
         })
         await tx.committeeParticipationInApplicationPeriod.create({
             data: {

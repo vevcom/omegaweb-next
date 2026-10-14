@@ -1,0 +1,48 @@
+import styles from './ContactorNavBar.module.scss'
+import ContactorWordmark from './ContactorWordmark'
+import { CAREER_PATH } from './contactorSite'
+import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
+import Link from 'next/link'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+
+type PropTypes = {
+    links: { name: string, href: string }[],
+}
+
+/**
+ * Contactor's navigation: a strip with the way back to Omega's site, then the wordmark and the
+ * links. The edit mode switch is there for those who may edit the CMS content of the pages - it
+ * renders nothing for everyone else.
+ */
+export default function ContactorNavBar({ links }: PropTypes) {
+    return (
+        <header className={styles.header}>
+            <div className={styles.backBar}>
+                <div className={styles.inner}>
+                    <Link href="/" className={styles.back}>
+                        <FontAwesomeIcon icon={faArrowLeft} />
+                        <span>Tilbake til omega.ntnu.no</span>
+                    </Link>
+                </div>
+            </div>
+            <nav className={styles.nav}>
+                <div className={styles.inner}>
+                    <Link href={CAREER_PATH} className={styles.brand} aria-label="Contactor, til forsiden">
+                        <ContactorWordmark />
+                    </Link>
+                    <ul className={styles.links}>
+                        {links.map(link => (
+                            <li key={link.href}>
+                                <Link href={link.href}>{link.name}</Link>
+                            </li>
+                        ))}
+                    </ul>
+                    <div className={styles.editMode}>
+                        <EditModeSwitch />
+                    </div>
+                </div>
+            </nav>
+        </header>
+    )
+}

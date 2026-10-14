@@ -1,90 +1,109 @@
 import styles from './page.module.scss'
+import { careerSections, CONTACTOR_EMAIL } from './_components/contactorSite'
 import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagraph'
-import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import StandardImageServer from '@/components/Image/StandardImageServer'
-import CmsLink from '@/components/Cms/CmsLink/CmsLink'
-import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import {
-    readSpecialCmsParagraphCareerInfoAction,
-    updateSpecialCmsParagraphContentCareerInfoAction,
-    updateCareerSpecialCmsLinkAction
+    readCareerSpecialCmsImageAction,
+    readCareerSpecialCmsParagraphAction,
+    updateCareerSpecialCmsImageAction,
+    updateCareerSpecialCmsParagraphContentAction,
 } from '@/services/career/actions'
-import { careerOperations } from '@/services/career/operations'
 import { careerAuth } from '@/services/career/auth'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => {
-        const [contactorCmsLink, companyPresentationEventTag] = await Promise.all([
-            withFallback(
-                careerOperations.readSpecialCmsLink({ params: { special: 'CAREER_LINK_TO_CONTACTOR' } }),
-                null
-            ),
-            withFallback(
-                eventTagOperations.readSpecial({ params: { special: 'COMPANY_PRESENTATION' } }),
-                null
-            ),
-        ])
-        return { contactorCmsLink, companyPresentationEventTag, isLoggedIn: Boolean(session.user) }
-    },
-    capabilities: () => ({
-        canEditSpecialCmsLink: careerAuth.updateSpecialCmsLink,
-        canEditSpecialCmsParagraph: careerAuth.updateSpecialCmsParagraphContentCareerInfo,
+    operation: async () => ({
+        companyPresentationEventTag: await withFallback(
+            eventTagOperations.readSpecial({ params: { special: 'COMPANY_PRESENTATION' } }),
+            null
+        ),
     }),
-    metadata: (data) => ({ title: data.isLoggedIn ? 'Karriere' : 'For bedrifter' }),
+    capabilities: () => ({
+        canEditSpecialCmsParagraph: careerAuth.updateSpecialCmsParagraphContent,
+        canEditSpecialCmsImage: careerAuth.updateSpecialCmsImage,
+    }),
+    // Absolute: the layout's "| Contactor NTNU" template only applies to the segments under it,
+    // and the frontpage is the site's own name.
+    metadata: () => ({ title: { absolute: 'Contactor NTNU' } }),
     render: ({ data, capabilities }) => (
-        <PageWrapper headerItem={
-            data.contactorCmsLink ? <CmsLink
-                capabilities={{ canEdit: capabilities.canEditSpecialCmsLink }}
-                className={styles.conactorLink}
-                cmsLink={data.contactorCmsLink}
-                updateCmsLinkAction={updateCareerSpecialCmsLinkAction}
-            /> : <></>
-        }>
-            <div className={styles.wrapper}>
+        <div className={styles.page}>
+            <section className={styles.hero}>
+                <div className={styles.heroText}>
+                    <span className={styles.badge}>Bedriftskontakt NTNU</span>
+                    <SpecialCmsParagraph
+                        capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
+                        className={styles.heroParagraph}
+                        special="CAREER_HERO"
+                        readSpecialCmsParagraphAction={readCareerSpecialCmsParagraphAction}
+                        updateCmsParagraphAction={updateCareerSpecialCmsParagraphContentAction}
+                    />
+                    <div className={styles.actions}>
+                        <Link className={styles.primaryButton} href={`mailto:${CONTACTOR_EMAIL}`}>
+                            Ta kontakt
+                        </Link>
+                        <Link className={styles.secondaryButton} href="#tilbud">
+                            Les mer om hva vi tilbyr
+                        </Link>
+                    </div>
+                </div>
+                <div className={styles.heroImage}>
+                    <SpecialCmsImage
+                        capabilities={{ canEdit: capabilities.canEditSpecialCmsImage }}
+                        special="CAREER_HERO"
+                        width={900}
+                        readSpecialCmsImageAction={readCareerSpecialCmsImageAction}
+                        updateCmsImageAction={updateCareerSpecialCmsImageAction}
+                    />
+                </div>
+            </section>
+
+            <section id="tilbud" className={styles.services}>
+                <div className={styles.sectionHead}>
+                    <span className={styles.badge}>Våre tjenester</span>
+                    <h2>Alt du trenger for å nå studentene</h2>
+                    <p>
+                        Vi tilbyr skreddersydde løsninger for bedrifter som ønsker å rekruttere de beste
+                        teknologistudentene.
+                    </p>
+                </div>
+                <div className={styles.cards}>
+                    {careerSections(data.companyPresentationEventTag).map(section => (
+                        <Link key={section.href} href={section.href} className={styles.card}>
+                            <StandardImageServer
+                                disableLinkingToLicense
+                                className={styles.cardImage}
+                                width={600}
+                                standardImage={section.standardImage}
+                            />
+                            <h3>{section.name}</h3>
+                            <p>{section.description}</p>
+                        </Link>
+                    ))}
+                </div>
+            </section>
+
+            <section className={styles.about}>
+                <span className={styles.badge}>Om oss</span>
                 <SpecialCmsParagraph
                     capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
-                    className={styles.info}
+                    className={styles.aboutParagraph}
                     special="CAREER_INFO"
-                    readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfoAction}
-                    updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfoAction}
+                    readSpecialCmsParagraphAction={readCareerSpecialCmsParagraphAction}
+                    updateCmsParagraphAction={updateCareerSpecialCmsParagraphContentAction}
                 />
-                <span className={styles.links}>
-                    <Link href="/career/job-ads">
-                        <StandardImageServer
-                            disableLinkingToLicense
-                            className={styles.linkImage}
-                            width={300}
-                            standardImage="MACHINE"
-                        />
-                        <h2>Jobbannonser</h2>
-                    </Link>
-                    <Link href={`/events?${QueryParams.eventTags.encodeUrl(
-                        data.companyPresentationEventTag ? [data.companyPresentationEventTag.name] : []
-                    )}`}>
-                        <StandardImageServer
-                            disableLinkingToLicense
-                            className={styles.linkImage}
-                            width={300}
-                            standardImage="FAIR"
-                        />
-                        <h2>Bedriftpresentasjoner</h2>
-                    </Link>
-                    <Link href="/career/companies">
-                        <StandardImageServer
-                            disableLinkingToLicense
-                            className={styles.linkImage}
-                            width={300}
-                            standardImage="REALFAGSBYGGET"
-                        />
-                        <h2>Bedrifter</h2>
-                    </Link>
-                </span>
-            </div>
-        </PageWrapper>
+            </section>
+
+            <section className={styles.cta}>
+                <h2>Klar for å møte fremtidens ingeniører?</h2>
+                <p>Send oss en henvendelse, så tar vi oss av alt det praktiske.</p>
+                <Link className={styles.primaryButton} href={`mailto:${CONTACTOR_EMAIL}`}>
+                    Ta kontakt nå
+                </Link>
+            </section>
+        </div>
     ),
 })
 
