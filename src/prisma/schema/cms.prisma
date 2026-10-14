@@ -3,6 +3,8 @@ enum SpecialCmsImage {
   FRONTPAGE_2
   FRONTPAGE_3
   FRONTPAGE_4
+
+  CAREER_HERO
 }
 
 model CmsImage {
@@ -28,6 +30,7 @@ enum SpecialCmsParagraph {
   FRONTPAGE_4
 
   INTEREST_GROUP_GENERAL_INFO
+  CAREER_HERO
   CAREER_INFO
 
   CABIN_CONTRACT
@@ -52,8 +55,6 @@ model CmsParagraph {
 }
 
 enum SpecialCmsLink {
-  CAREER_LINK_TO_CONTACTOR
-
   FRONTPAGE_1
   FRONTPAGE_2
   FRONTPAGE_3
@@ -67,7 +68,6 @@ model CmsLink {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   text             String          @default("Link")
-  special          SpecialCmsLink? @unique
   articleSection   ArticleSection? @relation(fields: [articleSectionId], references: [id], onDelete: Cascade)
   articleSectionId Int?            @unique
 

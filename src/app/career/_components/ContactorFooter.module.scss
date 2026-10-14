@@ -1,0 +1,72 @@
+@use '@/styles/ohma';
+
+.footer {
+    margin-top: calc(10 * #{ohma.$gap});
+    background: var(--contactor-navy);
+
+    .inner {
+        width: 100%;
+        max-width: var(--contactor-max-width);
+        margin: 0 auto;
+        padding: calc(8 * #{ohma.$gap}) var(--contactor-page-padding);
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: calc(5 * #{ohma.$gap});
+
+        h3 {
+            margin-bottom: ohma.$gap;
+            font-size: ohma.$fonts-s;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #fff;
+        }
+
+        p, span, a {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: ohma.$fonts-m;
+            line-height: 1.6;
+        }
+
+        a:hover {
+            color: #fff;
+        }
+    }
+
+    .about p {
+        max-width: 45ch;
+        margin-top: calc(2 * #{ohma.$gap});
+    }
+
+    .socials {
+        display: flex;
+        gap: calc(2 * #{ohma.$gap});
+        margin-top: calc(3 * #{ohma.$gap});
+
+        a {
+            font-size: 1.5em;
+        }
+    }
+
+    .bottom {
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+
+        .inner {
+            display: flex;
+            justify-content: space-between;
+            gap: calc(2 * #{ohma.$gap});
+            padding-top: calc(2 * #{ohma.$gap});
+            padding-bottom: calc(2 * #{ohma.$gap});
+
+            span, a {
+                font-size: ohma.$fonts-s;
+            }
+        }
+    }
+
+    @include ohma.screenMobile {
+        .inner {
+            grid-template-columns: 1fr;
+        }
+    }
+}

@@ -1,0 +1,27 @@
+@use '@/styles/ohma';
+
+.wordmark {
+    font-family: var(--contactor-font-heading), sans-serif;
+    font-weight: 700;
+    font-size: ohma.$fonts-xl;
+    letter-spacing: -0.02em;
+    color: var(--contactor-navy);
+    white-space: nowrap;
+
+    .sub {
+        margin-left: 0.4em;
+        font-size: 0.5em;
+        font-weight: 600;
+        letter-spacing: 0.15em;
+        vertical-align: middle;
+        color: var(--contactor-accent);
+    }
+
+    &.light {
+        color: #fff;
+
+        .sub {
+            color: var(--contactor-yellow);
+        }
+    }
+}

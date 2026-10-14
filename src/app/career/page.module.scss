@@ -1,0 +1,246 @@
+@use '@/styles/ohma';
+
+// The Contactor frontpage, after contactor.no: hero, the three parts of the career pages as cards,
+// the intro, and a call to action. The typography rules sit under .page so that they win over the
+// layout's and the CMS paragraph's own, which are as specific as a plain .hero h1 would be.
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: calc(12 * #{ohma.$gap});
+    padding: calc(6 * #{ohma.$gap}) 0;
+
+    .badge {
+        display: inline-block;
+        margin-bottom: calc(2 * #{ohma.$gap});
+        padding: calc(0.5 * #{ohma.$gap}) calc(2 * #{ohma.$gap});
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--contactor-accent) 12%, transparent);
+        color: var(--contactor-accent-dark);
+        font-size: ohma.$fonts-s;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .primaryButton, .secondaryButton {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: calc(2 * #{ohma.$gap}) calc(4 * #{ohma.$gap});
+        border-radius: 999px;
+        font-size: ohma.$fonts-m;
+        font-weight: 600;
+        transition: background-color ohma.$transitionTime, border-color ohma.$transitionTime;
+
+        &:hover {
+            text-decoration: none;
+        }
+    }
+
+    .primaryButton {
+        background: var(--contactor-navy);
+        color: #fff;
+
+        &:hover {
+            background: var(--contactor-navy-dark);
+        }
+    }
+
+    .secondaryButton {
+        border: 1px solid var(--contactor-line-strong);
+        color: var(--contactor-navy);
+
+        &:hover {
+            border-color: var(--contactor-navy);
+        }
+    }
+
+    .hero {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        align-items: center;
+        gap: calc(6 * #{ohma.$gap});
+
+        .heroParagraph {
+            h1 {
+                margin-bottom: calc(2 * #{ohma.$gap});
+                font-size: clamp(2.2rem, 5vw, 3.6rem);
+                line-height: 1.1;
+                color: var(--contactor-navy);
+            }
+
+            p {
+                max-width: 50ch;
+                font-size: ohma.$fonts-l;
+                line-height: 1.6;
+                color: ohma.$colors-text-muted;
+            }
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: calc(2 * #{ohma.$gap});
+        }
+
+        .heroImage {
+            // The image components size themselves from --image-width (see Image.tsx); the box here
+            // is the one that decides.
+            --image-width: 100%;
+            overflow: hidden;
+            border-radius: calc(2 * #{ohma.$rounding});
+            aspect-ratio: 4 / 3;
+            box-shadow: 0 24px 60px color-mix(in srgb, var(--contactor-navy) 18%, transparent);
+
+            > div {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+        }
+    }
+
+    .sectionHead {
+        max-width: 60ch;
+        margin-bottom: calc(5 * #{ohma.$gap});
+
+        h2 {
+            margin-bottom: calc(2 * #{ohma.$gap});
+            font-size: ohma.$fonts-xxl;
+        }
+
+        p {
+            font-size: ohma.$fonts-l;
+            line-height: 1.6;
+            color: ohma.$colors-text-muted;
+        }
+    }
+
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: calc(3 * #{ohma.$gap});
+    }
+
+    .card {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid var(--contactor-line);
+        border-radius: calc(2 * #{ohma.$rounding});
+        background: ohma.$colors-surface-raised;
+        color: ohma.$colors-text;
+        transition: transform ohma.$transitionTime, box-shadow ohma.$transitionTime;
+
+        &:hover {
+            text-decoration: none;
+            transform: translateY(-3px);
+            box-shadow: 0 16px 40px color-mix(in srgb, var(--contactor-navy) 12%, transparent);
+
+            h3 {
+                color: var(--contactor-accent-dark);
+            }
+        }
+
+        .cardImage {
+            --image-width: 100%;
+            // StandardImage is a table box, which sizes to its content rather than to the ratio.
+            display: block;
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 16 / 9;
+
+            // Taken out of the flow: the box's own height comes from the ratio, not the image,
+            // so every card's image is the same height whatever its proportions.
+            > div {
+                position: absolute;
+                inset: 0;
+                height: 100%;
+            }
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+        }
+
+        h3 {
+            margin: calc(3 * #{ohma.$gap}) calc(3 * #{ohma.$gap}) ohma.$gap;
+            font-size: ohma.$fonts-l;
+            transition: color ohma.$transitionTime;
+        }
+
+        p {
+            margin: 0 calc(3 * #{ohma.$gap}) calc(3 * #{ohma.$gap});
+            line-height: 1.5;
+            color: ohma.$colors-text-muted;
+        }
+    }
+
+    .about {
+        max-width: 75ch;
+
+        .aboutParagraph {
+            h1, h2 {
+                margin-bottom: calc(2 * #{ohma.$gap});
+                font-size: ohma.$fonts-xxl;
+            }
+
+            p {
+                font-size: ohma.$fonts-l;
+                line-height: 1.7;
+            }
+        }
+    }
+
+    .cta {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: calc(2 * #{ohma.$gap});
+        padding: calc(10 * #{ohma.$gap}) var(--contactor-page-padding);
+        border-radius: calc(2 * #{ohma.$rounding});
+        background: var(--contactor-navy);
+        text-align: center;
+
+        h2 {
+            font-size: ohma.$fonts-xxl;
+            color: #fff;
+        }
+
+        p {
+            max-width: 50ch;
+            font-size: ohma.$fonts-l;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .primaryButton {
+            margin-top: calc(2 * #{ohma.$gap});
+            background: var(--contactor-yellow);
+            color: var(--contactor-navy-dark);
+
+            &:hover {
+                background: color-mix(in srgb, var(--contactor-yellow), white 15%);
+            }
+        }
+    }
+
+    @include ohma.screenMobile {
+        gap: calc(8 * #{ohma.$gap});
+
+        .hero {
+            grid-template-columns: 1fr;
+        }
+
+        .cards {
+            grid-template-columns: 1fr;
+        }
+    }
+}

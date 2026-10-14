@@ -1,3 +1,4 @@
+import styles from './layout.module.scss'
 import { SessionProvider } from '@/auth/session/useSession'
 import MobileNavBar from '@/components/NavBar/MobileNavBar'
 import { authOptions } from '@/auth/nextAuth/authOptions'
@@ -6,24 +7,26 @@ import PopUpProvider from '@/contexts/PopUp'
 import ClientDataProvider from '@/contexts/ClientData'
 import { PageTitleProvider } from '@/contexts/PageTitle'
 import GlobalSearchProvider from '@/contexts/GlobalSearch'
-import NavMenuProvider from '@/contexts/NavMenu'
 import { permissionOperations } from '@/services/permissions/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { userOperations } from '@/services/users/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
 import ReleaseCountdownGate from '@/components/ReleaseCountdown/ReleaseCountdownGate'
-import { Theme, lightThemes, themeCssVars, themes } from '@/lib/theme'
+import { Theme, themeCssVars, themes } from '@/lib/theme'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
 import GlobalSearch from '@/UI/GlobalSearch'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
-import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import { visibleNavItems } from '@/components/NavBar/navDef'
 import NavBar from '@/components/NavBar/NavBar'
+import { isCareerPath } from '@/app/career/_components/contactorSite'
+import { contactorTheme } from '@/app/career/_components/contactorTheme'
+import { CURRENT_PATH_HEADER } from '@/proxy'
 import { Inter } from 'next/font/google'
-import '@/styles/tailwind.css'
 import '@/styles/globals.scss'
 import { config } from '@fortawesome/fontawesome-svg-core'
+import '@fortawesome/fontawesome-svg-core/styles.css'
 import { getServerSession } from 'next-auth'
+import { headers } from 'next/headers'
 import type { ReactNode } from 'react'
 import type { Metadata, Viewport } from 'next'
 
@@ -35,7 +38,7 @@ export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
     // Lets the page paint into the status bar and home indicator areas instead of
-    // being letterboxed between them. The safe-area insets on the wrapper grid
+    // being letterboxed between them. The safe-area insets in layout.module.scss
     // are what then keep the nav bars clear of the system UI.
     viewportFit: 'cover',
 }
@@ -63,6 +66,10 @@ type PropTypes = {
 
 export default async function RootLayout({ children }: PropTypes) {
     const nextAuthSession = await getServerSession(authOptions)
+    // The career pages are Contactor's site inside Omega's (see src/app/career/layout.tsx): they get
+    // Contactor's fixed theme and none of Omega's navigation. The path comes from the header the
+    // proxy stamps, as a layout cannot read its own URL.
+    const isContactorSite = isCareerPath((await headers()).get(CURRENT_PATH_HEADER) ?? '')
 
     const {
         serverSession, defaultPermissions, standardImages, navUser,
@@ -86,17 +93,16 @@ export default async function RootLayout({ children }: PropTypes) {
     const navItems = visibleNavItems(serverSession)
     // Rendering the theme's variables server side is what keeps the first paint from flashing the
     // default theme. Anyone not logged in gets the default, which globals.scss already holds.
-    const theme = serverSession.user?.theme ?? Theme.STANDARD
+    const themeColors = isContactorSite
+        ? contactorTheme
+        : themes[serverSession.user?.theme ?? Theme.STANDARD]
 
     return (
-        <html lang="nb" style={themeCssVars(theme)} data-tone={lightThemes.has(theme) ? 'light' : 'dark'}>
-            <body className={`
-                ${inter.className}
-                text-text bg-surface-raised bg-linear-125/srgb from-accent-blue/30 from-0% to-surface-base/20 to-70%
-            `}>
+        <html lang="nb" style={themeCssVars(themeColors)}>
+            <body className={`${inter.className} ${isContactorSite ? styles.contactorBody : styles.body}`}>
                 {/* Hoisted into the head by React. Keeps the browser chrome in step with the theme;
                     picking another one refreshes the page, which renders it anew. */}
-                <meta name="theme-color" content={themes[theme]['surface-base']} />
+                <meta name="theme-color" content={themeColors['surface-base']} />
                 <ServiceWorkerRegister />
                 <SessionProvider session={nextAuthSession}>
                     <ClientDataProvider
@@ -105,58 +111,34 @@ export default async function RootLayout({ children }: PropTypes) {
                         standardImages={standardImages}
                     >
                         <GlobalSearchProvider>
-                            <GlobalSearch navItems={navItems} />
+                            {!isContactorSite && <GlobalSearch navItems={navItems} />}
                             <EditModeProvider>
                                 <PopUpProvider>
                                     <PageTitleProvider>
                                         <ReleaseCountdownGate>
-                                            <NavMenuProvider>
-                                                <div className="
-                                                    grid grid-cols-[64px_minmax(0,1fr)] grid-rows-[64px_1fr_64px] gap-2
-                                                    h-dvh max-w-[2560px] mx-auto
-                                                    [grid-template-areas:'navBar_navBar'_'sideBar_content'_'sideBar_content']
-                                                    pt-[calc(var(--gap)+env(safe-area-inset-top))]
-                                                    pr-[calc(var(--gap)+env(safe-area-inset-right))]
-                                                    pb-[calc(var(--gap)+env(safe-area-inset-bottom))]
-                                                    pl-[calc(var(--gap)+env(safe-area-inset-left))]
-                                                    transition-[grid-template-columns] duration-300 ease-[ease]
-                                                    mobile:has-[>aside_[data-expanded=true]]:grid-cols-[220px_minmax(0,1fr)]
-                                                    max-mobile:grid-cols-[minmax(0,1fr)]
-                                                    max-mobile:[grid-template-areas:'navBar'_'content'_'mobileNavBar']
-                                                ">
-                                                    <div className="
-                                                        [grid-area:navBar] col-span-full h-[64px] z-3 rounded-round
-                                                    ">
+                                            {isContactorSite ? children : (
+                                                <div className={styles.wrapper}>
+                                                    <div className={styles.navBar}>
                                                         <NavBar
                                                             isLoggedIn={navUser !== null}
                                                             profileImage={navUser?.image ?? null}
                                                             navItems={navItems}
                                                         />
                                                     </div>
-                                                    <aside className="
-                                                        [grid-area:sideBar] h-full w-full z-3
-                                                        max-mobile:hidden
-                                                    ">
+                                                    <aside className={styles.sideBar}>
                                                         <DesktopSideBar navItems={navItems} />
                                                     </aside>
-                                                    <main className="
-                                                        [grid-area:content] min-h-0 overflow-hidden rounded-round
-                                                    ">
-                                                        <ScrollArea className="h-full" scrollerClassName="flex flex-col">
-                                                            {children}
-                                                        </ScrollArea>
+                                                    <main className={styles.content}>
+                                                        {children}
                                                     </main>
-                                                    <div className="
-                                                        hidden z-3 rounded-round overflow-hidden [grid-area:mobileNavBar]
-                                                        max-mobile:block max-mobile:h-[64px] max-mobile:w-full
-                                                    ">
+                                                    <div className={styles.mobileNavBar}>
                                                         <MobileNavBar
                                                             isLoggedIn={navUser !== null}
                                                             navItems={navItems}
                                                         />
                                                     </div>
                                                 </div>
-                                            </NavMenuProvider>
+                                            )}
                                         </ReleaseCountdownGate>
                                     </PageTitleProvider>
                                 </PopUpProvider>
