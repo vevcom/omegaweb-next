@@ -33,7 +33,7 @@ export default serverLayout({
     }),
     render: ({ data, children }) => (
         <div className={`${styles.site} ${karla.variable} ${sora.variable}`} data-tone="light">
-            <SiteTheme name="contactor" colors={contactorTheme} />
+            <SiteTheme colors={contactorTheme} />
             <ContactorNavBar links={[
                 ...careerSections(data.companyPresentationEventTag),
                 { name: 'Kontakt', href: `mailto:${CONTACTOR_EMAIL}` },
