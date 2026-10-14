@@ -1,20 +1,16 @@
-import ProductForm from './productForm'
+import ProductForm from './ProductForm'
 import styles from './page.module.scss'
-import { AddHeaderItemPopUp } from '@/app/_components/HeaderItems/HeaderItemPopUp'
-import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
+import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { sortObjectsByName } from '@/lib/sortObjects'
 import { productOperations } from '@/services/shop/product/operations'
 import { productAuth } from '@/services/shop/product/auth'
 import { serverPage } from '@/app/serverPage'
-import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
 
+/** The product catalogue across every shop. Which shops sell a product is on its own page. */
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('product', session)
-        return productOperations.readMany({})
-    },
+    operation: () => productOperations.readMany({}),
     capabilities: () => ({
         canCreateProduct: productAuth.create,
     }),
@@ -22,7 +18,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: products, capabilities }) => (
         <PageWrapper
             headerItem={capabilities.canCreateProduct.authorized &&
-                <AddHeaderItemPopUp popUpKey="ProductForm">
+                <AddHeaderItemPopUp popUpKey="createProduct">
                     <ProductForm />
                 </AddHeaderItemPopUp>
             }
@@ -41,7 +37,7 @@ const { page, generateMetadata } = serverPage({
                             <Link
                                 style={{ display: 'contents' }}
                                 aria-label={`Gå til produktsiden for ${product.name}`}
-                                href={`./product/${product.id}`}
+                                href={`/shop/products/${product.id}`}
                                 passHref
                             >
                                 {product.name}

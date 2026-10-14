@@ -1,8 +1,8 @@
 'use client'
 import { createProductAction, updateProductAction } from '@/services/shop/product/actions'
 import { configureAction } from '@/services/configureAction'
-import Form from '@/app/_components/Form/Form'
-import TextInput from '@/app/_components/UI/TextInput'
+import Form from '@/components/Form/Form'
+import TextInput from '@/components/UI/TextInput'
 import type { Product } from '@/prisma-generated-pn-types'
 
 export default function ProductForm({
