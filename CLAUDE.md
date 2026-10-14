@@ -282,6 +282,7 @@ export { generateMetadata }
 - A service error thrown from `operation` renders `ServiceErrorView` in place of the page; `NOT FOUND` becomes `notFound()` and `UNAUTHENTICATED` redirects to login. Wrap calls whose failure should not take the page down in `withFallback(promise, fallback)`. It falls back on every service error; pass the error codes as a third argument to fall back only on those, e.g. `withFallback(promise, null, ['NOT FOUND'])`.
 - Access to the page is decided in `operation`, by the authorizers of the operations it calls or explicitly (admin pages call `authorizeAdminPage(path, session)`). `capabilities` does not guard the page: it declares what the user may do on it under `can[Something]` keys, and `render` receives the results as `capabilities` (see [Capabilities](#capabilities)).
 - The page title comes from `metadata` — don't render `PageTitleSetter` in a page built with `serverPage`.
+- A logged-in user who has not finished registering (accepted the terms on `/register`) is sent there by `serverPage` and `serverLayout` before `operation` runs. Only the registration pages pass `allowUnregistered: true`.
 
 #### Layouts: `serverLayout`
 
@@ -378,6 +379,6 @@ Forms typically use Server Actions with FormData:
 ## Migration from OmegaWeb Basic
 
 The project includes migration tooling from an older system (OmegaWeb Basic):
-- Schema in `src/prisma/owSchema/`
-- Migration command: `npm run dobbelOmega:run`
+- Schema in `src/prisma/owSchema/`, code in `src/prisma/dobbelOmega/` (not part of the seeder)
+- Migration command: `npm run docker:dobbelOmega:run` (or `npm run dobbelOmega:run` inside the container)
 - Only relevant for data migration tasks

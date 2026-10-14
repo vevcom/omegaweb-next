@@ -1,6 +1,6 @@
 import { owIdToPnId, type IdMapper } from './IdMapper'
 import { createProgressBar } from './progressBar'
-import manifest from '@/prisma/seeder/src/dobbelOmega/manifest'
+import manifest from './manifest'
 import { imageOperations } from '@/services/images/subservice/operations'
 import { allowedExtensions } from '@/services/images/subservice/constants'
 import { mimeTypeForExtension } from '@/lib/store/fileExtensions'

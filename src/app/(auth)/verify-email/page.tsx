@@ -7,6 +7,7 @@ import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
+    allowUnregistered: true,
     operation: async ({ searchParams }: PageOperationArgs) => {
         const token = QueryParams.token.decode(searchParams)
         if (!token) {

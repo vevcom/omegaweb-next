@@ -8,6 +8,7 @@ import { notFound, redirect } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
+    allowUnregistered: true,
     operation: async ({ searchParams, session }: PageOperationArgs) => {
         const callbackUrl = QueryParams.callbackUrl.decode(searchParams) ?? '/users/me'
         const authResult = Require.user().auth(session)

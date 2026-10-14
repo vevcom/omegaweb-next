@@ -10,6 +10,6 @@ jest.mock('@react-email/render', () => ({
 const timeout = 60 * 1000
 
 beforeAll(
-    async () => await seed(false, false, false),
+    async () => await seed({ devData: false, logging: false }),
     timeout,
 )

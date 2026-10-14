@@ -1,9 +1,9 @@
-import { inferClassLadder } from '@/prisma/seeder/src/dobbelOmega/classLadder'
+import { inferClassLadder } from '@/prisma/dobbelOmega/classLadder'
 import { CURRENT_OMEGA_ORDER, FIRST_OMEGA_ORDER } from '@/prisma/seeder/src/standardContent/seedOrders'
 import { describe, expect, jest, test } from '@jest/globals'
 
 // The manifest logs to a file in the working directory, which a test has no business writing.
-jest.mock('../../src/prisma/seeder/src/dobbelOmega/manifest', () => ({
+jest.mock('../../src/prisma/dobbelOmega/manifest', () => ({
     __esModule: true,
     default: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
 }))

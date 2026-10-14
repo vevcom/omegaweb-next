@@ -1,5 +1,5 @@
 import { owIdToPnId, type IdMapper, type MappedResource } from './IdMapper'
-import manifest from '@/prisma/seeder/src/dobbelOmega/manifest'
+import manifest from './manifest'
 import type { Prisma, PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
 import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
 import type { Limits } from './migrationLimits'
