@@ -19,8 +19,6 @@ export default async function seedProdPermissions(prisma: PrismaClientPn) {
         ],
         contactor: [
             'DOTS_ADMIN',
-            'SCREEN_USE',
-            'SCREEN_ADMIN',
         ],
     }
 

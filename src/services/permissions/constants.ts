@@ -12,7 +12,6 @@ export const permissionCategories = [
     'events',
     'notifikasjoner',
     'mail',
-    'skjermer',
     'shop',
     'cabin',
     'permission',
@@ -226,18 +225,6 @@ export const permissionConfig = {
         description: 'kan administrere API nøkler',
         category: 'diverse admin',
         canBeDefault: false,
-    },
-    SCREEN_ADMIN: {
-        name: 'Skjermadministrator',
-        description: 'kan administrere skjermer',
-        category: 'skjermer',
-        canBeDefault: false,
-    },
-    SCREEN_USE: {
-        name: 'Les skjermer',
-        description: 'kan lese skjermer',
-        category: 'skjermer',
-        canBeDefault: true,
     },
     LOCKER_USE: {
         name: 'Bruke skap',
