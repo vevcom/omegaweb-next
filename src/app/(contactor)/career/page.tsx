@@ -1,7 +1,7 @@
 import styles from './page.module.scss'
 import ContactorHeroShape from '@/app/(contactor)/_components/ContactorHeroShape'
 import UpcomingCompanyPresentations from '@/app/(contactor)/_components/UpcomingCompanyPresentations'
-import { CAREER_PATH, companyPresentationsHref } from '@/app/(contactor)/_components/contactorSite'
+import { CAREER_PATH, companyPresentationsHref } from '@/app/(contactor)/_lib/contactorSite'
 import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagraph'
 import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'

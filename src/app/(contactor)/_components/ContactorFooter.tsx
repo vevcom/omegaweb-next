@@ -1,6 +1,6 @@
 import styles from './ContactorFooter.module.scss'
 import ContactorWordmark from './ContactorWordmark'
-import { CONTACTOR_SOCIALS } from './contactorSite'
+import { CONTACTOR_SOCIALS } from '@/app/(contactor)/_lib/contactorSite'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
 import { readCareerSpecialCmsLinkAction, updateCareerSpecialCmsLinkAction } from '@/services/career/actions'
 import Link from 'next/link'

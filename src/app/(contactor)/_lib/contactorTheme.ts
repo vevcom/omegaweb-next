@@ -1,11 +1,5 @@
 import type { ThemeColors } from '@/lib/theme'
 
-/**
- * Contactor's palette (contactor.no) in the site's theme variables, so that the shared components
- * rendered under /career - forms, CMS editors, event cards - take its colours. It is fixed: the
- * theme a user has chosen does not apply on Contactor's pages. The (contactor) layout sets it
- * with SiteTheme in place of the user's theme.
- */
 export const contactorTheme: ThemeColors = {
     layer: 'hsla(222, 45%, 18%, 0.06)',
     text: '#0f172a',
