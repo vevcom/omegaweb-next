@@ -1,15 +1,15 @@
-import { Karla, Sora } from 'next/font/google'
+import localFont from 'next/font/local'
 
-// contactor.no's fonts: Karla for text, Sora for headings. The career layout puts both classes on
-// its root so the variables are set there and nowhere else.
-export const karla = Karla({
-    subsets: ['latin'],
-    weight: ['400', '500', '600', '700'],
+export const karla = localFont({
+    src: './fonts/karla-latin.woff2',
+    weight: '200 800',
+    display: 'swap',
     variable: '--contactor-font-sans',
 })
 
-export const sora = Sora({
-    subsets: ['latin'],
-    weight: ['500', '600', '700'],
+export const sora = localFont({
+    src: './fonts/sora-latin.woff2',
+    weight: '100 800',
+    display: 'swap',
     variable: '--contactor-font-heading',
 })
