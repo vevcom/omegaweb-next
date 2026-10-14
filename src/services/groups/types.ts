@@ -47,7 +47,7 @@ export type GroupWithRelations<
     InterestGroupKeys extends keyof InterestGroup,
     OmegaMembershipGroupKeys extends keyof OmegaMembershipGroup,
     StudyProgrammeKeys extends keyof StudyProgramme
-> = Exclude<Group, 'groupType'> & ({
+> = Omit<Group, 'groupType'> & ({
     groupType: 'COMMITTEE',
     committee: Pick<Committee, CommitteeKeys>
 } | {
@@ -116,7 +116,7 @@ export type ExpandedGroupsOfAllTypes = Record<GroupType, ExpandedGroup[] | null>
  * the same underlying sub-operation, so a single type covers committees, interest groups and manual
  * groups - which is what lets one component drive the migration of any of them.
  */
-export type MigrateGroupAction = ActionFromSubServiceOperation<typeof groupOperations.migrateManually>
+export type MigrateGroupAction = ActionFromSubServiceOperation<typeof groupOperations.migrateGroup>
 
 /**
  * The action reading the members of one group, shared by every group type for the same reason.

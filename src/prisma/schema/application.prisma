@@ -15,6 +15,11 @@ model CommitteeParticipationInApplicationPeriod {
   applicationPeriodId Int
   applications        Application[]
 
+  paragraph   CmsParagraph @relation(fields: [paragraphId], references: [id])
+  paragraphId Int          @unique
+  videoLink   CmsLink      @relation(fields: [videoLinkId], references: [id])
+  videoLinkId Int          @unique
+
   @@unique([committeeId, applicationPeriodId])
   @@unique([id, applicationPeriodId])
 }

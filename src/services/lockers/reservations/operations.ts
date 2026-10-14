@@ -1,15 +1,36 @@
-
 import '@pn-server-only'
 import { lockerReservationAuth } from './auth'
 import { lockerReservationSchemas } from './schemas'
-import { defineOperation } from '@/services/serviceOperation'
-import { Smorekopp } from '@/services/error'
-import { groupOperations } from '@/services/groups/operations'
-import { z } from 'zod'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import { ServiceError } from '@/services/error'
+
+/**
+ * Reservations are deactivated, never deleted, once their end date has passed - which frees the
+ * locker for a new one. That happens whenever lockers are read or reserved rather than on a
+ * schedule, so an expired reservation can still be active until then.
+ *
+ * @param lockerId - The locker whose reservation to check. Every locker's when left out.
+ */
+const deactivateExpiredReservations = defineSubOperation({
+    paramsSchema: () => lockerReservationSchemas.params.deactivateExpiredReservations,
+    operation: () => async ({ prisma, params }) => {
+        await prisma.lockerReservation.updateMany({
+            where: {
+                lockerId: params.lockerId,
+                active: true,
+                endDate: { lt: new Date() },
+            },
+            data: {
+                active: false,
+            },
+        })
+    },
+})
 
 export const lockerReservationOperations = {
     /**
-     * Creates a new locker reservation for a given user and locker.
+     * Creates a new locker reservation for a given user and locker. A locker holds one active
+     * reservation at a time, so one whose reservation is still running is refused.
      *
      * @param userId The user to create the reservation for.
      * @param lockerId The locker to reserve.
@@ -17,37 +38,35 @@ export const lockerReservationOperations = {
      * @returns The newly created reservation object.
      */
     create: defineOperation({
-        authorizer: () => lockerReservationAuth.create,
-        paramsSchema: z.object({
-            lockerId: z.number(),
+        authorizer: ({ params, data }) => lockerReservationAuth.create.data({
+            userId: params.userId,
+            groupId: data.groupId,
         }),
-        dataSchema: lockerReservationSchemas.create,
-        operation: async ({ prisma, session, data, params }) => {
-            // TODO: Use authorizers for authing in stead of this
-            // Verify that user is in group
-            if (data.groupId) {
-                const groupUsers = await groupOperations.readUsersOfGroups.internalCall({
-                    params: {
-                        groups: [{ groupId: data.groupId, admin: false }]
-                    }
-                })
+        paramsSchema: lockerReservationSchemas.params.create,
+        dataSchema: lockerReservationSchemas.data.create,
+        operation: async ({ prisma, data, params }) => {
+            await deactivateExpiredReservations.internalCall({ prisma, params: { lockerId: params.lockerId } })
 
-                const userInGroup = groupUsers.some(groupUser => session.user && session.user.id === groupUser.id)
-
-                if (!userInGroup) {
-                    throw new Smorekopp('UNAUTHORIZED', 'Bruker må høre til gruppen de prøver å reservere for.')
-                }
-            }
-
-            if (!session.user) {
-                throw new Smorekopp('UNAUTHORIZED', 'Du må være logget inn for å reservere et skap.')
+            const activeReservation = await prisma.lockerReservation.findFirst({
+                where: {
+                    lockerId: params.lockerId,
+                    active: true,
+                },
+                select: {
+                    id: true,
+                },
+            })
+            // Two reservations racing past this check are still stopped by the database, which holds
+            // one active reservation per locker.
+            if (activeReservation) {
+                throw new ServiceError('DUPLICATE', 'Skapet er allerede reservert.')
             }
 
             return await prisma.lockerReservation.create({
                 data: {
                     groupId: data.groupId,
                     endDate: data.endDate,
-                    userId: session.user.id,
+                    userId: params.userId,
                     lockerId: params.lockerId,
                 }
             })
@@ -55,18 +74,15 @@ export const lockerReservationOperations = {
     }),
 
     /**
-     * Updates an existing locker reservation.
+     * Reads a locker reservation.
      *
-     * @param id The ID of the reservation to update.
-     * @param data The new data to update the reservation with.
+     * @param id The ID of the reservation to read.
      *
-     * @returns The updated reservation object.
+     * @returns The reservation object.
      */
     read: defineOperation({
         authorizer: () => lockerReservationAuth.read,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: lockerReservationSchemas.params.read,
         operation: ({ prisma, params: { id } }) => prisma.lockerReservation.findUniqueOrThrow({
             where: {
                 id,
@@ -83,52 +99,32 @@ export const lockerReservationOperations = {
      * @returns The updated reservation object.
      */
     update: defineOperation({
-        authorizer: () => lockerReservationAuth.update,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
-        dataSchema: lockerReservationSchemas.update,
-        operation: async ({ prisma, session, data, params: { id } }) => {
-            // TODO: Use authorizers for authing in stead of this
-            // Verify that the user updating is the creator of the reservation
+        authorizer: async ({ prisma, params, data }) => {
             const reservation = await prisma.lockerReservation.findUniqueOrThrow({
                 where: {
-                    id,
+                    id: params.id,
                 },
                 select: {
                     userId: true,
-                }
-            })
-
-            if (session.user && session.user.id !== reservation.userId) {
-                throw new Smorekopp('UNAUTHORIZED', 'Bruker har ikke tilgang til å endre reservasjonen.')
-            }
-
-            // Verify that user is in group
-            if (data.groupId) {
-                const groupUsers = await groupOperations.readUsersOfGroups.internalCall({
-                    params: {
-                        groups: [{ groupId: data.groupId, admin: false }]
-                    }
-                })
-
-                const userInGroup = groupUsers.some(groupUser => session.user && session.user.id === groupUser.id)
-
-                if (!userInGroup) {
-                    throw new Smorekopp('UNAUTHORIZED', 'Bruker må høre til gruppen de prøver å reservere for.')
-                }
-            }
-
-            return await prisma.lockerReservation.update({
-                where: {
-                    id,
                 },
-                data: {
-                    groupId: data.groupId,
-                    endDate: data.endDate,
-                }
+            })
+            return lockerReservationAuth.update.data({
+                userId: reservation.userId,
+                groupId: data.groupId,
             })
         },
+        paramsSchema: lockerReservationSchemas.params.update,
+        dataSchema: lockerReservationSchemas.data.update,
+        operation: async ({ prisma, data, params: { id } }) => await prisma.lockerReservation.update({
+            where: {
+                id,
+            },
+            data: {
+                groupId: data.groupId,
+                endDate: data.endDate,
+            }
+        }),
     }),
-} as const
 
+    deactivateExpiredReservations,
+} as const

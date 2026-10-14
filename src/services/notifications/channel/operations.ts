@@ -1,63 +1,61 @@
 import '@pn-server-only'
 import { notificationChannelAuth } from './auth'
-import { notificationChannelSchemas, validateMethods, validateNewParent } from './schemas'
+import { notificationChannelSchemas } from './schemas'
 import { availableNotificationMethodIncluder } from './constants'
+import { methodsAreEqual, validateMethods, validateNewParent } from './helpers'
 import {
     allNotificationMethodsOff,
     allNotificationMethodsOn,
     notificationMethodsArray,
 } from '@/services/notifications/constants'
-import { notificationMethodSchema } from '@/services/notifications/schemas'
 import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
 import { defineOperation } from '@/services/serviceOperation'
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
 import { ServiceError } from '@/services/error'
-import { z } from 'zod'
-import type { ExpandedNotificationChannel, NotificationMethodGeneral } from '@/services/notifications/types'
+import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 
 export const notificationChannelOperations = {
     create: defineOperation({
         authorizer: () => notificationChannelAuth.create,
-        dataSchema: notificationChannelSchemas.create,
+        dataSchema: notificationChannelSchemas.data.create,
         opensTransaction: true,
-        paramsSchema: z.object({
-            availableMethods: notificationMethodSchema,
-            defaultMethods: notificationMethodSchema,
-        }),
+        paramsSchema: notificationChannelSchemas.params.create,
         operation: async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
             if (!validateMethods(params.availableMethods, params.defaultMethods)) {
                 throw new ServiceError('BAD PARAMETERS', 'Default methods cannot exceed available methods.')
             }
 
-            const channel = await prisma.notificationChannel.create({
-                data: {
-                    name: data.name,
-                    description: data.description,
-                    parent: {
-                        connect: {
-                            id: data.parentId,
+            return await prisma.$transaction(async (tx) => {
+                const channel = await tx.notificationChannel.create({
+                    data: {
+                        name: data.name,
+                        description: data.description,
+                        parent: {
+                            connect: {
+                                id: data.parentId,
+                            }
+                        },
+                        availableMethods: {
+                            create: params.availableMethods,
+                        },
+                        defaultMethods: {
+                            create: params.defaultMethods,
+                        },
+                        mailAlias: {
+                            connect: {
+                                address: DEFAULT_NOTIFICATION_ALIAS,
+                            }
                         }
                     },
-                    availableMethods: {
-                        create: params.availableMethods,
-                    },
-                    defaultMethods: {
-                        create: params.defaultMethods,
-                    },
-                    mailAlias: {
-                        connect: {
-                            address: DEFAULT_NOTIFICATION_ALIAS,
-                        }
-                    }
-                },
-                include: availableNotificationMethodIncluder,
-            })
+                    include: availableNotificationMethodIncluder,
+                })
 
-            if (validateMethods(allNotificationMethodsOff, params.defaultMethods)) {
-                return channel
-            }
+                if (validateMethods(allNotificationMethodsOff, params.defaultMethods)) {
+                    return channel
+                }
 
-            await prisma.$transaction(async (tx) => {
+                // Whoever subscribes to the parent is subscribed to the new channel too, with the
+                // default methods they already have on for the parent.
                 const parentSubscriptions = await tx.notificationSubscription.findMany({
                     where: {
                         channelId: data.parentId
@@ -74,17 +72,17 @@ export const notificationChannelOperations = {
                         ...subscription,
                         subscriptionMethods: booleanOperationOnMethods(subscription.methods, channel.defaultMethods, 'AND')
                     }))
-                    .filter(sub =>
+                    .filter(subscription =>
                         !validateMethods(
                             allNotificationMethodsOff,
-                            sub.subscriptionMethods
+                            subscription.subscriptionMethods
                         )
                     )
-                    .map(sub => tx.notificationSubscription.create({
+                    .map(subscription => tx.notificationSubscription.create({
                         data: {
                             user: {
                                 connect: {
-                                    id: sub.userId,
+                                    id: subscription.userId,
                                 },
                             },
                             channel: {
@@ -93,14 +91,14 @@ export const notificationChannelOperations = {
                                 },
                             },
                             methods: {
-                                create: sub.subscriptionMethods
+                                create: subscription.subscriptionMethods
                             }
                         }
                     }))
                 )
-            })
 
-            return channel
+                return channel
+            })
         }
     }),
 
@@ -127,18 +125,13 @@ export const notificationChannelOperations = {
 
     update: defineOperation({
         authorizer: () => notificationChannelAuth.update,
-        dataSchema: notificationChannelSchemas.update,
-        paramsSchema: z.object({
-            id: z.number(),
-            availableMethods: notificationMethodSchema,
-            defaultMethods: notificationMethodSchema,
-        }),
+        dataSchema: notificationChannelSchemas.data.update,
+        paramsSchema: notificationChannelSchemas.params.update,
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => {
             if (!validateMethods(params.availableMethods, params.defaultMethods)) {
                 throw new ServiceError('BAD PARAMETERS', 'Default methods cannot exceed available methods.')
             }
-
 
             // Check if the channel is special
             const channel = await prisma.notificationChannel.findUniqueOrThrow({
@@ -167,16 +160,6 @@ export const notificationChannelOperations = {
                 updateParentId = true
             }
 
-            function methodsAreEqual(lhs: NotificationMethodGeneral, rhs: NotificationMethodGeneral) {
-                for (let i = 0; i < notificationMethodsArray.length; i++) {
-                    if (lhs[notificationMethodsArray[i]] !== rhs[notificationMethodsArray[i]]) {
-                        return false
-                    }
-                }
-                return true
-            }
-
-
             return await prisma.$transaction(async (tx) => {
                 if (!methodsAreEqual(params.availableMethods, channel.availableMethods)) {
                     await tx.notificationMethod.update({
@@ -195,7 +178,6 @@ export const notificationChannelOperations = {
                         data: params.defaultMethods,
                     })
                 }
-
 
                 return tx.notificationChannel.update({
                     where: {
@@ -217,34 +199,53 @@ export const notificationChannelOperations = {
         }
     }),
 
-    // TODO: It should probably be possible to delete a channel from the frontend (if not default) - Johan
-    // It doesn't seem that this function is used yet. -Theodor
+    /**
+     * Deletes a channel with its subscriptions and the notifications sent in it. Special channels are
+     * used by the code and cannot be deleted, and a channel's children must be moved or deleted first.
+     */
     destroy: defineOperation({
         authorizer: () => notificationChannelAuth.destroy,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: notificationChannelSchemas.params.destroy,
         opensTransaction: true,
         operation: async ({ prisma, params }) => prisma.$transaction(async (tx) => {
-            // NOTE: this should maybe be just a archive not a delete
-
-            const results = await tx.notificationChannel.delete({
+            const channel = await tx.notificationChannel.findUniqueOrThrow({
                 where: {
                     id: params.id,
                 },
-                include: availableNotificationMethodIncluder,
+                select: {
+                    special: true,
+                    availableMethodsId: true,
+                    defaultMethodsId: true,
+                    subscriptions: { select: { methodsId: true } },
+                    _count: { select: { children: true } },
+                },
             })
 
+            if (channel.special) {
+                throw new ServiceError('BAD PARAMETERS', 'Spesielle kanaler kan ikke slettes.')
+            }
+            if (channel._count.children > 0) {
+                throw new ServiceError('BAD PARAMETERS', 'Kanalen har underkanaler. Flytt eller slett dem først.')
+            }
+
+            // The subscriptions and notifications cascade with the channel, but the method rows they and
+            // the channel point to do not.
+            await tx.notificationChannel.delete({
+                where: {
+                    id: params.id,
+                },
+            })
             await tx.notificationMethod.deleteMany({
                 where: {
-                    OR: [
-                        { id: results.availableMethodsId },
-                        { id: results.defaultMethodsId },
-                    ]
-                }
+                    id: {
+                        in: [
+                            channel.availableMethodsId,
+                            channel.defaultMethodsId,
+                            ...channel.subscriptions.map(subscription => subscription.methodsId),
+                        ],
+                    },
+                },
             })
-
-            return results
-        })
+        }),
     }),
 } as const

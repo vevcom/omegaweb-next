@@ -1,60 +1,56 @@
 @use '@/styles/ohma';
 
-$padding: ohma.$minimalPagePadding;
-
 .wrapper {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto 1fr;
-    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: ohma.$gap;
+
+    .coverImage,
+    >.registrationList {
+        flex: 0 0 100%;
+    }
 
     .coverImage {
-        grid-column: 1 / 3;
-        grid-row: 1 / 2;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        display: block;
         position: relative;
+        height: 20em;
+        background-color: ohma.$colors-surface-base;
         border-radius: ohma.$rounding;
         overflow: hidden;
-        min-height: calc(40 * #{ohma.$gap});
+
+        *:not(.infoInImage, .infoInImage *, .settings, .settings *) {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+        }
 
         .settings {
-            top: 1em;
-            right: 3em;
+            position: absolute;
+            top: ohma.$gap;
+            right: ohma.$gap;
+            z-index: 1;
+            display: flex;
+            gap: calc(1 * #{ohma.$gap});
+
 
             svg {
-                width: 3em;
-                height: 3em;
+                height: calc(7 * #{ohma.$gap});
+                width: calc(7 * #{ohma.$gap});
             }
-
-            position: absolute;
-
-            >button {
-                margin-left: calc(2 * #{ohma.$gap});
-            }
-        }
-
-        *:not(.infoInImage *, .infoInImage, .settings *, .settings) {
-            width: calc(100vw - 2 * $padding) !important;
-            height: 40vh;
-        }
-
-        img {
-            object-fit: cover;
         }
 
         .infoInImage {
             position: absolute;
-            width: 100%;
-            height: 8em;
-            left: 0;
-            bottom: 0;
-            @include ohma.layer;
-            padding: 1em 2em;
+            inset: auto 0 0 0;
             display: flex;
-            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: baseline;
             gap: 0 1em;
+            padding: calc(4 * #{ohma.$gap}) calc(3 * #{ohma.$gap}) calc(2 * #{ohma.$gap});
+            @include ohma.layer();
+            border-radius: 0 0 ohma.$rounding ohma.$rounding;
 
             h1 {
                 font-size: ohma.$fonts-xxl;
@@ -64,6 +60,7 @@ $padding: ohma.$minimalPagePadding;
             .tags {
                 list-style-type: none;
                 display: flex;
+                flex-wrap: wrap;
                 gap: 0 1em;
 
                 a {
@@ -74,17 +71,17 @@ $padding: ohma.$minimalPagePadding;
     }
 
     >aside {
-        grid-column: 1 / 2;
-        grid-row: 2 / 3;
-        min-width: 350px;
+        // Grows only to fill a line it has to itself. When the article still fits beside it the
+        // article's far larger flex-grow takes practically all the free space, so the aside
+        // holds its 650px; once the article wraps away, the aside is alone and stretches to the
+        // full width instead of leaving dead space beside it.
+        flex: 1 1 650px;
         background: ohma.$colors-surface-base;
-        margin-top: ohma.$gap;
         border-radius: ohma.$rounding;
-        padding: ohma.$cardRounding;
-        min-height: fit-content;
+        padding: calc(4 * #{ohma.$gap}) calc(4 * #{ohma.$gap}) calc(1 * #{ohma.$gap});
         display: flex;
         flex-direction: column;
-        gap: calc(2*#{ohma.$gap});
+        gap: calc(2 * #{ohma.$gap});
 
         >p {
             display: flex;
@@ -100,10 +97,10 @@ $padding: ohma.$minimalPagePadding;
     }
 
     >main {
-        grid-column: 2 / 3;
-        grid-row: 2 / 3;
-        margin-left: ohma.$gap;
-        margin-top: ohma.$gap;
+        // See the aside: the lopsided grow is what keeps the aside at its basis while they
+        // share a line, without costing either of them the ability to fill a line alone.
+        flex: 999 1 420px;
+        min-width: 0;
         padding: calc(2 * #{ohma.$gap});
         background: ohma.$colors-surface-base;
         border-radius: ohma.$rounding;
@@ -113,36 +110,21 @@ $padding: ohma.$minimalPagePadding;
         background: ohma.$colors-surface-base;
         padding: ohma.$gap;
         border-radius: ohma.$rounding;
-        grid-column: 1 / 3;
-        grid-row: 4 / 4;
-        margin-top: ohma.$gap;
 
         >h4 {
             font-size: ohma.$fonts-xl;
             font-weight: ohma.$fonts-weight-l;
         }
     }
-}
 
-@media (max-width: ohma.$mobileBreakpoint) {
-    .wrapper {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto auto;
-
-        >aside {
-            grid-column: 1 / 2;
-            grid-row: 2 / 3;
-            padding: calc(2 * #{ohma.$gap});
+    @include ohma.screenMobile {
+        .coverImage {
+            height: 14em;
         }
 
+        >aside,
         >main {
-            grid-column: 1 / 2;
-            grid-row: 3 / 4;
-            margin: ohma.$gap 0;
-        }
-
-        >.registrationList {
-            margin-top: 0;
+            flex-basis: 100%;
         }
     }
 }

@@ -6,19 +6,32 @@ const validAddress = z.string().email().refine(
     `The domain is not valid, valid domains are: ${validMailAddressDomains.join(', ')}`
 )
 
+const dataFieldSchemas = z.object({
+    address: validAddress,
+    description: z.string(),
+})
+
+const paramsFieldSchemas = z.object({
+    id: z.coerce.number().min(1),
+})
+
+const alias = paramsFieldSchemas.pick({
+    id: true,
+})
+
 export const mailAliasSchemas = {
-    create: z.object({
-        address: validAddress,
-        description: z.string(),
-    }),
-
-    update: z.object({
-        id: z.coerce.number().min(1),
-        address: validAddress,
-        description: z.string(),
-    }),
-
-    destroy: z.object({
-        id: z.coerce.number().min(1),
-    }),
+    data: {
+        create: dataFieldSchemas.pick({
+            address: true,
+            description: true,
+        }),
+        update: dataFieldSchemas.pick({
+            address: true,
+            description: true,
+        }),
+    },
+    params: {
+        update: alias,
+        destroy: alias,
+    },
 }

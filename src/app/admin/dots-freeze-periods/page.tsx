@@ -12,6 +12,7 @@ import {
     updateDotFreezePeriodAction,
 } from '@/services/dots/freezePeriods/actions'
 import { dotFreezePeriodOperations } from '@/services/dots/freezePeriods/operations'
+import { dotFreezePeriodAuth } from '@/services/dots/freezePeriods/auth'
 import { serverPage } from '@/app/serverPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import type { PageOperationArgs } from '@/app/serverPage'
@@ -23,12 +24,17 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('dots-freeze-periods', session)
         return dotFreezePeriodOperations.readAll({})
     },
+    capabilities: () => ({
+        canCreateFreezePeriod: dotFreezePeriodAuth.create,
+        canUpdateFreezePeriod: dotFreezePeriodAuth.update,
+        canDestroyFreezePeriod: dotFreezePeriodAuth.destroy,
+    }),
     metadata: () => ({ title: 'Frysperioder for prikker' }),
-    render: ({ data: freezePeriods }) => {
+    render: ({ data: freezePeriods, capabilities }) => {
         const now = new Date()
 
         return (
-            <PageWrapper headerItem={
+            <PageWrapper headerItem={capabilities.canCreateFreezePeriod.authorized &&
                 <AddHeaderItemPopUp popUpKey={createPopUpKey}>
                     <Form
                         action={createDotFreezePeriodAction}
@@ -79,6 +85,7 @@ const { page, generateMetadata } = serverPage({
                                                     <SettingsHeaderItemPopUp
                                                         popUpKey={`dotFreezePeriodSettings ${freezePeriod.id}`}
                                                     >
+                                                        {capabilities.canUpdateFreezePeriod.authorized &&
                                                         <Form
                                                             action={configureAction(updateDotFreezePeriodAction, {
                                                                 params: { id: freezePeriod.id },
@@ -103,7 +110,9 @@ const { page, generateMetadata } = serverPage({
                                                                 defaultValue={freezePeriod.reason}
                                                             />
                                                         </Form>
+                                                        }
 
+                                                        {capabilities.canDestroyFreezePeriod.authorized &&
                                                         <Form
                                                             action={configureAction(destroyDotFreezePeriodAction, {
                                                                 params: { id: freezePeriod.id },
@@ -117,6 +126,7 @@ const { page, generateMetadata } = serverPage({
                                                             }}
                                                             refreshOnSuccess
                                                         />
+                                                        }
                                                     </SettingsHeaderItemPopUp>
                                                 </td>
                                             </tr>

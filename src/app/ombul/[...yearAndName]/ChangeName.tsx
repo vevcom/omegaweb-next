@@ -5,7 +5,7 @@ import EditableTextField from '@/components/EditableTextField/EditableTextField'
 import { updateOmbulAction } from '@/services/ombul/actions'
 import { ombulAuth } from '@/services/ombul/auth'
 import { configureAction } from '@/services/configureAction'
-import useAuthorizer from '@/hooks/useAuthorizer'
+import useEditMode from '@/hooks/useEditMode'
 import type { ReactNode } from 'react'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
@@ -22,7 +22,7 @@ type PropTypes = {
  * @returns The component jsx
  */
 export default function ChangeName({ children, ombulId }: PropTypes) {
-    const editable = useAuthorizer({ authorizer: ombulAuth.update }).authorized
+    const editable = useEditMode({ authorizer: ombulAuth.update })
     const handleChange = async (data: ExpandedOmbul | undefined) => {
         const name = data?.name
         if (!name) return

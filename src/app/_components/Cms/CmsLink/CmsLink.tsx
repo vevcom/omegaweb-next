@@ -10,14 +10,29 @@ type PropTypes = {
     cmsLink: CmsLinkT
     className?: string
     color?: 'primary' | 'secondary'
+    /** Renders the link as a dead button - for a link whose url nobody has filled in yet. */
+    disabled?: boolean
     updateCmsLinkAction: UpdateCmsLinkAction
     capabilities: Capabilities<'canEdit'>
 }
 
-export default function CmsLink({ cmsLink, className, color = 'secondary', updateCmsLinkAction, capabilities }: PropTypes) {
+export default function CmsLink({
+    cmsLink,
+    className,
+    color = 'secondary',
+    disabled = false,
+    updateCmsLinkAction,
+    capabilities,
+}: PropTypes) {
+    const buttonClass = `${styles.CmsLink} ${styles[color]}`
+
     return (
         <div className={`${styles.CmsLink} ${className}`}>
-            <Link href={cmsLink.url} className={`${styles.CmsLink} ${styles[color]}`}>{cmsLink.text}</Link>
+            {
+                disabled
+                    ? <span aria-disabled className={`${buttonClass} ${styles.disabled}`}>{cmsLink.text}</span>
+                    : <Link href={cmsLink.url} className={buttonClass}>{cmsLink.text}</Link>
+            }
             <CmsLinkEditor
                 capabilities={capabilitiesToJsObject(capabilities)}
                 cmsLink={cmsLink}

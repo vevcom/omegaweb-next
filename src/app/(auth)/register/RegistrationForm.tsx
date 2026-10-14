@@ -14,7 +14,7 @@ export default function RegistrationForm({
     userData,
     callbackUrl,
 }: {
-    userData: Pick<User, 'id' | 'username' | 'mobile' | 'allergies' | 'sex'>,
+    userData: Pick<User, 'id' | 'username' | 'allergies' | 'sex'>,
     callbackUrl: string,
 }) {
     const [lastPassword, setLastPassword] = useState('')
@@ -36,7 +36,6 @@ export default function RegistrationForm({
             callbackUrl
         })}
     >
-        <TextInput label="Telefonnummer" name="mobile" defaultValue={userData.mobile ?? ''} />
         <TextInput label="Allergier / diett" name="allergies" defaultValue={userData.allergies ?? ''} />
         <TextInput type="password" label="Passord" name="password" onChange={(e) => { setLastPassword(e.target.value) }} />
         <TextInput type="password" label="Gjenta passord" name="confirmPassword" />

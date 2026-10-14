@@ -2,6 +2,7 @@ import styles from './page.module.scss'
 import CreateOrder from './CreateOrder'
 import Requirements from './Requirements'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
+import { omegaOrderAuth } from '@/services/omegaOrder/auth'
 import { serverPage } from '@/app/serverPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Date from '@/components/Date/Date'
@@ -19,8 +20,11 @@ const { page, generateMetadata } = serverPage({
         ])
         return { currentOrder, requirements }
     },
+    capabilities: () => ({
+        canCreateOrder: omegaOrderAuth.create,
+    }),
     metadata: () => ({ title: 'Omegas tilstand' }),
-    render: ({ data }) => {
+    render: ({ data, capabilities }) => {
         const allRequirementsFulfilled = data.requirements.every(requirement => requirement.fulfilled)
 
         return (
@@ -36,7 +40,9 @@ const { page, generateMetadata } = serverPage({
                 <div className={styles.requirements}>
                     <Requirements requirements={data.requirements} />
                 </div>
-                <CreateOrder allRequirementsFulfilled={allRequirementsFulfilled} />
+                {capabilities.canCreateOrder.authorized &&
+                    <CreateOrder allRequirementsFulfilled={allRequirementsFulfilled} />
+                }
             </div>
         )
     },

@@ -50,7 +50,7 @@ describe('deleting a group', () => {
         expect(await updatedAtOf(member.id)).toBeGreaterThan(before)
     })
 
-    test('a committee takes its group and paragraphs with it', async () => {
+    test('a committee takes its group and paragraph with it', async () => {
         const session = sessionWith(['COMMITTEE_ADMIN'])
         const committee = await committeeOperations.create({
             data: { name: `Komité som slettes ${++counter}`, shortName: `komite-${counter}` },
@@ -65,7 +65,7 @@ describe('deleting a group', () => {
         expect(await prisma.group.count({ where: { id: committee.groupId } })).toBe(0)
         expect(await prisma.membership.count({ where: { userId: member.id } })).toBe(0)
         expect(await prisma.cmsParagraph.count({
-            where: { id: { in: [committee.paragraphId, committee.applicationParagraphId] } },
+            where: { id: committee.paragraphId },
         })).toBe(0)
         expect(await updatedAtOf(member.id)).toBeGreaterThan(before)
     })

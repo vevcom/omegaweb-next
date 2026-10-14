@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { applicationAuth } from './auth'
-import { applicationParamsSchemas, applicationSchemas } from './schemas'
+import { applicationSchemas } from './schemas'
 import { renumberApplicationPriorities } from './renumberPriorities'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
@@ -14,7 +14,7 @@ const applicationWhere = ({ userId, committeeParticipationId }: { userId: number
 
 export const applicationOperations = {
     readForUser: defineOperation({
-        paramsSchema: applicationParamsSchemas.readForUser,
+        paramsSchema: applicationSchemas.params.readForUser,
         authorizer: ({ params }) => applicationAuth.readForUser.data({ userId: params.userId }),
         operation: async ({ prisma, params }) => prisma.application.findMany({
             where: {
@@ -25,8 +25,8 @@ export const applicationOperations = {
     }),
 
     create: defineOperation({
-        dataSchema: applicationSchemas.create,
-        paramsSchema: applicationParamsSchemas.create,
+        dataSchema: applicationSchemas.data.create,
+        paramsSchema: applicationSchemas.params.create,
         authorizer: ({ params }) => applicationAuth.create.data({ userId: params.userId }),
         operation: async ({ prisma, data, params }) => {
             const committeeParticipation = await prisma.committeeParticipationInApplicationPeriod.findUniqueOrThrow({
@@ -80,8 +80,8 @@ export const applicationOperations = {
     }),
 
     update: defineOperation({
-        dataSchema: applicationSchemas.update,
-        paramsSchema: applicationParamsSchemas.update,
+        dataSchema: applicationSchemas.data.update,
+        paramsSchema: applicationSchemas.params.update,
         opensTransaction: true,
         authorizer: ({ params }) => applicationAuth.update.data({ userId: params.userId }),
         operation: async ({ prisma, data, params }) => prisma.$transaction(async (tx) => {
@@ -153,7 +153,7 @@ export const applicationOperations = {
     }),
 
     destroy: defineOperation({
-        paramsSchema: applicationParamsSchemas.destroy,
+        paramsSchema: applicationSchemas.params.destroy,
         authorizer: ({ params }) => applicationAuth.destroy.data({ userId: params.userId }),
         opensTransaction: true,
         operation: async ({ prisma, params }) => prisma.$transaction(async (tx) => {

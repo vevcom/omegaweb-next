@@ -42,6 +42,7 @@ export const userProfileSelection = {
  */
 export const userPrivateSelection = {
     ...userProfileSelection,
+    theme: true,
     mobile: true,
     emailVerified: true,
     acceptedTerms: true,

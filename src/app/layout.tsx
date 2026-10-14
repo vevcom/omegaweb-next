@@ -12,7 +12,7 @@ import { standardImageCollectionOperations } from '@/services/images/standard/op
 import { userOperations } from '@/services/users/operations'
 import { withFallback, withPageSession } from '@/app/serverPage'
 import ReleaseCountdownGate from '@/components/ReleaseCountdown/ReleaseCountdownGate'
-import ThemeEnabler from '@/UI/ThemeEnabler'
+import { Theme, themeCssVars, themes } from '@/lib/theme'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
 import GlobalSearch from '@/UI/GlobalSearch'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
@@ -37,9 +37,6 @@ export const viewport: Viewport = {
     // being letterboxed between them. The safe-area insets in layout.module.scss
     // are what then keep the nav bars clear of the system UI.
     viewportFit: 'cover',
-    // Only the pre-hydration default, matching --surface-base in globals.scss;
-    // applyTheme() rewrites this meta to the active theme's surface-base.
-    themeColor: '#131316',
 }
 
 export const metadata: Metadata = {
@@ -86,11 +83,16 @@ export default async function RootLayout({ children }: PropTypes) {
         }
     })
     const navItems = visibleNavItems(serverSession)
+    // Rendering the theme's variables server side is what keeps the first paint from flashing the
+    // default theme. Anyone not logged in gets the default, which globals.scss already holds.
+    const theme = serverSession.user?.theme ?? Theme.STANDARD
 
     return (
-        <html lang="en">
+        <html lang="nb" style={themeCssVars(theme)}>
             <body className={`${inter.className} ${styles.body}`}>
-                <ThemeEnabler />
+                {/* Hoisted into the head by React. Keeps the browser chrome in step with the theme;
+                    picking another one refreshes the page, which renders it anew. */}
+                <meta name="theme-color" content={themes[theme]['surface-base']} />
                 <ServiceWorkerRegister />
                 <SessionProvider session={nextAuthSession}>
                     <ClientDataProvider

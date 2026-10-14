@@ -16,8 +16,6 @@ model CmsImage {
   articleSectionId     Int?             @unique
   coverImageforArticle Article?
   special              SpecialCmsImage? @unique
-  screenPage           ScreenPage?
-  school               School?
   event                Event?
   company              Company?
 }
@@ -44,14 +42,12 @@ model CmsParagraph {
   articleSection      ArticleSection?      @relation(fields: [articleSectionId], references: [id], onDelete: Cascade)
   articleSectionId    Int?                 @unique
   special             SpecialCmsParagraph? @unique
-  ScreenPage          ScreenPage?
-  Course              Course?
-  School              School?
   Event               Event?
   Committee           Committee?           @relation(name: "committeeParagraph")
-  CommitteApplication Committee?           @relation(name: "applicationParagraph")
   Ombul               Ombul?
   User                User?
+
+  committeeParticipation CommitteeParticipationInApplicationPeriod?
 }
 
 enum SpecialCmsLink {
@@ -68,7 +64,8 @@ model CmsLink {
   special          SpecialCmsLink? @unique
   articleSection   ArticleSection? @relation(fields: [articleSectionId], references: [id], onDelete: Cascade)
   articleSectionId Int?            @unique
-  school           School?
+
+  committeeParticipation CommitteeParticipationInApplicationPeriod?
 }
 
 enum Position {

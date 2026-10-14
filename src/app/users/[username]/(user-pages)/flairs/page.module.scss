@@ -8,4 +8,5 @@
 
 .flairContainer {
     @include ohma.table;
+    overflow-x: auto;
 }

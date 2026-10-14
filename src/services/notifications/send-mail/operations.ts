@@ -12,7 +12,7 @@ import { render } from '@react-email/render'
 const internal = {
     /** Sends one simple text mail. Implemented with authorization as `sendMail` below. */
     sendMail: defineSubOperation({
-        dataSchema: () => sendMailSchemas.sendMail,
+        dataSchema: () => sendMailSchemas.data.sendMail,
         operation: () => async ({ data }) => {
             await getMailHandler().sendSingleMail(data)
         },
@@ -20,7 +20,7 @@ const internal = {
 
     /** Sends many fully specified mails, e.g. the notification worker's rendered html mails. */
     sendBulkMail: defineSubOperation({
-        dataSchema: () => sendMailSchemas.sendBulkMail,
+        dataSchema: () => sendMailSchemas.data.sendBulkMail,
         operation: () => async ({ data }) => {
             await getMailHandler().sendBulkMail(data)
         },
@@ -31,7 +31,7 @@ const internal = {
      * password. Must not be used as a notification.
      */
     sendSystemMail: defineSubOperation({
-        dataSchema: () => sendMailSchemas.sendSystemMail,
+        dataSchema: () => sendMailSchemas.data.sendSystemMail,
         operation: () => async ({ data }) => {
             await getMailHandler().sendSingleMail({
                 to: data.to,

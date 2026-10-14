@@ -31,7 +31,7 @@ export function buildWeeklyDigestText(user: UserBasicWithEmail, notifications: W
  * @returns Whether the digest was sent.
  */
 export async function sendWeeklyEmailDigest(user: UserBasicWithEmail, notifications: WeeklyDigestNotification[]) {
-    const parsed = sendMailSchemas.sendMail.safeParse({
+    const parsed = sendMailSchemas.data.sendMail.safeParse({
         from: DEFAULT_NOTIFICATION_ALIAS,
         to: user.email,
         subject: weeklyDigest.subject,
@@ -50,8 +50,8 @@ export async function sendWeeklyEmailDigest(user: UserBasicWithEmail, notificati
             html: await wrapInHTML(user, parsed.data.text),
             list: {
                 unsubscribe: {
-                    url: `${process.env.WEBSITE_URL}/users/${user.username}/unsubscribe`,
-                    comment: 'Comment'
+                    url: `${process.env.WEBSITE_URL}/users/${user.username}/notifications`,
+                    comment: 'Varslingsinnstillinger'
                 },
             },
         }],

@@ -9,6 +9,6 @@ export const mailAuth = {
     destroyMailingListExternalRelation: Require.permission('MAILSERVER_ADMIN'),
     destroyMailingListUserRelation: Require.permission('MAILSERVER_ADMIN'),
     destroyMailingListGroupRelation: Require.permission('MAILSERVER_ADMIN'),
-    readMailFlow: Require.permission('MAILSERVER_USE'),
+    readMailTraversal: Require.permission('MAILSERVER_USE'),
     readMailOptions: Require.permission('MAILSERVER_USE'),
 } as const

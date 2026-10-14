@@ -1,28 +1,33 @@
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { z } from 'zod'
 
-const baseSchema = z.object({
-    building: z.string(),
-    floor: z.coerce.number(),
-    id: z.coerce.number()
+const dataFieldSchemas = z.object({
+    building: z.string().trim().min(1),
+    floor: z.coerce.number().int(),
+    id: z.coerce.number().int().nonnegative(),
+})
+
+const paramsFieldSchemas = z.object({
+    id: z.number(),
 })
 
 export const lockersSchemas = {
-    create: baseSchema.pick({
-        building: true,
-        floor: true,
-        id: true
-    }),
-
-    createLocation: baseSchema.pick({
-        building: true,
-        floor: true,
-    }),
-
-    readPage: readPageInputSchemaObject(
-        z.object({
-            id: z.number(),
+    data: {
+        create: dataFieldSchemas.pick({
+            building: true,
+            floor: true,
+            id: true,
         }),
-        z.undefined(),
-    ),
+    },
+    params: {
+        read: paramsFieldSchemas.pick({
+            id: true,
+        }),
+        readPage: readPageInputSchemaObject(
+            paramsFieldSchemas.pick({
+                id: true,
+            }),
+            z.undefined(),
+        ),
+    },
 }

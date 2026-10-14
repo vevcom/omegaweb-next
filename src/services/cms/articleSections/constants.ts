@@ -14,3 +14,5 @@ export const articleSectionsRelationsIncluder = {
     cmsParagraph: true,
     cmsLink: true,
 } as const satisfies Prisma.ArticleSectionInclude
+
+export const articleSectionParts = ['cmsImage', 'cmsParagraph', 'cmsLink'] as const

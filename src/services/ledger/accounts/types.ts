@@ -11,7 +11,7 @@ export type Balance = {
 
 export type ExpandedLedgerAccount = LedgerAccount & {
     groupIds: number[],
-    // Who may act on the account, for authorizers that take `{ accounts }`.
+    /** Who owns the account, for the pages to run the ownership rules of what they offer on it. */
     ownership: LedgerAccountOwnership,
 }
 

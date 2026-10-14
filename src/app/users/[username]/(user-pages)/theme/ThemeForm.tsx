@@ -1,29 +1,40 @@
 'use client'
 
 import styles from './page.module.scss'
-import { themes, applyTheme, subscribeToTheme, getActiveTheme, getServerActiveTheme } from './theme'
-import { useSyncExternalStore } from 'react'
-import type { ThemeName } from './theme'
+import { Theme, themes, themeLabels } from '@/lib/theme'
+import { updateUserThemeAction } from '@/services/users/actions'
+import { configureAction } from '@/services/configureAction'
+import Form from '@/components/Form/Form'
 
-export default function ThemeForm() {
-    const activeTheme = useSyncExternalStore(subscribeToTheme, getActiveTheme, getServerActiveTheme)
+type PropTypes = {
+    username: string,
+    activeTheme: Theme,
+}
 
-    function selectTheme(name: ThemeName) {
-        applyTheme(name)
-    }
+/**
+ * One form per theme, each carrying its theme in a hidden field. Choosing one stores it and
+ * refreshes the page, and the root layout then renders the new theme - there is no client-side
+ * repainting to keep in step with the server.
+ */
+export default function ThemeForm({ username, activeTheme }: PropTypes) {
+    const action = configureAction(updateUserThemeAction, { params: { username } })
 
     return (
         <div className={styles.ThemeWrapper}>
-            {Object.entries(themes).map(([name, colors]) => {
+            {Object.values(Theme).map(theme => {
+                const colors = themes[theme]
                 const bg = (key: keyof typeof colors) => ({ backgroundColor: colors[key] })
                 return (
-                    <a
-                        key={name}
-                        className={`${styles.Theme} ${name === activeTheme ? styles.active : ''}`}
-                        onClick={() => selectTheme(name as ThemeName)}
+                    <Form
+                        key={theme}
+                        className={`${styles.Theme} ${theme === activeTheme ? styles.active : ''}`}
+                        action={action}
+                        refreshOnSuccess
+                        submitText="Velg tema"
                     >
+                        <input type="hidden" name="theme" value={theme} />
                         <div className={styles.ThemeHeader}>
-                            {name}
+                            {themeLabels[theme]}
                         </div>
                         <div className={styles.ThemeContent}>
                             <div className={styles.ThemeBody}>
@@ -68,7 +79,7 @@ export default function ThemeForm() {
                                 </div>
                             </div>
                         </div>
-                    </a>
+                    </Form>
                 )
             })}
         </div>

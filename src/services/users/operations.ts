@@ -28,16 +28,15 @@ import { decryptAndComparePassword, hashAndEncryptPassword } from '@/auth/passwo
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import { z } from 'zod'
 import type { UserPagingReturn } from './types'
 
 export const userOperations = {
     /**
-     * This Method creates an user by invitation, and sends the invitation email.
+     * Creates a user by invitation, and sends the invitation email.
      * WARNING: This should not be used to create users registered by Feide.
      */
     create: defineOperation({
-        dataSchema: userSchemas.create,
+        dataSchema: userSchemas.data.create,
         authorizer: () => userAuth.create,
         operation: async ({ prisma, data }) => {
             const omegaMembership = await omegaMembershipGroupOperations.read({
@@ -65,25 +64,19 @@ export const userOperations = {
                 select: userPrivateSelection
             })
 
-            // Don't send mail during testing.
+            // Not awaited: the user exists either way, and the response must not wait on the mail
+            // server. sendUserInvitationEmail never throws, it logs a failure. The tests create users
+            // by the dozen, and the mail handler of a test run has no account to send from.
             if (process.env.NODE_ENV !== 'test') {
-                setTimeout(() => sendUserInvitationEmail(user), 1000)
+                void sendUserInvitationEmail(user)
             }
-            // The timeout is here to make sure the user is fully created before we send the email.
-            // If we don't wait the validation token will be generated first, and will not be valid since
-            // the user has changed after the token was generated.
 
             return user
         }
     }),
 
     read: defineOperation({
-        paramsSchema: z.object({
-            username: z.string().optional(),
-            id: z.coerce.number().optional(),
-            email: z.string().trim().toLowerCase().optional(),
-            studentCard: z.string().optional(),
-        }),
+        paramsSchema: userSchemas.params.read,
         authorizer: ({ params }) => userAuth.read.data({ userField: params }),
         operation: async ({ prisma, params }) => await prisma.user.findUniqueOrThrow({
             where: {
@@ -95,10 +88,7 @@ export const userOperations = {
     }),
 
     readBasic: defineOperation({
-        paramsSchema: z.object({
-            username: z.string().optional(),
-            id: z.coerce.number().optional(),
-        }),
+        paramsSchema: userSchemas.params.readBasic,
         authorizer: ({ params }) => userAuth.readBasic.data({ userField: params }),
         operation: async ({ prisma, params }) => await prisma.user.findUniqueOrThrow({
             where: {
@@ -110,12 +100,7 @@ export const userOperations = {
     }),
 
     readOrNull: defineOperation({
-        paramsSchema: z.object({
-            username: z.string().optional(),
-            id: z.coerce.number().optional(),
-            email: z.string().trim().toLowerCase().optional(),
-            studentCard: z.string().optional(),
-        }),
+        paramsSchema: userSchemas.params.readOrNull,
         authorizer: ({ params }) => userAuth.readOrNull.data({ userField: params }),
         operation: async ({ prisma, params }) => await prisma.user.findUnique({
             where: {
@@ -126,10 +111,12 @@ export const userOperations = {
         })
     }),
 
+    /**
+     * Everything the profile page of a user shows: the user, the groups they are in, their class and
+     * their omega membership.
+     */
     readProfile: defineOperation({
-        paramsSchema: z.object({
-            username: z.string(),
-        }),
+        paramsSchema: userSchemas.params.readProfile,
         authorizer: ({ params }) => userAuth.readProfile.data({ userField: { username: params.username } }),
         operation: async ({ prisma, params }) => {
             const { id: userId } = await prisma.user.findUniqueOrThrow({
@@ -217,8 +204,12 @@ export const userOperations = {
         }
     }),
 
+    /**
+     * A page of the user list, filtered by name and group memberships. The users carry their class,
+     * study programme and omega membership, and their title and admin flag in the selected group.
+     */
     readPage: defineOperation({
-        paramsSchema: userSchemas.readPage,
+        paramsSchema: userSchemas.params.readPage,
         authorizer: () => userAuth.readPage,
         operation: async ({ prisma, params }): Promise<UserPagingReturn[]> => {
             const { page, details } = params.paging
@@ -282,9 +273,9 @@ export const userOperations = {
                 },
                 where: {
                     AND: [
-                        ...words.map((word, i) => {
+                        ...words.map((word, index) => {
                             const condition = {
-                                [i === words.length - 1 ? 'contains' : 'equals']: word,
+                                [index === words.length - 1 ? 'contains' : 'equals']: word,
                                 mode: 'insensitive'
                             } as const
                             return {
@@ -342,7 +333,7 @@ export const userOperations = {
      * the name of the user, so that "ola nor" finds "Ola Nordmann".
      */
     search: defineOperation({
-        paramsSchema: userSchemas.search,
+        paramsSchema: userSchemas.params.search,
         authorizer: () => userAuth.search,
         operation: async ({ prisma, params }) => {
             const words = params.query.split(/\s+/).filter(Boolean)
@@ -377,29 +368,20 @@ export const userOperations = {
     }),
 
     connectStudentCard: defineOperation({
-        authorizer: () => userAuth.connectStudentCard,
-        paramsSchema: z.object({
-            studentCard: z.coerce.number().int().min(0).optional(),
-        }),
-        operation: async ({ prisma, params, session }) => {
-            if (!session.user) {
-                throw new ServiceError('DISSALLOWED', 'This endpoint requires a user conencted to the session.')
-            }
-
+        paramsSchema: userSchemas.params.connectStudentCard,
+        dataSchema: userSchemas.data.connectStudentCard,
+        authorizer: ({ params }) => userAuth.connectStudentCard.data({ userId: params.id }),
+        operation: async ({ prisma, params, data }) => {
             await prisma.user.update({
-                where: {
-                    id: session.user.id
-                },
-                data: {
-                    studentCard: params.studentCard?.toString()
-                }
+                where: { id: params.id },
+                data,
             })
         }
     }),
 
     update: defineOperation({
-        paramsSchema: z.union([z.object({ id: z.number() }), z.object({ username: z.string() })]),
-        dataSchema: userSchemas.update,
+        paramsSchema: userSchemas.params.update,
+        dataSchema: userSchemas.data.update,
         authorizer: () => userAuth.update,
         operation: ({ prisma, params, data }) => prisma.user.update({
             where: params,
@@ -408,10 +390,8 @@ export const userOperations = {
     }),
 
     updateProfile: defineOperation({
-        paramsSchema: z.object({
-            username: z.string()
-        }),
-        dataSchema: userSchemas.updateProfile,
+        paramsSchema: userSchemas.params.updateProfile,
+        dataSchema: userSchemas.data.updateProfile,
         authorizer: ({ params }) => userAuth.updateProfile.data({ userField: { username: params.username } }),
         operation: ({ prisma, data, params }) => prisma.user.update({
             where: params,
@@ -419,10 +399,20 @@ export const userOperations = {
         })
     }),
 
+    updateTheme: defineOperation({
+        paramsSchema: userSchemas.params.updateTheme,
+        dataSchema: userSchemas.data.updateTheme,
+        authorizer: ({ params }) => userAuth.updateTheme.data({ userField: { username: params.username } }),
+        operation: async ({ prisma, params, data }) => {
+            await prisma.user.update({
+                where: { username: params.username },
+                data,
+            })
+        }
+    }),
+
     updateBioParagraphContent: cmsParagraphOperations.updateContent.implement({
-        implementationParamsSchema: z.object({
-            userId: z.number(),
-        }),
+        implementationParamsSchema: userSchemas.params.updateBioParagraphContent,
         authorizer: ({ implementationParams }) =>
             userAuth.updateBioParagraphContent.data({ userId: implementationParams.userId }),
         ownershipCheck: async ({ prisma, implementationParams, params }) =>
@@ -433,10 +423,8 @@ export const userOperations = {
     }),
 
     updatePassword: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
-        dataSchema: userSchemas.updatePassword,
+        paramsSchema: userSchemas.params.updatePassword,
+        dataSchema: userSchemas.data.updatePassword,
         authorizer: ({ params }) => userAuth.updatePassword.data({ userId: params.id }),
         operation: async ({ prisma, data, params }) => {
             const passwordHash = await hashAndEncryptPassword(data.password)
@@ -454,11 +442,9 @@ export const userOperations = {
     }),
 
     registerNewEmail: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: userSchemas.params.registerNewEmail,
         authorizer: ({ params }) => userAuth.registerNewEmail.data({ userId: params.id }),
-        dataSchema: userSchemas.registerNewEmail,
+        dataSchema: userSchemas.data.registerNewEmail,
         operation: async ({ prisma, params, data }) => {
             const storedUser = await prisma.user.findUniqueOrThrow({
                 where: {
@@ -532,42 +518,25 @@ export const userOperations = {
     }),
 
     /**
-     * This function completes the last step of user creation: registration.
-     * This can only be done once per user.
-     *
-     * @param id - If of user to register
-     * @param rawdata - Registration data.
-     * @returns null
+     * Completes the last step of user creation: registration. This can only be done once per user.
      */
     register: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
-        dataSchema: userSchemas.register,
+        paramsSchema: userSchemas.params.register,
+        dataSchema: userSchemas.data.register,
         authorizer: ({ params }) => userAuth.register.data({ userId: params.id }),
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => {
-            const { sex, password, mobile, allergies, imageConsent } = data
+            const { sex, password, allergies, imageConsent } = data
 
-            if (!password) throw new ServiceError('BAD PARAMETERS', 'Passord er obligatorisk.')
-
-            const storedUser = await prisma.user.findUnique({
+            const storedUser = await prisma.user.findUniqueOrThrow({
                 where: {
                     id: params.id,
                 },
                 select: {
                     acceptedTerms: true,
-                    email: true,
-                    feideAccount: {
-                        select: {
-                            email: true,
-                        },
-                    },
                     emailVerified: true,
                 },
             })
-
-            if (!storedUser) throw new ServiceError('NOT FOUND', 'Could not find the user with the specified id.')
 
             if (storedUser.acceptedTerms) throw new ServiceError('DUPLICATE', 'Brukeren er allerede registrert.')
 
@@ -577,7 +546,7 @@ export const userOperations = {
 
             const passwordHash = await hashAndEncryptPassword(password)
 
-            const results = await prisma.$transaction([
+            const [registeredUser] = await prisma.$transaction([
                 prisma.user.update({
                     where: {
                         id: params.id,
@@ -586,7 +555,6 @@ export const userOperations = {
                         acceptedTerms: new Date(),
                         imageConsent,
                         sex,
-                        mobile,
                         allergies,
                     },
                     select: userPrivateSelection
@@ -643,7 +611,7 @@ export const userOperations = {
                 bypassAuth: true,
             })
 
-            return results[0]
+            return registeredUser
         }
     }),
 
@@ -651,14 +619,9 @@ export const userOperations = {
         authorizer: async ({ params, prisma }) => userAuth.readUserWithBalance.data({
             userField: { id: (await prisma.user.findFirst({ where: params, select: { id: true } }))?.id },
         }),
-        paramsSchema: z.object({
-            username: z.string().optional(),
-            id: z.number().optional(),
-            email: z.string().trim().toLowerCase().optional(),
-            studentCard: z.string().optional(),
-        }),
-        operation: async ({ prisma: prisma_, params }) => {
-            const user = await prisma_.user.findFirstOrThrow({
+        paramsSchema: userSchemas.params.readUserWithBalance,
+        operation: async ({ prisma, params }) => {
+            const user = await prisma.user.findFirstOrThrow({
                 where: params,
                 select: {
                     ...userBasicSelection,
@@ -694,32 +657,32 @@ export const userOperations = {
 
     //TODO: Make soft delete?
     /**
-     * This function deletes a user from the database.
+     * Deletes a user from the database, together with the bio paragraph only they owned.
      */
     destroy: defineOperation({
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: userSchemas.params.destroy,
         authorizer: () => userAuth.destroy,
+        opensTransaction: true,
         operation: async ({ prisma, params }) => {
-            const user = await prisma.user.delete({
-                where: {
-                    id: params.id,
-                },
-                select: { bioParagraphId: true },
-            })
-            await cmsParagraphOperations.destroy.internalCall({
-                params: { paragraphId: user.bioParagraphId }
+            await prisma.$transaction(async tx => {
+                const user = await tx.user.delete({
+                    where: {
+                        id: params.id,
+                    },
+                    select: { bioParagraphId: true },
+                })
+                await cmsParagraphOperations.destroy.internalCall({
+                    prisma: tx,
+                    params: { paragraphId: user.bioParagraphId },
+                })
             })
         }
     }),
 
     updateProfileImage: defineOperation({
         authorizer: ({ params }) => userAuth.updateProfileImage.data({ userField: { username: params.username } }),
-        paramsSchema: z.object({
-            username: z.string(),
-        }),
-        dataSchema: userSchemas.updateProfileImage,
+        paramsSchema: userSchemas.params.updateProfileImage,
+        dataSchema: userSchemas.data.updateProfileImage,
         opensTransaction: true,
         // uploadImage resizes to 3 sizes, converts to avif and writes several files to store
         // before any db write happens - comfortably slower than the default 5000ms interactive

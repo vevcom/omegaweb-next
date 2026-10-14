@@ -2,6 +2,8 @@
 import styles from './page.module.scss'
 import { increaseFlairRankAction, decreaseFlairRankAction } from '@/services/flairs/actions'
 import { configureAction } from '@/services/configureAction'
+import { flairAuth } from '@/services/flairs/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Reorder, useDragControls } from 'framer-motion'
@@ -21,10 +23,11 @@ export type FlairRow = {
 type RowPropTypes = {
     row: FlairRow,
     index: number,
+    canReorder: boolean,
     onDragEnd: (flairId: number) => void,
 }
 
-function FlairTableRow({ row, index, onDragEnd }: RowPropTypes) {
+function FlairTableRow({ row, index, canReorder, onDragEnd }: RowPropTypes) {
     const dragControls = useDragControls()
 
     const startDrag = (event: PointerEvent) => dragControls.start(event)
@@ -41,9 +44,11 @@ function FlairTableRow({ row, index, onDragEnd }: RowPropTypes) {
             className={styles.row}
         >
             <span className={styles.colHandle} role="cell">
+                {canReorder &&
                 <span className={styles.dragHandle} onPointerDown={startDrag}>
                     <FontAwesomeIcon icon={faGripVertical} />
                 </span>
+                }
             </span>
             <span className={styles.colImage} role="cell">{row.image}</span>
             <span className={styles.colName} role="cell">{row.name}</span>
@@ -52,7 +57,7 @@ function FlairTableRow({ row, index, onDragEnd }: RowPropTypes) {
             <span className={styles.colLink} role="cell">
                 <Link className={styles.imageContainer} href={row.editHref}>
                     <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
-                    Rediger
+                    <span className={styles.linkText}>Rediger</span>
                 </Link>
             </span>
         </Reorder.Item>
@@ -66,6 +71,8 @@ type PropTypes = {
 export default function FlairTable({ rows }: PropTypes) {
     const [order, setOrder] = useState(rows)
     const router = useRouter()
+    const canIncreaseFlairRank = useAuthorizer({ authorizer: flairAuth.increaseRank }).authorized
+    const canDecreaseFlairRank = useAuthorizer({ authorizer: flairAuth.decreaseRank }).authorized
 
     useEffect(() => {
         setOrder(rows)
@@ -103,7 +110,13 @@ export default function FlairTable({ rows }: PropTypes) {
                 className={styles.body}
             >
                 {order.map((row, index) => (
-                    <FlairTableRow key={row.id} row={row} index={index} onDragEnd={commitOrder} />
+                    <FlairTableRow
+                        key={row.id}
+                        row={row}
+                        index={index}
+                        canReorder={canIncreaseFlairRank && canDecreaseFlairRank}
+                        onDragEnd={commitOrder}
+                    />
                 ))}
             </Reorder.Group>
         </div>

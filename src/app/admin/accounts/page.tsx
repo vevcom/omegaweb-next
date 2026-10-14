@@ -3,6 +3,7 @@ import CreateGroupLedgerAccountForm from '@/components/Ledger/Accounts/CreateGro
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { serverPage } from '@/app/serverPage'
 import type { PageOperationArgs } from '@/app/serverPage'
 
@@ -10,9 +11,13 @@ const popUpKey = 'createGroupLedgerAccount'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('accounts', session),
+    capabilities: () => ({
+        canCreate: ledgerAccountAuth.create,
+    }),
     metadata: () => ({ title: 'Gruppekontoer' }),
-    render: () => (
+    render: ({ capabilities }) => (
         <PageWrapper headerItem={
+            capabilities.canCreate.authorized &&
             <AddHeaderItemPopUp popUpKey={popUpKey}>
                 <CreateGroupLedgerAccountForm popUpKey={popUpKey} />
             </AddHeaderItemPopUp>

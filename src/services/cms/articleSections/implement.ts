@@ -9,7 +9,7 @@ import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 import type { ArgsAuthGetterAndOwnershipCheck, PrismaPossibleTransaction } from '@/services/serviceOperation'
 
-type ParamsSchema = typeof articleSectionSchemas.params
+type ParamsSchema = typeof articleSectionSchemas.params.addPart
 type OwnedArticleSection = Prisma.ArticleSectionGetPayload<{
     include: {
         cmsImage: true,

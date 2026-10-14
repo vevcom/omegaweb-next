@@ -1,42 +1,22 @@
-import { notificationOperations } from '@/services/notifications/operations'
-import { sendMailOperations } from '@/services/notifications/send-mail/operations'
+import { sendCabinBookingConfirmationMail } from '@/lib/email/systemMail/cabinBookingConfirmation'
+import type { ConfirmedBooking } from '@/lib/email/systemMail/cabinBookingConfirmation'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-const mailData = {
-    title: 'Bekreftelse på hyttebooking',
-    message: `Takk for din hyttebooking.
-Dette skal være en bookingbekreftelse, så det bør nok komme noe nyttig info her snart.`,
-}
+type Recipient = { email: string, firstname: string } | null
 
 /**
  * Sent once payment succeeds, not at reservation time - a reservation may still expire unpaid.
+ * The booker is a user or a guest; a booking with neither (an event blocking the cabin) confirms
+ * nothing.
  */
 export async function sendBookingConfirmation(
-    booking: { userId: number | null, guestUser: { email: string } | null }
+    booking: ConfirmedBooking & { user: Recipient, guestUser: Recipient }
 ) {
-    if (booking.userId !== null) {
-        await notificationOperations.createSpecial.internalCall({
-            params: {
-                special: 'CABIN_BOOKING_CONFIRMATION',
-            },
-            data: {
-                ...mailData,
-                audience: { userIds: [booking.userId] },
-            },
-        })
-        return
-    }
+    const recipient = booking.user ?? booking.guestUser
+    if (!recipient) return
 
-    if (booking.guestUser) {
-        await sendMailOperations.internal.sendSystemMail.internalCall({
-            data: {
-                to: booking.guestUser.email,
-                subject: mailData.title,
-                body: mailData.message,
-            },
-        })
-    }
+    await sendCabinBookingConfirmationMail(recipient, booking)
 }
 
 /**
@@ -57,7 +37,10 @@ export async function cabinBookingPaymentCompletionHook(
     const booking = await prisma.booking.update({
         where: { id: transaction.bookingId },
         data: { transactionTimeout: null },
-        include: { guestUser: true },
+        include: {
+            user: { select: { email: true, firstname: true } },
+            guestUser: { select: { email: true, firstname: true } },
+        },
     })
 
     await sendBookingConfirmation(booking)

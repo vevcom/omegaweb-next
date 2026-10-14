@@ -59,6 +59,7 @@
 .colName {
     flex: 1 1 auto;
     min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .colColor {
@@ -72,6 +73,40 @@
 
 .colLink {
     flex: 0 0 140px;
+}
+
+@include ohma.screenMobile {
+    .colImage {
+        flex-basis: 72px;
+        min-width: 0;
+
+        // Flair renders at a fixed 100px.
+        > :first-child {
+            zoom: 0.72;
+        }
+    }
+
+    .colColor {
+        flex-basis: calc(2 * #{ohma.$gap});
+    }
+
+    .colRank {
+        flex-basis: calc(3 * #{ohma.$gap});
+    }
+
+    .colLink {
+        flex-basis: calc(3 * #{ohma.$gap});
+    }
+
+    // Visually hidden, still read by screen readers.
+    .linkText {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
 }
 
 .dragHandle {
@@ -104,4 +139,8 @@
     padding: 0.25em 0.5em;
     font-size: ohma.$fonts-s;
     white-space: nowrap;
+
+    @include ohma.screenMobile {
+        white-space: normal;
+    }
 }

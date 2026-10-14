@@ -2,6 +2,7 @@ import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { destroyFlairAction, updateFlairAction } from '@/services/flairs/actions'
 import { flairOperations } from '@/services/flairs/operations'
+import { flairAuth } from '@/services/flairs/auth'
 import { serverPage } from '@/app/serverPage'
 import { configureAction } from '@/services/configureAction'
 import Flair from '@/components/Flair/Flair'
@@ -12,10 +13,15 @@ import type { PageOperationArgs } from '@/app/serverPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ id: string }>) =>
         flairOperations.read({ params: { flairId: Number(params.id) } }),
+    capabilities: () => ({
+        canUpdateFlair: flairAuth.update,
+        canDestroyFlair: flairAuth.destroy,
+    }),
     metadata: (flair) => ({ title: `Rediger flair: ${flair.name}` }),
-    render: ({ data: flair }) => (
+    render: ({ data: flair, capabilities }) => (
         <PageWrapper>
             <Flair flair={flair} width={200} />
+            {capabilities.canUpdateFlair.authorized &&
             <Form
                 title="Oppdater flair"
                 submitText="Oppdater flair"
@@ -29,6 +35,8 @@ const { page, generateMetadata } = serverPage({
                     blue: flair.colorB
                 }} label="Farge" name="color" />
             </Form>
+            }
+            {capabilities.canDestroyFlair.authorized &&
             <Form
                 title="Slett flair"
                 submitText="Slett flair"
@@ -43,6 +51,7 @@ const { page, generateMetadata } = serverPage({
                     `
                 }}
             />
+            }
         </PageWrapper>
     ),
 })

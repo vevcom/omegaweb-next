@@ -9,9 +9,10 @@
 .reportPage.reportPage {
     h1 {
         text-align: center;
-        font-size: 6em;
+        font-size: clamp(2.5em, 12vw, 6em);
         font-family: ohma.$fonts-secondary;
         text-transform: none;
         margin: 0.2em 0;
+        hyphens: auto;
     }
 }

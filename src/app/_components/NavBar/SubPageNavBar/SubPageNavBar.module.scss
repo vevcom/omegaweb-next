@@ -56,6 +56,10 @@
     .text {
         display: none;
     }
+
+    .container {
+        padding: 0 calc(#{ohma.$gap} / 2);
+    }
 }
 
 // Sub page nav bar

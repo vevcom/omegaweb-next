@@ -1,8 +1,9 @@
 import { dateLessThan, dateLessThanOrEqualTo } from '@/lib/dates/comparison'
 import { Zpn } from '@/lib/fields/zpn'
+import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-const baseSchema = z.object({
+const dataFieldSchemas = z.object({
     start: z.coerce.date(),
     end: z.coerce.date(),
     tenantNotes: z.string().optional(),
@@ -18,31 +19,82 @@ const baseSchema = z.object({
     })
 })
 
-const startEndDateRefiner = {
-    fcn: (data: { start: Date, end: Date }) =>
-        dateLessThan(data.start, data.end) && dateLessThanOrEqualTo(new Date(), data.start),
-    message: 'Start dato må være før sluttdato. Start daten må være i ramtiden'
-}
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    userId: z.number(),
+    bookingId: z.number(),
+    secret: z.string().min(1),
+    bookingProducts: z.array(z.object({
+        cabinProductId: z.number(),
+        quantity: z.number().int().min(1),
+    })),
+    provider: z.nativeEnum(PaymentProvider).optional(),
+    amountFromBalance: z.coerce.number().nonnegative().default(0),
+    manualFees: z.coerce.number().nonnegative().default(0),
+    description: z.string().optional(),
+})
+
+const startsBeforeEndAndNotInThePast = (data: { start: Date, end: Date }) =>
+    dateLessThan(data.start, data.end) && dateLessThanOrEqualTo(new Date(), data.start)
+const datesMessage = 'Startdatoen må være før sluttdatoen, og kan ikke være i fortiden.'
+
+const bookingUserAttached = dataFieldSchemas.pick({
+    start: true,
+    end: true,
+    tenantNotes: true,
+    acceptedTerms: true,
+    numberOfMembers: true,
+    numberOfNonMembers: true,
+}).refine(startsBeforeEndAndNotInThePast, datesMessage)
+
+const bookingNoUser = dataFieldSchemas.pick({
+    start: true,
+    end: true,
+    tenantNotes: true,
+    acceptedTerms: true,
+    firstname: true,
+    lastname: true,
+    email: true,
+    mobile: true,
+}).refine(startsBeforeEndAndNotInThePast, datesMessage)
+
+const bookingUserAttachedParams = paramsFieldSchemas.pick({
+    userId: true,
+    bookingProducts: true,
+})
+
+const bookingNoUserParams = paramsFieldSchemas.pick({
+    bookingProducts: true,
+})
+
+const bookingAccess = paramsFieldSchemas.pick({
+    bookingId: true,
+    secret: true,
+})
 
 export const cabinBookingSchemas = {
-    createBookingUserAttached: baseSchema.pick({
-        start: true,
-        end: true,
-        tenantNotes: true,
-        acceptedTerms: true,
-        numberOfMembers: true,
-        numberOfNonMembers: true,
-    }).refine(startEndDateRefiner.fcn, startEndDateRefiner.message),
-
-    createBookingNoUser: baseSchema.pick({
-        start: true,
-        end: true,
-        tenantNotes: true,
-        acceptedTerms: true,
-        firstname: true,
-        lastname: true,
-        email: true,
-        mobile: true,
-    }).refine(startEndDateRefiner.fcn, startEndDateRefiner.message),
+    data: {
+        createCabinBookingUserAttached: bookingUserAttached,
+        createBedBookingUserAttached: bookingUserAttached,
+        createCabinBookingNoUser: bookingNoUser,
+        createBedBookingNoUser: bookingNoUser,
+    },
+    params: {
+        createCabinBookingUserAttached: bookingUserAttachedParams,
+        createBedBookingUserAttached: bookingUserAttachedParams,
+        createCabinBookingNoUser: bookingNoUserParams,
+        createBedBookingNoUser: bookingNoUserParams,
+        read: paramsFieldSchemas.pick({
+            id: true,
+        }),
+        createPayment: paramsFieldSchemas.pick({
+            bookingId: true,
+            secret: true,
+            provider: true,
+            amountFromBalance: true,
+            manualFees: true,
+            description: true,
+        }),
+        releaseReservation: bookingAccess,
+    },
 }
-

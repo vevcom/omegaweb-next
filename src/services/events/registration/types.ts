@@ -36,6 +36,6 @@ export type DotPunishment = {
     type: 'ban',
 }
 
-export type EventRegistrationCursor = InferPagingCursor<typeof eventRegistrationSchemas.readPage>
+export type EventRegistrationCursor = InferPagingCursor<typeof eventRegistrationSchemas.params.readPage>
 
-export type EventRegistrationPageDetails = InferPagingDetails<typeof eventRegistrationSchemas.readPage>
+export type EventRegistrationPageDetails = InferPagingDetails<typeof eventRegistrationSchemas.params.readPage>

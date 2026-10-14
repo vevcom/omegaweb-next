@@ -37,9 +37,19 @@ export default function EditMailingList({
     const focusedMailingList = data.mailingList.find(list => list.id === id)
     if (!focusedMailingList) throw new Error('Fant ikke e-postlisten')
 
-    const canAdmin = useAuthorizer({ authorizer: mailingListAuth.update }).authorized
-    const canAddRelation = useAuthorizer({
+    const canUpdateMailingList = useAuthorizer({ authorizer: mailingListAuth.update }).authorized
+    const canDestroyMailingList = useAuthorizer({ authorizer: mailingListAuth.destroy }).authorized
+    const canAddAliasRelation = useAuthorizer({
         authorizer: mailAuth.createAliasMailingListRelation
+    }).authorized
+    const canAddGroupRelation = useAuthorizer({
+        authorizer: mailAuth.createMailingListGroupRelation
+    }).authorized
+    const canAddExternalRelation = useAuthorizer({
+        authorizer: mailAuth.createMailingListExternalRelation
+    }).authorized
+    const canAddUserRelation = useAuthorizer({
+        authorizer: mailAuth.createMailingListUserRelation
     }).authorized
 
     // Only offer what is not already connected - the flow graphic is where existing
@@ -52,17 +62,16 @@ export default function EditMailingList({
     const availableExternal = mailAddressExternal.filter(external => !connectedExternalIds.has(external.id))
 
     return <>
-        {canAdmin && <Form
+        {canUpdateMailingList && <Form
             title="Rediger e-postliste"
             submitText="Oppdater"
-            action={updateMailingListAction}
+            action={configureAction(updateMailingListAction, { params: { id: focusedMailingList.id } })}
         >
-            <input type="hidden" name="id" value={focusedMailingList.id} />
             <TextInput name="name" label="Navn" defaultValue={focusedMailingList.name} />
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedMailingList.description} />
         </Form>}
 
-        {canAddRelation && availableAliases.length > 0 && <Form
+        {canAddAliasRelation && availableAliases.length > 0 && <Form
             title="Koble til alias"
             submitText="Legg til"
             action={createAliasMailingListRelationAction}
@@ -76,7 +85,7 @@ export default function EditMailingList({
             />
         </Form>}
 
-        {canAddRelation && availableGroups.length > 0 && <Form
+        {canAddGroupRelation && availableGroups.length > 0 && <Form
             title="Legg til gruppe"
             submitText="Legg til"
             action={createMailingListGroupRelationAction}
@@ -90,7 +99,7 @@ export default function EditMailingList({
             />
         </Form>}
 
-        {canAddRelation && availableExternal.length > 0 && <Form
+        {canAddExternalRelation && availableExternal.length > 0 && <Form
             title="Legg til ekstern adresse"
             submitText="Legg til"
             action={createMailingListExternalRelationAction}
@@ -104,7 +113,7 @@ export default function EditMailingList({
             />
         </Form>}
 
-        {canAdmin && <Form
+        {canDestroyMailingList && <Form
             action={configureAction(destroyMailingListAction, { params: { id: focusedMailingList.id } })}
             successCallback={() => push('/admin/mail/mailingList')}
             submitText="Slett e-postlisten"
@@ -115,6 +124,6 @@ export default function EditMailingList({
             }}
         />}
 
-        {canAddRelation && <AddUserToMailingList mailingListId={focusedMailingList.id} />}
+        {canAddUserRelation && <AddUserToMailingList mailingListId={focusedMailingList.id} />}
     </>
 }

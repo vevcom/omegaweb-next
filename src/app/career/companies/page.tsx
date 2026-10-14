@@ -1,6 +1,7 @@
 import styles from './page.module.scss'
-import PageTitleSetter from '@/contexts/PageTitleSetter'
-import { createCompanyAction, readCompanyPageAction } from '@/services/career/companies/actions'
+import { createCompanyAction } from '@/services/career/companies/actions'
+import { companyOperations } from '@/services/career/companies/operations'
+import { companyAuth } from '@/services/career/companies/auth'
 import Form from '@/components/Form/Form'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import TextInput from '@/components/UI/TextInput'
@@ -11,49 +12,57 @@ import { companyListRenderer } from '@/components/Company/CompanyListRenderer'
 import SponsorLegend from '@/components/Company/SponsorLegend'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import CompanyListFilter from '@/app/_components/Company/CompanyListFilter'
-import { configureAction } from '@/services/configureAction'
-import type { SearchParamsServerSide } from '@/lib/queryParams/types'
+import { serverPage, withFallback } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/serverPage'
 import type { PageSizeCompany } from '@/contexts/paging/CompanyPaging'
 
-type PropTypes = SearchParamsServerSide
+const pageSize = 10 satisfies PageSizeCompany
 
-export default async function CompaniesPage({ searchParams }: PropTypes) {
-    const pageSize = 10 satisfies PageSizeCompany
-    const name = QueryParams.companyName.decode(await searchParams) ?? undefined
+const { page, generateMetadata } = serverPage({
+    operation: async ({ searchParams }: PageOperationArgs) => {
+        const name = QueryParams.companyName.decode(searchParams) ?? undefined
 
-    const res = await configureAction(readCompanyPageAction, {
-        params: {
-            paging: {
-                page: {
-                    page: 0,
-                    pageSize,
-                    cursor: null
+        const serverRenderedData = await withFallback(
+            companyOperations.readPage({
+                params: {
+                    paging: {
+                        page: {
+                            page: 0,
+                            pageSize,
+                            cursor: null
+                        },
+                        details: {
+                            name
+                        },
+                    },
                 },
-                details: {
-                    name
-                },
-            },
-        }
-    })()
+            }),
+            []
+        )
 
-    const serverRenderedData = res.success ? res.data : []
-
-    return (
+        return { name, serverRenderedData }
+    },
+    capabilities: () => ({
+        canCreate: companyAuth.create,
+    }),
+    metadata: () => ({ title: 'Bedrifter' }),
+    render: ({ data: { name, serverRenderedData }, capabilities }) => (
         <PageWrapper headerItem={
-            <AddHeaderItemPopUp popUpKey="CreateCompany">
-                <Form
-                    title="Ny bedrift"
-                    action={createCompanyAction}
-                    refreshOnSuccess
-                    closePopUpOnSuccess="CreateCompany"
-                    submitText="Lag"
-                >
-                    <TextInput name="name" label="Navn" />
-                    <TextInput name="description" label="Beskrivelse" />
-                </Form>
-            </AddHeaderItemPopUp>
+            capabilities.canCreate.authorized && (
+                <AddHeaderItemPopUp popUpKey="CreateCompany">
+                    <Form
+                        title="Ny bedrift"
+                        action={createCompanyAction}
+                        refreshOnSuccess
+                        closePopUpOnSuccess="CreateCompany"
+                        submitText="Lag"
+                    >
+                        <TextInput name="name" label="Navn" />
+                        <TextInput name="description" label="Beskrivelse" />
+                    </Form>
+                </AddHeaderItemPopUp>
+            )
         }>
-            <PageTitleSetter title="Bedrifter" />
             <CompanyPagingProvider
                 serverRenderedData={serverRenderedData}
                 startPage={{
@@ -71,5 +80,8 @@ export default async function CompaniesPage({ searchParams }: PropTypes) {
                 <CompanyList serverRenderedData={serverRenderedData.map(companyListRenderer())} />
             </CompanyPagingProvider>
         </PageWrapper>
-    )
-}
+    ),
+})
+
+export default page
+export { generateMetadata }

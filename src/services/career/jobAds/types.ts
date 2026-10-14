@@ -19,6 +19,6 @@ export type SimpleJobAd = JobAd & {
     companySponsorTier: CompanySponsorTier,
 }
 
-export type JobAdInactiveCursor = InferPagingCursor<typeof jobAdSchemas.readInactivePage>
+export type JobAdInactiveCursor = InferPagingCursor<typeof jobAdSchemas.params.readInactivePage>
 
-export type JobAdInactiveDetails = InferPagingDetails<typeof jobAdSchemas.readInactivePage>
+export type JobAdInactiveDetails = InferPagingDetails<typeof jobAdSchemas.params.readInactivePage>

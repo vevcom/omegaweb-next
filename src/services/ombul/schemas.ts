@@ -1,9 +1,9 @@
+import { maxOmbulFileSize } from './constants'
 import { imageFileSchema, imageSchemas } from '@/services/images/subservice/schemas'
-import { maxOmbulFileSize } from '@/services/ombul/constants'
 import { z } from 'zod'
 import { File } from 'node:buffer'
 
-export const baseSchema = z.object({
+const dataFieldSchemas = z.object({
     ombulFile: z.instanceof(File).refine(file => file.size < maxOmbulFileSize, 'Fil må være mindre enn 10mb'),
     ombulCoverImage: imageFileSchema,
     year: z.coerce.number().int().refine(val =>
@@ -21,23 +21,59 @@ export const baseSchema = z.object({
         .transform(description => description || null),
 })
 
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+    ombulId: z.number(),
+    name: z.string(),
+    year: z.number(),
+})
+
+const ombulId = paramsFieldSchemas.pick({
+    id: true,
+})
+
+const ombulImplementationId = paramsFieldSchemas.pick({
+    ombulId: true,
+})
+
 export const ombulSchemas = {
-    create: baseSchema.pick({
-        ombulFile: true,
-        ombulCoverImage: true,
-        year: true,
-        issueNumber: true,
-        name: true,
-        description: true
-    }),
-    update: baseSchema.pick({
-        year: true,
-        issueNumber: true,
-        name: true,
-        description: true
-    }).partial(),
-    updateFile: baseSchema.pick({
-        ombulFile: true
-    }),
-    updateCoverImage: imageSchemas.uploadImage,
-} as const
+    data: {
+        create: dataFieldSchemas.pick({
+            ombulFile: true,
+            ombulCoverImage: true,
+            year: true,
+            issueNumber: true,
+            name: true,
+            description: true
+        }),
+        update: dataFieldSchemas.pick({
+            year: true,
+            issueNumber: true,
+            name: true,
+            description: true
+        }).partial(),
+        updateFile: dataFieldSchemas.pick({
+            ombulFile: true
+        }),
+        updateCoverImage: imageSchemas.data.uploadImage,
+    },
+    params: {
+        read: z.union([
+            z.object({
+                id: paramsFieldSchemas.shape.id,
+                name: z.undefined().optional(),
+                year: z.undefined().optional()
+            }),
+            z.object({
+                id: z.undefined().optional(),
+                name: paramsFieldSchemas.shape.name,
+                year: paramsFieldSchemas.shape.year
+            })
+        ]),
+        updateCoverImage: ombulImplementationId,
+        destroy: ombulId,
+        update: ombulId,
+        updateFile: ombulId,
+        updateParagraphContent: ombulImplementationId,
+    },
+}

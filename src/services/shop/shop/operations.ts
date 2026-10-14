@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { shopParamsSchemas, shopSchemas } from './schemas'
+import { shopSchemas } from './schemas'
 import { shopAuth } from './auth'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
@@ -12,7 +12,7 @@ import {
 import type { ExtendedShop } from './types'
 
 const visibility = implementDoubleLevelVisibilityOperations({
-    implementationParamsSchema: shopParamsSchemas.visibility,
+    implementationParamsSchema: shopSchemas.params.visibility,
     authorizers: {
         readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
             shopAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix }),
@@ -40,7 +40,7 @@ export const shopOperations = {
     visibility,
 
     create: defineOperation({
-        dataSchema: shopSchemas.create,
+        dataSchema: shopSchemas.data.create,
         authorizer: () => shopAuth.create,
         opensTransaction: true,
         operation: async ({ prisma, data }) => {
@@ -87,7 +87,7 @@ export const shopOperations = {
         authorizer: async ({ params, prisma }) => shopAuth.read.data({
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
         }),
-        paramsSchema: shopParamsSchemas.read,
+        paramsSchema: shopSchemas.params.read,
         operation: async ({ prisma, params }): Promise<ExtendedShop> => {
             const { ShopProduct, ...shop } = await prisma.shop.findUniqueOrThrow({
                 where: {
@@ -126,8 +126,8 @@ export const shopOperations = {
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
         }),
-        paramsSchema: shopParamsSchemas.connectToLedger,
-        dataSchema: shopSchemas.connectToLedger,
+        paramsSchema: shopSchemas.params.connectToLedger,
+        dataSchema: shopSchemas.data.connectToLedger,
         operation: async ({ prisma, params, data }) => {
             const account = await prisma.ledgerAccount.findUniqueOrThrow({
                 where: { id: data.ledgerAccountId },

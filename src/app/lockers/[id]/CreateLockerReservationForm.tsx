@@ -3,20 +3,21 @@ import Form from '@/components/Form/Form'
 import { SelectString } from '@/components/UI/Select'
 import DateInput from '@/components/UI/DateInput'
 import Checkbox from '@/components/UI/Checkbox'
-import { createLockerReservationAction } from '@/services/lockers/actions'
+import { createLockerReservationAction } from '@/services/lockers/reservations/actions'
 import { configureAction } from '@/services/configureAction'
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 type PropTypes = {
     lockerId: number
+    userId: number
     groupsFormData: {
         value: string,
         label: string
     }[]
 }
 
-export default function LockerReservationForm({ lockerId, groupsFormData }: PropTypes) {
+export default function LockerReservationForm({ lockerId, userId, groupsFormData }: PropTypes) {
     const { refresh } = useRouter()
     const [indefiniteDate, setIndefiniteDate] = useState(false)
     const [groupId, setGroupId] = useState('null')
@@ -30,7 +31,7 @@ export default function LockerReservationForm({ lockerId, groupsFormData }: Prop
             successCallback={refresh}
             title="Reserver skap"
             submitText="Reserver"
-            action={configureAction(createLockerReservationAction, { params: { lockerId } })}
+            action={configureAction(createLockerReservationAction, { params: { lockerId, userId } })}
         >
             <SelectString
                 label="Reserver for"

@@ -194,12 +194,16 @@ $cardHeight: calc(26 * #{ohma.$gap});
         @include ohma.secondaryBtn;
         margin: 0;
     }
-    .videoButton {
-        @include ohma.secondaryBtn;
-        margin: 0;
-        svg {
-            width: 1em;
-            height: 1em;
+    // The shared CmsLink box is a fixed 30px with its anchor stretched over it; here it has to take
+    // its size from the button, like the links beside it.
+    .videoLink {
+        min-width: 0;
+        height: auto;
+
+        > a, > span {
+            position: static;
+            width: auto;
+            height: auto;
         }
     }
 }

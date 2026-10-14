@@ -2,7 +2,6 @@ import { defineOperation } from '@/services/serviceOperation'
 import '@pn-server-only'
 import { ServiceError } from '@/services/error'
 import { shopOperations } from '@/services/shop/shop/operations'
-import { z } from 'zod'
 import type { ExtendedProduct } from './types'
 import { productAuth } from './auth'
 import { productSchemas } from './schemas'
@@ -10,7 +9,7 @@ import { productSchemas } from './schemas'
 export const productOperations = {
     create: defineOperation({
         authorizer: () => productAuth.create,
-        dataSchema: productSchemas.create,
+        dataSchema: productSchemas.data.create,
         operation: async ({ prisma, data }) => prisma.product.create({
             data: {
                 ...data,
@@ -24,10 +23,8 @@ export const productOperations = {
         authorizer: async ({ params, prisma }) => productAuth.createForShop.data({
             visibility: await shopOperations.visibility.readDoubleLevelMatrixInternal({ params, prisma }),
         }),
-        paramsSchema: z.object({
-            shopId: z.number(),
-        }),
-        dataSchema: productSchemas.createForShop,
+        paramsSchema: productSchemas.params.createForShop,
+        dataSchema: productSchemas.data.createForShop,
         operation: async ({ prisma, params, data }) => prisma.product.create({
             data: {
                 name: data.name.toUpperCase(),
@@ -54,7 +51,7 @@ export const productOperations = {
                 prisma,
             }),
         }),
-        dataSchema: productSchemas.createShopConnection,
+        dataSchema: productSchemas.data.createShopConnection,
         operation: async ({ prisma, data }) => prisma.shopProduct.create({
             data: {
                 shop: {
@@ -79,9 +76,7 @@ export const productOperations = {
 
     read: defineOperation({
         authorizer: () => productAuth.read,
-        paramsSchema: z.object({
-            productId: z.number(),
-        }),
+        paramsSchema: productSchemas.params.read,
         operation: async ({ prisma, params }) => await prisma.product.findUniqueOrThrow({
             where: {
                 id: params.productId
@@ -98,7 +93,7 @@ export const productOperations = {
 
     readByBarCode: defineOperation({
         authorizer: () => productAuth.read,
-        paramsSchema: productSchemas.readByBarCode,
+        paramsSchema: productSchemas.params.readByBarCode,
         operation: async ({ prisma, params }): Promise<ExtendedProduct | null> => {
             if (!params.barcode) {
                 throw new ServiceError('BAD PARAMETERS', 'Barcode is required.')
@@ -140,7 +135,7 @@ export const productOperations = {
 
     update: defineOperation({
         authorizer: () => productAuth.update,
-        dataSchema: productSchemas.update,
+        dataSchema: productSchemas.data.update,
         operation: async ({ prisma, data }) => prisma.product.update({
             where: {
                 id: data.productId,
@@ -160,11 +155,8 @@ export const productOperations = {
                 prisma,
             }),
         }),
-        dataSchema: productSchemas.updateForShop,
-        paramsSchema: z.object({
-            shopId: z.number(),
-            productId: z.number(),
-        }),
+        dataSchema: productSchemas.data.updateForShop,
+        paramsSchema: productSchemas.params.updateForShop,
         operation: async ({ prisma, params, data }) => prisma.product.update({
             where: {
                 id: params.productId,

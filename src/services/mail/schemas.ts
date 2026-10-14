@@ -1,39 +1,55 @@
-import { MailListTypeArray } from './types'
+import { MailListTypeArray } from './constants'
 import { z } from 'zod'
 
-const aliasMailingListRelation = z.object({
+const dataFieldSchemas = z.object({
     mailAliasId: z.coerce.number().min(1),
     mailingListId: z.coerce.number().min(1),
-})
-
-const mailingListExternalRelation = z.object({
     mailAddressExternalId: z.coerce.number().min(1),
-    mailingListId: z.coerce.number().min(1),
-})
-
-const mailingListUserRelation = z.object({
     userId: z.coerce.number().min(1),
-    mailingListId: z.coerce.number().min(1),
+    groupId: z.coerce.number().min(1),
 })
 
-const mailingListGroupRelation = z.object({
-    groupId: z.coerce.number().min(1),
-    mailingListId: z.coerce.number().min(1),
+const paramsFieldSchemas = z.object({
+    filter: z.enum(MailListTypeArray),
+    id: z.coerce.number().min(1),
+})
+
+const aliasMailingListRelation = dataFieldSchemas.pick({
+    mailAliasId: true,
+    mailingListId: true,
+})
+
+const mailingListExternalRelation = dataFieldSchemas.pick({
+    mailAddressExternalId: true,
+    mailingListId: true,
+})
+
+const mailingListUserRelation = dataFieldSchemas.pick({
+    userId: true,
+    mailingListId: true,
+})
+
+const mailingListGroupRelation = dataFieldSchemas.pick({
+    groupId: true,
+    mailingListId: true,
 })
 
 export const mailSchemas = {
-    createAliasMailingListRelation: aliasMailingListRelation,
-    createMailingListExternalRelation: mailingListExternalRelation,
-    createMailingListUserRelation: mailingListUserRelation,
-    createMailingListGroupRelation: mailingListGroupRelation,
+    data: {
+        createAliasMailingListRelation: aliasMailingListRelation,
+        createMailingListExternalRelation: mailingListExternalRelation,
+        createMailingListUserRelation: mailingListUserRelation,
+        createMailingListGroupRelation: mailingListGroupRelation,
 
-    destroyAliasMailingListRelation: aliasMailingListRelation,
-    destroyMailingListExternalRelation: mailingListExternalRelation,
-    destroyMailingListUserRelation: mailingListUserRelation,
-    destroyMailingListGroupRelation: mailingListGroupRelation,
-
-    readMailFlow: z.object({
-        filter: z.enum(MailListTypeArray),
-        id: z.coerce.number().min(1),
-    }),
+        destroyAliasMailingListRelation: aliasMailingListRelation,
+        destroyMailingListExternalRelation: mailingListExternalRelation,
+        destroyMailingListUserRelation: mailingListUserRelation,
+        destroyMailingListGroupRelation: mailingListGroupRelation,
+    },
+    params: {
+        readMailTraversal: paramsFieldSchemas.pick({
+            filter: true,
+            id: true,
+        }),
+    },
 }
