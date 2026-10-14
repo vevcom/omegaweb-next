@@ -1,12 +1,15 @@
 import { Require } from '@/auth/authorizer/Require'
 import { shopAdminLevel } from '@/services/shop/shop/auth'
 
+const readProducts = Require.permission('PRODUCT_USE')
+
 export const productAuth = {
-    read: Require.permission('PRODUCT_USE'),
     create: Require.permission('PRODUCT_ADMIN'),
+    read: readProducts,
+    readMany: readProducts,
+    // The kiosk looks products up by barcode with an API key holding PRODUCT_USE.
+    readByBarCode: readProducts,
     update: Require.permission('PRODUCT_ADMIN'),
-    // What is done to a shop's products is part of administering that shop. Needs
-    // `{ visibility }` via `.data()`.
     createForShop: shopAdminLevel,
     updateForShop: shopAdminLevel,
     createShopConnection: shopAdminLevel,

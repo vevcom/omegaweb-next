@@ -1,5 +1,5 @@
 'use client'
-import { connectShopToLedgerAction } from '@/services/shop/actions'
+import { connectShopToLedgerAction } from '@/services/shop/shop/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/app/_components/Form/Form'
 import { SelectNumber } from '@/app/_components/UI/Select'

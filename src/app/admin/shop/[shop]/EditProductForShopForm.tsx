@@ -1,5 +1,5 @@
 'use client'
-import { createProductForShopAction, updateProductForShopAction } from '@/services/shop/actions'
+import { createProductForShopAction, updateProductForShopAction } from '@/services/shop/product/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/app/_components/Form/Form'
 import Checkbox from '@/app/_components/UI/Checkbox'
@@ -27,10 +27,7 @@ export function EditProductForShopForm({
         <TextInput name="name" label="Navn" defaultValue={product?.name}/>
         <TextInput name="description" label="Beskrivelse" defaultValue={product?.description}/>
         <TextInput name="barcode" label="Strekkode" defaultValue={product?.barcode ?? ''}/>
-        {product && <>
-            <input type="hidden" name="productId" value={product.id} />
-            <Checkbox name="active" label="Aktiv" defaultChecked={product?.active} />
-        </>}
+        {product && <Checkbox name="active" label="Aktiv" defaultChecked={product.active} />}
         <NumberInput name="price" label="Pris" defaultValue={product ? displayAmount(product.price, true) : undefined}/>
     </Form>
 }

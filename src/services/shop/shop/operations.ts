@@ -116,6 +116,25 @@ export const shopOperations = {
     }),
 
     /**
+     * Renames or re-describes a shop. Its visibility and the account it pays into have operations
+     * of their own.
+     */
+    update: defineOperation({
+        authorizer: async ({ params, prisma }) => shopAuth.update.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+        }),
+        paramsSchema: shopSchemas.params.update,
+        dataSchema: shopSchemas.data.update,
+        operation: async ({ prisma, params, data }) => prisma.shop.update({
+            where: { id: params.shopId },
+            data: {
+                name: data.name,
+                description: data.description,
+            },
+        }),
+    }),
+
+    /**
      * Links a shop to the GROUP ledger account its purchases are credited to, replacing any
      * earlier link.
      * @param params.shopId - The shop to link
