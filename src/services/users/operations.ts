@@ -400,15 +400,12 @@ export const userOperations = {
     }),
 
     updateTheme: defineOperation({
-        dataSchema: userSchemas.updateTheme,
-        authorizer: () => userAuth.updateTheme,
-        operation: async ({ prisma, data, session }) => {
-            if (!session.user) {
-                throw new ServiceError('DISSALLOWED', 'This endpoint requires a user connected to the session.')
-            }
-
+        paramsSchema: userSchemas.params.updateTheme,
+        dataSchema: userSchemas.data.updateTheme,
+        authorizer: ({ params }) => userAuth.updateTheme.data({ userField: { username: params.username } }),
+        operation: async ({ prisma, params, data }) => {
             await prisma.user.update({
-                where: { id: session.user.id },
+                where: { username: params.username },
                 data,
             })
         }

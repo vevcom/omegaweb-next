@@ -180,6 +180,7 @@ export const userSchemas = {
             userId: true,
         }),
         updatePassword: id,
+        updateTheme: username,
         registerNewEmail: id,
         register: id,
         destroy: id,

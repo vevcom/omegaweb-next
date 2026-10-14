@@ -22,7 +22,7 @@ export const userAuth = {
     updateProfile: userFieldOrUsersAdmin,
     updateProfileImage: userFieldOrUsersAdmin,
     // The theme is only ever the session user's own, so not even a user admin sets it for someone else.
-    updateTheme: Require.user(),
+    updateTheme: Require.userField(),
     updateBioParagraphContent: userIdOrUsersAdmin,
     register: Require.userId(),
     destroy: Require.permission('USERS_ADMIN'),

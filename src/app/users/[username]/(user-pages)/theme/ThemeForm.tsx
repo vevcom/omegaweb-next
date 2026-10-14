@@ -7,10 +7,11 @@ import { useRef, useState } from 'react'
 import type { Theme } from '@/lib/theme'
 
 type PropTypes = {
-    activeTheme: Theme
+    username: string,
+    activeTheme: Theme,
 }
 
-export default function ThemeForm({ activeTheme }: PropTypes) {
+export default function ThemeForm({ username, activeTheme }: PropTypes) {
     const [selectedTheme, setSelectedTheme] = useState(activeTheme)
     // One save at a time: overlapping saves could land out of order, and a late failure would roll
     // back over a newer choice.
@@ -24,7 +25,7 @@ export default function ThemeForm({ activeTheme }: PropTypes) {
         // from the server, so a failed save must put the old one back.
         setSelectedTheme(theme)
         applyTheme(theme)
-        const result = await updateUserThemeAction({ data: { theme } }).catch(() => null)
+        const result = await updateUserThemeAction({ params: { username } }, { data: { theme } }).catch(() => null)
         if (!result?.success) {
             setSelectedTheme(previousTheme)
             applyTheme(previousTheme)
