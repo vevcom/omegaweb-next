@@ -212,8 +212,8 @@ export const newsOperations = {
                         special: 'NEW_NEWS_ARTICLE',
                     },
                     data: {
-                        title: 'Ny nyhetsartikkel', // TODO: Add info about the article
-                        message: 'En ny nyhetsartikkel er publisert',
+                        title: `Ny nyhetsartikkel: ${news.article.name}`,
+                        message: `${news.description ? `${news.description}\n` : ''}Les hele saken på Omegaveven.`,
                         audience: { visibilityId: news.visibilityRegularId },
                     },
                 })
