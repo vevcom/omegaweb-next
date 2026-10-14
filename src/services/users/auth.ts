@@ -15,7 +15,8 @@ export const userAuth = {
     readPage: Require.permission('USERS_USE'),
     search: Require.permission('USERS_USE'),
     create: Require.permission('USERS_ADMIN'),
-    connectStudentCard: Require.user(),
+    // A card is connected by the user it belongs to, who scanned it themselves.
+    connectStudentCard: Require.userId(),
     registerNewEmail: userIdOrUsersAdmin,
     updatePassword: userIdOrUsersAdmin,
     update: Require.permission('USERS_ADMIN'),

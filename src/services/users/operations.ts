@@ -32,7 +32,7 @@ import type { UserPagingReturn } from './types'
 
 export const userOperations = {
     /**
-     * This Method creates an user by invitation, and sends the invitation email.
+     * Creates a user by invitation, and sends the invitation email.
      * WARNING: This should not be used to create users registered by Feide.
      */
     create: defineOperation({
@@ -64,13 +64,10 @@ export const userOperations = {
                 select: userPrivateSelection
             })
 
-            // Don't send mail during testing.
+            // The tests create users by the dozen, and the mail handler of a test run has no account to send from.
             if (process.env.NODE_ENV !== 'test') {
-                setTimeout(() => sendUserInvitationEmail(user), 1000)
+                await sendUserInvitationEmail(user)
             }
-            // The timeout is here to make sure the user is fully created before we send the email.
-            // If we don't wait the validation token will be generated first, and will not be valid since
-            // the user has changed after the token was generated.
 
             return user
         }
@@ -112,6 +109,10 @@ export const userOperations = {
         })
     }),
 
+    /**
+     * Everything the profile page of a user shows: the user, the groups they are in, their class and
+     * their omega membership.
+     */
     readProfile: defineOperation({
         paramsSchema: userSchemas.params.readProfile,
         authorizer: ({ params }) => userAuth.readProfile.data({ userField: { username: params.username } }),
@@ -201,6 +202,10 @@ export const userOperations = {
         }
     }),
 
+    /**
+     * A page of the user list, filtered by name and group memberships. The users carry their class,
+     * study programme and omega membership, and their title and admin flag in the selected group.
+     */
     readPage: defineOperation({
         paramsSchema: userSchemas.params.readPage,
         authorizer: () => userAuth.readPage,
@@ -266,9 +271,9 @@ export const userOperations = {
                 },
                 where: {
                     AND: [
-                        ...words.map((word, i) => {
+                        ...words.map((word, index) => {
                             const condition = {
-                                [i === words.length - 1 ? 'contains' : 'equals']: word,
+                                [index === words.length - 1 ? 'contains' : 'equals']: word,
                                 mode: 'insensitive'
                             } as const
                             return {
@@ -361,20 +366,13 @@ export const userOperations = {
     }),
 
     connectStudentCard: defineOperation({
-        authorizer: () => userAuth.connectStudentCard,
         paramsSchema: userSchemas.params.connectStudentCard,
-        operation: async ({ prisma, params, session }) => {
-            if (!session.user) {
-                throw new ServiceError('DISSALLOWED', 'This endpoint requires a user conencted to the session.')
-            }
-
+        dataSchema: userSchemas.data.connectStudentCard,
+        authorizer: ({ params }) => userAuth.connectStudentCard.data({ userId: params.id }),
+        operation: async ({ prisma, params, data }) => {
             await prisma.user.update({
-                where: {
-                    id: session.user.id
-                },
-                data: {
-                    studentCard: params.studentCard?.toString()
-                }
+                where: { id: params.id },
+                data,
             })
         }
     }),
@@ -518,12 +516,7 @@ export const userOperations = {
     }),
 
     /**
-     * This function completes the last step of user creation: registration.
-     * This can only be done once per user.
-     *
-     * @param id - If of user to register
-     * @param rawdata - Registration data.
-     * @returns null
+     * Completes the last step of user creation: registration. This can only be done once per user.
      */
     register: defineOperation({
         paramsSchema: userSchemas.params.register,
@@ -533,25 +526,15 @@ export const userOperations = {
         operation: async ({ prisma, data, params }) => {
             const { sex, password, mobile, allergies, imageConsent } = data
 
-            if (!password) throw new ServiceError('BAD PARAMETERS', 'Passord er obligatorisk.')
-
-            const storedUser = await prisma.user.findUnique({
+            const storedUser = await prisma.user.findUniqueOrThrow({
                 where: {
                     id: params.id,
                 },
                 select: {
                     acceptedTerms: true,
-                    email: true,
-                    feideAccount: {
-                        select: {
-                            email: true,
-                        },
-                    },
                     emailVerified: true,
                 },
             })
-
-            if (!storedUser) throw new ServiceError('NOT FOUND', 'Could not find the user with the specified id.')
 
             if (storedUser.acceptedTerms) throw new ServiceError('DUPLICATE', 'Brukeren er allerede registrert.')
 
@@ -561,7 +544,7 @@ export const userOperations = {
 
             const passwordHash = await hashAndEncryptPassword(password)
 
-            const results = await prisma.$transaction([
+            const [registeredUser] = await prisma.$transaction([
                 prisma.user.update({
                     where: {
                         id: params.id,
@@ -627,7 +610,7 @@ export const userOperations = {
                 bypassAuth: true,
             })
 
-            return results[0]
+            return registeredUser
         }
     }),
 
@@ -636,8 +619,8 @@ export const userOperations = {
             userField: { id: (await prisma.user.findFirst({ where: params, select: { id: true } }))?.id },
         }),
         paramsSchema: userSchemas.params.readUserWithBalance,
-        operation: async ({ prisma: prisma_, params }) => {
-            const user = await prisma_.user.findFirstOrThrow({
+        operation: async ({ prisma, params }) => {
+            const user = await prisma.user.findFirstOrThrow({
                 where: params,
                 select: {
                     ...userBasicSelection,
@@ -673,20 +656,24 @@ export const userOperations = {
 
     //TODO: Make soft delete?
     /**
-     * This function deletes a user from the database.
+     * Deletes a user from the database, together with the bio paragraph only they owned.
      */
     destroy: defineOperation({
         paramsSchema: userSchemas.params.destroy,
         authorizer: () => userAuth.destroy,
+        opensTransaction: true,
         operation: async ({ prisma, params }) => {
-            const user = await prisma.user.delete({
-                where: {
-                    id: params.id,
-                },
-                select: { bioParagraphId: true },
-            })
-            await cmsParagraphOperations.destroy.internalCall({
-                params: { paragraphId: user.bioParagraphId }
+            await prisma.$transaction(async tx => {
+                const user = await tx.user.delete({
+                    where: {
+                        id: params.id,
+                    },
+                    select: { bioParagraphId: true },
+                })
+                await cmsParagraphOperations.destroy.internalCall({
+                    prisma: tx,
+                    params: { paragraphId: user.bioParagraphId },
+                })
             })
         }
     }),
