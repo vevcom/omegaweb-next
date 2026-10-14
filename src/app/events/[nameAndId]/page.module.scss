@@ -81,7 +81,6 @@ $padding: ohma.$minimalPagePadding;
         margin-top: ohma.$gap;
         border-radius: ohma.$rounding;
         padding: ohma.$cardRounding;
-        min-height: fit-content;
         display: flex;
         flex-direction: column;
         gap: calc(2*#{ohma.$gap});
@@ -133,6 +132,7 @@ $padding: ohma.$minimalPagePadding;
             grid-column: 1 / 2;
             grid-row: 2 / 3;
             padding: calc(2 * #{ohma.$gap});
+            min-width: 0;
         }
 
         >main {

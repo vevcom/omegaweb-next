@@ -88,7 +88,7 @@ export default async function RootLayout({ children }: PropTypes) {
     const theme = serverSession.user?.theme ?? Theme.STANDARD
 
     return (
-        <html lang="en" style={themeCssVars(theme)}>
+        <html lang="nb" style={themeCssVars(theme)}>
             <body className={`${inter.className} ${styles.body}`}>
                 {/* Hoisted into the head by React. Keeps the browser chrome in step with the theme;
                     picking another one refreshes the page, which renders it anew. */}

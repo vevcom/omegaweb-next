@@ -57,7 +57,7 @@ function FlairTableRow({ row, index, canReorder, onDragEnd }: RowPropTypes) {
             <span className={styles.colLink} role="cell">
                 <Link className={styles.imageContainer} href={row.editHref}>
                     <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
-                    Rediger
+                    <span className={styles.linkText}>Rediger</span>
                 </Link>
             </span>
         </Reorder.Item>

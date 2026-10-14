@@ -19,6 +19,11 @@ $mobileToggleButtonSize: 44px;
     }
 
     @include ohma.screenMobile {
+        // The fixed toggle button sits over the nav title.
+        @at-root :global(body):has(.toggleButton) :global([data-nav-title]) {
+            padding-right: calc(#{$mobileToggleButtonSize} + 2 * #{ohma.$gap});
+        }
+
         padding: 0;
         margin: 0;
         min-width: 0;
