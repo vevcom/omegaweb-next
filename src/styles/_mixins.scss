@@ -465,7 +465,7 @@
 }
 
 @mixin lightTheme {
-    :global(html[data-tone="light"]) & {
+    :global([data-tone="light"]) & {
         @content;
     }
 }

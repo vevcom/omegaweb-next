@@ -81,7 +81,7 @@
       ],
       "@/career/*": [
         "src/services/career/*",
-        "src/app/career/*"
+        "src/app/(contactor)/career/*"
       ],
       "@/seeder/*": [
         "src/prisma/seeder/*"

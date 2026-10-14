@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "@fortawesome/fontawesome-svg-core/styles.css" layer(base);
 
-@custom-variant tone-light (html[data-tone="light"] &);
+@custom-variant tone-light ([data-tone="light"] &);
 
 @theme inline {
     --spacing: calc(var(--gap) / 2);

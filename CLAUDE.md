@@ -201,10 +201,14 @@ The project uses extensive TypeScript path aliases. See `tsconfig.json`:
 ```
 src/
 ├── app/                    # Next.js app directory: pages, routes, layouts
+│   ├── layout.tsx          # The document and the shared providers, no navigation or theme
 │   ├── _components/        # Shared React components
 │   ├── api/                # API routes, e.g. NextAuth
-│   ├── admin/              # Admin pages
-│   └── [feature]/          # Feature-specific pages
+│   ├── (omegaweb)/         # Omega's site: its navigation and the user's theme
+│   │   ├── admin/          # Admin pages
+│   │   └── [feature]/      # Feature-specific pages
+│   └── (contactor)/        # Contactor's site under /career: its own layout, theme and fonts
+│       └── career/
 ├── auth/                   # Authentication and authorization
 │   ├── authorizer/         # Authorization classes
 │   ├── session/            # Session management
@@ -317,7 +321,7 @@ Server components do the opposite: pages, layouts and other server components im
 
 #### Pages: `serverPage`
 
-Pages are built with `serverPage` from `@/app/ServerPage`. The example below is trimmed from `src/app/news/[nameAndId]/page.tsx`:
+Pages are built with `serverPage` from `@/app/ServerPage`. The example below is trimmed from `src/app/(omegaweb)/news/[nameAndId]/page.tsx`:
 
 ```tsx
 import { newsOperations } from '@/services/news/operations'

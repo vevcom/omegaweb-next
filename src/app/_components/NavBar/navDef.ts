@@ -1,7 +1,7 @@
 //This file defines all the routes for the navbar and menu
 //Higher placment in array gives hight priority on where it is placed (ie menu vs. navbar)
 //does not include / or /login (or profile route) as they are always shown and ar special
-import { adminNavAuthorizers } from '@/app/admin/adminNavDef'
+import { adminNavAuthorizers } from '@/app/(omegaweb)/admin/adminNavDef'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { jobAdAuth } from '@/services/career/jobAds/auth'

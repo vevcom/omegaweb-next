@@ -7,7 +7,7 @@ If you are Claude doing this: do each step below, then run the checks at the end
 ## Remove
 
 1. `src/app/layout.tsx`: delete the `ReleaseCountdownGate` import and unwrap its children - the
-   `<div className={styles.wrapper}>` tree goes back to sitting directly inside `PageTitleProvider`.
+   `{children}` it wraps goes back to sitting directly inside `PageTitleProvider`.
    That, the check in the service operations (step 2) and the store route's lines (step 6) are the
    only lines of the countdown outside its own folders.
 2. `src/services/serviceOperation.ts`: delete the `releaseCountdownHoldsBack` import and the `if` that
