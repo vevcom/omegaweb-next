@@ -2,11 +2,10 @@ import '@pn-server-only'
 import { dotFreezePeriodAuth } from './auth'
 import { dotFreezePeriodSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
-import { z } from 'zod'
 
 export const dotFreezePeriodOperations = {
     create: defineOperation({
-        dataSchema: dotFreezePeriodSchemas.create,
+        dataSchema: dotFreezePeriodSchemas.data.create,
         authorizer: () => dotFreezePeriodAuth.create,
         operation: async ({ prisma, data }) => prisma.dotFreezePeriod.create({ data }),
     }),
@@ -21,10 +20,8 @@ export const dotFreezePeriodOperations = {
     }),
 
     update: defineOperation({
-        paramsSchema: z.object({
-            id: z.coerce.number(),
-        }),
-        dataSchema: dotFreezePeriodSchemas.update,
+        paramsSchema: dotFreezePeriodSchemas.params.update,
+        dataSchema: dotFreezePeriodSchemas.data.update,
         authorizer: () => dotFreezePeriodAuth.update,
         operation: async ({ prisma, params, data }) => prisma.dotFreezePeriod.update({
             where: {
@@ -35,9 +32,7 @@ export const dotFreezePeriodOperations = {
     }),
 
     destroy: defineOperation({
-        paramsSchema: z.object({
-            id: z.coerce.number(),
-        }),
+        paramsSchema: dotFreezePeriodSchemas.params.destroy,
         authorizer: () => dotFreezePeriodAuth.destroy,
         operation: async ({ prisma, params }) => prisma.dotFreezePeriod.delete({
             where: {

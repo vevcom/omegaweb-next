@@ -24,6 +24,7 @@ export const readUserPageAction = makeAction(userOperations.readPage)
 export const updateUserAction = makeAction(userOperations.update)
 export const updateUserProfileAction = makeAction(userOperations.updateProfile)
 export const updateUserProfileImageAction = makeAction(userOperations.updateProfileImage)
+export const updateUserThemeAction = makeAction(userOperations.updateTheme)
 export const updateUserBioParagraphContentAction = makeAction(userOperations.updateBioParagraphContent)
 
 export const registerNewEmailAction = makeAction(userOperations.registerNewEmail)

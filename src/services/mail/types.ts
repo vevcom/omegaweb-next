@@ -1,9 +1,8 @@
 
+import type { MailListTypeArray } from './constants'
 import type { Group, MailAddressExternal, MailAlias, MailingList } from '@/prisma-generated-pn-types'
 import type { UserBasic } from '@/services/users/types'
 
-
-export const MailListTypeArray = ['alias', 'mailingList', 'group', 'user', 'mailaddressExternal'] as const
 export type MailListTypes = typeof MailListTypeArray[number];
 
 export type ViaType = {

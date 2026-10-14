@@ -97,7 +97,7 @@ This runs in a one-off container, so it works whether or not the dev environment
 
 Committed migrations are applied **automatically on every deploy**. `docker-compose.prod.yml` has a one-shot `migrate` service that runs `migrate:deploy`, and `projectnext` declares `depends_on: migrate: condition: service_completed_successfully` - so the web app does not start until migrations have exited 0, and a failed migration fails the deploy instead of booting the app against a half-applied schema. `migrate:deploy` only runs migrations that have not been applied yet, never touches existing data outside of what a migration's SQL explicitly does, and is a no-op once everything is applied, so an ordinary deploy costs nothing.
 
-The same one-shot then runs the standard seed (`seed:data`, via `migrate:deploy-and-seed`). This is not the dev reseed - it never resets anything. Every standard resource is upserted: content users can edit through the site (special CMS, news, notification channels, study programmes, ...) is only created if missing, while content they cannot edit (standard images, special image collections) is brought in line with the source code, so e.g. a changed file in `standard_store/` reaches production on the next deploy. It writes the standard images' files, so the service mounts the `store` volume, and it pins `MIGRATE_FROM_OW=false` so a value left in the stack env from an import can never rerun DobbelOmega on a deploy.
+The same one-shot then runs the standard seed (`seed:data`, via `migrate:deploy-and-seed`). This is not the dev reseed - it never resets anything. Every standard resource is upserted: content users can edit through the site (special CMS, news, notification channels, study programmes, ...) is only created if missing, while content they cannot edit (standard images, special image collections) is brought in line with the source code, so e.g. a changed file in `standard_store/` reaches production on the next deploy. It writes the standard images' files, so the service mounts the `store` volume. It never imports from Omegaweb-basic: that is DobbelOmega, which only runs when started on purpose (see below).
 
 Migrations therefore run *before* the new code is serving, while the previous release may still be up. Keep each migration backward-compatible with the release before it: add columns nullable, backfill, and drop the old shape in a later release rather than in the same one.
 
@@ -178,11 +178,13 @@ npm run lint:style -- --fix
 
 ## Migration from omegaweb basic
 
-To migrate the data from omegaweb-basic, run the following command inside the projectnext container.
+DobbelOmega, the import from omegaweb-basic, lives in `src/prisma/dobbelOmega/` and is separate from the seeder: starting the app seeds the standard data (and the development data in dev), and never imports. Importing is an explicit command, which **resets the database** before building on the standard data:
 
 ```bash
-npm run dobbelOmega:run
+npm run docker:dobbelOmega:run
 ```
+
+or `npm run dobbelOmega:run` inside the projectnext container.
 
 If you are connected to our test database on openStack, make sure to be on the ntnu network to be able to connect.
 

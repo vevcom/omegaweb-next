@@ -1,7 +1,8 @@
 generator projectnext {
-  provider = "prisma-client"
+  provider        = "prisma-client"
+  previewFeatures = ["partialIndexes"]
   // Generate outside of src folder.
-  output   = "../../../generated/pn-prisma"
+  output          = "../../../generated/pn-prisma"
 }
 
 datasource db {

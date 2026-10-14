@@ -5,6 +5,7 @@ import UpdateLockerReservationForm from './UpdateLockerReservationForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { lockerOperations } from '@/services/lockers/operations'
 import { groupOperations } from '@/services/groups/operations'
+import { lockerReservationAuth } from '@/services/lockers/reservations/auth'
 import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
 import { Require } from '@/auth/authorizer/Require'
@@ -36,15 +37,27 @@ const { page, generateMetadata } = serverPage({
             },
         })
 
-        const groupsFormData = groups.map(group => {
+        // Groups the user has left are not offered: reserving on behalf of a group takes an active membership.
+        const groupsFormData = groups.filter(group => lockerReservationAuth.create.data({
+            userId: user.id,
+            groupId: group.id,
+        }).auth(session).authorized).map(group => {
             const name = inferGroupName(group)
             return { value: group.id.toString(), label: name }
         })
 
         return { lockerId, locker, groupsFormData, user } as const
     },
+    capabilities: (data) => ({
+        canCreateReservation: data.user
+            ? lockerReservationAuth.create.data({ userId: data.user.id, groupId: null })
+            : Require.user(),
+        canUpdateReservation: data.locker?.LockerReservation.length
+            ? lockerReservationAuth.update.data({ userId: data.locker.LockerReservation[0].user.id, groupId: null })
+            : Require.custom(() => false, { errorMessage: 'Skapet er ikke reservert.' }),
+    }),
     metadata: () => ({ title: 'Skapreservasjon' }),
-    render: ({ data }) => {
+    render: ({ data, capabilities }) => {
         if (!data.locker) {
             return <LockerNotFound />
         }
@@ -82,7 +95,7 @@ const { page, generateMetadata } = serverPage({
                             <>
                                 <p>Dette skapet er reservert av {firstname} {lastname} {groupText} {endDateText}</p>
                                 {
-                                    user.id === reservation.user.id
+                                    capabilities.canUpdateReservation.authorized
                                         ?
                                         <UpdateLockerReservationForm
                                             reservationId={reservation.id}
@@ -95,10 +108,13 @@ const { page, generateMetadata } = serverPage({
                             :
                             <>
                                 <p>Dette skapet er ledig</p>
-                                <CreateLockerReservationForm
-                                    lockerId={lockerId}
-                                    groupsFormData={groupsFormData}
-                                />
+                                {capabilities.canCreateReservation.authorized && (
+                                    <CreateLockerReservationForm
+                                        lockerId={lockerId}
+                                        userId={user.id}
+                                        groupsFormData={groupsFormData}
+                                    />
+                                )}
                             </>
                     }
                 </div>

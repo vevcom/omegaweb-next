@@ -60,8 +60,17 @@ export default function MailFlow({
     const { refresh } = useRouter()
     const [error, setError] = useState<string | null>(null)
 
-    const canDestroyRelations = useAuthorizer({
+    const canDestroyAliasMailingListRelation = useAuthorizer({
         authorizer: mailAuth.destroyAliasMailingListRelation
+    }).authorized
+    const canDestroyMailingListExternalRelation = useAuthorizer({
+        authorizer: mailAuth.destroyMailingListExternalRelation
+    }).authorized
+    const canDestroyMailingListUserRelation = useAuthorizer({
+        authorizer: mailAuth.destroyMailingListUserRelation
+    }).authorized
+    const canDestroyMailingListGroupRelation = useAuthorizer({
+        authorizer: mailAuth.destroyMailingListGroupRelation
     }).authorized
 
     // Which relations are removable depends on which item is in focus - only relations directly
@@ -71,7 +80,7 @@ export default function MailFlow({
         id: alias.id,
         label: alias.address,
         via: alias.via,
-        destroy: (filter === 'mailingList' && !alias.via)
+        destroy: (filter === 'mailingList' && !alias.via && canDestroyAliasMailingListRelation)
             ? () => destroyAliasMailingListRelationAction({ data: { mailingListId: id, mailAliasId: alias.id } })
             : undefined,
     }))
@@ -79,15 +88,15 @@ export default function MailFlow({
     const mailingListChips: Chip[] = data.mailingList.map(list => {
         let destroy
         if (!list.via) {
-            if (filter === 'alias') {
+            if (filter === 'alias' && canDestroyAliasMailingListRelation) {
                 destroy = () => destroyAliasMailingListRelationAction({ data: { mailAliasId: id, mailingListId: list.id } })
-            } else if (filter === 'mailaddressExternal') {
+            } else if (filter === 'mailaddressExternal' && canDestroyMailingListExternalRelation) {
                 destroy = () => destroyMailingListExternalRelationAction({
                     data: { mailAddressExternalId: id, mailingListId: list.id },
                 })
-            } else if (filter === 'user') {
+            } else if (filter === 'user' && canDestroyMailingListUserRelation) {
                 destroy = () => destroyMailingListUserRelationAction({ data: { userId: id, mailingListId: list.id } })
-            } else if (filter === 'group') {
+            } else if (filter === 'group' && canDestroyMailingListGroupRelation) {
                 destroy = () => destroyMailingListGroupRelationAction({ data: { groupId: id, mailingListId: list.id } })
             }
         }
@@ -105,7 +114,7 @@ export default function MailFlow({
         id: group.id,
         label: groupNames[group.id] ?? `Gruppe ${group.id}`,
         via: group.via,
-        destroy: (filter === 'mailingList' && !group.via)
+        destroy: (filter === 'mailingList' && !group.via && canDestroyMailingListGroupRelation)
             ? () => destroyMailingListGroupRelationAction({ data: { mailingListId: id, groupId: group.id } })
             : undefined,
     }))
@@ -119,7 +128,7 @@ export default function MailFlow({
             id: user.id,
             label: `${user.firstname} ${user.lastname}`,
             via: user.via,
-            destroy: (filter === 'mailingList' && !user.via)
+            destroy: (filter === 'mailingList' && !user.via && canDestroyMailingListUserRelation)
                 ? () => destroyMailingListUserRelationAction({ data: { mailingListId: id, userId: user.id } })
                 : undefined,
         }))
@@ -129,7 +138,7 @@ export default function MailFlow({
         id: external.id,
         label: external.address,
         via: external.via,
-        destroy: (filter === 'mailingList' && !external.via)
+        destroy: (filter === 'mailingList' && !external.via && canDestroyMailingListExternalRelation)
             ? () => destroyMailingListExternalRelationAction({
                 data: { mailingListId: id, mailAddressExternalId: external.id },
             })
@@ -149,7 +158,7 @@ export default function MailFlow({
 
     const renderChip = (chip: Chip) => {
         const focused = chip.type === filter && chip.id === id
-        const removable = Boolean(chip.destroy) && canDestroyRelations && !focused
+        const removable = Boolean(chip.destroy) && !focused
 
         return <li
             key={`${chip.type}-${chip.id}`}

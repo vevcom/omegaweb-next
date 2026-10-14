@@ -63,13 +63,19 @@ export async function handleServiceError(error: unknown): Promise<Smorekopp<Erro
     if (!(error instanceof Smorekopp)) throw error
     if (error.errorCode === 'NOT FOUND') notFound()
     if (error.errorCode === 'UNAUTHENTICATED') redirect(await urlWithCallback('/login'))
-    if (error.errorCode === 'UNAUTHORIZED') {
-        // A user who has not accepted the terms yet is not turned away but sent to finish
-        // registration - the same rule redirectOnUnauthorized enforced.
-        const session = await ServerSession.fromNextAuth()
-        if (session.user && !session.user.acceptedTerms) redirect(await urlWithCallback('/register'))
-    }
     return error
+}
+
+/**
+ * Sends a logged-in user who has not finished registering - accepted the terms and chosen a
+ * password on /register - there, with the current page as the way back. Users are created at
+ * their first Feide login (or imported), and nothing but this check brings them to the form:
+ * NextAuth sends a user it created there once, and a user it linked to an imported one never.
+ * So every page and layout runs it, except the registration pages themselves (see
+ * `allowUnregistered` on {@link serverPage}).
+ */
+async function redirectUnregistered(session: ServerPageSession) {
+    if (session.user && !session.user.acceptedTerms) redirect(await urlWithCallback('/register'))
 }
 
 /**
@@ -101,6 +107,12 @@ async function urlWithCallback(url: string) {
  * The title returned by `metadata` is also fed to the PageTitle context, so pages built
  * with this never render `PageTitleSetter` themselves.
  *
+ * A logged-in user who has not finished registering is sent to /register before the
+ * operation runs, so that the form cannot be skipped. Only the registration pages set
+ * `allowUnregistered` to let such a user in.
+ *
+ * @param allowUnregistered - Lets a logged-in user who has not accepted the terms see the page.
+ * For the pages registration itself takes: /register and the email verification before it.
  * @param operation - Loads everything the page needs. Runs once per request (shared between
  * the page render and generateMetadata via React `cache`). Throwing a service error inside
  * it sends the user to the error view - wrap non-critical calls in {@link withFallback} when
@@ -137,7 +149,8 @@ export function serverPage<
     Params extends object,
     Data,
     Authorizers extends CapabilityAuthorizers<Authorizers> = Record<never, never>,
->({ operation, capabilities, metadata, render }: {
+>({ allowUnregistered = false, operation, capabilities, metadata, render }: {
+    allowUnregistered?: boolean,
     operation: (args: PageOperationArgs<Params>) => Promise<Data>,
     capabilities?: CapabilitiesOf<Data, Authorizers>,
     metadata?: (data: Data) => Metadata,
@@ -164,6 +177,7 @@ export function serverPage<
             searchParams: SearchParams,
         }
         const session = await ServerSession.fromNextAuth()
+        if (!allowUnregistered) await redirectUnregistered(session)
         const data = await withServiceContext(
             { session },
             false,
@@ -260,6 +274,7 @@ export function serverLayout<
     return async ({ params, children }) => {
         try {
             const loaded = await withPageSession(async session => {
+                await redirectUnregistered(session)
                 const data = await operation({ params: await params, session })
                 return { data, session, capabilities: pageCapabilities(capabilities, data, session) }
             })

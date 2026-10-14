@@ -8,6 +8,7 @@ import { notFound, redirect } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
+    allowUnregistered: true,
     operation: async ({ searchParams, session }: PageOperationArgs) => {
         const callbackUrl = QueryParams.callbackUrl.decode(searchParams) ?? '/users/me'
         const authResult = Require.user().auth(session)
@@ -23,7 +24,9 @@ const { page, generateMetadata } = serverPage({
             redirect(`/register?${QueryParams.callbackUrl.encodeUrl(callbackUrl)}`)
         }
 
-        const feideLoginMatch = await authOperations.readFeideLoginMatch({})
+        const feideLoginMatch = await authOperations.readFeideLoginMatch({
+            params: { userId: authResult.session.user.id },
+        })
         return { updatedUser, feideLoginMatch, callbackUrl }
     },
     render: ({ data: { updatedUser, feideLoginMatch, callbackUrl } }) => (

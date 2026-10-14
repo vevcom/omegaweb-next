@@ -4,6 +4,7 @@ import { AddHeaderItemPopUp } from '@/app/_components/HeaderItems/HeaderItemPopU
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { sortObjectsByName } from '@/lib/sortObjects'
 import { productOperations } from '@/services/shop/product/operations'
+import { productAuth } from '@/services/shop/product/auth'
 import { serverPage } from '@/app/serverPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
@@ -14,10 +15,13 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('product', session)
         return productOperations.readMany({})
     },
+    capabilities: () => ({
+        canCreateProduct: productAuth.create,
+    }),
     metadata: () => ({ title: 'Produkter' }),
-    render: ({ data: products }) => (
+    render: ({ data: products, capabilities }) => (
         <PageWrapper
-            headerItem={
+            headerItem={capabilities.canCreateProduct.authorized &&
                 <AddHeaderItemPopUp popUpKey="ProductForm">
                     <ProductForm />
                 </AddHeaderItemPopUp>

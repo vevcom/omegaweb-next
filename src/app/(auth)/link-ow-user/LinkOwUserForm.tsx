@@ -1,21 +1,23 @@
 'use client'
 import { sendLinkFeideAccountEmailAction } from '@/services/auth/actions'
+import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { useState } from 'react'
 
 type PropTypes = {
+    userId: number,
     title?: string,
 }
 
-export default function LinkOwUserForm({ title = 'Koble til gammel bruker' }: PropTypes) {
+export default function LinkOwUserForm({ userId, title = 'Koble til gammel bruker' }: PropTypes) {
     const [feedback, setFeedback] = useState('')
 
     return <>
         <Form
             title={title}
             submitText="Send e-post"
-            action={sendLinkFeideAccountEmailAction}
+            action={configureAction(sendLinkFeideAccountEmailAction, { params: { userId } })}
             successCallback={() => {
                 setFeedback(`
                     Hvis brukeren finnes og ikke allerede er koblet til en innlogging, er det sendt

@@ -85,20 +85,6 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             },
         },
         {
-            special: 'CABIN_BOOKING_CONFIRMATION',
-            name: 'Bekreftelse på heuttebooking',
-            description: 'Få en mail som bekreftelse på at du har booka heutta',
-            defaultMethods: {
-                email: true,
-                emailWeekly: false,
-            },
-            availableMethods: {
-                email: true,
-                emailWeekly: false,
-            },
-            alias: 'heuttebooking'
-        },
-        {
             name: 'Informasjon fra HS',
             description: 'Varsling når Hovedstyret vil gi ut informasjon',
             defaultMethods: {

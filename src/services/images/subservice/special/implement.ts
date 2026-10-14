@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
-import { imageOperations, expandImageCollection } from '@/services/images/subservice/operations'
+import { imageOperations } from '@/services/images/subservice/operations'
+import { expandImageCollection } from '@/services/images/subservice/collections'
 import { expandedImageCollectionIncluder, type ImageExtension } from '@/services/images/subservice/constants'
 import { imageSchemas } from '@/services/images/subservice/schemas'
 import { ServiceError } from '@/services/error'
@@ -9,6 +10,7 @@ import { visibilityOperations } from '@/services/visibility/operations'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
 import type { ExpandedImageCollection } from '@/services/images/subservice/types'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
+import type { Prisma } from '@/prisma-generated-pn-types'
 
 export function implementSpecialCollection({
     special,
@@ -56,26 +58,28 @@ export function implementSpecialCollection({
             // because each special collection's access model is specific to its owning service.
             // Empty visibilities are required by the schema but unused; ownershipCheck in the dynamic system
             // prevents special collections from being accessed through the dynamic image operations.
-            const visibilityRegular = await visibilityOperations.create.internalCall({})
-            const visibilityAdmin = await visibilityOperations.create.internalCall({})
+            const created = await inTransaction(prisma, async tx => {
+                const visibilityRegular = await visibilityOperations.create.internalCall({ prisma: tx })
+                const visibilityAdmin = await visibilityOperations.create.internalCall({ prisma: tx })
 
-            const created = await prisma.imageCollection.create({
-                data: {
-                    special,
-                    name: config.name,
-                    description: config.description,
-                    visibilityAdmin: {
-                        connect: {
-                            id: visibilityAdmin.id,
+                return tx.imageCollection.create({
+                    data: {
+                        special,
+                        name: config.name,
+                        description: config.description,
+                        visibilityAdmin: {
+                            connect: {
+                                id: visibilityAdmin.id,
+                            }
+                        },
+                        visibilityRegular: {
+                            connect: {
+                                id: visibilityRegular.id,
+                            }
                         }
                     },
-                    visibilityRegular: {
-                        connect: {
-                            id: visibilityRegular.id,
-                        }
-                    }
-                },
-                include: expandedImageCollectionIncluder,
+                    include: expandedImageCollectionIncluder,
+                })
             })
             return expandImageCollection(created, null)
         }
@@ -115,8 +119,30 @@ export function implementSpecialCollection({
         operation: async ({ prisma }) => readCollectionInternal({ prisma })
     })
 
+    /**
+     * Refuses an image of another collection. The internal operations are only reached from the
+     * owning service's own code, but checking costs one query and catches a bug that would otherwise
+     * delete another collection's image.
+     */
+    const assertImageInCollection = async (prisma: PrismaPossibleTransaction<false>, imageId: number) => {
+        const collection = await readCollectionInternal({ prisma })
+        const image = await prisma.image.findFirst({
+            where: {
+                id: imageId,
+                collectionId: collection.id,
+            },
+            select: { id: true }
+        })
+        if (!image) {
+            throw new ServiceError(
+                'BAD PARAMETERS',
+                `Image ${imageId} is not part of the special collection ${special}`
+            )
+        }
+    }
+
     const uploadImage = defineSubOperation({
-        dataSchema: () => imageSchemas.uploadImage,
+        dataSchema: () => imageSchemas.data.uploadImage,
         operation: () => async ({ prisma, data }) =>
             imageOperations.uploadImage.internalCall({
                 params: {
@@ -127,56 +153,25 @@ export function implementSpecialCollection({
             })
     })
 
-    // Here one could just forward imageOperation.destroyImageDbAndReturnCleanup, as the internalOperations,
-    // are not to be exposed to the client, and we may trust that the implementer service code
-    // does not call this operation with imageIds it does not own interanally.
-    // However, for sanity, and to catch any potential bugs, the subservice will
-    // enforce ownership of imageId.
     const destroyImageDbAndReturnCleanup = defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        paramsSchema: () => imageSchemas.params.destroyImageDbAndReturnCleanup,
         operation: () => async ({ prisma, params }): Promise<() => Promise<void>> => {
-            const collection = await readCollectionInternal({ prisma })
-            const image = await prisma.image.findFirst({
-                where: {
-                    id: params.imageId,
-                    collectionId: collection.id,
-                },
-                select: { id: true }
-            })
-            if (!image) {
-                throw new ServiceError(
-                    'BAD PARAMETERS',
-                    `Image ${params.imageId} is not part of the special collection ${special}`
-                )
-            }
+            await assertImageInCollection(prisma, params.imageId)
             return imageOperations.destroyImageDbAndReturnCleanup.internalCall({ params })
         }
     })
 
     const destroyImage = defineSubOperation({
-        paramsSchema: () => imageSchemas.paramsSchemaImage,
+        paramsSchema: () => imageSchemas.params.destroyImage,
         operation: () => async ({ prisma, params }) => {
-            const collection = await readCollectionInternal({ prisma })
-            const image = await prisma.image.findFirst({
-                where: {
-                    id: params.imageId,
-                    collectionId: collection.id,
-                },
-                select: { id: true }
-            })
-            if (!image) {
-                throw new ServiceError(
-                    'BAD PARAMETERS',
-                    `Image ${params.imageId} is not part of the special collection ${special}`
-                )
-            }
+            await assertImageInCollection(prisma, params.imageId)
             return imageOperations.destroyImage.internalCall({ params })
         }
     })
 
     const readPageOfImagesInCollection = defineOperation({
         authorizer: () => imagePanelAuth,
-        paramsSchema: imageSchemas.paramsSchemaReadPageOfImagesInSpecialCollection,
+        paramsSchema: imageSchemas.params.readPageOfImagesInSpecialCollection,
         operation: async ({ prisma, params }) => {
             const collection = await readCollectionInternal({ prisma })
             return imageOperations.readPageOfImagesInCollection.internalCall({
@@ -200,4 +195,16 @@ export function implementSpecialCollection({
         },
         generateCollectionFromConfig,
     } as const
+}
+
+/**
+ * Runs `write` in the caller's transaction when there is one, or in a transaction of its own. The
+ * special collections are created lazily, by whatever reads them first - sometimes inside another
+ * service's transaction, sometimes not.
+ */
+function inTransaction<Result>(
+    prisma: PrismaPossibleTransaction<false>,
+    write: (tx: Prisma.TransactionClient) => Promise<Result>,
+) {
+    return '$transaction' in prisma ? prisma.$transaction(write) : write(prisma)
 }

@@ -1,5 +1,5 @@
 import NumberInput from '@/app/_components/UI/NumberInput'
-import type { CabinProductExtended } from '@/services/cabin/product/constants'
+import type { CabinProductExtended } from '@/services/cabin/product/types'
 
 
 export default function SelectBedProducts({

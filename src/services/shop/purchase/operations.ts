@@ -10,7 +10,6 @@ import { userBasicSelection } from '@/services/users/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { PurchaseMethod } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 
 /**
@@ -19,10 +18,8 @@ import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/t
  * `createByStudentCard` after it has resolved the card to a user.
  */
 const createPurchase = defineSubOperation({
-    paramsSchema: () => z.object({
-        userId: z.number(),
-    }),
-    dataSchema: () => purchaseSchemas.create,
+    paramsSchema: () => purchaseSchemas.params.create,
+    dataSchema: () => purchaseSchemas.data.create,
     opensTransaction: true,
     operation: ({ method }: { method: PurchaseMethod }) => async ({ prisma, params, data }) => {
         if (data.products.length === 0) {
@@ -169,13 +166,13 @@ export const purchaseOperations = {
             }
 
             const [membershipsOfUser, visibility] = await Promise.all([
-                groupOperations.readMembershipsOfUser.internalCall({ params: { userId: user.id } }),
+                groupOperations.readMembershipsOfUserOfAllTypes.internalCall({ params: { userId: user.id } }),
                 shopOperations.visibility.readDoubleLevelMatrixInternal({ params: { shopId: data.shopId }, prisma }),
             ])
 
             return purchaseAuth.createByStudentCard.data({ membershipsOfUser, visibility })
         },
-        dataSchema: purchaseSchemas.createByStudentCard,
+        dataSchema: purchaseSchemas.data.createByStudentCard,
         opensTransaction: true,
         operation: async ({ data }) => {
             const user = await userOperations.read({

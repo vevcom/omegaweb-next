@@ -3,13 +3,12 @@ import { cabinReleasePeriodAuth } from './auth'
 import { cabinReleasePeriodSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import { z } from 'zod'
 
 export const cabinReleasePeriodOperations = {
 
     create: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.create,
-        dataSchema: cabinReleasePeriodSchemas.createReleasePeriod,
+        dataSchema: cabinReleasePeriodSchemas.data.create,
         operation: async ({ prisma, data }) => {
             const latestReleasePeriod = await prisma.releasePeriod.findFirst({
                 orderBy: {
@@ -25,7 +24,7 @@ export const cabinReleasePeriodOperations = {
                 throw new ServiceError('BAD DATA', 'Et nytt slipp, må slippe flere datoer enn det forrige slippet.')
             }
 
-            await prisma.releasePeriod.create({
+            return prisma.releasePeriod.create({
                 data,
             })
         }
@@ -33,9 +32,7 @@ export const cabinReleasePeriodOperations = {
 
     destroy: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.destroy,
-        paramsSchema: z.object({
-            id: z.number(),
-        }),
+        paramsSchema: cabinReleasePeriodSchemas.params.destroy,
         operation: async ({ prisma, params }) => {
             const releasePeriod = await prisma.releasePeriod.findUniqueOrThrow({
                 where: params,
@@ -75,17 +72,45 @@ export const cabinReleasePeriodOperations = {
         })
     }),
 
+    /**
+     * Changes a release that has not happened yet. The releases stay in order: each one releases
+     * later, and further, than the one before it, as `create` requires of a new one.
+     */
     update: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.update,
-        dataSchema: cabinReleasePeriodSchemas.updateReleasePeriod,
-        operation: async ({ prisma, data }) => prisma.releasePeriod.update({
-            where: {
-                id: data.id, // TODO: Figure out why id is in data and not a param
-            },
-            data: {
-                releaseUntil: data.releaseUntil,
-                releaseTime: data.releaseTime,
-            },
-        })
+        paramsSchema: cabinReleasePeriodSchemas.params.update,
+        dataSchema: cabinReleasePeriodSchemas.data.update,
+        operation: async ({ prisma, params, data }) => {
+            const releasePeriod = await prisma.releasePeriod.findUniqueOrThrow({
+                where: params,
+            })
+
+            if (releasePeriod.releaseTime < new Date()) {
+                throw new ServiceError('BAD PARAMETERS', 'Kan ikke endre en slippgruppe som har blitt publisert.')
+            }
+
+            const [previous, next] = await Promise.all([
+                prisma.releasePeriod.findFirst({
+                    where: { id: { not: params.id }, releaseTime: { lte: releasePeriod.releaseTime } },
+                    orderBy: { releaseTime: 'desc' },
+                }),
+                prisma.releasePeriod.findFirst({
+                    where: { id: { not: params.id }, releaseTime: { gt: releasePeriod.releaseTime } },
+                    orderBy: { releaseTime: 'asc' },
+                }),
+            ])
+
+            if (previous && (previous.releaseTime > data.releaseTime || previous.releaseUntil >= data.releaseUntil)) {
+                throw new ServiceError('BAD DATA', 'Slippet må slippes etter, og slippe flere datoer enn, slippet før det.')
+            }
+            if (next && (next.releaseTime < data.releaseTime || next.releaseUntil <= data.releaseUntil)) {
+                throw new ServiceError('BAD DATA', 'Slippet må slippes før, og slippe færre datoer enn, slippet etter det.')
+            }
+
+            return prisma.releasePeriod.update({
+                where: params,
+                data,
+            })
+        }
     }),
 } as const

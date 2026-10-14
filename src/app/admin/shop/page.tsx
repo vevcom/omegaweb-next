@@ -4,6 +4,7 @@ import { AddHeaderItemPopUp } from '@/app/_components/HeaderItems/HeaderItemPopU
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { sortObjectsByName } from '@/lib/sortObjects'
 import { shopOperations } from '@/services/shop/shop/operations'
+import { shopAuth } from '@/services/shop/shop/auth'
 import { serverPage } from '@/app/serverPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
@@ -14,10 +15,13 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('shop', session)
         return shopOperations.readMany({})
     },
+    capabilities: () => ({
+        canCreateShop: shopAuth.create,
+    }),
     metadata: () => ({ title: 'Butikker' }),
-    render: ({ data: shops }) => (
+    render: ({ data: shops, capabilities }) => (
         <PageWrapper
-            headerItem={
+            headerItem={capabilities.canCreateShop.authorized &&
                 <AddHeaderItemPopUp popUpKey="createShopForm">
                     <ShopForm />
                 </AddHeaderItemPopUp>

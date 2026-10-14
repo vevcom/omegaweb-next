@@ -69,7 +69,8 @@ export const readExpandedOfAllTypes = defineOperation({
                     return [groupType, null] as const
                 }
 
-                return [groupType, await readExpanded({ })] as const
+                // Authorized just above, against the same rule readExpanded would check again.
+                return [groupType, await readExpanded({ bypassAuth: true })] as const
             })
         )
 

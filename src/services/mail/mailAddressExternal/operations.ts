@@ -6,7 +6,7 @@ import type { MailAddressExternal } from '@/prisma-generated-pn-types'
 
 export const mailAddressExternalOperations = {
     create: defineOperation({
-        dataSchema: mailAddressExternalSchemas.create,
+        dataSchema: mailAddressExternalSchemas.data.create,
         authorizer: () => mailAddressExternalAuth.create,
         operation: async ({ prisma, data }): Promise<MailAddressExternal> =>
             prisma.mailAddressExternal.create({ data }),
@@ -19,20 +19,18 @@ export const mailAddressExternalOperations = {
     }),
 
     update: defineOperation({
-        dataSchema: mailAddressExternalSchemas.update,
+        paramsSchema: mailAddressExternalSchemas.params.update,
+        dataSchema: mailAddressExternalSchemas.data.update,
         authorizer: () => mailAddressExternalAuth.update,
-        operation: async ({ prisma, data }): Promise<MailAddressExternal> =>
+        operation: async ({ prisma, params, data }): Promise<MailAddressExternal> =>
             prisma.mailAddressExternal.update({
-                where: { id: data.id },
-                data: {
-                    address: data.address,
-                    description: data.description,
-                },
+                where: { id: params.id },
+                data,
             }),
     }),
 
     destroy: defineOperation({
-        paramsSchema: mailAddressExternalSchemas.destroy,
+        paramsSchema: mailAddressExternalSchemas.params.destroy,
         authorizer: () => mailAddressExternalAuth.destroy,
         operation: async ({ prisma, params }): Promise<MailAddressExternal> =>
             prisma.mailAddressExternal.delete({

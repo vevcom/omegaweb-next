@@ -7,6 +7,7 @@ import {
     updateLicenseAction,
 } from '@/services/licenses/actions'
 import { licenseOperations } from '@/services/licenses/operations'
+import { licenseAuth } from '@/services/licenses/auth'
 import { serverPage } from '@/app/serverPage'
 import TextInput from '@/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
@@ -19,8 +20,13 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('licenses', session)
         return licenseOperations.readAll({})
     },
+    capabilities: () => ({
+        canCreateLicense: licenseAuth.create,
+        canUpdateLicense: licenseAuth.update,
+        canDestroyLicense: licenseAuth.destroy,
+    }),
     metadata: () => ({ title: 'Lisenser' }),
-    render: ({ data: licenses }) => (
+    render: ({ data: licenses, capabilities }) => (
         <div className={styles.wrapper}>
             <h1>Lisenser</h1>
             <p>Lisenser brukes for bilder</p>
@@ -45,6 +51,7 @@ const { page, generateMetadata } = serverPage({
                             </td>
                             <td>
                                 <SettingsHeaderItemPopUp popUpKey={`LicenseSettings ${license.id}`}>
+                                    {capabilities.canUpdateLicense.authorized &&
                                     <Form
                                         action={configureAction(updateLicenseAction, { params: { id: license.id } })}
                                         title="Endre lisens"
@@ -53,13 +60,16 @@ const { page, generateMetadata } = serverPage({
                                         <TextInput name="name" label="Navn" defaultValue={license.name} />
                                         <TextInput name="link" label="Link" defaultValue={license.link} />
                                     </Form>
+                                    }
 
+                                    {capabilities.canDestroyLicense.authorized &&
                                     <Form
                                         action={configureAction(destroyLicenseAction, { params: { id: license.id } })}
                                         submitText="Slett"
                                         submitColor="red"
                                         refreshOnSuccess
                                     />
+                                    }
                                 </SettingsHeaderItemPopUp>
                             </td>
                         </tr>
@@ -67,6 +77,7 @@ const { page, generateMetadata } = serverPage({
                 </tbody>
             </table>
 
+            {capabilities.canCreateLicense.authorized &&
             <Form
                 action={createLicenseAction}
                 title="Lag ny lisens"
@@ -76,6 +87,7 @@ const { page, generateMetadata } = serverPage({
                 <TextInput name="name" label="Navn" />
                 <TextInput name="link" label="Link" />
             </Form>
+            }
         </div>
     ),
 })

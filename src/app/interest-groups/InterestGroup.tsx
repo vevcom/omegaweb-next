@@ -42,6 +42,7 @@ export default function InterestGroup({ interestGroup, capabilities }: PropTypes
                     interestGroupId={interestGroup.id}
                     interestGroupName={interestGroup.name}
                     groupId={interestGroup.groupId}
+                    pensioned={interestGroup.pensioned}
                 />
             </div>
             <ArticleSection

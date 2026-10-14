@@ -14,7 +14,6 @@ import {
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import type { MailFlowObject } from './types'
-import type { UserBasic } from '@/services/users/types'
 import type {
     MailAlias,
     MailAliasMailingList,
@@ -27,7 +26,7 @@ import type {
 
 export const mailOperations = {
     createAliasMailingListRelation: defineOperation({
-        dataSchema: mailSchemas.createAliasMailingListRelation,
+        dataSchema: mailSchemas.data.createAliasMailingListRelation,
         authorizer: () => mailAuth.createAliasMailingListRelation,
         operation: async ({ prisma, data }): Promise<MailAliasMailingList> =>
             prisma.mailAliasMailingList.create({
@@ -39,7 +38,7 @@ export const mailOperations = {
     }),
 
     createMailingListExternalRelation: defineOperation({
-        dataSchema: mailSchemas.createMailingListExternalRelation,
+        dataSchema: mailSchemas.data.createMailingListExternalRelation,
         authorizer: () => mailAuth.createMailingListExternalRelation,
         operation: async ({ prisma, data }): Promise<MailingListMailAddressExternal> =>
             prisma.mailingListMailAddressExternal.create({
@@ -51,7 +50,7 @@ export const mailOperations = {
     }),
 
     createMailingListUserRelation: defineOperation({
-        dataSchema: mailSchemas.createMailingListUserRelation,
+        dataSchema: mailSchemas.data.createMailingListUserRelation,
         authorizer: () => mailAuth.createMailingListUserRelation,
         operation: async ({ prisma, data }): Promise<MailingListUser> =>
             prisma.mailingListUser.create({
@@ -63,7 +62,7 @@ export const mailOperations = {
     }),
 
     createMailingListGroupRelation: defineOperation({
-        dataSchema: mailSchemas.createMailingListGroupRelation,
+        dataSchema: mailSchemas.data.createMailingListGroupRelation,
         authorizer: () => mailAuth.createMailingListGroupRelation,
         operation: async ({ prisma, data }): Promise<MailingListGroup> =>
             prisma.mailingListGroup.create({
@@ -75,7 +74,7 @@ export const mailOperations = {
     }),
 
     destroyAliasMailingListRelation: defineOperation({
-        dataSchema: mailSchemas.destroyAliasMailingListRelation,
+        dataSchema: mailSchemas.data.destroyAliasMailingListRelation,
         authorizer: () => mailAuth.destroyAliasMailingListRelation,
         operation: async ({ prisma, data }): Promise<MailAliasMailingList> =>
             prisma.mailAliasMailingList.delete({
@@ -86,7 +85,7 @@ export const mailOperations = {
     }),
 
     destroyMailingListExternalRelation: defineOperation({
-        dataSchema: mailSchemas.destroyMailingListExternalRelation,
+        dataSchema: mailSchemas.data.destroyMailingListExternalRelation,
         authorizer: () => mailAuth.destroyMailingListExternalRelation,
         operation: async ({ prisma, data }): Promise<MailingListMailAddressExternal> =>
             prisma.mailingListMailAddressExternal.delete({
@@ -97,7 +96,7 @@ export const mailOperations = {
     }),
 
     destroyMailingListUserRelation: defineOperation({
-        dataSchema: mailSchemas.destroyMailingListUserRelation,
+        dataSchema: mailSchemas.data.destroyMailingListUserRelation,
         authorizer: () => mailAuth.destroyMailingListUserRelation,
         operation: async ({ prisma, data }): Promise<MailingListUser> =>
             prisma.mailingListUser.delete({
@@ -108,7 +107,7 @@ export const mailOperations = {
     }),
 
     destroyMailingListGroupRelation: defineOperation({
-        dataSchema: mailSchemas.destroyMailingListGroupRelation,
+        dataSchema: mailSchemas.data.destroyMailingListGroupRelation,
         authorizer: () => mailAuth.destroyMailingListGroupRelation,
         operation: async ({ prisma, data }): Promise<MailingListGroup> =>
             prisma.mailingListGroup.delete({
@@ -119,8 +118,8 @@ export const mailOperations = {
     }),
 
     readMailTraversal: defineOperation({
-        paramsSchema: mailSchemas.readMailFlow,
-        authorizer: () => mailAuth.readMailFlow,
+        paramsSchema: mailSchemas.params.readMailTraversal,
+        authorizer: () => mailAuth.readMailTraversal,
         operation: async ({ prisma, params }): Promise<MailFlowObject> => {
             if (params.filter === 'alias') return readAliasTraversal(prisma, params.id)
             if (params.filter === 'mailingList') return readMailingListTraversal(prisma, params.id)
@@ -137,7 +136,6 @@ export const mailOperations = {
             alias: MailAlias[],
             mailingList: MailingList[],
             mailaddressExternal: MailAddressExternal[],
-            users: UserBasic[],
         }> => {
             const results = await Promise.all([
                 aliasOperations.readMany({ bypassAuth: true }),
@@ -149,7 +147,6 @@ export const mailOperations = {
                 alias: results[0],
                 mailingList: results[1],
                 mailaddressExternal: results[2],
-                users: [],
             }
         },
     }),

@@ -3,11 +3,10 @@ import { cmsLinkSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
 import { ServiceError } from '@/services/error'
-import { SpecialCmsLink } from '@/prisma-generated-pn-types'
-import { z } from 'zod'
+import type { SpecialCmsLink } from '@/prisma-generated-pn-types'
 
 const create = defineSubOperation({
-    dataSchema: () => cmsLinkSchemas.create,
+    dataSchema: () => cmsLinkSchemas.data.create,
     operation: (
         { special }: { special: SpecialCmsLink | null }
     ) => (
@@ -18,9 +17,7 @@ const create = defineSubOperation({
 })
 
 const generateSpecialCmsLinkFromConfig = defineSubOperation({
-    paramsSchema: () => z.object({
-        special: z.nativeEnum(SpecialCmsLink),
-    }),
+    paramsSchema: () => cmsLinkSchemas.params.generateSpecialCmsLinkFromConfig,
     operation: () => async ({ params: { special } }) => create.internalCall({
         data: { url: './', text: 'Default text' },
         operationImplementationFields: { special }
@@ -32,9 +29,7 @@ export const cmsLinkOperations = {
     generateSpecialCmsLinkFromConfig,
 
     destroy: defineSubOperation({
-        paramsSchema: () => z.object({
-            linkId: z.number()
-        }),
+        paramsSchema: () => cmsLinkSchemas.params.destroy,
         operation: () => async ({ params, prisma }) => {
             const cmsLink = await prisma.cmsLink.findUniqueOrThrow({
                 where: {
@@ -51,10 +46,8 @@ export const cmsLinkOperations = {
     }),
 
     update: defineSubOperation({
-        paramsSchema: () => z.object({
-            linkId: z.number()
-        }),
-        dataSchema: () => cmsLinkSchemas.update,
+        paramsSchema: () => cmsLinkSchemas.params.update,
+        dataSchema: () => cmsLinkSchemas.data.update,
         operation: () => ({ prisma, params, data }) =>
             prisma.cmsLink.update({
                 where: {
@@ -68,9 +61,7 @@ export const cmsLinkOperations = {
     }),
 
     readSpecial: defineSubOperation({
-        paramsSchema: () => z.object({
-            special: z.nativeEnum(SpecialCmsLink),
-        }),
+        paramsSchema: () => cmsLinkSchemas.params.readSpecial,
         operation: () => async ({ prisma, params: { special } }) => {
             const cmsLink = await prisma.cmsLink.findUnique({
                 where: { special }
@@ -87,10 +78,7 @@ export const cmsLinkOperations = {
      * This is useful to do ownership checks for services using special links.
      */
     isSpecial: defineSubOperation({
-        paramsSchema: () => z.object({
-            linkId: z.number(),
-            special: z.array(z.nativeEnum(SpecialCmsLink))
-        }),
+        paramsSchema: () => cmsLinkSchemas.params.isSpecial,
         operation: () => async ({ params, prisma }) => {
             const link = await prisma.cmsLink.findUnique({
                 where: {

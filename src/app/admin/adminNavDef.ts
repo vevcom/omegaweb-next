@@ -15,7 +15,6 @@ import { notificationChannelAuth } from '@/services/notifications/channel/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
-import { schoolAuth } from '@/services/education/schools/auth'
 import { dotAuth } from '@/services/dots/auth'
 import { dotFreezePeriodAuth } from '@/services/dots/freezePeriods/auth'
 import { cabinPricePeriodAuth } from '@/services/cabin/pricePeriod/auth'
@@ -28,7 +27,8 @@ import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { promoAuth } from '@/services/promo/auth'
 import { licenseAuth } from '@/services/licenses/auth'
 import { flairAuth } from '@/services/flairs/auth'
-import { Require } from '@/auth/authorizer/Require'
+import { lockerAuth } from '@/services/lockers/auth'
+import { lockerLocationAuth } from '@/services/lockers/locations/auth'
 import {
     faChild,
     faKey,
@@ -36,7 +36,6 @@ import {
     faUserGroup,
     faPaperPlane,
     faEnvelopesBulk,
-    faSchool,
     faDotCircle,
     faHouse,
     faShop,
@@ -218,25 +217,6 @@ export const adminNavDef: AdminNavGroup[] = [
         ],
     },
     {
-        header: { icon: faSchool, title: 'Fagvev' },
-        links: [
-            {
-                title: 'Skoler',
-                path: 'schools',
-                authorizers: () => [
-                    schoolAuth.create,
-                    schoolAuth.update,
-                ],
-            },
-            {
-                // Courses have no service of their own yet, so the permission is required directly.
-                title: 'Emnekatalog',
-                path: 'courses',
-                authorizers: () => [Require.permission('COURSES_ADMIN')],
-            },
-        ],
-    },
-    {
         header: { icon: faDotCircle, title: 'Prikker' },
         links: [
             {
@@ -330,6 +310,14 @@ export const adminNavDef: AdminNavGroup[] = [
                 authorizers: () => [
                     flairAuth.create,
                     flairAuth.update,
+                ],
+            },
+            {
+                title: 'Skap',
+                path: 'lockers',
+                authorizers: () => [
+                    lockerAuth.create,
+                    lockerLocationAuth.create,
                 ],
             },
             {

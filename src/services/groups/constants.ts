@@ -110,6 +110,11 @@ export const groupsExpandedIncluder = {
             order: true
         }
     },
+    _count: {
+        select: {
+            memberships: { where: { active: true } },
+        },
+    },
 } as const satisfies Prisma.GroupInclude
 
 export const readGroupsOfUserIncluder = {

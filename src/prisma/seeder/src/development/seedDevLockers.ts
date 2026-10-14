@@ -28,19 +28,21 @@ export const seedDevLockers = defineSeedOperation(async (prisma: PrismaClient) =
     tomorrow.setDate(tomorrow.getDate() + 1)
 
     const [lockers, users] = await Promise.all([
-        prisma.locker.findMany({ orderBy: { id: 'asc' }, take: RESERVATION_COUNT, select: { id: true } }),
+        prisma.locker.findMany({
+            orderBy: { id: 'asc' },
+            take: RESERVATION_COUNT,
+            select: { id: true, LockerReservation: { where: { active: true }, select: { id: true } } },
+        }),
         prisma.user.findMany({ orderBy: { id: 'asc' }, take: RESERVATION_COUNT, select: { id: true } }),
     ])
 
     // The first lockers go to the first users, the last of them with no end date. A locker holds
-    // at most one reservation, so one that is already reserved is left as it is.
-    await Promise.all(lockers.map((locker, index) => prisma.lockerReservation.upsert({
-        where: { lockerId: locker.id },
-        update: {},
-        create: {
+    // at most one active reservation, so one that is already reserved is left as it is.
+    await prisma.lockerReservation.createMany({
+        data: lockers.flatMap((locker, index) => (locker.LockerReservation.length ? [] : [{
             lockerId: locker.id,
             userId: users[index].id,
             endDate: index === lockers.length - 1 ? null : tomorrow,
-        },
-    })))
+        }])),
+    })
 })

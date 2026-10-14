@@ -5,14 +5,12 @@ import { seedDevNews } from './development/seedDevNews'
 import { seedDevLockers } from './development/seedDevLockers'
 import { seedDevOmegaquotes } from './development/seedDevOmegaquotes'
 import { seedOrders } from './standardContent/seedOrders'
-import dobbelOmega from './dobbelOmega/dobbelOmega'
 import { seedNotificationChannels } from './standardContent/seedNotificationChannels'
 import { seedDevGroups } from './development/seedDevGroups'
 import { seedClasses } from './standardContent/seedClasses'
 import { seedMail } from './standardContent/seedMail'
 import { seedStudyProgrammes } from './standardContent/seedStudyProgrammes'
 import { seedOmegaMembershipGroups } from './standardContent/seedOmegaMembershipGroups'
-import { seedDevSchools } from './development/seedDevSchools'
 import { seedDevCompanies } from './development/seedDevCompanies'
 import { seedShop } from './standardContent/seedShop'
 import { seedDevShop } from './development/seedDevShop'
@@ -31,15 +29,13 @@ import { seedCompanies } from './standardContent/seedCompanies'
 import { seedInterestGroups } from './standardContent/seedInterestGroups'
 import { seedDevBullshit } from './development/seedDevBullshit'
 import { createTimedStep } from './timedStep'
-import { withServiceContext } from '@/services/serviceOperation'
-import { Session } from '@/auth/session/Session'
 
-export default async function seed(
-    shouldMigrate: boolean,
-    seedDevData: boolean,
-    logging?: boolean,
-) {
-    const { step, finish } = createTimedStep(logging ?? true)
+/**
+ * Upserts the standard data every environment needs, and seeds the development data on top when
+ * asked.
+ */
+export default async function seed({ devData, logging = true }: { devData: boolean, logging?: boolean }) {
+    const { step, finish } = createTimedStep(logging)
 
     await step('Upserting standard data', async () => {
         await step('Upserting standard orders', () => seedOrders())
@@ -61,14 +57,7 @@ export default async function seed(
         await step('Upserting standard interest groups', () => seedInterestGroups())
     })
 
-    if (shouldMigrate) {
-        await step('Migrating from Veven', () => withServiceContext({
-            bypassAuth: true,
-            session: Session.empty(),
-        }, true, async ({ prisma }) => dobbelOmega(prisma)))
-    }
-
-    if (!seedDevData || shouldMigrate) {
+    if (!devData) {
         finish()
         return
     }
@@ -81,7 +70,6 @@ export default async function seed(
         await step('Seeding development omega quotes', () => seedDevOmegaquotes())
         await step('Seeding development news', () => seedDevNews())
         await step('Seeding development lockers', () => seedDevLockers())
-        await step('Seeding development schools', () => seedDevSchools())
         await step('Seeding development companies', () => seedDevCompanies())
         await step('Seeding development job ads', () => seedDevJobAds())
         await step('Seeding development shops', () => seedDevShop())

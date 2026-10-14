@@ -24,7 +24,7 @@ model LockerReservation {
   locker    Locker    @relation(fields: [lockerId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
   group     Group?    @relation(fields: [groupId], references: [id])
-  lockerId  Int       @unique
+  lockerId  Int
   userId    Int
   groupId   Int?
   createdAt DateTime  @default(now())
@@ -33,4 +33,9 @@ model LockerReservation {
   active    Boolean   @default(true)
 
   @@unique([id])
+  // A locker holds one active reservation at a time. Reservations are deactivated rather than
+  // deleted when they end, so the index covers only the active ones. Prisma still offers lockerId
+  // as a unique where-input, which matches inactive reservations too: look the active one up with
+  // findFirst({ where: { lockerId, active: true } }) instead.
+  @@unique([lockerId], where: { active: true })
 }

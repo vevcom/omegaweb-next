@@ -27,7 +27,8 @@ export default function EditMailAlias({
     const focusedAlias = data.alias.find(alias => alias.id === id)
     if (!focusedAlias) throw new Error('Fant ikke e-postaliaset')
 
-    const canAdmin = useAuthorizer({ authorizer: mailAliasAuth.update }).authorized
+    const canUpdateAlias = useAuthorizer({ authorizer: mailAliasAuth.update }).authorized
+    const canDestroyAlias = useAuthorizer({ authorizer: mailAliasAuth.destroy }).authorized
     const canAddRelation = useAuthorizer({
         authorizer: mailAuth.createAliasMailingListRelation
     }).authorized
@@ -36,12 +37,11 @@ export default function EditMailAlias({
     const availableLists = mailingLists.filter(list => !connectedListIds.has(list.id))
 
     return <>
-        {canAdmin && <Form
+        {canUpdateAlias && <Form
             title="Rediger alias"
             submitText="Oppdater"
-            action={updateMailAliasAction}
+            action={configureAction(updateMailAliasAction, { params: { id: focusedAlias.id } })}
         >
-            <input type="hidden" name="id" value={focusedAlias.id} />
             <TextInput name="address" label="Adresse" defaultValue={focusedAlias.address} />
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedAlias.description} />
         </Form>}
@@ -60,7 +60,7 @@ export default function EditMailAlias({
             />
         </Form>}
 
-        {canAdmin && <Form
+        {canDestroyAlias && <Form
             action={configureAction(destroyMailAliasAction, { params: { id: focusedAlias.id } })}
             successCallback={() => push('/admin/mail/alias')}
             submitText="Slett aliaset"

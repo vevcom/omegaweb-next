@@ -10,7 +10,6 @@ import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
-import { Require } from '@/auth/authorizer/Require'
 import {
     faCircleDot,
     faCog,
@@ -117,7 +116,7 @@ export const userNavDef: UserNavItem[] = [
         name: 'Tema',
         icon: faSwatchbook,
         path: 'theme',
-        authorizers: ({ username }) => [Require.userField().data({ userField: { username } })],
+        authorizers: ({ username }) => [userAuth.updateTheme.data({ userField: { username } })],
     },
     {
         name: 'Innstillinger',
