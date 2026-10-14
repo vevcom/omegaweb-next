@@ -4,13 +4,9 @@ import { JWT_ISSUER, OmegaJWTAudienceAlgorithms } from '@/lib/jwt/constants'
 import { ServiceError } from '@/services/error'
 import { JsonWebTokenError, TokenExpiredError, sign, verify } from 'jsonwebtoken'
 import type jwt from 'jsonwebtoken'
-import type { JwtPayloadType } from './validation'
-import type { OmegaJWTAudience } from '@/lib/jwt/types'
+import type { OmegaJWTAudience, OmegaJWTPayload } from '@/lib/jwt/types'
 
-
-// See https://www.rfc-editor.org/rfc/rfc7519#section-4.1 for the
-// JWT payload specification.
-export type JWT<T = Record<string, unknown>> = T & JwtPayloadType['Detailed']
+export type JWT<T = Record<string, unknown>> = T & OmegaJWTPayload
 
 /**
  * Generates a JSON Web Token (JWT) with the given payload and expiration time.

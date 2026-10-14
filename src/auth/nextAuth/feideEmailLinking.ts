@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { feideRealmsLinkableByEmail } from '@/lib/feide/ConfigVars'
+import { feideRealmsLinkableByEmail } from '@/lib/feide/constants'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 /**

@@ -58,10 +58,8 @@ const paramsFieldSchemas = z.object({
     }).optional(),
 })
 
-const refinePassword = {
-    fcn: (data: { password?: string, confirmPassword?: string }) => data.password === data.confirmPassword,
-    message: 'Passordene må være like'
-}
+const passwordsMatch = (data: { password?: string, confirmPassword?: string }) => data.password === data.confirmPassword
+const passwordsMatchMessage = 'Passordene må være like'
 
 const id = paramsFieldSchemas.pick({
     id: true,
@@ -125,12 +123,12 @@ export const userSchemas = {
             sex: true,
             imageConsent: true,
             acceptedTerms: true,
-        }).refine(refinePassword.fcn, refinePassword.message),
+        }).refine(passwordsMatch, passwordsMatchMessage),
 
         updatePassword: userDataFieldSchemas.pick({
             password: true,
             confirmPassword: true,
-        }).refine(refinePassword.fcn, refinePassword.message),
+        }).refine(passwordsMatch, passwordsMatchMessage),
 
         registerNewEmail: userDataFieldSchemas.pick({
             email: true,
