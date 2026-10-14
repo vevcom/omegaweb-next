@@ -27,6 +27,8 @@ import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { promoAuth } from '@/services/promo/auth'
 import { licenseAuth } from '@/services/licenses/auth'
 import { flairAuth } from '@/services/flairs/auth'
+import { lockerAuth } from '@/services/lockers/auth'
+import { lockerLocationAuth } from '@/services/lockers/locations/auth'
 import {
     faChild,
     faKey,
@@ -308,6 +310,14 @@ export const adminNavDef: AdminNavGroup[] = [
                 authorizers: () => [
                     flairAuth.create,
                     flairAuth.update,
+                ],
+            },
+            {
+                title: 'Skap',
+                path: 'lockers',
+                authorizers: () => [
+                    lockerAuth.create,
+                    lockerLocationAuth.create,
                 ],
             },
             {
