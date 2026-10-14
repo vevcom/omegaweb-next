@@ -27,8 +27,6 @@ model User {
   firstname                        String             @default("[Fjernet]")
   lastname                         String             @default("[Fjernet]")
   relationshipStatus               RelationshipStatus @default(NOT_SPECIFIED)
-  // The colour theme the site is rendered with for this user. Stored here so the server can
-  // paint the first frame already themed.
   theme                            Theme              @default(STANDARD)
   relationshipStatusText           String             @default("")
   archived                         Boolean            @default(false)
