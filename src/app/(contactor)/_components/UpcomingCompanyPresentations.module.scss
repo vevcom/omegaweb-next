@@ -1,5 +1,5 @@
 @use '@/styles/ohma';
-@use './contactor';
+@use '../_lib/contactor';
 
 .strip {
     @include contactor.band;

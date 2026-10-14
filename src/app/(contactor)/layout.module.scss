@@ -1,6 +1,6 @@
 @use '@/styles/ohma';
 
-// Contactor's site: its own fonts (loaded in _components/contactorFonts.ts), its own tokens and a
+// Contactor's site: its own fonts (loaded in _lib/contactorFonts.ts), its own tokens and a
 // centred column in place of Omega's app grid. The theme variables themselves (--surface-base,
 // --text, ...) are set on :root by the layout's SiteTheme from contactorTheme, which is what keeps
 // the shared components looking right here.

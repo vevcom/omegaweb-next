@@ -1,6 +1,6 @@
 import styles from './ContactorNavBar.module.scss'
 import ContactorWordmark from './ContactorWordmark'
-import { CAREER_PATH } from './contactorSite'
+import { CAREER_PATH } from '@/app/(contactor)/_lib/contactorSite'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
