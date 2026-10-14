@@ -1,5 +1,5 @@
 'use client'
-import { qrCodeReaderConfig } from './ConfigVars'
+import { qrCodeReaderConfig } from './constants'
 import styles from './OmegaIdReader.module.scss'
 import { parseJWTClient } from '@/jwt/parseJWTClient'
 import { decompressOmegaId } from '@/services/omegaid/compress'

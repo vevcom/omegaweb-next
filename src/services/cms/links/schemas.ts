@@ -1,25 +1,20 @@
 import { SpecialCmsLink } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-const cmsLinkRefiner = {
-    fcn: (url: string | undefined): boolean => {
-        if (!url) return true
-        try {
-            const urlObject = new URL(url)
-            return Boolean(urlObject)
-        } catch {
-            return url.startsWith('/') || url.includes('.')
-        }
-    },
-    message: 'Ugyldig URL.'
+/** A full URL, an internal path, or something with a dot in it that a browser will take for a host. */
+const isUrlOrPath = (url: string): boolean => {
+    if (!url) return true
+    try {
+        return Boolean(new URL(url))
+    } catch {
+        return url.startsWith('/') || url.includes('.')
+    }
 }
 
 const dataFieldSchemas = z.object({
     name: z.string().optional(),
     text: z.string().min(1, 'Linken må ha tekst på mer enn 1 bokstav').max(30, 'Max lengde er 30'),
-    url: z.string().refine(cmsLinkRefiner.fcn, {
-        message: cmsLinkRefiner.message
-    }),
+    url: z.string().refine(isUrlOrPath, 'Ugyldig URL.'),
 })
 
 const paramsFieldSchemas = z.object({

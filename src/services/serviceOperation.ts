@@ -1,12 +1,13 @@
 import '@pn-server-only'
-import { ParseError, Smorekopp } from './error'
-import { prismaErrorWrapper } from './prismaCall'
+import { ParseError, ServiceError, Smorekopp } from './error'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
 import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
 import logger from '@/lib/logger'
 import { zfd } from 'zod-form-data'
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import { AsyncLocalStorage } from 'async_hooks'
+import type { ServiceErrorCode } from './error'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { z } from 'zod'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -607,3 +608,41 @@ export type SubServiceOperation<
     DataSchemaImplementationFields,
     OperationImplementationFields
 >>
+
+const prismaErrorCodes: Record<string, [ServiceErrorCode, string]> = {
+    P2002: ['DUPLICATE', 'duplicate entry'],
+    P2025: ['NOT FOUND', 'not found'],
+}
+
+/**
+ * Runs one step of an operation and turns whatever it throws into a service error: a known Prisma
+ * error becomes the service error it stands for (a unique violation is a DUPLICATE, a missing row
+ * NOT FOUND), a service error passes through, and anything else is an UNKNOWN ERROR. So everything
+ * an operation throws is a Smorekopp, which is what `makeAction` relies on.
+ */
+async function prismaErrorWrapper<Result>(call: () => Result | Promise<Result>): Promise<Result> {
+    try {
+        return await call()
+    } catch (error) {
+        if (error instanceof Smorekopp) throw error
+
+        if (!(error instanceof PrismaClientKnownRequestError)) {
+            logger.error('Unknown error:', error)
+            throw new ServiceError('UNKNOWN ERROR', 'unknown error')
+        }
+
+        const mapped = prismaErrorCodes[error.code]
+        if (!mapped) {
+            logger.error('Unknown prisma error:', error)
+            throw new ServiceError('UNKNOWN ERROR', 'unknown prisma error')
+        }
+
+        // A missing row while seeding is expected - upsert() reads before it creates - and the tests
+        // provoke these errors on purpose, so neither is logged.
+        const expectedSeedNotFound = process.env.SEED === 'true' && error.code === 'P2025'
+        if (process.env.NODE_ENV !== 'test' && !expectedSeedNotFound) {
+            logger.error(error)
+        }
+        throw new ServiceError(mapped[0], mapped[1])
+    }
+}

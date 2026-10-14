@@ -1,5 +1,6 @@
 import '@pn-server-only'
-import { safeServerCall } from './actionError'
+import { createActionError } from './actionError'
+import { ParseError, Smorekopp } from './error'
 import { ServerSession } from '@/auth/session/ServerSession'
 import type { Action, ActionReturn } from './actionTypes'
 import type { ServiceOperation } from '@/services/serviceOperation'
@@ -133,4 +134,27 @@ export function makeAction<
         actionUnsafe.bind(null, { implementationParams: undefined }, { params: undefined }) as
         Action<Return, ImplementationParamsSchema, ParamsSchema, DataSchema>
     )
+}
+
+/**
+ * Runs the operation and turns its outcome into an `ActionReturn`: the data on success, the error
+ * the action reports otherwise. Everything an operation throws is a Smorekopp (see
+ * `prismaErrorWrapper` in serviceOperation.ts), so anything else is reported as unknown.
+ */
+async function safeServerCall<Return>(call: () => Promise<Return>): Promise<ActionReturn<Return>> {
+    try {
+        return { success: true, data: await call() }
+    } catch (error) {
+        if (error instanceof ParseError) {
+            return createActionError('BAD PARAMETERS', error.parseError.error.issues)
+        }
+        if (error instanceof Smorekopp) {
+            // An authorizer that passes never throws, so the two passing statuses exist only in the type.
+            const errorCode = error.errorCode === 'AUTHORIZED' || error.errorCode === 'AUTHORIZED_NO_USER'
+                ? 'UNKNOWN ERROR'
+                : error.errorCode
+            return createActionError(errorCode, error.errors)
+        }
+        return createActionError('UNKNOWN ERROR', 'unknown error')
+    }
 }
