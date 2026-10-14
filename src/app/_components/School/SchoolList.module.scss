@@ -1,0 +1,7 @@
+@use '@/styles/ohma';
+
+.SchoolList {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}

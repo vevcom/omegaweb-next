@@ -1,0 +1,39 @@
+model Course {
+  id                             Int                  @id @default(autoincrement())
+  code                           String
+  name                           String
+  ectsPoints                     Int
+  school                         School               @relation(fields: [schoolId], references: [id])
+  schoolId                       Int
+  cmsParagraph                   CmsParagraph         @relation(fields: [cmsParagraphId], references: [id])
+  cmsParagraphId                 Int                  @unique
+  thisCourseHasBeenApprovedAs    CourseApprovedAs[]   @relation("thisCourseHasBeenApprovedAs")
+  thisCourseHasBeenUsedToApprove CourseApprovedAs[]   @relation("thisCourseHasBeenUsedToApprove")
+  CourseStudyProgram             CourseStudyProgram[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CourseStudyProgram {
+  course         Course         @relation(fields: [courseId], references: [id])
+  courseId       Int
+  studyProgramme StudyProgramme @relation(fields: [studyProgramId], references: [id])
+  studyProgramId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([courseId, studyProgramId])
+}
+
+model CourseApprovedAs {
+  id                 Int    @id @default(autoincrement())
+  courseId           Int
+  courseApprovedAsId Int
+  course             Course @relation(fields: [courseId], references: [id], name: "thisCourseHasBeenApprovedAs")
+  courseApprovedAs   Course @relation(fields: [courseApprovedAsId], references: [id], name: "thisCourseHasBeenUsedToApprove")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

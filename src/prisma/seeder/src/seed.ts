@@ -11,6 +11,7 @@ import { seedClasses } from './standardContent/seedClasses'
 import { seedMail } from './standardContent/seedMail'
 import { seedStudyProgrammes } from './standardContent/seedStudyProgrammes'
 import { seedOmegaMembershipGroups } from './standardContent/seedOmegaMembershipGroups'
+import { seedDevSchools } from './development/seedDevSchools'
 import { seedDevCompanies } from './development/seedDevCompanies'
 import { seedShop } from './standardContent/seedShop'
 import { seedDevShop } from './development/seedDevShop'
@@ -70,6 +71,7 @@ export default async function seed({ devData, logging = true }: { devData: boole
         await step('Seeding development omega quotes', () => seedDevOmegaquotes())
         await step('Seeding development news', () => seedDevNews())
         await step('Seeding development lockers', () => seedDevLockers())
+        await step('Seeding development schools', () => seedDevSchools())
         await step('Seeding development companies', () => seedDevCompanies())
         await step('Seeding development job ads', () => seedDevJobAds())
         await step('Seeding development shops', () => seedDevShop())

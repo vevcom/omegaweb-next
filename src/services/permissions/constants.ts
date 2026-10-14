@@ -203,6 +203,26 @@ export const permissionConfig = {
         description: 'kan lese skjermer',
         category: 'skjermer',
     },
+    SCHOOLS_USE: {
+        name: 'Les skoler',
+        description: 'kan lese skoler',
+        category: 'brukere',
+    },
+    SCHOOLS_ADMIN: {
+        name: 'Skoleadministrator',
+        description: 'kan administrere skoler',
+        category: 'brukere',
+    },
+    COURSES_USE: {
+        name: 'Les emner',
+        description: 'kan lese emner',
+        category: 'brukere',
+    },
+    COURSES_ADMIN: {
+        name: 'Emneadministrator',
+        description: 'kan administrere emner',
+        category: 'brukere',
+    },
     LOCKER_USE: {
         name: 'Bruke skap',
         description: 'kan opprette skapreservasjoner',

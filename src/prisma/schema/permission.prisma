@@ -84,6 +84,13 @@ enum Permission {
   SCREEN_USE
   SCREEN_ADMIN
 
+  // Omega course catalouge
+  SCHOOLS_USE
+  SCHOOLS_ADMIN
+
+  COURSES_USE
+  COURSES_ADMIN
+
   // Omega job ads
   COMPANY_USE
   COMPANY_ADMIN

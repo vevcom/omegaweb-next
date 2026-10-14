@@ -16,6 +16,7 @@ import { cabinArticleAuth } from '@/services/cabin/article/auth'
 import { userAuth } from '@/services/users/auth'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
 import { bullshitAuth } from '@/services/bullshit/auth'
+import { Require } from '@/auth/authorizer/Require'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
 import {
     faGamepad,
@@ -30,6 +31,7 @@ import {
     faGraduationCap,
     faTools,
     faSignature,
+    faSchool,
     faHouseChimneyWindow,
     faPeopleLine,
     faIdCard,
@@ -128,6 +130,13 @@ export const navDef: NavItem[] = [
         href: '/articles',
         icon: faSignature,
         authorizers: () => [articleCategoryAuth.readAll],
+    },
+    {
+        // A page of static content with no service behind it.
+        name: 'Fagveven',
+        href: '/education',
+        icon: faSchool,
+        authorizers: () => [Require.nothing()],
     },
     {
         name: 'Bilder',

@@ -1,0 +1,10 @@
+@use '@/styles/ohma';
+
+.SchoolAdminList {
+    @include ohma.table();
+    a {
+        display: contents;
+        text-decoration: none;
+        color: inherit;
+    }
+}
