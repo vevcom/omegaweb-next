@@ -609,9 +609,27 @@ export type SubServiceOperation<
     OperationImplementationFields
 >>
 
+/**
+ * The Prisma errors an operation may run into, and what each means to the user. The message ends
+ * up as a general error in the form that was submitted, so it says what the user can do about it
+ * rather than what the database objected to. Any code not listed here is an unknown error.
+ */
 const prismaErrorCodes: Record<string, [ServiceErrorCode, string]> = {
-    P2002: ['DUPLICATE', 'duplicate entry'],
-    P2025: ['NOT FOUND', 'not found'],
+    // What was sent in
+    P2000: ['BAD DATA', 'En av verdiene er for lang.'],
+    P2002: ['DUPLICATE', 'Dette finnes allerede.'],
+    P2003: ['BAD PARAMETERS', 'Det du viser til finnes ikke, eller noe annet avhenger av det.'],
+    P2011: ['BAD DATA', 'Et påkrevd felt mangler.'],
+    P2020: ['BAD DATA', 'En av verdiene er utenfor gyldig område.'],
+    // What was looked up
+    P2001: ['NOT FOUND', 'Fant ikke ressursen.'],
+    P2015: ['NOT FOUND', 'Fant ikke det som skulle kobles til.'],
+    P2018: ['NOT FOUND', 'Fant ikke det som skulle kobles til.'],
+    P2025: ['NOT FOUND', 'Fant ikke ressursen.'],
+    // Passing trouble on the database side, where trying again is the right response
+    P2024: ['SERVER ERROR', 'Databasen svarte ikke i tide. Prøv igjen.'],
+    P2028: ['SERVER ERROR', 'Operasjonen tok for lang tid. Prøv igjen.'],
+    P2034: ['SERVER ERROR', 'Noen andre endret det samme samtidig. Prøv igjen.'],
 }
 
 /**
@@ -628,13 +646,13 @@ async function prismaErrorWrapper<Result>(call: () => Result | Promise<Result>):
 
         if (!(error instanceof PrismaClientKnownRequestError)) {
             logger.error('Unknown error:', error)
-            throw new ServiceError('UNKNOWN ERROR', 'unknown error')
+            throw new ServiceError('UNKNOWN ERROR', 'En ukjent feil oppstod.')
         }
 
         const mapped = prismaErrorCodes[error.code]
         if (!mapped) {
             logger.error('Unknown prisma error:', error)
-            throw new ServiceError('UNKNOWN ERROR', 'unknown prisma error')
+            throw new ServiceError('UNKNOWN ERROR', 'En ukjent databasefeil oppstod.')
         }
 
         // A missing row while seeding is expected - upsert() reads before it creates - and the tests
