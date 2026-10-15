@@ -8,7 +8,7 @@ import { notificationOperations } from '@/services/notifications/operations'
 import { getOsloTime } from '@/lib/dates/getOsloTime'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
 import { cmsImageOperations } from '@/cms/images/operations'
@@ -28,8 +28,11 @@ import type { EventExpanded } from './types'
 const visibility = implementDoubleLevelVisibilityOperations({
     implementationParamsSchema: eventSchemas.params.visibility,
     authorizers: {
-        readDoubleLevelMatrix: ({ doubleLevelMatrix }) =>
-            eventAuth.readDoubleLevelMatrix.data({ visibility: doubleLevelMatrix }),
+        readDoubleLevelMatrix: async ({ params, prisma, doubleLevelMatrix }) =>
+            eventAuth.readDoubleLevelMatrix.data({
+                visibility: doubleLevelMatrix,
+                published: await readPublished(prisma, params.id),
+            }),
         updateRegularLevel: ({ doubleLevelMatrix }) =>
             eventAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix }),
         updateAdminLevel: ({ doubleLevelMatrix }) =>
@@ -193,16 +196,7 @@ export const eventOperations = {
                 return createdEvent
             })
 
-            await notificationOperations.createSpecial.internalCall({
-                params: {
-                    special: 'NEW_EVENT',
-                },
-                data: {
-                    title: `Hva der hender: ${event.name}`,
-                    message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
-                    audience: { visibilityId: event.visibilityRegularId },
-                },
-            })
+            // A new event is a draft. Subscribers hear of it once it is published (see setPublished).
             return event
         }
     }),
@@ -387,7 +381,8 @@ export const eventOperations = {
     /**
      * Publishes an event, or takes it back to being a draft. Which level the read authorizer
      * demands follows from this flag, so retracting an event hides it from everyone but those who
-     * administrate it again.
+     * administrate it again. Publishing a draft tells the subscribers to new events about it, those
+     * of them who may register for it.
      */
     setPublished: defineOperation({
         paramsSchema: eventSchemas.params.setPublished,
@@ -395,10 +390,28 @@ export const eventOperations = {
         authorizer: async ({ params, prisma }) => eventAuth.setPublished.data({
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
         }),
-        operation: async ({ prisma, params, data }) => prisma.event.update({
-            where: { id: params.id },
-            data: { published: data.published },
-        })
+        operation: async ({ prisma, params, data }) => {
+            const { count: flipped } = await prisma.event.updateMany({
+                where: { id: params.id, published: !data.published },
+                data: { published: data.published },
+            })
+            const event = await prisma.event.findUniqueOrThrow({ where: { id: params.id } })
+
+            if (data.published && flipped) {
+                await notificationOperations.createSpecial.internalCall({
+                    params: {
+                        special: 'NEW_EVENT',
+                    },
+                    data: {
+                        title: `Hva der hender: ${event.name}`,
+                        message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
+                        audience: { visibilityId: event.visibilityRegularId },
+                    },
+                })
+            }
+
+            return event
+        }
     }),
 
     destroy: defineOperation({
@@ -482,6 +495,15 @@ function eventTagSelector(tags: string[] | null) {
             }
         }
     } : undefined
+}
+
+/** Whether one event is published, which decides what its regular level grants (see regularLevelUnlessDraft). */
+async function readPublished(prisma: PrismaPossibleTransaction<false>, eventId: number) {
+    const event = await prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { published: true },
+    })
+    return event.published
 }
 
 /**

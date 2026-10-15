@@ -88,6 +88,8 @@ async function createEvent({
         },
         bypassAuth: true,
     })
+    // Only administrators may register for a draft, and these tests register ordinary members.
+    await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
     return event.id
 }
 
