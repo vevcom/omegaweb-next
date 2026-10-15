@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './PaymentMethodModal.module.scss'
 import PopUp from '@/components/PopUp/PopUp'
 import Button from '@/components/UI/Button'
 import Form from '@/components/Form/Form'
@@ -51,7 +50,7 @@ export default function PaymentMethodModal({ userId }: PropTypes) {
             customShowButton={(open) => <Button onClick={open}>Legg til bankkort</Button>}
         >
             <h3>Legg til bankkort</h3>
-            <div className={styles.bankCardFormContainer}>
+            <div className="w-[min(500px,90vw)] m-6">
                 <Form action={handleSubmit} submitText="Legg til bankkort">
                     <StripeProvider mode="setup">
                         <StripePayment ref={stripePaymentRef} />

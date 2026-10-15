@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './LedgerAccountList.module.scss'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { LedgerAccountPagingProvider, LedgerAccountPagingContext } from '@/contexts/paging/LedgerAccountPaging'
 import { displayAmount } from '@/lib/currency/convert'
@@ -21,7 +20,7 @@ export default function LedgerAccountList() {
                 </tr>
             }
             wrapper={children =>
-                <table className={styles.ledgerAccountListTable}>
+                <table className="ohma-table">
                     <thead>
                         <tr>
                             <th>Navn</th>

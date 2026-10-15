@@ -1,5 +1,4 @@
 'use client'
-import styles from './UserList.module.scss'
 import Dropdown from '@/components/UI/Dropdown'
 import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import TextInput from '@/components/UI/TextInput'
@@ -71,6 +70,18 @@ function getOrdereOptions(group: ExpandedGroup): { value: number | 'NULL', label
         },
     ]
 }
+
+// Buttons rendered in cells, including any from displayForUser, are small square toggles.
+const listClassName = [
+    'ohma-table m-0! [&_td_button]:border-none [&_td_button]:bg-transparent [&_td_button]:size-[25px]',
+    '[&_td_button]:grid [&_td_button]:place-items-center [&_td_button]:rounded-round [&_td_button]:cursor-pointer',
+].join(' ')
+// p-0! beats ohma-table's own th padding; the button inside carries it instead.
+const sortableClassName = 'p-0! select-none whitespace-nowrap hover:text-accent-blue'
+const sortButtonClassName = [
+    'w-full h-auto block py-3 px-4 [font:inherit] text-inherit [text-align:inherit]',
+    'border-none bg-transparent rounded-round cursor-pointer',
+].join(' ')
 
 /**
  * Display users in UserPagingContext with filters for groups and a search bar.
@@ -163,11 +174,11 @@ export default function UserList({
     }
 
     const sortIcon = (field: SortField) => {
-        if (currentSort?.field !== field) return <FontAwesomeIcon icon={faSort} className={styles.sortIcon} />
+        if (currentSort?.field !== field) return <FontAwesomeIcon icon={faSort} className="ml-1 text-[0.85em]" />
         return (
             <FontAwesomeIcon
                 icon={currentSort.direction === 'asc' ? faSortUp : faSortDown}
-                className={styles.sortIcon}
+                className="ml-1 text-[0.85em]"
             />
         )
     }
@@ -204,21 +215,21 @@ export default function UserList({
     }
 
     return (
-        <div className={`${styles.UserList} ${className}`}>
-            <div className={styles.filters}>
+        <div className={`${'h-full flex flex-col'} ${className}`}>
+            <div className="w-full flex flex-row flex-wrap items-end mb-2 gap-4">
                 {
                     !disableFilters.name && (
                         <TextInput
                             name="partOfName"
                             label="Navn"
                             onChange={handleChangeName}
-                            className={styles.nameFilter}
+                            className="mt-0!"
                         />
                     )
                 }
                 {
                     !disableFilters.COMMITTEE && (
-                        <div className={styles.group}>
+                        <div className="flex flex-col gap-2 min-w-[150px]">
                             <SearchableDropdown
                                 name="komite"
                                 label="Komité"
@@ -238,7 +249,7 @@ export default function UserList({
                 }
                 {
                     !disableFilters.CLASS && (
-                        <div className={styles.group}>
+                        <div className="flex flex-col gap-2 min-w-[150px]">
                             <Dropdown
                                 name="klasse"
                                 label="Klasse"
@@ -258,7 +269,7 @@ export default function UserList({
                 }
                 {
                     !disableFilters.STUDY_PROGRAMME && (
-                        <div className={styles.group}>
+                        <div className="flex flex-col gap-2 min-w-[150px]">
                             <Dropdown
                                 name="studie"
                                 label="Studieprogram"
@@ -278,7 +289,7 @@ export default function UserList({
                 }
                 {
                     !disableFilters.OMEGA_MEMBERSHIP_GROUP && (
-                        <div className={styles.group}>
+                        <div className="flex flex-col gap-2 min-w-[150px]">
                             <Dropdown
                                 name="medlemskap"
                                 label="Medlemskap"
@@ -297,19 +308,19 @@ export default function UserList({
                     )
                 }
             </div>
-            <div className={styles.listWrapper}>
-                <table className={styles.list}>
+            <div className="flex-auto overflow-y-auto">
+                <table className={listClassName}>
                     <thead>
-                        <tr>
+                        <tr className="sticky top-0 z-1">
                             {(usersSelection ?? userSelection) && <th></th>}
                             {displayForUser && <th></th>}
-                            <th className={styles.sortable} aria-sort={ariaSort('name')}>
-                                <button type="button" onClick={() => handleSort('name')}>
+                            <th className={sortableClassName} aria-sort={ariaSort('name')}>
+                                <button type="button" className={sortButtonClassName} onClick={() => handleSort('name')}>
                                     Navn {sortIcon('name')}
                                 </button>
                             </th>
-                            <th className={styles.sortable} aria-sort={ariaSort('username')}>
-                                <button type="button" onClick={() => handleSort('username')}>
+                            <th className={sortableClassName} aria-sort={ariaSort('username')}>
+                                <button type="button" className={sortButtonClassName} onClick={() => handleSort('username')}>
                                     Brukernavn {sortIcon('username')}
                                 </button>
                             </th>
@@ -331,7 +342,7 @@ export default function UserList({
                         )} renderer={user => (
                             <tr
                                 key={user.id}
-                                className={linksToUser ? styles.clickable : ''}
+                                className={linksToUser ? 'cursor-pointer' : ''}
                                 onClick={() => {
                                     if (!linksToUser) return
                                     router.push(userHref(user))
@@ -340,7 +351,7 @@ export default function UserList({
                                 { usersSelection &&
                                     <td>
                                         <button
-                                            className={usersSelection.includes(user) ? styles.selected : ''}
+                                            className={usersSelection.includes(user) ? 'bg-accent-blue!' : ''}
                                             aria-label={`Velg ${user.firstname} ${user.lastname}`}
                                             aria-pressed={usersSelection.includes(user)}
                                             onClick={(event) => {
@@ -354,7 +365,7 @@ export default function UserList({
                                 { userSelection &&
                                     <td>
                                         <button
-                                            className={userSelection.user?.id === user.id ? styles.selected : ''}
+                                            className={userSelection.user?.id === user.id ? 'bg-accent-blue!' : ''}
                                             aria-label={`Velg ${user.firstname} ${user.lastname}`}
                                             aria-pressed={userSelection.user?.id === user.id}
                                             onClick={(event) => {

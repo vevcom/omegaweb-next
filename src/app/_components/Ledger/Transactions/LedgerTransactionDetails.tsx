@@ -1,5 +1,4 @@
 'use client'
-import styles from './LedgerTransactionDetails.module.scss'
 import Form from '@/components/Form/Form'
 import { displayAmount } from '@/lib/currency/convert'
 import { displayDate } from '@/lib/dates/displayDate'
@@ -39,8 +38,8 @@ const paymentProviderNames: Record<PaymentProvider, string> = {
 }
 
 function DetailRow({ label, value }: { label: string, value: ReactNode }) {
-    return <div className={styles.detailRow}>
-        <span className={styles.label}>{label}</span>
+    return <div className="flex justify-between gap-2">
+        <span className="text-text-muted">{label}</span>
         <span>{value}</span>
     </div>
 }
@@ -55,7 +54,7 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
 
     const accountEntry = transaction.ledgerEntries.find(entry => entry.ledgerAccountId === accountId)
 
-    return <div className={styles.details}>
+    return <div className="w-[min(500px,90vw)] m-6 flex flex-col gap-2">
         <h3>{transactionPurposeNames[transaction.purpose]}</h3>
 
         <DetailRow label="Dato" value={displayDate(transaction.createdAt)} />
@@ -80,7 +79,7 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
         )}
 
         {transaction.purpose === 'CABIN_BOOKING' && transaction.booking && (
-            <div className={styles.section}>
+            <div className="mt-2 flex flex-col gap-2 [&_h4]:m-0">
                 <h4>Hyttebooking</h4>
                 <DetailRow
                     label="Periode"
@@ -97,7 +96,7 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
         )}
 
         {transaction.purpose === 'EVENT_PAYMENT' && transaction.eventRegistration && (
-            <div className={styles.section}>
+            <div className="mt-2 flex flex-col gap-2 [&_h4]:m-0">
                 <h4>Arrangement</h4>
                 <DetailRow label="Navn" value={transaction.eventRegistration.event.name} />
                 {transaction.eventRegistration.event.location && (
@@ -114,10 +113,10 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
         )}
 
         {transaction.purpose === 'SHOP_PURCHASE' && transaction.purchase && (
-            <div className={styles.section}>
+            <div className="mt-2 flex flex-col gap-2 [&_h4]:m-0">
                 <h4>Kjøp</h4>
                 <DetailRow label="Butikk" value={transaction.purchase.shop.name} />
-                <ul className={styles.productList}>
+                <ul className="m-0 pl-6">
                     {transaction.purchase.PurchaseProduct.map(purchaseProduct => (
                         <li key={purchaseProduct.productId}>
                             {purchaseProduct.quantity}x {purchaseProduct.product.name} — {

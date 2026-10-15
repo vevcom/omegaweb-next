@@ -1,10 +1,14 @@
 import UserDisplayName from './UserDisplayName'
-import styles from './UserCard.module.scss'
 import ProfilePicture from './ProfilePicture'
 import Link from 'next/link'
 import type { CSSProperties } from 'react'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { UserCard as UserCardData } from '@/services/users/types'
+
+const userCardClassName = [
+    'flex items-center gap-2 p-2 mx-2 mt-2 mb-0 box-border rounded-round no-underline text-text bg-surface-raised',
+    'border-4 border-solid border-[var(--flairColor,var(--surface-raised))] [&>div>h6]:text-m [&>div>p]:text-s',
+].join(' ')
 
 // TODO: Make nice and add picture
 export default function UserCard({
@@ -21,7 +25,7 @@ export default function UserCard({
     const [topFlair] = [...user.flairs].sort((flairA, flairB) => flairA.rank - flairB.rank)
 
     return <Link
-        className={`${styles.UserCard} ${className ? className : ''}`}
+        className={`${userCardClassName} ${className ? className : ''}`}
         href={`/users/${user.username}`}
         style={topFlair ? {
             '--flairColor': `rgb(${topFlair.colorR}, ${topFlair.colorG}, ${topFlair.colorB})`,

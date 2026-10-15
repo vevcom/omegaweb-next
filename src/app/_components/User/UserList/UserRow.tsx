@@ -1,4 +1,3 @@
-import styles from './UserRow.module.scss'
 import UserDisplayName from '@/components/User/UserDisplayName'
 import Link from 'next/link'
 import type { UserPagingReturn } from '@/services/users/types'
@@ -24,7 +23,7 @@ export default function UserRow({ user, groupSelected = false, href }: PropTypes
                         <Link
                             href={href}
                             prefetch={false}
-                            className={styles.link}
+                            className="block text-inherit hover:no-underline"
                             onClick={event => event.stopPropagation()}
                         >
                             {displayName}

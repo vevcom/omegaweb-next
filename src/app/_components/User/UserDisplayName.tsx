@@ -1,4 +1,3 @@
-import styles from './UserDisplayName.module.scss'
 import Flair from '@/components/Flair/Flair'
 import type { UserFiltered } from '@/services/users/types'
 
@@ -11,7 +10,7 @@ export default function UserDisplayName({
     user: Pick<UserFiltered, 'firstname' | 'lastname' | 'flairs'>,
     width: number,
 }) {
-    return <div className={styles.userDisplayName}>
+    return <div className="flex flex-row items-center [&>span]:mr-[0.3rem]">
         <span>{user.firstname} {user.lastname}</span>
 
         {user.flairs.map((flair, index) => (

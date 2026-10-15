@@ -1,5 +1,4 @@
 'use client'
-import styles from './CreateUserForm.module.scss'
 import { createUserAction } from '@/services/users/actions'
 import TextInput from '@/components/UI/TextInput'
 import Form from '@/components/Form/Form'
@@ -14,7 +13,7 @@ export default function CreateUserForm({ className }: PropTypes) {
     const { refresh } = useRouter()
 
     return (
-        <div className={`${styles.CreateUserForm} ${className}`}>
+        <div className={`${'w-full'} ${className}`}>
             <Form
                 title="Lag en bruker"
                 submitText="Lag bruker"

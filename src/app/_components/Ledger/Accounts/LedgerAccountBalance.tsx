@@ -1,4 +1,3 @@
-import styles from './LedgerAccountBalance.module.scss'
 import { displayAmount } from '@/lib/currency/convert'
 import { currencySymbol } from '@/lib/currency/config'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
@@ -14,16 +13,19 @@ export default async function LedgerAccountBalance({ ledgerAccountId: accountId,
         () => ledgerAccountOperations.calculateBalance({ params: { ledgerAccountId: accountId } })
     )
 
-    return <div className={styles.LedgerAccountBalance}>
-        <div className={styles.amountRow}>
+    return <div className={[
+        'grid grid-cols-[auto_1fr_auto] grid-flow-row auto-cols-max gap-x-4 whitespace-nowrap overflow-hidden',
+        'max-mobile:grid-cols-[auto_1fr]',
+    ].join(' ')}>
+        <div className="contents text-xxl">
             <div>Saldo</div>
-            <div className={styles.total}>{displayAmount(balance.amount)}</div>
-            <div className={styles.currencySymbol}>{currencySymbol}</div>
+            <div className="text-right">{displayAmount(balance.amount)}</div>
+            <div className="text-text-muted text-m max-mobile:hidden">{currencySymbol}</div>
         </div>
-        {showFees && <div className={styles.feesRow}>
+        {showFees && <div className="contents text-l">
             <div>Avgifter</div>
-            <div className={styles.total}>{displayAmount(balance.fees)}</div>
-            <div className={styles.currencySymbol}>{currencySymbol}</div>
+            <div className="text-right">{displayAmount(balance.fees)}</div>
+            <div className="text-text-muted text-m max-mobile:hidden">{currencySymbol}</div>
         </div>}
     </div>
 }

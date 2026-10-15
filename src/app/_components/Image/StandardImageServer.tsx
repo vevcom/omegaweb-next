@@ -1,4 +1,3 @@
-import styles from './StandardImage.module.scss'
 import Image, { SrcImage } from './Image'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
@@ -29,13 +28,13 @@ export default async function StandardImageServer({ standardImage, children, cla
     ))
 
     return (
-        <div className={`${styles.StandardImage} ${className}`}>
+        <div className={`[:where(&)]:relative [:where(&)]:isolate [:where(&)]:table ${className}`}>
             {image ? (
                 <Image image={image} {...props} />
             ) : (
                 <SrcImage src={fallbackImage} {...props} />
             )}
-            {children && <div className={styles.children}>{children}</div>}
+            {children && <div className="absolute top-0 left-0 w-full h-full flex">{children}</div>}
         </div>
     )
 }
