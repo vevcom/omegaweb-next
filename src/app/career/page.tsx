@@ -21,9 +21,6 @@ const linkClassName = [
     '[&>h2]:p-[1em] [&>h2]:flex-2 [&>h2]:text-center [&>h2]:text-xl',
 ].join(' ')
 
-// A fixed box rather than `flex: 1`: each standard image has its own aspect ratio, so letting the image
-// decide its height made the three rows three different heights. The image components size their wrapper
-// divs off the image's intrinsic width (--image-width) rather than off this box, so the divs are forced too.
 const linkImageClassName = [
     'flex-[0_0_auto] relative w-68 h-36 m-2 rounded-inner overflow-hidden max-mobile:w-[calc(100%-2*var(--gap))]',
     '[&_div]:absolute [&_div]:inset-0 [&_div]:size-full [&_img]:size-full [&_img]:object-cover',

@@ -256,7 +256,6 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                         onKeyDown={handleKeyDown}
                     />
                     {loading && <FontAwesomeIcon icon={faSpinner} spin className="shrink-0 text-text-muted" />}
-                    {/* The popup is fullscreen on mobile, so there is no outside to click and no Esc key. */}
                     <button
                         type="button"
                         className="hidden max-mobile:block shrink-0 bg-transparent border-none p-2 cursor-pointer text-l"
@@ -294,8 +293,6 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                                                     onClick={close}
                                                 >
                                                     <span className={[
-                                                        // Image's own wrapper div sizes off the image's intrinsic width, so
-                                                        // it is forced to fill the thumbnail box.
                                                         'relative shrink-0 size-10 rounded-[calc(0.5*var(--gap))]',
                                                         'overflow-hidden flex items-center justify-center',
                                                         'bg-surface-hover text-text-muted [&_div]:w-full [&_div]:h-full',

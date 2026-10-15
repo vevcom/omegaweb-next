@@ -51,8 +51,6 @@ export default function NumberInput({
                 placeholder={label}
             />
             <label htmlFor={inputId} className={[
-                // The label floats up while the field is focused or filled, and sits in the field while the placeholder
-                // shows.
                 'absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-text-muted transition-all',
                 'duration-300',
                 'pointer-events-none z-2 peer-placeholder-shown:top-6 peer-placeholder-shown:text-m',

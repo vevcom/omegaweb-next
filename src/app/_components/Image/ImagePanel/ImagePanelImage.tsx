@@ -20,8 +20,6 @@ export default function ImagePanelImage({ image, selected, onOpenDisplay, onTogg
 
     return (
         <div className={[
-            // Neutral border at rest; hovering only changes its colour, so the frame doesn't jump while the image scales.
-            // The first child is the Image component's wrapper.
             'relative size-[200px] overflow-hidden rounded-round p-0 border-3 border-solid border-surface-subtle',
             'transition-[border-color] duration-300 hover:border-accent-blue',
             '[&>*:first-child]:absolute [&>*:first-child]:top-0 [&>*:first-child]:left-0',
@@ -44,7 +42,6 @@ export default function ImagePanelImage({ image, selected, onOpenDisplay, onTogg
                         'transition-[background-color] duration-300 hover:cursor-pointer',
                         '[&>svg]:absolute [&>svg]:top-1/2 [&>svg]:left-1/2 [&>svg]:-translate-1/2 [&>svg]:w-[80%]!',
                         '[&>svg]:h-[80%]!',
-                        // A selected tile keeps its accent on hover.
                         selected ? 'bg-accent-blue' : 'bg-surface-subtle hover:bg-surface-hover',
                     ].join(' ')}
                 >

@@ -24,7 +24,6 @@ type PropTypes = {
  * @param showUpdateForm - Whether to offer changing the dots.
  * @param showDestroyForm - Whether to offer deleting the dots.
  */
-// Padding is important so it also beats ohma-table's own cell padding when used on a <td>.
 const dotsClassName = (valueLeft: number) => `py-[0.2em]! px-[0.6em]! rounded-[0.4em] whitespace-nowrap ${
     valueLeft > 0
         ? 'bg-[color-mix(in_srgb,var(--accent-red),white_50%)] text-text-inv'

@@ -47,7 +47,6 @@ function PrioritizedCommittee({ item, priority, canReorder, onDragEnd }: ItemPro
                 ].join(' ')}>{priority}</span>
                 {canReorder && (
                     <span className={[
-                        // Same handle as the flair admin table, so reordering works the same way in both places.
                         'flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab',
                         'touch-none select-none',
                         'transition-colors duration-300 hover:bg-surface-hover hover:text-ink-strong active:cursor-grabbing',

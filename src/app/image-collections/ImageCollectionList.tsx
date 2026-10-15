@@ -6,8 +6,6 @@ import { DynamicImageCollectionPagingContext } from '@/contexts/paging/DynamicIm
 import { useSpecialCollections } from '@/contexts/ClientData'
 import { useState, type ReactNode } from 'react'
 
-// Gap on the container rather than per-item margins, so the first column lines up with the page's left edge.
-// Rounding only, not the round utility - its padding would inset each cover inside its own grid cell.
 const gridClassName = [
     'w-full flex flex-wrap justify-start gap-2',
     '[&>*:not(.loading-control)]:size-[250px] [&>*:not(.loading-control)]:overflow-hidden',

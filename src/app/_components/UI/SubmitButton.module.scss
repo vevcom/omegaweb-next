@@ -1,6 +1,5 @@
 @use '@/styles/ohma';
 
-// Kept as SCSS for the staggered @keyframes dot animation.
 .loader > div {
     background-color: ohma.$colors-text-inv;
     width: 1em;

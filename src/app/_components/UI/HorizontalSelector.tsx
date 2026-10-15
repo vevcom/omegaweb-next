@@ -32,7 +32,6 @@ export default function HorizontalSelector<ValueType extends string | number>({
                 className={[
                     value === option.value ? 'btn' : 'secondary-btn',
                     'flex items-center justify-center flex-1 m-0 rounded-none cursor-pointer',
-                    // <button> doesn't inherit typography the way a <label> does, so match a button explicitly.
                     'font-normal leading-normal not-last:border-r not-last:border-surface-subtle',
                 ].join(' ')}
             >

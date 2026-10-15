@@ -19,7 +19,6 @@ export default function EventTag({ eventTag }: PropTypes) {
             <p className={[
                 'hidden group-hover/tag:block absolute bottom-0 left-1/2 [transform:translate(-50%,calc(100%_+_10px))]',
                 'p-[1em] rounded-[1em] bg-surface-hover text-text',
-                // The speech-bubble arrow pointing up at the tag.
                 "before:content-[''] before:absolute before:top-0 before:left-1/2 before:[transform:translate(-50%,-100%)]",
                 'before:border-x-[10px] before:border-x-transparent before:border-b-[10px] before:border-b-surface-hover',
                 'before:border-t-0',

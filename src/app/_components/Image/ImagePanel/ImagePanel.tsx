@@ -205,7 +205,6 @@ export default function ImagePanel<const PageSize extends number>({
         if (allLoaded) {
             if (images.length > 0) return <i>Ingen flere å laste inn</i>
             return <span className={[
-                // An empty collection gets an empty state rather than the pager's "nothing more to load".
                 'flex flex-col items-center gap-2 py-12 text-ink-hover text-center',
                 '[&>svg]:text-[calc(6*var(--gap))] [&>svg]:opacity-50',
             ].join(' ')}>

@@ -18,7 +18,6 @@ const imageClipClassName = [
     '[&_img]:w-full! [&_img]:max-h-full [&_img]:object-cover [&_img]:rounded-round [&_img]:overflow-hidden',
 ].join(' ')
 
-// One cell of the current/selected grid; the Image inside fills it.
 const gridCellClassName = 'w-[calc(min(200px,24vh)/2)] max-h-[calc(min(200px,24vh)/2)] [&>*]:w-full! [&>*]:max-h-full'
 
 const arrowClassName = 'w-[70%] h-[70%] place-self-center'

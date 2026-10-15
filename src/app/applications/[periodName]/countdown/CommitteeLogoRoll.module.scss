@@ -1,4 +1,3 @@
-// Kept as a module for the keyframes; the component restarts the animation by toggling .animate.
 .animate {
     animation: scale-in 10s forwards cubic-bezier(0.90, 0.05, 0.90, 0.05), fade 5s 1s forwards;
 }

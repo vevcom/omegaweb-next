@@ -21,7 +21,6 @@ import { committeeAuth } from '@/services/groups/committees/auth'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
-// One panel per thing that can be administered, so the logo, the members and the migration read as separate jobs.
 const sectionClassName = [
     'flex flex-col gap-4 p-4 rounded-round layer',
     '[&>h3]:m-0 [&>h3]:pb-2 [&>h3]:border-b [&>h3]:border-surface-hover [&>h3]:text-l [&>h3]:font-bold',

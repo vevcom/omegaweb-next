@@ -124,7 +124,6 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
                 />
             </Form>
             <div className={[
-                // The preview's img rules are as specific as OmbulCover's own, so the ones that differ need ! to win.
                 'col-[2/3] ml-4 w-[70%] h-[70%] min-w-[20vw] max-w-[30vw] max-mobile:hidden',
                 '[&_img]:w-[70%]! [&_img]:h-full [&_img]:object-contain! [&_img]:mb-2',
             ].join(' ')}>

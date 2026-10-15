@@ -32,7 +32,6 @@ export default function BackdropImage({ children, image, grayScale = true, image
                 {children}
             </div>
             <div className={[
-                // Only the corner of the image peeks out; the window keeps the same proportion at any size.
                 'absolute right-0 bottom-0 -z-1 w-[calc(0.6*var(--backdrop-image-size))] opacity-0 flex items-end',
                 `overflow-hidden [&_*]:size-(--backdrop-image-size) ${animation.fadeIn}`,
             ].join(' ')}>

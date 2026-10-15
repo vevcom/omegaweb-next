@@ -33,7 +33,6 @@ function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'], scale = 40, d
                 ...(label ? {} : { width: `${buttonScale}px` }),
             }}
             showButtonClass={[
-                // The same rounded square with or without a label, so the two read as the same control.
                 'border-none rounded-inner bg-surface-hover cursor-pointer',
                 'transition-[background-color,color,box-shadow] duration-300 hover:bg-surface-subtle hover:text-ink-strong',
                 label

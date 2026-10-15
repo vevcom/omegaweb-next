@@ -64,14 +64,11 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                     id={selectId}
                     name={name}
                     className={[
-                        // A <select> always has a selection, so the label sits permanently in the floated position.
                         'peer appearance-none relative w-full flex items-center border-2 border-transparent rounded-inner',
                         'outline-0 text-m',
-                        // Matches the min-height Dropdown gives its value span, so the two are the same height side by side.
                         'leading-[calc(var(--text-m)*1.25)] text-left pt-6 pr-10 pb-2 pl-4',
                         'transition-[border-color,background-color] duration-300 cursor-pointer disabled:cursor-not-allowed',
                         'disabled:opacity-60',
-                        // The popup list is drawn by the browser; without these it falls back to a white menu.
                         '[&_option]:bg-surface-raised [&_option]:text-text',
                         colorClassNames[color].field,
                         backgroundClassNames[background],

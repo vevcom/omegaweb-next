@@ -1,6 +1,5 @@
 @use '@/styles/ohma';
 
-// Kept as SCSS for the focus pulse @keyframes.
 .uploader:has(> input:focus) {
     animation: pulse 1s infinite;
 }

@@ -24,7 +24,6 @@ export type PropTypes<ValueType> = {
     disabled?: boolean,
 }
 
-// Shared with SearchableDropdown so the two fields look the same.
 export const dropdownColorClassNames = {
     black: 'text-ink-strong',
     primary: 'text-accent-blue',
@@ -250,8 +249,6 @@ export default function Dropdown<ValueType extends string | number>({
             >
                 <span
                     className={[
-                        // The value needs its own colour: globals sets `color` on `*`, which beats the colour inherited from
-                        // the trigger.
                         'overflow-hidden text-ellipsis whitespace-nowrap min-h-[calc(var(--text-m)*1.25)]',
                         dropdownColorClassNames[color],
                     ].join(' ')}

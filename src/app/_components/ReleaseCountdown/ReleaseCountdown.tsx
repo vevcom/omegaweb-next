@@ -98,7 +98,6 @@ export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) 
 
     return (
         <div className={[
-            // Always dark, regardless of the user's chosen theme.
             '[--text:hsl(0,0%,90%)] [--text-muted:hsl(0,0%,55%)] [--surface-base:hsl(0,0%,6%)]',
             '[--surface-raised:hsl(0,0%,10%)]',
             'fixed inset-0 overflow-hidden bg-black text-text',

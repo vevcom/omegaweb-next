@@ -60,8 +60,6 @@ export default function SideBar({ category, children }: PropTypes) {
             </aside>
 
             <main className={[
-                // Desktop-only styles carry mobile:, mobile-only ones max-mobile:. The content and the mobile bar are
-                // each display: none on the other breakpoint, so their inner styles need no prefix.
                 'mobile:bg-surface-base mobile:rounded-round mobile:z-1 mobile:overflow-hidden',
                 'mobile:w-[calc(100%-300px-var(--gap))]',
                 'max-mobile:min-h-screen max-mobile:w-full',

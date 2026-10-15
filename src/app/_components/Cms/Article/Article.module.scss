@@ -1,5 +1,3 @@
-// Kept as SCSS for the generated stacking order: each section sits above the next,
-// so a section's delete confirmation does not end up underneath the one below it.
 .article {
     @for $i from 1 through 15 {
         > *:nth-child(#{$i}) {

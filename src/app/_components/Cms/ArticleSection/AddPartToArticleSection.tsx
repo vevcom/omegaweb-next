@@ -18,7 +18,6 @@ type PropTypes = Omit<AddPartsPropTypes, 'onClick'> & {
     capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
-// The last child is the add-part buttons, pinned to the bottom right corner.
 const wrapperClassName = [
     'relative border-3 border-surface-base rounded-round min-h-[100px] p-4',
     '[&>*:last-child]:absolute [&>*:last-child]:bottom-[3px] [&>*:last-child]:right-[3px]',

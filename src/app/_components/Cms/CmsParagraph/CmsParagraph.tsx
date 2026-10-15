@@ -20,7 +20,6 @@ export default function CmsParagraph({ cmsParagraph, className, updateCmsParagra
                 {cmsParagraph.contentHtml ? (
                     <div
                         className={[
-                            // Styles the sanitized HTML the paragraph renders, so everything targets descendants.
                             'w-full [&_*]:break-words [&_*]:text-text-muted [&_ul_ul]:pl-[20px] [&_ol_ol]:pl-[20px]',
                             '[&_li]:list-inside',
                             '[&_a]:no-underline [&_a]:text-accent-blue [&_a]:font-bold [&_a:hover]:underline',

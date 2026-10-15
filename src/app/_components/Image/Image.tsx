@@ -22,9 +22,6 @@ export type PropTypes = Omit<ImageProps, 'src' | 'alt'> & {
     tintAspectRatio?: number,
 }
 
-// The wrapper's own styles sit in :where() so any class a consumer passes (imageContainerClassName)
-// wins regardless of stylesheet order. Width comes from `--image-width` (not an inline style) for the
-// same reason.
 const imageClassName = [
     '[:where(&)]:relative [:where(&)]:m-0 [:where(&)]:box-border [:where(&)]:flex [:where(&)]:flex-col',
     '[:where(&)]:w-(--image-width) [&>img]:m-0 [&>img]:w-full [&>img]:h-full',

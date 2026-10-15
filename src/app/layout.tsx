@@ -115,9 +115,6 @@ export default async function RootLayout({ children }: PropTypes) {
                                                     'grid grid-cols-[64px_minmax(0,1fr)] grid-rows-[64px_1fr_64px] gap-2 h-dvh',
                                                     'max-w-[2560px] mx-auto',
                                                     "[grid-template-areas:'navBar_navBar'_'sideBar_content'_'sideBar_content']",
-                                                    // viewport-fit=cover lets the grid extend under the system bars, so the gap
-                                                    // has to grow by whatever the OS reserves on each edge; env() is 0 wherever
-                                                    // there is no inset, leaving the gap alone.
                                                     'pt-[calc(var(--gap)+env(safe-area-inset-top))]',
                                                     'pr-[calc(var(--gap)+env(safe-area-inset-right))]',
                                                     'pb-[calc(var(--gap)+env(safe-area-inset-bottom))]',

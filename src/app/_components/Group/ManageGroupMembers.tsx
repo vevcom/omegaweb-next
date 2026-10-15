@@ -188,8 +188,6 @@ export default function ManageGroupMembers({
                             className={[
                                 'grid grid-cols-(--member-columns) items-center gap-4 py-2 px-4 rounded-round layer',
                                 'max-mobile:grid-cols-1 max-mobile:gap-2',
-                                // Form reserves a line for validation messages; down a list of one-field rows that
-                                // doubles the height for nothing, so it only takes space once it has something to say.
                                 '[&_p:empty]:min-h-0 [&_p:empty]:m-0',
                             ].join(' ')}
                             style={columnStyle}

@@ -11,7 +11,6 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
     background?: 'base' | 'raised',
 }
 
-// The value span's colour has to be set on the span itself: globals sets `color` on `*`, which beats inheritance.
 const valueColorClassNames = {
     black: 'text-ink-strong',
     primary: 'text-accent-blue',
@@ -101,7 +100,6 @@ export default function FileInput({
                 >
                     {value}
                 </span>
-                {/* Centred on the whole trigger: its padding is top-heavy to make room for the floated label. */}
                 <FontAwesomeIcon
                     icon={faPaperclip}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted transition-colors duration-300"

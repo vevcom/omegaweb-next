@@ -89,9 +89,6 @@ export default function CollectionAdminUpload({ collectionId, refreshImages }: P
     return (
         <Form
             className={[
-                // Width is the popup's to decide (see CollectionAdmin), so both upload modes fill the same dialog. Form
-                // renders its submit button and field labels without class hooks, so they are sized through the elements
-                // themselves.
                 'w-full [&_button[type=submit]]:w-[calc(19*var(--gap))] [&_button[type=submit]]:ml-0',
                 '[&_label]:block [&_label]:w-full',
             ].join(' ')}

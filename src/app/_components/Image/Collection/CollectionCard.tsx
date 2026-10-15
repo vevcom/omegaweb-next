@@ -13,7 +13,6 @@ export default function CollectionCard({ collection, className }: PropTypes) {
     return (
         <div className={[
             [
-                // The first child is the Image component's wrapper (or the fallback text).
                 'group round relative block place-self-center w-full h-full m-2 overflow-hidden',
                 '[&>*:first-child]:absolute [&>*:first-child]:top-0 [&>*:first-child]:left-0',
                 '[&>*:first-child]:w-full [&>*:first-child]:h-full',

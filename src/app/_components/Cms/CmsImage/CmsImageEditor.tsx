@@ -181,7 +181,6 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                             </span>
                         </p>
                         <div className={[
-                            // Whatever EndlessScroll renders after the collections (its loader) gets a collection-sized box.
                             'flex max-w-full overflow-x-scroll min-h-[calc(14vmin+70px+5vmin)] items-center',
                             '[&>*:last-child:not([data-collection])]:min-w-[calc(14vmin+70px)]',
                             '[&>*:last-child:not([data-collection])]:h-[calc(14vmin+70px)]',

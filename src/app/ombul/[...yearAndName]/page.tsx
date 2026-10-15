@@ -62,9 +62,6 @@ const { page, generateMetadata } = serverPage({
                         back to the page you are already on and repeated the name and issue printed
                         right above it. */}
                     <div className={[
-                        // A sheet of paper, capped at the column width so the collapsed layout doesn't make it taller than
-                        // the viewport. The Image component sizes its wrapper divs off the image's intrinsic width, so they
-                        // are forced to fill the box.
                         'relative w-full max-w-[calc(33*var(--gap))] aspect-[5/7] rounded-round overflow-hidden',
                         'bg-surface-raised',
                         '[&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full [&_img]:w-full [&_img]:h-full',

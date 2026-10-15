@@ -75,13 +75,10 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
 
     return (
         <div className={[
-            // The dimmed backdrop matches PopUp's. Above the layout's nav (z-index 3), below PopUp (8/9).
             'z-5 fixed top-0 left-0 w-screen h-dvh grid place-items-center',
             'bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px]',
         ].join(' ')}>
             <div className={[
-                // Header and footer keep their height; the image band takes the rest, so long metadata can't overflow the
-                // panel.
                 'relative w-[95vw] h-[95dvh] flex flex-col gap-4 p-4 rounded-round bg-surface-base',
             ].join(' ')} ref={panelRef}>
                 <div className="shrink-0 flex items-start justify-between gap-4">
@@ -90,7 +87,6 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                             {image.name}
                         </h2>
                         <dl className={[
-                            // Muted rather than italic: it's a spec sheet under the title.
                             'mt-2 flex flex-wrap gap-x-4 gap-y-0 text-s text-text-muted',
                             '[&>div]:flex [&>div]:gap-[0.4em] [&>div]:min-w-0',
                             '[&_dt]:text-ink-hover [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap',
@@ -129,8 +125,6 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                 </div>
 
                 <div className={[
-                    // The image component's wrapper divs size off --image-width rather than off this box, so every wrapper
-                    // is forced to fill it; width/height must be explicit since `inset` alone loses to the wrapper's width.
                     'flex-auto min-h-0 relative',
                     '[&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full',
                     '[&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full [&_img]:object-contain',

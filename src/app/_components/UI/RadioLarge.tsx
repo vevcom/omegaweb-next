@@ -16,7 +16,6 @@ export default function RadioLarge<ValueType extends number | string>({
     }[]
 }) {
     return <div className={[
-        // Radio inputs are hidden; the label carries the border, and the checked one turns blue.
         'flex flex-row m-[1rem] text-l',
         '[&>div>label]:p-[5px] [&>div>label]:border-3 [&>div>label]:border-[#ccc] [&_input[type=radio]]:hidden',
         '[&_input[type=radio]:checked+label]:border-accent-blue',

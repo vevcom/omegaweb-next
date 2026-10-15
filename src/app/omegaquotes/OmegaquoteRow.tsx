@@ -21,7 +21,6 @@ export default function OmegaquoteRow({ quote }: PropTypes) {
             </div>
 
             <div className="list-row-main">
-                {/* A quote rarely fits one ellipsised line, so the title wraps to two before clamping. */}
                 <h2 className="whitespace-normal! font-secondary italic line-clamp-2">{quote.quote}</h2>
                 <p>{quote.author}</p>
             </div>

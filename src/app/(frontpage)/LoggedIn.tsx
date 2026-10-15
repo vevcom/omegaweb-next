@@ -107,7 +107,6 @@ export default async function LoggedInLandingPage() {
                     <PromoBar promo={promo} />
                 </div>
             )}
-            {/* Transparent: the islands carry their own surface, so the page background shows between them. */}
             <div id="firstSection" className={loggedInPartClassName}>
                 <div className={pagePadding}>
                     <div className="flex flex-wrap items-start gap-2">

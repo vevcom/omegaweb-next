@@ -14,7 +14,6 @@ type PropTypes = {
 export default function ImageCard({ image, title, children, href, className }: PropTypes) {
     return (
         <Link href={href} className={[
-            // A column, so the card ends where its text ends; in a grid the row still levels its neighbours.
             'min-w-[200px] max-w-[400px] rounded-round relative text-inherit no-underline flex flex-col isolate',
             `overflow-hidden bg-surface-raised m-2 max-mobile:m-0 ${className}`,
         ].join(' ')}>

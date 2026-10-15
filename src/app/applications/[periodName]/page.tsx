@@ -127,9 +127,6 @@ const { page, generateMetadata } = serverPage({
                     <h2>{part.committee.name}</h2>
                     <CmsParagraph
                         className={[
-                            // The description is whatever length the committee wrote, so it takes the space the card has
-                            // left and fades out rather than deciding the card's height. On a narrow screen it gives way to
-                            // the wrapping buttons.
                             'flex-[1_1_auto] min-h-0 mb-2 overflow-hidden max-mobile:max-h-[calc(14*var(--gap))]',
                             '[mask-image:linear-gradient(to_bottom,black_calc(100%-2*var(--gap)),transparent)]',
                         ].join(' ')}

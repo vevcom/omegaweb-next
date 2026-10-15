@@ -1,6 +1,5 @@
 @use "@/styles/ohma";
 
-// Kept as SCSS for the loadImage mixin's @keyframes.
 .loading {
     @include ohma.card;
     overflow: hidden;

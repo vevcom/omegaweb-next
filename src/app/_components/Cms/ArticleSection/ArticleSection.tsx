@@ -32,7 +32,6 @@ type PropTypes = {
 
 export type ArticleSectionActions = PropTypes['actions']
 
-// A part's remove button sits on its top right corner, above the part itself.
 const removerClassName = 'absolute -top-[10px] -right-[10px] z-2'
 
 export default function ArticleSection({
@@ -49,14 +48,10 @@ export default function ArticleSection({
         // give it the configured image width explicitly instead.
         <span className={[
             'relative isolate max-w-full',
-            // .cmsImageWithControls is absolutely positioned, so on mobile the image needs its own height.
             'max-mobile:order-2 max-mobile:rounded-round max-mobile:h-[min(300px,40vh)]',
         ].join(' ')} style={{ width: articleSection.imageSize }}>
             {cmsImage && <>
                 <span className={[
-                    // The image is pinned to the box via absolute positioning rather than a chain of percentage
-                    // heights through CmsImage's display:table, which made the whole row balloon. CmsImage's own
-                    // wrapper divs size off the image's intrinsic width, so they are forced to fill it at any depth.
                     'absolute inset-0 flex overflow-hidden z-1',
                     '[&>*:first-child]:absolute [&>*:first-child]:inset-0 [&>*:first-child]:w-full [&>*:first-child]:h-full',
                     '[&>*:first-child]:rounded-round [&>*:first-child]:overflow-hidden [&>*:first-child]:max-w-[90vw]',
@@ -111,7 +106,6 @@ export default function ArticleSection({
                 <span
                     className={[
                         'flex flex-row flex-wrap gap-4 max-mobile:flex-col max-mobile:flex-nowrap',
-                        // Lets a part's remove confirmation lie on top of the part beside it.
                         '[&>*:first-child]:z-2 [&>*:nth-child(2)]:z-1',
                     ].join(' ')}
                 >

@@ -62,7 +62,6 @@ export default function DateInput({
                 type={includeTime ? 'datetime-local' : 'date'}
                 className={[
                     'scheme-dark w-full border-2 border-transparent rounded-inner',
-                    // The native picker indicator inflates the content box, so pin the height to the grid.
                     'h-14 p-4 leading-[calc(var(--text-m)*1.25)] text-m text-ink-strong',
                     'transition-[border-color,background-color] duration-300 focus:outline-0 focus:border-accent-blue',
                     '[&::-webkit-calendar-picker-indicator]:cursor-pointer',

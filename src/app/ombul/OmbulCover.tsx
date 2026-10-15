@@ -11,7 +11,6 @@ export type PropTypesPreview = {
     pDescription: string
 }
 
-// On both the wrapper and the Image inside it, so the rounding and sizing reach the Image's own wrappers.
 const coverImgClassName = [
     'w-full mb-2 [&>*]:rounded-round [&>*]:overflow-hidden [&>*]:w-full [&>*]:h-full',
     '[&>*>*]:rounded-round [&>*>*]:overflow-hidden [&>*>*]:w-full [&>*>*]:h-full',

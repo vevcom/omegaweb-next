@@ -74,7 +74,6 @@ function Section({
                     readSpecialCmsParagraphAction={readSpecialCmsParagraphFrontpageSectionAction}
                     updateCmsParagraphAction={updateSpecialCmsParagraphFrontpageSectionAction}
                 />
-                {/* Same on both surfaces now that the outline tier is gone. */}
                 <Link className="secondary-btn" href={readMore}>Les mer</Link>
                 {children}
             </div>

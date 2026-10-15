@@ -71,7 +71,6 @@ function getOrdereOptions(group: ExpandedGroup): { value: number | 'NULL', label
     ]
 }
 
-// p-0! beats ohma-table's own th padding; the button inside carries it instead.
 const sortableClassName = 'p-0! select-none whitespace-nowrap hover:text-accent-blue'
 const sortButtonClassName = [
     'w-full h-auto block py-3 px-4 [font:inherit] text-inherit [text-align:inherit]',
@@ -305,7 +304,6 @@ export default function UserList({
             </div>
             <div className="flex-auto overflow-y-auto">
                 <table className={[
-                    // Buttons rendered in cells, including any from displayForUser, are small square toggles.
                     'ohma-table m-0! [&_td_button]:border-none [&_td_button]:bg-transparent [&_td_button]:size-[25px]',
                     '[&_td_button]:grid [&_td_button]:place-items-center [&_td_button]:rounded-round',
                     '[&_td_button]:cursor-pointer',

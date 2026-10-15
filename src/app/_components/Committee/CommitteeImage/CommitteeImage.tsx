@@ -51,8 +51,6 @@ export default function CommitteeImage({
                         { implementationParams: { shortName } }
                     )}
                     className={[
-                        // CmsImage's and Image's wrappers size to their content, not the island, so every layer is
-                        // pinned to the island's bounds for object-fit: cover to actually cover.
                         'absolute! inset-0 w-full! h-full! [&>*]:absolute [&>*]:inset-0 [&>*]:w-full! [&>*]:h-full!',
                         '[&>*_div]:w-full! [&>*_div]:h-full!',
                         '[&>*_img]:w-full! [&>*_img]:h-full! [&>*_img]:object-cover [&>*_img]:object-center',

@@ -37,7 +37,6 @@ export default function LoggedInSection({
             '[&>h4]:text-xl [&>h4]:font-bold [&>h4]:font-secondary',
         ].join(' ')}>
             <h4>{title}</h4>
-            {/* Matches the header-item pill (the "Ny +" button) so the two read as the same kind of control. */}
             <Link href={link} className={[
                 'shrink-0 flex items-center h-10 px-4 rounded-inner bg-surface-hover text-ink-strong text-m font-medium',
                 'whitespace-nowrap no-underline transition-colors duration-300',

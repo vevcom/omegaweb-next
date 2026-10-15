@@ -67,7 +67,6 @@ export default function EventTagsAdmin({
                             <Link
                                 className={
                                     selectedTags.map(tagItem => tagItem.name).includes(tag.name) ? [
-                                        // Hovering a selected tag shows a cross over it, since clicking it deselects.
                                         "relative hover:after:content-['✖'] hover:after:text-[length:4em]",
                                         'hover:after:text-text hover:after:absolute',
                                         'hover:after:left-1/2 hover:after:top-1/2 hover:after:-translate-x-1/2',

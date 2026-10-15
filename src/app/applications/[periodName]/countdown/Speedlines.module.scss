@@ -1,4 +1,3 @@
-// Kept as a module for the keyframes, which rotate by each line's own --rotate.
 .speedline {
     animation: speedline-animation 2s infinite linear;
     animation-delay: var(--delay);
@@ -11,6 +10,6 @@
     }
     100% {
         transform: rotate(var(--rotate));
-        stroke-dashoffset: -100; /* Move the dash pattern by 100 units */
+        stroke-dashoffset: -100;
     }
 }

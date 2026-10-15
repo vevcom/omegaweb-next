@@ -29,7 +29,6 @@ enum Selection {
 const weekClassName = 'w-full flex flex-row flex-nowrap'
 const dayClassName = 'relative min-h-[2.3rem]'
 
-// The picked range, painted over the day: the start and end days get a rounded cap.
 const selectionClassNames: Record<Selection, string> = {
     [Selection.START]: [
         'before:absolute before:top-0 before:right-0 before:size-full before:bg-accent-blue',
@@ -42,7 +41,6 @@ const selectionClassNames: Record<Selection, string> = {
     [Selection.INRANGE]: 'bg-[color-mix(in_srgb,var(--accent-blue),white_30%)]',
 }
 
-// Existing bookings, behind the day: green when free, red halves where a booking starts, ends or runs through.
 const bookingSelectionClassNames: Record<Selection, string> = {
     [Selection.START]: '[&>:last-child]:bg-accent-red',
     [Selection.END]: '[&>:first-child]:bg-accent-red',

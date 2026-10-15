@@ -29,7 +29,6 @@ export type PropTypes = {
     }>,
 }
 
-// One labelled block per kind of membership, so the studies, the committees and the interest groups are told apart.
 const groupSectionClassName = 'mt-[1em] [&_h2]:text-[1.1em] [&_h2]:text-ink-strong'
 const labelClassName = 'w-[10em] inline-block font-medium text-accent-blue'
 

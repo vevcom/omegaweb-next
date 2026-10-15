@@ -13,7 +13,6 @@ export default function PromoBar({ promo }: { promo: PromoWithImage }) {
                 '[color:unset] no-underline hover:no-underline',
             ].join(' ')}
         >
-            {/* The ::after darkens the left side so the title/text stay legible over any photo. */}
             <div className={[
                 'absolute inset-0 rounded-[inherit] overflow-hidden [&_div]:size-full',
                 '[&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:size-full [&_img]:object-cover',

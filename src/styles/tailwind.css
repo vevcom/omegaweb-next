@@ -1,19 +1,11 @@
 @import "tailwindcss";
-/* Layered so Tailwind size/colour classes on icons beat its .svg-inline--fa defaults. */
 @import "@fortawesome/fontawesome-svg-core/styles.css" layer(base);
 
 @custom-variant tone-light (html[data-tone="light"] &);
 
-/*
- * ohma design tokens as Tailwind theme values. `inline` makes utilities resolve
- * the CSS variable at the element, so user themes overriding --gap, --rounding
- * or a colour on <html> still reach every class.
- */
 @theme inline {
-    /* One spacing step is half a $gap: p-2 = $gap, p-4 = 2 * $gap. Same as Tailwind's default at --gap: 0.5rem. */
     --spacing: calc(var(--gap) / 2);
 
-    /* max-mobile: replaces screenMobile, mobile: replaces screenLg */
     --breakpoint-mobile: 800px;
 
     --radius-round: var(--rounding);
@@ -42,10 +34,6 @@
     --font-primary: 'Inter', sans-serif;
     --font-secondary: 'PlayfairDisplay', serif;
 
-    /*
-     * Only the ohma.$fonts-* sizes; Tailwind's own scale is dropped so its line-heights don't
-     * sneak in. Weights map to font-light (300), font-medium (500), font-bold (700).
-     */
     --text-*: initial;
     --text-s: clamp(12px, 2vw, 14px);
     --text-m: clamp(14px, 2.5vw, 16px);
@@ -53,8 +41,6 @@
     --text-xl: clamp(22px, 4vw, 26px);
     --text-xxl: clamp(33px, 5.5vw, 36px);
 }
-
-/* Shared ohma mixins that are used in many places. One-off mixins are inlined as plain utilities instead. */
 
 @utility layer {
     background: var(--layer);
@@ -76,7 +62,6 @@
     transition: box-shadow 0.3s;
 }
 
-/* Primary button. Recolour with e.g. `btn [--btn-color:var(--accent-red)]`. Also works on <Link />. */
 @utility btn {
     text-align: center;
     text-decoration: none;
@@ -95,14 +80,12 @@
     }
 }
 
-/* The secondary action tier: a filled button that recedes next to btn. */
 @utility secondary-btn {
     @apply btn;
     --btn-color: var(--surface-hover);
     color: var(--text);
 }
 
-/* The close affordance shared by overlay surfaces (PopUp, ImageDisplay). Placement is up to the consumer. */
 @utility close-btn {
     background-color: var(--accent-red);
     border: none;
@@ -228,11 +211,6 @@
     }
 }
 
-/*
- * Listings that render as full-width rows: a single stacked column at every breakpoint.
- * The list is the query container for its list-row children - a container query can
- * only style descendants of the container, so a row cannot restyle itself off its own width.
- */
 @utility row-list {
     margin: calc(2 * var(--gap)) 0;
     display: flex;
@@ -241,13 +219,6 @@
     container-type: inline-size;
 }
 
-/*
- * A 96px list row on the 8px grid, shared by the event, job-ad, omegaquote and ombul
- * listings: thumbnail | lead | title block | meta, with an optional full-width bar on
- * the bottom edge. Children use the plain classes list-row-thumb/-lead/-main/-meta/-bar.
- * Columns give way off the row-list container width, not the viewport, since rows also
- * sit in half-width islands.
- */
 @utility list-row {
     position: relative;
     display: flex;
@@ -260,7 +231,6 @@
     background-color: var(--surface-raised);
     transition: background-color 300ms;
 
-    /* The whole row is one anchor, so globals' a:hover underline would hit every text run. */
     &:hover {
         background-color: var(--surface-hover);
         text-decoration: none;
@@ -273,7 +243,6 @@
         height: 100%;
         overflow: hidden;
 
-        /* Image components size their wrappers off the image's intrinsic width; force them to fill. */
         & div {
             width: 100%;
             height: 100%;
@@ -374,7 +343,6 @@
         }
     }
 
-    /* Rows stay rows when space is tight; the meta column is what gives way. */
     @container (max-width: 560px) {
         & > .list-row-meta {
             display: none;
@@ -385,14 +353,12 @@
         }
     }
 
-    /* Phone-width rows: the date sits above the title beside the thumbnail. */
     @container (max-width: 480px) {
         display: grid;
         grid-template-columns: calc(12 * var(--gap)) 1fr;
         align-content: center;
         row-gap: calc(0.5 * var(--gap));
 
-        /* Out of the grid so it spans the full row height regardless of the text block. */
         & > .list-row-thumb {
             position: absolute;
             inset: 0 auto 0 0;

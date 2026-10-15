@@ -1,4 +1,3 @@
-// Shared by SideBarNavItem and AdminNav. Labels are revealed when DesktopSideBar's group/sidebar is expanded.
 export const navIconClassName = [
     'relative w-full h-12 shrink-0 flex items-center justify-start px-3 rounded-inner text-text bg-transparent no-underline',
     'transition-[background,color] duration-300 ease-[ease] hover:bg-accent-blue hover:text-text-inv hover:no-underline',

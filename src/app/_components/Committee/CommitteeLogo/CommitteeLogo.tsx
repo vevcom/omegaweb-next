@@ -28,8 +28,6 @@ export default function CommitteeLogo({ logoImage, width, className }: PropTypes
     return (
         <div
             className={[
-                // A mask has no intrinsic size, so the square comes from aspect-square; mask-contain keeps the
-                // logo's proportions inside it. The logo takes --committee-logo-color (set on any ancestor).
                 'aspect-square mask-(--committee-logo-mask) mask-contain mask-no-repeat mask-center',
                 `bg-[var(--committee-logo-color,var(--text))] ${className ?? ''}`,
             ].join(' ')}
