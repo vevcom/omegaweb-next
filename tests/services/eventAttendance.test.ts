@@ -111,6 +111,20 @@ describe('taking attendance for an event', () => {
         expect(second.counts).toEqual({ attended: 1, total: 1, attendedFromWaitingList: 0 })
     })
 
+    test('of two scans at the same time, only one is the first', async () => {
+        const event = await createTestEvent('Attendance concurrent scan event')
+        const user = await createTestUser('attendanceconcurrent')
+        await register(event.id, user.id)
+
+        const scans = await Promise.all([
+            registerAttendance(event.id, user.id),
+            registerAttendance(event.id, user.id),
+        ])
+
+        expect(scans.filter(scan => !scan.alreadyAttended)).toHaveLength(1)
+        expect(scans[0].registration.attendedAt).toEqual(scans[1].registration.attendedAt)
+    })
+
     test('scanning someone who is not registered is turned away, and registers nobody', async () => {
         const event = await createTestEvent('Attendance stranger event')
         const stranger = await createTestUser('attendancethree')

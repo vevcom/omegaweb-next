@@ -394,7 +394,6 @@ export const eventRegistrationOperations = {
                 },
                 select: {
                     id: true,
-                    attendedAt: true,
                 },
             })
 
@@ -402,17 +401,19 @@ export const eventRegistrationOperations = {
                 throw new Smorekopp('NOT FOUND', 'Denne brukeren er ikke påmeldt arrangementet.')
             }
 
-            const registration = existing.attendedAt
-                ? await prisma.eventRegistration.findUniqueOrThrow({
-                    where: { id: existing.id },
-                    select: eventRegistrationAttendanceSelection,
-                })
-                : await writeAttendance(prisma, existing.id, true, session.user?.id)
+            // Only written while attendance is not taken, so of two scans at once the first one stands.
+            const { count } = await prisma.eventRegistration.updateMany({
+                where: { id: existing.id, attendedAt: null },
+                data: { attendedAt: new Date(), attendanceRegisteredById: session.user?.id ?? null },
+            })
 
             return {
-                registration,
+                registration: await prisma.eventRegistration.findUniqueOrThrow({
+                    where: { id: existing.id },
+                    select: eventRegistrationAttendanceSelection,
+                }),
                 counts: await countAttendance(prisma, params.eventId),
-                alreadyAttended: Boolean(existing.attendedAt),
+                alreadyAttended: count === 0,
             }
         },
     }),

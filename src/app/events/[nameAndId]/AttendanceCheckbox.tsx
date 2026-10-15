@@ -37,12 +37,18 @@ export default function AttendanceCheckbox({
                 setPending(true)
                 setError(null)
 
-                const result = await setEventAttendanceAction(
-                    { params: { registrationId } },
-                    { data: { attended: next } }
-                )
-
-                setPending(false)
+                let result
+                try {
+                    result = await setEventAttendanceAction(
+                        { params: { registrationId } },
+                        { data: { attended: next } }
+                    )
+                } catch {
+                    setError('Kunne ikke lagre oppmøte')
+                    return
+                } finally {
+                    setPending(false)
+                }
 
                 if (!result.success) {
                     setError(result.error
