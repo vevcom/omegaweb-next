@@ -4,6 +4,9 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
 const MANUAL_GROUP_COUNT = 10
 const COMMITTEE_COUNT = 10
 
+/** The dev committee with a ledger account of its own, which seedDevCabinLedgerAccount marks as the cabin account. */
+export const DEV_COMMITTEE_SHORT_NAME = 'harcom'
+
 export const seedDevGroups = defineSeedOperation(async (prisma: PrismaClient) => {
     const { order } = await prisma.omegaOrder.findFirstOrThrow({
         orderBy: {
@@ -12,11 +15,11 @@ export const seedDevGroups = defineSeedOperation(async (prisma: PrismaClient) =>
     })
 
     await prisma.committee.upsert({
-        where: { shortName: 'harcom' },
+        where: { shortName: DEV_COMMITTEE_SHORT_NAME },
         update: {},
         create: {
             name: 'Harambes komité',
-            shortName: 'harcom',
+            shortName: DEV_COMMITTEE_SHORT_NAME,
             committeeArticle: {
                 create: {
                     name: 'Harambes komité',
