@@ -4,6 +4,7 @@ import { userOperations } from '@/services/users/operations'
 import { prisma } from '@/prisma-pn-client-instance'
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
+import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 
 const HOUR = 60 * 60 * 1000
@@ -149,7 +150,27 @@ describe('taking attendance for an event', () => {
         expect(stored.attendanceRegisteredById).toBeNull()
     })
 
-    test('saving a box that is already ticked leaves the scan standing', async () => {
+    test('the button in the registration list marks and clears attendance through the form', async () => {
+        const event = await createTestEvent('Attendance button event')
+        const user = await createTestUser('attendancebutton')
+        const registration = await register(event.id, user.id)
+
+        const formWith = (attended: string) => {
+            const formData = new FormData()
+            formData.append('attended', attended)
+            return formData
+        }
+        const submit = (attended: string) => eventRegistrationOperations.setAttendance({
+            params: { registrationId: registration.id, registeredById: doorUserId },
+            data: formWith(attended),
+            session: doorSession,
+        })
+
+        expect((await submit('on')).attendedAt).toBeInstanceOf(Date)
+        expect((await submit(FIELD_IS_PRESENT_VALUE)).attendedAt).toBeNull()
+    })
+
+    test('marking someone as attended again leaves the scan standing', async () => {
         const event = await createTestEvent('Attendance resave event')
         const user = await createTestUser('attendanceresave')
         const registration = await register(event.id, user.id)

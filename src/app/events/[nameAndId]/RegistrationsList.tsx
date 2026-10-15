@@ -10,11 +10,11 @@ import {
 import UserDisplayName from '@/components/User/UserDisplayName'
 import Slider from '@/components/UI/Slider'
 import Form from '@/components/Form/Form'
-import Checkbox from '@/components/UI/Checkbox'
 import ContactCard from '@/components/User/ContactCard'
 import { destroyEventRegistrationAction, setEventAttendanceAction } from '@/services/events/registration/actions'
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
 import { configureAction } from '@/services/configureAction'
+import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { EventFiltered } from '@/services/events/types'
@@ -72,15 +72,14 @@ function DetailedTable({
                                             setEventAttendanceAction,
                                             { params: { registrationId: row.id, registeredById: attendanceTakerId } }
                                         )}
-                                        submitText="Lagre"
+                                        submitText={row.attendedAt ? 'Fjern møtt' : 'Møtt'}
+                                        submitColor={row.attendedAt ? 'green' : 'secondary'}
                                         refreshOnSuccess
                                     >
-                                        <Checkbox
+                                        <input
+                                            type="hidden"
                                             name="attended"
-                                            defaultChecked={Boolean(row.attendedAt)}
-                                            aria-label={`Møtt: ${row.user
-                                                ? `${row.user.firstname} ${row.user.lastname}`
-                                                : row.contact?.name ?? 'Ukjent'}`}
+                                            value={row.attendedAt ? FIELD_IS_PRESENT_VALUE : 'on'}
                                         />
                                     </Form>
                                 </td>}
