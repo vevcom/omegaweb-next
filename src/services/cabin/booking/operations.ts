@@ -20,6 +20,7 @@ import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import crypto from 'crypto'
 import type { z } from 'zod'
 import type { BookingFiltered } from './types'
@@ -127,6 +128,18 @@ async function readBookingProducts(
 }
 
 /**
+ * The account every booking is paid into: the one marked CABIN, chosen through connectToLedger
+ * below. Until one is, bookings can neither be reserved nor paid for.
+ */
+async function readDestinationLedgerAccountId(prisma: Prisma.TransactionClient) {
+    const account = await prisma.ledgerAccount.findUnique({ where: { special: 'CABIN' }, select: { id: true } })
+    if (!account) {
+        throw new ServiceError('SERVER ERROR', 'Hyttebooking har ingen tilknyttet konto konfigurert.')
+    }
+    return account.id
+}
+
+/**
  * Reserves the cabin: the booking is created unpaid and holds its dates for the payment window
  * (cabinReservationWindowMs). Every reservation queues behind one lock for its transaction, so
  * the availability check and the insert of one never interleave with another's - two bookers
@@ -143,6 +156,9 @@ async function reserve(prisma: PrismaClient, { bookingType, bookingProducts, boo
         if (releasePeriod === null) {
             throw new ServiceError('SERVER ERROR', 'Hyttebooking siden er ikke tilgjengelig.')
         }
+        // Checked before the dates are held, not first at payment: a reservation that could never
+        // be paid for would only block the calendar until it expired.
+        await readDestinationLedgerAccountId(tx)
         if (booking.end > releasePeriod.releaseUntil) {
             throw new ServiceError('BAD PARAMETERS', 'Hytta kan ikke bookes etter siste slippdato.')
         }
@@ -274,6 +290,47 @@ export const cabinBookingOperations = {
         })
     }),
 
+    /** The account cabin bookings are paid into, or null while none is linked. */
+    readLedgerAccount: defineOperation({
+        authorizer: () => cabinBookingAuth.readLedgerAccount,
+        operation: ({ prisma }) => prisma.ledgerAccount.findUnique({
+            where: { special: 'CABIN' },
+            select: { id: true, name: true },
+        }),
+    }),
+
+    /**
+     * Makes a GROUP ledger account the one cabin bookings are paid into, taking the role from the
+     * account that had it. The role is the CABIN marker on LedgerAccount; this is the only place
+     * it is given.
+     * @param data.ledgerAccountId - The account to credit
+     */
+    connectToLedger: defineOperation({
+        authorizer: async ({ data, prisma }) => cabinBookingAuth.connectToLedger.data({
+            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
+        }),
+        dataSchema: cabinBookingSchemas.data.connectToLedger,
+        opensTransaction: true,
+        operation: async ({ prisma, data }) => {
+            const account = await prisma.ledgerAccount.findUniqueOrThrow({
+                where: { id: data.ledgerAccountId },
+                select: { type: true },
+            })
+            if (account.type !== 'GROUP') {
+                throw new ServiceError('BAD PARAMETERS', 'Hytta kan bare knyttes til en gruppekonto.')
+            }
+
+            return prisma.$transaction(async tx => {
+                await tx.ledgerAccount.updateMany({ where: { special: 'CABIN' }, data: { special: null } })
+                return tx.ledgerAccount.update({
+                    where: { id: data.ledgerAccountId },
+                    data: { special: 'CABIN' },
+                    select: { id: true, name: true },
+                })
+            })
+        },
+    }),
+
     readSpecialCmsParagraphCabinContract: cmsParagraphOperations.readSpecial.implement({
         authorizer: () => cabinBookingAuth.readSpecialCmsParagraphCabinContract,
         ownershipCheck: ({ params }) => params.special === 'CABIN_CONTRACT'
@@ -349,11 +406,7 @@ export const cabinBookingOperations = {
                 })
             }
 
-            const cabinSettings = await prisma.cabinSettings.findFirst()
-            if (!cabinSettings?.ledgerAccountId) {
-                throw new Smorekopp('SERVER ERROR', 'Hyttebooking har ingen tilknyttet konto konfigurert.')
-            }
-            const destinationLedgerAccountId = cabinSettings.ledgerAccountId
+            const destinationLedgerAccountId = await readDestinationLedgerAccountId(prisma)
 
             const funds = booking.totalPrice
             if (params.amountFromBalance > funds) {

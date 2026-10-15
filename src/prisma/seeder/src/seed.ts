@@ -7,6 +7,7 @@ import { seedDevOmegaquotes } from './development/seedDevOmegaquotes'
 import { seedOrders } from './standardContent/seedOrders'
 import { seedNotificationChannels } from './standardContent/seedNotificationChannels'
 import { seedDevGroups } from './development/seedDevGroups'
+import { seedDevCabinLedgerAccount } from './development/seedDevCabinLedgerAccount'
 import { seedClasses } from './standardContent/seedClasses'
 import { seedMail } from './standardContent/seedMail'
 import { seedStudyProgrammes } from './standardContent/seedStudyProgrammes'
@@ -65,6 +66,7 @@ export default async function seed({ devData, logging = true }: { devData: boole
     await step('Seeding development data', async () => {
         await step('Seeding development images', () => seedDevImages())
         await step('Seeding development groups', () => seedDevGroups())
+        await step('Seeding development cabin ledger account', () => seedDevCabinLedgerAccount())
         await step('Seeding development users', () => seedDevUsers())
         await step('Seeding development permissions', () => seedDevPermissions())
         await step('Seeding development omega quotes', () => seedDevOmegaquotes())

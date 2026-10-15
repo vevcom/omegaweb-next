@@ -26,6 +26,11 @@ enum LedgerAccountType {
   GROUP
 }
 
+enum SpecialLedgerAccount {
+  // The GROUP account cabin bookings are paid into.
+  CABIN
+}
+
 // A ledger account is equivalent to you real life bank account
 // It is used to store internal funds for either users or groups
 model LedgerAccount {
@@ -36,10 +41,10 @@ model LedgerAccount {
   frozen              Boolean              @default(false) // If true, no transactions may be made on this account.
   name                String? // Optional display name for the account, only used for group accounts
   payoutAccountNumber String? // For display only, only used for group accounts
+  special             SpecialLedgerAccount? @unique
 
   ledgerEntries LedgerEntry[]
   shop          Shop?
-  cabinSettings CabinSettings?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

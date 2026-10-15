@@ -84,10 +84,3 @@ model CabinGuest {
   updatedAt DateTime  @updatedAt
   Booking   Booking[]
 }
-
-// Singleton settings row for the cabin booking domain. Only one row is ever expected to exist.
-model CabinSettings {
-  id              Int            @id @default(autoincrement())
-  ledgerAccount   LedgerAccount? @relation(fields: [ledgerAccountId], references: [id])
-  ledgerAccountId Int?           @unique
-}

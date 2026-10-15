@@ -1,6 +1,8 @@
 import StateWrapper from './stateWrapper'
+import ConnectCabinToLedgerForm from './ConnectCabinToLedgerForm'
 import SpecialCmsParagraph from '@/app/_components/Cms/CmsParagraph/SpecialCmsParagraph'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { default as DateComponent } from '@/components/Date/Date'
 import {
     readSpecialCmsParagraphCabinContractAction,
@@ -63,6 +65,19 @@ const { page, generateMetadata } = serverPage({
             cabinBookingCustomerSessionSecret = customerSession?.customerSessionClientSecret
         }
 
+        // The account the bookings are paid into, and the accounts it may be changed to, feed the
+        // settings of a cabin admin, so they are loaded for no one else. Each falls back rather
+        // than taking the booking page down.
+        const administers = cabinBookingAuth.readLedgerAccount.auth(session).authorized
+        const [cabinLedgerAccount, ledgerAccounts] = administers
+            ? await Promise.all([
+                withFallback(cabinBookingOperations.readLedgerAccount({}), null),
+                withFallback(ledgerAccountOperations.readAccessible({
+                    params: { includeGroupAccounts: true, includeUserAccounts: false },
+                }), []),
+            ])
+            : [null, []]
+
         return {
             cabinAvailability,
             releasePeriods,
@@ -70,17 +85,37 @@ const { page, generateMetadata } = serverPage({
             cabinProducts,
             cabinBookingBalance,
             cabinBookingCustomerSessionSecret,
+            cabinLedgerAccount,
+            ledgerAccounts,
         }
     },
-    capabilities: () => ({
+    capabilities: (data) => ({
         canEditSpecialCmsParagraphContract: cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract,
+        canConnectToLedger: cabinBookingAuth.connectToLedger.data({
+            accounts: data.ledgerAccounts.map(account => account.ownership),
+        }),
     }),
     metadata: () => ({ title: 'Hyttebooking' }),
     render: ({ data, capabilities }) => {
         const releaseUntil = findCurrentReleasePeriod(data.releasePeriods)
         const nextReleasePeriod = findNextReleasePeriod(data.releasePeriods)
+        const ledgerAccount = data.cabinLedgerAccount
 
-        return <PageWrapper>
+        return <PageWrapper
+            headerItem={capabilities.canConnectToLedger.authorized && (
+                <SettingsHeaderItemPopUp scale={30} popUpKey="cabinSettings">
+                    <p>
+                        Konto: {ledgerAccount
+                            ? (ledgerAccount.name ?? `Konto ${ledgerAccount.id}`)
+                            : 'ingen. Hytta kan ikke bookes før den er knyttet til en konto.'}
+                    </p>
+                    <ConnectCabinToLedgerForm
+                        currentLedgerAccountId={ledgerAccount?.id ?? null}
+                        ledgerAccounts={data.ledgerAccounts}
+                    />
+                </SettingsHeaderItemPopUp>
+            )}
+        >
             {nextReleasePeriod &&
                 <p>
                     Neste slipptid er <DateComponent date={nextReleasePeriod.releaseTime} />,

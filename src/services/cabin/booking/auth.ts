@@ -1,4 +1,5 @@
 import { requireBookingAccess, requireBookingHolder } from '@/auth/authorizer/RequireBookingAccess'
+import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
 import { Require } from '@/auth/authorizer/Require'
 
 export const cabinBookingAuth = {
@@ -15,6 +16,10 @@ export const cabinBookingAuth = {
     readMany: Require.permission('CABIN_ADMIN'),
 
     read: Require.permission('CABIN_ADMIN'),
+
+    readLedgerAccount: Require.permission('CABIN_ADMIN'),
+
+    connectToLedger: Require.allOf(Require.permission('CABIN_ADMIN'), ledgerAccountAccess('LEDGER_ADMIN')),
 
     readSpecialCmsParagraphCabinContract: Require.permission('CABIN_USE'),
 

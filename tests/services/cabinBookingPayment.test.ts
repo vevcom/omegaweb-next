@@ -3,8 +3,6 @@ import { stripe } from '@/lib/stripe'
 import { cabinBookingOperations } from '@/services/cabin/booking/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
-import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
-import { userOperations } from '@/services/users/operations'
 import { afterEach, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 
 const dayMs = 24 * 60 * 60 * 1000
@@ -96,17 +94,7 @@ async function readBookingState(bookingId: number) {
 
 describe('cabin booking payment and release', () => {
     beforeAll(async () => {
-        const user = await userOperations.create({
-            data: {
-                email: 'hyttekonto@example.com',
-                firstname: 'Hytte',
-                lastname: 'Konto',
-                username: 'hyttekonto',
-            },
-            bypassAuth: true,
-        })
-        const account = await ledgerAccountOperations.read({ params: { userId: user.id }, bypassAuth: true })
-        await prisma.cabinSettings.create({ data: { ledgerAccountId: account.id } })
+        await prisma.ledgerAccount.create({ data: { type: 'GROUP', name: 'Hyttekonto', special: 'CABIN' } })
     })
 
     beforeEach(() => {
