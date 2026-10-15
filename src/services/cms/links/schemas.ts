@@ -1,20 +1,12 @@
 import { SpecialCmsLink } from '@/prisma-generated-pn-types'
+import { isSafeLink, safeLinkMessage } from '@/lib/fields/safeLink'
 import { z } from 'zod'
-
-/** A full URL, an internal path, or something with a dot in it that a browser will take for a host. */
-const isUrlOrPath = (url: string): boolean => {
-    if (!url) return true
-    try {
-        return Boolean(new URL(url))
-    } catch {
-        return url.startsWith('/') || url.includes('.')
-    }
-}
 
 const dataFieldSchemas = z.object({
     name: z.string().optional(),
     text: z.string().min(1, 'Linken må ha tekst på mer enn 1 bokstav').max(30, 'Max lengde er 30'),
-    url: z.string().refine(isUrlOrPath, 'Ugyldig URL.'),
+    // Empty is a link nobody has filled in yet, which renders as a dead button.
+    url: z.string().trim().refine(url => !url || isSafeLink(url), safeLinkMessage),
 })
 
 const paramsFieldSchemas = z.object({

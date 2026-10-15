@@ -4,11 +4,13 @@ import './CustomEditorClasses.scss'
 import styles from './CmsParagraphEditor.module.scss'
 import Form from '@/components/Form/Form'
 import { configureAction } from '@/services/configureAction'
+import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import type { CmsParagraph } from '@/prisma-generated-pn-types'
 import type { UpdateCmsParagraphAction } from '@/cms/paragraphs/types'
+import type { Options as EditorOptions } from 'easymde'
 
 // Needed because SimpleMDE is not SSR compatible as it access navigator object
 const DynamicSimpleMDEditor = dynamic(
@@ -18,6 +20,15 @@ const DynamicSimpleMDEditor = dynamic(
         loading: () => <p className={styles.loader}>Laster...</p>
     }
 )
+
+/**
+ * The preview injects the rendered markdown as html, and the editor only sanitizes it when told to.
+ * Without this a script saved in a paragraph (a member's own bio, say) would run in the session of
+ * whoever opens the editor on it. Kept outside the component: a new options object remounts the editor.
+ */
+const editorOptions: EditorOptions = {
+    renderingConfig: { sanitizerFunction: sanitizeHtml },
+}
 
 type PropTypes = {
     cmsParagraph: CmsParagraph
@@ -42,7 +53,12 @@ export default function CmsParagraphEditorForm({ cmsParagraph, className, update
 
     return (
         <div className={`${styles.form} ${className ?? ''}`}>
-            <DynamicSimpleMDEditor className={styles.editor} value={content} onChange={handleContentChange} />
+            <DynamicSimpleMDEditor
+                className={styles.editor}
+                value={content}
+                onChange={handleContentChange}
+                options={editorOptions}
+            />
             <Form
                 action={action.bind(null, { data: { markdown: content } })}
                 submitText="Oppdater"
