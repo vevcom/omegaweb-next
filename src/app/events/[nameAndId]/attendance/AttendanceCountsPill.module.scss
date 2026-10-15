@@ -1,0 +1,30 @@
+@use '@/styles/ohma';
+
+// A readout rather than a control, so it takes the pill look without the link behaviour.
+.AttendanceCountsPill {
+    @include ohma.headerPill;
+
+    align-items: baseline;
+    padding: 0 calc(2 * #{ohma.$gap});
+    white-space: nowrap;
+    line-height: 40px;
+
+    > .tally {
+        font-size: ohma.$fonts-m;
+
+        > strong {
+            font-size: ohma.$fonts-l;
+            color: ohma.$colors-accent-green;
+        }
+    }
+
+    > .label {
+        font-size: ohma.$fonts-m;
+        font-weight: ohma.$fonts-weight-m;
+    }
+
+    > .fromWaitingList {
+        font-size: ohma.$fonts-s;
+        color: ohma.$colors-text-muted;
+    }
+}

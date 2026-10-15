@@ -128,3 +128,12 @@
         }
     }
 }
+
+.attendanceLink {
+    display: block;
+    padding: ohma.$gap;
+    text-align: center;
+    border-radius: ohma.$rounding;
+    background-color: ohma.$colors-surface-raised;
+    color: ohma.$colors-text;
+}

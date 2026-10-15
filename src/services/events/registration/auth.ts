@@ -10,6 +10,12 @@ const registerLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibi
 // Exported for the operations to tell whether the session administrates an event, which lets it
 // unregister anyone after the registration period.
 export const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
+
+/**
+ * Administrating an event while logged in. Taking attendance records who took it, so there has to
+ * be someone to record - and a session with no user behind it has no business at the door.
+ */
+const eventAdminUser = Require.allOf(Require.user(), eventAdminLevel)
 const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
 
 /**
@@ -40,6 +46,12 @@ export const eventRegistrationAuth = {
 
     updateNotes: registrationOfUser,
     destroy: registrationOfUser,
+
+    // Taking attendance is the event holders' business, never the registrant's own - marking
+    // yourself as having shown up is exactly what the dots for not showing up are there to catch.
+    registerAttendance: eventAdminUser,
+    setAttendance: eventAdminUser,
+    readAttendanceCounts: eventAdminLevel,
 
     // Domain access only: may this session pay for *this* registration - the registrant
     // themselves, or a genuine event admin. Deliberately not eventRegistrationAuth.create

@@ -1,0 +1,18 @@
+@use '@/styles/ohma';
+
+// Spreads the back link and the tally pill to the two corners of the header.
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 1em;
+}
+
+.attendance {
+    display: flex;
+    flex-direction: column;
+    gap: ohma.$gap;
+    padding: ohma.$gap;
+    text-align: center;
+}

@@ -1,5 +1,6 @@
 'use client'
 import styles from './RegistrationsList.module.scss'
+import AttendanceCheckbox from './AttendanceCheckbox'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { EventRegistrationPagingProvider, EventRegistrationPagingContext } from '@/contexts/paging/EventRegistrationPaging'
 import UserCard from '@/components/User/UserCard'
@@ -45,6 +46,7 @@ function DetailedTable({
                         <th>Mobil</th>
                         <th>Allergier</th>
                         <th>Notat</th>
+                        <th>Møtt</th>
                         <th>Slett</th>
                     </tr>
                 </thead>
@@ -62,6 +64,15 @@ function DetailedTable({
                                 <td>{row.user ? row.user.mobile : row.contact?.mobile}</td>
                                 <td>{row.user ? row.user.allergies : 'Ukjent'}</td>
                                 <td>{row.note}</td>
+                                <td>
+                                    <AttendanceCheckbox
+                                        registrationId={row.id}
+                                        attended={Boolean(row.attendedAt)}
+                                        name={row.user
+                                            ? `${row.user.firstname} ${row.user.lastname}`
+                                            : row.contact?.name ?? 'Ukjent'}
+                                    />
+                                </td>
                                 <td>
                                     <Form
                                         action={configureAction(

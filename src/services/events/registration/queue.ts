@@ -30,6 +30,30 @@ export async function queuePosition(
 }
 
 /**
+ * The id of the first registration queueing past the places of an event, or null when nobody is.
+ * The queue is ordered by id, so this one id splits it: below it took a place, from it on is the
+ * waiting list.
+ */
+export async function firstOnWaitingList(
+    prisma: Prisma.TransactionClient,
+    eventId: number
+): Promise<number | null> {
+    const { places } = await prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { places: true },
+    })
+
+    const first = await prisma.eventRegistration.findFirst({
+        where: { eventId },
+        orderBy: eventRegistrationQueueOrder,
+        skip: places,
+        select: { id: true },
+    })
+
+    return first?.id ?? null
+}
+
+/**
  * Narrows to one segment of the registration queue of an event: the registrations that took the
  * places of the event, or the ones queueing on the waiting list past them. The first registration
  * past the places is the boundary, and since the queue is ordered by id, each segment is simply the
@@ -41,40 +65,16 @@ export async function queueSegmentFilter(
     prisma: Prisma.TransactionClient,
     details: EventRegistrationPageDetails
 ): Promise<Prisma.EventRegistrationWhereInput | null> {
-    const event = await prisma.event.findUniqueOrThrow({
-        where: {
-            id: details.eventId,
-        },
-        select: {
-            places: true,
-        },
-    })
-
-    const firstOnWaitingList = await prisma.eventRegistration.findFirst({
-        where: {
-            eventId: details.eventId,
-        },
-        orderBy: eventRegistrationQueueOrder,
-        skip: event.places,
-        select: {
-            id: true,
-        },
-    })
+    const boundary = await firstOnWaitingList(prisma, details.eventId)
 
     if (details.type === REGISTRATION_READER_TYPE.WAITING_LIST) {
-        if (!firstOnWaitingList) return null
+        if (!boundary) return null
 
-        return {
-            eventId: details.eventId,
-            id: { gte: firstOnWaitingList.id },
-        }
+        return { eventId: details.eventId, id: { gte: boundary } }
     }
 
     // Without anyone past the places of the event, every registration took a place.
-    if (!firstOnWaitingList) return { eventId: details.eventId }
+    if (!boundary) return { eventId: details.eventId }
 
-    return {
-        eventId: details.eventId,
-        id: { lt: firstOnWaitingList.id },
-    }
+    return { eventId: details.eventId, id: { lt: boundary } }
 }

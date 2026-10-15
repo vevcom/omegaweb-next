@@ -23,6 +23,9 @@
             display: flex;
             flex-direction: row;
             align-items: center;
+            // Fills the row so a header item can push its own content to both ends. Items stay
+            // left-aligned by default, so a header with one item does not move.
+            flex: 1;
         }
     }
 }

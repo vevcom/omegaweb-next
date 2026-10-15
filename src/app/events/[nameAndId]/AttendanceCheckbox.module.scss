@@ -1,0 +1,12 @@
+@use '@/styles/ohma';
+
+.AttendanceCheckbox {
+    display: flex;
+    align-items: center;
+    gap: ohma.$gap;
+
+    > .error {
+        color: ohma.$colors-error;
+        font-size: ohma.$fonts-s;
+    }
+}

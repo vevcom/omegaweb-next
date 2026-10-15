@@ -1,0 +1,13 @@
+@use '@/styles/ohma';
+
+.BackLink {
+    @include ohma.headerPillLink;
+
+    // Mirrored from ArchiveLink: the roomier side is the one the icon sits on.
+    padding: 0 calc(2.5 * #{ohma.$gap}) 0 calc(1.75 * #{ohma.$gap});
+
+    span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}

@@ -1,39 +1,7 @@
 @use '@/styles/ohma';
 
 .ArchiveLink {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: calc(1.5 * #{ohma.$gap});
-    height: 40px;
+    @include ohma.headerPillLink;
+
     padding: 0 calc(1.75 * #{ohma.$gap}) 0 calc(2.5 * #{ohma.$gap});
-    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
-    background-color: ohma.$colors-surface-hover;
-    color: ohma.$colors-ink-strong;
-    text-decoration: none;
-    cursor: pointer;
-    transition: background-color ohma.$transitionTime, color ohma.$transitionTime, box-shadow 0.3s;
-
-    &:hover {
-        background-color: ohma.$colors-surface-subtle;
-        color: ohma.$colors-ink-strong;
-        text-decoration: none;
-    }
-
-    span {
-        font-size: ohma.$fonts-m;
-        font-weight: ohma.$fonts-weight-m;
-        white-space: nowrap;
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-        color: ohma.$colors-text;
-        transition: color ohma.$transitionTime;
-    }
-
-    &:hover svg {
-        color: ohma.$colors-accent-blue;
-    }
 }

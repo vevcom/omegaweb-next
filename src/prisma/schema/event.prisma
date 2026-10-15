@@ -96,13 +96,20 @@ model EventRegistration {
   id        Int             @id @default(autoincrement())
   event     Event           @relation(fields: [eventId], references: [id])
   eventId   Int
-  user      User?           @relation(fields: [userId], references: [id])
+  user      User?           @relation(name: "registration", fields: [userId], references: [id])
   userId    Int?
   contact   ContactDetails? @relation(fields: [contactId], references: [id])
   contactId Int?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
   note      String?
+
+  // When the one registered was marked as having shown up, and who marked them. Null means
+  // attendance has not been taken for this registration - i.e. they did not show up, once
+  // attendance has been taken for the event at all.
+  attendedAt               DateTime?
+  attendanceRegisteredBy   User?     @relation(name: "attendanceRegisteredBy", fields: [attendanceRegisteredById], references: [id], onDelete: SetNull)
+  attendanceRegisteredById Int?
 
   // Legacy from old database
   manuallyPaid      Boolean @default(false)

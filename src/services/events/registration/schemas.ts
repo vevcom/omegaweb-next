@@ -6,6 +6,7 @@ import { z } from 'zod'
 const dataFieldSchemas = z.object({
     note: z.string().max(200, 'Merknader kan ha maks 200 tegn'),
     name: z.string().min(2),
+    attended: z.boolean(),
 })
 
 const paramsFieldSchemas = z.object({
@@ -52,6 +53,9 @@ export const eventRegistrationSchemas = {
         updateNotes: dataFieldSchemas.pick({
             note: true,
         }),
+        setAttendance: dataFieldSchemas.pick({
+            attended: true,
+        }),
     },
     params: {
         create: userAndEvent,
@@ -66,6 +70,11 @@ export const eventRegistrationSchemas = {
         readPageDetailed: readPage,
         updateNotes: registrationId,
         destroy: registrationId,
+        registerAttendance: userAndEvent,
+        setAttendance: registrationId,
+        readAttendanceCounts: paramsFieldSchemas.pick({
+            eventId: true,
+        }),
         createPayment: paramsFieldSchemas.pick({
             userId: true,
             eventId: true,

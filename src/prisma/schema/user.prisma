@@ -94,10 +94,11 @@ model User {
   // The user's applications to committees.
   Application Application[]
 
-  // Which events the user has registered for
-  // and which events they have created.
-  EventRegistration EventRegistration[]
-  Event             Event[]
+  // Which events the user has registered for, which events' attendance they have
+  // registered, and which events they have created.
+  EventRegistration         EventRegistration[] @relation(name: "registration")
+  registeredEventAttendance EventRegistration[] @relation(name: "attendanceRegisteredBy")
+  Event                     Event[]
 
   // Which dots (a.k.a. "prikker") the user has received and given.
   dots        Dot[] @relation(name: "dot_user")

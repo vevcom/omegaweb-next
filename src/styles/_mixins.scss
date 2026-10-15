@@ -172,6 +172,51 @@
     }
 }
 
+// The rounded pill the header items share (ArchiveLink, BackLink, the attendance readout), so they
+// read as one row of controls. Matches HeaderItemPopUp's .headerItemBtn/.pill, which predates this.
+@mixin headerPill {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: calc(1.5 * #{variables.$gap});
+    height: 40px;
+    border-radius: calc(#{variables.$rounding} - #{variables.$gap});
+    background-color: colors.$surface-hover;
+    color: colors.$ink-strong;
+}
+
+// The same pill as a link: hovers, and tints its icon on hover. Padding is the caller's, since it
+// depends on which side the icon sits.
+@mixin headerPillLink {
+    @include headerPill;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color variables.$transitionTime, color variables.$transitionTime, box-shadow 0.3s;
+
+    &:hover {
+        background-color: colors.$surface-subtle;
+        color: colors.$ink-strong;
+        text-decoration: none;
+    }
+
+    span {
+        font-size: fonts.$m;
+        font-weight: fonts.$weight-m;
+        white-space: nowrap;
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+        color: colors.$text;
+        transition: color variables.$transitionTime;
+    }
+
+    &:hover svg {
+        color: colors.$accent-blue;
+    }
+}
+
 @mixin primaryIconLink {
     color: colors.$accent-blue;
     padding: variables.$gap;
