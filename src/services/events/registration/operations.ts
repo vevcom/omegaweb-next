@@ -93,7 +93,7 @@ export const eventRegistrationOperations = {
     create: createRegistration.implement({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.create.data({
             userId: params.userId,
-            visibility: await eventVisibility(prisma, params.eventId),
+            ...await eventVisibilityAndPublished(prisma, params.eventId),
         }),
         ownershipCheck: () => true,
         operationImplementationFields: { asAdmin: false },
@@ -185,9 +185,9 @@ export const eventRegistrationOperations = {
     }),
 
     readPage: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPage.data({
-            visibility: await eventVisibility(prisma, params.paging.details.eventId)
-        }),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPage.data(
+            await eventVisibilityAndPublished(prisma, params.paging.details.eventId)
+        ),
         paramsSchema: eventRegistrationSchemas.params.readPage,
         operation: async ({ prisma, params }): Promise<EventRegistrationExpanded[]> => {
             const segment = await queueSegmentFilter(prisma, params.paging.details)
@@ -550,6 +550,21 @@ async function eventVisibility(prisma: PrismaPossibleTransaction<false>, eventId
         params: { id: eventId },
         prisma,
     })
+}
+
+/**
+ * The same levels, and whether the event is published: registering for a draft, or reading who is
+ * registered to it, takes its admin level until it is published.
+ */
+async function eventVisibilityAndPublished(prisma: PrismaPossibleTransaction<false>, eventId: number) {
+    const [visibility, event] = await Promise.all([
+        eventVisibility(prisma, eventId),
+        prisma.event.findUniqueOrThrow({
+            where: { id: eventId },
+            select: { published: true },
+        }),
+    ])
+    return { visibility, published: event.published }
 }
 
 /**

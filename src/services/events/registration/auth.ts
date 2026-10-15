@@ -1,12 +1,14 @@
+import { regularLevelUnlessDraft } from '@/services/events/auth'
 import { Require } from '@/auth/authorizer/Require'
 import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 
 /**
  * The regular level of an event is what it takes to register for it, and its admin level is what it
  * takes to act on the registrations of everyone else. EVENT_ADMIN bypasses both for every event.
- * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`.
+ * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`; registering
+ * also needs `{ published }`, as no one but its administrators may register for a draft.
  */
-const registerLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
+const registerLevel = regularLevelUnlessDraft
 // Exported for the operations to tell whether the session administrates an event, which lets it
 // unregister anyone after the registration period.
 export const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })

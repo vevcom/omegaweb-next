@@ -8,7 +8,7 @@ import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
     name: z.string().min(5, 'Navnet må være minst 5 tegn').max(70, 'Navnet må være maks 70 tegn'),
-    location: z.string().min(2, 'Stedet må være minst 2 tegn'),
+    location: z.string().min(2, 'Stedet må være minst 2 tegn').max(100, 'Stedet må være maks 100 tegn'),
     locationMap: Zpn.json({ label: 'Kart', schema: locationMapSchema.nullable() }).optional(),
     order: z.coerce.number().int().optional(),
     eventStart: Zpn.date({ label: 'Starttid' }),
