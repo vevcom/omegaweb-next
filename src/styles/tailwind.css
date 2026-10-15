@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Layered so Tailwind size/colour classes on icons beat its .svg-inline--fa defaults. */
+@import "@fortawesome/fontawesome-svg-core/styles.css" layer(base);
 
 /*
  * ohma design tokens as Tailwind theme values. `inline` makes utilities resolve
