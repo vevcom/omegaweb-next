@@ -73,7 +73,7 @@ function DetailedTable({
                                             { params: { registrationId: row.id, registeredById: attendanceTakerId } }
                                         )}
                                         submitText={row.attendedAt ? 'Fjern møtt' : 'Møtt'}
-                                        submitColor={row.attendedAt ? 'green' : 'secondary'}
+                                        submitColor={row.attendedAt ? 'red' : 'green'}
                                         refreshOnSuccess
                                     >
                                         <input
