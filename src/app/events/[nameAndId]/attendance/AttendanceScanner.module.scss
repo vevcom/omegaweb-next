@@ -1,0 +1,14 @@
+@use '@/styles/ohma';
+
+.AttendanceScanner {
+    display: flex;
+    flex-direction: column;
+    gap: ohma.$gap;
+
+    > .lead {
+        margin: auto;
+        max-width: 460px;
+        text-align: center;
+        color: ohma.$colors-text-muted;
+    }
+}

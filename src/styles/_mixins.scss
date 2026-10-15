@@ -172,6 +172,47 @@
     }
 }
 
+@mixin headerPill {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: calc(1.5 * #{variables.$gap});
+    height: 40px;
+    border-radius: calc(#{variables.$rounding} - #{variables.$gap});
+    background-color: colors.$surface-hover;
+    color: colors.$ink-strong;
+}
+
+@mixin headerPillLink {
+    @include headerPill;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color variables.$transitionTime, color variables.$transitionTime, box-shadow 0.3s;
+
+    &:hover {
+        background-color: colors.$surface-subtle;
+        color: colors.$ink-strong;
+        text-decoration: none;
+    }
+
+    span {
+        font-size: fonts.$m;
+        font-weight: fonts.$weight-m;
+        white-space: nowrap;
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+        color: colors.$text;
+        transition: color variables.$transitionTime;
+    }
+
+    &:hover svg {
+        color: colors.$accent-blue;
+    }
+}
+
 @mixin primaryIconLink {
     color: colors.$accent-blue;
     padding: variables.$gap;

@@ -24,7 +24,7 @@ import { eventRegistrationOperations } from '@/services/events/registration/oper
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { configureAction } from '@/services/configureAction'
-import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
+import { decodeVevenUriHandleError, formatVevenUri } from '@/lib/urlEncoding'
 import { eventAuth } from '@/services/events/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
@@ -126,6 +126,10 @@ const { page, generateMetadata } = serverPage({
         canRegisterGuest: eventRegistrationAuth.createGuest.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
+        canTakeAttendance: session.user ? eventRegistrationAuth.registerAttendance.data({
+            userId: session.user.id,
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        }) : Require.user(),
         // Registering takes the regular level of the event (its admin level while it is a draft),
         // for the session's own user.
         canRegister: session.user ? eventRegistrationAuth.create.data({
@@ -135,8 +139,9 @@ const { page, generateMetadata } = serverPage({
         }) : Require.user(),
     }),
     metadata: (data) => ({ title: data.event.name }),
-    render: ({ data, capabilities }) => {
+    render: ({ data, capabilities, session }) => {
         const { event, tags, doubleLevelVisibility, dotPunishment, ownRegistration } = data
+        const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
 
         return (
             <div className={styles.wrapper}>
@@ -182,6 +187,14 @@ const { page, generateMetadata } = serverPage({
                                 <CreateOrUpdateEventForm event={event} eventTags={tags} />
                             }
                             <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
+                            {event.takesRegistration && capabilities.canTakeAttendance.authorized &&
+                                <Link
+                                    className={styles.attendanceLink}
+                                    href={`/events/${formatVevenUri(event.name, event.id)}/attendance`}
+                                >
+                                    Registrer oppmøte
+                                </Link>
+                            }
                             { capabilities.canDestroy.authorized &&
                                 <Form
                                     action={configureAction(destroyEventAction, { params: { id: event.id } })}
@@ -261,6 +274,7 @@ const { page, generateMetadata } = serverPage({
                         <RegistrationsList
                             event={event}
                             canReadDetailed={capabilities.canReadRegistrationsDetailed.authorized}
+                            attendanceTakerId={attendanceTakerId}
                         />
                     </div>
                 )}

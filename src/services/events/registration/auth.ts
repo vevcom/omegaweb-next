@@ -12,6 +12,8 @@ const registerLevel = regularLevelUnlessDraft
 // Exported for the operations to tell whether the session administrates an event, which lets it
 // unregister anyone after the registration period.
 export const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
+
+const eventAdminAsUser = Require.allOf(eventAdminLevel, Require.userId())
 const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
 
 /**
@@ -42,6 +44,11 @@ export const eventRegistrationAuth = {
 
     updateNotes: registrationOfUser,
     destroy: registrationOfUser,
+
+    // Never the registrant's own: marking yourself as shown up would dodge the dots for not showing up.
+    registerAttendance: eventAdminAsUser,
+    setAttendance: eventAdminAsUser,
+    readAttendanceCounts: eventAdminLevel,
 
     // Domain access only: may this session pay for *this* registration - the registrant
     // themselves, or a genuine event admin. Deliberately not eventRegistrationAuth.create

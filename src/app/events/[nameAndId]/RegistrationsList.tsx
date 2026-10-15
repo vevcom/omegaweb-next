@@ -11,9 +11,10 @@ import UserDisplayName from '@/components/User/UserDisplayName'
 import Slider from '@/components/UI/Slider'
 import Form from '@/components/Form/Form'
 import ContactCard from '@/components/User/ContactCard'
-import { destroyEventRegistrationAction } from '@/services/events/registration/actions'
+import { destroyEventRegistrationAction, setEventAttendanceAction } from '@/services/events/registration/actions'
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
 import { configureAction } from '@/services/configureAction'
+import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { EventFiltered } from '@/services/events/types'
@@ -21,9 +22,11 @@ import type { EventFiltered } from '@/services/events/types'
 function DetailedTable({
     event,
     type,
+    attendanceTakerId,
 }: {
     event: EventFiltered,
     type: REGISTRATION_READER_TYPE,
+    attendanceTakerId: number | null,
 }) {
     return <EventRegistrationDetailedPagingProvider
         serverRenderedData={[]}
@@ -45,6 +48,7 @@ function DetailedTable({
                         <th>Mobil</th>
                         <th>Allergier</th>
                         <th>Notat</th>
+                        {attendanceTakerId !== null && <th>Møtt</th>}
                         <th>Slett</th>
                     </tr>
                 </thead>
@@ -62,6 +66,23 @@ function DetailedTable({
                                 <td>{row.user ? row.user.mobile : row.contact?.mobile}</td>
                                 <td>{row.user ? row.user.allergies : 'Ukjent'}</td>
                                 <td>{row.note}</td>
+                                {attendanceTakerId !== null && <td>
+                                    <Form
+                                        action={configureAction(
+                                            setEventAttendanceAction,
+                                            { params: { registrationId: row.id, registeredById: attendanceTakerId } }
+                                        )}
+                                        submitText={row.attendedAt ? 'Fjern møtt' : 'Møtt'}
+                                        submitColor={row.attendedAt ? 'red' : 'green'}
+                                        refreshOnSuccess
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="attended"
+                                            value={row.attendedAt ? FIELD_IS_PRESENT_VALUE : 'on'}
+                                        />
+                                    </Form>
+                                </td>}
                                 <td>
                                     <Form
                                         action={configureAction(
@@ -123,9 +144,11 @@ function DefaultList({
 export default function RegistrationsList({
     event,
     canReadDetailed,
+    attendanceTakerId,
 }: {
     event: EventFiltered,
     canReadDetailed: boolean,
+    attendanceTakerId: number | null,
 }) {
     const [detailedView, setDetailedView] = useState(false)
 
@@ -140,6 +163,7 @@ export default function RegistrationsList({
         {detailedView ? <DetailedTable
             event={event}
             type={REGISTRATION_READER_TYPE.REGISTRATIONS}
+            attendanceTakerId={attendanceTakerId}
         /> : <DefaultList
             event={event}
             type={REGISTRATION_READER_TYPE.REGISTRATIONS}
@@ -150,6 +174,7 @@ export default function RegistrationsList({
             {detailedView ? <DetailedTable
                 event={event}
                 type={REGISTRATION_READER_TYPE.WAITING_LIST}
+                attendanceTakerId={attendanceTakerId}
             /> : <DefaultList
                 event={event}
                 type={REGISTRATION_READER_TYPE.WAITING_LIST}

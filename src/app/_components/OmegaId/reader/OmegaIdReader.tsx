@@ -16,6 +16,7 @@ import { useEffect, useId, useState } from 'react'
  * @param expiryOffset - An optional offset (in seconds) to adjust the expiry time of the QR code token.
  * @param debounceThreshold - An optional threshold (in milliseconds) to prevent duplicate reads.
  * @param singleRead - An optional flag indicating whether only a single QR code should be read.
+ * @param qrboxSize - An optional size (in pixels) of the square the QR code is scanned within.
  * @returns The rendered component for reading OmegaId QR codes.
  */
 export default function OmegaIdReader({
@@ -24,6 +25,7 @@ export default function OmegaIdReader({
     expiryOffset,
     debounceThreshold,
     singleRead,
+    qrboxSize,
 }: {
     successCallback: (user: number, token: string) => Promise<{
         success: boolean,
@@ -33,6 +35,7 @@ export default function OmegaIdReader({
     expiryOffset?: number,
     debounceThreshold?: number,
     singleRead?: boolean,
+    qrboxSize?: number,
 }) {
     const [feedback, setFeedBack] = useState<{
         status: 'EMPTY' | 'ERROR' | 'SUCCESS' | 'WAITING',
@@ -45,7 +48,16 @@ export default function OmegaIdReader({
     const qrcodeRegionId = useId()
 
     useEffect(() => {
-        const html5QrcodeScanner = new Html5QrcodeScanner(qrcodeRegionId, qrCodeReaderConfig, false)
+        const html5QrcodeScanner = new Html5QrcodeScanner(qrcodeRegionId, {
+            ...qrCodeReaderConfig,
+            // html5-qrcode rejects a box wider than the video, which a narrow phone would hit.
+            ...(qrboxSize ? {
+                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+                    const size = Math.min(qrboxSize, viewfinderWidth, viewfinderHeight)
+                    return { width: size, height: size }
+                },
+            } : {}),
+        }, false)
 
         let lastReadTime = 0
         let lastReadUserId = -1

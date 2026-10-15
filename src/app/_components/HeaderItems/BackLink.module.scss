@@ -1,0 +1,12 @@
+@use '@/styles/ohma';
+
+.BackLink {
+    @include ohma.headerPillLink;
+
+    padding: 0 calc(2.5 * #{ohma.$gap}) 0 calc(1.75 * #{ohma.$gap});
+
+    span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}

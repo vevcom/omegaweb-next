@@ -1,5 +1,6 @@
 import '@pn-server-only'
 import {
+    eventRegistrationAttendanceSelection,
     eventRegistrationSelectionDetailed,
     eventRegistrationQueueOrder,
     eventRegistrationSelection,
@@ -7,7 +8,7 @@ import {
 import { eventAdminLevel, eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
 import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'
-import { lockEvent, queuePosition, queueSegmentFilter } from './queue'
+import { firstOnWaitingList, lockEvent, queuePosition, queueSegmentFilter } from './queue'
 import { dotOperations } from '@/services/dots/operations'
 import { displayDate } from '@/lib/dates/displayDate'
 import { Smorekopp } from '@/services/error'
@@ -25,6 +26,9 @@ import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type {
     DotPunishment,
+    EventAttendanceCounts,
+    EventAttendanceRegistration,
+    EventAttendanceScan,
     EventRegistrationExpanded,
     EventRegistrationWithWaitingList,
 } from './types'
@@ -321,6 +325,71 @@ export const eventRegistrationOperations = {
     }),
 
     /**
+     * Someone not registered is turned away rather than registered on the spot. A second scan leaves
+     * the first one standing, and says so in `alreadyAttended`.
+     */
+    registerAttendance: defineOperation({
+        paramsSchema: eventRegistrationSchemas.params.registerAttendance,
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.registerAttendance.data({
+            visibility: await eventVisibility(prisma, params.eventId),
+            userId: params.registeredById,
+        }),
+        operation: async ({ prisma, params }): Promise<EventAttendanceScan> => {
+            const existing = await prisma.eventRegistration.findUnique({
+                where: {
+                    eventId_userId: {
+                        eventId: params.eventId,
+                        userId: params.userId,
+                    },
+                },
+                select: {
+                    id: true,
+                },
+            })
+
+            if (!existing) {
+                throw new Smorekopp('NOT FOUND', 'Denne brukeren er ikke påmeldt arrangementet.')
+            }
+
+            // Only written while attendance is not taken, so of two scans at once the first one stands.
+            const { count } = await prisma.eventRegistration.updateMany({
+                where: { id: existing.id, attendedAt: null },
+                data: { attendedAt: new Date(), attendanceRegisteredById: params.registeredById },
+            })
+
+            return {
+                registration: await prisma.eventRegistration.findUniqueOrThrow({
+                    where: { id: existing.id },
+                    select: eventRegistrationAttendanceSelection,
+                }),
+                counts: await countAttendance(prisma, params.eventId),
+                alreadyAttended: count === 0,
+            }
+        },
+    }),
+
+    /** For guests, who have no Omega-ID to scan, and for taking back a wrong scan. */
+    setAttendance: defineOperation({
+        paramsSchema: eventRegistrationSchemas.params.setAttendance,
+        dataSchema: eventRegistrationSchemas.data.setAttendance,
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.setAttendance.data({
+            visibility: (await registrationOwnerAndEventVisibility(prisma, params.registrationId)).doubleLevelMatrix,
+            userId: params.registeredById,
+        }),
+        operation: async ({ prisma, params, data }): Promise<EventAttendanceRegistration> =>
+            await writeAttendance(prisma, params.registrationId, data.attended, params.registeredById),
+    }),
+
+    readAttendanceCounts: defineOperation({
+        paramsSchema: eventRegistrationSchemas.params.readAttendanceCounts,
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readAttendanceCounts.data({
+            visibility: await eventVisibility(prisma, params.eventId),
+        }),
+        operation: async ({ prisma, params }): Promise<EventAttendanceCounts> =>
+            await countAttendance(prisma, params.eventId),
+    }),
+
+    /**
      * Pays for a registration created separately via `create`/`createGuest`. Never creates a
      * registration itself. Supports paying part of the price from the payer's own ledger
      * balance (`amountFromBalance`) and the rest (`shortfall`) via `provider`; `provider` is
@@ -610,4 +679,44 @@ async function lockEventOpenForRegistration(
     }
 
     return event
+}
+
+async function countAttendance(
+    prisma: PrismaPossibleTransaction<false>,
+    eventId: number
+): Promise<EventAttendanceCounts> {
+    const boundary = await firstOnWaitingList(prisma, eventId)
+    const onThePlaces = boundary ? { eventId, id: { lt: boundary } } : { eventId }
+
+    const [attended, total, attendedFromWaitingList] = await Promise.all([
+        prisma.eventRegistration.count({ where: { ...onThePlaces, attendedAt: { not: null } } }),
+        prisma.eventRegistration.count({ where: onThePlaces }),
+        boundary
+            ? prisma.eventRegistration.count({
+                where: { eventId, id: { gte: boundary }, attendedAt: { not: null } },
+            })
+            : 0,
+    ])
+
+    return { attended, total, attendedFromWaitingList }
+}
+
+async function writeAttendance(
+    prisma: PrismaPossibleTransaction<false>,
+    registrationId: number,
+    attended: boolean,
+    registeredById: number
+) {
+    // Saving a box that was already ticked keeps when they showed up and who let them in.
+    await prisma.eventRegistration.updateMany({
+        where: attended ? { id: registrationId, attendedAt: null } : { id: registrationId },
+        data: attended
+            ? { attendedAt: new Date(), attendanceRegisteredById: registeredById }
+            : { attendedAt: null, attendanceRegisteredById: null },
+    })
+
+    return await prisma.eventRegistration.findUniqueOrThrow({
+        where: { id: registrationId },
+        select: eventRegistrationAttendanceSelection,
+    })
 }

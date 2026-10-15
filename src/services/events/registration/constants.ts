@@ -29,6 +29,7 @@ export const eventRegistrationQueueOrder = {
 export const eventRegistrationSelectionDetailed = {
     id: true,
     note: true,
+    attendedAt: true,
     user: {
         select: {
             ...userCardSelection,
@@ -44,3 +45,18 @@ export enum REGISTRATION_READER_TYPE {
     REGISTRATIONS = 'REGISTRATIONS',
     WAITING_LIST = 'WAITING_LIST',
 }
+
+export const eventRegistrationAttendanceSelection = {
+    id: true,
+    eventId: true,
+    attendedAt: true,
+    note: true,
+    user: {
+        select: userCardSelection,
+    },
+    contact: {
+        select: {
+            name: true,
+        },
+    },
+} satisfies Prisma.EventRegistrationSelect

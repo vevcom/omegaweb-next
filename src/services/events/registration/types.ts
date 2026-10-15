@@ -1,4 +1,8 @@
-import type { eventRegistrationSelectionDetailed, eventRegistrationSelection } from './constants'
+import type {
+    eventRegistrationAttendanceSelection,
+    eventRegistrationSelectionDetailed,
+    eventRegistrationSelection,
+} from './constants'
 import type { eventRegistrationSchemas } from './schemas'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
@@ -39,3 +43,23 @@ export type DotPunishment = {
 export type EventRegistrationCursor = InferPagingCursor<typeof eventRegistrationSchemas.params.readPage>
 
 export type EventRegistrationPageDetails = InferPagingDetails<typeof eventRegistrationSchemas.params.readPage>
+
+/**
+ * `attended` and `total` only count those who got a place, so the tally reads against the size of
+ * the event. Those let in from the waiting list are counted apart, in `attendedFromWaitingList`.
+ */
+export type EventAttendanceCounts = {
+    attended: number,
+    total: number,
+    attendedFromWaitingList: number,
+}
+
+export type EventAttendanceRegistration = Prisma.EventRegistrationGetPayload<{
+    select: typeof eventRegistrationAttendanceSelection
+}>
+
+export type EventAttendanceScan = {
+    registration: EventAttendanceRegistration,
+    counts: EventAttendanceCounts,
+    alreadyAttended: boolean,
+}
