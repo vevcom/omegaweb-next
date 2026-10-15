@@ -1,5 +1,4 @@
 'use client'
-import styles from './VisibilityAdmin.module.scss'
 import Form from '@/components/Form/Form'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { configureAction } from '@/services/configureAction'
@@ -26,7 +25,7 @@ export default function VisibilityAdmin({ visibility, visibilityId, updateVisibi
     }
 
     return (
-        <div className={styles.VisibilityAdmin}>
+        <div className="flex flex-col gap-[0.5em] min-w-[350px]">
             <VisibilityMatrixEditor requirements={requirements} onChange={setRequirements} />
             <Form submitText="Lagre" submitColor="green" refreshOnSuccess action={handleSave} />
         </div>

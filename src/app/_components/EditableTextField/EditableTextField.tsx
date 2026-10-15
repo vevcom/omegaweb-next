@@ -1,5 +1,4 @@
 'use client'
-import styles from './EditableTextField.module.scss'
 import Form from '@/components/Form/Form'
 import useKeyPress from '@/hooks/useKeyPress'
 import React, { useEffect, useState, useRef, useEffectEvent } from 'react'
@@ -65,9 +64,12 @@ export default function EditableTextField<ReturnType>({
         )
     }
     return (
-        <div className={styles.EditableTextField}>
+        <div className="relative">
             <div
-                className={styles.text}
+                className={[
+                    'relative p-[0.8rem] border border-solid border-accent-blue rounded-round focus:outline-2',
+                    'focus:outline-accent-blue',
+                ].join(' ')}
                 contentEditable={true}
                 onInput={handleInput}
                 {...props}
@@ -75,14 +77,14 @@ export default function EditableTextField<ReturnType>({
             >
                 {children}
             </div>
-            <FontAwesomeIcon className={styles.icon} icon={faPencil} />
+            <FontAwesomeIcon className="absolute right-[0.4rem] top-[0.4rem] text-accent-blue" icon={faPencil} />
             <Form
                 {...formProps}
                 className={
                     noChange ? (
-                        `${styles.hiddenInput} ${submitButton.className}`
+                        `hidden ${submitButton.className}`
                     ) : (
-                        `${styles.input} ${submitButton.className}`
+                        `${submitButton.className}`
                     )}
                 submitText={submitButton.text}
                 successCallback={(data: ReturnType | undefined) => {
@@ -90,8 +92,8 @@ export default function EditableTextField<ReturnType>({
                     formProps.successCallback?.(data)
                 }}
             >
-                <input className={styles.hiddenInput} ref={ref} name={inputName} />
-                <button className={styles.hiddenInput} ref={submitRef} type="submit"></button>
+                <input className="hidden" ref={ref} name={inputName} />
+                <button className="hidden" ref={submitRef} type="submit"></button>
             </Form>
         </div>
     )

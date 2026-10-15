@@ -1,4 +1,3 @@
-import styles from './HeaderItemLink.module.scss'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
@@ -15,7 +14,7 @@ type PropTypes = {
  */
 export default function HeaderItemLink({ href, label, icon }: PropTypes) {
     return (
-        <Link href={href} className={styles.HeaderItemLink}>
+        <Link href={href} className="header-pill-link pr-3.5 pl-5">
             <span>{label}</span>
             <FontAwesomeIcon icon={icon} />
         </Link>

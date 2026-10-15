@@ -1,6 +1,6 @@
 'use client'
 
-import styles from './PopUp.module.scss'
+import { popUpClassNames } from './popUpClassNames'
 import useKeyPress from '@/hooks/useKeyPress'
 import { PopUpContext } from '@/contexts/PopUp'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
@@ -35,13 +35,13 @@ function PopUpDialog({ children, mainRef, triggerRef, close }: DialogPropTypes) 
     }, [triggerRef])
 
     return (
-        <div className={styles.PopUp}>
-            <div className={styles.main} ref={mainRef} role="dialog" aria-modal="true">
-                <div className={styles.overflow}>
-                    <button ref={closeButtonRef} className={styles.closeBtn} onClick={close} aria-label="Lukk">
+        <div className={popUpClassNames.popUp}>
+            <div className={popUpClassNames.main} ref={mainRef} role="dialog" aria-modal="true">
+                <div className={popUpClassNames.overflow}>
+                    <button ref={closeButtonRef} className={popUpClassNames.closeBtn} onClick={close} aria-label="Lukk">
                         <FontAwesomeIcon icon={faXmark} />
                     </button>
-                    <div className={styles.content}>
+                    <div>
                         { children }
                     </div>
                 </div>
@@ -169,7 +169,7 @@ export default function PopUp({
         ) : (
             <button
                 ref={triggerRef}
-                className={`${styles.openBtn} ${showButtonClass}`}
+                className={`hover:cursor-pointer [&>svg]:size-full ${showButtonClass}`}
                 style={showButtonStyle}
                 onClick={handleOpening}
             >

@@ -1,5 +1,4 @@
 'use client'
-import styles from './MigrateGroup.module.scss'
 import Form from '@/components/Form/Form'
 import Checkbox from '@/components/UI/Checkbox'
 import { configureAction } from '@/services/configureAction'
@@ -56,8 +55,8 @@ export default function MigrateGroup({
 
     if (groupOrder >= currentOmegaOrder) {
         return (
-            <div className={styles.MigrateGroup}>
-                <p className={styles.migrated}>Gruppen er i orden {groupOrder} og trenger ingen migrering.</p>
+            <div className="flex flex-col gap-2">
+                <p className="text-accent-green">Gruppen er i orden {groupOrder} og trenger ingen migrering.</p>
             </div>
         )
     }
@@ -86,8 +85,8 @@ export default function MigrateGroup({
     const missingAdmin = candidates.length > 0 && admins.length === 0
 
     return (
-        <div className={styles.MigrateGroup}>
-            <p className={styles.explanation}>
+        <div className="flex flex-col gap-2">
+            <p className="text-text-muted max-w-[70ch]">
                 Gruppen står i orden {groupOrder}, mens Omega er i orden {currentOmegaOrder}. Velg
                 hvem som skal være med videre, og hvem av dem som skal være admin i den nye ordenen.
                 De som ikke velges beholder medlemskapet sitt i orden {groupOrder}, men det blir satt
@@ -95,11 +94,11 @@ export default function MigrateGroup({
             </p>
 
             {candidates.length === 0 ? (
-                <p className={styles.empty}>Gruppen har ingen aktive medlemmer i orden {groupOrder}.</p>
+                <p className="text-text-muted italic">Gruppen har ingen aktive medlemmer i orden {groupOrder}.</p>
             ) : (
-                <div className={styles.candidates}>
+                <div className="flex flex-col gap-1 max-h-[24em] overflow-y-auto p-2 rounded-round layer">
                     {candidates.map(candidate => (
-                        <div className={styles.candidate} key={candidate.userId}>
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4" key={candidate.userId}>
                             <Checkbox
                                 name={`keep-${candidate.userId}`}
                                 label={`${candidate.name} — ${candidate.title}`}
@@ -108,7 +107,7 @@ export default function MigrateGroup({
                             />
                             {/* Checkbox spreads className onto the input, so the column it sits in
                                 is what gets positioned. */}
-                            <span className={styles.adminTick}>
+                            <span>
                                 <Checkbox
                                     name={`admin-${candidate.userId}`}
                                     label="Admin"
@@ -122,13 +121,13 @@ export default function MigrateGroup({
                 </div>
             )}
 
-            <span className={styles.count}>
+            <span className="text-text-muted text-s">
                 {kept.length} av {candidates.length} blir med videre til orden {currentOmegaOrder}
                 {kept.length > 0 && `, ${admins.length} som admin`}
             </span>
 
             {missingAdmin && (
-                <p className={styles.missingAdmin}>
+                <p className="text-accent-red text-s">
                     Minst ett medlem må være admin i orden {currentOmegaOrder}.
                 </p>
             )}

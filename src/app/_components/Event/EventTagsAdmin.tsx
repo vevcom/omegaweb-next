@@ -1,5 +1,4 @@
 import EventTag from './EventTag'
-import styles from './EventTagsAdmin.module.scss'
 import Form from '@/components/Form/Form'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import TextInput from '@/UI/TextInput'
@@ -25,6 +24,12 @@ type PropTypes = {
  * @param capabilities - which of creating, updating and destroying tags to offer
  * @returns
  */
+// Hovering a selected tag shows a cross over it, since clicking it deselects.
+const selectedClassName = [
+    "relative hover:after:content-['✖'] hover:after:text-[length:4em] hover:after:text-text hover:after:absolute",
+    'hover:after:left-1/2 hover:after:top-1/2 hover:after:-translate-x-1/2 hover:after:-translate-y-1/2',
+].join(' ')
+
 export default function EventTagsAdmin({
     eventTags,
     selectedTags,
@@ -42,11 +47,14 @@ export default function EventTagsAdmin({
         [...selectedTags.map(tagItem => tagItem.name), tag]
     )}`
     return (
-        <div className={styles.EventTagsAdmin}>
+        <div className="max-h-[80svh]">
             <h1>Tagger</h1>
             {
                 capabilities.canCreateTags.authorized && (
-                    <span className={styles.create}>
+                    <span className={[
+                        'flex items-center [&_form]:flex max-mobile:[&_form]:flex-col',
+                        'mobile:[&_form]:items-center mobile:[&_form]:justify-center mobile:[&_form]:gap-[1em]',
+                    ].join(' ')}>
                         <Form refreshOnSuccess action={createEventTagAction} submitText="Lag">
                             <TextInput name="name" label="Navn" />
                             <Textarea name="description" label="Beskrivelse" />
@@ -55,13 +63,16 @@ export default function EventTagsAdmin({
                     </span>
                 )
             }
-            <ul>
+            <ul className={[
+                'mt-[1em] flex flex-row flex-wrap gap-[2em] overflow-y-auto overflow-x-visible list-none isolate pb-[5em]',
+                '[&_a]:no-underline [&_li]:flex [&_li]:items-center [&_li]:z-1 [&_li:hover]:z-2',
+            ].join(' ')}>
                 {
                     eventTags.map((tag, index) => (
                         <li key={index} >
                             <Link
                                 className={
-                                    selectedTags.map(tagItem => tagItem.name).includes(tag.name) ? styles.selected : ''
+                                    selectedTags.map(tagItem => tagItem.name).includes(tag.name) ? selectedClassName : ''
                                 }
                                 href={
                                     selectedTags.map(tagItem => tagItem.name).includes(tag.name) ?
@@ -73,7 +84,9 @@ export default function EventTagsAdmin({
                             {
                                 capabilities.canUpdateTags.authorized || capabilities.canDestroyTags.authorized ? (
                                     <SettingsHeaderItemPopUp scale={25} popUpKey={`EventTagPopUp${tag.id}`}>
-                                        {capabilities.canUpdateTags.authorized && <span className={styles.update}>
+                                        {capabilities.canUpdateTags.authorized && <span
+                                            className="border-b-3 border-surface-subtle"
+                                        >
                                             <Form
                                                 refreshOnSuccess
                                                 action={configureAction(updateEventTagAction, { params: { id: tag.id } })}
@@ -101,7 +114,7 @@ export default function EventTagsAdmin({
                                             </Form>
                                         </span>
                                         }
-                                        {capabilities.canDestroyTags.authorized && <span className={styles.destroy}>
+                                        {capabilities.canDestroyTags.authorized && <span>
                                             <Form
                                                 closePopUpOnSuccess={`EventTagPopUp${tag.id}`}
                                                 refreshOnSuccess

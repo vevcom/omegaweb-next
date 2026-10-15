@@ -1,5 +1,4 @@
 'use client'
-import styles from './EndlessScroll.module.scss'
 import Button from '@/components/UI/Button'
 import React, {
     useContext,
@@ -82,7 +81,10 @@ export default function EndlessScroll<Data, Cursor, const PageSize extends numbe
     }, [state])
 
     const loadingInfo = (
-        <span ref={ref} className={`${styles.loadingControl} ${loadingInfoClassName ?? ''}`}>
+        <span ref={ref} className={[
+            'w-full py-2 relative block h-[40px] mt-[1em] [&_button]:w-auto [&_button]:m-0',
+            `[&>*]:h-[40px] [&>*]:absolute [&>*]:top-0 [&>*]:left-0 ${loadingInfoClassName ?? ''}`,
+        ].join(' ')}>
             {
                 loading ? (
                     <i>Laster inn flere...</i>

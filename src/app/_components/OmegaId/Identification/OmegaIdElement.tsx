@@ -1,5 +1,4 @@
 'use client'
-import styles from './OmegaIdElement.module.scss'
 import { generateOmegaIdAction } from '@/services/omegaid/actions'
 import { readJWTPayload } from '@/jwt/jwtReadUnsecure'
 import { compressOmegaId } from '@/services/omegaid/compress'
@@ -48,7 +47,7 @@ export default function OmegaIdElement({ token }: {
     if (!session.session.user) return <p>Could not load Omega-ID, since the user is not loggedin.</p>
     const user = session.session.user
 
-    return <div className={styles.OmegaIdElement}>
+    return <div className="max-w-[400px] [&>h2]:text-center [&>h2]:font-bold [&_h4]:text-center">
         <h2>Omega-ID</h2>
         <SVG
             text={compressOmegaId(tokenState)}

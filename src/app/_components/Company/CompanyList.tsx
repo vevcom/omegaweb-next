@@ -1,6 +1,5 @@
 'use client'
 import { companyListRenderer } from './CompanyListRenderer'
-import styles from './CompanyList.module.scss'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import type { ReactNode } from 'react'
@@ -12,11 +11,14 @@ type PropTypes = {
 
 export default function CompanyList({ serverRenderedData, disableEditing }: PropTypes) {
     return (
-        <div className={styles.CompanyList}>
+        <div className={[
+            'mt-6 grid grid-cols-[repeat(auto-fill,minmax(var(--company-card-min,200px),1fr))]',
+            'items-stretch gap-6 w-full',
+        ].join(' ')}>
             {serverRenderedData}
             <EndlessScroll
                 pagingContext={CompanyPagingContext}
-                loadingInfoClassName={styles.loadingControl}
+                loadingInfoClassName="col-span-full"
                 renderer={companyListRenderer({ disableEditing })}
             />
         </div>

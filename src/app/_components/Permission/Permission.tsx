@@ -1,4 +1,3 @@
-import styles from './Permission.module.scss'
 import { permissionConfig } from '@/services/permissions/constants'
 import type { ReactNode } from 'react'
 import type { Permission as PermissionT } from '@/prisma-generated-pn-types'
@@ -21,13 +20,13 @@ export default function Permission({ permission, children, displayCategory = tru
     const permissionInfo = permissionConfig[permission]
 
     return (
-        <div className={`${styles.Permission} ${className}`}>
+        <div className={`bg-surface-raised flex round items-center gap-[1em] ${className}`}>
             {children}
-            <div className={styles.content}>
-                <div className={styles.name}>
+            <div className="flex flex-col min-w-0">
+                <div className="flex flex-wrap items-center gap-[.4em] [&>h3]:text-l [&>i]:text-s [&>i]:wrap-anywhere">
                     <h3>{permissionInfo.name}</h3> <i>({permission})</i>
                 </div>
-                <div className={styles.info}>
+                <div className="flex items-center gap-[.3em]">
                     <p>{permissionInfo.description}</p>
                     {displayCategory ? <><p> - </p><i>{permissionInfo.category}</i></> : <></>}
                 </div>

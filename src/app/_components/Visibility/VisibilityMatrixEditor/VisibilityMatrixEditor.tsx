@@ -1,5 +1,4 @@
 'use client'
-import styles from './VisibilityMatrixEditor.module.scss'
 import Button from '@/components/UI/Button'
 import { SelectNumber, SelectString } from '@/components/UI/Select'
 import { useGroups } from '@/contexts/ClientData'
@@ -92,17 +91,20 @@ export default function VisibilityMatrixEditor({ requirements, onChange }: PropT
     const groupOptions = (groups ?? []).map(group => ({ value: group.id, label: group.name, key: group.id.toString() }))
 
     return (
-        <div className={styles.VisibilityMatrixEditor}>
-            <p className={styles.summary}>{describeMatrix({ requirements }, groups)}</p>
+        <div className="flex flex-col gap-[0.5em]">
+            <p className="italic">{describeMatrix({ requirements }, groups)}</p>
             {
                 groups === null ? (
                     <p>Laster grupper...</p>
                 ) : (
-                    <div className={styles.editor}>
+                    <div className="flex flex-col gap-[0.75em]">
                         {
                             requirements.map((requirement, requirementIndex) => (
-                                <div className={styles.requirement} key={requirementIndex}>
-                                    <div className={styles.requirementHeader}>
+                                <div className={[
+                                    'flex flex-col gap-[0.5em]',
+                                    'p-[0.5em] border border-current',
+                                ].join(' ')} key={requirementIndex}>
+                                    <div className="flex justify-between items-center">
                                         <span>Krav {requirementIndex + 1} (ett av følgende):</span>
                                         <button type="button" onClick={() => removeRequirement(requirementIndex)}>
                                             <FontAwesomeIcon icon={faTrash} />
@@ -110,7 +112,7 @@ export default function VisibilityMatrixEditor({ requirements, onChange }: PropT
                                     </div>
                                     {
                                         requirement.conditions.map((condition, conditionIndex) => (
-                                            <div className={styles.condition} key={conditionIndex}>
+                                            <div className="flex gap-[0.5em] items-end" key={conditionIndex}>
                                                 <SelectNumber
                                                     name={`req-${requirementIndex}-cond-${conditionIndex}-group`}
                                                     label="Gruppe"

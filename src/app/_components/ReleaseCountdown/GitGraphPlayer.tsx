@@ -1,5 +1,4 @@
 'use client'
-import styles from './GitGraphPlayer.module.scss'
 import { RELEASE_COUNTDOWN_GIT_GRAPH_URL } from '@/services/releaseCountdown/constants'
 import { useEffect, useRef, useState } from 'react'
 import type { GitGraph } from '@/services/releaseCountdown/gitGraph/types'
@@ -482,11 +481,21 @@ export default function GitGraphPlayer({ rushStartsAt, rushDuration }: PropTypes
         }
     }, [graph, rushStartsAt, rushDuration])
 
+    // Covers the screen behind the countdown, tilted back and fading into the distance at the top.
     return (
-        <div className={styles.GitGraphPlayer}>
-            <canvas ref={canvasRef} className={styles.canvas} aria-hidden />
+        <div className={[
+            'absolute inset-0 overflow-hidden perspective-[1000px] perspective-origin-[50%_30%]',
+            '[mask-image:linear-gradient(to_bottom,rgb(0_0_0/25%)_0%,black_40%)]',
+        ].join(' ')}>
+            <canvas ref={canvasRef} className={[
+                'absolute bottom-0 left-[-30%] block w-[160%]',
+                'h-[200%] [transform:rotateX(32deg)] origin-[50%_100%]',
+            ].join(' ')} aria-hidden />
             {graph && (
-                <a className={styles.repository} href={graph.repository} target="_blank" rel="noreferrer">
+                <a className={[
+                    'absolute right-2 bottom-2',
+                    'text-s text-[#808080]',
+                ].join(' ')} href={graph.repository} target="_blank" rel="noreferrer">
                     vevcom/project-next · {graph.commits.length} commits
                 </a>
             )}

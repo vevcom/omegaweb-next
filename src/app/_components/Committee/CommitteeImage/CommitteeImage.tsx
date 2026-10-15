@@ -1,4 +1,3 @@
-import styles from './CommitteeImage.module.scss'
 import CommitteeLogo from '@/components/Committee/CommitteeLogo/CommitteeLogo'
 import CmsImage from '@/cms/CmsImage/CmsImage'
 import { configureAction } from '@/services/configureAction'
@@ -25,27 +24,44 @@ export default function CommitteeImage({
     grayScale = false
 }: PropTypes) {
     return (
-        <div className={styles.CommitteeImage}>
-            <div className={styles.logoIsland}>
+        <div className={[
+            'flex items-stretch gap-2 w-full mb-2',
+            'max-mobile:relative max-mobile:h-[180px] max-mobile:bg-surface-base max-mobile:rounded-round',
+            'max-mobile:overflow-hidden',
+        ].join(' ')}>
+            <div className={[
+                'shrink-0 flex items-center justify-center bg-surface-base rounded-round p-4',
+                'max-mobile:relative max-mobile:z-1 max-mobile:m-auto max-mobile:bg-surface-base/70 max-mobile:p-2',
+                'max-mobile:pointer-events-none max-mobile:[&>*]:w-[120px]!',
+            ].join(' ')}>
                 <CommitteeLogo
-                    className={grayScale ? styles.gray : ''}
+                    className={grayScale ? 'grayscale brightness-50 contrast-150' : ''}
                     logoImage={logoImage}
                     width={200}
                 />
             </div>
-            <div className={styles.coverIsland}>
+            <div className={[
+                'relative flex-1 min-w-0 h-80 bg-surface-base rounded-round overflow-hidden',
+                'max-mobile:absolute max-mobile:inset-0 max-mobile:h-auto max-mobile:rounded-none',
+            ].join(' ')}>
                 <CmsImage
                     capabilities={{ canEdit: capabilities.canEditCoverImage }}
                     updateCmsImageAction={configureAction(
                         updateCommitteeArticleCoverImageAction,
                         { implementationParams: { shortName } }
                     )}
-                    className={styles.committeeImage}
+                    className={[
+                        // CmsImage's and Image's wrappers size to their content, not the island, so every layer is
+                        // pinned to the island's bounds for object-fit: cover to actually cover.
+                        'absolute! inset-0 w-full! h-full! [&>*]:absolute [&>*]:inset-0 [&>*]:w-full! [&>*]:h-full!',
+                        '[&>*_div]:w-full! [&>*_div]:h-full!',
+                        '[&>*_img]:w-full! [&>*_img]:h-full! [&>*_img]:object-cover [&>*_img]:object-center',
+                    ].join(' ')}
                     cmsImage={coverImage}
                     width={600}
                 />
             </div>
-            <div className={styles.content}>
+            <div className="relative">
                 {children}
             </div>
         </div>

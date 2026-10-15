@@ -2,6 +2,8 @@
 /* Layered so Tailwind size/colour classes on icons beat its .svg-inline--fa defaults. */
 @import "@fortawesome/fontawesome-svg-core/styles.css" layer(base);
 
+@custom-variant tone-light (html[data-tone="light"] &);
+
 /*
  * ohma design tokens as Tailwind theme values. `inline` makes utilities resolve
  * the CSS variable at the element, so user themes overriding --gap, --rounding
@@ -123,6 +125,47 @@
         width: 40%;
         height: 40%;
         color: var(--text-inv);
+    }
+}
+
+@utility header-pill {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: calc(1.5 * var(--gap));
+    height: 40px;
+    border-radius: calc(var(--rounding) - var(--gap));
+    background-color: var(--surface-hover);
+    color: var(--ink-strong);
+}
+
+@utility header-pill-link {
+    @apply header-pill;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .3s, color .3s, box-shadow .3s;
+
+    &:hover {
+        background-color: var(--surface-subtle);
+        color: var(--ink-strong);
+        text-decoration: none;
+    }
+
+    & span {
+        font-size: var(--text-m);
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    & svg {
+        width: 16px;
+        height: 16px;
+        color: var(--text);
+        transition: color .3s;
+    }
+
+    &:hover svg {
+        color: var(--accent-blue);
     }
 }
 

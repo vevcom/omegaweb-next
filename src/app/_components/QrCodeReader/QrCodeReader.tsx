@@ -1,6 +1,5 @@
 'use client'
 import { qrCodeReaderConfig } from './constants'
-import styles from './QrCodeReader.module.scss'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { useEffect, useEffectEvent, useId, useState } from 'react'
 import type { Awaitable } from '@/lib/awaitable'
@@ -82,14 +81,14 @@ export default function QrCodeReader({ onScan, singleRead = false, qrboxSize }: 
         }
     }, [qrcodeRegionId, qrboxSize, singleRead])
 
-    return <div className={styles.QrCodeReader}>
+    return <div className="m-auto max-w-[300px]">
         <div id={qrcodeRegionId} />
 
         <div className={`
-            ${styles.feedbackBox}
-            ${(feedback.status === 'SUCCESS' && !singleRead) ? styles.success : ''}
-            ${feedback.status === 'ERROR' ? styles.error : ''}
-            ${feedback.status === 'WAITING' ? styles.waiting : ''}
+            w-full h-[3rem] rounded-[calc(3*var(--rounding))] text-text-inv text-l content-center text-center
+            ${(feedback.status === 'SUCCESS' && !singleRead) ? 'bg-accent-green' : ''}
+            ${feedback.status === 'ERROR' ? 'bg-accent-red' : ''}
+            ${feedback.status === 'WAITING' ? 'bg-accent-yellow' : ''}
         `} >
             <span>{feedback.text}</span>
         </div>

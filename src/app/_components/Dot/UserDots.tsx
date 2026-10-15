@@ -1,4 +1,3 @@
-import styles from './UserDots.module.scss'
 import CreateDotForm from './CreateDotForm'
 import DotExpieries from './DotExpieries'
 import DotSettings from './DotSettings'
@@ -25,6 +24,13 @@ type PropTypes = {
  * @param showUpdateForm - Whether to offer changing the dots.
  * @param showDestroyForm - Whether to offer deleting the dots.
  */
+// Padding is important so it also beats ohma-table's own cell padding when used on a <td>.
+const dotsClassName = (valueLeft: number) => `py-[0.2em]! px-[0.6em]! rounded-[0.4em] whitespace-nowrap ${
+    valueLeft > 0
+        ? 'bg-[color-mix(in_srgb,var(--accent-red),white_50%)] text-text-inv'
+        : 'bg-[color-mix(in_srgb,var(--accent-green),white_50%)] text-text-inv'
+}`
+
 export default function UserDots({
     userId,
     dots,
@@ -36,9 +42,9 @@ export default function UserDots({
     const showSettings = showUpdateForm || showDestroyForm
 
     return (
-        <div className={styles.UserDots}>
-            <div className={styles.header}>
-                <span className={valueLeft > 0 ? styles.hasDots : styles.noDots}>
+        <div>
+            <div className="flex flex-row flex-wrap items-center gap-2">
+                <span className={dotsClassName(valueLeft)}>
                     {valueLeft} aktive {valueLeft === 1 ? 'prikk' : 'prikker'}
                 </span>
                 {showCreateForm && <CreateDotForm userId={userId} />}
@@ -46,7 +52,7 @@ export default function UserDots({
             {
                 dots.length === 0 ?
                     <i>Ingen prikker å vise</i> :
-                    <table className={styles.dots}>
+                    <table className="ohma-table">
                         <thead>
                             <tr>
                                 <th>Grunn</th>
@@ -64,7 +70,7 @@ export default function UserDots({
                                         <td>{dot.reason}</td>
                                         <td>{dot.accuser.username}</td>
                                         <td><DateDisplay date={dot.createdAt} includeTime={false} /></td>
-                                        <td className={dot.valueLeft > 0 ? styles.hasDots : styles.noDots}>
+                                        <td className={dotsClassName(dot.valueLeft)}>
                                             {dot.valueLeft} / {dot.value}
                                         </td>
                                         <td><DotExpieries dot={dot} /></td>

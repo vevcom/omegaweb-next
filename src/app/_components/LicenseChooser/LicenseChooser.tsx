@@ -1,5 +1,4 @@
 'use client'
-import styles from './LicenseChooser.module.scss'
 import { SelectNumberPossibleNULL } from '@/UI/Select'
 import { readAllLicensesAction } from '@/services/licenses/actions'
 import useActionCall from '@/hooks/useActionCall'
@@ -37,7 +36,7 @@ export default function LicenseChooser({ defaultLicenseName, name = 'licenseId' 
         <SelectNumberPossibleNULL
             name={name}
             label="Lisens"
-            className={styles.LicenseChooser}
+            className="w-[200px]"
             options={
                 [
                     { value: 'NULL', label: 'Ingen lisens' },

@@ -1,5 +1,4 @@
 import Permission from './Permission'
-import styles from './PermissionCategory.module.scss'
 import { permissionConfig } from '@/services/permissions/constants'
 import { Permission as PermissionEnum } from '@/prisma-generated-pn-types'
 import type { PermissionCategory } from '@/services/permissions/types'
@@ -21,9 +20,9 @@ export default function PermissionCategory({ category, renderBesidePermission }:
     )
 
     return (
-        <div className={styles.PermissionCategory}>
+        <div className="[&>h2]:text-xl">
             <h2>{category.toUpperCase()}</h2>
-            <div className={styles.list}>
+            <div className="flex flex-col gap-4">
                 {
                     permissionsInCategory.map(permission => (
                         <Permission key={permission} permission={permission} displayCategory={false}>
