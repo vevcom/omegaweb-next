@@ -1,1 +1,376 @@
 @import "tailwindcss";
+
+/*
+ * ohma design tokens as Tailwind theme values. `inline` makes utilities resolve
+ * the CSS variable at the element, so user themes overriding --gap, --rounding
+ * or a colour on <html> still reach every class.
+ */
+@theme inline {
+    /* One spacing step is half a $gap: p-2 = $gap, p-4 = 2 * $gap. Same as Tailwind's default at --gap: 0.5rem. */
+    --spacing: calc(var(--gap) / 2);
+
+    /* max-mobile: replaces screenMobile, mobile: replaces screenLg */
+    --breakpoint-mobile: 800px;
+
+    --radius-round: var(--rounding);
+    --radius-inner: calc(var(--rounding) - var(--gap));
+
+    --color-text: var(--text);
+    --color-text-muted: var(--text-muted);
+    --color-text-inv: var(--text-inv);
+    --color-surface-base: var(--surface-base);
+    --color-surface-raised: var(--surface-raised);
+    --color-surface-hover: var(--surface-hover);
+    --color-surface-subtle: var(--surface-subtle);
+    --color-ink-hover: var(--ink-hover);
+    --color-ink-strong: var(--ink-strong);
+    --color-layer: var(--layer);
+    --color-shadow: var(--boxShadow);
+    --color-accent-red: var(--accent-red);
+    --color-accent-orange: var(--accent-orange);
+    --color-accent-yellow: var(--accent-yellow);
+    --color-accent-green: var(--accent-green);
+    --color-accent-cyan: var(--accent-cyan);
+    --color-accent-blue: var(--accent-blue);
+    --color-accent-magenta: var(--accent-magenta);
+    --color-accent-violet: var(--accent-violet);
+
+    --font-primary: 'Inter', sans-serif;
+    --font-secondary: 'PlayfairDisplay', serif;
+
+    /*
+     * Only the ohma.$fonts-* sizes; Tailwind's own scale is dropped so its line-heights don't
+     * sneak in. Weights map to font-light (300), font-medium (500), font-bold (700).
+     */
+    --text-*: initial;
+    --text-s: clamp(12px, 2vw, 14px);
+    --text-m: clamp(14px, 2.5vw, 16px);
+    --text-l: clamp(16px, 3vw, 18px);
+    --text-xl: clamp(22px, 4vw, 26px);
+    --text-xxl: clamp(33px, 5.5vw, 36px);
+}
+
+/* Shared ohma mixins that are used in many places. One-off mixins are inlined as plain utilities instead. */
+
+@utility layer {
+    background: var(--layer);
+    backdrop-filter: blur(30px);
+}
+
+@utility round {
+    border-radius: var(--rounding);
+    padding: var(--rounding);
+}
+
+@utility shadow-soft {
+    box-shadow: var(--boxShadow) 0 1px 3px, var(--boxShadow) 0 1px 2px;
+    transition: box-shadow 0.3s;
+}
+
+@utility shadow-soft-hover {
+    box-shadow: var(--boxShadow) 0 3px 6px, var(--boxShadow) 0 3px 6px;
+    transition: box-shadow 0.3s;
+}
+
+/* Primary button. Recolour with e.g. `btn [--btn-color:var(--accent-red)]`. Also works on <Link />. */
+@utility btn {
+    text-align: center;
+    text-decoration: none;
+    font-size: var(--text-m);
+    background: var(--btn-color, var(--accent-blue));
+    padding: calc(2 * var(--gap));
+    margin: var(--gap);
+    color: var(--text-inv);
+    border: none;
+    border-radius: calc(var(--rounding) - var(--gap));
+    transition: .5s background;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--btn-color, var(--accent-blue)), white 10%);
+        cursor: pointer;
+    }
+}
+
+/* The secondary action tier: a filled button that recedes next to btn. */
+@utility secondary-btn {
+    @apply btn;
+    --btn-color: var(--surface-hover);
+    color: var(--text);
+}
+
+/* The close affordance shared by overlay surfaces (PopUp, ImageDisplay). Placement is up to the consumer. */
+@utility close-btn {
+    background-color: var(--accent-red);
+    border: none;
+    border-radius: var(--gap);
+    width: 48px;
+    height: 48px;
+    padding: var(--gap);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-inv);
+    transition: background-color .5s;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--accent-red), white 20%);
+    }
+
+    & > svg {
+        width: 40%;
+        height: 40%;
+        color: var(--text-inv);
+    }
+}
+
+@utility ohma-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: none;
+    margin: calc(2 * var(--gap)) 0;
+    font-size: var(--text-m);
+    text-align: left;
+    box-shadow: var(--boxShadow) 0 1px 3px, var(--boxShadow) 0 1px 2px;
+
+    & th, & td {
+        padding: calc(1.5 * var(--gap)) calc(2 * var(--gap));
+    }
+
+    & th {
+        background-color: var(--surface-raised);
+        color: var(--ink-strong);
+        font-weight: 500;
+    }
+
+    & tbody tr {
+        background-color: var(--surface-raised);
+        transition: background-color .3s;
+
+        &:nth-child(even) {
+            background-color: color-mix(in srgb, var(--surface-raised), white 3%);
+        }
+
+        &:hover {
+            background-color: var(--surface-hover);
+        }
+    }
+
+    & thead tr:first-child th:first-child { border-top-left-radius: var(--gap); }
+    & thead tr:first-child th:last-child { border-top-right-radius: var(--gap); }
+    & tbody tr:last-child td:first-child { border-bottom-left-radius: var(--gap); }
+    & tbody tr:last-child td:last-child { border-bottom-right-radius: var(--gap); }
+    &:has(tbody:empty) thead tr:first-child th:first-child { border-bottom-left-radius: var(--gap); }
+    &:has(tbody:empty) thead tr:first-child th:last-child { border-bottom-right-radius: var(--gap); }
+}
+
+@utility image-card-list {
+    display: grid;
+    grid-template-columns: repeat(3, calc((100% - 2em) / 3));
+    grid-gap: 1em;
+
+    @media (max-width: 800px) {
+        grid-template-columns: repeat(2, calc((100% - 2em) / 2));
+    }
+
+    @media (max-width: 500px) {
+        grid-template-columns: 1fr;
+        place-items: center;
+
+        & > * {
+            width: 100%;
+        }
+    }
+}
+
+/*
+ * Listings that render as full-width rows: a single stacked column at every breakpoint.
+ * The list is the query container for its list-row children - a container query can
+ * only style descendants of the container, so a row cannot restyle itself off its own width.
+ */
+@utility row-list {
+    margin: calc(2 * var(--gap)) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    container-type: inline-size;
+}
+
+/*
+ * A 96px list row on the 8px grid, shared by the event, job-ad, omegaquote and ombul
+ * listings: thumbnail | lead | title block | meta, with an optional full-width bar on
+ * the bottom edge. Children use the plain classes list-row-thumb/-lead/-main/-meta/-bar.
+ * Columns give way off the row-list container width, not the viewport, since rows also
+ * sit in half-width islands.
+ */
+@utility list-row {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    height: calc(12 * var(--gap));
+    overflow: hidden;
+    text-decoration: none;
+    color: unset;
+    border-radius: var(--rounding);
+    background-color: var(--surface-raised);
+    transition: background-color 300ms;
+
+    /* The whole row is one anchor, so globals' a:hover underline would hit every text run. */
+    &:hover {
+        background-color: var(--surface-hover);
+        text-decoration: none;
+    }
+
+    & > .list-row-thumb {
+        position: relative;
+        flex-shrink: 0;
+        width: calc(12 * var(--gap));
+        height: 100%;
+        overflow: hidden;
+
+        /* Image components size their wrappers off the image's intrinsic width; force them to fill. */
+        & div {
+            width: 100%;
+            height: 100%;
+        }
+
+        & img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    & > .list-row-lead {
+        flex-shrink: 0;
+        width: calc(8 * var(--gap));
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.1;
+
+        & b {
+            font-size: var(--text-xl);
+            color: var(--text);
+        }
+
+        & span {
+            font-size: var(--text-s);
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+    }
+
+    & > .list-row-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: calc(0.5 * var(--gap));
+        padding: 0 calc(2 * var(--gap));
+
+        & h2 {
+            margin: 0;
+            font-size: var(--text-l);
+            font-weight: 500;
+            color: var(--text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        & p {
+            margin: 0;
+            font-size: var(--text-s);
+            color: var(--text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    & > .list-row-meta {
+        flex-shrink: 0;
+        width: calc(15 * var(--gap));
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: center;
+        gap: calc(0.5 * var(--gap));
+        padding: 0 calc(2 * var(--gap));
+        font-size: var(--text-s);
+        color: var(--text-muted);
+        text-align: right;
+
+        & > * {
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    & > .list-row-bar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: calc(0.5 * var(--gap));
+        background-color: var(--surface-subtle);
+
+        & > div {
+            height: 100%;
+            background: var(--accent-blue);
+        }
+    }
+
+    /* Rows stay rows when space is tight; the meta column is what gives way. */
+    @container (max-width: 560px) {
+        & > .list-row-meta {
+            display: none;
+        }
+
+        & > .list-row-main {
+            padding-right: calc(2 * var(--gap));
+        }
+    }
+
+    /* Phone-width rows: the date sits above the title beside the thumbnail. */
+    @container (max-width: 480px) {
+        display: grid;
+        grid-template-columns: calc(12 * var(--gap)) 1fr;
+        align-content: center;
+        row-gap: calc(0.5 * var(--gap));
+
+        /* Out of the grid so it spans the full row height regardless of the text block. */
+        & > .list-row-thumb {
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: calc(12 * var(--gap));
+        }
+
+        & > .list-row-lead {
+            grid-column: 2;
+            flex-direction: row;
+            align-items: baseline;
+            justify-content: flex-start;
+            gap: calc(0.5 * var(--gap));
+            width: auto;
+            padding: 0 calc(2 * var(--gap));
+
+            & b {
+                font-size: var(--text-m);
+            }
+        }
+
+        & > .list-row-main {
+            grid-column: 2;
+            padding-right: calc(2 * var(--gap));
+        }
+    }
+}
