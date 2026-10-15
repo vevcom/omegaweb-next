@@ -1,6 +1,13 @@
-import styles from './page.module.scss'
-import loggedInStyles from './LoggedIn.module.scss'
 import LoggedInSection from './LoggedInSection'
+import {
+    footerClassName,
+    frontImgPartClassName,
+    frontInfoClassName,
+    frontInfoInnerClassName,
+    loggedInPartClassName,
+    scrollDownClassName,
+    wrapperClassName,
+} from './frontpageClassNames'
 import PromoBar from './PromoBar'
 import EventCard from '@/app/_components/Event/EventCard'
 import JobAd from '@/app/career/job-ads/JobAd'
@@ -23,6 +30,9 @@ import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
+
+// ohma.pagePadding(): the promo bar and the islands share the same centred content width.
+const pagePadding = 'w-full max-w-[1200px] mx-auto relative overflow-y-hidden'
 
 export default async function LoggedInLandingPage() {
     const MAX_NUMBER_OF_ELEMENTS = 3
@@ -74,32 +84,33 @@ export default async function LoggedInLandingPage() {
     })
 
     return (
-        <div className={styles.wrapper}>
+        <div className={wrapperClassName}>
             <PageTitleSetter title="Sct. Omega Broderskab" />
-            <div className={`${styles.part} ${styles.frontImg}`}>
+            <div className={frontImgPartClassName}>
                 <div
-                    className={`${styles.frontInfo} ${promo ? styles.withPromoBar : ''}`}
+                    className={frontInfoClassName(Boolean(promo))}
                 >
-                    <div>
+                    <div className={frontInfoInnerClassName}>
                         <StandardImageServer
                             standardImage="LOGO_WHITE"
                             width={300}
                             tint="white"
                         />
-                        <Link className={styles.scrollDown} href="#firstSection">
+                        <Link className={scrollDownClassName} href="#firstSection">
                             <FontAwesomeIcon icon={faAngleDown} />
                         </Link>
                     </div>
                 </div>
             </div>
             {promo && (
-                <div className={loggedInStyles.promoBarPart}>
+                <div className={pagePadding}>
                     <PromoBar promo={promo} />
                 </div>
             )}
-            <div id="firstSection" className={`${styles.part} ${loggedInStyles.loggedInPart}`}>
-                <div>
-                    <div className={loggedInStyles.islands}>
+            {/* Transparent: the islands carry their own surface, so the page background shows between them. */}
+            <div id="firstSection" className={loggedInPartClassName}>
+                <div className={pagePadding}>
+                    <div className="flex flex-wrap items-start gap-2">
                         <LoggedInSection title="Nyheter" link="/news" emptyMessage="Det er for tiden ingen nyheter">
                             {news.map((newsArticle, key) => (
                                 <NewsCard key={key} news={newsArticle} />
@@ -161,7 +172,7 @@ export default async function LoggedInLandingPage() {
                     </div>
                 </div>
             </div>
-            <div className={styles.footer}>
+            <div className={footerClassName}>
                 <Footer />
             </div>
         </div>

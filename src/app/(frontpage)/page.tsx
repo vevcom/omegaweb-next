@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import LoggedInLandingPage from './LoggedIn'
 import LoggedOutLandingPage from './LoggedOut'
 import { QueryParams } from '@/lib/queryParams/queryParams'
@@ -25,9 +24,9 @@ const { page } = serverPage({
         switch (frontpageVersion) {
             case 'logged-out':
                 return (
-                    <div className={styles.pageRoot}>
+                    <div className="relative">
                         <Link
-                            className={styles.link}
+                            className="absolute top-2 right-2 z-2 secondary-btn"
                             href={`/?${QueryParams.frontpageVersion.encodeUrl('logged-in')}`}
                         >
                             <span>Gå til innlogget forside</span>
@@ -38,11 +37,11 @@ const { page } = serverPage({
             case 'logged-in':
             default:
                 return (
-                    <div className={styles.pageRoot}>
+                    <div className="relative">
                         {
                             capabilities.canEditFrontpage.authorized && (
                                 <Link
-                                    className={styles.link}
+                                    className="absolute top-2 right-2 z-2 secondary-btn"
                                     href={`/?${QueryParams.frontpageVersion.encodeUrl('logged-out')}`}
                                 >
                                     <span>Gå til utlogget forside</span>
