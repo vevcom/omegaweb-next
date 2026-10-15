@@ -10,19 +10,44 @@
     min-height: 0;
 }
 
-.navIcons {
+.navIconsPanel {
+    position: relative;
     border-radius: ohma.$rounding;
     padding: ohma.$gap;
     background: ohma.$colors-surface-base;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.navIcons {
+    height: 100%;
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: calc(#{ohma.$gap} / 2);
-    flex: 1 1 auto;
-    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    // A native scrollbar would eat width from the 64px collapsed rail.
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.navScrollIndicator {
+    top: ohma.$gap;
+    bottom: ohma.$gap;
+    right: calc(#{ohma.$gap} / 4);
+    opacity: 0;
+    transition: opacity ohma.$transitionTime ease;
+}
+
+.navIconsPanel:hover .navScrollIndicator,
+.navIconsPanel:focus-within .navScrollIndicator {
+    opacity: 1;
 }
 
 .navIcon {
