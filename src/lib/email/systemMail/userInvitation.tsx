@@ -8,15 +8,15 @@ import logger from '@/lib/logger'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
 /**
- * Invites a newly created user to verify their email and register. A failure is only logged: the
- * user has already been created.
+ * Invites a newly created user to verify their email and register. Never throws, so it can run
+ * without being awaited: a failure is only logged, since the user has already been created.
  */
 export async function sendUserInvitationEmail(user: UserBasicWithEmail) {
-    const jwt = generateVerifyEmailJWT(user.id, user.email, userInvitationExpiration)
-
-    const link = `${process.env.WEBSITE_URL}/verify-email?${QueryParams.token.encodeUrl(jwt)}`
-
     try {
+        const jwt = generateVerifyEmailJWT(user.id, user.email, userInvitationExpiration)
+
+        const link = `${process.env.WEBSITE_URL}/verify-email?${QueryParams.token.encodeUrl(jwt)}`
+
         await sendMailOperations.internal.sendSystemMail.internalCall({
             data: {
                 to: user.email,

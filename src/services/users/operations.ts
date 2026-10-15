@@ -64,9 +64,11 @@ export const userOperations = {
                 select: userPrivateSelection
             })
 
-            // The tests create users by the dozen, and the mail handler of a test run has no account to send from.
+            // Not awaited: the user exists either way, and the response must not wait on the mail
+            // server. sendUserInvitationEmail never throws, it logs a failure. The tests create users
+            // by the dozen, and the mail handler of a test run has no account to send from.
             if (process.env.NODE_ENV !== 'test') {
-                await sendUserInvitationEmail(user)
+                void sendUserInvitationEmail(user)
             }
 
             return user

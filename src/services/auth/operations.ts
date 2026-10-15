@@ -37,7 +37,8 @@ export const authOperations = {
             const userId = Number(payload.sub)
             const email = String(payload.email)
 
-            const iat = new Date(payload.iat * 1000)
+            // Kept to the millisecond it was issued at (see generateVerifyEmailJWT).
+            const iat = new Date(Math.round(payload.iat * 1000))
 
             const user = await userOperations.read({
                 params: {
