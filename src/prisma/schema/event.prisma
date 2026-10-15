@@ -45,7 +45,7 @@ model Event {
   visibilityRegular   Visibility @relation(name: "EventRegularVisibility", fields: [visibilityRegularId], references: [id], onDelete: Restrict)
   visibilityRegularId Int        @unique
 
-  // Legacy from old database
+  // Legacy from OW basic database
   company     Boolean @default(false) // If a plus one is allowed
   lead        String?
   extraFields Json?   @db.Json

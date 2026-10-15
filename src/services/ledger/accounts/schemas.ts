@@ -22,6 +22,8 @@ const paramsFieldSchemas = z.object({
     groupIds: z.number().array().optional(),
     atTransactionId: z.number().optional(),
     accountType: z.nativeEnum(LedgerAccountType).optional(),
+    includeGroupAccounts: z.boolean(),
+    includeUserAccounts: z.boolean(),
 })
 
 /** One account is identified by its own id or by its owning user. */
@@ -66,6 +68,10 @@ export const ledgerAccountSchemas = {
             userIds: true,
             groupIds: true,
         }).refine(...atLeastOneIdList),
+        readAccessible: paramsFieldSchemas.pick({
+            includeGroupAccounts: true,
+            includeUserAccounts: true,
+        }),
         readPage: readPageInputSchemaObject(
             paramsFieldSchemas.pick({
                 id: true,

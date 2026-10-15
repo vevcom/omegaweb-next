@@ -1,4 +1,4 @@
-import { ledgerAccountAccess } from './ownership'
+import { ledgerAccountAccess, ownedAccountsWhere } from './ownership'
 import { Require } from '@/auth/authorizer/Require'
 import type { LedgerAccountOwnership } from './ownership'
 
@@ -17,6 +17,10 @@ export const ledgerAccountAuth = {
     read: ownsEveryAccount,
 
     readMany: ownsEveryAccount,
+
+    // Lists rather than checks: a user gets its own accounts through the filter, LEDGER_ADMIN
+    // every account, unfiltered.
+    readAccessible: Require.permission('LEDGER_ADMIN').or().user().filter(({ session }) => ownedAccountsWhere(session)),
 
     // Browses every account with no owner filter, so this is LEDGER_ADMIN only, not exempt.
     readPage: Require.permission('LEDGER_ADMIN'),

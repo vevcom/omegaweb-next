@@ -16,7 +16,8 @@ const dataFieldSchemas = z.object({
     acceptedTerms: Zpn.checkboxOrBoolean({
         label: '',
         message: 'Du må godta vilkårene for å bruk siden.'
-    })
+    }),
+    ledgerAccountId: z.coerce.number().int(),
 })
 
 const paramsFieldSchemas = z.object({
@@ -78,6 +79,9 @@ export const cabinBookingSchemas = {
         createBedBookingUserAttached: bookingUserAttached,
         createCabinBookingNoUser: bookingNoUser,
         createBedBookingNoUser: bookingNoUser,
+        connectToLedger: dataFieldSchemas.pick({
+            ledgerAccountId: true,
+        }),
     },
     params: {
         createCabinBookingUserAttached: bookingUserAttachedParams,

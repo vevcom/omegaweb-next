@@ -263,27 +263,12 @@ export const permissionConfig = {
         category: 'brukere',
         canBeDefault: false,
     },
-    SHOP_USE: {
-        name: 'Les butikker',
-        description: 'kan lese butikker',
-        category: 'shop',
-        canBeDefault: true,
-    },
     SHOP_ADMIN: {
         name: 'Butikk administrator',
-        description: 'Kan administrere alle butikker',
-        category: 'shop',
-        canBeDefault: false,
-    },
-    PRODUCT_USE: {
-        name: 'Les produkter',
-        description: 'Kan lese produkter',
-        category: 'shop',
-        canBeDefault: true,
-    },
-    PRODUCT_ADMIN: {
-        name: 'Produkt administrator',
-        description: 'Kan administrare alle produkter',
+        description: `
+            Kan opprette butikker, se og administrere 
+            alle butikker uansett synlighet,
+            og administrere produktkatalogen`,
         category: 'shop',
         canBeDefault: false,
     },

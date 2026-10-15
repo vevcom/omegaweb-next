@@ -1,69 +1,70 @@
-import { Zpn } from '@/lib/fields/zpn'
 import { convertAmount } from '@/lib/currency/convert'
+import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
-const dataFieldSchemas = z.object({
-    shopId: z.coerce.number().int(),
-    name: z.string().min(3),
-    description: z.string(),
-    price: z.coerce.number().int().min(1).transform((val) => convertAmount(val)),
-    barcode: z.string().or(z.number()).optional(),
-    active: Zpn.checkboxOrBoolean({ label: 'Active' }),
+/** The barcode as stored: trimmed, and null when the form left it empty. */
+function convertBarcode(barcode?: string | number) {
+    if (typeof barcode === 'string' || typeof barcode === 'number') {
+        const stringBarcode = String(barcode).trim()
+        if (stringBarcode.length > 0) {
+            return stringBarcode
+        }
+    }
+    return null
+}
+
+/** Written in kroner, possibly with øre, and stored in øre. */
+const price = z.coerce.number().finite().min(1, 'Prisen må være minst 1 kr').transform(amount => convertAmount(amount))
+
+/**
+ * The fields of a product, normalized as they are stored. Exported for the shop service, whose
+ * operations create products and connect them to a shop, so both write the same product.
+ */
+export const productDataFieldSchemas = z.object({
     productId: z.coerce.number().int(),
+    name: z.string().trim().min(3, 'Navnet må være minst 3 tegn').transform(name => name.toUpperCase()),
+    description: z.string().trim(),
+    barcode: z.string().or(z.number()).optional().transform(convertBarcode),
+    // What a shop sells the product for when it is connected without a price of its own.
+    suggestedPrice: z.union([z.literal('').transform(() => null), price]).nullable().default(null),
+    price,
+    // A form leaves the price empty to take the suggested one.
+    optionalPrice: z.union([z.literal('').transform(() => undefined), price]).optional(),
+    active: Zpn.checkboxOrBoolean({ label: 'Aktiv' }),
 })
 
 const paramsFieldSchemas = z.object({
     shopId: z.coerce.number(),
     productId: z.number(),
-    barcode: z.string().or(z.number()).optional(),
+    barcode: z.string().min(1),
+})
+
+/** What a product is, apart from where and at what price it is sold. */
+const productFields = productDataFieldSchemas.pick({
+    name: true,
+    description: true,
+    barcode: true,
+    suggestedPrice: true,
+})
+
+const product = paramsFieldSchemas.pick({
+    productId: true,
 })
 
 export const productSchemas = {
     data: {
-        create: dataFieldSchemas.pick({
-            name: true,
-            description: true,
-            barcode: true,
-        }),
-        update: dataFieldSchemas.pick({
-            productId: true,
-            name: true,
-            description: true,
-            barcode: true,
-        }),
-        createForShop: dataFieldSchemas.pick({
-            name: true,
-            description: true,
-            price: true,
-            barcode: true,
-        }),
-        updateForShop: dataFieldSchemas.pick({
-            name: true,
-            description: true,
-            price: true,
-            barcode: true,
-            active: true,
-        }),
-        createShopConnection: dataFieldSchemas.pick({
-            shopId: true,
-            productId: true,
-            price: true,
+        create: productFields,
+        // A suggested price left out stays as it is; one emptied is cleared.
+        update: productFields.extend({
+            suggestedPrice: productDataFieldSchemas.shape.suggestedPrice.optional(),
         }),
     },
     params: {
-        createForShop: paramsFieldSchemas.pick({
-            shopId: true,
-        }),
-        read: paramsFieldSchemas.pick({
-            productId: true,
-        }),
+        read: product,
         readByBarCode: paramsFieldSchemas.pick({
             barcode: true,
             shopId: true,
         }),
-        updateForShop: paramsFieldSchemas.pick({
-            shopId: true,
-            productId: true,
-        }),
+        update: product,
     },
 }

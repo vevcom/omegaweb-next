@@ -48,6 +48,8 @@ beforeAll(async () => {
         select: userPrivateSelection,
     })
     cabinProductId = (await prisma.cabinProduct.findFirstOrThrow({ where: { type: 'CABIN' }, select: { id: true } })).id
+    // Reserving is refused until the cabin has an account to pay the bookings into.
+    await prisma.ledgerAccount.create({ data: { type: 'GROUP', name: 'Hyttekonto', special: 'CABIN' } })
 })
 
 describe('reserving the cabin', () => {

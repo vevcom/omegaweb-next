@@ -1,30 +1,37 @@
-import ShopForm from './shopForm'
 import styles from './page.module.scss'
-import { AddHeaderItemPopUp } from '@/app/_components/HeaderItems/HeaderItemPopUp'
-import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
+import CreateShopForm from './CreateShopForm'
+import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import HeaderItemLink from '@/components/HeaderItems/HeaderItemLink'
+import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { sortObjectsByName } from '@/lib/sortObjects'
 import { shopOperations } from '@/services/shop/shop/operations'
 import { shopAuth } from '@/services/shop/shop/auth'
+import { productAuth } from '@/services/shop/product/auth'
 import { serverPage } from '@/app/serverPage'
-import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
+import { faBox } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('shop', session)
-        return shopOperations.readMany({})
-    },
+    operation: () => shopOperations.readMany({}),
     capabilities: () => ({
         canCreateShop: shopAuth.create,
+        // The product catalogue is for those who administer products across shops.
+        canAdministerProducts: productAuth.readMany,
     }),
     metadata: () => ({ title: 'Butikker' }),
     render: ({ data: shops, capabilities }) => (
         <PageWrapper
-            headerItem={capabilities.canCreateShop.authorized &&
-                <AddHeaderItemPopUp popUpKey="createShopForm">
-                    <ShopForm />
-                </AddHeaderItemPopUp>
+            headerItem={
+                <div className={styles.head}>
+                    {capabilities.canAdministerProducts.authorized && (
+                        <HeaderItemLink href="/shop/products" label="Produkter" icon={faBox} />
+                    )}
+                    {capabilities.canCreateShop.authorized && (
+                        <AddHeaderItemPopUp popUpKey="createShop">
+                            <CreateShopForm />
+                        </AddHeaderItemPopUp>
+                    )}
+                </div>
             }
         >
             <table className={styles.table}>
@@ -38,7 +45,7 @@ const { page, generateMetadata } = serverPage({
                     {sortObjectsByName(shops).map(shop =>
                         <tr key={shop.id}>
                             <td>
-                                <Link style={{ display: 'contents' }} href={`./shop/${shop.id}`} passHref>
+                                <Link style={{ display: 'contents' }} href={`/shop/${shop.id}`} passHref>
                                     {shop.name}
                                 </Link>
                             </td>

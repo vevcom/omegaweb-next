@@ -17,6 +17,7 @@ import { userAuth } from '@/services/users/auth'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
 import { bullshitAuth } from '@/services/bullshit/auth'
 import { lockerAuth } from '@/services/lockers/auth'
+import { shopAuth } from '@/services/shop/shop/auth'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
 import {
     faGamepad,
@@ -35,6 +36,7 @@ import {
     faPeopleLine,
     faIdCard,
     faPoo,
+    faShoppingCart,
     faLock,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
@@ -73,6 +75,12 @@ export const navDef: NavItem[] = [
         href: '/career/jobads',
         icon: faBriefcase,
         authorizers: () => [jobAdAuth.readActive],
+    },
+    {
+        name: 'Butikker',
+        href: '/shop',
+        icon: faShoppingCart,
+        authorizers: () => [shopAuth.readMany],
     },
     {
         name: 'For bedrifter',

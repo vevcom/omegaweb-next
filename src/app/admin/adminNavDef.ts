@@ -21,8 +21,6 @@ import { cabinPricePeriodAuth } from '@/services/cabin/pricePeriod/auth'
 import { cabinReleasePeriodAuth } from '@/services/cabin/releasePeriod/auth'
 import { cabinProductAuth } from '@/services/cabin/product/auth'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
-import { shopAuth } from '@/services/shop/shop/auth'
-import { productAuth } from '@/services/shop/product/auth'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { promoAuth } from '@/services/promo/auth'
 import { licenseAuth } from '@/services/licenses/auth'
@@ -38,7 +36,6 @@ import {
     faEnvelopesBulk,
     faDotCircle,
     faHouse,
-    faShop,
     faListDots,
     faMoneyBillWave,
 } from '@fortawesome/free-solid-svg-icons'
@@ -257,24 +254,6 @@ export const adminNavDef: AdminNavGroup[] = [
                 title: 'Bookinger',
                 path: 'cabin-booking',
                 authorizers: () => [cabinBookingAuth.readMany],
-            },
-        ],
-    },
-    {
-        header: { icon: faShop, title: 'Shop' },
-        links: [
-            {
-                title: 'Butikker',
-                path: 'shop',
-                authorizers: () => [shopAuth.create],
-            },
-            {
-                title: 'Produkter',
-                path: 'product',
-                authorizers: () => [
-                    productAuth.create,
-                    productAuth.update,
-                ],
             },
         ],
     },

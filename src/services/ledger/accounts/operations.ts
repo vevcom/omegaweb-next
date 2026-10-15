@@ -4,13 +4,25 @@ import { ledgerAccountAuth } from './auth'
 import { resolveAccountOwnership, resolveAccountsOwnership } from './ownership'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { defineOperation } from '@/services/serviceOperation'
-import type { LedgerAccount, Prisma } from '@/prisma-generated-pn-types'
+import type { LedgerAccount, LedgerAccountType, Prisma } from '@/prisma-generated-pn-types'
 import type { Balance, BalanceRecord, ExpandedLedgerAccount } from './types'
 
 // Nested calls between these operations are not bypassed unless noted otherwise: the checks
 // involved are cheap (a session permission, or one indexed lookup), so checking access again
 // on each call is worth it. bypassAuth is used only where a nested operation's own policy would
 // otherwise reject a caller the outer check already allows.
+const ownershipIncluder = {
+    user: { select: { id: true } },
+    groups: { select: { groupId: true } },
+} as const satisfies Prisma.LedgerAccountInclude
+
+const expandLedgerAccount = (
+    { user, groups, ...account }: Prisma.LedgerAccountGetPayload<{ include: typeof ownershipIncluder }>
+): ExpandedLedgerAccount => {
+    const groupIds = groups.map(group => group.groupId)
+    return { ...account, groupIds, ownership: { userId: user?.id ?? null, groupIds } }
+}
+
 export const ledgerAccountOperations = {
     /**
      * Creates a new GROUP ledger account. USER accounts are created automatically alongside
@@ -65,18 +77,10 @@ export const ledgerAccountOperations = {
                     id: params.ledgerAccountId,
                     user: params.userId !== undefined ? { id: params.userId } : undefined,
                 },
-                include: {
-                    groups: { select: { groupId: true } },
-                    user: { select: { id: true } },
-                },
+                include: ownershipIncluder,
             })
 
-            const groupIds = account.groups.map(group => group.groupId)
-            return {
-                ...account,
-                groupIds,
-                ownership: { userId: account.user?.id ?? null, groupIds },
-            }
+            return expandLedgerAccount(account)
         },
     }),
 
@@ -116,6 +120,40 @@ export const ledgerAccountOperations = {
             return await prisma.ledgerAccount.findMany({
                 where: { OR: filters },
             })
+        }
+    }),
+
+    /**
+     * Reads every account the caller has access to: all of them with LEDGER_ADMIN, otherwise the
+     * caller's own account and the accounts of the groups it is an active member of. Lets a page
+     * list the accounts a user may act on without knowing that rule.
+     *
+     * **Note**: The balance of the accounts are not included in the response.
+     * Use the `calculateBalances` method to get the balances.
+     *
+     * @param params.includeGroupAccounts Whether GROUP accounts are included.
+     * @param params.includeUserAccounts Whether USER accounts are included.
+     *
+     * @returns List of account details.
+     */
+    readAccessible: defineOperation({
+        authorizer: () => ledgerAccountAuth.readAccessible,
+        paramsSchema: ledgerAccountSchemas.params.readAccessible,
+        operation: async ({ prisma, params }, prismaWhereFilter): Promise<ExpandedLedgerAccount[]> => {
+            const types: LedgerAccountType[] = [
+                ...(params.includeGroupAccounts ? ['GROUP' as const] : []),
+                ...(params.includeUserAccounts ? ['USER' as const] : []),
+            ]
+
+            const accounts = await prisma.ledgerAccount.findMany({
+                where: {
+                    type: { in: types },
+                    ...prismaWhereFilter,
+                },
+                include: ownershipIncluder,
+            })
+
+            return accounts.map(expandLedgerAccount)
         }
     }),
 

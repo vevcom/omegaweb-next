@@ -54,6 +54,7 @@ export const seedDevShop = defineSeedOperation(async (prisma: PrismaClient) => {
             name: product.name.toUpperCase(),
             description: product.description,
             barcode: product.barcode,
+            suggestedPrice: product.price,
             ShopProduct: {
                 create: {
                     price: product.price,

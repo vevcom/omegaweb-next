@@ -35,6 +35,20 @@ export function ledgerAccountAccess(permission: Permission, opts?: { mode?: 'ALL
 }
 
 /**
+ * The filter matching the accounts the session owns, as {@link ledgerAccountAccess} counts
+ * ownership: the session user's own account and those of the groups it is an active member of.
+ */
+export function ownedAccountsWhere(session: SessionMaybeUser): Prisma.LedgerAccountWhereInput {
+    const groupIds = session.memberships.filter(membership => membership.active).map(membership => membership.groupId)
+    return {
+        OR: [
+            ...(session.user !== null ? [{ user: { id: session.user.id } }] : []),
+            { groups: { some: { groupId: { in: groupIds } } } },
+        ],
+    }
+}
+
+/**
  * Resolves the owning user and owning groups of one ledger account, for authorizers to check
  * access against. Skips the database when only `userId` is given, since that ID is itself the
  * ownership fact.
