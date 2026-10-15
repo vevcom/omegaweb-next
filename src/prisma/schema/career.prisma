@@ -18,6 +18,7 @@ model JobAd {
   articleId           Int
   articleName         String
   description         String?
+  screenPages         ScreenPage[]
   company             Company      @relation(fields: [companyId], references: [id])
   companyId           Int
   type                JobType

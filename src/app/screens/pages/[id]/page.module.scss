@@ -1,0 +1,11 @@
+@use '@/styles/ohma';
+
+// Shown at the shape of a landscape screen.
+.preview {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    padding: calc(2 * #{ohma.$gap});
+    box-sizing: border-box;
+    border-radius: ohma.$rounding;
+    background: ohma.$surface-raised;
+}

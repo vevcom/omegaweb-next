@@ -16,6 +16,8 @@ import { cabinArticleAuth } from '@/services/cabin/article/auth'
 import { userAuth } from '@/services/users/auth'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
 import { bullshitAuth } from '@/services/bullshit/auth'
+import { screenAuth } from '@/services/screens/auth'
+import { Require } from '@/auth/authorizer/Require'
 import { lockerAuth } from '@/services/lockers/auth'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
 import {
@@ -30,6 +32,7 @@ import {
     faBriefcase,
     faGraduationCap,
     faTools,
+    faTv,
     faSignature,
     faHouseChimneyWindow,
     faPeopleLine,
@@ -166,6 +169,14 @@ export const navDef: NavItem[] = [
         href: '/applications',
         icon: faIdCard,
         authorizers: () => [applicationPeriodAuth.readAll],
+    },
+    {
+        // SCREEN_USE may be a default permission, so a display that is not logged in can show its
+        // screen. The entry is for those who manage the screens.
+        name: 'Skjermer',
+        href: '/screens',
+        icon: faTv,
+        authorizers: () => [Require.allOf(screenAuth.readMany, screenAuth.create)],
     },
     {
         name: 'Administrasjon',

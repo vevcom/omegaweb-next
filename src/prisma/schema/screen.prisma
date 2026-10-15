@@ -1,0 +1,63 @@
+enum ScreenOrientation {
+  PORTRAIT
+  LANDSCAPE
+}
+
+// An info screen, shown at /screens/[name] on a display somewhere. It cycles through its pages in
+// order.
+model Screen {
+  id          Int                @id @default(autoincrement())
+  name        String             @unique
+  orientation ScreenOrientation
+  pages       ScreenPageScreen[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A page shown on a screen, at a place in the screen's order. A page can be shown on many screens.
+model ScreenPageScreen {
+  screenPage   ScreenPage @relation(fields: [screenPageId], references: [id], onDelete: Cascade)
+  screenPageId Int
+  screen       Screen     @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  screenId     Int
+  order        Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([screenPageId, screenId])
+  @@unique([order, screenId])
+}
+
+// What a page shows besides its own image and paragraph: nothing, a job ad, an event, or the
+// upcoming events of an event tag.
+enum ScreenPageType {
+  IMAGE
+  TEXT_AND_IMAGE
+  JOBAD
+  EVENT
+  EVENT_TAG
+}
+
+model ScreenPage {
+  id             Int                @id @default(autoincrement())
+  name           String             @unique
+  type           ScreenPageType
+  // Only the link the type needs is set. The others are null.
+  jobAd          JobAd?             @relation(fields: [jobAdId], references: [id], onDelete: SetNull)
+  jobAdId        Int?
+  event          Event?             @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  eventId        Int?
+  eventTag       EventTag?          @relation(fields: [eventTagId], references: [id], onDelete: SetNull)
+  eventTagId     Int?
+  // Owned by the page alone, and destroyed with it.
+  cmsImage       CmsImage           @relation(fields: [cmsImageId], references: [id])
+  cmsImageId     Int                @unique
+  cmsParagraph   CmsParagraph       @relation(fields: [cmsParagraphId], references: [id])
+  cmsParagraphId Int                @unique
+  screens        ScreenPageScreen[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,46 @@
+@use '@/styles/ohma';
+
+.ScreenPageContent {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: calc(2 * #{ohma.$gap});
+    width: 100%;
+    height: 100%;
+
+    &.imageOnly {
+        grid-template-columns: 1fr;
+    }
+
+    .image {
+        min-height: 0;
+        border-radius: ohma.$rounding;
+        overflow: hidden;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    .text {
+        display: flex;
+        flex-direction: column;
+        gap: ohma.$gap;
+        overflow: hidden;
+    }
+
+    .subtitle {
+        font-weight: bold;
+    }
+
+    .events {
+        padding-left: 1.2em;
+    }
+}
+
+// A portrait screen stacks the image above the text.
+:global(.portrait) .ScreenPageContent {
+    grid-template-columns: 1fr;
+    grid-template-rows: 3fr 2fr;
+}

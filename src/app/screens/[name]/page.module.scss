@@ -1,0 +1,15 @@
+@use '@/styles/ohma';
+
+.screen {
+    position: relative;
+    height: calc(100vh - #{ohma.$nav-height});
+    padding: calc(2 * #{ohma.$gap});
+    box-sizing: border-box;
+
+    .settings {
+        position: absolute;
+        top: ohma.$gap;
+        right: ohma.$gap;
+        z-index: 1;
+    }
+}
