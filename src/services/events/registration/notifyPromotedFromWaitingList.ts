@@ -15,8 +15,6 @@ export async function notifyPromotedFromWaitingList(
 ) {
     const title = 'Opprykk fra venteliste ved Omegas nettsider'
     const congratulation = 'Gratulerer! Du har rykket opp fra venteliste på arrangementet'
-    // The notification is markdown that is rendered safely. The mail body is html as it is, and the
-    // event name is written by its organisers, so it is escaped before it goes in.
     const message = `${congratulation} ${eventName}.`
     const mailBody = `${congratulation} ${escapeHtml(eventName)}.`
 

@@ -11,7 +11,6 @@ const dateOrderMessage = 'Til dato kan ikke være før fra dato'
 const dataFieldSchemas = z.object({
     title: z.string().min(2, 'min length is 2').max(80, 'max length is 80'),
     text: z.string().min(2, 'min length is 2').max(300, 'max length is 300'),
-    // It ends up straight in the href of the banner anchor.
     link: z.string().min(1, 'Lenken kan ikke være tom').refine(isSafeLink, safeLinkMessage),
     startDate: Zpn.date({ label: 'Fra dato' }),
     endDate: Zpn.date({ label: 'Til dato' }),
