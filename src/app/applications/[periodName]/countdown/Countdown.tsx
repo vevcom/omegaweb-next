@@ -1,5 +1,4 @@
 'use client'
-import styles from './Countdown.module.scss'
 import TimeLeft from './TimeLeft'
 import CommitteeLogoRoll from './CommitteeLogoRoll'
 import Speedlines from './Speedlines'
@@ -26,13 +25,13 @@ export default function Countdown({ period }: PropTypes) {
     }, 10_000)
 
     return (
-        <div className={styles.Countdown}>
-            <div className={styles.top}>
+        <div className="h-screen w-screen fixed top-0 left-0 flex flex-col items-center z-10 bg-black isolate">
+            <div className="z-2">
                 {!finalCountdown && (
                     <TimeLeft end={period.endDate} />
                 )}
             </div>
-            <div className={styles.under}>
+            <div className="fixed w-screen h-screen z-1 top-0 left-0">
                 <Speedlines />
                 {showCommitteeRoll && (
                     <CommitteeLogoRoll periodName={period.name} committees={period.committeesParticipating.map(part => ({

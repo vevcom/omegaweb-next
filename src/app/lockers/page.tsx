@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import LockerIdForm from './LockerIdForm'
 import LockerList from './LockerList'
 import LockerScanner from './LockerScanner'
@@ -16,7 +15,7 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'Skap' }),
     render: () => (
         <PageWrapper headerItem={
-            <div className={styles.header}>
+            <div className="flex justify-between items-end flex-wrap w-full gap-2">
                 <LockerIdForm />
                 <LockerScanner />
             </div>

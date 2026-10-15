@@ -1,5 +1,5 @@
 'use client'
-import styles from './page.module.scss'
+import { committeeCardBodyClassName, committeeCardClassName } from './committeeCardClassNames'
 import { updateApplicationAction } from '@/services/applications/actions'
 import { applicationAuth } from '@/services/applications/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
@@ -15,6 +15,14 @@ export type PrioritizedCommittee = {
     committeeParticipationId: number,
     card: ReactNode,
 }
+
+const priorityClassName = 'shrink-0 rounded-full bg-accent-blue text-text-inv size-[3em] grid place-items-center font-bold'
+
+// Same handle as the flair admin table, so reordering works the same way in both places.
+const dragHandleClassName = [
+    'flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab touch-none select-none',
+    'transition-colors duration-300 hover:bg-surface-hover hover:text-ink-strong active:cursor-grabbing',
+].join(' ')
 
 type ItemPropTypes = {
     item: PrioritizedCommittee,
@@ -36,19 +44,19 @@ function PrioritizedCommittee({ item, priority, canReorder, onDragEnd }: ItemPro
             dragControls={dragControls}
             onDragEnd={() => onDragEnd(item.committeeParticipationId)}
             whileDrag={{ scale: 1.01, boxShadow: '0 8px 20px rgba(0, 0, 0, 0.35)' }}
-            className={`${styles.committeeCard} ${styles.prioritizedCard}`}
+            className={`${committeeCardClassName} relative`}
         >
-            <div className={styles.priorityRail}>
+            <div className="flex-[0_0_auto] w-[3em] flex flex-col items-center gap-[0.5em]">
                 {/* The priority comes from the position in the list rather than from the server
                     so that the numbers follow along while the card is being dragged. */}
-                <span className={styles.priority}>{priority}</span>
+                <span className={priorityClassName}>{priority}</span>
                 {canReorder && (
-                    <span className={styles.dragHandle} onPointerDown={startDrag}>
+                    <span className={dragHandleClassName} onPointerDown={startDrag}>
                         <FontAwesomeIcon icon={faGripVertical} />
                     </span>
                 )}
             </div>
-            <div className={styles.committeeCardBody}>
+            <div className={committeeCardBodyClassName}>
                 {item.card}
             </div>
         </Reorder.Item>
@@ -119,7 +127,7 @@ export default function PrioritizedCommittees({ items, userId }: PropTypes) {
                 axis="y"
                 values={order}
                 onReorder={setOrder}
-                className={styles.prioritizedList}
+                className="flex flex-col gap-2"
             >
                 {order.map((item, index) => (
                     <PrioritizedCommittee
@@ -131,7 +139,7 @@ export default function PrioritizedCommittees({ items, userId }: PropTypes) {
                     />
                 ))}
             </Reorder.Group>
-            {error && <i className={styles.priorityError}>{error}</i>}
+            {error && <i className="text-accent-red">{error}</i>}
         </>
     )
 }

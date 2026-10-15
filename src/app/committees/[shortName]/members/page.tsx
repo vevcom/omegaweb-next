@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import getCommittee from '@/app/committees/[shortName]/getCommittee'
 import { serverPage } from '@/app/ServerPage'
@@ -33,9 +32,9 @@ const { page, generateMetadata } = serverPage({
 
             {ordersSorted.map((order) =>
                 <div key={order}>
-                    <h3 className={styles.orderHeading}>{order}. Orden</h3>
+                    <h3 className="text-center text-l">{order}. Orden</h3>
                     <hr />
-                    <div className={styles.memberList}>
+                    <div className="w-full grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-2">
                         {membersGroupedByOrder[parseInt(order, 10)].map((member, i) => (
                             <UserCard
                                 key={i}

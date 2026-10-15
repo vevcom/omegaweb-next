@@ -1,9 +1,10 @@
-import styles from './page.module.scss'
 import { PeriodSection } from './PeriodSection'
 import getCommittee from '@/app/committees/[shortName]/getCommittee'
 import { committeeParticipationOperations } from '@/services/applications/committeeParticipation/operations'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
+
+const tableEntryClassName = 'border-2 border-[hsla(0,0%,70%,0.507)] p-[1em]'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ shortName: string }>) => {
@@ -22,14 +23,14 @@ const { page, generateMetadata } = serverPage({
         if (data.committeePeriodes.length === 0) { return 'ingen søknadsperioder funnet' }
 
         return (
-            <table className={styles.periodTable}>
+            <table className="border-2 border-[hsla(0,0%,70%,0.507)] border-collapse text-center round">
                 <thead>
-                    <tr className={styles.periodHeading}>
-                        <th className={styles.tableEntry}>Start dato</th>
-                        <th className={styles.tableEntry}>Slutt dato</th>
-                        <th className={styles.tableEntry}>Omprioritering slutt dato</th>
-                        <th className={styles.tableEntry}>Søknader</th>
-                        <th className={styles.tableEntry}>Søknadstall</th>
+                    <tr>
+                        <th className={tableEntryClassName}>Start dato</th>
+                        <th className={tableEntryClassName}>Slutt dato</th>
+                        <th className={tableEntryClassName}>Omprioritering slutt dato</th>
+                        <th className={tableEntryClassName}>Søknader</th>
+                        <th className={tableEntryClassName}>Søknadstall</th>
                     </tr>
                 </thead>
                 <tbody>

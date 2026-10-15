@@ -1,5 +1,4 @@
 'use client'
-import styles from './OldNewsList.module.scss'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { OldNewsPagingContext } from '@/contexts/paging/OldNewsPaging'
 import NewsCard from '@/app/news/NewsCard'
@@ -11,7 +10,7 @@ type PropTypes = {
 
 export default function OldNewsList({ serverRendered }: PropTypes) {
     return (
-        <div className={styles.OldNewsList}>
+        <div className="image-card-list">
             { serverRendered }
             <EndlessScroll
                 pagingContext={OldNewsPagingContext}

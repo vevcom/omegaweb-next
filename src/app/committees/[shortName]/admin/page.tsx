@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import getCommittee from '@/app/committees/[shortName]/getCommittee'
 import Image from '@/components/Image/Image'
 import ImageUploader from '@/components/Image/ImageUploader'
@@ -21,6 +20,12 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
+
+// One panel per thing that can be administered, so the logo, the members and the migration read as separate jobs.
+const sectionClassName = [
+    'flex flex-col gap-4 p-4 rounded-round layer',
+    '[&>h3]:m-0 [&>h3]:pb-2 [&>h3]:border-b [&>h3]:border-surface-hover [&>h3]:text-l [&>h3]:font-bold',
+].join(' ')
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ shortName: string }>) => {
@@ -57,19 +62,19 @@ const { page, generateMetadata } = serverPage({
         )
 
         return (
-            <div className={styles.wrapper}>
-                <header className={styles.pageHeader}>
+            <div className="flex flex-col gap-6 min-h-[500px]">
+                <header className="flex flex-col gap-2 [&_h2]:m-0">
                     <h2>Administrer {committee.name}</h2>
-                    <div className={styles.facts}>
+                    <div className="flex flex-wrap gap-6 text-text-muted text-s">
                         <span>Kortnavn: {committee.shortName}</span>
                         {expanded && <span>Orden: {expanded.order}</span>}
                         {expanded && <span>Aktive medlemmer: {expanded.members}</span>}
                     </div>
                 </header>
 
-                {!committee.group.pensioned && <section className={styles.section}>
+                {!committee.group.pensioned && <section className={sectionClassName}>
                     <h3>Logo</h3>
-                    <div className={styles.logo}>
+                    <div className="grid grid-cols-[auto_minmax(16rem,24rem)] items-start gap-6 max-mobile:grid-cols-1">
                         <Image image={committee.logoImage} width={300} />
                         {
                             capabilities.canEditLogo.authorized && (
@@ -87,7 +92,7 @@ const { page, generateMetadata } = serverPage({
                 </section>}
 
                 {capabilities.canPension.authorized && (
-                    <section className={styles.section}>
+                    <section className={sectionClassName}>
                         <h3>Pensjonering</h3>
                         <PensionGroup
                             groupId={committee.groupId}
@@ -101,7 +106,7 @@ const { page, generateMetadata } = serverPage({
 
                 {!committee.group.pensioned && expanded
                     && (capabilities.canAddMembers.authorized || capabilities.canRemoveMembers.authorized) && (
-                    <section className={styles.section}>
+                    <section className={sectionClassName}>
                         <h3>Medlemmer</h3>
                         <ManageGroupMembers
                             groupId={committee.groupId}
@@ -124,7 +129,7 @@ const { page, generateMetadata } = serverPage({
                 )}
 
                 {!committee.group.pensioned && capabilities.canMigrate.authorized && expanded && (
-                    <section className={styles.section}>
+                    <section className={sectionClassName}>
                         <h3>Migrering</h3>
                         <MigrateGroup
                             groupId={committee.groupId}

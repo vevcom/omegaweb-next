@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import CommitteeCard from '@/components/Committee/CommitteeCard/CommitteeCard'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { serverPage } from '@/app/ServerPage'
@@ -13,7 +12,10 @@ const { page, generateMetadata } = serverPage({
         const pensioned = committees.filter(committee => committee.group.pensioned)
 
         const committeeCards = (toShow: typeof committees) => (
-            <div className={styles.committeeList}>
+            <div className={[
+                'grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-2 overflow-visible',
+                'max-mobile:grid-cols-1',
+            ].join(' ')}>
                 {toShow.map(committee => (
                     <CommitteeCard
                         key={committee.id}
@@ -26,14 +28,14 @@ const { page, generateMetadata } = serverPage({
         )
 
         return (
-            <div className={styles.wrapper}>
+            <div className="w-full h-full text-text self-start">
                 {
                     committees.length ? (
                         <>
                             {committeeCards(active)}
                             {pensioned.length > 0 && (
                                 <>
-                                    <h2 className={styles.pensionedHeading}>Pensjonerte</h2>
+                                    <h2 className="mt-8 text-text-muted">Pensjonerte</h2>
                                     {committeeCards(pensioned)}
                                 </>
                             )}

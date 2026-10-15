@@ -1,4 +1,4 @@
-import styles from './page.module.scss'
+import { committeeCardBodyClassName, committeeCardClassName } from './committeeCardClassNames'
 import PrioritizedCommittees from './PrioritizedCommittees'
 import { default as DateComponent } from '@/components/Date/Date'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -37,6 +37,18 @@ import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
 import type { PageOperationArgs, ServerPageSession } from '@/app/ServerPage'
+
+// The description is whatever length the committee wrote, so it takes the space the card has left and fades out
+// rather than deciding the card's height. On a narrow screen it gives way to the wrapping buttons.
+const committeeParagraphClassName = [
+    'flex-[1_1_auto] min-h-0 mb-2 overflow-hidden max-mobile:max-h-[calc(14*var(--gap))]',
+    '[mask-image:linear-gradient(to_bottom,black_calc(100%-2*var(--gap)),transparent)]',
+].join(' ')
+
+const periodDateItemClassName = [
+    'bg-surface-raised rounded-inner p-3 flex items-center gap-[0.5em] text-text',
+    '[&>b]:text-accent-blue [&>b]:font-medium [&>b]:whitespace-nowrap',
+].join(' ')
 
 export type PropTypes = {
     params: Promise<{
@@ -118,10 +130,10 @@ const { page, generateMetadata } = serverPage({
                 image={part.committee.logoImage}
                 imageSize={170}
             >
-                <div className={styles.committeeCardContent}>
+                <div className="h-full flex flex-col p-2 [&>h2]:shrink-0 [&>h2]:text-l [&>h2]:font-bold [&>h2]:mb-2">
                     <h2>{part.committee.name}</h2>
                     <CmsParagraph
-                        className={styles.committeeParagraph}
+                        className={committeeParagraphClassName}
                         capabilities={{ canEdit: cmsCapabilities.canEditParagraph }}
                         cmsParagraph={part.paragraph}
                         updateCmsParagraphAction={
@@ -131,7 +143,7 @@ const { page, generateMetadata } = serverPage({
                             )
                         }
                     />
-                    <div className={styles.navigation}>
+                    <div className="shrink-0 flex gap-[0.5em] items-center flex-wrap">
                         {
                             userId ? (
                                 <PopUp
@@ -141,7 +153,7 @@ const { page, generateMetadata } = serverPage({
                                             {part.priority === null ? 'Søk nå!' : 'Endre søknad'}
                                         </span>
                                     }
-                                    showButtonClass={styles.applyButton}
+                                    showButtonClass="btn m-0!"
                                 >
                                     <h1>Søknad til {part.committee.name}</h1>
                                     {
@@ -169,7 +181,7 @@ const { page, generateMetadata } = serverPage({
                                                     name="text"
                                                     label="Søknadstekst"
                                                     defaultValue={part.text}
-                                                    className={styles.textarea}
+                                                    className="min-w-[50vw] h-[20vh]"
                                                 />
                                             </Form>
                                         )
@@ -197,18 +209,21 @@ const { page, generateMetadata } = serverPage({
                                         )
                                     }
                                 </PopUp>
-                            ) : <Link href="/login" className={styles.applyButton}>
+                            ) : <Link href="/login" className="btn m-0!">
                             Logg inn for å søke
                             </Link>
                         }
                         <Link
                             href={`/committees/${part.committee.shortName}`}
-                            className={styles.committeeLink}
+                            className="secondary-btn m-0!"
                         >
                         Les mer
                         </Link>
                         <CmsLink
-                            className={styles.videoLink}
+                            className={[
+                                'min-w-0! h-auto! [&>a]:static! [&>a]:w-auto! [&>a]:h-auto!',
+                                '[&>span]:static! [&>span]:w-auto! [&>span]:h-auto!',
+                            ].join(' ')}
                             cmsLink={part.videoLink}
                             disabled={!videoLinkIsSet(part.videoLink)}
                             capabilities={{ canEdit: cmsCapabilities.canEditVideoLink }}
@@ -294,28 +309,28 @@ const { page, generateMetadata } = serverPage({
                     </SettingsHeaderItemPopUp>
                 )
             }>
-                <div className={styles.periodContent}>
-                    <div className={styles.top} />
+                <div className="rounded-round grid grid-cols-1 gap-2 max-mobile:p-2">
+                    <div />
 
-                    <div className={styles.periodDates}>
-                        <div className={styles.periodDateItem}>
+                    <div className="flex flex-wrap gap-2">
+                        <div className={periodDateItemClassName}>
                             <b>Søknadsstart:</b>
                             <DateComponent date={period.startDate} includeTime />
                         </div>
-                        <div className={styles.periodDateItem}>
+                        <div className={periodDateItemClassName}>
                             <b>Søknadsfrist:</b>
                             <DateComponent date={period.endDate} includeTime />
                         </div>
-                        <div className={styles.periodDateItem}>
+                        <div className={periodDateItemClassName}>
                             <b>Frist for prioritering:</b>
                             <DateComponent date={period.endPriorityDate} includeTime />
                         </div>
 
                         {
                             period.endDate.getTime() > (new Date()).getTime() && (
-                                <div className={`${styles.periodDateItem} ${styles.countDownItem}`}>
+                                <div className={`${periodDateItemClassName} flex-wrap`}>
                                     <b>Nedtelling:</b>
-                                    <div className={styles.countDown}>
+                                    <div className="text-m [&_a]:text-inherit [&_a]:no-underline">
                                         <Link href={`/applications/${period.name}/countdown`}>
                                             <CountDown referenceDate={period.endDate} />
                                         </Link>
@@ -325,7 +340,7 @@ const { page, generateMetadata } = serverPage({
                         }
                     </div>
 
-                    <div className={styles.committees}>
+                    <div className="m-0 pt-2 grid gap-2">
                         {
                             userId !== undefined && appliedTo.length > 0 && (
                                 <PrioritizedCommittees
@@ -339,8 +354,8 @@ const { page, generateMetadata } = serverPage({
                         }
                         {
                             notAppliedTo.map(part => (
-                                <div key={part.committee.id} className={styles.committeeCard}>
-                                    <div className={styles.committeeCardBody}>
+                                <div key={part.committee.id} className={committeeCardClassName}>
+                                    <div className={committeeCardBodyClassName}>
                                         {renderCommitteeCard(part, session)}
                                     </div>
                                 </div>

@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import OldNewsList from './OldNewsList'
 import NewsCard from '@/app/news/NewsCard'
 import { OldNewsPagingProvider } from '@/contexts/paging/OldNewsPaging'
@@ -28,7 +27,7 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'Nyhetsarkiv' }),
     render: ({ data: serverRendered }) => (
         <PageWrapper headerItem={
-            <Link href="/news" className={styles.backLink}>
+            <Link href="/news" className="text-text [&_svg]:size-[30px]!">
                 <FontAwesomeIcon icon={faArrowLeft} />
             </Link>
         }>

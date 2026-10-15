@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import AddCategory from './AddCategory'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import ImageCard from '@/components/ImageCard/ImageCard'
@@ -21,7 +20,7 @@ const { page, generateMetadata } = serverPage({
                 </AddHeaderItemPopUp>
             )
         }>
-            <main className={styles.wrapper}>
+            <main className="image-card-list">
                 {
                     categories.length ? (
                         categories.map((category) => (

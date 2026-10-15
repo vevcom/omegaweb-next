@@ -1,5 +1,4 @@
 'use client'
-import styles from './TimeLeft.module.scss'
 import useInterval from '@/hooks/useInterval'
 import { useMemo, useState } from 'react'
 
@@ -26,7 +25,12 @@ export default function TimeLeft({ end }: PropTypes) {
     if (!timeLeft) return null
     if (timeLeft.secs < 0) return null
     return (
-        <div className={styles.Countdown}>
+        <div className={[
+            'flex justify-center items-center gap-[10px] [font-family:Arial,sans-serif] text-[16rem] font-extrabold',
+            'text-accent-red',
+            '[&_div]:py-[10px] [&_div]:px-[20px] [&_div]:rounded-[5px] [&_div]:text-center [&_div]:min-w-[60px]',
+            '[&_span]:text-[13rem] [&_span]:text-ink-strong [&_span]:-translate-y-[5%]',
+        ].join(' ')}>
             {timeLeft.days > 0 && (
                 <>
                     <div>{String(timeLeft.days).padStart(2, '0')}</div>

@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import SpecialCollectionPanel from './SpecialCollectionPanel'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { specialImagePanelOperations } from '@/services/images/specialPanels/operations'
@@ -34,7 +33,9 @@ const { page, generateMetadata } = serverPage({
     metadata: (data) => ({ title: data.collection.name }),
     render: ({ data }) => (
         <PageWrapper>
-            {data.collection.description && <p className={styles.description}>{data.collection.description}</p>}
+            {data.collection.description && (
+                <p className="block text-m text-text-muted mb-4">{data.collection.description}</p>
+            )}
             <main>
                 <SpecialCollectionPanel special={data.specialName} />
             </main>

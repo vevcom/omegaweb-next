@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import LockerNotFound from './LockerNotFound'
 import CreateLockerReservationForm from './CreateLockerReservationForm'
 import UpdateLockerReservationForm from './UpdateLockerReservationForm'
@@ -20,6 +19,9 @@ import { displayDate } from '@/lib/dates/displayDate'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
+
+const lockerClassName = 'flex flex-wrap items-start gap-4 my-4'
+const cardClassName = 'flex-[1_1_320px] max-w-[480px] py-4 px-6 rounded-round bg-surface-raised shadow-soft [&>h2]:mb-0'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ id: string }>) => {
@@ -80,7 +82,7 @@ const { page, generateMetadata } = serverPage({
         if (!data.locker) {
             return (
                 <PageWrapper headerItem={header}>
-                    <div className={styles.locker}>
+                    <div className={lockerClassName}>
                         <LockerNotFound />
                     </div>
                 </PageWrapper>
@@ -92,12 +94,12 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper headerItem={header}>
-                <div className={styles.locker}>
-                    <section className={styles.card}>
+                <div className={lockerClassName}>
+                    <section className={cardClassName}>
                         <h2>Skap {lockerId}</h2>
-                        <p className={styles.location}>{locker.building}, {locker.floor}. etasje</p>
+                        <p className="text-text-muted mb-4">{locker.building}, {locker.floor}. etasje</p>
                         {reservation ? (
-                            <dl className={styles.reservation}>
+                            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 [&>dt]:text-text-muted [&>dd]:m-0">
                                 <dt>Reservert av</dt>
                                 <dd>{reservation.user.firstname} {reservation.user.lastname}</dd>
                                 {groupName && <>
@@ -108,11 +110,11 @@ const { page, generateMetadata } = serverPage({
                                 <dd>{reservation.endDate ? displayDate(reservation.endDate, false) : 'Ubestemt tid'}</dd>
                             </dl>
                         ) : (
-                            <p className={styles.free}>Skapet er ledig</p>
+                            <p className="text-accent-green font-medium">Skapet er ledig</p>
                         )}
                         {reservation && capabilities.canDeactivateReservation.authorized && (
                             <Form
-                                className={styles.actionForm}
+                                className="mt-4"
                                 submitText="Frigi skapet"
                                 submitColor="red"
                                 refreshOnSuccess
@@ -130,7 +132,7 @@ const { page, generateMetadata } = serverPage({
 
                     {reservation
                         ? capabilities.canUpdateReservation.authorized && (
-                            <section className={styles.card}>
+                            <section className={cardClassName}>
                                 <UpdateLockerReservationForm
                                     reservation={{
                                         id: reservation.id,
@@ -142,7 +144,7 @@ const { page, generateMetadata } = serverPage({
                             </section>
                         )
                         : capabilities.canCreateReservation.authorized && (
-                            <section className={styles.card}>
+                            <section className={cardClassName}>
                                 <CreateLockerReservationForm
                                     lockerId={lockerId}
                                     userId={user.id}
@@ -152,7 +154,7 @@ const { page, generateMetadata } = serverPage({
                         )}
 
                     {(capabilities.canUpdateLocker.authorized || capabilities.canDestroyLocker.authorized) && (
-                        <section className={styles.card}>
+                        <section className={cardClassName}>
                             {capabilities.canUpdateLocker.authorized && (
                                 <UpdateLockerForm
                                     lockerId={lockerId}
@@ -161,10 +163,10 @@ const { page, generateMetadata } = serverPage({
                                 />
                             )}
                             {capabilities.canDestroyLocker.authorized && (reservation ? (
-                                <p className={styles.blocked}>Skapet er reservert. Frigi det før det slettes.</p>
+                                <p className="mt-4 text-text-muted">Skapet er reservert. Frigi det før det slettes.</p>
                             ) : (
                                 <Form
-                                    className={styles.actionForm}
+                                    className="mt-4"
                                     submitText="Slett skapet"
                                     submitColor="red"
                                     navigateOnSuccess="/lockers"

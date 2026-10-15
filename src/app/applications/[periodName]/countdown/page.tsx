@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import Countdown from './Countdown'
 import { applicationPeriodOperations } from '@/services/applications/periods/operations'
 import { serverPage } from '@/app/ServerPage'
@@ -12,7 +11,7 @@ const { page, generateMetadata } = serverPage({
             }
         }),
     render: ({ data: period }) => (
-        <div className={styles.wrapper}>
+        <div className="block w-screen h-screen">
             <Countdown period={period} />
         </div>
     ),

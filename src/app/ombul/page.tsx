@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import CreateOmbul from './CreateOmbul'
 import OmbulCover from './OmbulCover'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -42,12 +41,12 @@ const { page, generateMetadata } = serverPage({
                     )
                 }
             >
-                <div className={styles.wrapper}>
+                <div className="mt-4 flex flex-col">
                     {
                         yearsWithOmbul.map(([year, ombulsInYear]) => (
                             <div key={year}>
                                 <h1>{year}</h1>
-                                <div className={styles.ombulList}>
+                                <div className="w-full image-card-list [&>*]:w-full">
                                     {
                                         ombulsInYear.map(ombul => (
                                             <OmbulCover key={ombul.id} ombul={ombul} />

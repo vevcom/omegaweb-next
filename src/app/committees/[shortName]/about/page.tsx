@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import {
     updateCommitteeArticleAction,
     updateCommitteeArticleAddSectionAction,
@@ -37,7 +36,7 @@ const { page, generateMetadata } = serverPage({
         const { shortName } = data.committee
 
         return (
-            <div className={styles.wrapper}>
+            <div className="min-h-[500px]">
                 <Article
                     capabilities={capabilities}
                     article={data.article}
