@@ -27,7 +27,6 @@ async function createCommittee(shortName: string) {
             group: { create: { groupType: 'COMMITTEE', order: latestOrder.order } },
             committeeArticle: { create: { name: shortName, coverImage: { create: {} } } },
             paragraph: { create: {} },
-            applicationParagraph: { create: {} },
         },
         select: { id: true },
     })
@@ -78,7 +77,13 @@ beforeAll(async () => {
             startDate: new Date(Date.now() - day),
             endDate: new Date(Date.now() + day),
             endPriorityDate: new Date(Date.now() + 2 * day),
-            committeesParticipating: { create: [{ committeeId: committeeA.id }, { committeeId: committeeB.id }] },
+            committeesParticipating: {
+                create: [committeeA.id, committeeB.id].map(committeeId => ({
+                    committee: { connect: { id: committeeId } },
+                    paragraph: { create: {} },
+                    videoLink: { create: {} },
+                })),
+            },
         },
         include: { committeesParticipating: true },
     })

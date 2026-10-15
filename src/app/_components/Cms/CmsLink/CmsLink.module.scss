@@ -4,7 +4,7 @@
     position: relative;
     min-width: 70px; 
     height: 30px;
-    > a {
+    > a, > span {
         &.primary {
             @include ohma.btn(ohma.$colors-accent-blue);
             margin: 0;
@@ -21,6 +21,14 @@
         display: flex;
         justify-content: center;
         align-items: center;
+    }
+    > .disabled {
+        opacity: 0.5;
+        cursor: default;
+
+        &:hover {
+            background: ohma.$colors-surface-hover;
+        }
     }
     > * {
         position: absolute;
