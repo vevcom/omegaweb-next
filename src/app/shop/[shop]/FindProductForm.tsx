@@ -1,5 +1,5 @@
 'use client'
-import { createShopProductConnectionAction } from '@/services/shop/product/actions'
+import { connectShopProductAction } from '@/services/shop/shop/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
 import NumberInput from '@/components/UI/NumberInput'
@@ -17,7 +17,7 @@ export default function FindProductForm({
     if (products.length === 0) return null
 
     return <Form
-        action={configureAction(createShopProductConnectionAction, { params: { shopId } })}
+        action={configureAction(connectShopProductAction, { params: { shopId } })}
         submitText="Legg til produkt"
         refreshOnSuccess
         closePopUpOnSuccess="addProductToShop"
@@ -27,6 +27,6 @@ export default function FindProductForm({
             label: product.name,
             value: product.id,
         }))} />
-        <NumberInput name="price" label="Pris" step={0.01} min={1} />
+        <NumberInput name="optionalPrice" label="Pris (tom for produktets foreslåtte pris)" step={0.01} min={1} />
     </Form>
 }

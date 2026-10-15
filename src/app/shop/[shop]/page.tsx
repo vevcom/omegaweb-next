@@ -12,8 +12,6 @@ import { serverPage, withFallback } from '@/app/serverPage'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import { Require } from '@/auth/authorizer/Require'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
-import { productOperations } from '@/services/shop/product/operations'
-import { productAuth } from '@/services/shop/product/auth'
 import { purchaseAuth } from '@/services/shop/purchase/auth'
 import { shopOperations } from '@/services/shop/shop/operations'
 import { shopAuth } from '@/services/shop/shop/auth'
@@ -23,24 +21,23 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ shop: string }>) => {
         const shop = await shopOperations.read({ params: { shopId: parseInt(params.shop, 10) } })
 
-        // The catalogue and the accounts feed the controls of those who administer the shop, so
-        // they are loaded for no one else. Each falls back to empty rather than taking the page
-        // down: an administrator without PRODUCT_USE can still create products from here.
+        // The products to connect and the accounts feed the controls of those who administer the
+        // shop, so they are loaded for no one else. Each falls back to empty rather than taking
+        // the page down.
         const administers = administersShop(shop.visibility).auth(session).authorized
-        const [allProducts, ledgerAccounts] = administers
+        const [unconnectedProducts, ledgerAccounts] = administers
             ? await Promise.all([
-                withFallback(productOperations.readMany({}), []),
+                withFallback(shopOperations.readProductsToConnect({ params: { shopId: shop.id } }), []),
                 withFallback(ledgerAccountOperations.readAccessible({
                     params: { includeGroupAccounts: true, includeUserAccounts: false },
                 }), []),
             ])
             : [[], []]
-        const soldProductIds = new Set(shop.products.map(product => product.id))
 
         return {
             shop,
             userId: session.user?.id ?? null,
-            unconnectedProducts: allProducts.filter(product => !soldProductIds.has(product.id)),
+            unconnectedProducts,
             ledgerAccounts,
         }
     },
@@ -55,9 +52,9 @@ const { page, generateMetadata } = serverPage({
             visibility: data.shop.visibility,
             accounts: data.ledgerAccounts.map(account => account.ownership),
         }),
-        canCreateProduct: productAuth.createForShop.data({ visibility: data.shop.visibility }),
-        canAddProduct: productAuth.createShopConnection.data({ visibility: data.shop.visibility }),
-        canUpdateProduct: productAuth.updateForShop.data({ visibility: data.shop.visibility }),
+        canCreateProduct: shopAuth.createProduct.data({ visibility: data.shop.visibility }),
+        canAddProduct: shopAuth.connectProduct.data({ visibility: data.shop.visibility }),
+        canUpdateProduct: shopAuth.updateProduct.data({ visibility: data.shop.visibility }),
     }),
     metadata: (data) => ({ title: data.shop.name }),
     render: ({ data: { shop, userId, unconnectedProducts, ledgerAccounts }, capabilities }) => (
@@ -70,7 +67,7 @@ const { page, generateMetadata } = serverPage({
                                 <FindProductForm shopId={shop.id} products={unconnectedProducts} />
                             )}
                             {capabilities.canCreateProduct.authorized && (
-                                <EditProductForShopForm shopId={shop.id} closePopUpOnSuccess="addProductToShop" />
+                                <EditProductForShopForm shop={shop} closePopUpOnSuccess="addProductToShop" />
                             )}
                         </AddHeaderItemPopUp>
                     )}

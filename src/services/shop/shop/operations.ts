@@ -96,7 +96,9 @@ export const shopOperations = {
                 include: {
                     ShopProduct: {
                         include: {
-                            product: true,
+                            product: {
+                                include: { _count: { select: { ShopProduct: true } } },
+                            },
                         },
                     },
                     ledgerAccount: { select: { id: true, name: true } },
@@ -105,10 +107,11 @@ export const shopOperations = {
 
             return {
                 ...shop,
-                products: ShopProduct.map(shopProduct => ({
-                    price: shopProduct.price,
-                    active: shopProduct.active,
-                    ...shopProduct.product,
+                products: ShopProduct.map(({ price, active, product: { _count, ...product } }) => ({
+                    price,
+                    active,
+                    ...product,
+                    soldElsewhere: _count.ShopProduct > 1,
                 })),
                 visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
             }
@@ -161,5 +164,89 @@ export const shopOperations = {
                 data: { ledgerAccountId: data.ledgerAccountId },
             })
         },
+    }),
+
+    /**
+     * Creates a product and puts it on sale in the shop in the same write. The price it is sold
+     * for becomes the product's suggested price, for the next shop to connect it.
+     */
+    createProduct: defineOperation({
+        authorizer: async ({ params, prisma }) => shopAuth.createProduct.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+        }),
+        paramsSchema: shopSchemas.params.createProduct,
+        dataSchema: shopSchemas.data.createProduct,
+        operation: async ({ prisma, params, data: { price, ...product } }) => prisma.product.create({
+            data: {
+                ...product,
+                suggestedPrice: price,
+                ShopProduct: {
+                    create: { price, shopId: params.shopId },
+                },
+            },
+        }),
+    }),
+
+    /**
+     * Puts a product that already exists on sale in the shop, at the given price or, without
+     * one, at the product's suggested price.
+     */
+    connectProduct: defineOperation({
+        authorizer: async ({ params, prisma }) => shopAuth.connectProduct.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+        }),
+        paramsSchema: shopSchemas.params.connectProduct,
+        dataSchema: shopSchemas.data.connectProduct,
+        operation: async ({ prisma, params, data }) => {
+            const product = await prisma.product.findUniqueOrThrow({
+                where: { id: data.productId },
+                select: { suggestedPrice: true },
+            })
+            const price = data.optionalPrice ?? product.suggestedPrice
+            if (price === null) {
+                throw new ServiceError('BAD PARAMETERS', 'Produktet har ingen foreslått pris, så prisen må oppgis.')
+            }
+
+            return prisma.shopProduct.create({
+                data: {
+                    shopId: params.shopId,
+                    productId: data.productId,
+                    price,
+                },
+            })
+        },
+    }),
+
+    /** Changes the price of a product in the shop, and whether it is on sale there. */
+    updateProduct: defineOperation({
+        authorizer: async ({ params, prisma }) => shopAuth.updateProduct.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({
+                params: { shopId: params.shopId },
+                prisma,
+            }),
+        }),
+        paramsSchema: shopSchemas.params.updateProduct,
+        dataSchema: shopSchemas.data.updateProduct,
+        operation: async ({ prisma, params, data }) => prisma.shopProduct.update({
+            where: {
+                shopId_productId: {
+                    shopId: params.shopId,
+                    productId: params.productId,
+                },
+            },
+            data,
+        }),
+    }),
+
+    /** The products of the catalogue the shop does not sell yet, for its administrators to pick from. */
+    readProductsToConnect: defineOperation({
+        authorizer: async ({ params, prisma }) => shopAuth.readProductsToConnect.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+        }),
+        paramsSchema: shopSchemas.params.readProductsToConnect,
+        operation: async ({ prisma, params }) => prisma.product.findMany({
+            where: { ShopProduct: { none: { shopId: params.shopId } } },
+            orderBy: { name: 'asc' },
+        }),
     }),
 } as const

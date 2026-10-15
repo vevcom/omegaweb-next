@@ -1,4 +1,5 @@
 import { Zpn } from '@/lib/fields/zpn'
+import { productDataFieldSchemas } from '@/services/shop/product/schemas'
 import { visibilityRequirementsSchema } from '@/services/visibility/schemas'
 import { z } from 'zod'
 
@@ -22,6 +23,7 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     shopId: z.number(),
+    productId: z.number(),
 })
 
 /** What a shop is called and how it is described. */
@@ -46,11 +48,34 @@ export const shopSchemas = {
         connectToLedger: dataFieldSchemas.pick({
             ledgerAccountId: true,
         }),
+        // A product created from a shop is what the product service stores, at a price the shop
+        // sells it for, which also becomes its suggested price.
+        createProduct: productDataFieldSchemas.pick({
+            name: true,
+            description: true,
+            barcode: true,
+            price: true,
+        }),
+        connectProduct: productDataFieldSchemas.pick({
+            productId: true,
+            optionalPrice: true,
+        }),
+        updateProduct: productDataFieldSchemas.pick({
+            price: true,
+            active: true,
+        }),
     },
     params: {
         visibility: shopId,
         read: shopId,
         update: shopId,
         connectToLedger: shopId,
+        createProduct: shopId,
+        connectProduct: shopId,
+        updateProduct: paramsFieldSchemas.pick({
+            shopId: true,
+            productId: true,
+        }),
+        readProductsToConnect: shopId,
     },
 }

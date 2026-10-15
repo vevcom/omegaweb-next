@@ -3,6 +3,7 @@ import styles from './page.module.scss'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { sortObjectsByName } from '@/lib/sortObjects'
+import { displayAmount } from '@/lib/currency/convert'
 import { productOperations } from '@/services/shop/product/operations'
 import { productAuth } from '@/services/shop/product/auth'
 import { serverPage } from '@/app/serverPage'
@@ -29,6 +30,7 @@ const { page, generateMetadata } = serverPage({
                         <th>Produkt</th>
                         <th>Beskrivelse</th>
                         <th>Strekkode</th>
+                        <th>Foreslått pris</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -45,6 +47,7 @@ const { page, generateMetadata } = serverPage({
                         </td>
                         <td>{product.description}</td>
                         <td>{product.barcode ?? ''}</td>
+                        <td>{product.suggestedPrice === null ? '' : displayAmount(product.suggestedPrice, false)}</td>
                     </tr>)}
                 </tbody>
             </table>

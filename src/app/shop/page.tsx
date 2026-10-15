@@ -7,7 +7,6 @@ import { sortObjectsByName } from '@/lib/sortObjects'
 import { shopOperations } from '@/services/shop/shop/operations'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { productAuth } from '@/services/shop/product/auth'
-import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/serverPage'
 import { faBox } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
@@ -17,7 +16,7 @@ const { page, generateMetadata } = serverPage({
     capabilities: () => ({
         canCreateShop: shopAuth.create,
         // The product catalogue is for those who administer products across shops.
-        canAdministerProducts: Require.anyOf(productAuth.create, productAuth.update),
+        canAdministerProducts: productAuth.readMany,
     }),
     metadata: () => ({ title: 'Butikker' }),
     render: ({ data: shops, capabilities }) => (

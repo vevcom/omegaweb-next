@@ -9,12 +9,11 @@ import { createPurchaseAction } from '@/services/shop/purchase/actions'
 import { useState } from 'react'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import type { ExtendedProduct } from '@/services/shop/product/types'
-import type { ExtendedShop } from '@/services/shop/shop/types'
+import type { ExtendedShop, ShopPageProduct } from '@/services/shop/shop/types'
 import type { Dispatch, SetStateAction } from 'react'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
-type ProductInCart = ExtendedProduct & { quantity: number }
+type ProductInCart = ShopPageProduct & { quantity: number }
 
 type ShoppingCart = {
     products: Record<number, ProductInCart>,
@@ -110,7 +109,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                                     popUpKey={`editProductForShop-${product.id}`}
                                 >
                                     <EditProductForShopForm
-                                        shopId={shop.id}
+                                        shop={shop}
                                         product={product}
                                         closePopUpOnSuccess={`editProductForShop-${product.id}`}
                                     />
@@ -208,11 +207,11 @@ function emptied(shoppingCart: ShoppingCart): ShoppingCart {
     }
 }
 
-function addProduct(product: ExtendedProduct, shoppingCart: ShoppingCart, editShoppingCart: EditShoppingCart) {
+function addProduct(product: ShopPageProduct, shoppingCart: ShoppingCart, editShoppingCart: EditShoppingCart) {
     editShoppingCart(withQuantity(shoppingCart, product.id, shoppingCart.products[product.id].quantity + 1))
 }
 
-function removeProduct(product: ExtendedProduct, shoppingCart: ShoppingCart, editShoppingCart: EditShoppingCart) {
+function removeProduct(product: ShopPageProduct, shoppingCart: ShoppingCart, editShoppingCart: EditShoppingCart) {
     editShoppingCart(withQuantity(shoppingCart, product.id, Math.max(0, shoppingCart.products[product.id].quantity - 1)))
 }
 

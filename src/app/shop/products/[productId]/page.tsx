@@ -4,6 +4,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { displayAmount } from '@/lib/currency/convert'
 import { productOperations } from '@/services/shop/product/operations'
 import { productAuth } from '@/services/shop/product/auth'
+import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { serverPage } from '@/app/serverPage'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/serverPage'
@@ -13,7 +14,8 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ productId: string }>) =>
         productOperations.read({ params: { productId: Number(params.productId) } }),
     capabilities: () => ({
-        canUpdateProduct: productAuth.update,
+        // The catalogue is SHOP_ADMIN's, which bypasses the shop level the rule otherwise takes.
+        canUpdateProduct: productAuth.update.data({ visibility: EMPTY_VISIBILITY }),
     }),
     metadata: (product) => ({ title: product.name }),
     render: ({ data: product, capabilities }) => (
