@@ -27,7 +27,7 @@ const dateOrderMessage = 'Til dato kan ikke være før fra dato'
 const dataFieldSchemas = z.object({
     title: z.string().min(2, 'min length is 2').max(80, 'max length is 80'),
     text: z.string().min(2, 'min length is 2').max(300, 'max length is 300'),
-    link: z.string().min(1, 'link kan ikke være tom').refine(isSafePromoLink, safePromoLinkMessage),
+    link: z.string().min(1, 'Lenken kan ikke være tom').refine(isSafePromoLink, safePromoLinkMessage),
     startDate: Zpn.date({ label: 'Fra dato' }),
     endDate: Zpn.date({ label: 'Til dato' }),
 })
