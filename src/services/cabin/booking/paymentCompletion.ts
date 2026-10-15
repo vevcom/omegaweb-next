@@ -1,5 +1,5 @@
 import { sendCabinBookingConfirmationMail } from '@/lib/email/systemMail/cabinBookingConfirmation'
-import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { refundOperations } from '@/services/ledger/refunds/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import logger from '@/lib/logger'
 import type { ConfirmedBooking } from '@/lib/email/systemMail/cabinBookingConfirmation'
@@ -66,7 +66,7 @@ export async function cabinBookingPaymentCompletionHook(
                 bypassAuth: true,
                 prisma,
             })
-            await ledgerTransactionOperations.refund({
+            await refundOperations.refund({
                 params: {
                     originalTransactionId: transaction.id,
                     reason: 'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk.',
@@ -82,8 +82,8 @@ export async function cabinBookingPaymentCompletionHook(
             // A guest booking has no session and no ledger account to credit. This needs a
             // human to issue an actual Stripe refund.
             logger.error(
-                `Booking ${booking.id} double-booked after a late payment success with no user `
-                + 'account to refund to automatically - needs manual handling.'
+                `MANUAL ADMIN ACTION REQUIRED! Booking ${booking.id} double-booked after a late `
+                + 'payment success with no user account to refund to automatically.'
             )
         }
         return

@@ -18,7 +18,8 @@ import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } f
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
-import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
+import { refundOperations } from '@/services/ledger/refunds/operations'
+import { stalePendingTransactionMs, paidAndNotRefundedFilter } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -166,10 +167,10 @@ export const eventRegistrationOperations = {
                 },
                 include: {
                     event: { select: { places: true } },
-                    // Only need to know whether a successful payment exists, to gate the
-                    // "pay for registration" UI once it's already been paid for.
+                    // Only need to know whether a payment exists and is still in effect, to gate
+                    // the "pay for registration" UI once it's already been paid for.
                     ledgerTransactions: {
-                        where: { state: 'SUCCEEDED' },
+                        where: paidAndNotRefundedFilter,
                         select: { id: true },
                     },
                 },
@@ -306,7 +307,7 @@ export const eventRegistrationOperations = {
                     // This is a full reversal, not a single-sided credit. The original
                     // transaction SUCCEEDED, so both sides, the debited payer and the credited
                     // committee, actually took effect and both need undoing.
-                    await ledgerTransactionOperations.refund({
+                    await refundOperations.refund({
                         params: {
                             originalTransactionId: paidTransaction.id,
                             reason: 'Avregistrert fra betalt arrangement.',

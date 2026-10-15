@@ -85,8 +85,14 @@ model LedgerTransaction {
   description String? // Manual comment describing what the transaction was for, e.g. "Kjøp av kiogeskapsvarer".
 
   ledgerEntries LedgerEntry[]
-  payment       Payment?      @relation(fields: [paymentId], references: [id])
-  paymentId     Int?          @unique
+  payment       Payment? @relation("PaymentUsage", fields: [paymentId], references: [id])
+  paymentId     Int?
+
+  // The payment this transaction is the one that successfully claimed, if any, which is the
+  // inverse of Payment.claimedBy. A transaction can have a `payment` without this ever being
+  // set, if it lost the race to use it, or never got far enough to try. See
+  // Payment.claimedByTransactionId.
+  claimsPayment Payment? @relation("PaymentClaim")
 
   // Relevant relations to other tables based on purpose. Not unique: a failed payment attempt
   // can be retried, leaving a new transaction referencing the same registration/booking/purchase.
@@ -98,13 +104,43 @@ model LedgerTransaction {
   purchaseId          Int?
   // deposit Deposit
   // payout Payout
-  // refund
+
+  // Set when this transaction is the one being corrected, or the one doing the correcting. See
+  // the Refund model below. A transaction may be corrected at most once, in full.
+  refundOf   Refund? @relation("RefundOriginal")
+  refundedBy Refund? @relation("RefundCredit")
 
   // Present only for transactions migrated from OmegaWeb Basic (see LegacyLedgerTransaction).
   legacy LegacyLedgerTransaction?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum RefundType {
+  // The original transaction SUCCEEDED and is being reversed, in full.
+  REVERSAL
+  // The original FAILED or was CANCELED, but its payment was captured regardless.
+  REIMBURSEMENT
+}
+
+// Records that refundTransaction, a REFUND transaction, corrects originalTransaction, an
+// earlier one. For example, a Stripe charge succeeded after the local payment was canceled, an
+// account was frozen after Stripe had already captured the money, or someone unregistered from
+// a paid event. This is kept deliberately thin. The money movement itself is just another
+// LedgerTransaction, purpose REFUND. This model only records why, which two transactions it
+// connects, and what type of correction it was. A transaction may be corrected once, in full.
+// See LedgerTransaction.refundOf.
+model Refund {
+  id                    Int               @id @default(autoincrement())
+  originalTransaction   LedgerTransaction @relation("RefundOriginal", fields: [originalTransactionId], references: [id])
+  originalTransactionId Int               @unique
+  refundTransaction     LedgerTransaction @relation("RefundCredit", fields: [refundTransactionId], references: [id])
+  refundTransactionId   Int               @unique
+  reason                String
+  type                  RefundType
+
+  createdAt DateTime @default(now())
 }
 
 // Identifies which OmegaWeb Basic (OW) table a migrated transaction originated from.
@@ -203,8 +239,18 @@ model Payment {
   stripePayment    StripePayment?
   manualPayment    ManualPayment?
 
-  // Which ledger transaction this payment is part
-  ledgerTransaction LedgerTransaction?
+  // Every transaction ever created against this payment, normally exactly one. A transaction
+  // whose entries never took effect, because it ended FAILED or CANCELED, leaves this payment's
+  // funds unclaimed, so a later reimbursement can reference the same payment again instead of
+  // inventing a second one. At most one of these may ever reach SUCCEEDED. See
+  // claimedByTransactionId.
+  ledgerTransactions LedgerTransaction[] @relation("PaymentUsage")
+
+  // Set, once, by whichever transaction actually succeeds using this payment. Null means nobody
+  // has yet. The atomic claim in ledgerTransactionOperations.advance guarantees at most one ever
+  // can.
+  claimedByTransactionId Int?               @unique
+  claimedBy              LedgerTransaction? @relation("PaymentClaim", fields: [claimedByTransactionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

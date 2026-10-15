@@ -270,7 +270,23 @@ export const ledgerTransactionOperations = {
             })
             const frozenAccountIds = new Set(frozenAccounts.map(account => account.id))
 
-            const transition = await determineTransactionState({ transaction, balances, frozenAccountIds })
+            let transition = await determineTransactionState({ transaction, balances, frozenAccountIds })
+
+            // A payment may be shared by more than one transaction, see Payment.ledgerTransactions,
+            // but only one of them may ever succeed with it. Claim it atomically here, the moment
+            // this transaction is about to become the one. `transaction.state` is still the state
+            // from the read at the top of this function, so this only runs on the call that's
+            // actually driving a fresh PENDING -> SUCCEEDED transition, never on a retry of an
+            // already-terminal transaction.
+            if (transaction.state === 'PENDING' && transition.state === 'SUCCEEDED' && transaction.payment) {
+                const { count: claimed } = await prisma.payment.updateMany({
+                    where: { id: transaction.payment.id, claimedByTransactionId: null },
+                    data: { claimedByTransactionId: params.id },
+                })
+                if (claimed === 0) {
+                    transition = { state: 'FAILED', reason: 'Betalingen er allerede brukt av en annen transaksjon.' }
+                }
+            }
 
             // We use `updateMany` in stead of just `update` here because
             // we don't want to throw in case the record is not found.
@@ -299,6 +315,12 @@ export const ledgerTransactionOperations = {
             if (count > 0 && transaction.state === 'SUCCEEDED') {
                 await runPaymentCompletionHook(transaction, { prisma })
             }
+
+            // A transaction whose payment already succeeded but which still ends up FAILED here,
+            // for example because an account was frozen after the webhook arrived, needs the
+            // payer credited back. See stripeWebhookCallback.ts, which checks for exactly this
+            // right after its own call to advance. Not handled here, to avoid transactions/ and
+            // refunds/ needing to import each other.
 
             return transaction
         }

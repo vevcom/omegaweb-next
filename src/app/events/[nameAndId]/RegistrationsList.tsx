@@ -48,6 +48,7 @@ function DetailedTable({
                         <th>Mobil</th>
                         <th>Allergier</th>
                         <th>Notat</th>
+                        <th>Betalt</th>
                         {attendanceTakerId !== null && <th>Møtt</th>}
                         <th>Slett</th>
                     </tr>
@@ -55,7 +56,7 @@ function DetailedTable({
                 <tbody>
                     <EndlessScroll
                         pagingContext={EventRegistrationDetailedPagingContext}
-                        loadingInfoWrapper={loadingInfo => <tr><td colSpan={6}>{loadingInfo}</td></tr>}
+                        loadingInfoWrapper={loadingInfo => <tr><td colSpan={8}>{loadingInfo}</td></tr>}
                         renderer={row => {
                             const name = row.user ? <Link href={`/users/${row.user.username}`}>
                                 <UserDisplayName user={row.user} width={20} />
@@ -66,6 +67,7 @@ function DetailedTable({
                                 <td>{row.user ? row.user.mobile : row.contact?.mobile}</td>
                                 <td>{row.user ? row.user.allergies : 'Ukjent'}</td>
                                 <td>{row.note}</td>
+                                <td>{row.ledgerTransactions.length > 0 ? 'Ja' : 'Nei'}</td>
                                 {attendanceTakerId !== null && <td>
                                     <Form
                                         action={configureAction(
