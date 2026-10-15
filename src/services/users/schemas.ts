@@ -116,7 +116,6 @@ export const userSchemas = {
         }),
 
         register: userDataFieldSchemas.pick({
-            mobile: true,
             allergies: true,
             password: true,
             confirmPassword: true,

@@ -163,10 +163,6 @@ const destroy = defineOperation({
                 prisma: tx,
                 params: { paragraphId: deleted.paragraphId },
             })
-            await cmsParagraphOperations.destroy.internalCall({
-                prisma: tx,
-                params: { paragraphId: deleted.applicationParagraphId },
-            })
             await articleOperations.destroy.internalCall({
                 prisma: tx,
                 params: { articleId: deleted.committeeArticleId },
@@ -220,11 +216,6 @@ const create = defineOperation({
                 data: { name: `Paragraph for ${data.name}` },
                 operationImplementationFields: { special: null }
             })
-            const applicationParagraph = await cmsParagraphOperations.create.internalCall({
-                prisma: tx,
-                data: { name: `Søknadstekst for ${data.name}` },
-                operationImplementationFields: { special: null }
-            })
 
             const order = (await omegaOrderOperations.readCurrent({ bypassAuth: true })).order
 
@@ -251,11 +242,6 @@ const create = defineOperation({
                     committeeArticle: {
                         connect: {
                             id: article.id
-                        }
-                    },
-                    applicationParagraph: {
-                        connect: {
-                            id: applicationParagraph.id
                         }
                     }
                 },

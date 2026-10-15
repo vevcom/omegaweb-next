@@ -1,4 +1,5 @@
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
+import { videoLinkDefaultText, videoLinkUnsetUrl } from '@/services/applications/committeeParticipation/constants'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 /**
@@ -58,8 +59,23 @@ export const seedDevApplicationsAndPeriods = defineSeedOperation(async (prisma: 
             },
             update: {},
             create: {
-                committeeId: committee.id,
-                applicationPeriodId: applicationPeriod.id,
+                committee: { connect: { id: committee.id } },
+                applicationPeriod: { connect: { id: applicationPeriod.id } },
+                paragraph: {
+                    create: {
+                        contentMd: `${committee.name} søker nye medlemmer!\n\n${applicationText}`,
+                        contentHtml: `<p>${committee.name} søker nye medlemmer!</p><p>${applicationText}</p>`,
+                    }
+                },
+                videoLink: {
+                    create: {
+                        text: videoLinkDefaultText,
+                        // Every other one unset, so both states show up in dev.
+                        url: committee.id % 2 === 0
+                            ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+                            : videoLinkUnsetUrl,
+                    }
+                },
             },
         })
         await prisma.application.createMany({

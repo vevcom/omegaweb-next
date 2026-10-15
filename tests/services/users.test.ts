@@ -25,7 +25,6 @@ const sessionOf = (user: Awaited<ReturnType<typeof createInvitedUser>>) =>
     Session.fromJsObject({ user, permissions: [], memberships: [] })
 
 const registrationData = (password = PASSWORD, confirmPassword = password) => ({
-    mobile: '12345678',
     allergies: 'Ingen',
     password,
     confirmPassword,
@@ -58,7 +57,7 @@ describe('register', () => {
         })
 
         expect(registered.acceptedTerms).toBeInstanceOf(Date)
-        expect(registered).toMatchObject({ mobile: '12345678', allergies: 'Ingen', sex: 'OTHER', imageConsent: true })
+        expect(registered).toMatchObject({ allergies: 'Ingen', sex: 'OTHER', imageConsent: true })
         expect(await passwordMatches(user.id, PASSWORD)).toBe(true)
     })
 

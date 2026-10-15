@@ -44,9 +44,10 @@ model CmsParagraph {
   special             SpecialCmsParagraph? @unique
   Event               Event?
   Committee           Committee?           @relation(name: "committeeParagraph")
-  CommitteApplication Committee?           @relation(name: "applicationParagraph")
   Ombul               Ombul?
   User                User?
+
+  committeeParticipation CommitteeParticipationInApplicationPeriod?
 }
 
 enum SpecialCmsLink {
@@ -63,6 +64,8 @@ model CmsLink {
   special          SpecialCmsLink? @unique
   articleSection   ArticleSection? @relation(fields: [articleSectionId], references: [id], onDelete: Cascade)
   articleSectionId Int?            @unique
+
+  committeeParticipation CommitteeParticipationInApplicationPeriod?
 }
 
 enum Position {

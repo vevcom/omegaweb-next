@@ -12,7 +12,7 @@ const { page, generateMetadata } = serverPage({
     },
     render: ({ data: permissions }) => (
         <div className={styles.wrapper}>
-            <h2>Tillganger:</h2>
+            <h2>Tilganger:</h2>
             <ul>
                 {permissions.map(permission =>
                     <Permission key={permission} permission={permission} className={styles.permission} />

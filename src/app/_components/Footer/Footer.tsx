@@ -11,6 +11,7 @@ async function Footer() {
             <div>
                 <StandardImageServer
                     standardImage="LOGO_WHITE_TEXT"
+                    className={styles.logo}
                     width={350}
                     tint="var(--text)"
                     tintAspectRatio={1657.3333 / 210.66667}

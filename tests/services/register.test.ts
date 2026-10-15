@@ -24,7 +24,6 @@ async function createUnregisteredUser(username: string, emailVerified: string | 
 const registrationData = {
     password: 'EtVeldigLangtPassord1',
     confirmPassword: 'EtVeldigLangtPassord1',
-    mobile: '12345678',
     acceptedTerms: true,
 }
 

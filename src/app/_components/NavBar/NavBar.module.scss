@@ -50,6 +50,7 @@
     margin-left: ohma.$gap;
     display: flex;
     align-items: center;
+    min-width: 0;
 }
 
 .pageTitle {
@@ -60,6 +61,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 40ch;
+    min-width: 0;
     margin-left: ohma.$gap;
 }
 

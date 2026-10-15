@@ -5,13 +5,17 @@ const paramsFieldSchemas = z.object({
     committeeId: z.number(),
 })
 
+const participation = paramsFieldSchemas.pick({
+    participationId: true,
+})
+
 export const committeeParticipationSchemas = {
     params: {
-        read: paramsFieldSchemas.pick({
-            participationId: true,
-        }),
+        read: participation,
         readAll: paramsFieldSchemas.pick({
             committeeId: true,
         }),
+        updateParagraphContent: participation,
+        updateVideoLink: participation,
     },
 }

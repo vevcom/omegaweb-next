@@ -5,6 +5,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import CountDown from '@/components/countDown/CountDown'
 import BackdropImage from '@/components/BackdropImage/BackdropImage'
 import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
+import CmsLink from '@/components/Cms/CmsLink/CmsLink'
 import PopUp from '@/components/PopUp/PopUp'
 import Textarea from '@/components/UI/Textarea'
 import Form from '@/components/Form/Form'
@@ -16,22 +17,24 @@ import {
     destroyApplicationAction,
 } from '@/services/applications/actions'
 import { applicationOperations } from '@/services/applications/operations'
-import { updateCommitteeParagraphAction } from '@/services/groups/committees/actions'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import {
     destroyApplicationPeriodAction,
     removeAllApplicationTextsAction,
 } from '@/services/applications/periods/actions'
 import { applicationPeriodOperations } from '@/services/applications/periods/operations'
+import {
+    updateCommitteeParticipationParagraphAction,
+    updateCommitteeParticipationVideoLinkAction,
+} from '@/services/applications/committeeParticipation/actions'
+import { committeeParticipationAuth } from '@/services/applications/committeeParticipation/auth'
+import { videoLinkIsSet } from '@/services/applications/committeeParticipation/constants'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
 import { applicationAuth } from '@/services/applications/auth'
 import { configureAction } from '@/services/configureAction'
-import { committeeAuth } from '@/services/groups/committees/auth'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/serverPage'
-import { faVideo } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 import type { PageOperationArgs, ServerPageSession } from '@/app/serverPage'
 
@@ -101,8 +104,17 @@ const { page, generateMetadata } = serverPage({
 
         type CommitteeParticipation = typeof periodWithApplications.committeesParticipating[number]
 
-        const renderCommitteeCard = (part: CommitteeParticipation, sessionOfRequest: ServerPageSession) => (
-            <BackdropImage
+        const renderCommitteeCard = (part: CommitteeParticipation, sessionOfRequest: ServerPageSession) => {
+            const cmsCapabilities = runCapabilities(sessionOfRequest, {
+                canEditParagraph: committeeParticipationAuth.updateParagraphContent.data({
+                    groupId: part.committee.groupId,
+                }),
+                canEditVideoLink: committeeParticipationAuth.updateVideoLink.data({
+                    groupId: part.committee.groupId,
+                }),
+            })
+
+            return (<BackdropImage
                 image={part.committee.logoImage}
                 imageSize={170}
             >
@@ -110,17 +122,12 @@ const { page, generateMetadata } = serverPage({
                     <h2>{part.committee.name}</h2>
                     <CmsParagraph
                         className={styles.committeeParagraph}
-                        capabilities={runCapabilities(sessionOfRequest, {
-                            canEdit: Require.allOf(
-                                committeeAuth.updateParagraphContent.data({ groupId: part.committee.groupId }),
-                                Require.custom(() => !part.committee.pensioned, { errorMessage: 'Komiteen er pensjonert' }),
-                            ),
-                        })}
-                        cmsParagraph={part.committee.paragraph}
+                        capabilities={{ canEdit: cmsCapabilities.canEditParagraph }}
+                        cmsParagraph={part.paragraph}
                         updateCmsParagraphAction={
                             configureAction(
-                                updateCommitteeParagraphAction,
-                                { implementationParams: { shortName: part.committee.shortName } }
+                                updateCommitteeParticipationParagraphAction,
+                                { implementationParams: { participationId: part.id } }
                             )
                         }
                     />
@@ -200,20 +207,22 @@ const { page, generateMetadata } = serverPage({
                         >
                         Les mer
                         </Link>
-                        <PopUp
-                            popUpKey={`committee-${part.committee.shortName}-video`}
-                            showButtonContent={
-                                <FontAwesomeIcon icon={faVideo} />
+                        <CmsLink
+                            className={styles.videoLink}
+                            cmsLink={part.videoLink}
+                            disabled={!videoLinkIsSet(part.videoLink)}
+                            capabilities={{ canEdit: cmsCapabilities.canEditVideoLink }}
+                            updateCmsLinkAction={
+                                configureAction(
+                                    updateCommitteeParticipationVideoLinkAction,
+                                    { implementationParams: { participationId: part.id } }
+                                )
                             }
-                            showButtonClass={styles.videoButton}
-                        >
-                            {/* TODO: Video saved on committee */}
-                            <h1>Komitévideo for {part.committee.name}</h1>
-                        </PopUp>
+                        />
                     </div>
                 </div>
-            </BackdropImage>
-        )
+            </BackdropImage>)
+        }
 
         return (
             <PageWrapper headerItem={

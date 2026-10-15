@@ -20,6 +20,8 @@
 
 .hiddenSubmit {
     width: 0.1px;
+    // Parents' `.foo button { width: 100% }` rules can outrank the width; max-width still caps it.
+    max-width: 0.1px;
     height: 0.1px;
     opacity: 0;
     overflow: hidden;

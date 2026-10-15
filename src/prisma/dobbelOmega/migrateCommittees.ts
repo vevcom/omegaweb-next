@@ -86,7 +86,6 @@ export default async function migrateCommittees(
         const committeeParagraph = await createCmsParagraph(
             pnPrisma, await readCommitteMarkdown(`${committee.shortname}_p.md`)
         )
-        const applicationParagraph = await createCmsParagraph(pnPrisma, committee.applicationText || '')
         const committeArticle = await createCommitteArticleSection(pnPrisma, `${committee.shortname}_a.md`)
         const logoImageId = owIdToPnId(imageIdMap, committee.ImageId, 'images')
 
@@ -116,7 +115,6 @@ export default async function migrateCommittees(
                 name: committee.name,
                 shortName: committee.shortname,
                 pensioned,
-                videoLink: committee.applicationVideo,
                 logoImage: logoImageId ? {
                     connect: {
                         id: logoImageId
@@ -124,9 +122,6 @@ export default async function migrateCommittees(
                 } : undefined,
                 paragraph: {
                     connect: { id: committeeParagraph.id }
-                },
-                applicationParagraph: {
-                    connect: { id: applicationParagraph.id }
                 },
                 committeeArticle: {
                     create: {

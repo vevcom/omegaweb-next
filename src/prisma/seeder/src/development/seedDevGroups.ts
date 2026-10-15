@@ -30,9 +30,6 @@ export const seedDevGroups = defineSeedOperation(async (prisma: PrismaClient) =>
             paragraph: {
                 create: {}
             },
-            applicationParagraph: {
-                create: {}
-            },
             group: {
                 create: {
                     groupType: 'COMMITTEE',
@@ -86,9 +83,6 @@ export const seedDevGroups = defineSeedOperation(async (prisma: PrismaClient) =>
                 }
             },
             paragraph: {
-                create: {}
-            },
-            applicationParagraph: {
                 create: {}
             },
             group: {

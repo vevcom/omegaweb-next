@@ -20,6 +20,14 @@
             padding-left: 0;
         }
     }
+    // StandardImage is display: table, which ignores max-width.
+    .logo {
+        display: block;
+        max-width: 100%;
+        > * {
+            max-width: 100%;
+        }
+    }
     .pwa {
         @include ohma.primaryIconLink;
         padding-left: 0;
@@ -79,6 +87,7 @@
         align-items: center;
         > * {
             flex: 0 1 auto;
+            max-width: 100%;
             padding: 0;
             margin-top: calc(5 * #{ohma.$gap});
             display: flex;
