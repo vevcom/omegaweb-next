@@ -8,5 +8,3 @@ export const availableNotificationMethodIncluder = {
         select: allNotificationMethodsOn,
     },
 } as const
-
-export const INFINITE_LOOP_PREVENTION_MAX_ITERATIONS = 1000

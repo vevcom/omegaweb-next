@@ -56,12 +56,7 @@ export const newsSchemas = {
         visibility: newsId,
         read: newsId,
         destroy: newsId,
-        readOldPage: readPageInputSchemaObject(
-            paramsFieldSchemas.pick({
-                id: true,
-            }),
-            z.undefined()
-        ),
+        readOldPage: readPageInputSchemaObject(newsId, z.undefined()),
         update: newsId,
         setPublished: newsId,
         updateArticle: paramsFieldSchemas.pick({

@@ -6,7 +6,6 @@ enum SpecialNotificationChannel {
   NEW_JOBAD
   NEW_OMEGAQUOTE
   EVENT_WAITINGLIST_PROMOTION
-  CABIN_BOOKING_CONFIRMATION
 }
 
 model NotificationChannel {

@@ -5,8 +5,3 @@ export type ExpandedOmbul = Ombul & {
     coverImage: ExpandedImage
     paragraph: CmsParagraph
 }
-
-type OptionalFields = 'year' | 'issueNumber'
-type RequiredFields = 'name' | 'description'
-
-export type OmbulCreateConfig = Required<Pick<Ombul, RequiredFields>> & Partial<Pick<Ombul, OptionalFields>>

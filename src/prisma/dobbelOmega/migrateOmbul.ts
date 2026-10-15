@@ -1,7 +1,7 @@
 import { owIdToPnId, type IdMapper } from './IdMapper'
 import { createProgressBar } from './progressBar'
 import { resyncIdSequence } from './resyncIdSequence'
-import { ombulStore } from '@/services/ombul/operations'
+import { ombulStore } from '@/services/ombul/store'
 import logger from '@/lib/logger'
 import { File } from 'node:buffer'
 import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
