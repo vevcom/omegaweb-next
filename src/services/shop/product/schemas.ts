@@ -6,7 +6,8 @@ const dataFieldSchemas = z.object({
     productId: z.coerce.number().int(),
     name: z.string().min(3),
     description: z.string(),
-    price: z.coerce.number().int().min(1).transform(amount => convertAmount(amount)),
+    // Written in kroner, possibly with øre, and stored in øre.
+    price: z.coerce.number().finite().min(1).transform(amount => convertAmount(amount)),
     barcode: z.string().or(z.number()).optional(),
     active: Zpn.checkboxOrBoolean({ label: 'Active' }),
 })

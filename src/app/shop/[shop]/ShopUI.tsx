@@ -51,6 +51,41 @@ export default function ShopUI({ shop, userId, capabilities }: {
         ),
     })
     const [receipt, editReceipt] = useState<Receipt | null>(null)
+    const [purchasing, setPurchasing] = useState(false)
+    const [purchaseError, setPurchaseError] = useState<string | null>(null)
+
+    const purchase = async (buyerId: number) => {
+        setPurchasing(true)
+        setPurchaseError(null)
+        try {
+            const purchaseResult = await createPurchaseAction(
+                { params: { userId: buyerId } },
+                { data: { shopId: shop.id, products: orderLines(shoppingCart) } },
+            )
+            if (!purchaseResult.success) {
+                setPurchaseError(purchaseResult.error?.map(({ message }) => message).join(' ') || 'Kjøpet feilet.')
+                return
+            }
+
+            // The purchase returns each line as id, quantity and the unit price it was charged at;
+            // the cart still knows the product behind the id.
+            editReceipt({
+                products: purchaseResult.data.productList.map(line => ({
+                    ...shoppingCart.products[line.productId],
+                    quantity: line.quantity,
+                    price: line.price,
+                })),
+                remainingBalance: purchaseResult.data.remainingBalance,
+            })
+            // Emptied, so a second click does not buy the same cart again.
+            editShoppingCart(emptied)
+        } catch {
+            // The request may have reached the server before it failed, so a retry could charge twice.
+            setPurchaseError('Noe gikk galt. Sjekk saldoen din før du prøver igjen.')
+        } finally {
+            setPurchasing(false)
+        }
+    }
 
     return <>
         <table className={styles.table}>
@@ -115,15 +150,15 @@ export default function ShopUI({ shop, userId, capabilities }: {
                     </td>
                     <td>
                         {capabilities.canPurchase.authorized && userId !== null && (
-                            <Button
-                                onClick={() => createPurchase(shoppingCart, shop.id, userId, editReceipt)}>
-                                Kjøp
+                            <Button disabled={purchasing} onClick={() => purchase(userId)}>
+                                {purchasing ? 'Kjøper...' : 'Kjøp'}
                             </Button>
                         )}
                     </td>
                 </tr>
             </tbody>
         </table>
+        {purchaseError && <p className={styles.error}>{purchaseError}</p>}
         {receipt && <div>
             <h2>Kvittering</h2>
             <table className={styles.table}>
@@ -153,35 +188,23 @@ export default function ShopUI({ shop, userId, capabilities }: {
     </>
 }
 
-async function createPurchase(
-    shoppingCart: ShoppingCart,
-    shopId: number,
-    userId: number,
-    editReceipt: Dispatch<SetStateAction<Receipt | null>>,
-) {
-    const products = Object.values(shoppingCart.products)
+/** What the cart holds, as the lines of a purchase. */
+function orderLines(shoppingCart: ShoppingCart) {
+    return Object.values(shoppingCart.products)
         .filter(product => product.quantity > 0)
         .map(product => ({
             id: product.id,
             quantity: product.quantity,
         }))
+}
 
-    const purchaseResult = await createPurchaseAction(
-        { params: { userId } },
-        { data: { shopId, products } },
-    )
-
-    if (purchaseResult.success) {
-        // The purchase returns each line as id, quantity and the unit price it was charged at;
-        // the cart still knows the product behind the id.
-        editReceipt({
-            products: purchaseResult.data.productList.map(line => ({
-                ...shoppingCart.products[line.productId],
-                quantity: line.quantity,
-                price: line.price,
-            })),
-            remainingBalance: purchaseResult.data.remainingBalance,
-        })
+/** The cart with every quantity back at 0. */
+function emptied(shoppingCart: ShoppingCart): ShoppingCart {
+    return {
+        ...shoppingCart,
+        products: Object.fromEntries(
+            Object.entries(shoppingCart.products).map(([productId, product]) => [productId, { ...product, quantity: 0 }])
+        ),
     }
 }
 

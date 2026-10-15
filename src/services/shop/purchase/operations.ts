@@ -12,14 +12,17 @@ import { ledgerTransactionOperations } from '@/services/ledger/transactions/oper
 import { PurchaseMethod } from '@/prisma-generated-pn-types'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 
+type PurchaseImplementation = 'create' | 'createOnBehalf'
+
 /**
  * The one way a purchase is made: the buyer is a user id, however the caller got hold of it.
  * Implemented as `create` (the session user buying for themselves) and `createOnBehalf` (the
  * kiosk charging the owner of a student card).
  */
 const createPurchase = defineSubOperation({
-    paramsSchema: () => purchaseSchemas.params.create,
-    dataSchema: () => purchaseSchemas.data.create,
+    // Each implementation reads the schemas under its own name.
+    paramsSchema: ({ operation }: { operation: PurchaseImplementation }) => purchaseSchemas.params[operation],
+    dataSchema: ({ operation }: { operation: PurchaseImplementation }) => purchaseSchemas.data[operation],
     opensTransaction: true,
     operation: ({ method }: { method: PurchaseMethod }) => async ({ prisma, params, data }) => {
         const user = await prisma.user.findUniqueOrThrow({
@@ -140,6 +143,8 @@ const createOnBehalf = createPurchase.implement({
         return purchaseAuth.createOnBehalf.data({ membershipsOfUser, visibility })
     },
     ownershipCheck: () => true,
+    paramsSchemaImplementationFields: { operation: 'createOnBehalf' },
+    dataSchemaImplementationFields: { operation: 'createOnBehalf' },
     operationImplementationFields: { method: PurchaseMethod.STUDENT_CARD },
 })
 
@@ -153,6 +158,8 @@ export const purchaseOperations = {
             }),
         }),
         ownershipCheck: () => true,
+        paramsSchemaImplementationFields: { operation: 'create' },
+        dataSchemaImplementationFields: { operation: 'create' },
         operationImplementationFields: { method: PurchaseMethod.WEB },
     }),
 

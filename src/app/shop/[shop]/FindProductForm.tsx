@@ -27,6 +27,6 @@ export default function FindProductForm({
             label: product.name,
             value: product.id,
         }))} />
-        <NumberInput name="price" label="Pris" />
+        <NumberInput name="price" label="Pris" step={0.01} min={1} />
     </Form>
 }

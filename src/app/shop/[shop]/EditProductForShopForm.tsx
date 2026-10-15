@@ -34,6 +34,12 @@ export function EditProductForShopForm({
         <TextInput name="description" label="Beskrivelse" defaultValue={product?.description}/>
         <TextInput name="barcode" label="Strekkode" defaultValue={product?.barcode ?? ''}/>
         {product && <Checkbox name="active" label="Aktiv" defaultChecked={product.active} />}
-        <NumberInput name="price" label="Pris" defaultValue={product ? displayAmount(product.price, true) : undefined}/>
+        <NumberInput
+            name="price"
+            label="Pris"
+            step={0.01}
+            min={1}
+            defaultValue={product ? displayAmount(product.price, true) : undefined}
+        />
     </Form>
 }
