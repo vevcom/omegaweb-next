@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { createCompanyAction } from '@/services/career/companies/actions'
 import { companyOperations } from '@/services/career/companies/operations'
 import { companyAuth } from '@/services/career/companies/auth'
@@ -73,7 +72,7 @@ const { page, generateMetadata } = serverPage({
                     name
                 }}
             >
-                <div className={styles.toolbar}>
+                <div className="flex flex-row flex-wrap items-center justify-between gap-4 w-full">
                     <CompanyListFilter currentName={name ?? ''} />
                     <SponsorLegend />
                 </div>

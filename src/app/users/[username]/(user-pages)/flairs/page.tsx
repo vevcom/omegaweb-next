@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import {
     assignFlairToUserAction,
     unAssignFlairToUserAction
@@ -33,13 +32,13 @@ const { page, generateMetadata } = serverPage({
         canUnAssign: flairAuth.unAssignToUser,
     }),
     render: ({ data, capabilities }) => (
-        <div className={styles.wrapper}>
-            <div className={styles.flairContainer}>
+        <div className="bg-surface-base rounded-round p-[calc(3*var(--rounding))]">
+            <div className="ohma-table overflow-x-auto">
                 <p>
                     Den øverste tildelte flairen vises først på brukerens profil og
                     bestemmer fargen på brukerprofilen.
                 </p>
-                <table className={styles.flairList}>
+                <table>
                     <thead>
                         <tr>
                             <th>Flair</th>

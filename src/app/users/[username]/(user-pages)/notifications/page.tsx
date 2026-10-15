@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import NotificationSettings from './NotificationSettings'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
@@ -28,7 +27,7 @@ const { page, generateMetadata } = serverPage({
         canManagePushDevice: browserPushSubscriptionAuth.create.data({ userId: data.profile.user.id }),
     }),
     render: ({ data, capabilities }) => (
-        <div className={styles.wrapper}>
+        <div className="bg-surface-base rounded-round p-(--card-padding)">
             <h2>Notifikasjoner</h2>
             {capabilities.canManagePushDevice.authorized && (
                 <PushDeviceSettings

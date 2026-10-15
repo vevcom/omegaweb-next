@@ -1,5 +1,4 @@
 'use client'
-import styles from './ManageUserStudyProgrammes.module.scss'
 import Form from '@/components/Form/Form'
 import { SelectNumber } from '@/components/UI/Select'
 import {
@@ -43,7 +42,7 @@ function RemoveStudyProgrammeMembershipForm({ userId, programme }: {
 
     return (
         <Form
-            className={styles.removeForm}
+            className="w-auto! [&_p:empty]:min-h-0! [&_p:empty]:m-0! [&>*:last-child]:mt-0!"
             submitText="Fjern"
             submitColor="red"
             action={() => configureAction(
@@ -72,7 +71,7 @@ function AddStudyProgrammeMembershipForm({ userId, available }: {
 
     return (
         <Form
-            className={styles.addForm}
+            className="max-w-[30rem]!"
             submitText="Legg til"
             action={() => configureAction(
                 addStudyProgrammeMembersAction, { params: { groupId: groupIdToAdd } }
@@ -114,15 +113,18 @@ export default function ManageUserStudyProgrammes({
     const available = studyProgrammes.filter(programme => !memberOfGroupIds.has(programme.groupId))
 
     return (
-        <div className={styles.ManageUserStudyProgrammes}>
+        <div className="flex flex-col gap-2">
             <h2>Studieprogram</h2>
 
             {memberOf.length === 0 ? (
-                <p className={styles.empty}>Brukeren står ikke på noe studieprogram.</p>
+                <p className="text-text-muted italic">Brukeren står ikke på noe studieprogram.</p>
             ) : (
-                <div className={styles.programmes}>
+                <div className="flex flex-col gap-1">
                     {memberOf.map(programme => (
-                        <div className={styles.programme} key={`${programme.id}-${programme.order}`}>
+                        <div
+                            className="flex items-center justify-between gap-4 py-2 px-4 rounded-round layer"
+                            key={`${programme.id}-${programme.order}`}
+                        >
                             <span>{programme.name} ({programme.code})</span>
                             <RemoveStudyProgrammeMembershipForm userId={userId} programme={programme} />
                         </div>

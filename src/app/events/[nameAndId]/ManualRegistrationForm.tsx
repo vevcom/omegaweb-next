@@ -1,5 +1,4 @@
 'use client'
-import styles from './ManualRegistrationForm.module.scss'
 import Form from '@/components/Form/Form'
 import UserList from '@/components/User/UserList/UserList'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
@@ -60,7 +59,7 @@ export default function ManualRegistrationForm({
     eventId: number,
     capabilities: CapabilitiesJsObject<'canRegisterAsAdmin' | 'canRegisterGuest'>,
 }) {
-    return <div className={styles.ManualRegistrationForm}>
+    return <div className="min-w-[70vw]">
         {capabilities.canRegisterGuest.authorized && <Form
             submitText="Registrer gjest"
             title="Registrer gjest uten bruker"

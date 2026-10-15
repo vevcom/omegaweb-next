@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import EditJobAd from './EditJobAd'
 import Article from '@/components/Cms/Article/Article'
 import CompanySelectionProvider from '@/contexts/CompanySelection'
@@ -42,15 +41,15 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: (jobAd) => ({ title: jobAd.article.name }),
     render: ({ data: jobAd, capabilities }) => (
-        <div className={styles.wrapper}>
-            <main className={styles.main}>
+        <div className="min-h-full flex flex-col">
+            <main className="flex-[1_0_auto]">
                 <Article
                     capabilities={capabilities}
                     article={jobAd.article}
-                    coverImageClass={styles.coverImage}
-                    sideBarClassName={styles.sideBar}
-                    articleClassName={styles.articleZone}
-                    addSectionClassName={styles.addSectionZone}
+                    coverImageClass="rounded-round overflow-hidden mb-2"
+                    sideBarClassName="p-2 rounded-round ml-2 bg-surface-base max-mobile:ml-0 max-mobile:mt-2"
+                    articleClassName="bg-surface-base rounded-round"
+                    addSectionClassName="mt-2 mx-4 mb-0"
                     actions={{
                         updateArticleAction: configureAction(
                             updateJobAdArticleAction,
@@ -97,7 +96,13 @@ const { page, generateMetadata } = serverPage({
                     }}
                     sideBarContent={
                         <>
-                            <ul className={styles.metInfo}>
+                            <ul
+                                className={[
+                                    'flex flex-col gap-[1em] [&>li]:grid [&>li]:grid-cols-[40px_1fr]',
+                                    '[&>li]:grid-rows-[auto_auto] [&>li_svg]:size-[20px]! [&>li_svg]:row-[1/3]',
+                                    '[&>li_svg]:col-[1/2] [&>li_svg]:my-auto [&>li_svg]:ml-auto [&>li_svg]:mr-2',
+                                ].join(' ')}
+                            >
                                 <li>
                                     <FontAwesomeIcon icon={faSuitcase} />
                                     <h3>Stillingstype</h3>
@@ -135,7 +140,7 @@ const { page, generateMetadata } = serverPage({
                                     <p>{jobAd.location}</p>
                                 </li>
                             </ul>
-                            <div className={styles.company}>
+                            <div className="mt-[2em] [&>h2]:text-xl [&>h2]:mb-[1em]">
                                 <h2>Arbeidsgiver</h2>
                                 <Company
                                     disableEdit

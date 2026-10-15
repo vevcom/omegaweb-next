@@ -1,6 +1,5 @@
 
 
-import styles from './SubscriptionItem.module.scss'
 import NotificationMethodCheckboxes from '@/components/NotificationMethodSelector/NotificationMethodCheckboxes'
 import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import React from 'react'
@@ -30,23 +29,28 @@ export default function SubscriptionItem({
     })
 
     return <>
-        <tr className={styles.subscriptionItem}>
+        <tr>
             <td
-                className={styles.channelName}
+                className="pl-[calc((1.5+1.5*var(--depth))*var(--gap))]!"
                 style={{
                     '--depth': depth ?? 0,
                 } as React.CSSProperties}
             >
-                <span className={styles.name}>
-                    {depth ? <span className={styles.branch} aria-hidden="true" /> : null}
+                <span className="inline-flex items-center">
+                    {depth ? <span
+                        className="inline-block size-[0.6em] mr-[0.6em] shrink-0 border-l-2 border-b-2 border-text-muted"
+                        aria-hidden="true"
+                    /> : null}
                     <b>{branch.name}</b>
                 </span>
-                {branch.description && <span className={styles.description}>{branch.description}</span>}
+                {branch.description && (
+                    <span className="block mt-[0.2em] text-text-muted text-s">{branch.description}</span>
+                )}
             </td>
 
             {checkboxes.map(checkbox => <td
                 key={checkbox.key}
-                className={styles.checkbox}
+                className="[&>div]:flex [&>div]:justify-center [&>div]:items-center"
             >
                 <div>{checkbox}</div>
             </td>

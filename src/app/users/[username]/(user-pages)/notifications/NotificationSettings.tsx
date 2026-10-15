@@ -1,7 +1,6 @@
 'use client'
 
 import SubscriptionItem from './SubscriptionItem'
-import styles from './NotificationSettings.module.scss'
 import { booleanOperationOnMethods, newAllMethodsOff } from '@/services/notifications/methods/helpers'
 import SubmitButton from '@/components/UI/SubmitButton'
 import { SUCCESS_FEEDBACK_TIME } from '@/components/Form/constants'
@@ -226,14 +225,23 @@ export default function NotificationSettings({
     }
 
     return <>
-        <table cellSpacing="0" className={styles.table}>
-            <thead className={styles.tableHead}>
+        <table cellSpacing="0" className={[
+            'ohma-table',
+            'max-mobile:[&_th]:py-2 max-mobile:[&_th]:px-[calc(1.2*var(--gap))]',
+            'max-mobile:[&_td]:py-2 max-mobile:[&_td]:px-[calc(1.2*var(--gap))]',
+        ].join(' ')}>
+            <thead className="align-bottom">
                 <tr>
                     <th>Kanal</th>
                     {notificationMethodsArray.map(method =>
                         <th
                             key={method}
-                            className={styles.notificationMethodsTH}
+                            className={[
+                                'w-[1%] whitespace-nowrap text-center mobile:min-w-[8rem]',
+                                'max-mobile:relative max-mobile:h-[6rem] max-mobile:min-w-[2.5rem]',
+                                'max-mobile:[&>span]:absolute max-mobile:[&>span]:right-1/2 max-mobile:[&>span]:bottom-2',
+                                'max-mobile:[&>span]:rotate-45 max-mobile:[&>span]:origin-bottom-right',
+                            ].join(' ')}
                         >
                             <span>{notificationMethodsDisplayMap[method]}</span>
                         </th>
@@ -249,7 +257,10 @@ export default function NotificationSettings({
         </table>
 
         {canUpdate && (
-            <div className={`${styles.submitButton} ${hasChanged > lastSubmit ? '' : styles.hideSubmitButton}`}>
+            <div className={[
+                'transition-opacity duration-300 ease-[ease] max-w-[15rem] mt-4 mx-auto mb-0',
+                hasChanged > lastSubmit ? '' : 'opacity-0',
+            ].join(' ')}>
                 <SubmitButton
                     color="primary"
                     success={formState.success}
