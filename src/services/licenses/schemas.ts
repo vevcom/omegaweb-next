@@ -1,4 +1,5 @@
 import { standardLicenseNames } from './constants'
+import { isSafeLink, safeLinkMessage } from '@/lib/fields/safeLink'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -9,7 +10,7 @@ const dataFieldSchemas = z.object({
     ),
     link: z.string().trim().min(
         1, 'Link må være minst 1 tegn langt'
-    )
+    ).refine(isSafeLink, safeLinkMessage),
 })
 
 const paramsFieldSchemas = z.object({

@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { notificationOperations } from '@/services/notifications/operations'
 import { sendMailOperations } from '@/services/notifications/send-mail/operations'
 import logger from '@/lib/logger'
+import { escapeHtml } from '@/lib/html/escapeHtml'
 
 /**
  * Tells the ones whose registrations were promoted from the waiting list of an event to one of its
@@ -13,7 +14,9 @@ export async function notifyPromotedFromWaitingList(
     registrations: { userId: number | null, contact: { email: string | null } | null }[],
 ) {
     const title = 'Opprykk fra venteliste ved Omegas nettsider'
-    const message = `Gratulerer! Du har rykket opp fra venteliste på arrangementet ${eventName}.`
+    const congratulation = 'Gratulerer! Du har rykket opp fra venteliste på arrangementet'
+    const message = `${congratulation} ${eventName}.`
+    const mailBody = `${congratulation} ${escapeHtml(eventName)}.`
 
     const userIds = registrations.flatMap(registration => (
         registration.userId === null ? [] : [registration.userId]
@@ -37,7 +40,7 @@ export async function notifyPromotedFromWaitingList(
 
     const sendings = await Promise.allSettled(guestEmails.map(email => (
         sendMailOperations.internal.sendSystemMail.internalCall({
-            data: { to: email, subject: title, body: message },
+            data: { to: email, subject: title, body: mailBody },
         })
     )))
     sendings.forEach((sending, index) => {

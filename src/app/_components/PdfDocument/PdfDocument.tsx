@@ -13,7 +13,8 @@ import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+// The worker is bundled and served from this site, so no third-party code runs in its origin.
+pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 type PropTypes = {
     src: string
