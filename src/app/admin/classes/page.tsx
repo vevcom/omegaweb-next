@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import BumpClasses from './BumpClasses'
 import { classOperations } from '@/services/groups/classes/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
@@ -43,8 +42,8 @@ const { page, generateMetadata } = serverPage({
             <PageWrapper>
                 <GroupTypeTable rows={rows} currentOrder={data.currentOrder.order} nameHeading="Klasse" />
 
-                <div className={styles.actions}>
-                    <p className={styles.explanation}>
+                <div className="flex flex-col gap-2 mt-6">
+                    <p className="text-text-muted max-w-[70ch]">
                         Klassene følger ordenen til Omega automatisk. Når Omega har blitt inkrementert må
                         klassene rykkes opp: alle studenter flyttes én klasse opp, og uteksaminerte beholder
                         medlemskapet sitt. Dette må gjøres før Omega kan inkrementeres på nytt.

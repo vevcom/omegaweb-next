@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './ChannelSettings.module.scss'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import NotificationMethodSelector from '@/components/NotificationMethodSelector/NotificationMethodSelector'
 import TextInput from '@/components/UI/TextInput'
@@ -37,7 +36,7 @@ export default function ChannelSettings({
     return <PageWrapper
     >
         <PageTitleSetter title={currentChannelState.name} />
-        <div className={styles.channelSettings}>
+        <div className="w-full [&>p]:font-[lighter] [&>p]:mb-[1rem]">
             {currentChannelState.special ? <p>Spesiell: {currentChannelState.special}</p> : null}
             {capabilities.canUpdate.authorized &&
             <Form
@@ -63,16 +62,16 @@ export default function ChannelSettings({
                         name: value,
                     })
                 }} />
-                <div className={styles.widerDiv}>
+                <div className="max-w-[350px]">
                     <TextInput
                         label="Beskrivelse"
                         name="description"
                         defaultValue={currentChannelState.description ?? ''}
-                        className={styles.descriptionInput}
+                        className="max-w-[350px]! w-full"
                     />
                 </div>
 
-                <div className={styles.widerDiv}>
+                <div className="max-w-[350px]">
                     {currentChannelState.special !== 'ROOT' ?
                         <SelectNumber
                             label="Forelder"
@@ -86,7 +85,7 @@ export default function ChannelSettings({
                     }
                 </div>
 
-                <div className={styles.widerDiv}>
+                <div className="max-w-[350px]">
                     <SelectNumber
                         label="Alias"
                         name="mailAliasId"
@@ -96,7 +95,7 @@ export default function ChannelSettings({
                     />
                 </div>
 
-                <div className={styles.methodContainer}>
+                <div className="flex flex-row flex-wrap">
 
                     <NotificationMethodSelector
                         formPrefix="availableMethods"

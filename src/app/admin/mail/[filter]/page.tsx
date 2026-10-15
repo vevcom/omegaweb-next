@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import CreateMailAlias from '@/app/admin/mail/CreateMailAlias'
 import CreateMailingList from '@/app/admin/mail/CreateMailingList'
 import CreateMailaddressExternal from '@/app/admin/mail/CreateMailaddressExternal'
@@ -66,19 +65,30 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: ({ filter }) => ({ title: mailParts[filter].title }),
     render: ({ data: { filter, items }, capabilities }) => <PageWrapper>
-        <div className={styles.wrapper}>
-            <p className={styles.intro}>{mailParts[filter].intro}</p>
-            <div className={styles.content}>
-                <ul className={styles.itemList}>
+        <div className="p-4 flex flex-col gap-4">
+            <p className="text-text-muted max-w-[60ch]">{mailParts[filter].intro}</p>
+            <div className="flex flex-row flex-wrap gap-6 items-start">
+                <ul className="flex-[1_1_300px] list-none p-0 m-0 flex flex-col gap-2 max-w-[40rem]">
                     {items.map(item => <li key={item.id}>
-                        <Link href={`/admin/mail/${filter}/${item.id}`} className={styles.itemCard}>
+                        <Link href={`/admin/mail/${filter}/${item.id}`}
+                            className={[
+                                'flex flex-col gap-1 p-4 rounded-round bg-surface-raised text-text no-underline',
+                                'transition-[background-color] duration-300 hover:bg-surface-hover',
+                                '[&_span]:text-text-muted [&_span]:text-[0.9rem]',
+                            ].join(' ')}
+                        >
                             <strong>{item.label}</strong>
                             {item.description && <span>{item.description}</span>}
                         </Link>
                     </li>)}
-                    {items.length === 0 && <li className={styles.empty}>Ingen enda.</li>}
+                    {items.length === 0 && <li className="text-text-muted italic">Ingen enda.</li>}
                 </ul>
-                {capabilities.canCreate.authorized && <aside className={styles.createPanel}>
+                {capabilities.canCreate.authorized && <aside
+                    className={[
+                        'flex-[0_1_20rem] bg-surface-raised',
+                        'rounded-[calc(3*var(--rounding))] p-[calc(3*var(--rounding))]',
+                    ].join(' ')}
+                >
                     {filter === 'alias' && <CreateMailAlias />}
                     {filter === 'mailingList' && <CreateMailingList />}
                     {filter === 'mailaddressExternal' && <CreateMailaddressExternal />}

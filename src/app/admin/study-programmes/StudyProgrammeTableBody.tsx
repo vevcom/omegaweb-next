@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './StudyProgrammeTableBody.module.scss'
 import UpdateStudyProgrammeForm from './UpdateStudyProgrammeForm'
 import PopUp from '@/components/PopUp/PopUp'
 import { ClassLevelConfig } from '@/services/groups/constants'
@@ -17,9 +16,9 @@ export default function StudyProgrammeTableBody({ studyprogrammes }: { studyprog
     return <tbody>
         {studyprogrammes.map(studyProgramme =>
             <tr key={studyProgramme.id}>
-                {canEdit && <td className={styles.editButtonWrapper}><PopUp
+                {canEdit && <td className="text-center"><PopUp
                     showButtonContent={<FontAwesomeIcon icon={faPencil} />}
-                    showButtonClass={styles.editButton}
+                    showButtonClass="w-[30px] h-[30px] border-none bg-transparent"
                     popUpKey={`UpdateStudyProgramme${studyProgramme.id}`}
                 >
                     <UpdateStudyProgrammeForm studyProgramme={studyProgramme} />

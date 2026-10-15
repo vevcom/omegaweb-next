@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import LinkFeideAccountForm from './LinkFeideAccountForm'
 import CreateUserForm from '@/components/User/CreateUserForm'
 import { userAuth } from '@/services/users/auth'
@@ -14,7 +13,7 @@ const { page, generateMetadata } = serverPage({
         canLinkFeideAccount: authAuth.adminLinkFeideAccount,
     }),
     render: ({ capabilities }) => (
-        <div className={styles.wrapper}>
+        <div className="w-full [&>*]:w-1/2">
             {capabilities.canCreateUser.authorized && <CreateUserForm />}
             {capabilities.canLinkFeideAccount.authorized && <LinkFeideAccountForm />}
         </div>

@@ -1,9 +1,0 @@
-@use "@/styles/ohma";
-
-.button {
-    @include ohma.btn(ohma.$colors-accent-blue);
-}
-
-.table {
-    @include ohma.table();
-}

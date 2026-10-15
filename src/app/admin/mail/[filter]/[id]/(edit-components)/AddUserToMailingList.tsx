@@ -1,5 +1,4 @@
 'use client'
-import styles from './AddUserToMailingList.module.scss'
 import UserList from '@/components/User/UserList/UserList'
 import { UserSelectionContext } from '@/contexts/UserSelection'
 import { createMailingListUserRelationAction } from '@/services/mail/actions'
@@ -30,10 +29,10 @@ export default function AddUserToMailingList({ mailingListId }: { mailingListId:
         refresh()
     })
 
-    return <div className={styles.addUser}>
+    return <div className="flex-[1_1_100%] [&_h3]:m-0 [&_p]:text-text-muted [&_p]:mt-1 [&_p]:mx-0 [&_p]:mb-2">
         <h3>Legg til bruker</h3>
         <p>Trykk på en bruker for å legge dem til e-postlisten.</p>
-        {error && <p className={styles.error}>{error}</p>}
+        {error && <p className="text-accent-red">{error}</p>}
         <UserList linksToUser={false} />
     </div>
 }

@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import TransactionList from '@/components/Ledger/Transactions/LedgerTransactionList'
 import { notFound } from 'next/navigation'
 
@@ -15,7 +14,7 @@ export default async function LedgerAccountTransactions({ params }: Props) {
         notFound()
     }
 
-    return <div className={styles.wrapper}>
+    return <div className="bg-surface-base rounded-round p-[calc(3*var(--rounding))]">
         <TransactionList accountId={accountId} />
     </div>
 }

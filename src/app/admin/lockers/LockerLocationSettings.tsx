@@ -1,4 +1,3 @@
-import styles from './LockerLocationSettings.module.scss'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import NumberInput from '@/components/UI/NumberInput'
@@ -28,7 +27,7 @@ export default function LockerLocationSettings({ location, capabilities }: PropT
 
     return (
         <SettingsHeaderItemPopUp popUpKey={popUpKey}>
-            <div className={styles.LockerLocationSettings}>
+            <div className="flex flex-col gap-4 min-w-[min(360px,80vw)]">
                 {capabilities.canUpdate.authorized && (
                     <Form
                         title={`Endre ${name}`}
@@ -42,7 +41,7 @@ export default function LockerLocationSettings({ location, capabilities }: PropT
                     </Form>
                 )}
                 {capabilities.canDestroy.authorized && (location._count.lockers > 0 ? (
-                    <p className={styles.blocked}>
+                    <p className="max-w-[360px] text-text-muted">
                         Lokasjonen har {location._count.lockers} skap, og kan ikke slettes før de er slettet.
                     </p>
                 ) : (

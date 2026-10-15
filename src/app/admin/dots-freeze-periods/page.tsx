@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp, SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import Form from '@/components/Form/Form'
@@ -16,6 +15,14 @@ import { dotFreezePeriodAuth } from '@/services/dots/freezePeriods/auth'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
+
+const statusBadge = 'py-[0.2em] px-[0.6em] rounded-[0.4em] whitespace-nowrap'
+
+const statusClass: Record<FreezePeriodStatus['style'], string> = {
+    upcoming: `${statusBadge} bg-[color-mix(in_srgb,var(--accent-blue),white_50%)] text-accent-blue`,
+    active: `${statusBadge} bg-[color-mix(in_srgb,var(--accent-green),white_50%)] text-accent-green`,
+    finished: `${statusBadge} bg-surface-subtle text-text-muted`,
+}
 
 const createPopUpKey = 'createDotFreezePeriod'
 
@@ -49,7 +56,7 @@ const { page, generateMetadata } = serverPage({
                     </Form>
                 </AddHeaderItemPopUp>
             }>
-                <div className={styles.wrapper}>
+                <div className="p-[1em]">
                     <i>Dette er perioder der prikker ikke fjernes</i>
                     <p>
                         Tid inne i en frysperiode teller ikke mot hvor lenge en prikk varer. Utløpstider regnes ut
@@ -59,7 +66,7 @@ const { page, generateMetadata } = serverPage({
                     {
                         freezePeriods.length === 0 ?
                             <i>Ingen frysperioder er lagt inn</i> :
-                            <table className={styles.freezePeriods}>
+                            <table className="ohma-table">
                                 <thead>
                                     <tr>
                                         <th>Start</th>
@@ -79,7 +86,7 @@ const { page, generateMetadata } = serverPage({
                                                 <td><DateDisplay date={freezePeriod.end} includeTime={false} /></td>
                                                 <td>{freezePeriod.reason}</td>
                                                 <td>
-                                                    <span className={styles[status.style]}>{status.text}</span>
+                                                    <span className={statusClass[status.style]}>{status.text}</span>
                                                 </td>
                                                 <td>
                                                     <SettingsHeaderItemPopUp

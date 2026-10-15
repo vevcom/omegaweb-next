@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import MembershipStatusUserSearch from './MembershipStatusUserSearch'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { admissionDisplayNames, allAdmissions } from '@/services/admission/constants'
@@ -19,30 +18,35 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'Opptak' }),
     render: ({ capabilities }) => (
         <PageWrapper>
-            <div className={styles.wrapper}>
-                <section className={styles.section}>
+            <div className="flex flex-col gap-4">
+                <section className="[&_h2]:m-0">
                     <h2>Registrer opptaksprøve</h2>
-                    <p className={styles.lead}>
+                    <p className="mx-0 my-2 text-text-muted">
                         Velg prøven som skal registreres, og les av Omega-ID eller søk opp soellen.
                     </p>
-                    <div className={styles.trials}>
+                    <div className="flex flex-row flex-wrap gap-2">
                         {allAdmissions.map(admission => (
                             <Link
                                 key={admission}
                                 href={`/admin/admission/${admission}`}
-                                className={styles.trial}
+                                className={[
+                                    'flex items-center gap-2 flex-[1_1_14rem] max-mobile:basis-full',
+                                    'p-[calc(3*var(--rounding))] rounded-round bg-surface-raised text-text',
+                                    'transition-[background-color] duration-300 hover:bg-surface-hover',
+                                    'hover:text-ink-strong',
+                                ].join(' ')}
                             >
-                                <FontAwesomeIcon icon={faScroll} className={styles.trialIcon} />
-                                <span className={styles.trialName}>{admissionDisplayNames[admission]}</span>
-                                <FontAwesomeIcon icon={faChevronRight} className={styles.trialArrow} />
+                                <FontAwesomeIcon icon={faScroll} className="text-accent-blue text-xl" />
+                                <span className="flex-1 font-light">{admissionDisplayNames[admission]}</span>
+                                <FontAwesomeIcon icon={faChevronRight} className="text-text-muted" />
                             </Link>
                         ))}
                     </div>
                 </section>
 
-                <section className={styles.section}>
+                <section className="[&_h2]:m-0">
                     <h2>Medlemsstatus</h2>
-                    <p className={styles.lead}>
+                    <p className="mx-0 my-2 text-text-muted">
                         Søk opp en bruker for å se hvilke prøver de har tatt, og for å endre medlemskapet deres.
                     </p>
                     {capabilities.canSearchUsers.authorized ? (
@@ -54,7 +58,7 @@ const { page, generateMetadata } = serverPage({
                             <MembershipStatusUserSearch />
                         </UserPagingProvider>
                     ) : (
-                        <p className={styles.lead}>
+                        <p className="mx-0 my-2 text-text-muted">
                             Du mangler tilgangen «Les bruker», og kan derfor ikke søke opp brukere her.
                         </p>
                     )}

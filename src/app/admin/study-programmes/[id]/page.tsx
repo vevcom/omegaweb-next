@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import {
     addStudyProgrammeMembersAction,
     removeStudyProgrammeMembersAction,
@@ -51,8 +50,8 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper>
-                <div className={styles.wrapper}>
-                    <div className={styles.facts}>
+                <div className="flex flex-col gap-6">
+                    <div className="flex flex-wrap gap-6 text-text-muted">
                         <span>Kode: {studyProgramme.code}</span>
                         <span>Orden: {expanded.order}</span>
                         <span>Aktive medlemmer: {expanded.members}</span>
@@ -63,7 +62,7 @@ const { page, generateMetadata } = serverPage({
                         </span>
                     </div>
 
-                    <p className={styles.explanation}>
+                    <p className="text-text-muted max-w-[70ch]">
                         Medlemskap følger normalt det Feide melder om brukeren. Legger du til eller fjerner
                         noen her, blir det stående: Feide legger bare til et studieprogram første gang det
                         blir meldt for brukeren.

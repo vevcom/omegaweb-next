@@ -1,5 +1,4 @@
 'use client'
-import styles from './page.module.scss'
 import ReleasePeriodForm from './ReleasePeriodForm'
 import PricePeriodForm from './PricePeriodForm'
 import PopUp from '@/app/_components/PopUp/PopUp'
@@ -41,7 +40,7 @@ export default function PageStateWrapper({
             <PopUp
                 popUpKey="CreateNewReleasePeriod"
                 showButtonContent="Ny Slipp Periode"
-                showButtonClass={styles.button}
+                showButtonClass="btn"
             >
                 <ReleasePeriodForm closePopUpOnSuccess="CreateNewReleasePeriod" />
             </PopUp>
@@ -85,7 +84,7 @@ export default function PageStateWrapper({
             <PopUp
                 popUpKey="CreateNewPricePeriod"
                 showButtonContent="Ny Pris Periode"
-                showButtonClass={styles.button}
+                showButtonClass="btn"
             >
                 <PricePeriodForm closePopUpOnSuccess="CreateNewPricePeriod" />
             </PopUp>

@@ -1,5 +1,4 @@
 'use client'
-import styles from './MailForm.module.scss'
 import { sendMailAction } from '@/services/notifications/sendMail/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
@@ -10,14 +9,14 @@ export default function MailForm() {
     return <Form
         action={sendMailAction}
         submitText="Send elektronisk post"
-        className={styles.mailForm}
-        buttonClassName={styles.mailButton}
+        className="w-full"
+        buttonClassName="max-w-[300px] w-full!"
     >
         <TextInput name="from" label="Avsender"/>
         <TextInput name="to" label="Mottaker"/>
         <TextInput name="subject" label="Emne"/>
 
-        <Textarea name="text" label="Melding" className={styles.textArea}/>
+        <Textarea name="text" label="Melding" className="max-h-[500px] h-[200px]"/>
 
     </Form>
 }

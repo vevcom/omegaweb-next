@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import CreateOrder from './CreateOrder'
 import Requirements from './Requirements'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
@@ -28,16 +27,28 @@ const { page, generateMetadata } = serverPage({
         const allRequirementsFulfilled = data.requirements.every(requirement => requirement.fulfilled)
 
         return (
-            <div className={styles.wrapper}>
-                <div className={styles.plaque}>
-                    <p className={styles.label}>Omega er i orden</p>
-                    <h1 className={styles.order}>{ data.currentOrder.order }</h1>
+            <div className="min-h-full flex flex-col items-center justify-center gap-6 p-8 text-center">
+                <div
+                    className={[
+                        'rounded-round bg-surface-raised border-3 border-accent-blue py-12 px-16 flex flex-col',
+                        'items-center gap-2',
+                    ].join(' ')}
+                >
+                    <p className="m-0 font-secondary text-l tracking-[0.3em] uppercase text-text-muted">Omega er i orden</p>
+                    <h1
+                        className={[
+                            'm-0 font-secondary text-[length:clamp(6rem,20vw,12rem)] font-bold leading-none',
+                            'text-accent-blue',
+                            '[text-shadow:0_0_0.3em_color-mix(in_srgb,var(--accent-blue),transparent_40%)]',
+                        ].join(' ')}
+                    >{ data.currentOrder.order }</h1
+                    >
                 </div>
-                <p className={styles.lastIncremented}>
+                <p className="m-0 text-text-muted">
                     Ordenen til Omega ble sist inkrementert{' '}
                     <Date date={data.currentOrder.createdAt} includeTime={false} />
                 </p>
-                <div className={styles.requirements}>
+                <div className="rounded-round bg-surface-raised p-6 w-full max-w-[700px] text-left">
                     <Requirements requirements={data.requirements} />
                 </div>
                 {capabilities.canCreateOrder.authorized &&
