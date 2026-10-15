@@ -198,7 +198,6 @@ describe('event registrations', () => {
         expect(registrations[0].user?.mobile).toBe('12345678')
         expect(registrations[0].user?.allergies).toBe('peanuts')
         expect(registrations[0].user).not.toHaveProperty('studentCard')
-        // The attendance column of the detailed table reads this off the row itself.
         expect(registrations[0]).toHaveProperty('attendedAt')
     })
 })

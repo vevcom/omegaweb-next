@@ -46,10 +46,6 @@ export enum REGISTRATION_READER_TYPE {
     WAITING_LIST = 'WAITING_LIST',
 }
 
-/**
- * One registration as the attendance tools read it back: who it is for, so a scan can be echoed
- * with the name of the one scanned, and whether attendance has been taken for them.
- */
 export const eventRegistrationAttendanceSelection = {
     id: true,
     eventId: true,

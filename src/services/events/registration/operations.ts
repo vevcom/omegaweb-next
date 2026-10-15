@@ -89,52 +89,6 @@ const createRegistration = defineSubOperation({
             }),
 })
 
-/**
- * How many of the ones registered for an event have had attendance taken for them. The ones that
- * took the places of the event are counted apart from the ones queueing past them, over the same
- * boundary the registration lists are split on - see `EventAttendanceCounts` for why.
- */
-async function countAttendance(
-    prisma: PrismaPossibleTransaction<false>,
-    eventId: number
-): Promise<EventAttendanceCounts> {
-    const boundary = await firstOnWaitingList(prisma, eventId)
-    const onThePlaces = boundary ? { eventId, id: { lt: boundary } } : { eventId }
-
-    const [attended, total, attendedFromWaitingList] = await Promise.all([
-        prisma.eventRegistration.count({ where: { ...onThePlaces, attendedAt: { not: null } } }),
-        prisma.eventRegistration.count({ where: onThePlaces }),
-        boundary
-            ? prisma.eventRegistration.count({
-                where: { eventId, id: { gte: boundary }, attendedAt: { not: null } },
-            })
-            : 0,
-    ])
-
-    return { attended, total, attendedFromWaitingList }
-}
-
-/**
- * Writes attendance for one registration: taking it stamps the moment and the one taking it,
- * clearing it drops both.
- */
-async function writeAttendance(
-    prisma: PrismaPossibleTransaction<false>,
-    registrationId: number,
-    attended: boolean,
-    registeredById: number | undefined
-) {
-    return await prisma.eventRegistration.update({
-        where: {
-            id: registrationId,
-        },
-        data: attended
-            ? { attendedAt: new Date(), attendanceRegisteredById: registeredById ?? null }
-            : { attendedAt: null, attendanceRegisteredById: null },
-        select: eventRegistrationAttendanceSelection,
-    })
-}
-
 export const eventRegistrationOperations = {
     create: createRegistration.implement({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.create.data({
@@ -371,20 +325,16 @@ export const eventRegistrationOperations = {
     }),
 
     /**
-     * Takes attendance for the user behind one Omega-ID, which is what the QR scanner at the door
-     * calls. Someone who is not registered is turned away rather than registered on the spot:
-     * registering is `create`'s business, and it has a queue, a deadline and dots to weigh that
-     * taking attendance knows nothing about.
-     *
-     * Scanning the same Omega-ID twice leaves the first scan standing - when they showed up, and
-     * who let them in, is the record worth keeping - and says so in `alreadyAttended`.
+     * Someone not registered is turned away rather than registered on the spot. A second scan leaves
+     * the first one standing, and says so in `alreadyAttended`.
      */
     registerAttendance: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.registerAttendance,
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.registerAttendance.data({
             visibility: await eventVisibility(prisma, params.eventId),
+            userId: params.registeredById,
         }),
-        operation: async ({ prisma, params, session }): Promise<EventAttendanceScan> => {
+        operation: async ({ prisma, params }): Promise<EventAttendanceScan> => {
             const existing = await prisma.eventRegistration.findUnique({
                 where: {
                     eventId_userId: {
@@ -404,7 +354,7 @@ export const eventRegistrationOperations = {
             // Only written while attendance is not taken, so of two scans at once the first one stands.
             const { count } = await prisma.eventRegistration.updateMany({
                 where: { id: existing.id, attendedAt: null },
-                data: { attendedAt: new Date(), attendanceRegisteredById: session.user?.id ?? null },
+                data: { attendedAt: new Date(), attendanceRegisteredById: params.registeredById },
             })
 
             return {
@@ -418,25 +368,18 @@ export const eventRegistrationOperations = {
         },
     }),
 
-    /**
-     * Sets attendance for one registration by hand. A guest has no Omega-ID to scan, so this is the
-     * only way to mark them, and it is also how a scan is taken back when the wrong person was
-     * marked - clearing it drops who took it with it, since there is no longer anything they took.
-     */
+    /** For guests, who have no Omega-ID to scan, and for taking back a wrong scan. */
     setAttendance: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.setAttendance,
         dataSchema: eventRegistrationSchemas.data.setAttendance,
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.setAttendance.data({
             visibility: (await registrationOwnerAndEventVisibility(prisma, params.registrationId)).doubleLevelMatrix,
+            userId: params.registeredById,
         }),
-        operation: async ({ prisma, params, data, session }): Promise<EventAttendanceRegistration> =>
-            await writeAttendance(prisma, params.registrationId, data.attended, session.user?.id),
+        operation: async ({ prisma, params, data }): Promise<EventAttendanceRegistration> =>
+            await writeAttendance(prisma, params.registrationId, data.attended, params.registeredById),
     }),
 
-    /**
-     * How many of the ones registered have been marked as having shown up. Read by the tools at the
-     * door to show the tally, and the number the dots for not showing up will later be drawn from.
-     */
     readAttendanceCounts: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.readAttendanceCounts,
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.readAttendanceCounts.data({
@@ -721,4 +664,41 @@ async function lockEventOpenForRegistration(
     }
 
     return event
+}
+
+async function countAttendance(
+    prisma: PrismaPossibleTransaction<false>,
+    eventId: number
+): Promise<EventAttendanceCounts> {
+    const boundary = await firstOnWaitingList(prisma, eventId)
+    const onThePlaces = boundary ? { eventId, id: { lt: boundary } } : { eventId }
+
+    const [attended, total, attendedFromWaitingList] = await Promise.all([
+        prisma.eventRegistration.count({ where: { ...onThePlaces, attendedAt: { not: null } } }),
+        prisma.eventRegistration.count({ where: onThePlaces }),
+        boundary
+            ? prisma.eventRegistration.count({
+                where: { eventId, id: { gte: boundary }, attendedAt: { not: null } },
+            })
+            : 0,
+    ])
+
+    return { attended, total, attendedFromWaitingList }
+}
+
+async function writeAttendance(
+    prisma: PrismaPossibleTransaction<false>,
+    registrationId: number,
+    attended: boolean,
+    registeredById: number
+) {
+    return await prisma.eventRegistration.update({
+        where: {
+            id: registrationId,
+        },
+        data: attended
+            ? { attendedAt: new Date(), attendanceRegisteredById: registeredById }
+            : { attendedAt: null, attendanceRegisteredById: null },
+        select: eventRegistrationAttendanceSelection,
+    })
 }

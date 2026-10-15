@@ -4,17 +4,14 @@ import { useAttendanceCounts } from './AttendanceCounts'
 import OmegaIdReader from '@/components/OmegaId/reader/OmegaIdReader'
 import { registerEventAttendanceAction } from '@/services/events/registration/actions'
 
-/**
- * The scanner at the door of one event: reads an Omega-ID and marks the one behind it as having
- * shown up. Each scan reports the new tally back, which is handed to the pill in the header rather
- * than read again - so the number on screen is the number in the database without a read per scan.
- */
 export default function AttendanceScanner({
     eventId,
     omegaIdPublicKey,
+    registeredById,
 }: {
     eventId: number,
     omegaIdPublicKey: string,
+    registeredById: number,
 }) {
     const { setCounts } = useAttendanceCounts()
 
@@ -23,7 +20,7 @@ export default function AttendanceScanner({
             publicKey={omegaIdPublicKey}
             qrboxSize={300}
             successCallback={async (userId) => {
-                const result = await registerEventAttendanceAction({ params: { eventId, userId } })
+                const result = await registerEventAttendanceAction({ params: { eventId, userId, registeredById } })
 
                 if (!result.success) {
                     return {

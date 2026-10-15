@@ -21,10 +21,6 @@ async function createTestUser(username: string) {
     })
 }
 
-/**
- * An event anyone may register for, with its registration window open, so that `create` lets a
- * plain user in without having to be administrating it.
- */
 async function createTestEvent(name: string, places = 10) {
     return eventOperations.create({
         data: {
@@ -39,8 +35,7 @@ async function createTestEvent(name: string, places = 10) {
             registrationEnd: new Date(Date.now() + HOUR),
             waitingList: true,
             tagIds: [],
-            // No conditions at all is satisfiable by no one, so only EVENT_ADMIN administrates
-            // this event - which is exactly what the session below holds.
+            // No conditions is satisfiable by no one, so only EVENT_ADMIN administrates this event.
             visibilityAdminRequirements: [{ conditions: [] }],
             visibilityRegularRequirements: [],
         },
@@ -49,7 +44,6 @@ async function createTestEvent(name: string, places = 10) {
 }
 
 describe('taking attendance for an event', () => {
-    // Attendance records who took it, so the operations want a session user rather than a bypass.
     let doorSession: ReturnType<typeof Session.fromJsObject>
     let doorUserId: number
 
@@ -65,13 +59,13 @@ describe('taking attendance for an event', () => {
 
     const registerAttendance = (eventId: number, userId: number) =>
         eventRegistrationOperations.registerAttendance({
-            params: { eventId, userId },
+            params: { eventId, userId, registeredById: doorUserId },
             session: doorSession,
         })
 
     const setAttendance = (registrationId: number, attended: boolean) =>
         eventRegistrationOperations.setAttendance({
-            params: { registrationId },
+            params: { registrationId, registeredById: doorUserId },
             data: { attended },
             session: doorSession,
         })
@@ -168,11 +162,8 @@ describe('taking attendance for an event', () => {
             params: { eventId: event.id },
             session: doorSession,
         })
-        // One place, so the one queueing past it is no part of the tally the event was sized for.
         expect(counts).toEqual({ attended: 0, total: 1, attendedFromWaitingList: 0 })
 
-        // Someone queueing past the places who is let in at the door still showed up, but is
-        // counted apart rather than pushing the tally past the places of the event.
         const waitingListScan = await registerAttendance(event.id, onWaitingList.id)
         expect(waitingListScan.counts).toEqual({ attended: 0, total: 1, attendedFromWaitingList: 1 })
 
@@ -185,15 +176,27 @@ describe('taking attendance for an event', () => {
         const user = await createTestUser('attendancesix')
         await register(event.id, user.id)
 
+        const outsider = await createTestUser('attendanceoutsider')
         const outsiderSession = Session.fromJsObject({
             memberships: [],
             permissions: [],
-            user: await createTestUser('attendanceoutsider'),
+            user: outsider,
         })
 
         await expect(eventRegistrationOperations.registerAttendance({
-            params: { eventId: event.id, userId: user.id },
+            params: { eventId: event.id, userId: user.id, registeredById: outsider.id },
             session: outsiderSession,
+        })).rejects.toThrow(Smorekopp)
+    })
+
+    test('attendance cannot be recorded as taken by someone other than the one logged in', async () => {
+        const event = await createTestEvent('Attendance impersonation event')
+        const user = await createTestUser('attendanceseven')
+        await register(event.id, user.id)
+
+        await expect(eventRegistrationOperations.registerAttendance({
+            params: { eventId: event.id, userId: user.id, registeredById: user.id },
+            session: doorSession,
         })).rejects.toThrow(Smorekopp)
     })
 })

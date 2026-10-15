@@ -125,9 +125,10 @@ const { page, generateMetadata } = serverPage({
         canRegisterGuest: eventRegistrationAuth.createGuest.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        canTakeAttendance: eventRegistrationAuth.registerAttendance.data({
+        canTakeAttendance: session.user ? eventRegistrationAuth.registerAttendance.data({
+            userId: session.user.id,
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
-        }),
+        }) : Require.user(),
         // Registering takes the regular level of the event, for the session's own user.
         canRegister: session.user ? eventRegistrationAuth.create.data({
             userId: session.user.id,
@@ -135,8 +136,9 @@ const { page, generateMetadata } = serverPage({
         }) : Require.user(),
     }),
     metadata: (data) => ({ title: data.event.name }),
-    render: ({ data, capabilities }) => {
+    render: ({ data, capabilities, session }) => {
         const { event, tags, doubleLevelVisibility, dotPunishment, ownRegistration } = data
+        const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
 
         return (
             <div className={styles.wrapper}>
@@ -269,6 +271,7 @@ const { page, generateMetadata } = serverPage({
                         <RegistrationsList
                             event={event}
                             canReadDetailed={capabilities.canReadRegistrationsDetailed.authorized}
+                            attendanceTakerId={attendanceTakerId}
                         />
                     </div>
                 )}

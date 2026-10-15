@@ -45,12 +45,8 @@ export type EventRegistrationCursor = InferPagingCursor<typeof eventRegistration
 export type EventRegistrationPageDetails = InferPagingDetails<typeof eventRegistrationSchemas.params.readPage>
 
 /**
- * How many of the ones registered for an event have had attendance taken for them.
- *
- * `attended` and `total` are about the ones that took the places of the event, so the tally reads
- * against the size the event was planned for - counting the waiting list into `total` would say 70
- * of an event with 50 places and 20 queueing. Someone on the waiting list who is let in at the door
- * did still show up, so they are counted too, but apart, in `attendedFromWaitingList`.
+ * `attended` and `total` only count those who got a place, so the tally reads against the size of
+ * the event. Those let in from the waiting list are counted apart, in `attendedFromWaitingList`.
  */
 export type EventAttendanceCounts = {
     attended: number,
@@ -58,18 +54,10 @@ export type EventAttendanceCounts = {
     attendedFromWaitingList: number,
 }
 
-/**
- * One registration as the attendance tools read it back.
- */
 export type EventAttendanceRegistration = Prisma.EventRegistrationGetPayload<{
     select: typeof eventRegistrationAttendanceSelection
 }>
 
-/**
- * The outcome of one scan at the door, which also tells whether attendance had already been taken
- * for the registration - a second scan of the same Omega-ID is not an error, but worth saying out
- * loud, so nobody is counted twice over in the head of the one holding the scanner.
- */
 export type EventAttendanceScan = {
     registration: EventAttendanceRegistration,
     counts: EventAttendanceCounts,

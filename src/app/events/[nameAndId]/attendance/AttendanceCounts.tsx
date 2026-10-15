@@ -11,10 +11,6 @@ type AttendanceCountsContextType = {
 
 const AttendanceCountsContext = createContext<AttendanceCountsContextType | undefined>(undefined)
 
-/**
- * The tally of one event, shared between the pill in the header and the scanner in the body - they
- * sit in different slots of the page, but it is one number, and each scan reports the new one back.
- */
 export function AttendanceCountsProvider({
     initialCounts,
     children,

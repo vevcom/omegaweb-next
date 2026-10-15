@@ -172,8 +172,6 @@
     }
 }
 
-// The rounded pill the header items share (ArchiveLink, BackLink, the attendance readout), so they
-// read as one row of controls. Matches HeaderItemPopUp's .headerItemBtn/.pill, which predates this.
 @mixin headerPill {
     display: flex;
     flex-direction: row;
@@ -185,8 +183,6 @@
     color: colors.$ink-strong;
 }
 
-// The same pill as a link: hovers, and tints its icon on hover. Padding is the caller's, since it
-// depends on which side the icon sits.
 @mixin headerPillLink {
     @include headerPill;
     text-decoration: none;

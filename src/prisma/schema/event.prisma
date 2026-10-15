@@ -104,9 +104,7 @@ model EventRegistration {
   updatedAt DateTime        @updatedAt
   note      String?
 
-  // When the one registered was marked as having shown up, and who marked them. Null means
-  // attendance has not been taken for this registration - i.e. they did not show up, once
-  // attendance has been taken for the event at all.
+  // Null until attendance is taken for the event - after that, null means they did not show up.
   attendedAt               DateTime?
   attendanceRegisteredBy   User?     @relation(name: "attendanceRegisteredBy", fields: [attendanceRegisteredById], references: [id], onDelete: SetNull)
   attendanceRegisteredById Int?

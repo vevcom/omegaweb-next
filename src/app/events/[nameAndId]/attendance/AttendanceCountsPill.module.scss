@@ -1,6 +1,5 @@
 @use '@/styles/ohma';
 
-// A readout rather than a control, so it takes the pill look without the link behaviour.
 .AttendanceCountsPill {
     @include ohma.headerPill;
 

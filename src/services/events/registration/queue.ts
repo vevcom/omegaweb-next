@@ -30,9 +30,8 @@ export async function queuePosition(
 }
 
 /**
- * The id of the first registration queueing past the places of an event, or null when nobody is.
- * The queue is ordered by id, so this one id splits it: below it took a place, from it on is the
- * waiting list.
+ * The id of the first registration past the places of an event, or null when there is none. The
+ * queue is ordered by id, so ids below it hold places and the rest are on the waiting list.
  */
 export async function firstOnWaitingList(
     prisma: Prisma.TransactionClient,

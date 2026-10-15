@@ -9,12 +9,14 @@ import { eventRegistrationOperations } from '@/services/events/registration/oper
 import { omegaIdOperations } from '@/services/omegaid/operations'
 import { decodeVevenUriHandleError, formatVevenUri } from '@/lib/urlEncoding'
 import { serverPage } from '@/app/serverPage'
+import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/serverPage'
 
 const { page, generateMetadata } = serverPage({
-    // Taking attendance is for those who administrate the event, and readAttendanceCounts is
-    // gated on exactly that - so it both loads the tally and keeps everyone else off the page.
-    operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) => {
+    // readAttendanceCounts is what keeps those not administrating the event off the page.
+    operation: async ({ params, session }: PageOperationArgs<{ nameAndId: string }>) => {
+        if (!session.user) notFound()
+
         const event = await eventOperations.read({
             params: { id: decodeVevenUriHandleError(params.nameAndId) },
         })
@@ -25,7 +27,7 @@ const { page, generateMetadata } = serverPage({
 
         const publicKey = await omegaIdOperations.readPublicKey({})
 
-        return { event, counts, publicKey }
+        return { event, counts, publicKey, registeredById: session.user.id }
     },
     metadata: (data) => ({ title: `Oppmøte for ${data.event.name}` }),
     render: ({ data }) => (
@@ -43,6 +45,7 @@ const { page, generateMetadata } = serverPage({
                     <AttendanceScanner
                         eventId={data.event.id}
                         omegaIdPublicKey={data.publicKey}
+                        registeredById={data.registeredById}
                     />
                 </div>
             </PageWrapper>

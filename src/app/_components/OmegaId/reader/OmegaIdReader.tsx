@@ -17,7 +17,6 @@ import { useEffect, useId, useState } from 'react'
  * @param debounceThreshold - An optional threshold (in milliseconds) to prevent duplicate reads.
  * @param singleRead - An optional flag indicating whether only a single QR code should be read.
  * @param qrboxSize - An optional size (in pixels) of the square the QR code is scanned within.
- *                    Pair it with `--omegaIdReaderWidth` to give the whole reader more room.
  * @returns The rendered component for reading OmegaId QR codes.
  */
 export default function OmegaIdReader({
@@ -51,8 +50,7 @@ export default function OmegaIdReader({
     useEffect(() => {
         const html5QrcodeScanner = new Html5QrcodeScanner(qrcodeRegionId, {
             ...qrCodeReaderConfig,
-            // Clamped to the viewfinder: a box wider than the video is rejected outright by
-            // html5-qrcode, which a narrow phone would otherwise run into.
+            // html5-qrcode rejects a box wider than the video, which a narrow phone would hit.
             ...(qrboxSize ? {
                 qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
                     const size = Math.min(qrboxSize, viewfinderWidth, viewfinderHeight)
