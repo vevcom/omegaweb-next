@@ -1,11 +1,11 @@
-import type { newsArticleRealtionsIncluder } from './constants'
+import type { newsArticleRelationsIncluder } from './constants'
 import type { newsSchemas } from './schemas'
 import type { InferPagingCursor } from '@/lib/paging/schema'
 import type { NewsArticle, Prisma } from '@/prisma-generated-pn-types'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
 export type ExpandedNewsArticle = Prisma.NewsArticleGetPayload<{
-    include: typeof newsArticleRealtionsIncluder
+    include: typeof newsArticleRelationsIncluder
 }>
 
 //used for read many actions

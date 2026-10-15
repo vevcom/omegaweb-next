@@ -50,8 +50,8 @@ export async function sendWeeklyEmailDigest(user: UserBasicWithEmail, notificati
             html: await wrapInHTML(user, parsed.data.text),
             list: {
                 unsubscribe: {
-                    url: `${process.env.WEBSITE_URL}/users/${user.username}/unsubscribe`,
-                    comment: 'Comment'
+                    url: `${process.env.WEBSITE_URL}/users/${user.username}/notifications`,
+                    comment: 'Varslingsinnstillinger'
                 },
             },
         }],

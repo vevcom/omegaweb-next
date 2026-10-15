@@ -4,7 +4,7 @@ import { replaceSpecialSymbols } from './helpers'
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
-import type { Notification } from '@/prisma-generated-pn-types'
+import type { NotificationWithChannel } from './types'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
 /**
@@ -19,7 +19,7 @@ import type { UserBasicWithEmail } from '@/services/users/types'
  */
 export async function sendNotificationEmails(
     senderAddress: string | null,
-    notification: Notification,
+    notification: NotificationWithChannel,
     users: UserBasicWithEmail[]
 ) {
     const senderAlias = senderAddress ?? DEFAULT_NOTIFICATION_ALIAS
@@ -42,11 +42,11 @@ export async function sendNotificationEmails(
             from: parsed.data.from,
             to: parsed.data.to,
             subject: parsed.data.subject,
-            html: await wrapInHTML(user, parsed.data.text),
+            html: await wrapInHTML(user, parsed.data.text, notification.channel.name),
             list: {
                 unsubscribe: {
-                    url: `${process.env.WEBSITE_URL}/users/${user.username}/unsubscribe`,
-                    comment: 'Comment'
+                    url: `${process.env.WEBSITE_URL}/users/${user.username}/notifications`,
+                    comment: 'Varslingsinnstillinger'
                 },
             }
         }

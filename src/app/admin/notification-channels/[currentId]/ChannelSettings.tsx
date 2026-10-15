@@ -8,8 +8,11 @@ import { SelectNumber } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
-import { updateNotificationChannelAction } from '@/services/notifications/channel/actions'
-import { findValidParents } from '@/services/notifications/channel/schemas'
+import {
+    destroyNotificationChannelAction,
+    updateNotificationChannelAction
+} from '@/services/notifications/channel/actions'
+import { findValidParents } from '@/services/notifications/channel/helpers'
 import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
@@ -25,7 +28,7 @@ export default function ChannelSettings({
     currentChannel: ExpandedNotificationChannel,
     channels: ExpandedNotificationChannel[],
     mailAliases: MailAlias[],
-    capabilities: CapabilitiesJsObject<'canUpdate'>,
+    capabilities: CapabilitiesJsObject<'canUpdate' | 'canDestroy'>,
 }) {
     const [currentChannelState, setCurrentChannel] = useState(currentChannel)
 
@@ -123,6 +126,22 @@ export default function ChannelSettings({
 
 
             </Form>
+            }
+            {capabilities.canDestroy.authorized && !currentChannel.special &&
+            <Form
+                title="Slett kanal"
+                submitText="Slett kanal"
+                submitColor="red"
+                action={configureAction(destroyNotificationChannelAction, { params: { id: currentChannel.id } })}
+                navigateOnSuccess="/admin/notification-channels"
+                confirmation={{
+                    confirm: true,
+                    text: `
+                        Er du sikker på at du vil slette kanalen "${currentChannel.name}"?
+                        Abonnementene på den og varslene som er sendt i den slettes også. Dette kan ikke angres.
+                    `
+                }}
+            />
             }
         </div>
     </PageWrapper>

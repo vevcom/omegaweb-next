@@ -1,12 +1,14 @@
 import { updateDefaultPermissionsAction } from '@/services/permissions/actions'
 import { permissionOperations } from '@/services/permissions/operations'
 import { permissionsAuth } from '@/services/permissions/auth'
+import { permissionsAllowedAsDefault } from '@/services/permissions/constants'
 import Form from '@/components/Form/Form'
 import DisplayAllPermissions from '@/components/Permission/DisplayAllPermissions'
 import { serverPage } from '@/app/serverPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import React from 'react'
 import type { PageOperationArgs } from '@/app/serverPage'
+
+const allowedAsDefault = permissionsAllowedAsDefault()
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
@@ -31,6 +33,10 @@ const { page, generateMetadata } = serverPage({
                                 name="permissions"
                                 value={permission}
                                 defaultChecked={defaultPermissions.includes(permission)}
+                                disabled={!allowedAsDefault.includes(permission)}
+                                title={allowedAsDefault.includes(permission)
+                                    ? undefined
+                                    : 'Denne tilgangen kan ikke være en standardtilgang'}
                             />
                         </label>
                     )
