@@ -35,25 +35,6 @@ export type ArticleSectionActions = PropTypes['actions']
 // A part's remove button sits on its top right corner, above the part itself.
 const removerClassName = 'absolute -top-[10px] -right-[10px] z-2'
 
-const imageClassName = [
-    'relative isolate max-w-full',
-    // .cmsImageWithControls is absolutely positioned, so on mobile the image needs its own height.
-    'max-mobile:order-2 max-mobile:rounded-round max-mobile:h-[min(300px,40vh)]',
-].join(' ')
-
-// The image is pinned to the box via absolute positioning rather than a chain of percentage
-// heights through CmsImage's display:table, which made the whole row balloon. CmsImage's own
-// wrapper divs size off the image's intrinsic width, so they are forced to fill it at any depth.
-const cmsImageWithControlsClassName = [
-    'absolute inset-0 flex overflow-hidden z-1',
-    '[&>*:first-child]:absolute [&>*:first-child]:inset-0 [&>*:first-child]:w-full [&>*:first-child]:h-full',
-    '[&>*:first-child]:rounded-round [&>*:first-child]:overflow-hidden [&>*:first-child]:max-w-[90vw]',
-    '[&>*:first-child>*]:min-w-full [&>*:first-child>*]:max-w-[83vw]',
-    '[&>*:first-child_div]:absolute [&>*:first-child_div]:inset-0 [&>*:first-child_div]:w-full [&>*:first-child_div]:h-full',
-    '[&>*:first-child_img]:absolute [&>*:first-child_img]:inset-0 [&>*:first-child_img]:w-full',
-    '[&>*:first-child_img]:h-full [&>*:first-child_img]:object-cover',
-].join(' ')
-
 export default function ArticleSection({
     articleSection,
     actions,
@@ -66,9 +47,25 @@ export default function ArticleSection({
         // cmsImageWithControls fills this box via absolute positioning (see its classes),
         // so it no longer contributes in-flow content .image could size its own width from -
         // give it the configured image width explicitly instead.
-        <span className={imageClassName} style={{ width: articleSection.imageSize }}>
+        <span className={[
+            'relative isolate max-w-full',
+            // .cmsImageWithControls is absolutely positioned, so on mobile the image needs its own height.
+            'max-mobile:order-2 max-mobile:rounded-round max-mobile:h-[min(300px,40vh)]',
+        ].join(' ')} style={{ width: articleSection.imageSize }}>
             {cmsImage && <>
-                <span className={cmsImageWithControlsClassName}>
+                <span className={[
+                    // The image is pinned to the box via absolute positioning rather than a chain of percentage
+                    // heights through CmsImage's display:table, which made the whole row balloon. CmsImage's own
+                    // wrapper divs size off the image's intrinsic width, so they are forced to fill it at any depth.
+                    'absolute inset-0 flex overflow-hidden z-1',
+                    '[&>*:first-child]:absolute [&>*:first-child]:inset-0 [&>*:first-child]:w-full [&>*:first-child]:h-full',
+                    '[&>*:first-child]:rounded-round [&>*:first-child]:overflow-hidden [&>*:first-child]:max-w-[90vw]',
+                    '[&>*:first-child>*]:min-w-full [&>*:first-child>*]:max-w-[83vw]',
+                    '[&>*:first-child_div]:absolute [&>*:first-child_div]:inset-0 [&>*:first-child_div]:w-full',
+                    '[&>*:first-child_div]:h-full',
+                    '[&>*:first-child_img]:absolute [&>*:first-child_img]:inset-0 [&>*:first-child_img]:w-full',
+                    '[&>*:first-child_img]:h-full [&>*:first-child_img]:object-cover',
+                ].join(' ')}>
                     <CmsImage
                         width={articleSection.imageSize}
                         cmsImage={cmsImage}

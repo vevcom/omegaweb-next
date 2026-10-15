@@ -71,11 +71,6 @@ function getOrdereOptions(group: ExpandedGroup): { value: number | 'NULL', label
     ]
 }
 
-// Buttons rendered in cells, including any from displayForUser, are small square toggles.
-const listClassName = [
-    'ohma-table m-0! [&_td_button]:border-none [&_td_button]:bg-transparent [&_td_button]:size-[25px]',
-    '[&_td_button]:grid [&_td_button]:place-items-center [&_td_button]:rounded-round [&_td_button]:cursor-pointer',
-].join(' ')
 // p-0! beats ohma-table's own th padding; the button inside carries it instead.
 const sortableClassName = 'p-0! select-none whitespace-nowrap hover:text-accent-blue'
 const sortButtonClassName = [
@@ -309,7 +304,12 @@ export default function UserList({
                 }
             </div>
             <div className="flex-auto overflow-y-auto">
-                <table className={listClassName}>
+                <table className={[
+                    // Buttons rendered in cells, including any from displayForUser, are small square toggles.
+                    'ohma-table m-0! [&_td_button]:border-none [&_td_button]:bg-transparent [&_td_button]:size-[25px]',
+                    '[&_td_button]:grid [&_td_button]:place-items-center [&_td_button]:rounded-round',
+                    '[&_td_button]:cursor-pointer',
+                ].join(' ')}>
                     <thead>
                         <tr className="sticky top-0 z-1">
                             {(usersSelection ?? userSelection) && <th></th>}

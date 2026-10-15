@@ -39,26 +39,6 @@ type PropTypes = {
     onNavigateRight: () => void,
 }
 
-// The dimmed backdrop matches PopUp's. Above the layout's nav (z-index 3), below PopUp (8/9).
-const overlayClassName = [
-    'z-5 fixed top-0 left-0 w-screen h-dvh grid place-items-center',
-    'bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px]',
-].join(' ')
-// Header and footer keep their height; the image band takes the rest, so long metadata can't overflow the panel.
-const panelClassName = 'relative w-[95vw] h-[95dvh] flex flex-col gap-4 p-4 rounded-round bg-surface-base'
-// The image component's wrapper divs size off --image-width rather than off this box, so every
-// wrapper is forced to fill it; width/height must be explicit since `inset` alone loses to the wrapper's width.
-const currentImageClassName = [
-    'flex-auto min-h-0 relative',
-    '[&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full',
-    '[&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full [&_img]:object-contain [&_img]:rounded-round',
-].join(' ')
-// Muted rather than italic: it's a spec sheet under the title.
-const metaListClassName = [
-    'mt-2 flex flex-wrap gap-x-4 gap-y-0 text-s text-text-muted',
-    '[&>div]:flex [&>div]:gap-[0.4em] [&>div]:min-w-0',
-    '[&_dt]:text-ink-hover [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap',
-].join(' ')
 const navButtonClassName = [
     'size-10 grid place-items-center rounded-full border-none cursor-pointer bg-surface-raised text-text',
     'transition-[background-color] duration-300 hover:bg-surface-hover [&>svg]:w-[45%]! [&>svg]:h-[45%]!',
@@ -94,14 +74,27 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
     }
 
     return (
-        <div className={overlayClassName}>
-            <div className={panelClassName} ref={panelRef}>
+        <div className={[
+            // The dimmed backdrop matches PopUp's. Above the layout's nav (z-index 3), below PopUp (8/9).
+            'z-5 fixed top-0 left-0 w-screen h-dvh grid place-items-center',
+            'bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px]',
+        ].join(' ')}>
+            <div className={[
+                // Header and footer keep their height; the image band takes the rest, so long metadata can't overflow the
+                // panel.
+                'relative w-[95vw] h-[95dvh] flex flex-col gap-4 p-4 rounded-round bg-surface-base',
+            ].join(' ')} ref={panelRef}>
                 <div className="shrink-0 flex items-start justify-between gap-4">
                     <div className="min-w-0">
                         <h2 className="font-secondary text-xl font-bold overflow-hidden text-ellipsis whitespace-nowrap">
                             {image.name}
                         </h2>
-                        <dl className={metaListClassName}>
+                        <dl className={[
+                            // Muted rather than italic: it's a spec sheet under the title.
+                            'mt-2 flex flex-wrap gap-x-4 gap-y-0 text-s text-text-muted',
+                            '[&>div]:flex [&>div]:gap-[0.4em] [&>div]:min-w-0',
+                            '[&_dt]:text-ink-hover [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap',
+                        ].join(' ')}>
                             <div>
                                 <dt>Alt-tekst:</dt>
                                 <dd>{image.alt}</dd>
@@ -135,7 +128,14 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                     </button>
                 </div>
 
-                <div className={currentImageClassName}>
+                <div className={[
+                    // The image component's wrapper divs size off --image-width rather than off this box, so every wrapper
+                    // is forced to fill it; width/height must be explicit since `inset` alone loses to the wrapper's width.
+                    'flex-auto min-h-0 relative',
+                    '[&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full',
+                    '[&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full [&_img]:object-contain',
+                    '[&_img]:rounded-round',
+                ].join(' ')}>
                     {
                         loading ? (
                             <div className={styles.loading}></div>

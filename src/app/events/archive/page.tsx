@@ -12,13 +12,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
-// Hovering a selected tag marks it with a cross, since clicking it removes it from the filter.
-const tagsClassName = [
-    'flex items-center gap-[1em] [&_a]:no-underline [&_a]:relative',
-    "[&_a:hover]:after:content-['✖'] [&_a:hover]:after:text-[4em] [&_a:hover]:after:text-text",
-    '[&_a:hover]:after:absolute [&_a:hover]:after:left-1/2 [&_a:hover]:after:top-1/2 [&_a:hover]:after:-translate-1/2',
-].join(' ')
-
 const { page, generateMetadata } = serverPage({
     operation: async ({ searchParams }: PageOperationArgs) => {
         const tagNames = QueryParams.eventTags.decode(searchParams)
@@ -38,7 +31,13 @@ const { page, generateMetadata } = serverPage({
         return (
             <PageWrapper headerItem={
                 <div className="flex justify-between items-center w-full gap-[1em]">
-                    <div className={tagsClassName}>
+                    <div className={[
+                        // Hovering a selected tag marks it with a cross, since clicking it removes it from the filter.
+                        'flex items-center gap-[1em] [&_a]:no-underline [&_a]:relative',
+                        "[&_a:hover]:after:content-['✖'] [&_a:hover]:after:text-[4em] [&_a:hover]:after:text-text",
+                        '[&_a:hover]:after:absolute [&_a:hover]:after:left-1/2 [&_a:hover]:after:top-1/2',
+                        '[&_a:hover]:after:-translate-1/2',
+                    ].join(' ')}>
                         {currentTags.map(tag => {
                             const remainingTags = currentTags
                                 .filter(currentTag => currentTag.name !== tag.name)

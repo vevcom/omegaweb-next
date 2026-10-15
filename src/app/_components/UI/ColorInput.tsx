@@ -13,12 +13,6 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
     background?: 'base' | 'raised',
 }
 
-const triggerClassName = [
-    'relative w-full flex items-center gap-2 border-2 border-transparent rounded-inner outline-0 text-m text-left',
-    'pt-6 px-4 pb-2 transition-[border-color,background-color] duration-300 cursor-pointer',
-    'peer-focus:border-accent-blue peer-disabled:cursor-not-allowed peer-disabled:opacity-60',
-].join(' ')
-
 const backgroundClassNames = {
     base: 'bg-surface-raised hover:bg-surface-hover peer-focus:bg-surface-hover',
     raised: [
@@ -84,7 +78,13 @@ export default function ColorInput({
                 className="peer absolute w-px h-px opacity-0 pointer-events-none"
                 onChange={handleChange}
             />
-            <label htmlFor={inputId} className={`${triggerClassName} ${backgroundClassNames[background]}`}>
+            <label htmlFor={inputId} className={[
+                'relative w-full flex items-center gap-2 border-2 border-transparent rounded-inner outline-0 text-m',
+                'text-left',
+                'pt-6 px-4 pb-2 transition-[border-color,background-color] duration-300 cursor-pointer',
+                'peer-focus:border-accent-blue peer-disabled:cursor-not-allowed peer-disabled:opacity-60',
+                backgroundClassNames[background],
+            ].join(' ')}>
                 <span
                     className={[
                         'shrink-0 size-[calc(var(--text-m)*1.25)] rounded-[calc(var(--rounding)-1.5*var(--gap))]',

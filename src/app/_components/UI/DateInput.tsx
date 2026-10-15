@@ -17,17 +17,6 @@ const colorClassNames = {
     black: 'text-text',
 } as const
 
-const inputClassName = [
-    'scheme-dark w-full border-2 border-transparent rounded-inner',
-    // The native picker indicator inflates the content box, so pin the height to the grid.
-    'h-14 p-4 leading-[calc(var(--text-m)*1.25)] text-m text-ink-strong',
-    'transition-[border-color,background-color] duration-300 focus:outline-0 focus:border-accent-blue',
-    '[&::-webkit-calendar-picker-indicator]:cursor-pointer',
-    '[&::-webkit-calendar-picker-indicator]:rounded-[calc(var(--gap)/2)]',
-    '[&::-webkit-calendar-picker-indicator]:transition-colors [&::-webkit-calendar-picker-indicator]:duration-300',
-    '[&::-webkit-calendar-picker-indicator]:hover:bg-surface-subtle',
-].join(' ')
-
 const backgroundClassNames = {
     base: 'bg-surface-raised hover:bg-surface-hover focus:bg-surface-hover',
     raised: [
@@ -71,7 +60,18 @@ export default function DateInput({
                 onChange={setUtc}
                 defaultValue={defaultValueTransformedLocal}
                 type={includeTime ? 'datetime-local' : 'date'}
-                className={`${inputClassName} ${backgroundClassNames[background]}`}
+                className={[
+                    'scheme-dark w-full border-2 border-transparent rounded-inner',
+                    // The native picker indicator inflates the content box, so pin the height to the grid.
+                    'h-14 p-4 leading-[calc(var(--text-m)*1.25)] text-m text-ink-strong',
+                    'transition-[border-color,background-color] duration-300 focus:outline-0 focus:border-accent-blue',
+                    '[&::-webkit-calendar-picker-indicator]:cursor-pointer',
+                    '[&::-webkit-calendar-picker-indicator]:rounded-[calc(var(--gap)/2)]',
+                    '[&::-webkit-calendar-picker-indicator]:transition-colors',
+                    '[&::-webkit-calendar-picker-indicator]:duration-300',
+                    '[&::-webkit-calendar-picker-indicator]:hover:bg-surface-subtle',
+                    backgroundClassNames[background],
+                ].join(' ')}
                 {...props}
                 id={inputId}
                 name={`${props.name}Local`}

@@ -24,12 +24,6 @@ type PropTypes = {
  * @param capabilities - which of creating, updating and destroying tags to offer
  * @returns
  */
-// Hovering a selected tag shows a cross over it, since clicking it deselects.
-const selectedClassName = [
-    "relative hover:after:content-['✖'] hover:after:text-[length:4em] hover:after:text-text hover:after:absolute",
-    'hover:after:left-1/2 hover:after:top-1/2 hover:after:-translate-x-1/2 hover:after:-translate-y-1/2',
-].join(' ')
-
 export default function EventTagsAdmin({
     eventTags,
     selectedTags,
@@ -72,7 +66,13 @@ export default function EventTagsAdmin({
                         <li key={index} >
                             <Link
                                 className={
-                                    selectedTags.map(tagItem => tagItem.name).includes(tag.name) ? selectedClassName : ''
+                                    selectedTags.map(tagItem => tagItem.name).includes(tag.name) ? [
+                                        // Hovering a selected tag shows a cross over it, since clicking it deselects.
+                                        "relative hover:after:content-['✖'] hover:after:text-[length:4em]",
+                                        'hover:after:text-text hover:after:absolute',
+                                        'hover:after:left-1/2 hover:after:top-1/2 hover:after:-translate-x-1/2',
+                                        'hover:after:-translate-y-1/2',
+                                    ].join(' ') : ''
                                 }
                                 href={
                                     selectedTags.map(tagItem => tagItem.name).includes(tag.name) ?

@@ -19,25 +19,6 @@ import { configureAction } from '@/services/configureAction'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
-// On the page's own surface, delineated by a rule - the inputs inside are surface-raised. Only the direct h2
-// is the panel heading; the forms inside bring their own h2 titles.
-const ombulAdminClassName = [
-    'mt-8 p-6 border border-surface-subtle rounded-round flex flex-row flex-wrap items-start gap-8',
-    '[&>h2]:flex-[1_1_100%] [&>h2]:text-m [&>h2]:font-medium [&>h2]:text-text-muted [&>h2]:uppercase',
-    '[&>h2]:tracking-[0.08em]',
-].join(' ')
-
-// A hairline between the three forms rather than a heavier rule.
-const leftClassName = [
-    'flex-[0_1_auto] [&>*:not(:last-child)]:border-b [&>*:not(:last-child)]:border-surface-subtle',
-    '[&>*:not(:last-child)]:pb-6 [&>*:not(:last-child)]:mb-6',
-].join(' ')
-
-const coverImageClassName = [
-    'flex flex-wrap items-start gap-4',
-    '[&>*:first-child]:rounded-round [&>*:first-child]:overflow-hidden',
-].join(' ')
-
 type PropTypes = {
     ombul: ExpandedOmbul
 }
@@ -79,9 +60,19 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
     if (!canUpdate && !canUpdateFile && !canDestroy && !canUpdateCover) return null
 
     return (
-        <div className={ombulAdminClassName}>
+        <div className={[
+            // On the page's own surface, delineated by a rule - the inputs inside are surface-raised. Only the direct h2
+            // is the panel heading; the forms inside bring their own h2 titles.
+            'mt-8 p-6 border border-surface-subtle rounded-round flex flex-row flex-wrap items-start gap-8',
+            '[&>h2]:flex-[1_1_100%] [&>h2]:text-m [&>h2]:font-medium [&>h2]:text-text-muted [&>h2]:uppercase',
+            '[&>h2]:tracking-[0.08em]',
+        ].join(' ')}>
             <h2>Admin</h2>
-            <div className={leftClassName}>
+            <div className={[
+                // A hairline between the three forms rather than a heavier rule.
+                'flex-[0_1_auto] [&>*:not(:last-child)]:border-b [&>*:not(:last-child)]:border-surface-subtle',
+                '[&>*:not(:last-child)]:pb-6 [&>*:not(:last-child)]:mb-6',
+            ].join(' ')}>
                 {
                     canUpdate && (
                         <Form
@@ -142,7 +133,10 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
             <div>
                 {
                     canUpdateCover && (
-                        <div className={coverImageClassName}>
+                        <div className={[
+                            'flex flex-wrap items-start gap-4',
+                            '[&>*:first-child]:rounded-round [&>*:first-child]:overflow-hidden',
+                        ].join(' ')}>
                             <Image image={ombul.coverImage} width={200} />
                             <ImageUploader
                                 title="Endre forsidebilde"

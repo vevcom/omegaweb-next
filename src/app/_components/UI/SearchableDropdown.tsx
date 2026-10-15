@@ -22,12 +22,6 @@ export type PropTypes<ValueType> = Omit<DropdownPropTypes<ValueType>, 'options'>
     options: SearchableDropdownOption<ValueType>[],
 }
 
-const fieldClassName = [
-    'w-full border-2 border-transparent rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)]',
-    'pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300',
-    'disabled:cursor-not-allowed disabled:opacity-60',
-].join(' ')
-
 const focusBorderClassNames = {
     black: 'focus:border-accent-blue',
     primary: 'focus:border-accent-blue',
@@ -101,7 +95,12 @@ export default function SearchableDropdown<ValueType extends string | number>({
                 id={domId}
                 type="text"
                 className={[
-                    fieldClassName,
+                    [
+                        'w-full border-2 border-transparent rounded-inner outline-0 text-m',
+                        'leading-[calc(var(--text-m)*1.25)]',
+                        'pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300',
+                        'disabled:cursor-not-allowed disabled:opacity-60',
+                    ].join(' '),
                     dropdownColorClassNames[color],
                     focusBorderClassNames[color],
                     backgroundClassNames[background],

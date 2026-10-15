@@ -16,14 +16,6 @@ export type PrioritizedCommittee = {
     card: ReactNode,
 }
 
-const priorityClassName = 'shrink-0 rounded-full bg-accent-blue text-text-inv size-[3em] grid place-items-center font-bold'
-
-// Same handle as the flair admin table, so reordering works the same way in both places.
-const dragHandleClassName = [
-    'flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab touch-none select-none',
-    'transition-colors duration-300 hover:bg-surface-hover hover:text-ink-strong active:cursor-grabbing',
-].join(' ')
-
 type ItemPropTypes = {
     item: PrioritizedCommittee,
     priority: number,
@@ -49,9 +41,17 @@ function PrioritizedCommittee({ item, priority, canReorder, onDragEnd }: ItemPro
             <div className="flex-[0_0_auto] w-[3em] flex flex-col items-center gap-[0.5em]">
                 {/* The priority comes from the position in the list rather than from the server
                     so that the numbers follow along while the card is being dragged. */}
-                <span className={priorityClassName}>{priority}</span>
+                <span className={[
+                    'shrink-0 rounded-full bg-accent-blue text-text-inv',
+                    'size-[3em] grid place-items-center font-bold',
+                ].join(' ')}>{priority}</span>
                 {canReorder && (
-                    <span className={dragHandleClassName} onPointerDown={startDrag}>
+                    <span className={[
+                        // Same handle as the flair admin table, so reordering works the same way in both places.
+                        'flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab',
+                        'touch-none select-none',
+                        'transition-colors duration-300 hover:bg-surface-hover hover:text-ink-strong active:cursor-grabbing',
+                    ].join(' ')} onPointerDown={startDrag}>
                         <FontAwesomeIcon icon={faGripVertical} />
                     </span>
                 )}

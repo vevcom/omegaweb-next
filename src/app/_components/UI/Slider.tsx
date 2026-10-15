@@ -12,12 +12,6 @@ const checkedColorClassNames = {
     black: 'peer-checked:bg-black',
 } as const
 
-const sliderClassName = [
-    'w-[60px] absolute cursor-pointer inset-0 bg-surface-raised transition-all duration-400 rounded-[34px]',
-    'before:absolute before:h-[26px] before:w-[26px] before:left-[4px] before:bottom-[4px] before:bg-white',
-    'before:transition-all before:duration-400 before:rounded-full peer-checked:before:translate-x-[26px]',
-].join(' ')
-
 /**
  * This is really a regular checkbox styled as a slider
  * @param label - The label for the slider
@@ -40,7 +34,12 @@ export default function Slider({ label, name, color = 'primary', ...props }: Pro
                 id={props.id ?? `id_for_${name}`}
                 className={`peer ${props.className ?? ''}`}
             />
-            <div className={`${sliderClassName} ${checkedColorClassNames[color]}`} />
+            <div className={[
+                'w-[60px] absolute cursor-pointer inset-0 bg-surface-raised transition-all duration-400 rounded-[34px]',
+                'before:absolute before:h-[26px] before:w-[26px] before:left-[4px] before:bottom-[4px] before:bg-white',
+                'before:transition-all before:duration-400 before:rounded-full peer-checked:before:translate-x-[26px]',
+                checkedColorClassNames[color],
+            ].join(' ')} />
             <CheckboxFieldPresent name={name} />
         </label>
     )

@@ -52,26 +52,6 @@ const categoryOptions: { value: Category, label: string }[] = [
     { value: 'events', label: 'Arrangementer' },
 ]
 
-const mainClassName = [
-    'w-[min(800px,90vw)] max-h-[70svh] h-[70svh] bg-[color-mix(in_srgb,var(--surface-base),transparent_40%)]',
-    'backdrop-blur-[8px] backdrop-saturate-[140%] rounded-round flex flex-col gap-2 p-4 overflow-hidden',
-    'max-mobile:w-screen max-mobile:max-h-svh max-mobile:h-svh max-mobile:rounded-none',
-].join(' ')
-
-const resultLinkClassName = [
-    'flex items-center gap-2 p-2 rounded-[calc(0.5*var(--gap))]',
-    'no-underline transition-colors duration-300',
-].join(' ')
-
-// Image's own wrapper div sizes off the image's intrinsic width, so it is forced to fill the thumbnail box.
-const thumbClassName = [
-    'relative shrink-0 size-10 rounded-[calc(0.5*var(--gap))] overflow-hidden flex items-center justify-center',
-    'bg-surface-hover text-text-muted [&_div]:w-full [&_div]:h-full',
-    '[&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full [&_img]:object-cover',
-].join(' ')
-
-const resultLabelClassName = 'flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap'
-
 const kbdClassName = [
     'inline-flex items-center justify-center min-w-4 py-[calc(0.15*var(--gap))] px-[calc(0.4*var(--gap))]',
     'mr-[calc(0.3*var(--gap))] bg-surface-hover rounded-[calc(0.35*var(--gap))] text-s text-text',
@@ -255,7 +235,11 @@ export default function GlobalSearch({ navItems }: PropTypes) {
 
     return (
         <div className="fixed inset-0 bg-[rgba(0,0,0,0.55)] z-20 flex justify-center pt-[12vh] max-mobile:pt-0">
-            <div className={mainClassName} ref={ref}>
+            <div className={[
+                'w-[min(800px,90vw)] max-h-[70svh] h-[70svh] bg-[color-mix(in_srgb,var(--surface-base),transparent_40%)]',
+                'backdrop-blur-[8px] backdrop-saturate-[140%] rounded-round flex flex-col gap-2 p-4 overflow-hidden',
+                'max-mobile:w-screen max-mobile:max-h-svh max-mobile:h-svh max-mobile:rounded-none',
+            ].join(' ')} ref={ref}>
                 <div className="flex items-center gap-2 shrink-0">
                     <FontAwesomeIcon icon={faMagnifyingGlass} className="shrink-0 text-text-muted" />
                     <input
@@ -299,22 +283,35 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                                             <li key={item.key}>
                                                 <Link
                                                     href={item.href}
-                                                    className={`${resultLinkClassName} ${
+                                                    className={[
+                                                        'flex items-center gap-2 p-2 rounded-[calc(0.5*var(--gap))]',
+                                                        'no-underline transition-colors duration-300',
                                                         index === safeActiveIndex
                                                             ? 'bg-accent-blue text-text-inv'
-                                                            : 'text-text hover:bg-surface-hover'
-                                                    }`}
+                                                            : 'text-text hover:bg-surface-hover',
+                                                    ].join(' ')}
                                                     onMouseEnter={() => setActiveIndex(index)}
                                                     onClick={close}
                                                 >
-                                                    <span className={thumbClassName}>
+                                                    <span className={[
+                                                        // Image's own wrapper div sizes off the image's intrinsic width, so
+                                                        // it is forced to fill the thumbnail box.
+                                                        'relative shrink-0 size-10 rounded-[calc(0.5*var(--gap))]',
+                                                        'overflow-hidden flex items-center justify-center',
+                                                        'bg-surface-hover text-text-muted [&_div]:w-full [&_div]:h-full',
+                                                        '[&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full',
+                                                        '[&_img]:object-cover',
+                                                    ].join(' ')}>
                                                         {item.thumb.type === 'image' ? (
                                                             <Image image={item.thumb.image} width={40} />
                                                         ) : (
                                                             <FontAwesomeIcon icon={item.thumb.icon} />
                                                         )}
                                                     </span>
-                                                    <span className={resultLabelClassName}>
+                                                    <span className={[
+                                                        'flex-1 min-w-0 overflow-hidden',
+                                                        'text-ellipsis whitespace-nowrap',
+                                                    ].join(' ')}>
                                                         {item.label}
                                                     </span>
                                                     {item.sublabel && (

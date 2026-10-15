@@ -15,13 +15,6 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
-// A sheet of paper, capped at the column width so the collapsed layout doesn't make it taller than the viewport.
-// The Image component sizes its wrapper divs off the image's intrinsic width, so they are forced to fill the box.
-const coverClassName = [
-    'relative w-full max-w-[calc(33*var(--gap))] aspect-[5/7] rounded-round overflow-hidden bg-surface-raised',
-    '[&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full [&_img]:w-full [&_img]:h-full [&_img]:object-cover',
-].join(' ')
-
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ yearAndName: string[] }>) => {
         if (params.yearAndName.length !== 2) notFound()
@@ -68,7 +61,15 @@ const { page, generateMetadata } = serverPage({
                     {/* The cover itself rather than an OmbulCover card: on this page that card linked
                         back to the page you are already on and repeated the name and issue printed
                         right above it. */}
-                    <div className={coverClassName}>
+                    <div className={[
+                        // A sheet of paper, capped at the column width so the collapsed layout doesn't make it taller than
+                        // the viewport. The Image component sizes its wrapper divs off the image's intrinsic width, so they
+                        // are forced to fill the box.
+                        'relative w-full max-w-[calc(33*var(--gap))] aspect-[5/7] rounded-round overflow-hidden',
+                        'bg-surface-raised',
+                        '[&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full [&_img]:w-full [&_img]:h-full',
+                        '[&_img]:object-cover',
+                    ].join(' ')}>
                         <Image image={ombul.coverImage} width={260} />
                     </div>
                     <CmsParagraph

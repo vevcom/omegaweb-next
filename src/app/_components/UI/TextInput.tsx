@@ -10,18 +10,6 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
     background?: 'base' | 'raised',
 }
 
-const fieldClassName = [
-    'peer w-full border-2 border-transparent rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)]',
-    'pt-6 px-4 pb-2 transition-[border-color,background-color] duration-300 z-1 placeholder:opacity-0',
-].join(' ')
-
-// The label floats up while the field is focused or filled, and sits in the field while the placeholder shows.
-const labelClassName = [
-    'absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-text-muted transition-all duration-300',
-    'pointer-events-none z-2 peer-placeholder-shown:top-6 peer-placeholder-shown:text-m peer-placeholder-shown:cursor-text',
-    'peer-focus:top-2 peer-focus:text-[length:calc(var(--text-s)*0.85)]',
-].join(' ')
-
 const colorClassNames = {
     black: { field: 'text-ink-strong focus:border-accent-blue', label: 'peer-focus:text-accent-blue' },
     primary: { field: 'text-accent-blue focus:border-accent-blue', label: 'peer-focus:text-accent-blue' },
@@ -56,10 +44,25 @@ export default function TextInput({
                 {...props}
                 id={inputId}
                 type={type}
-                className={`${fieldClassName} ${colorClassNames[color].field} ${backgroundClassNames[background]}`}
+                className={[
+                    'peer w-full border-2 border-transparent rounded-inner outline-0 text-m',
+                    'leading-[calc(var(--text-m)*1.25)]',
+                    'pt-6 px-4 pb-2 transition-[border-color,background-color] duration-300 z-1 placeholder:opacity-0',
+                    colorClassNames[color].field,
+                    backgroundClassNames[background],
+                ].join(' ')}
                 placeholder={label}
             />
-            <label htmlFor={inputId} className={`${labelClassName} ${colorClassNames[color].label}`}>{label}</label>
+            <label htmlFor={inputId} className={[
+                // The label floats up while the field is focused or filled, and sits in the field while the placeholder
+                // shows.
+                'absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-text-muted transition-all',
+                'duration-300',
+                'pointer-events-none z-2 peer-placeholder-shown:top-6 peer-placeholder-shown:text-m',
+                'peer-placeholder-shown:cursor-text',
+                'peer-focus:top-2 peer-focus:text-[length:calc(var(--text-s)*0.85)]',
+                colorClassNames[color].label,
+            ].join(' ')}>{label}</label>
         </div>
     )
 }

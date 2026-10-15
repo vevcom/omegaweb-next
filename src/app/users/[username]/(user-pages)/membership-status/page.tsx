@@ -26,13 +26,6 @@ const stepNames = {
     SOELLE: 'Soelle',
 } as const satisfies Partial<Record<OmegaMembershipLevel, string>>
 
-const markerClassName = 'text-[0.8rem] font-normal uppercase tracking-[0.05em] text-accent-blue'
-const levelClassName = 'flex items-center justify-between gap-2 p-[calc(3*var(--rounding))] border-2 rounded-round'
-const trialClassName = [
-    'flex flex-col items-center gap-2 flex-[1_1_0] min-w-[8rem] p-[calc(2*var(--rounding))] text-center border-2',
-    'rounded-round max-mobile:basis-full',
-].join(' ')
-
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
         const { profile } = await getProfileForUserPage(params, 'membership-status', session)
@@ -71,9 +64,13 @@ const { page, generateMetadata } = serverPage({
                 <ol className="flex flex-col gap-2 list-none mt-[calc(3*var(--rounding))] mx-0 mb-0 p-0">
                     {[...OMEGA_MEMBERSHIP_LEVEL_RANKING].reverse().map(level => (
                         <li key={level} className="flex flex-col gap-2">
-                            <div className={`${levelClassName} ${level === currentLevel
-                                ? 'border-accent-blue bg-surface-hover text-ink-strong font-bold'
-                                : 'border-transparent bg-surface-raised text-text-muted'}`}
+                            <div className={[
+                                'flex items-center justify-between gap-2',
+                                'p-[calc(3*var(--rounding))] border-2 rounded-round',
+                                level === currentLevel
+                                    ? 'border-accent-blue bg-surface-hover text-ink-strong font-bold'
+                                    : 'border-transparent bg-surface-raised text-text-muted',
+                            ].join(' ')}
                             >
                                 <span>
                                     {level === 'SYSKEN'
@@ -81,7 +78,10 @@ const { page, generateMetadata } = serverPage({
                                         : stepNames[level]}
                                 </span>
                                 {level === currentLevel
-                                    ? <span className={markerClassName}>Du er her</span>
+                                    ? <span className={[
+                                        'text-[0.8rem] font-normal uppercase',
+                                        'tracking-[0.05em] text-accent-blue',
+                                    ].join(' ')}>Du er her</span>
                                     : capabilities.canChangeLevel.authorized && (
                                         <Form
                                             className="m-0! p-0! text-[0.8rem]!"
@@ -108,9 +108,14 @@ const { page, generateMetadata } = serverPage({
                                     {allAdmissions.map(admission => (
                                         <li
                                             key={admission}
-                                            className={`${trialClassName} ${sittedTrials.has(admission)
-                                                ? 'border-solid border-accent-green text-ink-strong'
-                                                : 'border-dashed border-[#adb5bd] text-text-muted'}`}
+                                            className={[
+                                                'flex flex-col items-center gap-2 flex-[1_1_0] min-w-[8rem]',
+                                                'p-[calc(2*var(--rounding))] text-center border-2',
+                                                'rounded-round max-mobile:basis-full',
+                                                sittedTrials.has(admission)
+                                                    ? 'border-solid border-accent-green text-ink-strong'
+                                                    : 'border-dashed border-[#adb5bd] text-text-muted',
+                                            ].join(' ')}
                                         >
                                             <span>{admissionDisplayNames[admission]}</span>
                                             {showTrialRegistration && !sittedTrials.has(admission) && (

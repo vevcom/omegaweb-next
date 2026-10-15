@@ -11,14 +11,6 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
     background?: 'base' | 'raised',
 }
 
-const triggerClassName = [
-    'relative w-full flex items-center border-2 border-transparent rounded-inner outline-0 text-m text-left text-ink-strong',
-    'pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300 cursor-pointer',
-    'peer-disabled:cursor-not-allowed peer-disabled:opacity-60',
-].join(' ')
-
-const floatedLabelClassName = 'top-2 text-[length:calc(var(--text-s)*0.85)]'
-
 // The value span's colour has to be set on the span itself: globals sets `color` on `*`, which beats inheritance.
 const valueColorClassNames = {
     black: 'text-ink-strong',
@@ -91,7 +83,14 @@ export default function FileInput({
             />
             <label
                 htmlFor={inputId}
-                className={`${triggerClassName} ${backgroundClassNames[background]} ${focus.trigger}`}
+                className={[
+                    'relative w-full flex items-center border-2 border-transparent rounded-inner outline-0 text-m text-left',
+                    'text-ink-strong',
+                    'pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300 cursor-pointer',
+                    'peer-disabled:cursor-not-allowed peer-disabled:opacity-60',
+                    backgroundClassNames[background],
+                    focus.trigger,
+                ].join(' ')}
             >
                 <span
                     className={[
@@ -112,7 +111,7 @@ export default function FileInput({
                 htmlFor={inputId}
                 className={[
                     'absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1',
-                    value ? floatedLabelClassName : 'top-6 text-m',
+                    value ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-6 text-m',
                     `peer-focus:top-2 peer-focus:text-[length:calc(var(--text-s)*0.85)] ${focus.label}`,
                 ].join(' ')}
             >

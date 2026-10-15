@@ -29,21 +29,9 @@ export type PropTypes = {
     }>,
 }
 
-const profileContentClassName = [
-    'relative h-full min-h-0 bg-surface-base rounded-round',
-    "before:content-[''] before:absolute before:inset-[calc(0.25rem*1.5)] before:rounded-[calc(var(--rounding)-0.375rem)]",
-    'before:border-4 before:border-[color:var(--flairColor,transparent)] before:pointer-events-none',
-].join(' ')
-const profileContentInnerClassName = [
-    'absolute inset-[calc(0.25rem*1.5+4px)] overflow-y-auto p-8 grid grid-cols-[250px_1fr] grid-rows-[auto]',
-    'items-start content-start gap-[0.5em] max-mobile:block',
-].join(' ')
 // One labelled block per kind of membership, so the studies, the committees and the interest groups are told apart.
 const groupSectionClassName = 'mt-[1em] [&_h2]:text-[1.1em] [&_h2]:text-ink-strong'
 const labelClassName = 'w-[10em] inline-block font-medium text-accent-blue'
-const committeeTagClassName = 'rounded-[0.3em] p-[0.5em] bg-accent-blue text-surface-base inline-block'
-const bioClassName = 'mb-[2em] p-[1em] border-l-[3px] border-accent-blue text-ink-hover bg-surface-raised'
-const dividerClassName = 'border-none h-px my-[0.5em] mr-[4em] ml-0 bg-surface-subtle max-mobile:w-4/5 max-mobile:mx-auto'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
@@ -108,8 +96,17 @@ const { page, generateMetadata } = serverPage({
         return (
             <div className="h-full">
                 <div className="grid grid-rows-[1fr_auto] gap-2 h-full">
-                    <div className={profileContentClassName} style={flairColour}>
-                        <div className={profileContentInnerClassName}>
+                    <div className={[
+                        'relative h-full min-h-0 bg-surface-base rounded-round',
+                        "before:content-[''] before:absolute before:inset-[calc(0.25rem*1.5)]",
+                        'before:rounded-[calc(var(--rounding)-0.375rem)]',
+                        'before:border-4 before:border-[color:var(--flairColor,transparent)] before:pointer-events-none',
+                    ].join(' ')} style={flairColour}>
+                        <div className={[
+                            'absolute inset-[calc(0.25rem*1.5+4px)] overflow-y-auto p-8 grid grid-cols-[250px_1fr]',
+                            'grid-rows-[auto]',
+                            'items-start content-start gap-[0.5em] max-mobile:block',
+                        ].join(' ')}>
                             <ProfilePicture
                                 width={240}
                                 profileImage={profile.user.image}
@@ -138,7 +135,10 @@ const { page, generateMetadata } = serverPage({
                                             key={`${membership.committee.shortName}-${membership.order}`}
                                         >
                                             <Link href={`/committees/${membership.committee.shortName}`}>
-                                                <p className={committeeTagClassName}>
+                                                <p className={[
+                                                    'rounded-[0.3em] p-[0.5em] bg-accent-blue',
+                                                    'text-surface-base inline-block',
+                                                ].join(' ')}>
                                                     {membership.title} i {membership.committee.name}
                                                 </p>
                                             </Link>
@@ -146,7 +146,10 @@ const { page, generateMetadata } = serverPage({
                                     )}
                                 </div>
 
-                                <hr className={dividerClassName} />
+                                <hr className={[
+                                    'border-none h-px my-[0.5em] mr-[4em] ml-0',
+                                    'bg-surface-subtle max-mobile:w-4/5 max-mobile:mx-auto',
+                                ].join(' ')} />
 
                                 {committeeMembershipsByOrder.length > 0 && (
                                     <section className={groupSectionClassName}>
@@ -232,7 +235,10 @@ const { page, generateMetadata } = serverPage({
 
                                 {/* An empty bio is only worth showing to someone who can write it, in edit mode. */}
                                 {(profile.user.bioParagraph.contentHtml !== '' || capabilities.canUpdateBio.authorized) &&
-                                    <div className={bioClassName}>
+                                    <div className={[
+                                        'mb-[2em] p-[1em] border-l-[3px] border-accent-blue',
+                                        'text-ink-hover bg-surface-raised',
+                                    ].join(' ')}>
                                         <h2>Bio:</h2>
                                         <CmsParagraph
                                             cmsParagraph={profile.user.bioParagraph}

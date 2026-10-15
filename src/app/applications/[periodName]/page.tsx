@@ -38,13 +38,6 @@ import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
 import type { PageOperationArgs, ServerPageSession } from '@/app/ServerPage'
 
-// The description is whatever length the committee wrote, so it takes the space the card has left and fades out
-// rather than deciding the card's height. On a narrow screen it gives way to the wrapping buttons.
-const committeeParagraphClassName = [
-    'flex-[1_1_auto] min-h-0 mb-2 overflow-hidden max-mobile:max-h-[calc(14*var(--gap))]',
-    '[mask-image:linear-gradient(to_bottom,black_calc(100%-2*var(--gap)),transparent)]',
-].join(' ')
-
 const periodDateItemClassName = [
     'bg-surface-raised rounded-inner p-3 flex items-center gap-[0.5em] text-text',
     '[&>b]:text-accent-blue [&>b]:font-medium [&>b]:whitespace-nowrap',
@@ -133,7 +126,13 @@ const { page, generateMetadata } = serverPage({
                 <div className="h-full flex flex-col p-2 [&>h2]:shrink-0 [&>h2]:text-l [&>h2]:font-bold [&>h2]:mb-2">
                     <h2>{part.committee.name}</h2>
                     <CmsParagraph
-                        className={committeeParagraphClassName}
+                        className={[
+                            // The description is whatever length the committee wrote, so it takes the space the card has
+                            // left and fades out rather than deciding the card's height. On a narrow screen it gives way to
+                            // the wrapping buttons.
+                            'flex-[1_1_auto] min-h-0 mb-2 overflow-hidden max-mobile:max-h-[calc(14*var(--gap))]',
+                            '[mask-image:linear-gradient(to_bottom,black_calc(100%-2*var(--gap)),transparent)]',
+                        ].join(' ')}
                         capabilities={{ canEdit: cmsCapabilities.canEditParagraph }}
                         cmsParagraph={part.paragraph}
                         updateCmsParagraphAction={

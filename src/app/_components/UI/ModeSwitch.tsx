@@ -16,11 +16,6 @@ type PropTypes<ValueType extends string> = {
  * single shared element (framer-motion layoutId) that slides to its new position, rather
  * than a class swap on each button.
  */
-const buttonClassName = [
-    'h-full relative border-none bg-transparent m-0 py-2 px-4 text-m cursor-pointer',
-    'transition-colors duration-300 max-mobile:flex-1',
-].join(' ')
-
 export default function ModeSwitch<ValueType extends string>({ options, value, onChange }: PropTypes<ValueType>) {
     const layoutId = useId()
 
@@ -32,7 +27,11 @@ export default function ModeSwitch<ValueType extends string>({ options, value, o
                     <button
                         key={option.value}
                         type="button"
-                        className={`${buttonClassName} ${active ? 'text-text-inv' : 'text-text hover:text-ink-hover'}`}
+                        className={[
+                            'h-full relative border-none bg-transparent m-0 py-2 px-4 text-m cursor-pointer',
+                            'transition-colors duration-300 max-mobile:flex-1',
+                            active ? 'text-text-inv' : 'text-text hover:text-ink-hover',
+                        ].join(' ')}
                         aria-pressed={active}
                         onClick={() => onChange(option.value)}
                     >

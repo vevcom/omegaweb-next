@@ -43,11 +43,6 @@ export const dropdownChevronClassName = (open: boolean) => [
     open ? 'rotate-180 text-accent-blue' : 'text-text-muted',
 ].join(' ')
 
-const triggerClassName = [
-    'relative w-full flex items-center border-2 rounded-inner outline-0 text-m text-left pt-6 pr-10 pb-2 pl-4',
-    'transition-[border-color,background-color] duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60',
-].join(' ')
-
 const triggerBackgroundClassNames = {
     base: { closed: 'bg-surface-raised hover:bg-surface-hover', open: 'bg-surface-hover' },
     raised: {
@@ -55,20 +50,6 @@ const triggerBackgroundClassNames = {
         open: 'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
     },
 } as const
-
-// The value needs its own colour: globals sets `color` on `*`, which beats the colour inherited from the trigger.
-const valueClassName = 'overflow-hidden text-ellipsis whitespace-nowrap min-h-[calc(var(--text-m)*1.25)]'
-
-const panelClassName = [
-    'absolute top-[calc(100%+var(--gap))] left-0 right-0 z-5 list-none m-0 p-2 max-h-[260px] overflow-y-auto',
-    'rounded-inner bg-surface-hover shadow-soft-hover',
-].join(' ')
-
-const optionClassName = [
-    'w-full flex items-center justify-between gap-2 border-none bg-transparent text-left text-m py-2 px-4',
-    'rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer transition-colors duration-300',
-    'hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
-].join(' ')
 
 /**
  * The state and keyboard handling of a dropdown, shared with SearchableDropdown.
@@ -167,7 +148,10 @@ export function DropdownPanel<ValueType extends string | number>({
     }, [activeIndex])
 
     return (
-        <ul id={id} className={panelClassName} role="listbox" ref={panelRef}>
+        <ul id={id} className={[
+            'absolute top-[calc(100%+var(--gap))] left-0 right-0 z-5 list-none m-0 p-2 max-h-[260px] overflow-y-auto',
+            'rounded-inner bg-surface-hover shadow-soft-hover',
+        ].join(' ')} role="listbox" ref={panelRef}>
             {
                 options.length === 0 && emptyText ? (
                     <li className="py-2 px-4 text-text-muted text-s">{emptyText}</li>
@@ -178,8 +162,15 @@ export function DropdownPanel<ValueType extends string | number>({
                             role="option"
                             aria-selected={option.value === value}
                             className={
-                                `${optionClassName} ${option.value === value ? 'text-accent-blue' : 'text-text'} ` +
-                                `${index === activeIndex ? 'bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]' : ''}`
+                                `${[
+                                    'w-full flex items-center justify-between gap-2 border-none bg-transparent text-left',
+                                    'text-m py-2 px-4',
+                                    'rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer transition-colors',
+                                    'duration-300',
+                                    'hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
+                                    option.value === value ? 'text-accent-blue' : 'text-text',
+                                ].join(' ')
+                                }${index === activeIndex ? 'bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]' : ''}`
                             }
                             onClick={() => onSelect(option)}
                             onMouseEnter={() => onActivate(index)}
@@ -240,7 +231,12 @@ export default function Dropdown<ValueType extends string | number>({
                 type="button"
                 id={domId}
                 className={[
-                    triggerClassName,
+                    [
+                        'relative w-full flex items-center border-2 rounded-inner outline-0 text-m text-left pt-6 pr-10',
+                        'pb-2 pl-4',
+                        'transition-[border-color,background-color] duration-300 cursor-pointer disabled:cursor-not-allowed',
+                        'disabled:opacity-60',
+                    ].join(' '),
                     dropdownColorClassNames[color],
                     open ? 'border-accent-blue' : 'border-transparent',
                     triggerBackgroundClassNames[background][open ? 'open' : 'closed'],
@@ -253,7 +249,12 @@ export default function Dropdown<ValueType extends string | number>({
                 onKeyDown={handleKeyDown}
             >
                 <span
-                    className={`${valueClassName} ${dropdownColorClassNames[color]}`}
+                    className={[
+                        // The value needs its own colour: globals sets `color` on `*`, which beats the colour inherited from
+                        // the trigger.
+                        'overflow-hidden text-ellipsis whitespace-nowrap min-h-[calc(var(--text-m)*1.25)]',
+                        dropdownColorClassNames[color],
+                    ].join(' ')}
                 >
                     {selectedOption?.label ?? selectedOption?.value ?? ''}
                 </span>

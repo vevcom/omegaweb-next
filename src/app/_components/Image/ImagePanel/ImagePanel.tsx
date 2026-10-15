@@ -67,12 +67,6 @@ type LoadRequest = {
     advanceDisplay: boolean,
 }
 
-// An empty collection gets an empty state rather than the pager's "nothing more to load".
-const emptyClassName = [
-    'flex flex-col items-center gap-2 py-12 text-ink-hover text-center',
-    '[&>svg]:text-[calc(6*var(--gap))] [&>svg]:opacity-50',
-].join(' ')
-
 /**
  * A self-contained panel of the images in one collection: paging (endless scroll), selection and
  * the large image display in one component, driven entirely by the injected pager action - no
@@ -210,7 +204,11 @@ export default function ImagePanel<const PageSize extends number>({
         if (fetchPending) return <i>{images.length > 0 ? 'Laster inn flere...' : 'Laster inn...'}</i>
         if (allLoaded) {
             if (images.length > 0) return <i>Ingen flere å laste inn</i>
-            return <span className={emptyClassName}>
+            return <span className={[
+                // An empty collection gets an empty state rather than the pager's "nothing more to load".
+                'flex flex-col items-center gap-2 py-12 text-ink-hover text-center',
+                '[&>svg]:text-[calc(6*var(--gap))] [&>svg]:opacity-50',
+            ].join(' ')}>
                 <FontAwesomeIcon icon={faImages} />
                 <i>Ingen bilder i denne samlingen enda</i>
             </span>

@@ -1,11 +1,3 @@
-// Radio inputs are hidden; the label carries the border, and the checked one turns blue.
-const radioContainerClassName = [
-    'flex flex-row m-[1rem] text-l',
-    '[&>div>label]:p-[5px] [&>div>label]:border-3 [&>div>label]:border-[#ccc] [&_input[type=radio]]:hidden',
-    '[&_input[type=radio]:checked+label]:border-accent-blue',
-    '[&>div:first-child>label]:rounded-l-round [&>div:last-child>label]:rounded-r-round',
-].join(' ')
-
 
 export default function RadioLarge<ValueType extends number | string>({
     name,
@@ -23,7 +15,13 @@ export default function RadioLarge<ValueType extends number | string>({
         label: string,
     }[]
 }) {
-    return <div className={radioContainerClassName}>
+    return <div className={[
+        // Radio inputs are hidden; the label carries the border, and the checked one turns blue.
+        'flex flex-row m-[1rem] text-l',
+        '[&>div>label]:p-[5px] [&>div>label]:border-3 [&>div>label]:border-[#ccc] [&_input[type=radio]]:hidden',
+        '[&_input[type=radio]:checked+label]:border-accent-blue',
+        '[&>div:first-child>label]:rounded-l-round [&>div:last-child>label]:rounded-r-round',
+    ].join(' ')}>
         {options.map((option, i) => {
             const id = `${name}-${i}`
             return <div key={option.value}>

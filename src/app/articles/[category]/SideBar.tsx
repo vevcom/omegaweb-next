@@ -14,35 +14,6 @@ import { faChevronUp, faX } from '@fortawesome/free-solid-svg-icons'
 import { useRouter } from 'next/navigation'
 import type { ExpandedArticleCategoryWithVisibility } from '@/services/articleCategories/types'
 
-// Desktop-only styles carry mobile:, mobile-only ones max-mobile:. The content and the mobile bar are
-// each display: none on the other breakpoint, so their inner styles need no prefix.
-const mainClassName = [
-    'mobile:bg-surface-base mobile:rounded-round mobile:z-1 mobile:overflow-hidden mobile:w-[calc(100%-300px-var(--gap))]',
-    'max-mobile:min-h-screen max-mobile:w-full',
-].join(' ')
-
-const sideBarContentClassName = [
-    'max-mobile:hidden opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out] overflow-auto text-text',
-    'm-[1em_0em_1em_1em] p-[calc(3*var(--rounding))] [&_h2]:text-l',
-].join(' ')
-
-const sideBarMobileClassName = [
-    'hidden max-mobile:block fixed bottom-0 left-0 w-screen z-8 layer',
-    'transition-[padding-bottom,height] duration-300 [&_ul>li]:ml-[calc(50px+var(--gap))]',
-].join(' ')
-
-const sideBarMobileOpenClassName = 'pb-[60px] [&_svg]:[transform:rotateX(180deg)]'
-
-const mainListContentClassName = [
-    'list-none p-0 [&_li]:my-[1em] [&_li]:flex [&_li]:justify-between',
-    '[&_li_a]:text-text [&_li_a]:no-underline [&_li_a:hover]:underline',
-].join(' ')
-
-const destroyArticleClassName = [
-    'w-[20px] h-[20px] bg-accent-red border-none rounded-full cursor-pointer transition-[background] duration-500',
-    'flex justify-center items-center hover:bg-[color-mix(in_srgb,var(--accent-red),black_10%)]',
-].join(' ')
-
 type PropTypes = {
     category: ExpandedArticleCategoryWithVisibility
     children: React.ReactNode
@@ -77,18 +48,32 @@ export default function SideBar({ category, children }: PropTypes) {
         <div className="flex relative mobile:h-full mobile:gap-2">
             <aside className="mobile:bg-surface-base mobile:rounded-round mobile:w-[300px] mobile:left-0 mobile:z-2">
                 <div ref={measure} className="mobile:h-[calc(100%-2em)]">
-                    <div ref={ref} className={sideBarContentClassName}>
+                    <div ref={ref} className={[
+                        'max-mobile:hidden opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out]',
+                        'overflow-auto text-text',
+                        'm-[1em_0em_1em_1em] p-[calc(3*var(--rounding))] [&_h2]:text-l',
+                    ].join(' ')}>
                         <h2>{category.name.toUpperCase()}</h2>
                         <MainListContent category={category} />
                     </div>
                 </div>
             </aside>
 
-            <main className={mainClassName}>
+            <main className={[
+                // Desktop-only styles carry mobile:, mobile-only ones max-mobile:. The content and the mobile bar are
+                // each display: none on the other breakpoint, so their inner styles need no prefix.
+                'mobile:bg-surface-base mobile:rounded-round mobile:z-1 mobile:overflow-hidden',
+                'mobile:w-[calc(100%-300px-var(--gap))]',
+                'max-mobile:min-h-screen max-mobile:w-full',
+            ].join(' ')}>
                 {children}
             </main>
 
-            <span className={`${sideBarMobileClassName} ${openMobile ? sideBarMobileOpenClassName : 'h-[110px]'}`}>
+            <span className={[
+                'hidden max-mobile:block fixed bottom-0 left-0 w-screen z-8 layer',
+                'transition-[padding-bottom,height] duration-300 [&_ul>li]:ml-[calc(50px+var(--gap))]',
+                openMobile ? 'pb-[60px] [&_svg]:[transform:rotateX(180deg)]' : 'h-[110px]',
+            ].join(' ')}>
                 <button
                     className="flex items-center w-full h-[40px] bg-transparent border-none my-2 mx-0"
                     onClick={() => setOpenMobile(x => !x)}
@@ -123,7 +108,10 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
     }
 
     return (
-        <ul className={mainListContentClassName}>
+        <ul className={[
+            'list-none p-0 [&_li]:my-[1em] [&_li]:flex [&_li]:justify-between',
+            '[&_li_a]:text-text [&_li_a]:no-underline [&_li_a:hover]:underline',
+        ].join(' ')}>
             {
                 category.articles.map(article => (
                     <li key={article.id}>
@@ -133,7 +121,12 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
                         {
                             canRemoveArticle && (
                                 <button
-                                    className={destroyArticleClassName}
+                                    className={[
+                                        'w-[20px] h-[20px] bg-accent-red border-none rounded-full cursor-pointer',
+                                        'transition-[background] duration-500',
+                                        'flex justify-center items-center',
+                                        'hover:bg-[color-mix(in_srgb,var(--accent-red),black_10%)]',
+                                    ].join(' ')}
                                     onClick={() => handleDestroy(article.id)}
                                 >
                                     <FontAwesomeIcon icon={faX} />

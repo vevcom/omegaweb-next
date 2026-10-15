@@ -10,11 +10,6 @@ type PropTypes = {
     activeTheme: Theme,
 }
 
-const themeClassName = [
-    'w-full bg-surface-base rounded-round border-2 p-4 transition-[border-color,box-shadow] duration-300 ease-[ease]',
-    'overflow-hidden flex flex-col gap-4',
-].join(' ')
-
 // A tiny, static mockup of the actual app chrome (nav bar, icon sidebar, content card) rendered in the
 // theme's own colors, so you can see roughly what the theme looks like before applying it, without
 // actually switching the live CSS variables.
@@ -50,9 +45,12 @@ export default function ThemeForm({ username, activeTheme }: PropTypes) {
                 return (
                     <Form
                         key={theme}
-                        className={`${themeClassName} ${
-                            theme === activeTheme ? 'border-accent-blue' : 'border-transparent'
-                        }`}
+                        className={[
+                            'w-full bg-surface-base rounded-round border-2 p-4 transition-[border-color,box-shadow]',
+                            'duration-300 ease-[ease]',
+                            'overflow-hidden flex flex-col gap-4',
+                            theme === activeTheme ? 'border-accent-blue' : 'border-transparent',
+                        ].join(' ')}
                         action={action}
                         refreshOnSuccess
                         submitText="Velg tema"

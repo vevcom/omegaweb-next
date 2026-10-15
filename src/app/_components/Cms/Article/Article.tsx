@@ -19,29 +19,6 @@ import type {
 import type { UpdateCmsImageAction } from '@/cms/images/types'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
 
-const articleGridClassName = [
-    'h-full grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr_auto]',
-    "[grid-template-areas:'coverImage_coverImage'_'article_sideBar'_'addSection_sideBar']",
-    'max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:grid-rows-[auto_1fr_auto_auto]',
-    "max-mobile:[grid-template-areas:'coverImage'_'article'_'addSection'_'sideBar']",
-].join(' ')
-
-const coverImageClassName = [
-    'rounded-round [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)] relative',
-    '[&>*:nth-child(2)]:absolute [&>*:nth-child(2)]:left-[min(4rem,4vw)] [&>*:nth-child(2)]:bottom-[1em]',
-    '[&>*:nth-child(2)]:right-[min(4rem,4vw)] [&>*:nth-child(2)]:wrap-anywhere',
-].join(' ')
-
-// CmsImage's own wrapper divs size themselves off the image's intrinsic width rather than this
-// container, so every wrapper div is forced to fill the cover box, at whatever nesting depth.
-const coverCmsImageClassName = [
-    'relative w-full h-full after:absolute after:top-0 after:left-0 after:w-full after:h-full after:z-1',
-    'after:bg-[linear-gradient(to_bottom,transparent_50%,var(--surface-base))] [&_div]:w-full [&_div]:h-full',
-    '[&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:w-full [&_img]:h-[min(300px,40vh)] [&_img]:object-cover',
-].join(' ')
-
-const sectionMarginClassName = '[&>*]:my-[2em] [&>*]:mx-[min(4rem,4vw)] [&>*:last-child]:mb-[1em]'
-
 export type PropTypes = {
     article: ExpandedArticle,
     coverImageClass?: string,
@@ -76,11 +53,30 @@ export default function Article({
     const clientCapabilities = capabilitiesToJsObject(capabilities)
 
     return (
-        <span className={articleGridClassName}>
+        <span className={[
+            'h-full grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr_auto]',
+            "[grid-template-areas:'coverImage_coverImage'_'article_sideBar'_'addSection_sideBar']",
+            'max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:grid-rows-[auto_1fr_auto_auto]',
+            "max-mobile:[grid-template-areas:'coverImage'_'article'_'addSection'_'sideBar']",
+        ].join(' ')}>
             {hideCoverImage ? <></> : (
-                <span className={`${coverImageClass} ${coverImageClassName}`}>
+                <span className={[
+                    coverImageClass,
+                    'rounded-round [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)] relative',
+                    '[&>*:nth-child(2)]:absolute [&>*:nth-child(2)]:left-[min(4rem,4vw)] [&>*:nth-child(2)]:bottom-[1em]',
+                    '[&>*:nth-child(2)]:right-[min(4rem,4vw)] [&>*:nth-child(2)]:wrap-anywhere',
+                ].join(' ')}>
                     <CmsImage
-                        className={coverCmsImageClassName}
+                        className={[
+                            // CmsImage's own wrapper divs size themselves off the image's intrinsic width rather than this
+                            // container, so every wrapper div is forced to fill the cover box, at whatever nesting depth.
+                            'relative w-full h-full after:absolute after:top-0 after:left-0 after:w-full after:h-full',
+                            'after:z-1',
+                            'after:bg-[linear-gradient(to_bottom,transparent_50%,var(--surface-base))] [&_div]:w-full',
+                            '[&_div]:h-full',
+                            '[&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:w-full [&_img]:h-[min(300px,40vh)]',
+                            '[&_img]:object-cover',
+                        ].join(' ')}
                         width={500}
                         cmsImage={article.coverImage}
                         updateCmsImageAction={actions.updateCoverImageAction}
@@ -103,7 +99,8 @@ export default function Article({
             <article
                 className={[
                     '[grid-area:article] isolate [&>*]:isolate [&>*]:relative', styles.article,
-                    noMargin ? '[&>*]:m-0' : sectionMarginClassName, articleClassName ?? '',
+                    noMargin ? '[&>*]:m-0' : '[&>*]:my-[2em] [&>*]:mx-[min(4rem,4vw)] [&>*:last-child]:mb-[1em]',
+                    articleClassName ?? '',
                 ].join(' ')}
             >
                 {

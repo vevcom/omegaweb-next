@@ -15,12 +15,6 @@ type PropTypes = {
 }
 
 
-const displayClassName = [
-    'absolute w-screen h-screen flex justify-center items-center flex-col scale-0',
-    '[&_span]:text-ink-strong [&_span]:text-[15rem] [&_h1]:text-ink-strong',
-    '[&_h1:first-child]:text-[10rem] [&_h1:nth-child(2)]:text-[16rem]',
-].join(' ')
-
 export default function CommitteeLogoRoll({ committees, periodName }: PropTypes) {
     // Dynamically set initial indexes based on committee count
     const initialIndexes = () => {
@@ -128,7 +122,11 @@ export default function CommitteeLogoRoll({ committees, periodName }: PropTypes)
                     <div
                         key={displayKey}
                         ref={refProp}
-                        className={displayClassName}
+                        className={[
+                            'absolute w-screen h-screen flex justify-center items-center flex-col scale-0',
+                            '[&_span]:text-ink-strong [&_span]:text-[15rem] [&_h1]:text-ink-strong',
+                            '[&_h1:first-child]:text-[10rem] [&_h1:nth-child(2)]:text-[16rem]',
+                        ].join(' ')}
                     >
                         {content}
                     </div>

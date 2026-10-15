@@ -7,12 +7,6 @@ type PropTypes = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'name'> & {
     background?: 'base' | 'raised',
 }
 
-const textareaClassName = [
-    'min-h-[60px] w-full max-h-[300px] resize-y text-m text-ink-strong',
-    'border-2 border-transparent rounded-inner py-3 px-4 transition-[border-color,background-color] duration-300',
-    'focus:outline-0 focus:border-accent-blue',
-].join(' ')
-
 const backgroundClassNames = {
     base: 'bg-surface-raised hover:bg-surface-hover focus:bg-surface-hover',
     raised: [
@@ -31,7 +25,13 @@ export default function Textarea({ label, background = 'base', className, id, ..
             <textarea
                 {...props}
                 id={inputId}
-                className={`${textareaClassName} ${backgroundClassNames[background]}`}
+                className={[
+                    'min-h-[60px] w-full max-h-[300px] resize-y text-m text-ink-strong',
+                    'border-2 border-transparent rounded-inner py-3 px-4 transition-[border-color,background-color]',
+                    'duration-300',
+                    'focus:outline-0 focus:border-accent-blue',
+                    backgroundClassNames[background],
+                ].join(' ')}
             ></textarea>
         </div>
     )
