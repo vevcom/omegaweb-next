@@ -46,6 +46,7 @@
 }
 
 .pageTitleLi {
+    min-width: 0;
     margin-left: ohma.$gap;
     display: flex;
     align-items: center;
@@ -60,6 +61,12 @@
     text-overflow: ellipsis;
     max-width: 40ch;
     margin-left: ohma.$gap;
+}
+
+.pageSubtitle {
+    @include ohma.screenMobile {
+        display: none;
+    }
 }
 
 .pageTitlePlaceholder {

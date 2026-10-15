@@ -1,5 +1,5 @@
+import { maxOmbulFileSize } from './constants'
 import { imageFileSchema, imageSchemas } from '@/services/images/subservice/schemas'
-import { maxOmbulFileSize } from '@/services/ombul/constants'
 import { z } from 'zod'
 import { File } from 'node:buffer'
 

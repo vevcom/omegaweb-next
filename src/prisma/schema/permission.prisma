@@ -81,8 +81,6 @@ enum Permission {
 
   // API keys
   APIKEY_ADMIN
-  SCREEN_USE
-  SCREEN_ADMIN
 
   // Omega job ads
   COMPANY_USE

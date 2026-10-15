@@ -5,5 +5,7 @@ export type PermissionInfo = {
     name: string,
     description: string,
     category: PermissionCategory,
+    /** Whether the permission may be a default permission, which everyone holds - visitors too. */
+    canBeDefault: boolean,
 }
 

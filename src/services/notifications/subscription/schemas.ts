@@ -16,7 +16,7 @@ const subscriptionUser = paramsFieldSchemas.pick({
     userId: true,
 })
 
-export const subscriptionSchemas = {
+export const notificationSubscriptionSchemas = {
     data: {
         update: dataFieldSchemas.pick({
             subscriptions: true,
