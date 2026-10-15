@@ -268,6 +268,14 @@ export class RequireBuilder<
         ))
     }
 
+    /** Always authorized, but attaches the Prisma `where` filter `buildFilter` makes from the
+     * session, as `.visibilityFilter()` does for visibility. For a listing operation scoped by a
+     * rule of its own, e.g. the ledger accounts a session owns. */
+    filter<Filter extends object>(buildFilter: (args: { session: SessionMaybeUser }) => Filter):
+        RequireBuilder<Data, PrismaWhereFilter | Filter, EarlierUser, LastUser> {
+        return this.and<NoData, Filter>(({ session }) => ({ success: true, prismaWhereFilter: buildFilter({ session }) }))
+    }
+
     /** Escape hatch for checks that don't fit the other methods. `check` must be synchronous -
      * resolve any async data (e.g. a Prisma lookup) first. Give it a `CustomData` type argument
      * like `.ownership()` if it needs data supplied later via `.data()`. */

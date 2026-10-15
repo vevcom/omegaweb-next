@@ -8,6 +8,10 @@
     @include ohma.table();
 }
 
+.error {
+    color: ohma.$colors-accent-red;
+}
+
 .deactivatedProduct {
     color: ohma.$colors-text-muted;
     font-style: italic;

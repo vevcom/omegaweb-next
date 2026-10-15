@@ -6,12 +6,13 @@ export const GET = apiHandler({
     serviceOperation: productOperations.readByBarCode,
     query: searchParams => {
         const shopId = searchParams.get('shopId')
-        if (!shopId?.trim()) {
-            throw new ServiceError('BAD PARAMETERS', 'shopId is required.')
+        const barcode = searchParams.get('barcode')
+        if (!shopId?.trim() || !barcode?.trim()) {
+            throw new ServiceError('BAD PARAMETERS', 'shopId and barcode are required.')
         }
 
         return {
-            barcode: searchParams.get('barcode') ?? undefined,
+            barcode,
             shopId: Number(shopId),
         }
     },

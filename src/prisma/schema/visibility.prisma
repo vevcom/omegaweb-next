@@ -16,6 +16,9 @@ model Visibility {
   articleCategoryAdmin   ArticleCategory? @relation(name: "ArticleCategoryAdminVisibility")
   articleCategoryRegular ArticleCategory? @relation(name: "ArticleCategoryRegularVisibility")
 
+  shopAdmin   Shop? @relation(name: "ShopAdminVisibility")
+  shopRegular Shop? @relation(name: "ShopRegularVisibility")
+
   notifications Notification[]
 }
 

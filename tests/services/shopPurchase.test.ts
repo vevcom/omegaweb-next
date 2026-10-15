@@ -19,13 +19,35 @@ let shopAccountId: number
 let sodaId: number
 let chocolateId: number
 let notForSaleId: number
-/** Its active members are allowed to shop. */
+/** Its active members pass the shop's regular level, so they may shop. */
 let shoppersGroupId: number
 
 beforeAll(async () => {
+    const { order } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+    shoppersGroupId = (await prisma.group.create({
+        data: {
+            groupType: 'MANUAL_GROUP',
+            order,
+            manualGroup: { create: { name: 'purchase-shoppers', shortName: 'purchase-shoppers' } },
+        },
+    })).id
+
     const shopAccount = await prisma.ledgerAccount.create({ data: { type: 'GROUP', name: 'Testbutikk' } })
     shopAccountId = shopAccount.id
-    shopId = (await prisma.shop.create({ data: { name: 'Testbutikk', ledgerAccountId: shopAccount.id } })).id
+    shopId = (await prisma.shop.create({
+        data: {
+            name: 'Testbutikk',
+            ledgerAccount: { connect: { id: shopAccount.id } },
+            visibilityRegular: {
+                create: {
+                    requirements: {
+                        create: { conditions: { create: { type: 'ACTIVE' as const, groupId: shoppersGroupId, order } } },
+                    },
+                },
+            },
+            visibilityAdmin: { create: { requirements: { create: {} } } },
+        },
+    })).id
 
     const createProduct = async (name: string, price: number, active = true) => {
         const product = await prisma.product.create({ data: { name } })
@@ -35,16 +57,6 @@ beforeAll(async () => {
     sodaId = await createProduct('Testbrus', SODA_PRICE)
     chocolateId = await createProduct('Testsjokolade', CHOCOLATE_PRICE)
     notForSaleId = await createProduct('Utgått testvare', 5_00, false)
-
-    const { order } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
-    shoppersGroupId = (await prisma.group.create({
-        data: {
-            groupType: 'MANUAL_GROUP',
-            order,
-            manualGroup: { create: { name: 'purchase-shoppers', shortName: 'purchase-shoppers' } },
-            permissions: { create: { permission: 'PURCHASE_USE' } },
-        },
-    })).id
 })
 
 /** A user with a student card and money on their account, allowed to shop unless told otherwise. */
