@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './ScrollIndicator.module.scss'
 import { useEffect, useState } from 'react'
 import type { CSSProperties, RefObject } from 'react'
 
@@ -61,9 +60,13 @@ export default function ScrollIndicator({ scrollRef, className, style }: PropTyp
     if (!thumb) return null
 
     return (
-        <div className={`${styles.ScrollIndicator} ${className ?? ''}`} style={style} aria-hidden="true">
+        <div
+            className={`absolute w-[3px] rounded-full overflow-hidden pointer-events-none z-1 ${className ?? ''}`}
+            style={style}
+            aria-hidden="true"
+        >
             <div
-                className={styles.thumb}
+                className="absolute inset-x-0 min-h-[12px] rounded-full bg-surface-subtle"
                 style={{ top: `${thumb.topPercent}%`, height: `${thumb.heightPercent}%` }}
             />
         </div>
