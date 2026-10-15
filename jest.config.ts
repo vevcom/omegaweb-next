@@ -7,17 +7,11 @@ const createJestConfig = nextJest({ dir: './' })
 
 const config: Config = {
     coverageProvider: 'v8',
+    globalSetup: './tests/globalSetup.ts',
     testEnvironment: './tests/PrismaTestEnvironment.ts',
     setupFilesAfterEnv: ['./tests/setup.ts', './tests/cleanup.ts'],
-    collectCoverage: true,
     collectCoverageFrom: ['src/**/*.{ts,tsx}'],
     coverageReporters: ['text-summary'],
-    // Each suite's beforeAll re-seeds all standard images through sharp/avif, which is CPU-heavy.
-    // Running many suites' seeds concurrently starves CI's limited cores and blows past the 30s
-    // beforeAll timeout in tests/setup.ts, even though a single seed() run only takes a few seconds.
-    // Spread rather than `maxWorkers: undefined`: jest validates the key if it is present at all,
-    // and docker-compose.test.yml passes CI through as empty when running locally.
-    ...(process.env.CI ? { maxWorkers: 2 } : {}),
     moduleNameMapper: {
         // This is needed becaue jest doesn't handle the this code is inside node_modules
         '^@/prisma-dobbel-omega/(.*)$': '<rootDir>/node_modules/.prisma-dobbel-omega/$1',

@@ -13,6 +13,7 @@
     "lint:fix": "eslint --fix --quiet",
     "lint:style": "stylelint \"src/**/*.{css,scss}\"",
     "test": "IGNORE_SERVER_ONLY=true jest",
+    "test:coverage": "IGNORE_SERVER_ONLY=true jest --coverage",
     "docker:dev": "./development-entrypoint.sh",
     "docker:test": "docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from projectnext --attach projectnext --no-log-prefix",
     "docker:test:build": "docker compose --env-file .env.default -f docker-compose.prod.yml build",
