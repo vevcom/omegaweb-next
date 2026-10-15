@@ -526,7 +526,7 @@ export const userOperations = {
         authorizer: ({ params }) => userAuth.register.data({ userId: params.id }),
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => {
-            const { sex, password, mobile, allergies, imageConsent } = data
+            const { sex, password, allergies, imageConsent } = data
 
             const storedUser = await prisma.user.findUniqueOrThrow({
                 where: {
@@ -555,7 +555,6 @@ export const userOperations = {
                         acceptedTerms: new Date(),
                         imageConsent,
                         sex,
-                        mobile,
                         allergies,
                     },
                     select: userPrivateSelection
