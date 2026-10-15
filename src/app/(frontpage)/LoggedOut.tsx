@@ -5,7 +5,6 @@ import InfoBubbles from './InfoBubbles'
 import { MazeMapLophtet } from '@/components/MazeMap/MazeMap'
 import SocialIcons from '@/components/SocialIcons/SocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
-import YouTube from '@/components/YouTube/YouTube'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { frontpageAuth } from '@/services/frontpage/auth'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
@@ -71,7 +70,6 @@ export default async function LoggedOutLandingPage() {
 
             </div>
             <div className={`${styles.part} ${styles.omegamai}`}>
-                <YouTube src="https://www.youtube.com/watch?v=I-zNLW4ILu4" title="Master i kybernetikk og robotikk | NTNU" />
                 <Section
                     capabilities={capabilities}
                     position="left"
