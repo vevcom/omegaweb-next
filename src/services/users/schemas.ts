@@ -4,8 +4,6 @@ import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { SEX, RelationshipStatus, Theme } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
-export const studentCardSchema = z.string()
-
 export const userDataFieldSchemas = z.object({
     username: z.string().max(50).min(2).toLowerCase(),
     sex: z.nativeEnum(SEX).optional().nullable(),
@@ -33,6 +31,8 @@ export const userDataFieldSchemas = z.object({
     acceptedTerms: Zpn.checkboxOrBoolean({
         label: 'Accepted terms',
     }).refine(value => value, 'Du må godta vilkårene for å bruke siden.'),
+    // Whatever the card reader gives, as is: it is only ever compared to what the reader gives later.
+    studentCard: z.string().trim().min(1).max(100),
 })
 
 const groupFilter = z.object({
@@ -58,10 +58,8 @@ const paramsFieldSchemas = z.object({
     }).optional(),
 })
 
-const refinePassword = {
-    fcn: (data: { password?: string, confirmPassword?: string }) => data.password === data.confirmPassword,
-    message: 'Passordene må være like'
-}
+const passwordsMatch = (data: { password?: string, confirmPassword?: string }) => data.password === data.confirmPassword
+const passwordsMatchMessage = 'Passordene må være like'
 
 const id = paramsFieldSchemas.pick({
     id: true,
@@ -125,12 +123,12 @@ export const userSchemas = {
             sex: true,
             imageConsent: true,
             acceptedTerms: true,
-        }).refine(refinePassword.fcn, refinePassword.message),
+        }).refine(passwordsMatch, passwordsMatchMessage),
 
         updatePassword: userDataFieldSchemas.pick({
             password: true,
             confirmPassword: true,
-        }).refine(refinePassword.fcn, refinePassword.message),
+        }).refine(passwordsMatch, passwordsMatchMessage),
 
         registerNewEmail: userDataFieldSchemas.pick({
             email: true,
@@ -143,6 +141,10 @@ export const userSchemas = {
         }),
 
         updateProfileImage: imageSchemas.data.uploadImage,
+
+        connectStudentCard: userDataFieldSchemas.pick({
+            studentCard: true,
+        }),
     },
     params: {
         read: userLookup.extend({ id: coercedId }),
@@ -169,11 +171,7 @@ export const userSchemas = {
             limit: true,
         }),
 
-        // The card number is scanned in, so the operation takes it as a param rather than a lookup string.
-        connectStudentCard: z.object({
-            studentCard: z.coerce.number().int().min(0).optional(),
-        }),
-
+        connectStudentCard: id,
         update: z.union([id, username]),
         updateProfile: username,
         updateBioParagraphContent: paramsFieldSchemas.pick({

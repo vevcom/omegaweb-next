@@ -1,8 +1,8 @@
 import '@pn-server-only'
 import { emailValidationExpiration } from './constants'
+import { generateVerifyEmailJWT } from './verifyEmailToken'
 import { VerifyEmailTemplate } from '@/lib/email/templates/verifyEmail'
 import { sendMailOperations } from '@/services/notifications/send-mail/operations'
-import { generateJWT } from '@/jwt/jwt'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userSchemas } from '@/services/users/schemas'
 import type { UserBasic } from '@/services/users/types'
@@ -10,10 +10,7 @@ import type { UserBasic } from '@/services/users/types'
 export async function sendVerifyEmail(user: UserBasic, email: string) {
     const parse = userSchemas.data.verifyEmail.parse({ email })
 
-    const jwt = generateJWT('verifyemail', {
-        email: parse.email,
-        sub: user.id,
-    }, emailValidationExpiration)
+    const jwt = generateVerifyEmailJWT(user.id, parse.email, emailValidationExpiration)
 
     const link = `${process.env.WEBSITE_URL}/verify-email?${QueryParams.token.encodeUrl(jwt)}`
 
