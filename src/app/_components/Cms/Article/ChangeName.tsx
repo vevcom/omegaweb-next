@@ -1,5 +1,4 @@
 'use client'
-import styles from './ChangeName.module.scss'
 import EditableTextField from '@/components/EditableTextField/EditableTextField'
 import useEditMode from '@/hooks/useEditMode'
 import React, { useState } from 'react'
@@ -40,11 +39,11 @@ export default function ChangeName({ article, updateArticleAction, capabilities 
             inputName="name"
             submitButton={{
                 text: 'lagre',
-                className: styles.submitNameButton
+                className: 'absolute bottom-full left-0 w-[200px] [&_button]:my-2 [&_button]:mx-0'
             }}
             editable={editable}
         >
-            <h1 className={styles.title}>{currentName}</h1>
+            <h1 className="text-xxl font-secondary uppercase text-white z-2 relative">{currentName}</h1>
         </EditableTextField>
     )
 }

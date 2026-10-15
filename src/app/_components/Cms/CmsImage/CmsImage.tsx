@@ -1,5 +1,4 @@
 import CmsImageEditor from './CmsImageEditor'
-import styles from './CmsImage.module.scss'
 import Image from '@/components/Image/Image'
 import StandardImageClient from '@/components/Image/StandardImageClient'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
@@ -38,13 +37,13 @@ export default function CmsImage({
     ...props
 }: PropTypes) {
     return (
-        <div className={`${styles.CmsImage} ${className}`}>
+        <div className={`relative isolate table ${className}`}>
             {!disableEditor && <CmsImageEditor
                 cmsImage={cmsImage}
                 updateCmsImageAction={updateCmsImageAction}
                 capabilities={capabilitiesToJsObject(capabilities)}
             />}
-            <div className={styles.children}>{children}</div>
+            <div className="absolute top-0 left-0 w-full h-full flex">{children}</div>
             {cmsImage.image ? (
                 <Image className={classNameImage} image={cmsImage.image} {...props}/>
             ) : (

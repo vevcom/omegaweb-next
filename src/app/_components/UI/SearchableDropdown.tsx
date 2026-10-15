@@ -1,6 +1,11 @@
 'use client'
-import styles from './SearchableDropdown.module.scss'
-import { DropdownPanel, useDropdown } from './Dropdown'
+import {
+    DropdownPanel,
+    dropdownChevronClassName,
+    dropdownColorClassNames,
+    dropdownLabelClassName,
+    useDropdown,
+} from './Dropdown'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
@@ -16,6 +21,28 @@ export type SearchableDropdownOption<ValueType> = {
 export type PropTypes<ValueType> = Omit<DropdownPropTypes<ValueType>, 'options'> & {
     options: SearchableDropdownOption<ValueType>[],
 }
+
+const fieldClassName = [
+    'w-full border-2 border-transparent rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)]',
+    'pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300',
+    'disabled:cursor-not-allowed disabled:opacity-60',
+].join(' ')
+
+const focusBorderClassNames = {
+    black: 'focus:border-accent-blue',
+    primary: 'focus:border-accent-blue',
+    secondary: 'focus:border-accent-blue',
+    red: 'focus:border-accent-red',
+    white: 'focus:border-accent-blue',
+} as const
+
+const backgroundClassNames = {
+    base: 'bg-surface-raised hover:bg-surface-hover focus:bg-surface-hover',
+    raised: [
+        'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
+        'focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
+    ].join(' '),
+} as const
 
 /**
  * A Dropdown whose trigger is a text field, which narrows the options down to the ones whose label
@@ -67,14 +94,18 @@ export default function SearchableDropdown<ValueType extends string | number>({
         <div
             ref={ref}
             className={
-                `${styles.SearchableDropdown} ${styles[color]} ` +
-                `${background === 'raised' ? styles.onRaised : ''} ${open ? styles.open : ''} ${className ?? ''}`
+                `relative mt-2 w-full max-w-[320px] ${className ?? ''}`
             }
         >
             <input
                 id={domId}
                 type="text"
-                className={styles.field}
+                className={[
+                    fieldClassName,
+                    dropdownColorClassNames[color],
+                    focusBorderClassNames[color],
+                    backgroundClassNames[background],
+                ].join(' ')}
                 autoComplete="off"
                 disabled={disabled}
                 value={displayValue}
@@ -86,10 +117,10 @@ export default function SearchableDropdown<ValueType extends string | number>({
                 aria-haspopup="listbox"
                 aria-controls={`${domId}-listbox`}
             />
-            <label htmlFor={domId} className={`${styles.label} ${(open || selectedOption) ? styles.floated : ''}`}>
+            <label htmlFor={domId} className={dropdownLabelClassName(Boolean(open || selectedOption))}>
                 {label}
             </label>
-            <FontAwesomeIcon icon={faChevronDown} className={styles.chevron} />
+            <FontAwesomeIcon icon={faChevronDown} className={`${dropdownChevronClassName(open)} pointer-events-none`} />
             {
                 open && (
                     <DropdownPanel

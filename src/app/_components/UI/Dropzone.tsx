@@ -26,6 +26,8 @@ type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name' | '
     setFiles: React.Dispatch<React.SetStateAction<FileWithStatus[]>>
 }
 
+const trashClassName = 'bg-transparent border-none hover:cursor-pointer [&>svg]:size-[20px] [&>svg]:text-accent-red'
+
 const byteToUnderstandable = (bytes: number): string => {
     if (bytes < 1024) {
         return `${bytes} bytes`
@@ -99,8 +101,16 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
     }
 
     return (
-        <div className={styles.Dropzone}>
-            <div onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave} className={styles.uploader}>
+        <div className="h-full w-full flex flex-col">
+            <div
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                className={[
+                    'w-full relative border-2 border-dashed border-accent-blue p-6 flex justify-center items-center',
+                    styles.uploader,
+                ].join(' ')}
+            >
                 <input
                     ref={input}
                     name={name}
@@ -109,28 +119,48 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
                     multiple
                     aria-label={label}
                     {...props}
+                    className={`peer absolute inset-0 w-full h-full opacity-0 hover:cursor-pointer ${props.className ?? ''}`}
                 />
-                <p>{label}</p>
-                <FontAwesomeIcon icon={faUpload} />
+                <p className="-z-1 transition-[scale] duration-300 peer-hover:scale-105">{label}</p>
+                <FontAwesomeIcon
+                    icon={faUpload}
+                    className="-z-1 transition-[scale] duration-300 peer-hover:scale-105 w-[30px] h-[30px] m-4"
+                />
             </div>
-            <span>
-                <div className={styles.general}>
+            <span className="mt-4 p-[.5em] bg-[color-mix(in_srgb,var(--accent-blue),white_15%)]">
+                <div
+                    className={[
+                        'flex justify-between content-center p-[.5em] [&>p]:w-full [&>p]:text-center',
+                        '[&>p:first-child]:text-left [&>p:last-child]:text-right',
+                    ].join(' ')}
+                >
                     <p>Til opplastning: {files.length} {files.length === 1 ? 'fil' : 'filer'}</p>
                     <p>Total størrelse: {byteToUnderstandable(files.reduce((acc, file) => acc + file.file.size, 0))}</p>
                     <p>
-                        <button className={styles.trash} onClick={handleRemoveAll}>
+                        <button className={trashClassName} onClick={handleRemoveAll}>
                             <FontAwesomeIcon icon={faTrash} />
                         </button>
                     </p>
                 </div>
-                <ul ref={infoContainerRef}>
+                <ul ref={infoContainerRef} className="h-[200px] overflow-y-scroll">
                     {files.map((file, index) => (
-                        <li id={`fileInfo${index}`} key={`fileInfo${index}`}>
-                            <img src={URL.createObjectURL(file.file)} alt={file.file.name} />
-                            <p>{file.file.name}</p>
-                            <p>{byteToUnderstandable(file.file.size)}</p>
+                        <li
+                            id={`fileInfo${index}`}
+                            key={`fileInfo${index}`}
+                            className={[
+                                'flex justify-between rounded-round p-[.5em] my-[.3em]',
+                                'bg-[color-mix(in_srgb,var(--accent-blue),white_40%)]',
+                            ].join(' ')}
+                        >
+                            <img
+                                src={URL.createObjectURL(file.file)}
+                                alt={file.file.name}
+                                className="size-[40px] min-w-[40px] min-h-[40px] object-contain"
+                            />
+                            <p className="w-full mx-2">{file.file.name}</p>
+                            <p className="w-full mx-2">{byteToUnderstandable(file.file.size)}</p>
                             <UploadStatusIcon status={file.uploadStatus} />
-                            <button className={styles.trash} onClick={(e) => handleRemove(e, file.file)}>
+                            <button className={trashClassName} onClick={(e) => handleRemove(e, file.file)}>
                                 <FontAwesomeIcon icon={faTrash} />
                             </button>
                         </li>

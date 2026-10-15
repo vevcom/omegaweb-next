@@ -1,5 +1,10 @@
-import styles from './HorizontalSelector.module.scss'
 import type { ReactNode } from 'react'
+
+const optionClassName = [
+    'flex items-center justify-center flex-1 m-0 rounded-none cursor-pointer',
+    // <button> doesn't inherit typography the way a <label> does, so match a button explicitly.
+    'font-normal leading-normal not-last:border-r not-last:border-surface-subtle',
+].join(' ')
 
 export type PropTypes<ValueType extends string | number> = {
     name: string,
@@ -24,13 +29,13 @@ export default function HorizontalSelector<ValueType extends string | number>({
     options,
     className,
 }: PropTypes<ValueType>) {
-    return <div className={`${styles.HorizontalSelector} ${className ?? ''}`}>
+    return <div className={`inline-flex rounded-round overflow-hidden [&_input[type=radio]]:hidden ${className ?? ''}`}>
         {options.map(option => {
             const id = `${name}-${option.value}`
             return <label
                 key={option.value}
                 htmlFor={id}
-                className={value === option.value ? styles.selected : styles.option}
+                className={`${value === option.value ? 'btn' : 'secondary-btn'} ${optionClassName}`}
             >
                 <input
                     type="radio"

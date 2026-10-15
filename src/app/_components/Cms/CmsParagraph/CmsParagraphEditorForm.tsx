@@ -1,7 +1,6 @@
 'use client'
 import 'easymde/dist/easymde.min.css'
 import './CustomEditorClasses.scss'
-import styles from './CmsParagraphEditor.module.scss'
 import Form from '@/components/Form/Form'
 import { configureAction } from '@/services/configureAction'
 import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
@@ -12,12 +11,17 @@ import type { CmsParagraph } from '@/prisma-generated-pn-types'
 import type { UpdateCmsParagraphAction } from '@/cms/paragraphs/types'
 import type { Options as EditorOptions } from 'easymde'
 
+const editorClassName = [
+    'w-full text-s rounded-[4px] border border-accent-blue mt-2 bg-surface-raised overflow-y-scroll',
+    'focus:outline-none focus:shadow-[0_0_0_2px_var(--accent-blue)]',
+].join(' ')
+
 // Needed because SimpleMDE is not SSR compatible as it access navigator object
 const DynamicSimpleMDEditor = dynamic(
     () => import('react-simplemde-editor'),
     {
         ssr: false,
-        loading: () => <p className={styles.loader}>Laster...</p>
+        loading: () => <p className={`${editorClassName} flex justify-center items-center`}>Laster...</p>
     }
 )
 
@@ -56,9 +60,9 @@ export default function CmsParagraphEditorForm({ cmsParagraph, className, update
     const action = configureAction(updateCmsParagraphAction, { params: { paragraphId: cmsParagraph.id } })
 
     return (
-        <div className={`${styles.form} ${className ?? ''}`}>
+        <div className={className}>
             <DynamicSimpleMDEditor
-                className={styles.editor}
+                className={editorClassName}
                 value={content}
                 onChange={handleContentChange}
                 options={editorOptions}

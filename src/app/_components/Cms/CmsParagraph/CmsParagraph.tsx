@@ -1,4 +1,3 @@
-import styles from './CmsParagraph.module.scss'
 import ParagraphEditor from './CmsParagraphEditor'
 import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
@@ -14,13 +13,20 @@ export type PropTypes = {
     capabilities: Capabilities<'canEdit'>
 }
 
+// Styles the sanitized HTML the paragraph renders, so everything targets descendants.
+const htmlContentClassName = [
+    'w-full [&_*]:break-words [&_*]:text-text-muted [&_ul_ul]:pl-[20px] [&_ol_ol]:pl-[20px] [&_li]:list-inside',
+    '[&_a]:no-underline [&_a]:text-accent-blue [&_a]:font-bold [&_a:hover]:underline',
+    '[&_h1]:mb-[.5em] [&_h2]:mb-[.5em] [&_h1]:text-text [&_h2]:text-text [&_p]:leading-[1.5]',
+].join(' ')
+
 export default function CmsParagraph({ cmsParagraph, className, updateCmsParagraphAction, capabilities }: PropTypes) {
     return (
         <>
-            <div className={`${styles.CmsParagraph} ${className}`}>
+            <div className={`w-full relative mb-4 ${className}`}>
                 {cmsParagraph.contentHtml ? (
                     <div
-                        className={styles.HTMLcontent}
+                        className={htmlContentClassName}
                         // Sanitized again on the way out, not only when written: rows written before
                         // html imported by DobbelOmega, never passed through it.
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(cmsParagraph.contentHtml) }}

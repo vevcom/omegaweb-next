@@ -1,5 +1,4 @@
 'use client'
-import styles from './ImageControls.module.scss'
 import useEditMode from '@/hooks/useEditMode'
 import { imageSizeIncrement, maxImageSize, minImageSize } from '@/cms/articleSections/constants'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -25,6 +24,21 @@ type PropTypes = {
  * This component is used to control the image in the article section
  * i.e move it left or right and size it
  */
+const moveButtonClassName = [
+    'absolute -translate-y-1/2 w-[30%] h-full -top-1/2 bg-surface-raised flex justify-center items-center border-none',
+    '[&_svg]:text-white [&_svg]:w-[40%] [&_svg]:h-[40%] [&_path]:[translate:10px_0]',
+    'hover:bg-surface-hover hover:cursor-pointer hover:[&_svg]:text-accent-blue',
+].join(' ')
+
+const sizeButtonClassName = [
+    'bg-transparent border-none w-[25px] h-[25px] first:mr-4',
+    '[&_svg]:w-full [&_svg]:h-full [&_svg]:text-white',
+].join(' ')
+
+const sizeButtonStateClassName = (disabled: boolean) => (
+    disabled ? 'opacity-50' : 'hover:cursor-pointer hover:[&_svg]:text-accent-blue'
+)
+
 export default function ImageControls({ articleSection, className, updateArticleSectionAction, capabilities }: PropTypes) {
     const editable = useEditMode({ authResult: capabilities.canEdit })
     const { refresh } = useRouter()
@@ -63,14 +77,14 @@ export default function ImageControls({ articleSection, className, updateArticle
 
     if (!editable) return null
     return (
-        <div className={`${className} ${styles.ImageControls}`}>
+        <div className={className}>
             {
                 articleSection.imagePosition === 'LEFT' ? (
-                    <button onClick={moveRight} className={styles.moveRight}>
+                    <button onClick={moveRight} className={`${moveButtonClassName} rounded-r-round right-0`}>
                         <FontAwesomeIcon icon={faChevronRight} />
                     </button>
                 ) : (
-                    <button onClick={moveLeft} className={styles.moveLeft}>
+                    <button onClick={moveLeft} className={`${moveButtonClassName} rounded-l-round left-0`}>
                         <FontAwesomeIcon icon={faChevronLeft} />
                     </button>
                 )
@@ -78,20 +92,19 @@ export default function ImageControls({ articleSection, className, updateArticle
             <div
                 className={
                     articleSection.imagePosition === 'LEFT' ?
-                        `${styles.adjustSize} ${styles.placeLeft}` :
-                        `${styles.adjustSize} ${styles.placeRight}`
+                        'absolute -top-full bg-surface-raised p-[.5em] left-0 rounded-tl-round' :
+                        // Extra top/right padding keeps clear of the remove-image button.
+                        'absolute -top-full bg-surface-raised p-[.5em] right-0 rounded-tr-round pt-[1.2em] pr-[1.2em]'
                 }
             >
-                <button onClick={increaseSize} className={
-                    articleSection.imageSize + imageSizeIncrement > maxImageSize ?
-                        `${styles.disabled}` : ''
-                }>
+                <button onClick={increaseSize} className={`${sizeButtonClassName} ${sizeButtonStateClassName(
+                    articleSection.imageSize + imageSizeIncrement > maxImageSize
+                )}`}>
                     <FontAwesomeIcon icon={faMaximize} />
                 </button>
-                <button onClick={decreaseSize} className={
-                    articleSection.imageSize - imageSizeIncrement < minImageSize ?
-                        `${styles.disabled}` : ''
-                }>
+                <button onClick={decreaseSize} className={`${sizeButtonClassName} ${sizeButtonStateClassName(
+                    articleSection.imageSize - imageSizeIncrement < minImageSize
+                )}`}>
                     <FontAwesomeIcon icon={faMinimize} />
                 </button>
             </div>

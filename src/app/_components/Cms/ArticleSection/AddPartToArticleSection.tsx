@@ -1,5 +1,4 @@
 'use client'
-import styles from './AddPartToArticleSection.module.scss'
 import AddParts from '@/cms/AddParts'
 import useEditMode from '@/hooks/useEditMode'
 import { useCallback } from 'react'
@@ -19,6 +18,12 @@ type PropTypes = Omit<AddPartsPropTypes, 'onClick'> & {
     capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
+// The last child is the add-part buttons, pinned to the bottom right corner.
+const wrapperClassName = [
+    'relative border-3 border-surface-base rounded-round min-h-[100px] p-4',
+    '[&>*:last-child]:absolute [&>*:last-child]:bottom-[3px] [&>*:last-child]:right-[3px]',
+].join(' ')
+
 export default function AddPartToArticleSection({
     children,
     addPartToArticleSectionAction,
@@ -35,12 +40,12 @@ export default function AddPartToArticleSection({
 
     if (!editable) return children
     return (
-        <div className={styles.AddPartToArticleSection}>
+        <div className="p-2 max-w-full">
             <div className={
                 props.showImageAdd || props.showLinkAdd || props.showParagraphAdd ?
-                    `${styles.wrapper} ${styles.paddingBottom}`
+                    `${wrapperClassName} pb-[60px]`
                     :
-                    styles.wrapper
+                    wrapperClassName
             }>
                 {children}
                 <AddParts onClick={handleAdd} {...props} />

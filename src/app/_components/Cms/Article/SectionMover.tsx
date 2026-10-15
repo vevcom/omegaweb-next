@@ -1,5 +1,4 @@
 'use client'
-import styles from './SectionMover.module.scss'
 import useEditMode from '@/hooks/useEditMode'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowDown, faArrowUp } from '@fortawesome/free-solid-svg-icons'
@@ -16,6 +15,8 @@ type PropTypes = {
     reorderArticleSectionsAction: ConfiguredAction<ReorderArticleSectionsAction>
     capabilities: CapabilitiesJsObject<'canEdit'>
 }
+
+const moveButtonClassName = 'btn rounded-full p-[1em] w-[2em] h-[2em] flex items-center justify-center'
 
 export default function SectionMover({
     className,
@@ -34,14 +35,14 @@ export default function SectionMover({
 
     if (!editable) return null
     return (
-        <div className={`${styles.SectionMover} ${className}`}>
+        <div className={`flex w-full justify-center ${className}`}>
             {
-                showUp && <button onClick={() => handleMove('UP')}>
+                showUp && <button className={moveButtonClassName} onClick={() => handleMove('UP')}>
                     <FontAwesomeIcon icon={faArrowUp} />
                 </button>
             }
             {
-                showDown && <button onClick={() => handleMove('DOWN')}>
+                showDown && <button className={moveButtonClassName} onClick={() => handleMove('DOWN')}>
                     <FontAwesomeIcon icon={faArrowDown} />
                 </button>
             }

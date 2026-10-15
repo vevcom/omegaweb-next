@@ -1,5 +1,4 @@
 'use client'
-import styles from './RemovePart.module.scss'
 import Form from '@/components/Form/Form'
 import useEditMode from '@/hooks/useEditMode'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
@@ -26,13 +25,23 @@ export default function RemovePart({ part, removePartFromArticleSectionAction, c
 
     if (!editable) return null
     return (
-        <div ref={confirmRef} className={styles.RemovePart}>
-            <button className={styles.openBtn} onClick={() => setConfirmOpen(x => !x)}>
+        <div ref={confirmRef} className="relative">
+            <button
+                className={[
+                    'bg-[red] w-[30px] h-[30px] rounded-full border-none grid place-items-center',
+                    'transition-colors duration-300 hover:bg-[hsl(0,100%,40%)] hover:cursor-pointer',
+                ].join(' ')}
+                onClick={() => setConfirmOpen(x => !x)}>
                 <FontAwesomeIcon icon={faX} />
             </button>
             {
                 confirmOpen && (
-                    <div className={styles.confirmation}>
+                    <div
+                        className={[
+                            'shadow-[0_0_10px_0_var(--boxShadow)] absolute top-full left-1/2 -translate-x-1/2 w-[200px]',
+                            'bg-surface-raised round grid place-items-center [&_form]:w-auto [&_form]:h-auto',
+                        ].join(' ')}
+                    >
                         <Form
                             action={handleRemove}
                             submitText="Fjern"

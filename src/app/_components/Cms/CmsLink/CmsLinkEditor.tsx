@@ -1,5 +1,4 @@
 'use client'
-import styles from './CmsLinkEditor.module.scss'
 import TextInput from '@/components/UI/TextInput'
 import EditOverlay from '@/cms/EditOverlay'
 import useEditMode from '@/hooks/useEditMode'
@@ -25,12 +24,11 @@ export default function CmsLinkEditor({ cmsLink, updateCmsLinkAction, capabiliti
     return (
         <PopUp
             popUpKey={`EditCmsLink${cmsLink.id}`}
-            showButtonClass={styles.openBtn}
+            showButtonClass="border-none bg-transparent rounded-round overflow-hidden"
             showButtonContent={
                 <EditOverlay />
             }>
             <Form
-                className={styles.CmsLinkEditor}
                 action={
                     configureAction(
                         updateCmsLinkAction,
