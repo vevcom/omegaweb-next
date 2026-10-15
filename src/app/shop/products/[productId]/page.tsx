@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import ProductForm from '@/app/shop/products/ProductForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { displayAmount } from '@/lib/currency/convert'
@@ -22,7 +21,7 @@ const { page, generateMetadata } = serverPage({
         <PageWrapper>
             {capabilities.canUpdateProduct.authorized && <ProductForm product={product} />}
 
-            <table className={styles.table}>
+            <table className="ohma-table">
                 <thead>
                     <tr>
                         <th>Butikk</th>

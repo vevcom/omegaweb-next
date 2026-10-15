@@ -15,7 +15,10 @@ export default function NavBarTitle() {
 
     return (
         <div
-            className="ml-2 min-w-0 max-w-[40ch] text-xxl font-medium text-text whitespace-nowrap overflow-hidden text-ellipsis"
+            className={[
+                'ml-2 min-w-0 max-w-[40ch] text-xxl font-medium text-text',
+                'whitespace-nowrap overflow-hidden text-ellipsis',
+            ].join(' ')}
             aria-hidden={false}
         >
             {title}

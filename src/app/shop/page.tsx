@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import CreateShopForm from './CreateShopForm'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import HeaderItemLink from '@/components/HeaderItems/HeaderItemLink'
@@ -22,7 +21,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: shops, capabilities }) => (
         <PageWrapper
             headerItem={
-                <div className={styles.head}>
+                <div className="flex items-center gap-[1em]">
                     {capabilities.canAdministerProducts.authorized && (
                         <HeaderItemLink href="/shop/products" label="Produkter" icon={faBox} />
                     )}
@@ -34,7 +33,7 @@ const { page, generateMetadata } = serverPage({
                 </div>
             }
         >
-            <table className={styles.table}>
+            <table className="ohma-table">
                 <thead>
                     <tr>
                         <th>Butikk</th>

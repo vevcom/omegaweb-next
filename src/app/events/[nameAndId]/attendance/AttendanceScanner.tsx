@@ -1,5 +1,4 @@
 'use client'
-import styles from './AttendanceScanner.module.scss'
 import { useAttendanceCounts } from './AttendanceCounts'
 import OmegaIdReader from '@/components/OmegaId/Reader/OmegaIdReader'
 import { registerEventAttendanceAction } from '@/services/events/registration/actions'
@@ -15,7 +14,7 @@ export default function AttendanceScanner({
 }) {
     const { setCounts } = useAttendanceCounts()
 
-    return <div className={styles.AttendanceScanner}>
+    return <div className="flex flex-col gap-2">
         <OmegaIdReader
             publicKey={omegaIdPublicKey}
             qrboxSize={300}
@@ -45,7 +44,7 @@ export default function AttendanceScanner({
             }}
         />
 
-        <p className={styles.lead}>
+        <p className="m-auto max-w-[460px] text-center text-text-muted">
             Skann Omega-ID-en til de som kommer. Gjester uten Omega-ID, og rettelser, tar du i
             listen over påmeldte.
         </p>

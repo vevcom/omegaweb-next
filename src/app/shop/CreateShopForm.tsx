@@ -1,5 +1,4 @@
 'use client'
-import styles from './CreateShopForm.module.scss'
 import { createShopAction } from '@/services/shop/shop/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
@@ -13,7 +12,7 @@ export default function CreateShopForm() {
 
     return <Form
         action={createShopAction}
-        className={styles.CreateShopForm}
+        className="min-w-[50vw]"
         submitText="Lag ny butikk"
         navigateOnSuccess={shop => (shop ? `/shop/${shop.id}` : '/shop')}
     >
@@ -23,7 +22,7 @@ export default function CreateShopForm() {
           * The levels are collected here rather than after the fact: a shop created with an empty
           * admin level would be administrable by anyone until it was narrowed.
           */}
-        <div className={styles.visibility}>
+        <div className="flex flex-col gap-[0.5rem]">
             <h3>Hvem kan administrere butikken?</h3>
             <VisibilityMatrixEditor
                 requirements={adminRequirements}

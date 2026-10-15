@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import ShopUI from './ShopUI'
 import UpdateShopForm from './UpdateShopForm'
 import ConnectShopToLedgerForm from './ConnectShopToLedgerForm'
@@ -60,7 +59,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: { shop, userId, unconnectedProducts, ledgerAccounts }, capabilities }) => (
         <PageWrapper
             headerItem={
-                <div className={styles.head}>
+                <div className="flex items-center gap-[0.5rem]">
                     {(capabilities.canAddProduct.authorized || capabilities.canCreateProduct.authorized) && (
                         <AddHeaderItemPopUp popUpKey="addProductToShop" label="Produkt">
                             {capabilities.canAddProduct.authorized && (
