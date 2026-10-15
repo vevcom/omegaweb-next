@@ -4,13 +4,13 @@ import type { Prisma } from '@/prisma-generated-pn-types'
 
 export const defaultNewsArticleOldCutoff = 7 // by default a newsarticle is considered old after 7 days
 
-export const newsArticleRealtionsIncluder = {
+export const newsArticleRelationsIncluder = {
     article: {
         include: articleRelationsIncluder
     }
 } as const satisfies Prisma.NewsArticleInclude
 
-export const simpleNewsArticleRealtionsIncluder = {
+export const simpleNewsArticleRelationsIncluder = {
     article: {
         include: {
             coverImage: {
@@ -21,3 +21,9 @@ export const simpleNewsArticleRealtionsIncluder = {
         }
     }
 } as const satisfies Prisma.NewsArticleInclude
+
+export const newsArticleOrdering = {
+    article: {
+        createdAt: 'desc',
+    },
+} as const satisfies Prisma.NewsArticleOrderByWithRelationInput

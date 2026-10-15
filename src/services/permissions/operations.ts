@@ -48,7 +48,7 @@ export const permissionOperations = {
     }),
 
     readPermissionsOfGroup: defineOperation({
-        authorizer: () => permissionsAuth.readGroupPermissions,
+        authorizer: () => permissionsAuth.readPermissionsOfGroup,
         paramsSchema: permissionSchemas.params.readPermissionsOfGroup,
         operation: async ({ prisma, params }) => (await prisma.groupPermission.findMany({
             where: {
@@ -78,8 +78,9 @@ export const permissionOperations = {
     updateDefaultPermissions: defineOperation({
         authorizer: () => permissionsAuth.updateDefaultPermissions,
         dataSchema: permissionSchemas.data.updateDefaultPermissions,
-        operation: async ({ prisma, data }) => {
-            await prisma.defaultPermission.deleteMany({
+        opensTransaction: true,
+        operation: ({ prisma, data }) => prisma.$transaction(async tx => {
+            await tx.defaultPermission.deleteMany({
                 where: {
                     permission: {
                         notIn: data.permissions,
@@ -87,34 +88,35 @@ export const permissionOperations = {
                 },
             })
 
-            await prisma.defaultPermission.createMany({
+            await tx.defaultPermission.createMany({
                 data: data.permissions.map(permission => ({
                     permission,
                 })),
                 skipDuplicates: true,
             })
 
-            // Invalidate all user sessions
-            await invalidateAllUserSessionData(prisma)
+            // Every session holds the default permissions, so every one of them is now stale.
+            await invalidateAllUserSessionData(tx)
 
             return data.permissions
-        }
+        })
     }),
 
     updateGroupPermission: defineOperation({
         authorizer: () => permissionsAuth.updateGroupPermission,
         paramsSchema: permissionSchemas.params.updateGroupPermission,
         dataSchema: permissionSchemas.data.updateGroupPermission,
-        operation: async ({ prisma, params, data }) => {
+        opensTransaction: true,
+        operation: ({ prisma, params, data }) => prisma.$transaction(async tx => {
             if (data.value) {
-                await prisma.groupPermission.create({
+                await tx.groupPermission.create({
                     data: {
                         groupId: params.groupId,
                         permission: params.permission,
                     },
                 })
             } else {
-                await prisma.groupPermission.delete({
+                await tx.groupPermission.delete({
                     where: {
                         groupId_permission: {
                             groupId: params.groupId,
@@ -124,7 +126,7 @@ export const permissionOperations = {
                 })
             }
 
-            const group = await prisma.group.findUniqueOrThrow({
+            const group = await tx.group.findUniqueOrThrow({
                 where: {
                     id: params.groupId
                 },
@@ -141,9 +143,9 @@ export const permissionOperations = {
             })
 
             const userIds = group.memberships.map(membership => membership.userId)
-            await invalidateManyUserSessionData(prisma, userIds)
+            await invalidateManyUserSessionData(tx, userIds)
 
             return data.value
-        }
+        })
     }),
 } as const
