@@ -61,6 +61,7 @@
     "next-auth": "^4.24.11",
     "next-qrcode": "^2.5.1",
     "nodemailer": "^10.0.14",
+    "pdfjs-dist": "5.4.296",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-intersection-observer": "^10.0.3",
@@ -85,6 +86,7 @@
   },
   "overrides": {
     "nodemailer": "^10.0.14",
+    "pdfjs-dist": "5.4.296",
     "mysql2": "^3.24.5",
     "deepmerge-ts": "^8.0.2"
   },
