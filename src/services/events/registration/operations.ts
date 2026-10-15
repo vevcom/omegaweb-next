@@ -692,13 +692,16 @@ async function writeAttendance(
     attended: boolean,
     registeredById: number
 ) {
-    return await prisma.eventRegistration.update({
-        where: {
-            id: registrationId,
-        },
+    // Saving a box that was already ticked keeps when they showed up and who let them in.
+    await prisma.eventRegistration.updateMany({
+        where: attended ? { id: registrationId, attendedAt: null } : { id: registrationId },
         data: attended
             ? { attendedAt: new Date(), attendanceRegisteredById: registeredById }
             : { attendedAt: null, attendanceRegisteredById: null },
+    })
+
+    return await prisma.eventRegistration.findUniqueOrThrow({
+        where: { id: registrationId },
         select: eventRegistrationAttendanceSelection,
     })
 }

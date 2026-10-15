@@ -75,7 +75,13 @@ function DetailedTable({
                                         submitText="Lagre"
                                         refreshOnSuccess
                                     >
-                                        <Checkbox name="attended" defaultChecked={Boolean(row.attendedAt)} />
+                                        <Checkbox
+                                            name="attended"
+                                            defaultChecked={Boolean(row.attendedAt)}
+                                            aria-label={`Møtt: ${row.user
+                                                ? `${row.user.firstname} ${row.user.lastname}`
+                                                : row.contact?.name ?? 'Ukjent'}`}
+                                        />
                                     </Form>
                                 </td>}
                                 <td>

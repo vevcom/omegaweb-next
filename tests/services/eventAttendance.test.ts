@@ -149,6 +149,17 @@ describe('taking attendance for an event', () => {
         expect(stored.attendanceRegisteredById).toBeNull()
     })
 
+    test('saving a box that is already ticked leaves the scan standing', async () => {
+        const event = await createTestEvent('Attendance resave event')
+        const user = await createTestUser('attendanceresave')
+        const registration = await register(event.id, user.id)
+
+        const scan = await registerAttendance(event.id, user.id)
+        const saved = await setAttendance(registration.id, true)
+
+        expect(saved.attendedAt).toEqual(scan.registration.attendedAt)
+    })
+
     test('the tally is against the places of the event, with the waiting list counted apart', async () => {
         const event = await createTestEvent('Attendance counting event', 1)
         const takesThePlace = await createTestUser('attendancefour')
