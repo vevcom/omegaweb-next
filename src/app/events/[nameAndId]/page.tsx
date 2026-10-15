@@ -110,11 +110,12 @@ const { page, generateMetadata } = serverPage({
         canUpdate: eventAuth.update.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        // Reading who is registered takes the regular level of the event, and registering on
-        // behalf of others its admin level - offering any of it to someone without the level
-        // would only produce an error when they act on it.
+        // Reading who is registered takes the regular level of the event (its admin level while
+        // it is a draft), and registering on behalf of others its admin level - offering any of
+        // it to someone without the level would only produce an error when they act on it.
         canReadRegistrations: eventRegistrationAuth.readPage.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+            published: data.event.published,
         }),
         canReadRegistrationsDetailed: eventRegistrationAuth.readPageDetailed.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
@@ -125,10 +126,12 @@ const { page, generateMetadata } = serverPage({
         canRegisterGuest: eventRegistrationAuth.createGuest.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        // Registering takes the regular level of the event, for the session's own user.
+        // Registering takes the regular level of the event (its admin level while it is a draft),
+        // for the session's own user.
         canRegister: session.user ? eventRegistrationAuth.create.data({
             userId: session.user.id,
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+            published: data.event.published,
         }) : Require.user(),
     }),
     metadata: (data) => ({ title: data.event.name }),

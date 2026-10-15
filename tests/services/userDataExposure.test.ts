@@ -54,6 +54,7 @@ beforeAll(async () => {
     const event = await prisma.event.create({
         data: {
             name: 'Exposure test',
+            published: true,
             paragraph: { create: {} },
             coverImage: { create: {} },
             eventStart: new Date(),
