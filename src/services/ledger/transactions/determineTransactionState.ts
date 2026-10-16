@@ -119,14 +119,14 @@ function validAmountSum(
 }
 
 /**
- * If an entry is debit (amount < 0), its referenced account must
+ * If an entry is debit (amount < 0 or fees < 0), its referenced account must
  * have a positive balance after the transaction succeeds.
  */
 function sufficientBalances(
     { transaction, balances }: LedgerTransactionRuleContext,
 ): LedgerTransactionTransition | null {
     const debitLedgerAccountIds = transaction.ledgerEntries
-        .filter(entry => entry.funds < 0)
+        .filter(entry => entry.funds < 0 || (entry.fees ?? 0) < 0)
         .map(entry => entry.ledgerAccountId)
     const debitBalances = debitLedgerAccountIds.map(id => balances[id])
 
