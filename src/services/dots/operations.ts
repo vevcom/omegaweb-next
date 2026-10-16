@@ -3,22 +3,13 @@ import { dotAuth } from './auth'
 import { dotSchemas } from './schemas'
 import { dotsIncluder } from './constants'
 import { expandDots } from './expandDots'
-import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { DotExpanded } from './types'
 
 const numberOfActiveDotsForUser = defineSubOperation({
     paramsSchema: () => dotSchemas.params.numberOfActiveDotsForUser,
     operation: () => async ({ prisma, params }) => {
-        const dots = await prisma.dot.findMany({
-            where: {
-                userId: params.userId,
-            },
-            include: dotsIncluder,
-        })
-        const freezePeriods = await prisma.dotFreezePeriod.findMany()
-
-        const expandedDots = expandDots(dots, freezePeriods)
-
+        const expandedDots = await readExpandedDotsOfUser(prisma, params.userId)
         return expandedDots.reduce((total, dot) => total + dot.valueLeft, 0)
     },
 })
@@ -77,19 +68,25 @@ export const dotOperations = {
         paramsSchema: dotSchemas.params.readForUser,
         authorizer: ({ params }) => dotAuth.readForUser.data({ userId: params.userId }),
         operation: async ({ prisma, params }): Promise<DotExpanded[]> => {
-            const [dots, freezePeriods] = await Promise.all([
-                prisma.dot.findMany({
-                    where: {
-                        userId: params.userId,
-                    },
-                    include: dotsIncluder,
-                }),
-                prisma.dotFreezePeriod.findMany(),
-            ])
-
-            const expandedDots = expandDots(dots, freezePeriods)
-
+            const expandedDots = await readExpandedDotsOfUser(prisma, params.userId)
             return params.onlyActive ? expandedDots.filter(dot => dot.valueLeft > 0) : expandedDots
         },
     }),
 } as const
+
+/**
+ * Every dot of the user, expanded with the expiry of each dot value. All of them are needed even
+ * when only the active ones are wanted, since expiry is inferred from the whole queue of dots.
+ */
+async function readExpandedDotsOfUser(prisma: PrismaPossibleTransaction<false>, userId: number) {
+    const [dots, freezePeriods] = await Promise.all([
+        prisma.dot.findMany({
+            where: {
+                userId,
+            },
+            include: dotsIncluder,
+        }),
+        prisma.dotFreezePeriod.findMany(),
+    ])
+    return expandDots(dots, freezePeriods)
+}
