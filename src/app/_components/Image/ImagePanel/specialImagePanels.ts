@@ -1,4 +1,4 @@
-import { specialImagePanelAuth } from './auth'
+import { specialImagePanelAuth } from '@/services/images/specialPanels/auth'
 import {
     readFlairImagesCollectionAction,
     readImagesPageInFlairImagesCollectionAction,
@@ -12,7 +12,7 @@ import {
     readImagesPageInStandardImagesCollectionAction,
     readPromoImagesCollectionAction,
     readImagesPageInPromoImagesCollectionAction,
-} from './actions'
+} from '@/services/images/specialPanels/actions'
 import type { ActionFromServiceOperation } from '@/services/actionTypes'
 import type { implementSpecialCollection } from '@/services/images/subservice/special/implement'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
@@ -26,37 +26,37 @@ type SpecialCollectionPanelOperations = ReturnType<typeof implementSpecialCollec
  */
 export const specialImagePanels = {
     FLAIRIMAGES: {
-        auth: specialImagePanelAuth.flairImages,
+        auth: specialImagePanelAuth.FLAIRIMAGES,
         readCollectionAction: readFlairImagesCollectionAction,
         readPageOfImagesInCollectionAction: readImagesPageInFlairImagesCollectionAction,
     },
     OMBULCOVERS: {
-        auth: specialImagePanelAuth.ombulCovers,
+        auth: specialImagePanelAuth.OMBULCOVERS,
         readCollectionAction: readOmbulCoversCollectionAction,
         readPageOfImagesInCollectionAction: readImagesPageInOmbulCoversCollectionAction,
     },
     COMMITTEELOGOS: {
-        auth: specialImagePanelAuth.committeeLogos,
+        auth: specialImagePanelAuth.COMMITTEELOGOS,
         readCollectionAction: readCommitteeLogosCollectionAction,
         readPageOfImagesInCollectionAction: readImagesPageInCommitteeLogosCollectionAction,
     },
     PROFILEIMAGES: {
-        auth: specialImagePanelAuth.profileImages,
+        auth: specialImagePanelAuth.PROFILEIMAGES,
         readCollectionAction: readProfileImagesCollectionAction,
         readPageOfImagesInCollectionAction: readImagesPageInProfileImagesCollectionAction,
     },
     STANDARDIMAGES: {
-        auth: specialImagePanelAuth.standardImages,
+        auth: specialImagePanelAuth.STANDARDIMAGES,
         readCollectionAction: readStandardImagesCollectionAction,
         readPageOfImagesInCollectionAction: readImagesPageInStandardImagesCollectionAction,
     },
     PROMOIMAGES: {
-        auth: specialImagePanelAuth.promoImages,
+        auth: specialImagePanelAuth.PROMOIMAGES,
         readCollectionAction: readPromoImagesCollectionAction,
         readPageOfImagesInCollectionAction: readImagesPageInPromoImagesCollectionAction,
     },
 } as const satisfies Record<SpecialCollection, {
-    auth: typeof specialImagePanelAuth[keyof typeof specialImagePanelAuth],
+    auth: typeof specialImagePanelAuth[SpecialCollection],
     readCollectionAction: ActionFromServiceOperation<SpecialCollectionPanelOperations['readCollection']>,
     readPageOfImagesInCollectionAction:
         ActionFromServiceOperation<SpecialCollectionPanelOperations['readPageOfImagesInCollection']>,

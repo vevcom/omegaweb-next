@@ -1,5 +1,5 @@
 import { dynamicImageAuth } from '@/services/images/dynamic/auth'
-import { specialImagePanels } from '@/services/images/specialPanels/constants'
+import { specialImagePanelAuth } from '@/services/images/specialPanels/auth'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
 import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
@@ -16,7 +16,7 @@ export const cmsImageAuth = {
         visibility: DoubleLevelVisibilityMatrix,
     }): Authorizer<UserRequiredOutOpt, object | undefined> => (
         collection.special
-            ? specialImagePanels[collection.special].auth
+            ? specialImagePanelAuth[collection.special]
             : dynamicImageAuth.updateCollection.data({ visibility: collection.visibility })
     ),
 } as const
