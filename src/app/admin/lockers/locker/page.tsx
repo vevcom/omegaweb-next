@@ -2,9 +2,9 @@ import styles from './page.module.scss'
 import CreateLockerForm from './CreateLockerForm'
 import { lockerLocationOperations } from '@/services/lockers/locations/operations'
 import { lockerAuth } from '@/services/lockers/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

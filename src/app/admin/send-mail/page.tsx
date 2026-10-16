@@ -1,6 +1,6 @@
 import MailForm from './MailForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { sendMailAuth } from '@/services/notifications/send-mail/auth'
+import { sendMailAuth } from '@/services/notifications/sendMail/auth'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import type { PageOperationArgs } from '@/app/ServerPage'

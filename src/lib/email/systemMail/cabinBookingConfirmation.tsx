@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { CabinBookingConfirmationTemplate } from '@/lib/email/templates/cabinBookingConfirmation'
-import { sendMailOperations } from '@/services/notifications/send-mail/operations'
+import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import type { Booking } from '@/prisma-generated-pn-types'
 
 export type ConfirmedBooking = Pick<Booking, 'start' | 'end' | 'numberOfMembers' | 'numberOfNonMembers' | 'totalPrice'>

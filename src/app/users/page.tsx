@@ -5,7 +5,7 @@ import UserList from '@/components/User/UserList/UserList'
 import CreateUserForm from '@/components/User/CreateUserForm'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import { userAuth } from '@/services/users/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => ({}),

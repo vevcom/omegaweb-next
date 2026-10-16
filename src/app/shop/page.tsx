@@ -7,7 +7,7 @@ import { sortObjectsByName } from '@/lib/sortObjects'
 import { shopOperations } from '@/services/shop/shop/operations'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { productAuth } from '@/services/shop/product/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { faBox } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
 

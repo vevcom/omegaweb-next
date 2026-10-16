@@ -4,8 +4,8 @@ import { configureAction } from '@/services/configureAction'
 import { connectStudentCardAction } from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
 import { Require } from '@/auth/authorizer/Require'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ newCard: string }>) => ({

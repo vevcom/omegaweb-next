@@ -7,7 +7,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { CompanyPagingProvider } from '@/contexts/paging/CompanyPaging'
 import CompanySelectionProvider from '@/contexts/CompanySelection'
 import { jobAdAuth } from '@/services/career/jobAds/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => ({}),

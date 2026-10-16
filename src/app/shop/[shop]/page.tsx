@@ -8,14 +8,14 @@ import { EditProductForShopForm } from './EditProductForShopForm'
 import { administersShop } from './administersShop'
 import { AddHeaderItemPopUp, SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { serverPage, withFallback } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import { Require } from '@/auth/authorizer/Require'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { purchaseAuth } from '@/services/shop/purchase/auth'
 import { shopOperations } from '@/services/shop/shop/operations'
 import { shopAuth } from '@/services/shop/shop/auth'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ shop: string }>) => {
