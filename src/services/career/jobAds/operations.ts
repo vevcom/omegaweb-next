@@ -30,34 +30,38 @@ export const jobAdOperations = {
     create: defineOperation({
         dataSchema: jobAdSchemas.data.create,
         authorizer: () => jobAdAuth.create,
+        opensTransaction: true,
         operation: async ({ prisma, data: { articleName, companyId, ...data } }) => {
-            const article = await articleOperations.create.internalCall({
-                data: { name: articleName },
-                dataSchemaImplementationFields: { maxNameLength: 30 },
-                operationImplementationFields: { special: null }
-            })
+            const jobAd = await prisma.$transaction(async tx => {
+                const article = await articleOperations.create.internalCall({
+                    prisma: tx,
+                    data: { name: articleName },
+                    dataSchemaImplementationFields: { maxNameLength: 30 },
+                    operationImplementationFields: { special: null }
+                })
 
-            const jobAd = await prisma.jobAd.create({
-                data: {
-                    article: {
-                        connect: {
-                            id: article.id
-                        }
+                return tx.jobAd.create({
+                    data: {
+                        article: {
+                            connect: {
+                                id: article.id
+                            }
+                        },
+                        company: {
+                            connect: {
+                                id: companyId
+                            }
+                        },
+                        ...data,
                     },
-                    company: {
-                        connect: {
-                            id: companyId
-                        }
-                    },
-                    ...data,
-                },
-                include: {
-                    company: {
-                        select: {
-                            name: true,
+                    include: {
+                        company: {
+                            select: {
+                                name: true,
+                            },
                         },
                     },
-                },
+                })
             })
 
             await notificationOperations.createSpecial.internalCall({
