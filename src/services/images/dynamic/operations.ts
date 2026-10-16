@@ -172,32 +172,16 @@ export const dynamicImageOperations = {
 
     updateImageMeta: imageOperations.updateImageMeta.implement({
         authorizer: async ({ params, prisma }) => dynamicImageAuth.updateImageMeta.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({
-                params: {
-                    collectionId: (await imageOperations.readCollectionOfImage.internalCall({ params })).id,
-                },
-                prisma
-            })
+            visibility: await readDoubleLevelMatrixOfImage({ params, prisma })
         }),
-        ownershipCheck: async ({ params, prisma }) => ownershipCheck({
-            params: { collectionId: (await imageOperations.readCollectionOfImage.internalCall({ params })).id },
-            prisma
-        }),
+        ownershipCheck: imageOwnershipCheck,
     }),
 
     destroyImage: imageOperations.destroyImage.implement({
         authorizer: async ({ params, prisma }) => dynamicImageAuth.destroyImage.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({
-                params: {
-                    collectionId: (await imageOperations.readCollectionOfImage.internalCall({ params })).id,
-                },
-                prisma
-            })
+            visibility: await readDoubleLevelMatrixOfImage({ params, prisma })
         }),
-        ownershipCheck: async ({ params, prisma }) => ownershipCheck({
-            params: { collectionId: (await imageOperations.readCollectionOfImage.internalCall({ params })).id },
-            prisma
-        }),
+        ownershipCheck: imageOwnershipCheck,
     }),
 } as const
 
@@ -240,4 +224,36 @@ async function ownershipCheck({
         select: { special: true }
     })
     return collection !== null && collection.special === null
+}
+
+/**
+ * The visibility of the collection an image is in, for the operations on a single image.
+ */
+async function readDoubleLevelMatrixOfImage({
+    params,
+    prisma
+}: {
+    params: { imageId: number }
+    prisma: PrismaPossibleTransaction<false>
+}) {
+    const collection = await imageOperations.readCollectionOfImage.internalCall({ params, prisma })
+    return visibility.readDoubleLevelMatrixInternal({ params: { collectionId: collection.id }, prisma })
+}
+
+/**
+ * `ownershipCheck` for an image: whether the collection it is in belongs to the dynamic image
+ * system. Reads the image and its collection in one query.
+ */
+async function imageOwnershipCheck({
+    params,
+    prisma
+}: {
+    params: { imageId: number }
+    prisma: PrismaPossibleTransaction<false>
+}): Promise<boolean> {
+    const image = await prisma.image.findUnique({
+        where: { id: params.imageId },
+        select: { collection: { select: { special: true } } }
+    })
+    return image !== null && image.collection.special === null
 }
