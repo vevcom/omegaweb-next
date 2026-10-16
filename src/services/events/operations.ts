@@ -63,14 +63,14 @@ const read = defineOperation({
             where: { id: params.id },
             select: {
                 published: true,
-                canBeViewdBy: true,
+                canBeViewedBy: true,
                 visibilityRegular: { include: visibilityIncluder },
                 visibilityAdmin: { include: visibilityIncluder }
             }
         })
         return eventAuth.read.data({
             published: event.published,
-            canBeViewdBy: event.canBeViewdBy,
+            canBeViewedBy: event.canBeViewedBy,
             visibility: {
                 regularLevel: toMatrix(event.visibilityRegular),
                 adminLevel: toMatrix(event.visibilityAdmin)
@@ -154,7 +154,12 @@ export const eventOperations = {
                         places: data.places,
                         registrationStart: data.registrationStart ?? new Date(),
                         registrationEnd: data.registrationEnd ?? new Date(Date.now() + 1000 * 60 * 60 * 24),
-                        canBeViewdBy: data.canBeViewdBy,
+                        canBeViewedBy: data.canBeViewedBy,
+                        hostedByCommittee: data.hostedByCommitteeId ? {
+                            connect: {
+                                id: data.hostedByCommitteeId
+                            }
+                        } : undefined,
                         waitingList: data.waitingList,
                         price: data.price,
                         paymentStart: data.paymentStart,
@@ -517,8 +522,8 @@ function visibleEventsFilter(visibilityWhereFilter: VisibilityFilter | undefined
     return {
         OR: [
             { published: false, visibilityAdmin: visibilityWhereFilter },
-            { published: true, canBeViewdBy: 'ALL' },
-            { published: true, canBeViewdBy: 'CAN_REGISTER', visibilityRegular: visibilityWhereFilter },
+            { published: true, canBeViewedBy: 'ALL' },
+            { published: true, canBeViewedBy: 'CAN_REGISTER', visibilityRegular: visibilityWhereFilter },
         ]
     }
 }

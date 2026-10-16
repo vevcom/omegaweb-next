@@ -30,11 +30,11 @@ export const regularLevelUnlessDraft = Require.anyOf(
 
 /**
  * Passes when the event is published and marked as viewable by all, so that neither level is
- * checked. Needs `{ published, canBeViewdBy }` supplied via `.data()`. Like `isPublished`, it fails
+ * checked. Needs `{ published, canBeViewedBy }` supplied via `.data()`. Like `isPublished`, it fails
  * without a message of its own.
  */
-const isViewableByAll = Require.custom<{ published: boolean, canBeViewdBy: EventCanView }>(
-    ({ published, canBeViewdBy }) => (published && canBeViewdBy === 'ALL' ? { success: true } : { success: false })
+const isViewableByAll = Require.custom<{ published: boolean, canBeViewedBy: EventCanView }>(
+    ({ published, canBeViewedBy }) => (published && canBeViewedBy === 'ALL' ? { success: true } : { success: false })
 )
 
 export const eventAuth = {

@@ -87,7 +87,7 @@ export const seedDevApplicationsAndPeriods = defineSeedOperation(async (prisma: 
                     + applicationPeriod.endDate.toUTCString()
                     + applicationText,
                 userId: user.id,
-                applicationPeriodCommiteeId: participation.id,
+                applicationPeriodCommitteeId: participation.id,
                 applicationPeriodId: participation.applicationPeriodId,
             })),
             skipDuplicates: true,

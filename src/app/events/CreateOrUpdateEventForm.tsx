@@ -2,7 +2,7 @@
 import styles from './CreateOrUpdateEventForm.module.scss'
 import EventLocationInput from './EventLocationInput'
 import Checkbox from '@/components/UI/Checkbox'
-import { SelectString } from '@/components/UI/Select'
+import { SelectString, SelectNumber } from '@/components/UI/Select'
 import DateInput from '@/components/UI/DateInput'
 import Slider from '@/components/UI/Slider'
 import NumberInput from '@/components/UI/NumberInput'
@@ -17,12 +17,13 @@ import { configureAction } from '@/services/configureAction'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
-import type { Event, EventLocationMap, EventTag as EventTagT } from '@/prisma-generated-pn-types'
+import type { Event, EventLocationMap, EventTag as EventTagT, Committee } from '@/prisma-generated-pn-types'
 import type { ChangeEvent } from 'react'
 
 type PropTypes = {
     event?: Event & { tags: EventTagT[], locationMap: EventLocationMap | null }
     eventTags: EventTagT[]
+    committees: Committee[]
 }
 
 /**
@@ -32,7 +33,7 @@ type PropTypes = {
  * @param eventTags - The tags to choose from
  * @returns
  */
-export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes) {
+export default function CreateOrUpdateEventForm({ event, eventTags, committees }: PropTypes) {
     const [showRegistrationOptions, setShowRegistrationOptions] = useState(event?.takesRegistration ?? false)
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
@@ -58,11 +59,11 @@ export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes)
                 <TextInput label="Sted" name="location" defaultValue={event?.location ?? ''} />
                 <EventLocationInput name="locationMap" defaultValue={event?.locationMap} />
                 <SelectString
-                    className={styles.canBeViewdBy}
+                    className={styles.canBeViewedBy}
                     label="Hvem kan se"
-                    name="canBeViewdBy"
+                    name="canBeViewedBy"
                     options={eventCanBeViewdByOptions}
-                    defaultValue={event?.canBeViewdBy}
+                    defaultValue={event?.canBeViewedBy}
                 />
                 <DateInput label="Start" name="eventStart" includeTime defaultValue={event?.eventStart} />
                 <DateInput label="Slutt" name="eventEnd" includeTime defaultValue={event?.eventEnd} />
@@ -136,6 +137,12 @@ export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes)
                         name="price"
                         min={0}
                         defaultValue={event?.price ? event.price / 100 : undefined}
+                    />
+                    <SelectNumber
+                        label="Komité pengene går til (kun nødvendig for betalte arrangementer)"
+                        name="hostedByCommitteeId"
+                        options={committees.map(committee => ({ value: committee.id, label: committee.name }))}
+                        defaultValue={event?.hostedByCommitteeId ?? undefined}
                     />
                     <DateInput
                         label="Registrering Start"

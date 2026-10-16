@@ -10,8 +10,9 @@ import EventCard from '@/components/Event/EventCard'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { eventTagAuth } from '@/services/events/tags/auth'
 import { eventAuth } from '@/services/events/auth'
+import { committeeOperations } from '@/services/groups/committees/operations'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { serverPage } from '@/app/ServerPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -19,12 +20,15 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ searchParams }: PageOperationArgs) => {
         const tagNames = QueryParams.eventTags.decode(searchParams)
 
-        const [currentEvents, eventTags] = await Promise.all([
+        const [currentEvents, eventTags, committees] = await Promise.all([
             eventOperations.readManyCurrent({ params: { tags: tagNames } }),
             eventTagOperations.readAll({}),
+            // Only used to populate the "hosting committee" picker; a session without
+            // COMMITTEE_USE just gets an empty picker rather than losing the whole page.
+            withFallback(committeeOperations.readAll({}), []),
         ])
 
-        return { tagNames, currentEvents, eventTags }
+        return { tagNames, currentEvents, eventTags, committees }
     },
     capabilities: () => ({
         canUpdateTags: eventTagAuth.update,
@@ -34,7 +38,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Hvad der hender' }),
     render: ({ data, capabilities }) => {
-        const { tagNames, currentEvents, eventTags } = data
+        const { tagNames, currentEvents, eventTags, committees } = data
         const currentTags = tagNames ? eventTags.filter(tag => tagNames.includes(tag.name)) : []
 
         return (
@@ -66,7 +70,7 @@ const { page, generateMetadata } = serverPage({
                         {capabilities.canCreate.authorized && (
                             <AddHeaderItemPopUp popUpKey="CreateEventPopUp">
                                 <div className={styles.createEvent}>
-                                    <CreateOrUpdateEventForm eventTags={eventTags} />
+                                    <CreateOrUpdateEventForm eventTags={eventTags} committees={committees} />
                                 </div>
                             </AddHeaderItemPopUp>
                         )}

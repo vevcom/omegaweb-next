@@ -40,7 +40,7 @@ async function priorities() {
     })
     return applications
         .sort((one, other) => one.priority - other.priority)
-        .map(application => [application.applicationPeriodCommiteeId, application.priority])
+        .map(application => [application.applicationPeriodCommitteeId, application.priority])
 }
 
 const apply = (participationId: number) => applicationOperations.create({

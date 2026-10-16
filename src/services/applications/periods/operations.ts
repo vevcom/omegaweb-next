@@ -154,7 +154,7 @@ export const applicationPeriodOperations = {
                 const applicants = await tx.application.findMany({
                     where: {
                         applicationPeriodId: period.id,
-                        applicationPeriodCommiteeId: { in: leaving.map(participation => participation.id) },
+                        applicationPeriodCommitteeId: { in: leaving.map(participation => participation.id) },
                     },
                     select: { userId: true },
                     distinct: ['userId'],

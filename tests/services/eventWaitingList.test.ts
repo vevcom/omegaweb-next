@@ -43,7 +43,7 @@ describe('waiting list promotion on more places', () => {
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + dayMs),
                 eventEnd: new Date(Date.now() + 2 * dayMs),
-                canBeViewdBy: 'ALL',
+                canBeViewedBy: 'ALL',
                 takesRegistration: true,
                 places: 1,
                 waitingList: true,

@@ -28,12 +28,12 @@ model Application {
   id                          Int                                       @id @default(autoincrement())
   user                        User                                      @relation(fields: [userId], references: [id])
   userId                      Int
-  applicationPeriodCommitee   CommitteeParticipationInApplicationPeriod @relation(fields: [applicationPeriodCommiteeId, applicationPeriodId], references: [id, applicationPeriodId], onDelete: Cascade)
-  applicationPeriodCommiteeId Int
-  applicationPeriodId         Int
-  priority                    Int
-  text                        String
+  applicationPeriodCommittee   CommitteeParticipationInApplicationPeriod @relation(fields: [applicationPeriodCommitteeId, applicationPeriodId], references: [id, applicationPeriodId], onDelete: Cascade)
+  applicationPeriodCommitteeId Int                                       @map("applicationPeriodCommiteeId")
+  applicationPeriodId          Int
+  priority                     Int
+  text                         String
 
   @@unique([userId, applicationPeriodId, priority])
-  @@unique([userId, applicationPeriodCommiteeId])
+  @@unique([userId, applicationPeriodCommitteeId])
 }

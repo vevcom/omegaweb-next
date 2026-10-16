@@ -14,6 +14,7 @@ import EventTag from '@/components/Event/EventTag'
 import { SettingsHeaderItemPopUp, UsersHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagOperations } from '@/services/events/tags/operations'
+import { committeeOperations } from '@/services/groups/committees/operations'
 import {
     destroyEventAction,
     updateEventCmsCoverImageAction,
@@ -44,6 +45,10 @@ const { page, generateMetadata } = serverPage({
         })
 
         const tags = await eventTagOperations.readAll({})
+
+        // Only used to populate the "hosting committee" picker; a session without COMMITTEE_USE
+        // just gets an empty picker rather than losing the whole page.
+        const committees = await withFallback(committeeOperations.readAll({}), [])
 
         // Readable only by those who administrate the event, so a visitor without that access
         // simply gets no editing tools - EMPTY_VISIBILITY then denies everyone but those bypassing
@@ -90,6 +95,7 @@ const { page, generateMetadata } = serverPage({
         return {
             event,
             tags,
+            committees,
             doubleLevelVisibility,
             dotPunishment,
             ownRegistration,
@@ -140,7 +146,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: (data) => ({ title: data.event.name }),
     render: ({ data, capabilities, session }) => {
-        const { event, tags, doubleLevelVisibility, dotPunishment, ownRegistration } = data
+        const { event, tags, committees, doubleLevelVisibility, dotPunishment, ownRegistration } = data
         const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
 
         return (
@@ -184,7 +190,7 @@ const { page, generateMetadata } = serverPage({
                         }
                         <SettingsHeaderItemPopUp scale={30} popUpKey="EditEvent">
                             {capabilities.canUpdate.authorized &&
-                                <CreateOrUpdateEventForm event={event} eventTags={tags} />
+                                <CreateOrUpdateEventForm event={event} eventTags={tags} committees={committees} />
                             }
                             <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
                             {event.takesRegistration && capabilities.canTakeAttendance.authorized &&

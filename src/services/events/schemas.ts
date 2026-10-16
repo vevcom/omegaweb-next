@@ -13,7 +13,10 @@ const dataFieldSchemas = z.object({
     order: z.coerce.number().int().optional(),
     eventStart: Zpn.date({ label: 'Starttid' }),
     eventEnd: Zpn.date({ label: 'Sluttid' }),
-    canBeViewdBy: z.nativeEnum(EventCanView),
+    canBeViewedBy: z.nativeEnum(EventCanView),
+    // The committee paid events pay into. Required before createPayment will work, but not at
+    // event-creation time, since plenty of events are free and never need one.
+    hostedByCommitteeId: z.coerce.number().int().optional(),
 
     takesRegistration: Zpn.checkboxOrBoolean({ label: 'Tar påmelding' }),
     places: z.coerce.number().int().optional(),
@@ -69,7 +72,8 @@ const eventFields = {
     order: true,
     eventStart: true,
     eventEnd: true,
-    canBeViewdBy: true,
+    canBeViewedBy: true,
+    hostedByCommitteeId: true,
     takesRegistration: true,
     places: true,
     registrationStart: true,

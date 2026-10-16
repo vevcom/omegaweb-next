@@ -26,7 +26,7 @@ const booleanFromForm = z.union([
 const dataFieldSchemas = z.object({
     name: z.string().min(1).trim(),
     code: z.string().min(1).trim(),
-    insititueCode: optionalStringFromForm,
+    instituteCode: optionalStringFromForm,
     classLevel: optionalClassLevelFromForm,
     yearsLength: optionalIntFromForm,
     partOfOmega: booleanFromForm.optional(),
@@ -41,7 +41,7 @@ const paramsFieldSchemas = z.object({
 const studyProgramme = dataFieldSchemas.pick({
     name: true,
     code: true,
-    insititueCode: true,
+    instituteCode: true,
     classLevel: true,
     yearsLength: true,
     partOfOmega: true,

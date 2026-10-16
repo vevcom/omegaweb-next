@@ -30,7 +30,7 @@ export default function StudyProgrammeTableBody({ studyprogrammes }: { studyprog
                     </Link>
                 </th>
                 <td>{studyProgramme.code}</td>
-                <td>{studyProgramme.insititueCode ?? ''}</td>
+                <td>{studyProgramme.instituteCode ?? ''}</td>
                 <td>{studyProgramme.classLevel ? ClassLevelConfig[studyProgramme.classLevel].name : ''}</td>
                 <td>{studyProgramme.yearsLength ?? ''}</td>
                 <td>{studyProgramme.partOfOmega ? 'Ja' : 'Nei'}</td>

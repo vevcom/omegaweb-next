@@ -410,7 +410,7 @@ export const eventRegistrationOperations = {
                 include: {
                     event: {
                         include: {
-                            hostedByCommitee: true,
+                            hostedByCommittee: true,
                         },
                     },
                 },
@@ -431,14 +431,14 @@ export const eventRegistrationOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
             }
 
-            if (!event.hostedByCommitee) {
+            if (!event.hostedByCommittee) {
                 throw new Smorekopp('SERVER ERROR', 'Arrangementet har ingen tilknyttet komité å betale til.')
             }
 
             // Crediting the destination account needs no ownership over it, only reading it -
             // bypassed since the payer (our caller) is neither its owner nor LEDGER_ADMIN.
             const [destinationAccount] = await ledgerAccountOperations.readMany({
-                params: { groupIds: [event.hostedByCommitee.groupId] },
+                params: { groupIds: [event.hostedByCommittee.groupId] },
                 bypassAuth: true,
             })
             if (!destinationAccount) {

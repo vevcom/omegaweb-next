@@ -29,7 +29,7 @@ async function createTestEvent(name: string, places = 10) {
             location: 'Omegakjelleren',
             eventStart: new Date(Date.now() + HOUR),
             eventEnd: new Date(Date.now() + 2 * HOUR),
-            canBeViewdBy: 'ALL',
+            canBeViewedBy: 'ALL',
             takesRegistration: true,
             places,
             registrationStart: new Date(Date.now() - HOUR),
