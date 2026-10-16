@@ -20,10 +20,6 @@ const updateIfExpired = defineOperation({
     authorizer: () => apiKeyAuth.updateIfExpired,
     paramsSchema: apiKeySchemas.params.updateIfExpired,
     operation: async ({ prisma, params: apiKey }) => {
-        if (!apiKey) {
-            throw new ServiceError('NOT FOUND', 'Nøkkelen finnes ikke')
-        }
-
         if (!apiKey.expiresAt || apiKey.expiresAt > new Date()) return { active: apiKey.active }
         logger.info('Deactivating expired api key', { id: apiKey.id })
 
