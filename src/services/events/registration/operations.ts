@@ -448,18 +448,8 @@ export const eventRegistrationOperations = {
             // position relative to event.places, the same computation readOfUser uses to gate
             // the "pay" button in the UI. Re-derive and enforce it here too, since the UI gate
             // doesn't stop a direct call to this operation.
-            const queue = await prisma.event.findUniqueOrThrow({
-                where: { id: params.eventId },
-                select: {
-                    places: true,
-                    eventRegistrations: {
-                        orderBy: eventRegistrationQueueOrder,
-                        select: { id: true },
-                    },
-                },
-            })
-            const queuePosition = queue.eventRegistrations.findIndex(reg => reg.id === registration.id)
-            if (queuePosition === -1 || queuePosition >= queue.places) {
+            const position = await queuePosition(prisma, registration)
+            if (position >= event.places) {
                 throw new Smorekopp('BAD PARAMETERS', 'Du står på ventelisten og kan ikke betale før du får en plass.')
             }
 
