@@ -24,8 +24,8 @@ const { page, generateMetadata } = serverPage({
             eventOperations.readManyCurrent({ params: { tags: tagNames } }),
             eventTagOperations.readAll({}),
             // Only used to populate the "hosting committee" picker; a session without
-            // COMMITTEE_USE just gets an empty picker rather than losing the whole page.
-            withFallback(committeeOperations.readAll({}), []),
+            // COMMITTEE_USE gets no picker rather than losing the whole page.
+            withFallback(committeeOperations.readAll({}), null),
         ])
 
         return { tagNames, currentEvents, eventTags, committees }

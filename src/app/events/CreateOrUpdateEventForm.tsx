@@ -23,7 +23,8 @@ import type { ChangeEvent } from 'react'
 type PropTypes = {
     event?: Event & { tags: EventTagT[], locationMap: EventLocationMap | null }
     eventTags: EventTagT[]
-    committees: Committee[]
+    /** The committees to choose the host from, or null when they could not be read (they take COMMITTEE_USE). */
+    committees: Committee[] | null
 }
 
 /**
@@ -38,6 +39,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
     const action = event ? configureAction(updateEventAction, { params: { id: event.id } }) : createEventAction
+    const canSetHostCommittee = committees !== null
 
     const handleShowRegistration = (changeEvent: ChangeEvent<HTMLInputElement>) => {
         setShowRegistrationOptions(changeEvent.target.checked)
@@ -138,7 +140,11 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         min={0}
                         defaultValue={event?.price ? event.price / 100 : undefined}
                     />
-                    <SelectNumberPossibleNULL
+                    {/*
+                      * Left out when the committees could not be read: offered without the committee
+                      * of the event, the select would submit its first option and clear it.
+                      */}
+                    {canSetHostCommittee && <SelectNumberPossibleNULL
                         label="Arrangeres av"
                         name="hostedByCommitteeId"
                         options={[
@@ -146,7 +152,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                             ...committees.map(committee => ({ value: committee.id, label: committee.name })),
                         ]}
                         defaultValue={event?.hostedByCommitteeId ?? 'NULL'}
-                    />
+                    />}
                     <DateInput
                         label="Registrering Start"
                         name="registrationStart"

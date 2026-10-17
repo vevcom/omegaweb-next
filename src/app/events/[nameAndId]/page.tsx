@@ -48,8 +48,8 @@ const { page, generateMetadata } = serverPage({
         const tags = await eventTagOperations.readAll({})
 
         // Only used to populate the "hosting committee" picker; a session without COMMITTEE_USE
-        // just gets an empty picker rather than losing the whole page.
-        const committees = await withFallback(committeeOperations.readAll({}), [])
+        // gets no picker rather than losing the whole page.
+        const committees = await withFallback(committeeOperations.readAll({}), null)
 
         // Readable only by those who administrate the event, so a visitor without that access
         // simply gets no editing tools - EMPTY_VISIBILITY then denies everyone but those bypassing
