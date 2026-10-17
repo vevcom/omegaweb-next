@@ -5,11 +5,26 @@ const dataFieldSchemas = z.object({
     floor: z.coerce.number().int(),
 })
 
+const paramsFieldSchemas = z.object({
+    id: z.number(),
+})
+
+const location = dataFieldSchemas.pick({
+    building: true,
+    floor: true,
+})
+
+const locationId = paramsFieldSchemas.pick({
+    id: true,
+})
+
 export const lockerLocationSchemas = {
     data: {
-        create: dataFieldSchemas.pick({
-            building: true,
-            floor: true,
-        }),
+        create: location,
+        update: location,
+    },
+    params: {
+        update: locationId,
+        destroy: locationId,
     },
 }
