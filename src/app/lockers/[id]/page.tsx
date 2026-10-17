@@ -2,10 +2,14 @@ import styles from './page.module.scss'
 import LockerNotFound from './LockerNotFound'
 import CreateLockerReservationForm from './CreateLockerReservationForm'
 import UpdateLockerReservationForm from './UpdateLockerReservationForm'
+import UpdateLockerForm from './UpdateLockerForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import BackLink from '@/components/HeaderItems/BackLink'
 import Form from '@/components/Form/Form'
 import { lockerOperations } from '@/services/lockers/operations'
+import { lockerLocationOperations } from '@/services/lockers/locations/operations'
+import { lockerAuth } from '@/services/lockers/auth'
+import { destroyLockerAction } from '@/services/lockers/actions'
 import { groupOperations } from '@/services/groups/operations'
 import { lockerReservationAuth } from '@/services/lockers/reservations/auth'
 import { deactivateLockerReservationAction } from '@/services/lockers/reservations/actions'
@@ -30,17 +34,20 @@ const { page, generateMetadata } = serverPage({
             ['NOT FOUND', 'BAD PARAMETERS']
         )
         if (!locker) {
-            return { lockerId, locker: null, groupsFormData: [], user: null } as const
+            return { lockerId, locker: null, groupsFormData: [], user: null, locations: [] } as const
         }
 
         const { user } = Require.user()
             .auth(session).requireAuthorized().session
 
-        const groups = await groupOperations.readGroupsOfUser.internalCall({
-            params: {
-                userId: user.id,
-            },
-        })
+        const [groups, locations] = await Promise.all([
+            groupOperations.readGroupsOfUser.internalCall({
+                params: {
+                    userId: user.id,
+                },
+            }),
+            lockerLocationOperations.readAll({}),
+        ])
 
         // Groups the user has left are not offered: reserving on behalf of a group takes an active membership.
         const groupsFormData = groups.filter(group => lockerReservationAuth.create.data({
@@ -51,7 +58,7 @@ const { page, generateMetadata } = serverPage({
             return { value: group.id.toString(), label: name }
         })
 
-        return { lockerId, locker, groupsFormData, user } as const
+        return { lockerId, locker, groupsFormData, user, locations } as const
     },
     capabilities: (data) => ({
         canCreateReservation: data.user
@@ -60,6 +67,8 @@ const { page, generateMetadata } = serverPage({
         canUpdateReservation: data.locker?.LockerReservation.length
             ? lockerReservationAuth.update.data({ userId: data.locker.LockerReservation[0].user.id, groupId: null })
             : Require.custom(() => false, { errorMessage: 'Skapet er ikke reservert.' }),
+        canUpdateLocker: lockerAuth.update,
+        canDestroyLocker: lockerAuth.destroy,
         canDeactivateReservation: data.locker?.LockerReservation.length
             ? lockerReservationAuth.deactivate.data({ userId: data.locker.LockerReservation[0].user.id })
             : Require.custom(() => false, { errorMessage: 'Skapet er ikke reservert.' }),
@@ -77,7 +86,7 @@ const { page, generateMetadata } = serverPage({
                 </PageWrapper>
             )
         }
-        const { lockerId, locker, groupsFormData, user } = data
+        const { lockerId, locker, groupsFormData, user, locations } = data
         const reservation = locker.LockerReservation.at(0)
         const groupName = reservation?.group ? inferGroupName(assertGroupValidity(reservation.group)) : null
 
@@ -103,7 +112,7 @@ const { page, generateMetadata } = serverPage({
                         )}
                         {reservation && capabilities.canDeactivateReservation.authorized && (
                             <Form
-                                className={styles.deactivate}
+                                className={styles.actionForm}
                                 submitText="Frigi skapet"
                                 submitColor="red"
                                 refreshOnSuccess
@@ -141,6 +150,34 @@ const { page, generateMetadata } = serverPage({
                                 />
                             </section>
                         )}
+
+                    {(capabilities.canUpdateLocker.authorized || capabilities.canDestroyLocker.authorized) && (
+                        <section className={styles.card}>
+                            {capabilities.canUpdateLocker.authorized && (
+                                <UpdateLockerForm
+                                    lockerId={lockerId}
+                                    current={{ building: locker.building, floor: locker.floor }}
+                                    locations={locations}
+                                />
+                            )}
+                            {capabilities.canDestroyLocker.authorized && (reservation ? (
+                                <p className={styles.blocked}>Skapet er reservert. Frigi det før det slettes.</p>
+                            ) : (
+                                <Form
+                                    className={styles.actionForm}
+                                    submitText="Slett skapet"
+                                    submitColor="red"
+                                    navigateOnSuccess="/lockers"
+                                    action={configureAction(destroyLockerAction, { params: { id: lockerId } })}
+                                    confirmation={{
+                                        confirm: true,
+                                        text: `Er du sikker på at du vil slette skap ${lockerId}? ` +
+                                            'Tidligere reservasjoner av det slettes også.',
+                                    }}
+                                />
+                            ))}
+                        </section>
+                    )}
                 </div>
             </PageWrapper>
         )
