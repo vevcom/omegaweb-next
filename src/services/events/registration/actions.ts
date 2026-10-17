@@ -17,4 +17,6 @@ export const destroyEventRegistrationAction = makeAction(eventRegistrationOperat
 export const createEventRegistrationPaymentAction = makeAction(eventRegistrationOperations.createPayment)
 
 export const createEventDotAction = makeAction(eventRegistrationOperations.createDot)
-export const createEventDotsForManyAction = makeAction(eventRegistrationOperations.createDotsForMany)
+export const createEventDotsForNonattendingUsersAction = makeAction(
+    eventRegistrationOperations.createDotsForNonattendingUsers
+)

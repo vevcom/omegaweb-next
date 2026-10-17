@@ -4,7 +4,7 @@ import PopUp from '@/components/PopUp/PopUp'
 import Form from '@/components/Form/Form'
 import NumberInput from '@/components/UI/NumberInput'
 import TextInput from '@/components/UI/TextInput'
-import { createEventDotsForManyAction } from '@/services/events/registration/actions'
+import { createEventDotsForNonattendingUsersAction } from '@/services/events/registration/actions'
 import { maxDotsForNotShowingUp } from '@/services/events/registration/constants'
 import { configureAction } from '@/services/configureAction'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -31,7 +31,7 @@ export default function GiveDotsToAbsentees({ eventId, accuserId, notAttended }:
     const receiving = notAttended.filter(registration => !sparedUserIds.includes(registration.user.id))
 
     const action = configureAction(
-        configureAction(createEventDotsForManyAction, { implementationParams: { eventId } }),
+        configureAction(createEventDotsForNonattendingUsersAction, { implementationParams: { eventId } }),
         { params: { accuserId } },
     )
 
