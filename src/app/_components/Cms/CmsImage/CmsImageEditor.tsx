@@ -14,7 +14,7 @@ import {
 import useEditMode from '@/hooks/useEditMode'
 import PopUpProvider from '@/contexts/PopUp'
 import { useSpecialCollections } from '@/contexts/ClientData'
-import { specialImagePanels } from '@/services/images/specialPanels/constants'
+import { specialImagePanels } from '@/components/Image/ImagePanel/specialImagePanels'
 import { readImagesPageInDynamicCollectionAction } from '@/services/images/dynamic/actions'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'

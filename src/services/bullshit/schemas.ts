@@ -7,6 +7,7 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     id: z.number(),
+    bullshitPosterId: z.number(),
 })
 
 export const bullshitSchemas = {
@@ -16,6 +17,9 @@ export const bullshitSchemas = {
         }),
     },
     params: {
+        create: paramsFieldSchemas.pick({
+            bullshitPosterId: true,
+        }),
         readPage: readPageInputSchemaObject(
             paramsFieldSchemas.pick({
                 id: true,

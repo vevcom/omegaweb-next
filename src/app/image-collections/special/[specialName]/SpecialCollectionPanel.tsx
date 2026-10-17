@@ -1,6 +1,6 @@
 'use client'
 import ImagePanel from '@/components/Image/ImagePanel/ImagePanel'
-import { specialImagePanels } from '@/services/images/specialPanels/constants'
+import { specialImagePanels } from '@/components/Image/ImagePanel/specialImagePanels'
 import { useCallback } from 'react'
 import type { ImagePanelCursor } from '@/components/Image/ImagePanel/ImagePanel'
 import type { Page } from '@/lib/paging/types'

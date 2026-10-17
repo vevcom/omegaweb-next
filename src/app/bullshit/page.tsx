@@ -29,12 +29,12 @@ const { page, generateMetadata } = serverPage({
         ['UNAUTHORIZED', 'UNAUTHENTICATED']
     ),
     capabilities: () => ({
-        canCreate: bullshitAuth.create,
+        canCreate: bullshitAuth.createOwn,
     }),
     metadata: () => ({ title: 'Bullshit' }),
     render: ({ data: bullshits, capabilities, session }) => (
         <PageWrapper headerItem={
-            session.user && capabilities.canCreate.authorized && <BullshitForm />
+            session.user && capabilities.canCreate.authorized && <BullshitForm bullshitPosterId={session.user.id} />
         }>
             {bullshits && (
                 <BullshitPagingProvider

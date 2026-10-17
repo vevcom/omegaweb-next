@@ -5,9 +5,14 @@ import Form from '@/components/Form/Form'
 import { createBullshitAction } from '@/services/bullshit/actions'
 import Textarea from '@/components/UI/Textarea'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import { configureAction } from '@/services/configureAction'
 import { useRouter } from 'next/navigation'
 
-export default function CreateBullshitForm() {
+type PropTypes = {
+    bullshitPosterId: number
+}
+
+export default function CreateBullshitForm({ bullshitPosterId }: PropTypes) {
     const { refresh } = useRouter()
 
     return (
@@ -15,7 +20,7 @@ export default function CreateBullshitForm() {
             <Form
                 title="Ny Bullshit"
                 submitText="Legg til"
-                action={createBullshitAction}
+                action={configureAction(createBullshitAction, { params: { bullshitPosterId } })}
                 successCallback={refresh}
                 className={styles.popupForm}
             >

@@ -8,9 +8,14 @@ export type MappedResource =
     | 'drain accounts'
     | 'event registrations'
 
+/**
+ * Omegaweb-basic ids and the PN ids they were migrated to. A pnId of null marks a resource left out
+ * of the migration on purpose (such as a committee in COMMITTEES_NOT_MIGRATED): looking it up gives
+ * null without the error a missing id gives.
+ */
 export type IdMapper = {
     owId: number
-    pnId: number
+    pnId: number | null
 }[]
 
 /**
@@ -29,7 +34,9 @@ export function owIdToPnId(
     resource: MappedResource,
 ): number | null {
     if (!owId) return null
-    const id = mapper.find(_id => _id.owId === owId)?.pnId
+    const entry = mapper.find(mapped => mapped.owId === owId)
+    if (entry && entry.pnId === null) return null
+    const id = entry?.pnId
     if (!id) {
         // A missing image is routine - migration limits leave the map short on purpose, and a limited
         // run would otherwise fill the log with lines at error level for something that is not a
