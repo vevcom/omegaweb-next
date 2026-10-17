@@ -105,6 +105,10 @@ export default async function migrateCommittees(
         return { owId: committee.id, pnId: null }
     })
     const committeesToMigrate = committees.filter(committee => !isNotMigrated(committee))
+    // A name that matches nothing is most likely spelled differently than in Omegaweb-basic.
+    COMMITTEES_NOT_MIGRATED
+        .filter(name => !committees.some(committee => isCommitteeNamed(committee, name.trim().toLowerCase())))
+        .forEach(name => manifest.warn(`COMMITTEES_NOT_MIGRATED lists "${name}", but no committee has that name.`))
 
     const bar = createProgressBar('Migrating committees', committeesToMigrate.length)
     await Promise.all(committeesToMigrate.map(async committee => {
