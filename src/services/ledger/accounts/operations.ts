@@ -23,6 +23,46 @@ const expandLedgerAccount = (
     return { ...account, groupIds, ownership: { userId: user?.id ?? null, groupIds } }
 }
 
+/** The actual write behind both update and updateAsAdmin - only the authorizer and the data each
+ * may touch differ between them. */
+async function writeAccountUpdate(
+    prisma: Prisma.TransactionClient,
+    accountId: number,
+    { addGroupIds, removeGroupIds, ...scalarData }: {
+        name?: string,
+        payoutAccountNumber?: string,
+        frozen?: boolean,
+        addGroupIds?: number[],
+        removeGroupIds?: number[],
+    },
+): Promise<LedgerAccount> {
+    return prisma.ledgerAccount.update({
+        where: {
+            id: accountId,
+        },
+        data: {
+            ...scalarData,
+            // groups isn't a real field on the model. It's the groups relation, via the
+            // GroupLedgerAccount join table. deleteMany/createMany only touch the given group
+            // IDs, rather than replacing the whole relation, so that concurrent updates to
+            // different groups on the same account don't clobber each other.
+            ...((addGroupIds?.length || removeGroupIds?.length) && {
+                groups: {
+                    ...(removeGroupIds?.length && {
+                        deleteMany: { groupId: { in: removeGroupIds } },
+                    }),
+                    ...(addGroupIds?.length && {
+                        createMany: {
+                            data: addGroupIds.map(groupId => ({ groupId })),
+                            skipDuplicates: true,
+                        },
+                    }),
+                },
+            }),
+        },
+    })
+}
+
 export const ledgerAccountOperations = {
     /**
      * Creates a new GROUP ledger account. USER accounts are created automatically alongside
@@ -192,52 +232,36 @@ export const ledgerAccountOperations = {
      * @returns The updated account.
      */
     update: defineOperation({
-        authorizer: async ({ params, data, prisma }) => {
-            const current = await prisma.ledgerAccount.findFirstOrThrow({
-                where: {
-                    id: params.ledgerAccountId,
-                    user: params.userId !== undefined ? { id: params.userId } : undefined,
-                },
-                select: { frozen: true },
-            })
-
-            return ledgerAccountAuth.update({
-                accounts: [await resolveAccountOwnership(prisma, params)],
-                changesAdminFields: Boolean(data.addGroupIds?.length || data.removeGroupIds?.length)
-                    || (current.frozen && data.frozen === false),
-            })
-        },
+        authorizer: async ({ params, prisma }) => ledgerAccountAuth.update({
+            accounts: [await resolveAccountOwnership(prisma, params)],
+        }),
         paramsSchema: ledgerAccountSchemas.params.update,
         dataSchema: ledgerAccountSchemas.data.update,
         operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
             const account = await ledgerAccountOperations.read({ params })
-            const { addGroupIds, removeGroupIds, ...scalarData } = data
+            return writeAccountUpdate(prisma, account.id, data)
+        }
+    }),
 
-            return prisma.ledgerAccount.update({
-                where: {
-                    id: account.id,
-                },
-                data: {
-                    ...scalarData,
-                    // groups isn't a real field on the model. It's the groups relation, via the
-                    // GroupLedgerAccount join table. deleteMany/createMany only touch the given
-                    // group IDs, rather than replacing the whole relation, so that concurrent
-                    // updates to different groups on the same account don't clobber each other.
-                    ...((addGroupIds?.length || removeGroupIds?.length) && {
-                        groups: {
-                            ...(removeGroupIds?.length && {
-                                deleteMany: { groupId: { in: removeGroupIds } },
-                            }),
-                            ...(addGroupIds?.length && {
-                                createMany: {
-                                    data: addGroupIds.map(groupId => ({ groupId })),
-                                    skipDuplicates: true,
-                                },
-                            }),
-                        },
-                    }),
-                },
-            })
+    /**
+     * Updates an account's group links and/or unfreezes it - the changes that take LEDGER_ADMIN
+     * on top of ownership, split out from update (see ledgerAccountAuth.updateAsAdmin).
+     *
+     * @param params.userId The ID of the user whose account to update.
+     * @param params.ledgerAccountId The ID of the account to update.
+     * @param data The data to update the account with.
+     *
+     * @returns The updated account.
+     */
+    updateAsAdmin: defineOperation({
+        authorizer: async ({ params, prisma }) => ledgerAccountAuth.updateAsAdmin({
+            accounts: [await resolveAccountOwnership(prisma, params)],
+        }),
+        paramsSchema: ledgerAccountSchemas.params.updateAsAdmin,
+        dataSchema: ledgerAccountSchemas.data.updateAsAdmin,
+        operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
+            const account = await ledgerAccountOperations.read({ params })
+            return writeAccountUpdate(prisma, account.id, data)
         }
     }),
 

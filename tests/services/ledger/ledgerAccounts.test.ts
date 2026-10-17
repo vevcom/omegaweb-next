@@ -43,31 +43,34 @@ async function createManualGroup(shortName: string) {
 }
 
 describe('updating a ledger account', () => {
-    test('an owner may set their own payout account number without LEDGER_ADMIN', async () => {
+    test('an owner may set their own payout account number and freeze it, without LEDGER_ADMIN', async () => {
         const owner = await createUserWithAccount('payoutowner')
 
         const updated = await ledgerAccountOperations.update({
             params: { ledgerAccountId: owner.accountId },
-            data: { payoutAccountNumber: '1234.56.78903', frozen: false },
+            data: { payoutAccountNumber: '1234.56.78903', frozen: true },
             session: sessionOf(owner.userId, ['LEDGER_USE']),
         })
 
         expect(updated.payoutAccountNumber).toBe('1234.56.78903')
+        expect(updated.frozen).toBe(true)
     })
+})
 
-    test('an owner may not change their account\'s group links without LEDGER_ADMIN', async () => {
+describe('updating a ledger account as an admin', () => {
+    test('an owner may not change their account\'s group links or unfreeze it without LEDGER_ADMIN', async () => {
         const owner = await createUserWithAccount('grouplinksowner')
         const groupId = await createManualGroup('ledger-account-test-group')
 
-        await expect(ledgerAccountOperations.update({
+        await expect(ledgerAccountOperations.updateAsAdmin({
             params: { ledgerAccountId: owner.accountId },
-            data: { addGroupIds: [groupId], frozen: false },
+            data: { addGroupIds: [groupId] },
             session: sessionOf(owner.userId, ['LEDGER_USE']),
         })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
 
-        await expect(ledgerAccountOperations.update({
+        await expect(ledgerAccountOperations.updateAsAdmin({
             params: { ledgerAccountId: owner.accountId },
-            data: { addGroupIds: [groupId], frozen: false },
+            data: { addGroupIds: [groupId] },
             session: sessionOf(owner.userId, ['LEDGER_USE', 'LEDGER_ADMIN']),
         })).resolves.toBeDefined()
     })

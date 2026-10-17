@@ -7,6 +7,7 @@ import { ledgerTransactionSchemas } from './schemas'
 import { expandedLedgerTransactionIncluder } from './constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
+import { paymentIncluder } from '@/services/ledger/payments/constants'
 import {
     resolveAccountOwnership,
     resolveAccountsOwnership,
@@ -115,7 +116,7 @@ export const ledgerTransactionOperations = {
             if (transaction.payment.state !== 'PENDING') {
                 return await prisma.payment.findUniqueOrThrow({
                     where: { id: transaction.payment.id },
-                    include: { stripePayment: true, manualPayment: true },
+                    include: paymentIncluder,
                 })
             }
 
@@ -140,6 +141,29 @@ export const ledgerTransactionOperations = {
                 throw error
             }
         },
+    }),
+
+    /**
+     * Same as cancel, opening its own transaction around it - for the client-facing cancel
+     * button, the only caller that doesn't already run inside one (every other caller, e.g.
+     * createPayment, nests cancel in its own). cancel's two writes - its payment's, and the
+     * transaction's own - are otherwise only atomic together by accident of whichever
+     * transaction happens to already be ambient when it's called. Deliberately reuses cancel's
+     * own params schema and authorizer rather than declaring matching ones under this name: it's
+     * the exact same check and shape, not a different operation that happens to look similar.
+     */
+    cancelOwn: defineOperation({
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
+            accounts: await resolveTransactionAccounts(prisma, params.id, { debitedOnly: true }),
+        }),
+        paramsSchema: ledgerTransactionSchemas.params.cancel,
+        opensTransaction: true,
+        operation: async ({ prisma, params }): Promise<ExpandedLedgerTransaction> => prisma.$transaction(tx =>
+            ledgerTransactionOperations.cancel({
+                params,
+                prisma: tx,
+                bypassAuth: true,
+            })),
     }),
 
     /**

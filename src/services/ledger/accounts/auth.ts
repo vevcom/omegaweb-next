@@ -25,23 +25,23 @@ export const ledgerAccountAuth = {
     // Browses every account with no owner filter, so this is LEDGER_ADMIN only, not exempt.
     readPage: Require.permission('LEDGER_ADMIN'),
 
-    // An owner may rename an account, set its payout account number, and freeze it, which only
-    // stops spending. Some changes take LEDGER_ADMIN on top, even of a caller who owns the
-    // account (changesAdminFields):
-    // - the group links, which decide who owns the account (ledgerAccountAccess treats an owning
-    //   group's members as owners),
-    // - unfreezing, so an account an admin froze stays frozen.
+    // An owner may rename their account, set its payout account number, and freeze it, which only
+    // stops spending - ownership plus LEDGER_USE is enough. The data schema (see
+    // ledgerAccountSchemas.data.update) keeps this operation from ever expressing an unfreeze, so
+    // nothing here needs to re-check that itself.
+    update: ({ accounts }: { accounts: LedgerAccountOwnership[] }) =>
+        Require.permission('LEDGER_USE').allOf(ownsEveryAccount.data({ accounts })),
+
+    // Changing an account's group links (which decide who owns it - ledgerAccountAccess treats an
+    // owning group's members as owners) or unfreezing it (so an account an admin froze stays
+    // frozen) takes LEDGER_ADMIN on top of ownership, even for a caller who owns the account.
     // Require.allOf rather than chaining onto the ownership chain: chaining would add LEDGER_ADMIN
     // to its last group only.
-    //
-    // A function since which rule applies depends on the update itself.
-    update: ({ accounts, changesAdminFields }: {
-        accounts: LedgerAccountOwnership[],
-        changesAdminFields: boolean,
-    }) => {
-        const ownAccount = Require.permission('LEDGER_USE').allOf(ownsEveryAccount.data({ accounts }))
-        return changesAdminFields ? Require.allOf(ownAccount, Require.permission('LEDGER_ADMIN')) : ownAccount
-    },
+    updateAsAdmin: ({ accounts }: { accounts: LedgerAccountOwnership[] }) =>
+        Require.allOf(
+            Require.permission('LEDGER_USE').allOf(ownsEveryAccount.data({ accounts })),
+            Require.permission('LEDGER_ADMIN'),
+        ),
 
     calculateBalances: ownsEveryAccount,
     calculateBalance: ownsEveryAccount,

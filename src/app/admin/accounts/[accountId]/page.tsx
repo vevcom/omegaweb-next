@@ -26,19 +26,24 @@ const { page, generateMetadata } = serverPage({
         return ledgerAccountOperations.read({ params: { ledgerAccountId: accountId } })
     },
     capabilities: (ledgerAccount) => ({
-        canUpdate: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesAdminFields: false }),
-        canChangeGroups: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesAdminFields: true }),
+        canUpdate: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership] }),
+        canChangeGroups: ledgerAccountAuth.updateAsAdmin({ accounts: [ledgerAccount.ownership] }),
         // Only MANUAL deposits are offered here, and those take the payment rule on top.
         canDeposit: Require.allOf(
             ledgerMovementAuth.createDeposit.data({ accounts: [ledgerAccount.ownership] }),
             paymentAuth.create({ provider: 'MANUAL' }),
         ),
-        canPayout: ledgerMovementAuth.createPayout.data({ accounts: [ledgerAccount.ownership] }),
+        // A payout is always a MANUAL payment, which paymentAuth.create reserves for
+        // LEDGER_ADMIN - require it here too, or a non-admin owner would see the button and
+        // then get rejected the moment they actually try to use it.
+        canPayout: Require.allOf(
+            ledgerMovementAuth.createPayout.data({ accounts: [ledgerAccount.ownership] }),
+            paymentAuth.create({ provider: 'MANUAL' }),
+        ),
         // Unfreezing takes more than freezing, so the rule follows the state the button changes.
-        canFreeze: ledgerAccountAuth.update({
-            accounts: [ledgerAccount.ownership],
-            changesAdminFields: ledgerAccount.frozen,
-        }),
+        canFreeze: ledgerAccount.frozen
+            ? ledgerAccountAuth.updateAsAdmin({ accounts: [ledgerAccount.ownership] })
+            : ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership] }),
     }),
     render: ({ data: ledgerAccount, capabilities }) => (
         <div className={styles.wrapper}>

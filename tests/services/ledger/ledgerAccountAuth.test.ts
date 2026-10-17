@@ -37,20 +37,25 @@ describe('ledgerAccountAuth.update', () => {
     const owner = sessionWith(['LEDGER_USE'])
     const admin = sessionWith(['LEDGER_USE', 'LEDGER_ADMIN'])
 
-    test('an owner may update their own account', () => {
-        const authorizer = ledgerAccountAuth.update({ accounts: [ownedAccount], changesAdminFields: false })
+    test('an owner may update their own account - name, payout number, freezing', () => {
+        const authorizer = ledgerAccountAuth.update({ accounts: [ownedAccount] })
         expect(authorizer.auth(owner).authorized).toBe(true)
         expect(authorizer.auth(sessionWith([])).authorized).toBe(false)
     })
 
     test('the account of someone else takes LEDGER_ADMIN', () => {
-        const authorizer = ledgerAccountAuth.update({ accounts: [foreignAccount], changesAdminFields: false })
+        const authorizer = ledgerAccountAuth.update({ accounts: [foreignAccount] })
         expect(authorizer.auth(owner).authorized).toBe(false)
         expect(authorizer.auth(admin).authorized).toBe(true)
     })
+})
 
-    test('changing group links, the payout number or unfreezing takes LEDGER_ADMIN even of the owner', () => {
-        const authorizer = ledgerAccountAuth.update({ accounts: [ownedAccount], changesAdminFields: true })
+describe('ledgerAccountAuth.updateAsAdmin', () => {
+    const owner = sessionWith(['LEDGER_USE'])
+    const admin = sessionWith(['LEDGER_USE', 'LEDGER_ADMIN'])
+
+    test('changing group links or unfreezing takes LEDGER_ADMIN even of the owner', () => {
+        const authorizer = ledgerAccountAuth.updateAsAdmin({ accounts: [ownedAccount] })
         expect(authorizer.auth(owner).authorized).toBe(false)
         expect(authorizer.auth(admin).authorized).toBe(true)
         expect(authorizer.auth(sessionWith(['LEDGER_ADMIN'])).authorized).toBe(false)
