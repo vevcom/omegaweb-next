@@ -3,7 +3,7 @@ import loggedInStyles from './LoggedIn.module.scss'
 import LoggedInSection from './LoggedInSection'
 import PromoBar from './PromoBar'
 import EventCard from '@/app/_components/Event/EventCard'
-import JobAd from '@/app/career/jobads/JobAd'
+import JobAd from '@/app/career/job-ads/JobAd'
 import NewsCard from '@/app/news/NewsCard'
 import OmbulRow from '@/app/ombul/OmbulRow'
 import OmegaquoteRow from '@/app/omegaquotes/OmegaquoteRow'
@@ -16,7 +16,7 @@ import { ombulOperations } from '@/services/ombul/operations'
 import { omegaquoteOperations } from '@/services/omegaquotes/operations'
 import { ombulAuth } from '@/services/ombul/auth'
 import { omegaQuotesAuth } from '@/services/omegaquotes/auth'
-import { withPageSession } from '@/app/serverPage'
+import { withPageSession } from '@/app/ServerPage'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
@@ -118,7 +118,7 @@ export default async function LoggedInLandingPage() {
                         </LoggedInSection>
                         <LoggedInSection
                             title="Jobbannonser"
-                            link="/career/jobads"
+                            link="/career/job-ads"
                             layout="rows"
                             span="half"
                             emptyMessage="Det er for tiden ingen jobbannonser"

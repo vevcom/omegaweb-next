@@ -1,6 +1,5 @@
 'use client'
 import styles from './DateInput.module.scss'
-import { toLocalDate } from '@/lib/dates/toLocal'
 import { displayDefaultInputValue } from '@/lib/dates/displayDefaultInputValue'
 import { useId, useState } from 'react'
 import type { PropTypes as PropTypesInput } from './TextInput'
@@ -24,7 +23,7 @@ export default function DateInput({
     const domId = useId()
     const inputId = id ?? domId
     const defaultValueTransformedLocal = defaultValue instanceof Date
-        ? displayDefaultInputValue(toLocalDate(defaultValue), includeTime)
+        ? displayDefaultInputValue(defaultValue, includeTime)
         : defaultValue
     const defaultValueTransformedUtc = defaultValue instanceof Date
         ? defaultValue.toISOString().substring(0, includeTime ? 16 : 10)
@@ -32,7 +31,7 @@ export default function DateInput({
     const [utcValue, setUtcValue] = useState(defaultValueTransformedUtc)
 
     const setUtc = (e: ChangeEvent<HTMLInputElement>) => {
-        setUtcValue(toLocalDate(new Date(e.target.value)).toISOString().substring(0, includeTime ? 16 : 10))
+        setUtcValue(new Date(e.target.value).toISOString().substring(0, includeTime ? 16 : 10))
     }
 
     return (

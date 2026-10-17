@@ -1,7 +1,7 @@
 import styles from './page.module.scss'
 import CommitteeCard from '@/components/Committee/CommitteeCard/CommitteeCard'
 import { committeeOperations } from '@/services/groups/committees/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => committeeOperations.readAll({}),

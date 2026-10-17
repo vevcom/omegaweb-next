@@ -1,7 +1,7 @@
 'use client'
 
-import styles from './studyProgrammeTable.module.scss'
-import UpdateStudyProgrammeForm from './updateStudyProgrammeForm'
+import styles from './StudyProgrammeTableBody.module.scss'
+import UpdateStudyProgrammeForm from './UpdateStudyProgrammeForm'
 import PopUp from '@/components/PopUp/PopUp'
 import { ClassLevelConfig } from '@/services/groups/constants'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'

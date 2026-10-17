@@ -1,9 +1,9 @@
 import styles from './page.module.scss'
-import CreateMailAlias from '@/app/admin/mail/createMailAliasForm'
-import CreateMailingList from '@/app/admin/mail/createMailingListForm'
-import CreateMailaddressExternal from '@/app/admin/mail/createMailaddressExternalForm'
+import CreateMailAlias from '@/app/admin/mail/CreateMailAlias'
+import CreateMailingList from '@/app/admin/mail/CreateMailingList'
+import CreateMailaddressExternal from '@/app/admin/mail/CreateMailaddressExternal'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
@@ -13,7 +13,7 @@ import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 /** The parts of the mail server that have their own admin page. */
 const mailParts = {

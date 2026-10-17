@@ -1,7 +1,7 @@
 import ReleaseCountdown from './ReleaseCountdown'
 import { releaseCountdownOperations } from '@/services/releaseCountdown/operations'
 import { DEFAULT_RELEASE_DATE } from '@/services/releaseCountdown/constants'
-import { withFallback, withPageSession } from '@/app/serverPage'
+import { withFallback, withPageSession } from '@/app/ServerPage'
 import type { ReactNode } from 'react'
 
 type PropTypes = {

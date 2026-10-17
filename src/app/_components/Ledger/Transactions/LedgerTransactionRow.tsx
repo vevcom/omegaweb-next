@@ -2,6 +2,7 @@ import styles from './LedgerTransactionRow.module.scss'
 import LedgerTransactionDetails, { transactionPurposeNames, transactionStateNames } from './LedgerTransactionDetails'
 import PopUp from '@/components/PopUp/PopUp'
 import { displayAmount } from '@/lib/currency/convert'
+import { displayDate } from '@/lib/dates/displayDate'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 
 type Props = {
@@ -32,7 +33,7 @@ export default function LedgerTransactionRow({ transaction, accountId }: Props) 
         popUpKey={`LedgerTransactionDetails${transaction.id}`}
         customShowButton={open => (
             <tr className={rowClassName} onClick={open}>
-                <td>{transaction.createdAt.toLocaleString()}</td>
+                <td>{displayDate(transaction.createdAt)}</td>
                 <td>{transaction.description ?? transactionPurposeNames[transaction.purpose]}</td>
                 <td>{transactionStateNames[transaction.state]}</td>
                 <td className={styles.rightAlign}><b>{displayAmount(totalFunds)}</b></td>

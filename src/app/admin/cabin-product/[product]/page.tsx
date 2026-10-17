@@ -5,12 +5,12 @@ import { cabinProductOperations } from '@/services/cabin/product/operations'
 import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
 import { cabinProductAuth } from '@/services/cabin/product/auth'
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { displayDate } from '@/lib/dates/displayDate'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
 import { displayAmount } from '@/lib/currency/convert'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ product: string }>) => {

@@ -229,6 +229,31 @@ The project includes a custom CMS for content management:
 
 Files that must run only on the server import `'@pn-server-only'` at the top. This is enforced to prevent accidental client-side execution of sensitive code.
 
+### Dates and Timezones
+
+Server-side code (services, lib, server components) only ever works with real instants —
+comparisons, storage and duration arithmetic via `Date`/`Date.now()`/`.getTime()`. It never reads
+or constructs calendar/clock fields (day, month, hour, ...) through the host's local timezone: the
+server always runs in UTC, so local fields there are meaningless. Display is the only place a
+timezone matters, and it must always be explicit — normally `Europe/Oslo`, since almost everything
+shown (event times, deadlines, transaction timestamps) is org-wide and must look the same to every
+viewer, not shift with their device's zone. The one sanctioned exception is native HTML
+`date`/`datetime-local` `<input>`s, which are inherently browser-local by the input itself
+(`DateInput`/`displayDefaultInputValue.ts`).
+
+- Never `new Date(year, month, day, ...)` — it reads its fields in the host's local timezone.
+  Use an ISO string, `Date.UTC(...)`, instant arithmetic (`Date.now() + ms`), or Luxon's `DateTime`.
+- Never call local getters (`getDate`, `getMonth`, `getFullYear`, `getHours`, `getMinutes`,
+  `getSeconds`, `getDay`) in `src/services/**` or `src/lib/**` — use the `getUTC*` equivalents, or
+  `osloDateTime(date)` from `@/lib/dates/oslo` (a Luxon `DateTime` fixed to Europe/Oslo) when you
+  need individual fields for display.
+- Never call `.toLocaleString()`/`.toLocaleDateString()`/`.toLocaleTimeString()` without an explicit
+  `timeZone` — use `displayDate(date)` from `@/lib/dates/displayDate` for a ready-made Norwegian
+  string, or pass `{ timeZone: 'Europe/Oslo' }` yourself.
+
+All three are enforced by ESLint at `error` severity (`eslint.config.ts`). See the wiki's
+"Dates and Timezones" page for the full rationale.
+
 ### Error Handling
 
 - Service operations use custom error classes from `src/services/error.ts`
@@ -244,13 +269,13 @@ Server components do the opposite: pages, layouts and other server components im
 
 #### Pages: `serverPage`
 
-Pages are built with `serverPage` from `@/app/serverPage` (trimmed from `src/app/news/[nameAndId]/page.tsx`):
+Pages are built with `serverPage` from `@/app/ServerPage` (trimmed from `src/app/news/[nameAndId]/page.tsx`):
 
 ```tsx
 import { newsOperations } from '@/services/news/operations'
 import { newsAuth } from '@/services/news/auth'
-import { serverPage, withFallback } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) => {
@@ -286,7 +311,7 @@ export { generateMetadata }
 
 #### Layouts: `serverLayout`
 
-Layouts that load data are built with `serverLayout`, also from `@/app/serverPage`. It is `serverPage` for layouts — the operation gets `params` and `session` (layouts have no `searchParams`), and `render` also receives `children`:
+Layouts that load data are built with `serverLayout`, also from `@/app/ServerPage`. It is `serverPage` for layouts — the operation gets `params` and `session` (layouts have no `searchParams`), and `render` also receives `children`:
 
 ```tsx
 export default serverLayout({
@@ -302,7 +327,7 @@ The root layout is the exception. It renders the document itself, so it has noth
 
 #### Other server components: `withPageSession`
 
-Server components rendered inside a page (cards, sections) wrap their operation calls in `withPageSession(async session => ...)` from `@/app/serverPage`, which sets up the same service context. Errors are not handled there: wrap calls in `withFallback`, catch them with `handleServiceError`, or let them reach the error boundary.
+Server components rendered inside a page (cards, sections) wrap their operation calls in `withPageSession(async session => ...)` from `@/app/ServerPage`, which sets up the same service context. Errors are not handled there: wrap calls in `withFallback`, catch them with `handleServiceError`, or let them reach the error boundary.
 
 #### Actions in client components
 

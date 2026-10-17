@@ -3,7 +3,7 @@ import styles from './page.module.scss'
 import { createFlairAction, updateFlairImageAction } from '@/services/flairs/actions'
 import { flairOperations } from '@/services/flairs/operations'
 import { flairAuth } from '@/services/flairs/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import Form from '@/components/Form/Form'
@@ -17,7 +17,7 @@ import PopUp from '@/components/PopUp/PopUp'
 import { configureAction } from '@/services/configureAction'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import type { FlairRow } from './FlairTable'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

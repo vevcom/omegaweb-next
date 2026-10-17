@@ -1,9 +1,9 @@
 import styles from './page.module.scss'
 import { committeeParticipationOperations } from '@/services/applications/committeeParticipation/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import ProfilePicture from '@/components/User/ProfilePicture'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ shortName: string, participationId: string }>) => {

@@ -4,9 +4,9 @@ import LoggedOutLandingPage from './LoggedOut'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { frontpageAuth } from '@/services/frontpage/auth'
 import { Require } from '@/auth/authorizer/Require'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page } = serverPage({
     operation: async ({ searchParams }: PageOperationArgs) => ({

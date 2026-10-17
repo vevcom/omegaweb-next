@@ -72,7 +72,7 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Jobbannonser',
-        href: '/career/jobads',
+        href: '/career/job-ads',
         icon: faBriefcase,
         authorizers: () => [jobAdAuth.readActive],
     },

@@ -1,7 +1,7 @@
 'use client'
 
-import SubscriptionItem from './subscriptionItem'
-import styles from './notificationSettings.module.scss'
+import SubscriptionItem from './SubscriptionItem'
+import styles from './NotificationSettings.module.scss'
 import { booleanOperationOnMethods, newAllMethodsOff } from '@/services/notifications/methods/helpers'
 import SubmitButton from '@/components/UI/SubmitButton'
 import { SUCCESS_FEEDBACK_TIME } from '@/components/Form/constants'

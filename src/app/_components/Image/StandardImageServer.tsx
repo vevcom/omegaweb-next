@@ -1,7 +1,7 @@
 import styles from './StandardImage.module.scss'
 import Image, { SrcImage } from './Image'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
-import { withFallback, withPageSession } from '@/app/serverPage'
+import { withFallback, withPageSession } from '@/app/ServerPage'
 import type { PropTypes as ImagePropTypes } from './Image'
 import type { StandardImage as StandardImageT } from '@/prisma-generated-pn-types'
 import type React from 'react'

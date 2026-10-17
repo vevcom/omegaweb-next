@@ -5,7 +5,7 @@ import { BullshitPagingProvider } from '@/contexts/paging/BullshitPaging'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { bullshitOperations } from '@/services/bullshit/operations'
 import { bullshitAuth } from '@/services/bullshit/auth'
-import { serverPage, withFallback } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import type { PageSizeBullshit } from '@/contexts/paging/BullshitPaging'
 
 const pageSize: PageSizeBullshit = 20

@@ -1,6 +1,6 @@
 'use client'
 import styles from './JobAdInactiveList.module.scss'
-import JobAd from '@/career/jobads/JobAd'
+import JobAd from '@/career/job-ads/JobAd'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { JobAdInactivePagingContext } from '@/contexts/paging/JobAdInactivePaging'
 

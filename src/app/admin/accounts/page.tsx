@@ -4,8 +4,8 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const popUpKey = 'createGroupLedgerAccount'
 

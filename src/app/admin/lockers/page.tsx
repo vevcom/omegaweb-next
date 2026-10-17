@@ -1,8 +1,8 @@
 import styles from './page.module.scss'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('lockers', session),

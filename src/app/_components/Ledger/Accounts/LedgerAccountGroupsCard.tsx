@@ -3,7 +3,7 @@ import LedgerAccountGroupList from './LedgerAccountGroupList'
 import AddGroupToLedgerAccount from './AddGroupToLedgerAccount'
 import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
-import { withPageSession } from '@/app/serverPage'
+import { withPageSession } from '@/app/ServerPage'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 type Props = {

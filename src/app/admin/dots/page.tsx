@@ -8,11 +8,11 @@ import { dotAuth } from '@/services/dots/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { dotOperations } from '@/services/dots/operations'
 import { userOperations } from '@/services/users/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ searchParams, session }: PageOperationArgs) => {

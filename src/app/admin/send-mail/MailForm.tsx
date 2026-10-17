@@ -1,6 +1,6 @@
 'use client'
-import styles from './mailForm.module.scss'
-import { sendMailAction } from '@/services/notifications/send-mail/actions'
+import styles from './MailForm.module.scss'
+import { sendMailAction } from '@/services/notifications/sendMail/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'

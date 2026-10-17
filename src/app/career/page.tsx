@@ -12,9 +12,9 @@ import {
 } from '@/services/career/actions'
 import { careerOperations } from '@/services/career/operations'
 import { careerAuth } from '@/services/career/auth'
-import { serverPage, withFallback } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
@@ -53,7 +53,7 @@ const { page, generateMetadata } = serverPage({
                     updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfoAction}
                 />
                 <span className={styles.links}>
-                    <Link href="/career/jobads">
+                    <Link href="/career/job-ads">
                         <StandardImageServer
                             disableLinkingToLicense
                             className={styles.linkImage}

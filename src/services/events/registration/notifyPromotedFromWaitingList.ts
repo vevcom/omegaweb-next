@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { notificationOperations } from '@/services/notifications/operations'
-import { sendMailOperations } from '@/services/notifications/send-mail/operations'
+import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import logger from '@/lib/logger'
 import { escapeHtml } from '@/lib/html/escapeHtml'
 

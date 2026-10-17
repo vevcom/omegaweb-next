@@ -66,12 +66,12 @@ function generateCalendarData(
     bookingsAdjusted.push({
         type: 'CABIN',
         start: endDate,
-        end: new Date(endDate.getUTCFullYear(), endDate.getUTCMonth() + 1, endDate.getUTCDate())
+        end: new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth() + 1, endDate.getUTCDate()))
     })
     const earliesBookableDay = dateLessThan(new Date(), startDate) ? startDate : new Date()
     bookingsAdjusted.push({
         type: 'CABIN',
-        start: new Date(startDate.getUTCFullYear(), startDate.getUTCMonth() - 1, startDate.getUTCDate()),
+        start: new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() - 1, startDate.getUTCDate())),
         end: earliesBookableDay,
     })
     const firstDayOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1))

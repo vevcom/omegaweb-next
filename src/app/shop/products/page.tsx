@@ -6,7 +6,7 @@ import { sortObjectsByName } from '@/lib/sortObjects'
 import { displayAmount } from '@/lib/currency/convert'
 import { productOperations } from '@/services/shop/product/operations'
 import { productAuth } from '@/services/shop/product/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
 
 /** The product catalogue across every shop. Which shops sell a product is on its own page. */

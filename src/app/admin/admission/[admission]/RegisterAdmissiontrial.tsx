@@ -1,8 +1,8 @@
 'use client'
 
-import styles from './registration.module.scss'
+import styles from './RegisterAdmissiontrial.module.scss'
 import Form from '@/components/Form/Form'
-import OmegaIdReader from '@/components/OmegaId/reader/OmegaIdReader'
+import OmegaIdReader from '@/components/OmegaId/Reader/OmegaIdReader'
 import UserList from '@/components/User/UserList/UserList'
 import { createAdmissionTrialAction } from '@/services/admission/actions'
 import { configureAction } from '@/services/configureAction'

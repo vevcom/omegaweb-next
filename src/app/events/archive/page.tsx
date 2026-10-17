@@ -7,11 +7,11 @@ import { eventTagOperations } from '@/services/events/tags/operations'
 import { EventArchivePagingProvider } from '@/contexts/paging/EventArchivePaging'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagAuth } from '@/services/events/tags/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ searchParams }: PageOperationArgs) => {

@@ -5,7 +5,7 @@ import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import ArchiveLink from '@/components/HeaderItems/ArchiveLink'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { newsAuth } from '@/services/news/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => ({}),

@@ -1,9 +1,9 @@
 import styles from './page.module.scss'
-import { PeriodSection } from './periodTableSection'
+import { PeriodSection } from './PeriodSection'
 import getCommittee from '@/app/committees/[shortName]/getCommittee'
 import { committeeParticipationOperations } from '@/services/applications/committeeParticipation/operations'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ shortName: string }>) => {

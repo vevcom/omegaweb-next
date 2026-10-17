@@ -4,8 +4,8 @@ import CreateUserForm from '@/components/User/CreateUserForm'
 import { userAuth } from '@/services/users/auth'
 import { authAuth } from '@/services/auth/auth'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('users', session),

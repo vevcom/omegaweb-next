@@ -2,6 +2,7 @@ import styles from './JobAd.module.scss'
 import Image from '@/components/Image/Image'
 import SponsorBadge from '@/components/Company/SponsorBadge'
 import { formatVevenUri } from '@/lib/urlEncoding'
+import { osloDateTime } from '@/lib/dates/oslo'
 import { jobAdType } from '@/services/career/jobAds/constants'
 import Link from 'next/link'
 import type { SimpleJobAd } from '@/services/career/jobAds/types'
@@ -13,11 +14,11 @@ type PropTypes = {
 const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des']
 
 export default function JobAd({ jobAd }: PropTypes) {
-    const deadline = jobAd.applicationDeadline
+    const deadline = jobAd.applicationDeadline ? osloDateTime(jobAd.applicationDeadline) : null
 
     return (
         <Link
-            href={`/career/jobads/${formatVevenUri(jobAd.articleName, jobAd.id)}`}
+            href={`/career/job-ads/${formatVevenUri(jobAd.articleName, jobAd.id)}`}
             className={styles.JobAd}
         >
             <div className={styles.thumb}>
@@ -33,8 +34,8 @@ export default function JobAd({ jobAd }: PropTypes) {
 
             <div className={styles.lead}>
                 {deadline ? <>
-                    <b>{deadline.getDate()}</b>
-                    <span>{months[deadline.getMonth()]}</span>
+                    <b>{deadline.day}</b>
+                    <span>{months[deadline.month - 1]}</span>
                 </> : (
                     <span className={styles.noDeadline}>Løpende</span>
                 )}

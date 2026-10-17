@@ -5,9 +5,9 @@ import { displayAmount } from '@/lib/currency/convert'
 import { productOperations } from '@/services/shop/product/operations'
 import { productAuth } from '@/services/shop/product/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 /** One product of the catalogue: what it is, and the shops that sell it. */
 const { page, generateMetadata } = serverPage({

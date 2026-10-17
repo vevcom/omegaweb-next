@@ -10,7 +10,7 @@ import {
     updateSpecialCmsParagraphContentGeneralInfoAction
 } from '@/services/groups/interestGroups/actions'
 import { interestGroupOperations } from '@/services/groups/interestGroups/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { Require } from '@/auth/authorizer/Require'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import type { ExpandedInterestGroup } from '@/services/groups/interestGroups/types'

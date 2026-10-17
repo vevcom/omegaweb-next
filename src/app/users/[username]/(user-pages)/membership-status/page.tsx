@@ -12,10 +12,10 @@ import { admissionDisplayNames, allAdmissions } from '@/services/admission/const
 import { OMEGA_MEMBERSHIP_LEVEL_RANKING } from '@/services/groups/constants'
 import { sexConfig } from '@/services/users/constants'
 import { configureAction } from '@/services/configureAction'
-import { serverPage, withFallback } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import Form from '@/components/Form/Form'
 import NumberInput from '@/components/UI/NumberInput'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 import type { OmegaMembershipLevel } from '@/prisma-generated-pn-types'
 
 /**

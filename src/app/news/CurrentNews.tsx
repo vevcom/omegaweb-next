@@ -1,6 +1,6 @@
 import NewsCard from './NewsCard'
 import { newsOperations } from '@/services/news/operations'
-import { withPageSession } from '@/app/serverPage'
+import { withPageSession } from '@/app/ServerPage'
 import React from 'react'
 
 type PropTypes = {

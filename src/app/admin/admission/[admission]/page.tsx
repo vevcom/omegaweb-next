@@ -1,11 +1,11 @@
-import RegisterAdmissiontrial from './registration'
+import RegisterAdmissiontrial from './RegisterAdmissiontrial'
 import { admissionDisplayNames, allAdmissions } from '@/services/admission/constants'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import { omegaIdOperations } from '@/services/omegaid/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 import type { Admission as AdmissionType } from '@/prisma-generated-pn-types'
 
 const { page, generateMetadata } = serverPage({

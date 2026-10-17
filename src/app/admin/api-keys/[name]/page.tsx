@@ -12,8 +12,8 @@ import Slider from '@/components/UI/Slider'
 import Date from '@/app/_components/Date/Date'
 import Checkbox from '@/app/_components/UI/Checkbox'
 import { configureAction } from '@/services/configureAction'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ name: string }>) =>

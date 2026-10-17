@@ -8,9 +8,9 @@ import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { omegaIdOperations } from '@/services/omegaid/operations'
 import { decodeVevenUriHandleError, formatVevenUri } from '@/lib/urlEncoding'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     // readAttendanceCounts is what keeps those not administrating the event off the page.

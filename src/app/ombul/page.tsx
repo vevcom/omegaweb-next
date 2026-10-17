@@ -5,7 +5,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { ombulOperations } from '@/services/ombul/operations'
 import { ombulAuth } from '@/services/ombul/auth'
-import { serverPage, withFallback } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
 const { page, generateMetadata } = serverPage({

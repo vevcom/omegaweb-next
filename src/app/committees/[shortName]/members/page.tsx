@@ -1,9 +1,9 @@
 import styles from './page.module.scss'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import getCommittee from '@/app/committees/[shortName]/getCommittee'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import UserCard from '@/components/User/UserCard'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ shortName: string }>) => {

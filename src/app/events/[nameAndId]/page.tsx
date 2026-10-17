@@ -29,11 +29,11 @@ import { eventAuth } from '@/services/events/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { Require } from '@/auth/authorizer/Require'
-import { serverPage, withFallback } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
 import { faCalendar, faExclamation, faLocationDot, faUsers } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ nameAndId: string }>) => {

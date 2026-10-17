@@ -1,6 +1,6 @@
 'use client'
 import styles from './EditJobAd.module.scss'
-import SelectedCompany from '@/career/jobads/SelectedCompany'
+import SelectedCompany from '@/career/job-ads/SelectedCompany'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
@@ -8,7 +8,7 @@ import { SelectString } from '@/components/UI/Select'
 import DateInput from '@/components/UI/DateInput'
 import Slider from '@/app/_components/UI/Slider'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
-import CompanyChooser from '@/app/career/jobads/CompanyChooser'
+import CompanyChooser from '@/app/career/job-ads/CompanyChooser'
 import { destroyJobAdAction, updateJobAdAction } from '@/career/jobAds/actions'
 import { jobAdOptions } from '@/services/career/jobAds/constants'
 import useEditMode from '@/hooks/useEditMode'
@@ -51,7 +51,7 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
                     <Form
                         action={updateAction}
                         navigateOnSuccess={(data) =>
-                            `/career/jobads/${data ? formatVevenUri(data.articleName, data.id) : ''}`
+                            `/career/job-ads/${data ? formatVevenUri(data.articleName, data.id) : ''}`
                         }
                         submitText="Oppdater"
                     >
@@ -89,7 +89,7 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
                         <div className={styles.destroy}>
                             <Form
                                 action={configureAction(destroyJobAdAction, { params: { id: jobAd.id } })}
-                                navigateOnSuccess="/career/jobads"
+                                navigateOnSuccess="/career/job-ads"
                                 submitText="Slett annonse"
                                 confirmation={{
                                     confirm: true,

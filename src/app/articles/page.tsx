@@ -4,7 +4,7 @@ import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import ImageCard from '@/components/ImageCard/ImageCard'
 import { articleCategoryOperations } from '@/services/articleCategories/operations'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 
 const { page, generateMetadata } = serverPage({

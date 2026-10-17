@@ -2,12 +2,12 @@ import CreateCommitteeForm from './CreateCommitteeForm'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { committeeAuth } from '@/services/groups/committees/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

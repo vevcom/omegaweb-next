@@ -3,7 +3,7 @@ import CreateUpdateApplicationPeriodForm from './CreateUpdateApplicationPeriodFo
 import { applicationPeriodOperations } from '@/services/applications/periods/operations'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import Date from '@/components/Date/Date'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'

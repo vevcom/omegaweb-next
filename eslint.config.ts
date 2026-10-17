@@ -2,6 +2,11 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import nextVitals from 'eslint-config-next/core-web-vitals'
 import tsNextRules from 'eslint-config-next/typescript'
 import tsConfigs from 'typescript-eslint'
+import checkFile from 'eslint-plugin-check-file'
+
+// Next.js app-router special filenames are framework-fixed, so they're excluded from the
+// naming-convention rules below instead of flagged as violations.
+const nextSpecialFilenames = '!(page|layout|template|default|loading|error|global-error|not-found)'
 
 const eslintConfig = defineConfig([
     {
@@ -559,6 +564,97 @@ const eslintConfig = defineConfig([
                     message: 'Use an input component from @/components/UI (TextInput, Checkbox, NumberInput, '
                         + 'etc.) instead of a raw <input>. type="hidden" inputs are exempt.'
                 }
+            ]
+        }
+    },
+    {
+        // Lets check-file's filename rules run on non-JS files, which ESLint otherwise skips
+        files: ['src/app/**/*.module.scss', 'src/prisma/schema/**/*.prisma'],
+        plugins: { 'check-file': checkFile },
+        processor: 'check-file/eslint-processor-check-file',
+    },
+    {
+        // File and folder naming conventions, by area of the codebase.
+        plugins: { 'check-file': checkFile },
+        files: [
+            'src/app/**/*',
+            'src/services/**/*',
+            'src/hooks/**/*',
+            'src/contexts/**/*',
+            'src/lib/**/*',
+            'tests/**/*',
+            'src/prisma/schema/**/*',
+        ],
+        rules: {
+            'check-file/filename-naming-convention': [
+                'error',
+                // TODO: drop the ConfigVars and Validation exclusions below
+                // once those files are renamed or removed.
+                {
+                    [`src/app/**/${nextSpecialFilenames}.tsx`]: 'PASCAL_CASE',
+                    'src/app/**/!(route|manifest|sitemap|robots|ConfigVars).ts': 'CAMEL_CASE',
+                    [`src/app/**/${nextSpecialFilenames}.module.scss`]: 'PASCAL_CASE',
+                    'src/services/**/!(ConfigVars|Validation).ts': 'CAMEL_CASE',
+                    'src/hooks/**/*.ts': 'CAMEL_CASE',
+                    'src/contexts/**/*.tsx': 'PASCAL_CASE',
+                    'src/lib/**/!(ConfigVars|pn-server-only).{ts,tsx}': 'CAMEL_CASE',
+                    'tests/**/*.test.ts': 'CAMEL_CASE',
+                    'src/prisma/schema/**/*.prisma': 'CAMEL_CASE',
+                },
+                { ignoreMiddleExtensions: true },
+            ],
+            'check-file/folder-naming-convention': [
+                'error',
+                {
+                    'src/app/_components/**/': 'PASCAL_CASE',
+                    'src/app/!(_components)/**/': 'NEXT_JS_APP_ROUTER_CASE',
+                    'src/services/**/': 'CAMEL_CASE',
+                    'src/contexts/**/': 'CAMEL_CASE',
+                    'src/lib/**/': 'CAMEL_CASE',
+                },
+            ],
+        },
+    },
+    {
+        // Date/time fields (day, month, hour, ...) are only ever safe to read or construct through
+        // an explicitly-zoned formatter. Reading/constructing them any other way silently depends on
+        // the host's local timezone - UTC on the server, the visitor's own zone in the browser -
+        // which is how B18 (toLocalDate/getOsloTime) and a string of other DST bugs happened.
+        files: ['**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector: "NewExpression[callee.name='Date'][arguments.length>1]",
+                    message: 'Never build a Date from individual fields (year, month, day, ...) - they are '
+                        + 'read in the host\'s local timezone. Use an ISO string, Date.UTC(...), instant '
+                        + 'arithmetic (Date.now() + ms), or Luxon\'s DateTime with an explicit zone instead.'
+                },
+                {
+                    selector: 'CallExpression[callee.property.name=/^toLocale(String|DateString|TimeString)$/]'
+                        + ":not(:has(Property[key.name='timeZone']))",
+                    message: 'Pass an explicit timeZone (normally \'Europe/Oslo\') - formatting without one '
+                        + 'depends on the host\'s local timezone and differs between server and client.'
+                }
+            ]
+        }
+    },
+    {
+        // The service/lib layer must only ever reason about real instants, never host-local
+        // calendar/clock fields - see the rule above for why. displayDefaultInputValue.ts is the one
+        // sanctioned exception: HTML date/datetime-local inputs are inherently browser-local.
+        files: ['src/services/**/*.{ts,tsx}', 'src/lib/**/*.{ts,tsx}'],
+        ignores: ['src/lib/dates/displayDefaultInputValue.ts'],
+        rules: {
+            'no-restricted-properties': [
+                'error',
+                { property: 'getDate', message: 'Host-local getter - use getUTCDate or an explicitly-zoned formatter.' },
+                { property: 'getMonth', message: 'Host-local getter - use getUTCMonth or an explicitly-zoned formatter.' },
+                { property: 'getFullYear', message: 'Host-local getter - use getUTCFullYear or a zoned formatter.' },
+                { property: 'getHours', message: 'Host-local getter - use getUTCHours or an explicitly-zoned formatter.' },
+                { property: 'getMinutes', message: 'Host-local getter - use getUTCMinutes or a zoned formatter.' },
+                { property: 'getSeconds', message: 'Host-local getter - use getUTCSeconds or a zoned formatter.' },
+                { property: 'getDay', message: 'Host-local getter - use getUTCDay or an explicitly-zoned formatter.' }
             ]
         }
     },

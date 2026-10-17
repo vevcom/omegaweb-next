@@ -1,5 +1,5 @@
-import { sendMailSchemas } from '@/services/notifications/send-mail/schemas'
-import { sendMailOperations } from '@/services/notifications/send-mail/operations'
+import { sendMailSchemas } from '@/services/notifications/sendMail/schemas'
+import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { replaceSpecialSymbols } from './helpers'
 import { weeklyDigest } from './constants'
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'

@@ -10,7 +10,7 @@ import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { permissionsAuth } from '@/services/permissions/auth'
 import { apiKeyAuth } from '@/services/apiKeys/auth'
 import { notificationAuth } from '@/services/notifications/auth'
-import { sendMailAuth } from '@/services/notifications/send-mail/auth'
+import { sendMailAuth } from '@/services/notifications/sendMail/auth'
 import { notificationChannelAuth } from '@/services/notifications/channel/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailingListAuth } from '@/services/mail/list/auth'
@@ -95,7 +95,7 @@ export const adminNavDef: AdminNavGroup[] = [
             },
             {
                 title: 'Omegas tilstand',
-                path: 'stateOfOmega',
+                path: 'state-of-omega',
                 authorizers: () => [omegaOrderAuth.create],
             },
         ],

@@ -2,10 +2,10 @@ import ChannelSettings from './ChannelSettings'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
 import { notificationChannelAuth } from '@/services/notifications/channel/auth'
 import { aliasOperations } from '@/services/mail/alias/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { notFound } from 'next/navigation'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ currentId: string }>) => {

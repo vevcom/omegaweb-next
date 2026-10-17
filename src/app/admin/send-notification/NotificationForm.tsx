@@ -1,5 +1,5 @@
 'use client'
-import styles from './notificaionForm.module.scss'
+import styles from './NotificationForm.module.scss'
 import { SelectNumber } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
