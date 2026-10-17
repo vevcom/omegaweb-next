@@ -1,9 +1,11 @@
 import '@pn-server-only'
 import {
     eventRegistrationAttendanceSelection,
+    eventRegistrationNotAttendedSelection,
     eventRegistrationSelectionDetailed,
     eventRegistrationQueueOrder,
     eventRegistrationSelection,
+    maxDotsForNotShowingUp,
 } from './constants'
 import { eventAdminLevel, eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
@@ -30,6 +32,7 @@ import type {
     EventAttendanceRegistration,
     EventAttendanceScan,
     EventRegistrationExpanded,
+    EventRegistrationNotAttended,
     EventRegistrationWithWaitingList,
 } from './types'
 
@@ -390,6 +393,76 @@ export const eventRegistrationOperations = {
     }),
 
     /**
+     * The registrations on the places of the event whose user did not show up - the ones dots for
+     * not showing up go to. Guests have no user to give a dot, and the waiting list never had a
+     * place to show up to.
+     */
+    readNotAttended: defineOperation({
+        paramsSchema: eventRegistrationSchemas.params.readNotAttended,
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readNotAttended.data({
+            visibility: await eventVisibility(prisma, params.eventId),
+        }),
+        operation: async ({ prisma, params }): Promise<EventRegistrationNotAttended[]> => {
+            const boundary = await firstOnWaitingList(prisma, params.eventId)
+            const registrations = await prisma.eventRegistration.findMany({
+                where: {
+                    eventId: params.eventId,
+                    attendedAt: null,
+                    userId: { not: null },
+                    ...(boundary ? { id: { lt: boundary } } : {}),
+                },
+                orderBy: eventRegistrationQueueOrder,
+                select: eventRegistrationNotAttendedSelection,
+            })
+            return registrations.flatMap(registration => (
+                registration.user ? [{ ...registration, user: registration.user }] : []
+            ))
+        },
+    }),
+
+    /**
+     * Gives a dot to someone registered to the event, with the name of the event appended to the
+     * reason. It takes the admin level of the event rather than DOTS_ADMIN, so the ones running an
+     * event may punish not showing up to it - and only that: the user must be registered to it.
+     */
+    createDot: dotOperations.internal.createInternal.implement({
+        implementationParamsSchema: eventRegistrationSchemas.params.createDot,
+        authorizer: async ({ implementationParams, params, prisma }) => eventRegistrationAuth.createDot.data({
+            visibility: await eventVisibility(prisma, implementationParams.eventId),
+            userId: params.accuserId,
+        }),
+        ownershipCheck: async ({ implementationParams, data, prisma }) =>
+            await allRegistered(prisma, implementationParams.eventId, [data.userId]),
+        operationImplementationFields: async ({ implementationParams, prisma }) => ({
+            reasonContext: await eventName(prisma, implementationParams.eventId),
+        }),
+    }),
+
+    /**
+     * Gives everyone in the list a dot of the same value, as `createDot` does for one - meant for
+     * those who did not show up (see `readNotAttended`). The value is capped, since this hands out
+     * dots by the dozen.
+     */
+    createDotsForMany: dotOperations.internal.createManyInternal.implement({
+        implementationParamsSchema: eventRegistrationSchemas.params.createDotsForMany,
+        authorizer: async ({ implementationParams, params, prisma }) =>
+            eventRegistrationAuth.createDotsForMany.data({
+                visibility: await eventVisibility(prisma, implementationParams.eventId),
+                userId: params.accuserId,
+            }),
+        ownershipCheck: async ({ implementationParams, data, prisma }) =>
+            await allRegistered(prisma, implementationParams.eventId, data.userIds),
+        beforeRun: ({ data }) => {
+            if (data.value > maxDotsForNotShowingUp) {
+                throw new Smorekopp('BAD DATA', `Kan gi høyst ${maxDotsForNotShowingUp} prikker om gangen.`)
+            }
+        },
+        operationImplementationFields: async ({ implementationParams, prisma }) => ({
+            reasonContext: await eventName(prisma, implementationParams.eventId),
+        }),
+    }),
+
+    /**
      * Pays for a registration created separately via `create`/`createGuest`. Never creates a
      * registration itself. Supports paying part of the price from the payer's own ledger
      * balance (`amountFromBalance`) and the rest (`shortfall`) via `provider`; `provider` is
@@ -704,4 +777,24 @@ async function writeAttendance(
         where: { id: registrationId },
         select: eventRegistrationAttendanceSelection,
     })
+}
+
+/**
+ * Whether every one of the users is registered to the event - what makes a dot for the event
+ * theirs to get. Each user registers once per event, so the count of registrations says it.
+ */
+async function allRegistered(prisma: PrismaPossibleTransaction<false>, eventId: number, userIds: number[]) {
+    const uniqueUserIds = Array.from(new Set(userIds))
+    const registered = await prisma.eventRegistration.count({
+        where: { eventId, userId: { in: uniqueUserIds } },
+    })
+    return registered === uniqueUserIds.length
+}
+
+async function eventName(prisma: PrismaPossibleTransaction<false>, eventId: number) {
+    const event = await prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { name: true },
+    })
+    return event.name
 }

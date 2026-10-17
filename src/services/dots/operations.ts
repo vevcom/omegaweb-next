@@ -14,25 +14,53 @@ const numberOfActiveDotsForUser = defineSubOperation({
     },
 })
 
+/**
+ * What a dot is given in the name of, appended to its reason - the event someone did not show up
+ * to, say. Null when the reason stands on its own.
+ */
+type ReasonContext = {
+    reasonContext: string | null,
+}
+
 const createInternal = defineSubOperation({
     paramsSchema: () => dotSchemas.params.createInternal,
     dataSchema: () => dotSchemas.data.createInternal,
-    operation: () => async ({ prisma, params, data }) => prisma.dot.create({
+    operation: ({ reasonContext }: ReasonContext) => async ({ prisma, params, data }) => prisma.dot.create({
         data: {
             ...data,
+            reason: reasonWithContext(data.reason, reasonContext),
             accuserId: params.accuserId,
         },
     }),
 })
 
+/** Gives every one of the users a dot of the same value and reason. A user listed twice gets one. */
+const createManyInternal = defineSubOperation({
+    paramsSchema: () => dotSchemas.params.createManyInternal,
+    dataSchema: () => dotSchemas.data.createManyInternal,
+    operation: ({ reasonContext }: ReasonContext) => async ({ prisma, params, data }) => {
+        const reason = reasonWithContext(data.reason, reasonContext)
+        return prisma.dot.createMany({
+            data: Array.from(new Set(data.userIds)).map(userId => ({
+                userId,
+                value: data.value,
+                reason,
+                accuserId: params.accuserId,
+            })),
+        })
+    },
+})
+
 export const dotOperations = {
     internal: {
         createInternal,
+        createManyInternal,
         numberOfActiveDotsForUser,
     },
     create: createInternal.implement({
         authorizer: ({ params }) => dotAuth.create.data({ userId: params.accuserId }),
         ownershipCheck: () => true,
+        operationImplementationFields: { reasonContext: null },
     }),
 
     update: defineOperation({
@@ -89,4 +117,9 @@ async function readExpandedDotsOfUser(prisma: PrismaPossibleTransaction<false>, 
         prisma.dotFreezePeriod.findMany(),
     ])
     return expandDots(dots, freezePeriods)
+}
+
+function reasonWithContext(reason: string, context: string | null): string {
+    if (context === null) return reason
+    return reason ? `${reason} (${context})` : context
 }

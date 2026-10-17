@@ -15,3 +15,6 @@ export const registerEventAttendanceAction = makeAction(eventRegistrationOperati
 export const setEventAttendanceAction = makeAction(eventRegistrationOperations.setAttendance)
 export const destroyEventRegistrationAction = makeAction(eventRegistrationOperations.destroy)
 export const createEventRegistrationPaymentAction = makeAction(eventRegistrationOperations.createPayment)
+
+export const createEventDotAction = makeAction(eventRegistrationOperations.createDot)
+export const createEventDotsForManyAction = makeAction(eventRegistrationOperations.createDotsForMany)
