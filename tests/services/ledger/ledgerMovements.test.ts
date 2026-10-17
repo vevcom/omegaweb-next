@@ -5,7 +5,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
 import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
-import { MINIMUM_PAYMENT_AMOUNT } from '@/services/ledger/payments/constants'
+import { STRIPE_MINIMUM_PAYMENT_AMOUNT } from '@/services/ledger/payments/constants'
 import { userOperations } from '@/services/users/operations'
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -122,16 +122,20 @@ describe('creating deposits', () => {
         expect(createIntent).not.toHaveBeenCalled()
     })
 
-    test('a deposit below the minimum is refused, even from trusted server code', async () => {
+    test('a STRIPE deposit below the minimum is refused, but a MANUAL one is not', async () => {
         const owner = await createUserWithAccount('depositsmall')
 
-        await expect(deposit(owner.accountId, sessionOf(owner.userId, ['LEDGER_USE']), MINIMUM_PAYMENT_AMOUNT - 1))
+        await expect(deposit(owner.accountId, sessionOf(owner.userId, ['LEDGER_USE']), STRIPE_MINIMUM_PAYMENT_AMOUNT - 1))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
-        await expect(ledgerMovementOperations.createDeposit({
-            params: { ledgerAccountId: owner.accountId, provider: 'MANUAL', funds: MINIMUM_PAYMENT_AMOUNT - 1 },
-            bypassAuth: true,
-        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
         expect(createIntent).not.toHaveBeenCalled()
+
+        // The minimum is Stripe's own processing floor, not a general rule - a MANUAL deposit
+        // (e.g. an admin recording cash received) has no such floor.
+        const byHand = await ledgerMovementOperations.createDeposit({
+            params: { ledgerAccountId: owner.accountId, provider: 'MANUAL', funds: STRIPE_MINIMUM_PAYMENT_AMOUNT - 1 },
+            bypassAuth: true,
+        })
+        expect(byHand.state).toBe('SUCCEEDED')
     })
 
     test('LEDGER_ADMIN may deposit to any account, and only a MANUAL deposit keeps its description', async () => {

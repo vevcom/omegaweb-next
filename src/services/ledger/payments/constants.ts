@@ -1,6 +1,8 @@
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-export const MINIMUM_PAYMENT_AMOUNT = 50_00 // In hundredths of Klinguende Meunt
+// Stripe's own processing floor, not a general rule - only applies to a payment actually going
+// through Stripe. In hundredths of Klinguende Meunt.
+export const STRIPE_MINIMUM_PAYMENT_AMOUNT = 50_00
 
 export const paymentIncluder = {
     stripePayment: true,

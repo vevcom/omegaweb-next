@@ -31,7 +31,7 @@ export const ledgerMovementOperations = {
     /**
      * Creates a deposit transaction, which is a deposit of funds into the ledger.
      *
-     * @params params.funds The amount to be deposited, at least MINIMUM_PAYMENT_AMOUNT.
+     * @params params.funds The amount to be deposited, at least STRIPE_MINIMUM_PAYMENT_AMOUNT when paying by card.
      * @params params.ledgerAccountId The ID of the ledger account where the funds will be deposited.
      *
      * @return The created transaction representing the deposit operation.

@@ -198,16 +198,12 @@ export const ledgerAccountOperations = {
                     id: params.ledgerAccountId,
                     user: params.userId !== undefined ? { id: params.userId } : undefined,
                 },
-                select: { frozen: true, payoutAccountNumber: true },
+                select: { frozen: true },
             })
-            // An empty payout field and no payout number at all are the same account number.
-            const changesPayout = data.payoutAccountNumber !== undefined
-                && (data.payoutAccountNumber || null) !== (current.payoutAccountNumber || null)
 
             return ledgerAccountAuth.update({
                 accounts: [await resolveAccountOwnership(prisma, params)],
                 changesAdminFields: Boolean(data.addGroupIds?.length || data.removeGroupIds?.length)
-                    || changesPayout
                     || (current.frozen && data.frozen === false),
             })
         },

@@ -27,7 +27,6 @@ const { page, generateMetadata } = serverPage({
     },
     capabilities: (ledgerAccount) => ({
         canUpdate: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesAdminFields: false }),
-        canChangePayout: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesAdminFields: true }),
         canChangeGroups: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesAdminFields: true }),
         // Only MANUAL deposits are offered here, and those take the payment rule on top.
         canDeposit: Require.allOf(
@@ -52,7 +51,6 @@ const { page, generateMetadata } = serverPage({
                     <EditLedgerAccountDetailsForm
                         ledgerAccount={ledgerAccount}
                         popUpKey="editLedgerAccountDetails"
-                        capabilities={{ canChangePayout: capabilities.canChangePayout.toJsObject() }}
                     />
                 </PopUp>
             )}
