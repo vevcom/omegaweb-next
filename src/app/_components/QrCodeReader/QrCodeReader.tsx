@@ -11,10 +11,11 @@ export type ScanResult = {
 
 type PropTypes = {
     /**
-     * Called with the text of every code read. What it returns is shown under the camera; null shows
-     * nothing, for a read the caller chose to ignore.
+     * Called with the text of every code read. What it returns is shown under the camera; null leaves
+     * what is shown as it is, for a read the caller chose to ignore. A caller doing slow work for a
+     * read (a request to the server) calls `showWaiting` before it, so the reader shows it is busy.
      */
-    onScan: (text: string) => Promise<ScanResult | null>,
+    onScan: (text: string, showWaiting: () => void) => Promise<ScanResult | null>,
     /** Stops scanning after the first read that succeeds. */
     singleRead?: boolean,
     /** The size (in pixels) of the square the code is scanned within. */
@@ -36,7 +37,7 @@ export default function QrCodeReader({ onScan, singleRead = false, qrboxSize }: 
 
     const qrcodeRegionId = useId()
     // The scanner is set up once; a read always reaches the latest onScan.
-    const scan = useEffectEvent((text: string) => onScan(text))
+    const scan = useEffectEvent((text: string, showWaiting: () => void) => onScan(text, showWaiting))
 
     useEffect(() => {
         const html5QrcodeScanner = new Html5QrcodeScanner(qrcodeRegionId, {
@@ -55,17 +56,14 @@ export default function QrCodeReader({ onScan, singleRead = false, qrboxSize }: 
             // The camera keeps reading while a read is handled; those reads are dropped.
             if (reading) return
             reading = true
-            setFeedback({ status: 'WAITING', text: '...' })
 
-            const result = await scan(text).catch(() => ({
+            const result = await scan(text, () => setFeedback({ status: 'WAITING', text: '...' })).catch(() => ({
                 success: false,
                 text: 'Noe gikk galt. Prøv igjen.',
             }))
             reading = false
-            if (result === null) {
-                setFeedback({ status: 'EMPTY', text: '' })
-                return
-            }
+            // An ignored read leaves the outcome of the last one showing.
+            if (result === null) return
 
             if (result.success && singleRead) {
                 html5QrcodeScanner.clear().catch(() => {})

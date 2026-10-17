@@ -35,7 +35,7 @@ export default function OmegaIdReader({
 }) {
     const lastRead = useRef({ userId: -1, time: 0 })
 
-    const handleScan = async (rawToken: string): Promise<ScanResult | null> => {
+    const handleScan = async (rawToken: string, showWaiting: () => void): Promise<ScanResult | null> => {
         const token = decompressOmegaId(rawToken)
         if (!token.success) {
             return { success: false, text: 'Ugyldig QR kode' }
@@ -55,6 +55,7 @@ export default function OmegaIdReader({
             return null
         }
 
+        showWaiting()
         const result = await successCallback(userId, token.data)
         lastRead.current = { userId, time: Date.now() }
         return result
