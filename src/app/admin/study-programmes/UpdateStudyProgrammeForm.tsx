@@ -30,7 +30,7 @@ export default function UpdateStudyProgrammeForm({
     >
         <TextInput name="name" label="Navn" defaultValue={studyProgramme?.name ?? ''}/>
         <TextInput name="code" label="Kode" defaultValue={studyProgramme?.code ?? ''} />
-        <TextInput name="insititueCode" label="Institutt kode" defaultValue={studyProgramme?.insititueCode ?? ''} />
+        <TextInput name="instituteCode" label="Institutt kode" defaultValue={studyProgramme?.instituteCode ?? ''} />
         <SelectString label="Startklasse" name="classLevel" options={[
             { value: '', label: 'Ikke satt' },
             ...CLASS_LEVEL_ORDERING.map(level => ({ value: level, label: ClassLevelConfig[level].name })),

@@ -14,6 +14,7 @@ import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
+import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import {
     assertAdminLevelIsSubOfRegularLevel,
     implementDoubleLevelVisibilityOperations,
@@ -63,14 +64,14 @@ const read = defineOperation({
             where: { id: params.id },
             select: {
                 published: true,
-                canBeViewdBy: true,
+                canBeViewedBy: true,
                 visibilityRegular: { include: visibilityIncluder },
                 visibilityAdmin: { include: visibilityIncluder }
             }
         })
         return eventAuth.read.data({
             published: event.published,
-            canBeViewdBy: event.canBeViewdBy,
+            canBeViewedBy: event.canBeViewedBy,
             visibility: {
                 regularLevel: toMatrix(event.visibilityRegular),
                 adminLevel: toMatrix(event.visibilityAdmin)
@@ -95,6 +96,8 @@ const read = defineOperation({
                         tag: true
                     }
                 },
+                hostedByCommittee: { select: { id: true, name: true, shortName: true } },
+                ledgerAccount: { select: { id: true, name: true } },
                 _count: {
                     select: {
                         eventRegistrations: true,
@@ -154,7 +157,12 @@ export const eventOperations = {
                         places: data.places,
                         registrationStart: data.registrationStart ?? new Date(),
                         registrationEnd: data.registrationEnd ?? new Date(Date.now() + 1000 * 60 * 60 * 24),
-                        canBeViewdBy: data.canBeViewdBy,
+                        canBeViewedBy: data.canBeViewedBy,
+                        hostedByCommittee: data.hostedByCommitteeId ? {
+                            connect: {
+                                id: data.hostedByCommitteeId
+                            }
+                        } : undefined,
                         waitingList: data.waitingList,
                         price: data.price,
                         paymentStart: data.paymentStart,
@@ -364,6 +372,35 @@ export const eventOperations = {
         }
     }),
 
+    /**
+     * Links an event to the GROUP ledger account its registrations are paid into, replacing any
+     * earlier link.
+     * @param params.id - The event to link
+     * @param data.ledgerAccountId - The account to credit
+     */
+    connectToLedger: defineOperation({
+        paramsSchema: eventSchemas.params.connectToLedger,
+        dataSchema: eventSchemas.data.connectToLedger,
+        authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedger.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
+        }),
+        operation: async ({ prisma, params, data }) => {
+            const account = await prisma.ledgerAccount.findUniqueOrThrow({
+                where: { id: data.ledgerAccountId },
+                select: { type: true },
+            })
+            if (account.type !== 'GROUP') {
+                throw new ServiceError('BAD PARAMETERS', 'Et arrangement kan bare knyttes til en gruppekonto.')
+            }
+
+            return await prisma.event.update({
+                where: { id: params.id },
+                data: { ledgerAccountId: data.ledgerAccountId },
+            })
+        },
+    }),
+
     updateCmsCoverImage: cmsImageOperations.update.implement({
         implementationParamsSchema: eventSchemas.params.updateCmsCoverImage,
         authorizer: async ({ implementationParams, prisma }) => eventAuth.updateCmsCoverImage.data({
@@ -517,8 +554,8 @@ function visibleEventsFilter(visibilityWhereFilter: VisibilityFilter | undefined
     return {
         OR: [
             { published: false, visibilityAdmin: visibilityWhereFilter },
-            { published: true, canBeViewdBy: 'ALL' },
-            { published: true, canBeViewdBy: 'CAN_REGISTER', visibilityRegular: visibilityWhereFilter },
+            { published: true, canBeViewedBy: 'ALL' },
+            { published: true, canBeViewedBy: 'CAN_REGISTER', visibilityRegular: visibilityWhereFilter },
         ]
     }
 }

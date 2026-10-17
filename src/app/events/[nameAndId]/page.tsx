@@ -4,6 +4,7 @@ import RegistrationUI from './RegistrationUI'
 import RegistrationsList from './RegistrationsList'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import EventVisibilityAdmin from './EventVisibilityAdmin'
+import ConnectEventToLedgerForm from './ConnectEventToLedgerForm'
 import EventLocationMap from '@/components/Event/EventLocationMap'
 import Date from '@/components/Date/Date'
 import CreateOrUpdateEventForm from '@/app/events/CreateOrUpdateEventForm'
@@ -14,6 +15,7 @@ import EventTag from '@/components/Event/EventTag'
 import { SettingsHeaderItemPopUp, UsersHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagOperations } from '@/services/events/tags/operations'
+import { committeeOperations } from '@/services/groups/committees/operations'
 import {
     destroyEventAction,
     updateEventCmsCoverImageAction,
@@ -31,7 +33,7 @@ import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
-import { faCalendar, faExclamation, faLocationDot, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { faCalendar, faExclamation, faLocationDot, faPeopleGroup, faUsers } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -45,6 +47,10 @@ const { page, generateMetadata } = serverPage({
 
         const tags = await eventTagOperations.readAll({})
 
+        // Only used to populate the "hosting committee" picker; a session without COMMITTEE_USE
+        // gets no picker rather than losing the whole page.
+        const committees = await withFallback(committeeOperations.readAll({}), null)
+
         // Readable only by those who administrate the event, so a visitor without that access
         // simply gets no editing tools - EMPTY_VISIBILITY then denies everyone but those bypassing
         // with EVENT_ADMIN, which is the safe direction to fail in.
@@ -52,6 +58,17 @@ const { page, generateMetadata } = serverPage({
             eventOperations.visibility.readDoubleLevelMatrix({ params: { id: event.id } }),
             null
         )
+
+        // The accounts feed the control of those who administrate the event, so they are loaded
+        // for no one else, and fall back to empty rather than taking the page down.
+        const administers = eventAuth.update.data({
+            visibility: doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        }).auth(session).authorized
+        const ledgerAccounts = administers
+            ? await withFallback(ledgerAccountOperations.readAccessible({
+                params: { includeGroupAccounts: true, includeUserAccounts: false },
+            }), [])
+            : []
 
         // What the dots of the one visiting hold them back from - nothing to tell a visitor
         // without a user, and nothing to hide either, as it is their own dots it is read from.
@@ -90,7 +107,9 @@ const { page, generateMetadata } = serverPage({
         return {
             event,
             tags,
+            committees,
             doubleLevelVisibility,
+            ledgerAccounts,
             dotPunishment,
             ownRegistration,
             eventPaymentBalance,
@@ -109,6 +128,10 @@ const { page, generateMetadata } = serverPage({
         }),
         canUpdate: eventAuth.update.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        }),
+        canConnectToLedger: eventAuth.connectToLedger.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+            accounts: data.ledgerAccounts.map(account => account.ownership),
         }),
         // Reading who is registered takes the regular level of the event (its admin level while
         // it is a draft), and registering on behalf of others its admin level - offering any of
@@ -140,7 +163,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: (data) => ({ title: data.event.name }),
     render: ({ data, capabilities, session }) => {
-        const { event, tags, doubleLevelVisibility, dotPunishment, ownRegistration } = data
+        const { event, tags, committees, doubleLevelVisibility, ledgerAccounts, dotPunishment, ownRegistration } = data
         const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
 
         return (
@@ -184,8 +207,20 @@ const { page, generateMetadata } = serverPage({
                         }
                         <SettingsHeaderItemPopUp scale={30} popUpKey="EditEvent">
                             {capabilities.canUpdate.authorized &&
-                                <CreateOrUpdateEventForm event={event} eventTags={tags} />
+                                <CreateOrUpdateEventForm event={event} eventTags={tags} committees={committees} />
                             }
+                            {capabilities.canConnectToLedger.authorized && <>
+                                <p>
+                                    Konto: {event.ledgerAccount
+                                        ? (event.ledgerAccount.name ?? `Konto ${event.ledgerAccount.id}`)
+                                        : 'ingen. Betaling feiler til arrangementet er knyttet til en konto.'}
+                                </p>
+                                <ConnectEventToLedgerForm
+                                    eventId={event.id}
+                                    currentLedgerAccountId={event.ledgerAccountId}
+                                    ledgerAccounts={ledgerAccounts}
+                                />
+                            </>}
                             <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
                             {event.takesRegistration && capabilities.canTakeAttendance.authorized &&
                                 <Link
@@ -221,6 +256,14 @@ const { page, generateMetadata } = serverPage({
                         <FontAwesomeIcon icon={faLocationDot} />
                         {event.location}
                     </p>
+                    {event.hostedByCommittee && <p>
+                        <FontAwesomeIcon icon={faPeopleGroup} />
+                        <span>
+                            Arrangeres av <Link href={`/committees/${event.hostedByCommittee.shortName}`}>
+                                {event.hostedByCommittee.name}
+                            </Link>
+                        </span>
+                    </p>}
                     {event.takesRegistration ? <>
                         <p>
                             <FontAwesomeIcon icon={faUsers} />

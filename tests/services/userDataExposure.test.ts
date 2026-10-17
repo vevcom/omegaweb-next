@@ -59,7 +59,7 @@ beforeAll(async () => {
             coverImage: { create: {} },
             eventStart: new Date(),
             eventEnd: new Date(),
-            canBeViewdBy: 'ALL',
+            canBeViewedBy: 'ALL',
             takesRegistration: true,
             places: 10,
             registrationStart: new Date(),

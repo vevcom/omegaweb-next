@@ -6,9 +6,9 @@ import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 
 const applicationWhere = ({ userId, committeeParticipationId }: { userId: number, committeeParticipationId: number }) => ({
-    userId_applicationPeriodCommiteeId: {
+    userId_applicationPeriodCommitteeId: {
         userId,
-        applicationPeriodCommiteeId: committeeParticipationId,
+        applicationPeriodCommitteeId: committeeParticipationId,
     },
 })
 
@@ -71,7 +71,7 @@ export const applicationOperations = {
                 data: {
                     text: data.text,
                     userId: params.userId,
-                    applicationPeriodCommiteeId: params.committeeParticipationId,
+                    applicationPeriodCommitteeId: params.committeeParticipationId,
                     applicationPeriodId: committeeParticipation.applicationPeriod.id,
                     priority: usersLowestPriorityApplicationInPeriod + 1,
                 }
@@ -91,7 +91,7 @@ export const applicationOperations = {
                     id: true,
                     priority: true,
                     applicationPeriodId: true,
-                    applicationPeriodCommitee: {
+                    applicationPeriodCommittee: {
                         select: {
                             applicationPeriod: {
                                 select: {
@@ -104,7 +104,7 @@ export const applicationOperations = {
                     }
                 }
             })
-            const { startDate, endDate, endPriorityDate } = application.applicationPeriodCommitee.applicationPeriod
+            const { startDate, endDate, endPriorityDate } = application.applicationPeriodCommittee.applicationPeriod
             if (Date.now() < startDate.getTime()) {
                 throw new ServiceError(
                     'BAD PARAMETERS', 'The application period has not started yet.'
@@ -162,7 +162,7 @@ export const applicationOperations = {
                 select: {
                     id: true,
                     applicationPeriodId: true,
-                    applicationPeriodCommitee: {
+                    applicationPeriodCommittee: {
                         select: {
                             applicationPeriod: {
                                 select: {
@@ -173,7 +173,7 @@ export const applicationOperations = {
                     }
                 }
             })
-            if (Date.now() > application.applicationPeriodCommitee.applicationPeriod.endDate.getTime()) {
+            if (Date.now() > application.applicationPeriodCommittee.applicationPeriod.endDate.getTime()) {
                 throw new ServiceError(
                     'BAD PARAMETERS', 'The application period has ended.'
                 )

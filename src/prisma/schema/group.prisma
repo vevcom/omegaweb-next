@@ -145,7 +145,7 @@ model StudyProgramme {
 
   name               String
   code               String               @unique
-  insititueCode      String?
+  instituteCode      String?              @map("insititueCode")
   yearsLength        Int?
   /// Which class a student of this programme starts in, i.e. a 2 year master starts in FOUR.
   classLevel         ClassLevel?

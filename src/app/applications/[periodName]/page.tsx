@@ -82,10 +82,10 @@ const { page, generateMetadata } = serverPage({
             committeesParticipating: period.committeesParticipating.map(part => ({
                 ...part,
                 priority: applications.find(
-                    application => application.applicationPeriodCommiteeId === part.id
+                    application => application.applicationPeriodCommitteeId === part.id
                 )?.priority ?? null,
                 text: applications.find(
-                    application => application.applicationPeriodCommiteeId === part.id
+                    application => application.applicationPeriodCommitteeId === part.id
                 )?.text ?? ''
             })).toSorted((partOne, partTwo) => {
                 if (partOne.priority === null && partTwo.priority === null) return 0
