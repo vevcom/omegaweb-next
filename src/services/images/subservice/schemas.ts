@@ -1,5 +1,7 @@
 import {
     allowedExtensions,
+    maxImageBatchSizeBytes,
+    maxImageBatchSizeMb,
     maxImageCountInOneBatch,
     maxImageFileSizeBytes,
     maxImageFileSizeMb
@@ -20,7 +22,7 @@ function fileHasAllowedExtension(file: File): boolean {
 }
 
 export const imageFileSchema = z.instanceof(File).refine(
-    file => file.size < maxImageFileSizeBytes, `File size must be less than ${maxImageFileSizeMb}mb`
+    file => file.size < maxImageFileSizeBytes, `Bildet må være mindre enn ${maxImageFileSizeMb}mb`
 ).refine(
     fileHasAllowedExtension,
     `File type must be one of ${allowedExtensions.join(', ')}`
@@ -45,6 +47,9 @@ export const imageDataFieldSchemas = z.object({
     ).refine(
         files => files.length <= maxImageCountInOneBatch && files.length > 0,
         `Du kan bare laste opp mellom 1 og ${maxImageCountInOneBatch} bilder av gangen`
+    ).refine(
+        files => files.reduce((total, file) => total + file.size, 0) <= maxImageBatchSizeBytes,
+        `Bildene kan til sammen være maks ${maxImageBatchSizeMb}mb per opplasting`
     ),
     imageName: z.string().max(50, 'max length is 50').min(2, 'min length is 2').optional(),
     imageAlt: z.string().max(100, 'max length is 100').min(2, 'min length is 2'),

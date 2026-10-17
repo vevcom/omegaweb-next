@@ -7,7 +7,7 @@ import ProgressBar from '@/components/ProgressBar/ProgressBar'
 import TextInput from '@/components/UI/TextInput'
 import LicenseChooser from '@/components/LicenseChooser/LicenseChooser'
 import { uploadManyImagesToDynamicCollectionAction } from '@/services/images/dynamic/actions'
-import { maxImageCountInOneBatch } from '@/services/images/subservice/constants'
+import { maxImageBatchSizeBytes, maxImageCountInOneBatch } from '@/services/images/subservice/constants'
 import { useCallback, useState } from 'react'
 import type { FileWithStatus } from '@/components/UI/Dropzone'
 import type { ActionReturn } from '@/services/actionTypes'
@@ -22,12 +22,21 @@ export default function CollectionAdminUpload({ collectionId, refreshImages }: P
     const [progress, setProgress] = useState<number | null>(null)
 
     const handleBatchedUpload = useCallback(async (data: FormData) => {
-        // split files into batches of maxNumberOfImagesInOneBatch
-        const batches = files.reduce((acc, file, index) => {
-            if (index % maxImageCountInOneBatch === 0) {
-                acc.push([])
+        // One request per batch: a batch holds at most maxImageCountInOneBatch files and
+        // maxImageBatchSizeBytes in total, so it stays under the server's request size limit. A file
+        // too large to share a batch goes alone.
+        const batches = files.reduce((acc, file) => {
+            const current = acc.at(-1)
+            const currentSize = current?.reduce((total, batchFile) => total + batchFile.file.size, 0) ?? 0
+            if (
+                !current
+                || current.length >= maxImageCountInOneBatch
+                || currentSize + file.file.size > maxImageBatchSizeBytes
+            ) {
+                acc.push([file])
+            } else {
+                current.push(file)
             }
-            acc[acc.length - 1].push(file)
             return acc
         }, [] as FileWithStatus[][])
         const doneFiles: FileWithStatus[] = []

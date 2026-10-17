@@ -2,14 +2,13 @@ import '@pn-server-only'
 import { imageSchemas } from './schemas'
 import {
     expandedImageIncluder,
-    imageSizes,
     type ImageExtension,
 } from './constants'
 import {
     createRasterVariants,
     destroyStoredFiles,
     imageStore,
-    resizeToAvifBuffer,
+    placeholderDataUrlOf,
     storedFileLocationsOfImage,
 } from './imageFiles'
 import { uniqueCollectionWhere } from './collections'
@@ -123,45 +122,37 @@ export const imageOperations = {
             }
         ) => async ({ prisma, params, data }) => {
             const { imageFile, ...meta } = data
-            // createFile is the single gate on file type: it rejects anything outside this
-            // implementation's subset, and hands back the canonical extension - which is also what
-            // decides whether this is a vector or something the worker has to resize.
-            const original = await imageStore.createFile(imageFile, allowedExtensions)
-            const sharedImageData = {
-                name: meta.imageName,
-                alt: meta.imageAlt,
-                license: meta.imageLicenseId ? { connect: { id: meta.imageLicenseId } } : undefined,
-                credit: meta.imageCredit,
-                standardImage: uploadAsStandardImage,
-                fsLocationOriginal: original.fsLocation,
-                extOriginal: original.ext,
-                collection: {
-                    connect: uniqueCollectionWhere(params)
-                }
-            }
+            // The file is checked before anything is written: its content decides its type, out of this
+            // implementation's subset, and a raster image is decoded to make its placeholder, which turns
+            // away anything sharp cannot read. The type also decides whether this is a vector or
+            // something the worker has to resize.
+            const buffer = Buffer.from(await imageFile.arrayBuffer())
+            const ext = imageStore.storableExtension(buffer, allowedExtensions)
+            const placeholderDataUrl = ext === 'svg' ? null : await placeholderDataUrlOf(buffer)
 
-            if (original.ext === 'svg') {
+            const original = await imageStore.createFile(imageFile, allowedExtensions)
+            try {
                 return await prisma.image.create({
                     data: {
-                        ...sharedImageData,
-                        type: 'SVG',
-                        placeholderDataUrl: null,
+                        name: meta.imageName,
+                        alt: meta.imageAlt,
+                        license: meta.imageLicenseId ? { connect: { id: meta.imageLicenseId } } : undefined,
+                        credit: meta.imageCredit,
+                        standardImage: uploadAsStandardImage,
+                        fsLocationOriginal: original.fsLocation,
+                        extOriginal: original.ext,
+                        collection: {
+                            connect: uniqueCollectionWhere(params)
+                        },
+                        type: original.ext === 'svg' ? 'SVG' : 'RASTER',
+                        placeholderDataUrl,
                     },
                     include: expandedImageIncluder,
                 })
+            } catch (error) {
+                await destroyStoredFiles([original.fsLocation], 'a failed image upload')
+                throw error
             }
-
-            const buffer = Buffer.from(await imageFile.arrayBuffer())
-            const { data: placeholderBuffer } = await resizeToAvifBuffer(buffer, imageSizes.placeholder)
-
-            return await prisma.image.create({
-                data: {
-                    ...sharedImageData,
-                    type: 'RASTER',
-                    placeholderDataUrl: `data:image/avif;base64,${placeholderBuffer.toString('base64')}`,
-                },
-                include: expandedImageIncluder,
-            })
         }
     }),
 
@@ -194,13 +185,11 @@ export const imageOperations = {
             })
             if (storedOriginal?.equals(buffer)) return { replaced: false }
 
-            const original = await imageStore.createFile(imageFile, allowedExtensions)
-            const placeholderDataUrl = original.ext === 'svg'
-                ? null
-                : `data:image/avif;base64,${
-                    (await resizeToAvifBuffer(buffer, imageSizes.placeholder)).data.toString('base64')
-                }`
+            // Checked before it is written, as uploadImage does.
+            const ext = imageStore.storableExtension(buffer, allowedExtensions)
+            const placeholderDataUrl = ext === 'svg' ? null : await placeholderDataUrlOf(buffer)
 
+            const original = await imageStore.createFile(imageFile, allowedExtensions)
             await prisma.$transaction(async (tx) => {
                 await tx.processedImageFiles.deleteMany({
                     where: { imageId: image.id },
@@ -217,6 +206,9 @@ export const imageOperations = {
                         processingError: null,
                     }
                 })
+            }).catch(async error => {
+                await destroyStoredFiles([original.fsLocation], 'a failed image file replacement')
+                throw error
             })
 
             await destroyStoredFiles(storedFileLocationsOfImage(image), 'image file replacement')
@@ -239,6 +231,8 @@ export const imageOperations = {
             try {
                 const buffer = await imageStore.readStoredFile(image.fsLocationOriginal)
                 const variants = await createRasterVariants(buffer)
+                const variantLocations = Object.values(variants)
+                    .flatMap(variant => (variant ? [variant.fsLocation] : []))
                 await prisma.processedImageFiles.create({
                     data: {
                         imageId: image.id,
@@ -261,6 +255,10 @@ export const imageOperations = {
                         widthHugeSize: variants.huge?.width,
                         heightHugeSize: variants.huge?.height,
                     }
+                }).catch(async error => {
+                    // The variants are written, but no row will point at them.
+                    await destroyStoredFiles(variantLocations, 'a failed variant record')
+                    throw error
                 })
                 return { success: true }
             } catch (error) {

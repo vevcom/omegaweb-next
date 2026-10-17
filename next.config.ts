@@ -17,7 +17,11 @@ const nextConfig: NextConfig = {
     },
     experimental: {
         serverActions: {
-            bodySizeLimit: '1000mb',
+            // The body is read before any login check, so this bounds what an anonymous request can make
+            // the server hold. The largest requests are an image batch (maxImageBatchSizeMb in the image
+            // subservice, 60mb) and a new ombul (a 10mb pdf and a cover image of up to 50mb), plus the form
+            // around them.
+            bodySizeLimit: '70mb',
         },
     },
     turbopack: {},

@@ -3,11 +3,31 @@ import type { Prisma } from '@/prisma-generated-pn-types'
 
 type StorableExtensions = readonly StorableExtension[]
 
-export const maxImageFileSizeMb = 100
+/**
+ * Room for full-size exports from a professional camera: a max-quality jpeg from a 45 to 61 megapixel
+ * camera is about 15 to 40mb. The memory an image takes to process is bounded by maxImageInputPixels.
+ */
+export const maxImageFileSizeMb = 50
 
 export const maxImageFileSizeBytes = maxImageFileSizeMb * 1024 * 1024
 
 export const maxImageCountInOneBatch = 10
+
+/**
+ * The most one upload request may carry in total. The client splits a batch so it stays under this,
+ * and a single image of the largest size always fits. Must stay below the server action body size
+ * limit in next.config.ts.
+ */
+export const maxImageBatchSizeMb = 60
+
+export const maxImageBatchSizeBytes = maxImageBatchSizeMb * 1024 * 1024
+
+/**
+ * The most pixels an image may have for sharp to decode it: enough for a 61 megapixel camera, and a
+ * quarter of sharp's default, which lets a small file that decodes to a huge image take the memory of
+ * the server.
+ */
+export const maxImageInputPixels = 64_000_000
 
 export const imageSizes = {
     placeholder: 16,
