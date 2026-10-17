@@ -1,6 +1,5 @@
 import {
     allNotificationMethodsOff,
-    allNotificationMethodsOn,
     notificationMethodsArray,
 } from '@/services/notifications/constants'
 import type { NotificationMethodGeneral } from '@/services/notifications/types'
@@ -8,10 +7,6 @@ import type { UserBasic } from '@/services/users/types'
 
 export function newAllMethodsOff() {
     return { ...allNotificationMethodsOff }
-}
-
-export function newAllMethodsOn() {
-    return { ...allNotificationMethodsOn }
 }
 
 export function booleanOperationOnMethods(

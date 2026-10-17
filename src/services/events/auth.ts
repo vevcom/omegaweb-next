@@ -1,5 +1,5 @@
 import { Require } from '@/auth/authorizer/Require'
-import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
+import type { EventCanView } from '@/prisma-generated-pn-types'
 
 /**
  * The admin level of an event decides who may edit and delete it. The regular level decides who
@@ -28,6 +28,15 @@ export const regularLevelUnlessDraft = Require.anyOf(
     isPublished(false).allOf(adminLevel),
 )
 
+/**
+ * Passes when the event is published and marked as viewable by all, so that neither level is
+ * checked. Needs `{ published, canBeViewdBy }` supplied via `.data()`. Like `isPublished`, it fails
+ * without a message of its own.
+ */
+const isViewableByAll = Require.custom<{ published: boolean, canBeViewdBy: EventCanView }>(
+    ({ published, canBeViewdBy }) => (published && canBeViewdBy === 'ALL' ? { success: true } : { success: false })
+)
+
 export const eventAuth = {
     // A new event has no visibility matrix yet to check. EVENT_CREATE is the only gate here. The
     // creator sets the event's own visibility, which then governs every operation below.
@@ -37,14 +46,7 @@ export const eventAuth = {
     updateRegularLevel: adminLevel,
     updateAdminLevel: adminLevel,
 
-    // The level 'PUBLIC' is for an event marked as viewable by all: then neither level is checked.
-    read: ({ level, doubleLevelMatrix }: {
-        level: 'PUBLIC' | 'REGULAR' | 'ADMIN',
-        doubleLevelMatrix: DoubleLevelVisibilityMatrix,
-    }) => {
-        if (level === 'PUBLIC') return Require.nothing()
-        return (level === 'REGULAR' ? regularLevel : adminLevel).data({ visibility: doubleLevelMatrix })
-    },
+    read: Require.anyOf(isViewableByAll, regularLevelUnlessDraft),
     readManyCurrent: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
     readManyArchivedPage: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
     search: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),

@@ -22,7 +22,7 @@ import {
     visibilityIncluder
 } from '@/services/visibility/implement'
 import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
-import type { EventCanView, EventTag, Prisma } from '@/prisma-generated-pn-types'
+import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
 
 const visibility = implementDoubleLevelVisibilityOperations({
@@ -69,9 +69,10 @@ const read = defineOperation({
                 visibilityAdmin: { include: visibilityIncluder }
             }
         })
-        return eventAuth.read({
-            level: readLevelOfEvent(event),
-            doubleLevelMatrix: {
+        return eventAuth.read.data({
+            published: event.published,
+            canBeViewdBy: event.canBeViewdBy,
+            visibility: {
                 regularLevel: toMatrix(event.visibilityRegular),
                 adminLevel: toMatrix(event.visibilityAdmin)
             }
@@ -507,17 +508,7 @@ async function readPublished(prisma: PrismaPossibleTransaction<false>, eventId: 
 }
 
 /**
- * Which visibility level it takes to see one event: while it is unpublished only those who
- * administrate it, and once published everyone - unless the event is limited to those who can
- * register for it, which is what its regular level decides.
- */
-function readLevelOfEvent(event: { published: boolean, canBeViewdBy: EventCanView }): 'PUBLIC' | 'REGULAR' | 'ADMIN' {
-    if (!event.published) return 'ADMIN'
-    return event.canBeViewdBy === 'ALL' ? 'PUBLIC' : 'REGULAR'
-}
-
-/**
- * The same rule as readLevelOfEvent, as a filter over a list of events.
+ * The same rule as eventAuth.read, as a filter over a list of events.
  *
  * The visibility filter is undefined only when the session bypasses visibility with EVENT_ADMIN,
  * which administrates every event - hence no filtering at all in that case.

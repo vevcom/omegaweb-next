@@ -2,7 +2,7 @@
 import { readDefaultPermissionsAction } from '@/services/permissions/actions'
 import { readAllStandardImagesAction } from '@/services/images/standard/actions'
 import { readExpandedGroupsOfAllTypesAction } from '@/services/groups/actions'
-import { specialImagePanels } from '@/services/images/specialPanels/constants'
+import { specialImagePanels } from '@/components/Image/ImagePanel/specialImagePanels'
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import type { ErrorCode } from '@/services/error'
 import type { ExpandedGroupsOfAllTypes } from '@/services/groups/types'

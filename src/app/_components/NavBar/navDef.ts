@@ -131,7 +131,7 @@ export const navDef: NavItem[] = [
         name: 'Bullshit',
         href: '/bullshit',
         icon: faPoo,
-        authorizers: () => [bullshitAuth.readPage, bullshitAuth.create],
+        authorizers: () => [bullshitAuth.readPage, bullshitAuth.createOwn],
     },
     {
         name: 'Artikler',

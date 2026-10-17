@@ -1,7 +1,8 @@
 import '@pn-server-only'
-import { allowedExtensions, avifConvertionOptions, imageSizes } from './constants'
+import { allowedExtensions, avifConvertionOptions, imageSizes, maxImageInputPixels } from './constants'
 import { implementStore } from '@/lib/store/implementStore'
 import logger from '@/lib/logger'
+import { ServiceError } from '@/services/error'
 import sharp from 'sharp'
 import { File } from 'node:buffer'
 import type { ExpandedImage } from './types'
@@ -19,7 +20,7 @@ export const imageStore = implementStore({
  * resolveWithObject also returns the real encoded width and height.
  */
 export async function resizeToAvifBuffer(buffer: Buffer, width: number) {
-    return await sharp(buffer)
+    return await sharp(buffer, { limitInputPixels: maxImageInputPixels })
         .resize({ width, withoutEnlargement: true })
         .toFormat('avif')
         .avif(avifConvertionOptions)
@@ -42,24 +43,58 @@ type VariantFile = Awaited<ReturnType<typeof createResizedAvifInStore>>
 type LargerTier = 'small' | 'medium' | 'large' | 'huge'
 
 export async function createRasterVariants(buffer: Buffer) {
-    const { width: sourceWidth = imageSizes.huge } = await sharp(buffer).metadata()
+    const { width: sourceWidth = imageSizes.huge } = await sharp(buffer, { limitInputPixels: maxImageInputPixels })
+        .metadata()
 
-    const tinyWidth = Math.min(imageSizes.tiny, sourceWidth)
-    const tiny = await createResizedAvifInStore(buffer, tinyWidth)
-
-    const microWidth = Math.min(imageSizes.micro, sourceWidth)
-    const micro = microWidth === tinyWidth ? undefined : await createResizedAvifInStore(buffer, microWidth)
-
-    let lastWidth = tinyWidth
-    const rest: Partial<Record<LargerTier, VariantFile>> = {}
-    for (const tier of ['small', 'medium', 'large', 'huge'] as const) {
-        const targetWidth = Math.min(imageSizes[tier], sourceWidth)
-        if (targetWidth === lastWidth) continue
-        rest[tier] = await createResizedAvifInStore(buffer, targetWidth)
-        lastWidth = targetWidth
+    // Every variant written so far, so a failure part way through removes them rather than leaving
+    // files behind that no row points at.
+    const written: string[] = []
+    async function createVariant(width: number) {
+        const variant = await createResizedAvifInStore(buffer, width)
+        written.push(variant.fsLocation)
+        return variant
     }
 
-    return { micro, tiny, ...rest }
+    try {
+        const tinyWidth = Math.min(imageSizes.tiny, sourceWidth)
+        const tiny = await createVariant(tinyWidth)
+
+        const microWidth = Math.min(imageSizes.micro, sourceWidth)
+        const micro = microWidth === tinyWidth ? undefined : await createVariant(microWidth)
+
+        let lastWidth = tinyWidth
+        const rest: Partial<Record<LargerTier, VariantFile>> = {}
+        for (const tier of ['small', 'medium', 'large', 'huge'] as const) {
+            const targetWidth = Math.min(imageSizes[tier], sourceWidth)
+            if (targetWidth === lastWidth) continue
+            rest[tier] = await createVariant(targetWidth)
+            lastWidth = targetWidth
+        }
+
+        return { micro, tiny, ...rest }
+    } catch (error) {
+        await destroyStoredFiles(written, 'failed variant processing')
+        throw error
+    }
+}
+
+/**
+ * The blur placeholder of a raster image, as an inline data url. Decoding the image to make it is also
+ * the check that the file is an image sharp can read, within the pixel limit, so it is made before the
+ * original is stored.
+ */
+export async function placeholderDataUrlOf(buffer: Buffer): Promise<string> {
+    try {
+        const { data } = await resizeToAvifBuffer(buffer, imageSizes.placeholder)
+        return `data:image/avif;base64,${data.toString('base64')}`
+    } catch {
+        throw new ServiceError('BAD PARAMETERS', [{
+            path: ['file'],
+            message: `Bildet kunne ikke leses. Det kan være skadet, i et format som ikke støttes, eller større enn ${
+                maxImageInputPixels / 1_000_000
+            } megapiksler.`,
+        }])
+    }
 }
 
 /**

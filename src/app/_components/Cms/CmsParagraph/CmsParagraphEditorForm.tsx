@@ -28,6 +28,10 @@ const DynamicSimpleMDEditor = dynamic(
  */
 const editorOptions: EditorOptions = {
     renderingConfig: { sanitizerFunction: sanitizeHtml },
+    // Both load from third-party CDNs, which the content security policy refuses. The toolbar that
+    // uses the icons is hidden (CustomEditorClasses.scss), and the dictionary is English.
+    autoDownloadFontAwesome: false,
+    spellChecker: false,
 }
 
 type PropTypes = {
