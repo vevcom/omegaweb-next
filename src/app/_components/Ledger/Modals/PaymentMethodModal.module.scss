@@ -1,6 +1,0 @@
-@use "@/styles/ohma";
-
-.bankCardFormContainer {
-    width: min(500px, 90vw);
-    margin: calc(3 * #{ohma.$gap});
-}

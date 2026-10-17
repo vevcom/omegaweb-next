@@ -1,7 +1,0 @@
-@use '@/styles/ohma';
-
-.explanation {
-    color: ohma.$colors-text-muted;
-    max-width: 70ch;
-    margin-bottom: calc(2 * #{ohma.$gap});
-}

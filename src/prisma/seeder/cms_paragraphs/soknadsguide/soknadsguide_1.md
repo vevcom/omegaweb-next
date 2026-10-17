@@ -1,2 +1,0 @@
-# Søknadsguide
-Hei. Søk

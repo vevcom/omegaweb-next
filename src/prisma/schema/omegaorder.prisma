@@ -1,9 +1,0 @@
-model OmegaOrder {
-  order     Int      @id
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  memberships                Membership[]
-  groups                     Group[]
-  VisibilityRequirementGroup VisibilityRequirementGroup[]
-}

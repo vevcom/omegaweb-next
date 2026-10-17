@@ -1,8 +1,0 @@
-model OmegaQuote {
-  id           Int      @id @default(autoincrement())
-  author       String
-  quote        String
-  timestamp    DateTime @default(now())
-  userPoster   User     @relation(fields: [userPosterId], references: [id])
-  userPosterId Int
-}

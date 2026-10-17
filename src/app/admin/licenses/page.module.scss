@@ -1,8 +1,0 @@
-@use '@/styles/ohma';
-
-.wrapper {
-    padding: 1em;
-    .licenses {
-        @include ohma.table;
-    }
-}
