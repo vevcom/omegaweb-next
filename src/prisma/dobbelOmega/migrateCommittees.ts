@@ -2,6 +2,7 @@ import { owIdToPnId } from './IdMapper'
 import { createProgressBar } from './progressBar'
 import { createCmsParagraph } from './createCmsParagraph'
 import { migratedOrder } from './migratedOrder'
+import manifest from './manifest'
 import logger from '@/lib/logger'
 import { readFile } from 'fs/promises'
 import { dirname, join } from 'path'
@@ -16,15 +17,31 @@ const fileName = fileURLToPath(import.meta.url)
 const directoryName = dirname(fileName)
 
 /**
+ * Committees that are not migrated at all, by name or short name (trimmed, any case). Neither the
+ * committee nor any of its memberships, current or former, come over, and the manifest lists each
+ * one skipped. Later steps that point at a skipped committee (committee-only news, a locker held by
+ * it, a drain account of it) treat it as a committee without a group.
+ */
+const COMMITTEES_NOT_MIGRATED = ['?']
+
+/**
  * Omegaweb-basic records every membership of Omegarevyen one order too high, so each is brought
  * one order down on the way over - before the committee's own order is read off them.
  */
 const COMMITTEE_WITH_ORDERS_ONE_TOO_HIGH = 'omegarevyen'
 
-function orderShiftOf(committee: { name: string, shortname: string }): number {
-    const isShifted = [committee.name, committee.shortname]
-        .some(name => name.trim().toLowerCase() === COMMITTEE_WITH_ORDERS_ONE_TOO_HIGH)
-    return isShifted ? -1 : 0
+type OwCommitteeNames = { name: string, shortname: string }
+
+function isCommitteeNamed(committee: OwCommitteeNames, name: string): boolean {
+    return [committee.name, committee.shortname].some(committeeName => committeeName.trim().toLowerCase() === name)
+}
+
+function orderShiftOf(committee: OwCommitteeNames): number {
+    return isCommitteeNamed(committee, COMMITTEE_WITH_ORDERS_ONE_TOO_HIGH) ? -1 : 0
+}
+
+function isNotMigrated(committee: OwCommitteeNames): boolean {
+    return COMMITTEES_NOT_MIGRATED.some(name => isCommitteeNamed(committee, name.trim().toLowerCase()))
 }
 
 async function readCommitteMarkdown(filename: string): Promise<string> {
@@ -78,9 +95,19 @@ export default async function migrateCommittees(
         orderBy: { order: 'desc' },
     })
 
-    const bar = createProgressBar('Migrating committees', committees.length)
-    const committeeGroupIdMap: IdMapper = []
-    await Promise.all(committees.map(async committee => {
+    // A skipped committee still gets an entry, mapped to no group, so that looking it up later reads
+    // as left out on purpose rather than as a committee that went missing.
+    const committeeGroupIdMap: IdMapper = committees.filter(isNotMigrated).map(committee => {
+        manifest.info(
+            `Committee "${committee.name}" (${committee.shortname}) is in COMMITTEES_NOT_MIGRATED: skipped with its ` +
+            `${committee.CommitteeMembers.length} current and ${committee.CommitteeMembersHist.length} former memberships.`
+        )
+        return { owId: committee.id, pnId: null }
+    })
+    const committeesToMigrate = committees.filter(committee => !isNotMigrated(committee))
+
+    const bar = createProgressBar('Migrating committees', committeesToMigrate.length)
+    await Promise.all(committeesToMigrate.map(async committee => {
         // Omegaweb-basic's inactive committees are what we now call pensioned.
         const pensioned = !committee.active
         const committeeParagraph = await createCmsParagraph(
