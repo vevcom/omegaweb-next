@@ -4,3 +4,4 @@ import { makeAction } from '@/services/serverAction'
 
 export const createLockerReservationAction = makeAction(lockerReservationOperations.create)
 export const updateLockerReservationAction = makeAction(lockerReservationOperations.update)
+export const deactivateLockerReservationAction = makeAction(lockerReservationOperations.deactivate)

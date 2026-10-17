@@ -44,3 +44,7 @@
         margin: 0;
     }
 }
+
+.deactivate {
+    margin-top: calc(2 * #{ohma.$gap});
+}

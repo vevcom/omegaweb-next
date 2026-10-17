@@ -4,9 +4,12 @@ import CreateLockerReservationForm from './CreateLockerReservationForm'
 import UpdateLockerReservationForm from './UpdateLockerReservationForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import BackLink from '@/components/HeaderItems/BackLink'
+import Form from '@/components/Form/Form'
 import { lockerOperations } from '@/services/lockers/operations'
 import { groupOperations } from '@/services/groups/operations'
 import { lockerReservationAuth } from '@/services/lockers/reservations/auth'
+import { deactivateLockerReservationAction } from '@/services/lockers/reservations/actions'
+import { configureAction } from '@/services/configureAction'
 import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
 import { displayDate } from '@/lib/dates/displayDate'
@@ -57,6 +60,9 @@ const { page, generateMetadata } = serverPage({
         canUpdateReservation: data.locker?.LockerReservation.length
             ? lockerReservationAuth.update.data({ userId: data.locker.LockerReservation[0].user.id, groupId: null })
             : Require.custom(() => false, { errorMessage: 'Skapet er ikke reservert.' }),
+        canDeactivateReservation: data.locker?.LockerReservation.length
+            ? lockerReservationAuth.deactivate.data({ userId: data.locker.LockerReservation[0].user.id })
+            : Require.custom(() => false, { errorMessage: 'Skapet er ikke reservert.' }),
     }),
     metadata: (data) => ({ title: data.locker ? `Skap ${data.lockerId}` : 'Skap' }),
     render: ({ data, capabilities }) => {
@@ -94,6 +100,22 @@ const { page, generateMetadata } = serverPage({
                             </dl>
                         ) : (
                             <p className={styles.free}>Skapet er ledig</p>
+                        )}
+                        {reservation && capabilities.canDeactivateReservation.authorized && (
+                            <Form
+                                className={styles.deactivate}
+                                submitText="Frigi skapet"
+                                submitColor="red"
+                                refreshOnSuccess
+                                action={configureAction(deactivateLockerReservationAction, {
+                                    params: { id: reservation.id },
+                                })}
+                                confirmation={{
+                                    confirm: true,
+                                    text: `Er du sikker på at du vil frigi skap ${lockerId}? ` +
+                                        'Reservasjonen avsluttes nå, og skapet blir ledig for andre.',
+                                }}
+                            />
                         )}
                     </section>
 
