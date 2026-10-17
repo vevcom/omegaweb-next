@@ -14,7 +14,15 @@ export type ExpandedLedgerTransaction = Prisma.LedgerTransactionGetPayload<{
             },
         },
         booking: {
-            include: {
+            // Never secret, notes, tenantNotes, userId or guestUserId here - read broadly by any
+            // party to either side of the transaction, per ledgerTransactionAuth.read, not just
+            // the booker. secret in particular authorizes releasing/paying for the booking itself.
+            select: {
+                start: true,
+                end: true,
+                numberOfMembers: true,
+                numberOfNonMembers: true,
+                totalPrice: true,
                 event: { select: { name: true } },
             },
         },

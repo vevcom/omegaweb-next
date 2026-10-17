@@ -13,6 +13,10 @@ export const ledgerTransactionAuth = {
 
     readPage: ownsEveryAccount,
 
+    // Admin-only: lists transactions needing a human to look at them, across every account, not
+    // just ones the caller is a party to.
+    readNeedingAttention: Require.permission('LEDGER_ADMIN'),
+
     // A system recomputation step, not meant to be called directly by a user. Its real callers
     // (create below, and the Stripe webhook) always pass bypassAuth. LEDGER_ADMIN here is a
     // safety net for any other caller.
@@ -38,7 +42,9 @@ export const ledgerTransactionAuth = {
         return Require.permission('LEDGER_USE').allOf(ownsEveryAccount.data({ accounts: debitAccounts }))
     },
 
-    // Being party to one side of the transaction is enough to cancel a stale attempt on it - same
-    // bar as read.
+    // Only the debited side (whose money is actually at stake) may cancel a stale attempt, not
+    // just any party to it - the credited side (e.g. the committee an event payment is going to)
+    // has no business canceling the payer's own attempt. Narrower than read: resolveTransactionAccounts
+    // is called with debitedOnly for this one.
     cancel: partyToAnyAccount,
 } as const

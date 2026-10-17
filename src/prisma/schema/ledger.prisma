@@ -83,6 +83,10 @@ model LedgerTransaction {
   state       LedgerTransactionState
   reason      String? // If the transaction failed, this is the reason why.
   description String? // Manual comment describing what the transaction was for, e.g. "Kjøp av kiogeskapsvarer".
+  // Set when something outside this transaction's own state machine needs a human to look at it,
+  // e.g. a Stripe dispute or an external refund on an already-SUCCEEDED transaction. Null means
+  // nothing is flagged. See ledgerTransactionOperations.readNeedingAttention.
+  needsManualReview String?
 
   ledgerEntries LedgerEntry[]
   payment       Payment? @relation("PaymentUsage", fields: [paymentId], references: [id])

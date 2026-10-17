@@ -1,0 +1,8 @@
+@use '@/styles/ohma';
+
+.wrapper {
+    padding: 1em;
+    .transactions {
+        @include ohma.table;
+    }
+}

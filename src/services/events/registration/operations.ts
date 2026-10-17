@@ -423,7 +423,7 @@ export const eventRegistrationOperations = {
         paramsSchema: eventRegistrationSchemas.params.createPayment,
         authorizer: ({ params }) => eventRegistrationAuth.createPayment.data({ userId: params.userId }),
         opensTransaction: true,
-        operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
+        operation: async ({ prisma, params, session }): Promise<{ payment: ExpandedPayment | null }> => {
             const registration = await prisma.eventRegistration.findUnique({
                 where: {
                     eventId_userId: {
@@ -489,14 +489,23 @@ export const eventRegistrationOperations = {
                     throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
                 }
                 if (existingAttempt) {
+                    // The registrant acting on their own registration may always clear a stuck
+                    // attempt and retry immediately, whether they started it themselves or an
+                    // EVENT_ADMIN parked it on their behalf (createPayment's auth lets an admin
+                    // call this for someone else's userId too) - otherwise that admin-started
+                    // attempt would block the real registrant from paying for up to 30 minutes.
+                    // Anyone who isn't the registrant (i.e. an admin acting on someone else's
+                    // registration) still has to wait out the staleness window as before.
+                    const isRegistrant = session.user?.id === params.userId
                     const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
-                    if (!isStale) {
+                    if (!isRegistrant && !isStale) {
                         throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.')
                     }
-                    // Stale (likely abandoned) attempt - cancel it (also cancels any Stripe payment
-                    // intent, so a late webhook for it can never complete) and let this one proceed.
-                    // Bypassed: the outer authorizer already established this caller may pay for
-                    // this registration, which is the right bar for canceling a stale attempt on it.
+                    // Stale, or the registrant themselves clearing an attempt - cancel it (also
+                    // cancels any Stripe payment intent, so a late webhook for it can never
+                    // complete) and let this one proceed. Bypassed: the outer authorizer already
+                    // established this caller may pay for this registration, which is the right
+                    // bar for canceling an attempt on it too.
                     await ledgerTransactionOperations.cancel({
                         params: { id: existingAttempt.id },
                         bypassAuth: true,

@@ -264,6 +264,26 @@ viewer, not shift with their device's zone. The one sanctioned exception is nati
 All three are enforced by ESLint at `error` severity (`eslint.config.ts`). See the wiki's
 "Dates and Timezones" page for the full rationale.
 
+### Concurrency
+
+Pick the simplest mechanism that satisfies the requirement, from the top of this list down - never
+reach for a stronger one "just in case" once a simpler one already works.
+
+| Requirement | Mechanism |
+|---|---|
+| An invariant the database can enforce directly (uniqueness, a foreign key, a `CHECK`) | A database constraint, not application logic |
+| A single read-modify-write that can be expressed as one statement | An atomic SQL statement, not a separate read then write |
+| Protecting specific existing rows for the rest of a transaction | A row lock (`SELECT ... FOR UPDATE`) |
+| Coordinating work or a logical resource with no row to lock | An advisory lock (`takeAdvisoryLock`/`takeAdvisoryLockOnId`, `src/lib/advisoryLocks.ts`) |
+| Correctness depends on the relationship between several reads and writes, not just on protecting individual rows | A stronger isolation level (`SERIALIZABLE`), possibly alongside row locks |
+| Keeping two related writes consistent with each other | One database transaction, with the right constraints |
+
+- Keep transactions short: locks are held until the transaction ends, and a long transaction increases
+  contention for everyone else.
+- Retry correctly: handle a serialization failure (Postgres `40001`) or a deadlock (`40P01`) by
+  retrying the whole transaction where that is the right response, not by surfacing it as a user error.
+- Acquire multiple locks in a consistent order (e.g. ascending id) to avoid deadlocks.
+
 ### Error Handling
 
 - Service operations use custom error classes from `src/services/error.ts`
