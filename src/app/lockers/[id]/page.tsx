@@ -3,11 +3,13 @@ import LockerNotFound from './LockerNotFound'
 import CreateLockerReservationForm from './CreateLockerReservationForm'
 import UpdateLockerReservationForm from './UpdateLockerReservationForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import BackLink from '@/components/HeaderItems/BackLink'
 import { lockerOperations } from '@/services/lockers/operations'
 import { groupOperations } from '@/services/groups/operations'
 import { lockerReservationAuth } from '@/services/lockers/reservations/auth'
 import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
+import { displayDate } from '@/lib/dates/displayDate'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/serverPage'
 import type { PageOperationArgs } from '@/app/serverPage'
@@ -56,67 +58,67 @@ const { page, generateMetadata } = serverPage({
             ? lockerReservationAuth.update.data({ userId: data.locker.LockerReservation[0].user.id, groupId: null })
             : Require.custom(() => false, { errorMessage: 'Skapet er ikke reservert.' }),
     }),
-    metadata: () => ({ title: 'Skapreservasjon' }),
+    metadata: (data) => ({ title: data.locker ? `Skap ${data.lockerId}` : 'Skap' }),
     render: ({ data, capabilities }) => {
+        const header = <BackLink href="/lockers" label="Alle skap" />
+
         if (!data.locker) {
-            return <LockerNotFound />
+            return (
+                <PageWrapper headerItem={header}>
+                    <div className={styles.locker}>
+                        <LockerNotFound />
+                    </div>
+                </PageWrapper>
+            )
         }
         const { lockerId, locker, groupsFormData, user } = data
-
-        const isReserved = locker.LockerReservation.length > 0
-        const reservation = locker.LockerReservation[0]
-        const groupName = (isReserved && reservation.group)
-            ? inferGroupName(assertGroupValidity(reservation.group))
-            : ''
-
-        const { firstname, lastname } = isReserved
-            ? reservation.user
-            : { firstname: '', lastname: '' }
-        const groupText = isReserved && reservation.group
-            ? `på vegne av ${groupName}`
-            : ''
-        let endDateText = ''
-        if (isReserved) {
-            if (reservation.endDate === null) {
-                endDateText = 'på ubestemt tid'
-            } else {
-                endDateText = `fram til ${reservation.endDate.toLocaleDateString()}`
-            }
-        }
+        const reservation = locker.LockerReservation.at(0)
+        const groupName = reservation?.group ? inferGroupName(assertGroupValidity(reservation.group)) : null
 
         return (
-            <PageWrapper>
-                <div className={styles.lockerCard}>
-                    <h2>Skap nr. {lockerId}</h2>
-                    <p>{locker.building} {locker.floor}. etasje</p>
-                    {
-                        isReserved
-                            ?
-                            <>
-                                <p>Dette skapet er reservert av {firstname} {lastname} {groupText} {endDateText}</p>
-                                {
-                                    capabilities.canUpdateReservation.authorized
-                                        ?
-                                        <UpdateLockerReservationForm
-                                            reservationId={reservation.id}
-                                            groupsFormData={groupsFormData}
-                                        />
-                                        :
-                                        <></>
-                                }
-                            </>
-                            :
-                            <>
-                                <p>Dette skapet er ledig</p>
-                                {capabilities.canCreateReservation.authorized && (
-                                    <CreateLockerReservationForm
-                                        lockerId={lockerId}
-                                        userId={user.id}
-                                        groupsFormData={groupsFormData}
-                                    />
-                                )}
-                            </>
-                    }
+            <PageWrapper headerItem={header}>
+                <div className={styles.locker}>
+                    <section className={styles.card}>
+                        <h2>Skap {lockerId}</h2>
+                        <p className={styles.location}>{locker.building}, {locker.floor}. etasje</p>
+                        {reservation ? (
+                            <dl className={styles.reservation}>
+                                <dt>Reservert av</dt>
+                                <dd>{reservation.user.firstname} {reservation.user.lastname}</dd>
+                                {groupName && <>
+                                    <dt>På vegne av</dt>
+                                    <dd>{groupName}</dd>
+                                </>}
+                                <dt>Til</dt>
+                                <dd>{reservation.endDate ? displayDate(reservation.endDate, false) : 'Ubestemt tid'}</dd>
+                            </dl>
+                        ) : (
+                            <p className={styles.free}>Skapet er ledig</p>
+                        )}
+                    </section>
+
+                    {reservation
+                        ? capabilities.canUpdateReservation.authorized && (
+                            <section className={styles.card}>
+                                <UpdateLockerReservationForm
+                                    reservation={{
+                                        id: reservation.id,
+                                        groupId: reservation.group?.id ?? null,
+                                        endDate: reservation.endDate,
+                                    }}
+                                    groupsFormData={groupsFormData}
+                                />
+                            </section>
+                        )
+                        : capabilities.canCreateReservation.authorized && (
+                            <section className={styles.card}>
+                                <CreateLockerReservationForm
+                                    lockerId={lockerId}
+                                    userId={user.id}
+                                    groupsFormData={groupsFormData}
+                                />
+                            </section>
+                        )}
                 </div>
             </PageWrapper>
         )

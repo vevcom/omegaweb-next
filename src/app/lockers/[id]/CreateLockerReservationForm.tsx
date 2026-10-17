@@ -5,8 +5,7 @@ import DateInput from '@/components/UI/DateInput'
 import Checkbox from '@/components/UI/Checkbox'
 import { createLockerReservationAction } from '@/services/lockers/reservations/actions'
 import { configureAction } from '@/services/configureAction'
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 type PropTypes = {
     lockerId: number
@@ -17,35 +16,28 @@ type PropTypes = {
     }[]
 }
 
-export default function LockerReservationForm({ lockerId, userId, groupsFormData }: PropTypes) {
-    const { refresh } = useRouter()
+export default function CreateLockerReservationForm({ lockerId, userId, groupsFormData }: PropTypes) {
     const [indefiniteDate, setIndefiniteDate] = useState(false)
-    const [groupId, setGroupId] = useState('null')
-
-    function handleGroupIdChange(value: string) {
-        setGroupId(value)
-    }
 
     return (
         <Form
-            successCallback={refresh}
-            title="Reserver skap"
+            refreshOnSuccess
+            title="Reserver skapet"
             submitText="Reserver"
             action={configureAction(createLockerReservationAction, { params: { lockerId, userId } })}
         >
             <SelectString
                 label="Reserver for"
                 name="groupId"
-                value={groupId}
-                options={ [{ value: 'null', label: 'Meg selv' }, ...groupsFormData] }
-                onChange={handleGroupIdChange}
+                defaultValue="null"
+                options={[{ value: 'null', label: 'Meg selv' }, ...groupsFormData]}
             />
             <Checkbox
                 label="Reserver på ubestemt tid"
                 name="indefiniteDate"
                 onChange={() => setIndefiniteDate(!indefiniteDate)}
             />
-            { !indefiniteDate && <DateInput label="Reserver fram til" name="endDate"/> }
+            {!indefiniteDate && <DateInput label="Reserver fram til" name="endDate" />}
         </Form>
     )
 }

@@ -1,6 +1,7 @@
+import styles from './page.module.scss'
 import LockerIdForm from './LockerIdForm'
 import LockerList from './LockerList'
-import QRButton from './QRButton'
+import LockerScanner from './LockerScanner'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { LockerPagingProvider } from '@/contexts/paging/LockerPaging'
 import { lockerAuth } from '@/services/lockers/auth'
@@ -14,12 +15,12 @@ const { page, generateMetadata } = serverPage({
     },
     metadata: () => ({ title: 'Skap' }),
     render: () => (
-        <PageWrapper>
-            <LockerIdForm />
-            <br/>
-            <QRButton />
-
-            <h2>Skapliste</h2>
+        <PageWrapper headerItem={
+            <div className={styles.header}>
+                <LockerIdForm />
+                <LockerScanner />
+            </div>
+        }>
             <LockerPagingProvider
                 startPage={{
                     pageSize: 20,

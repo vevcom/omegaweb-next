@@ -1,13 +1,46 @@
 @use '@/styles/ohma';
 
-.lockerCard {
-    margin:3em 1em;
-    padding: 1em 2em;
-    justify-content: center;
-    @include ohma.layer();
-    align-items: center;
-    max-width: 500px;
-    filter: drop-shadow(5px 15px 5px rgba(0, 0, 0, 0.3));
-    border: 1px solid ohma.$colors-surface-subtle;
-    border-radius: 10px;
+.locker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: calc(2 * #{ohma.$gap});
+    margin: calc(2 * #{ohma.$gap}) 0;
+}
+
+.card {
+    flex: 1 1 320px;
+    max-width: 480px;
+    padding: calc(2 * #{ohma.$gap}) calc(3 * #{ohma.$gap});
+    border-radius: ohma.$rounding;
+    background-color: ohma.$colors-surface-raised;
+    box-shadow: ohma.$colors-boxShadow 0 1px 3px, ohma.$colors-boxShadow 0 1px 2px;
+
+    > h2 {
+        margin-bottom: 0;
+    }
+}
+
+.location {
+    color: ohma.$colors-text-muted;
+    margin-bottom: calc(2 * #{ohma.$gap});
+}
+
+.free {
+    color: ohma.$colors-accent-green;
+    font-weight: ohma.$fonts-weight-m;
+}
+
+.reservation {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: ohma.$gap calc(2 * #{ohma.$gap});
+
+    > dt {
+        color: ohma.$colors-text-muted;
+    }
+
+    > dd {
+        margin: 0;
+    }
 }
