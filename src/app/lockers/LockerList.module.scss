@@ -1,34 +1,77 @@
 @use '@/styles/ohma';
 
+.LockerList {
+    width: 100%;
+    margin: calc(2 * #{ohma.$gap}) 0;
+    border-radius: ohma.$rounding;
+    overflow: hidden;
+    box-shadow: ohma.$colors-boxShadow 0 1px 3px, ohma.$colors-boxShadow 0 1px 2px;
+    font-size: ohma.$fonts-m;
+}
 
-.lockerList {
+.row {
+    display: flex;
+    align-items: center;
+    gap: ohma.$gap;
     background-color: ohma.$colors-surface-raised;
-    filter: drop-shadow(5px 15px 5px rgba(0, 0, 0, 0.3));
-    border: 1px solid ohma.$colors-surface-subtle;
-    border-radius: 10px;
-    padding: 1em;
-}
+    padding: calc(1.5 * #{ohma.$gap}) calc(2 * #{ohma.$gap});
+    color: inherit;
+    text-decoration: none;
+    transition: background-color ohma.$transitionTime;
 
-.lockerListHeader {
-    display: grid;
-    border-bottom: 2px solid ohma.$colors-surface-subtle;
-    grid-template-columns: repeat(6, 1fr);
-    
-    @media (max-width: 600px) {
-        grid-template-columns: repeat(5, 1fr);
-        .hideFirst {
-            display: none;
-        }
-    }
-
-    @media (max-width: 500px) {
-        grid-template-columns: repeat(4, 1fr);
-        .hideSecond {
-            display: none;
-        }
+    > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }
 
-.lockerListHeader h3 {
-    padding: 1rem;
+.headerRow {
+    color: ohma.$colors-ink-strong;
+    font-weight: ohma.$fonts-weight-m;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+
+    > a:nth-child(even) {
+        background-color: color-mix(in srgb, ohma.$colors-surface-raised, white 3%);
+    }
+
+    > a:hover {
+        background-color: ohma.$colors-surface-hover;
+        text-decoration: none;
+    }
+}
+
+.free .colUser {
+    color: ohma.$colors-text-muted;
+}
+
+.colId {
+    flex: 0 0 calc(7 * #{ohma.$gap});
+}
+
+.colLocation {
+    flex: 1 1 0;
+}
+
+.colUser {
+    flex: 1 1 0;
+}
+
+.colGroup {
+    flex: 1 1 0;
+}
+
+.colEnd {
+    flex: 0 0 calc(14 * #{ohma.$gap});
+}
+
+@include ohma.screenMobile {
+    .colGroup, .colEnd {
+        display: none;
+    }
 }
