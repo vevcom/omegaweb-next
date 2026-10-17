@@ -68,7 +68,7 @@ const payerSessionOf = (user: UserFiltered) => Session.fromJsObject({
     memberships: sessionOf(user).memberships,
 })
 
-async function createPaidEvent({ hostedByCommitteeId }: { hostedByCommitteeId?: number } = {}) {
+async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number } = {}) {
     const now = new Date()
     const event = await eventOperations.create({
         data: {
@@ -85,7 +85,7 @@ async function createPaidEvent({ hostedByCommitteeId }: { hostedByCommitteeId?: 
             price: EVENT_PRICE_KRONER,
             paymentStart: new Date(now.getTime() - HOUR),
             paymentEnd: new Date(now.getTime() + 24 * HOUR),
-            hostedByCommitteeId,
+            hostedByCommitteeId: committeeId,
             tagIds: [],
             visibilityRegularRequirements: [
                 { conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] },
@@ -97,6 +97,9 @@ async function createPaidEvent({ hostedByCommitteeId }: { hostedByCommitteeId?: 
         bypassAuth: true,
     })
     await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
+    if (ledgerAccountId) {
+        await eventOperations.connectToLedger({ params: { id: event.id }, data: { ledgerAccountId }, bypassAuth: true })
+    }
     return event.id
 }
 
@@ -133,8 +136,8 @@ beforeAll(async () => {
 })
 
 describe('paying for an event', () => {
-    test('an event with no hosting committee refuses payment', async () => {
-        const payer = await createPayer('eventpaynocommittee')
+    test('an event linked to no account refuses payment', async () => {
+        const payer = await createPayer('eventpaynoaccount')
         const eventId = await createPaidEvent()
         await eventRegistrationOperations.create({
             params: { userId: payer.id, eventId },
@@ -147,9 +150,21 @@ describe('paying for an event', () => {
         })).rejects.toThrow(new Smorekopp('SERVER ERROR'))
     })
 
-    test('an event with a hosting committee credits that committee on payment', async () => {
-        const payer = await createPayer('eventpaywithcommittee')
-        const eventId = await createPaidEvent({ hostedByCommitteeId: committeeId })
+    test('an event may only be linked to a group account', async () => {
+        const payer = await createPayer('eventpayuseraccount')
+        const eventId = await createPaidEvent()
+        const userAccount = await ledgerAccountOperations.read({ params: { userId: payer.id }, bypassAuth: true })
+
+        await expect(eventOperations.connectToLedger({
+            params: { id: eventId },
+            data: { ledgerAccountId: userAccount.id },
+            bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+    })
+
+    test('an event credits the account it is linked to on payment', async () => {
+        const payer = await createPayer('eventpaywithaccount')
+        const eventId = await createPaidEvent({ ledgerAccountId: committeeAccountId })
         await eventRegistrationOperations.create({
             params: { userId: payer.id, eventId },
             session: sessionOf(payer),

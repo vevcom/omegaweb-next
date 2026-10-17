@@ -45,6 +45,7 @@ model LedgerAccount {
 
   ledgerEntries LedgerEntry[]
   shop          Shop?
+  events        Event[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

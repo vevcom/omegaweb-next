@@ -14,6 +14,7 @@ import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
+import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import {
     assertAdminLevelIsSubOfRegularLevel,
     implementDoubleLevelVisibilityOperations,
@@ -95,6 +96,8 @@ const read = defineOperation({
                         tag: true
                     }
                 },
+                hostedByCommittee: { select: { id: true, name: true, shortName: true } },
+                ledgerAccount: { select: { id: true, name: true } },
                 _count: {
                     select: {
                         eventRegistrations: true,
@@ -367,6 +370,35 @@ export const eventOperations = {
 
             return eventUpdate
         }
+    }),
+
+    /**
+     * Links an event to the GROUP ledger account its registrations are paid into, replacing any
+     * earlier link.
+     * @param params.id - The event to link
+     * @param data.ledgerAccountId - The account to credit
+     */
+    connectToLedger: defineOperation({
+        paramsSchema: eventSchemas.params.connectToLedger,
+        dataSchema: eventSchemas.data.connectToLedger,
+        authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedger.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
+        }),
+        operation: async ({ prisma, params, data }) => {
+            const account = await prisma.ledgerAccount.findUniqueOrThrow({
+                where: { id: data.ledgerAccountId },
+                select: { type: true },
+            })
+            if (account.type !== 'GROUP') {
+                throw new ServiceError('BAD PARAMETERS', 'Et arrangement kan bare knyttes til en gruppekonto.')
+            }
+
+            return await prisma.event.update({
+                where: { id: params.id },
+                data: { ledgerAccountId: data.ledgerAccountId },
+            })
+        },
     }),
 
     updateCmsCoverImage: cmsImageOperations.update.implement({

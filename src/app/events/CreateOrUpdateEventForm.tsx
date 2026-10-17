@@ -2,7 +2,7 @@
 import styles from './CreateOrUpdateEventForm.module.scss'
 import EventLocationInput from './EventLocationInput'
 import Checkbox from '@/components/UI/Checkbox'
-import { SelectString, SelectNumber } from '@/components/UI/Select'
+import { SelectString, SelectNumberPossibleNULL } from '@/components/UI/Select'
 import DateInput from '@/components/UI/DateInput'
 import Slider from '@/components/UI/Slider'
 import NumberInput from '@/components/UI/NumberInput'
@@ -138,11 +138,14 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         min={0}
                         defaultValue={event?.price ? event.price / 100 : undefined}
                     />
-                    <SelectNumber
-                        label="Komité pengene går til (kun nødvendig for betalte arrangementer)"
+                    <SelectNumberPossibleNULL
+                        label="Arrangeres av"
                         name="hostedByCommitteeId"
-                        options={committees.map(committee => ({ value: committee.id, label: committee.name }))}
-                        defaultValue={event?.hostedByCommitteeId ?? undefined}
+                        options={[
+                            { value: 'NULL', label: 'Ingen komité' },
+                            ...committees.map(committee => ({ value: committee.id, label: committee.name })),
+                        ]}
+                        defaultValue={event?.hostedByCommitteeId ?? 'NULL'}
                     />
                     <DateInput
                         label="Registrering Start"

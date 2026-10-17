@@ -407,13 +407,7 @@ export const eventRegistrationOperations = {
                         userId: params.userId,
                     },
                 },
-                include: {
-                    event: {
-                        include: {
-                            hostedByCommittee: true,
-                        },
-                    },
-                },
+                include: { event: true },
             })
 
             if (!registration) {
@@ -431,18 +425,9 @@ export const eventRegistrationOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
             }
 
-            if (!event.hostedByCommittee) {
-                throw new Smorekopp('SERVER ERROR', 'Arrangementet har ingen tilknyttet komité å betale til.')
-            }
-
-            // Crediting the destination account needs no ownership over it, only reading it -
-            // bypassed since the payer (our caller) is neither its owner nor LEDGER_ADMIN.
-            const [destinationAccount] = await ledgerAccountOperations.readMany({
-                params: { groupIds: [event.hostedByCommittee.groupId] },
-                bypassAuth: true,
-            })
-            if (!destinationAccount) {
-                throw new Smorekopp('SERVER ERROR', 'Komiteen som arrangerer har ingen tilknyttet konto.')
+            const destinationAccountId = event.ledgerAccountId
+            if (!destinationAccountId) {
+                throw new Smorekopp('SERVER ERROR', 'Arrangementet er ikke knyttet til en konto å betale til.')
             }
 
             const funds = event.price
@@ -516,7 +501,7 @@ export const eventRegistrationOperations = {
                     params: {
                         purpose: 'EVENT_PAYMENT',
                         ledgerEntries: [
-                            { ledgerAccountId: destinationAccount.id, funds },
+                            { ledgerAccountId: destinationAccountId, funds },
                             ...(payerAccount
                                 ? [{ ledgerAccountId: payerAccount.id, funds: -params.amountFromBalance }]
                                 : []),

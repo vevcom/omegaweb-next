@@ -21,6 +21,10 @@ model Event {
   hostedByCommitteeId  Int?         @map("hostedByCommiteeId")
   createdBy            User?        @relation(fields: [createdById], references: [id])
   createdById          Int?
+  // The account a paid event is paid into. Payments fail with a clear error until someone
+  // administrating the event links one.
+  ledgerAccount        LedgerAccount? @relation(fields: [ledgerAccountId], references: [id])
+  ledgerAccountId      Int?
 
   takesRegistration  Boolean
   places             Int                 @default(0)

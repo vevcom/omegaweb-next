@@ -14,9 +14,11 @@ const dataFieldSchemas = z.object({
     eventStart: Zpn.date({ label: 'Starttid' }),
     eventEnd: Zpn.date({ label: 'Sluttid' }),
     canBeViewedBy: z.nativeEnum(EventCanView),
-    // The committee paid events pay into. Required before createPayment will work, but not at
-    // event-creation time, since plenty of events are free and never need one.
-    hostedByCommitteeId: z.coerce.number().int().optional(),
+    // The committee hosting the event, shown on its page. The form sends 'NULL' for none.
+    hostedByCommitteeId: z.literal('NULL').transform(() => null).or(z.coerce.number().int()).optional(),
+    // The account a paid event is paid into. Linked apart from the rest of the event (see
+    // connectToLedger), since linking an account takes access to that account.
+    ledgerAccountId: z.coerce.number().int(),
 
     takesRegistration: Zpn.checkboxOrBoolean({ label: 'Tar påmelding' }),
     places: z.coerce.number().int().optional(),
@@ -104,6 +106,9 @@ export const eventSchemas = {
         setPublished: dataFieldSchemas.pick({
             published: true,
         }),
+        connectToLedger: dataFieldSchemas.pick({
+            ledgerAccountId: true,
+        }),
     },
     params: {
         visibility: eventId,
@@ -127,6 +132,7 @@ export const eventSchemas = {
         update: eventId,
         updateCmsCoverImage: eventImplementationId,
         setPublished: eventId,
+        connectToLedger: eventId,
         destroy: eventId,
         updateParagraphContent: eventImplementationId,
     },

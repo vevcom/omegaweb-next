@@ -1,4 +1,5 @@
 import { Require } from '@/auth/authorizer/Require'
+import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
 import type { EventCanView } from '@/prisma-generated-pn-types'
 
 /**
@@ -52,6 +53,7 @@ export const eventAuth = {
     search: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
 
     update: adminLevel,
+    connectToLedger: Require.allOf(adminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
     setPublished: adminLevel,
     updateCmsCoverImage: adminLevel,
     updateParagraphContent: adminLevel,
