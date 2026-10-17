@@ -403,14 +403,8 @@ export const eventRegistrationOperations = {
             visibility: await eventVisibility(prisma, params.eventId),
         }),
         operation: async ({ prisma, params }): Promise<EventRegistrationNotAttended[]> => {
-            const boundary = await firstOnWaitingList(prisma, params.eventId)
             const registrations = await prisma.eventRegistration.findMany({
-                where: {
-                    eventId: params.eventId,
-                    attendedAt: null,
-                    userId: { not: null },
-                    ...(boundary ? { id: { lt: boundary } } : {}),
-                },
+                where: { ...await notAttendedFilter(prisma, params.eventId), userId: { not: null } },
                 orderBy: eventRegistrationQueueOrder,
                 select: eventRegistrationNotAttendedSelection,
             })
@@ -439,22 +433,26 @@ export const eventRegistrationOperations = {
     }),
 
     /**
-     * Gives everyone in the list a dot of the same value, as `createDot` does for one - meant for
-     * those who did not show up (see `readNotAttended`). The value is capped, since this hands out
-     * dots by the dozen.
+     * Gives everyone in the list a dot of the same value for not showing up to the event, as
+     * `createDot` gives one. Each of them must have held a place and not shown up (see
+     * `readNotAttended`), or none get a dot. The value is capped, since this hands out dots by the dozen.
      */
-    createDotsForMany: dotOperations.internal.createManyInternal.implement({
-        implementationParamsSchema: eventRegistrationSchemas.params.createDotsForMany,
+    createDotsForNonattendingUsers: dotOperations.internal.createManyInternal.implement({
+        implementationParamsSchema: eventRegistrationSchemas.params.createDotsForNonattendingUsers,
         authorizer: async ({ implementationParams, params, prisma }) =>
-            eventRegistrationAuth.createDotsForMany.data({
+            eventRegistrationAuth.createDotsForNonattendingUsers.data({
                 visibility: await eventVisibility(prisma, implementationParams.eventId),
                 userId: params.accuserId,
             }),
         ownershipCheck: async ({ implementationParams, data, prisma }) =>
             await allRegistered(prisma, implementationParams.eventId, data.userIds),
-        beforeRun: ({ data }) => {
+        beforeRun: async ({ implementationParams, data, prisma }) => {
             if (data.value > maxDotsForNotShowingUp) {
                 throw new Smorekopp('BAD DATA', `Kan gi høyst ${maxDotsForNotShowingUp} prikker om gangen.`)
+            }
+            const eventId = implementationParams.eventId
+            if (!await allRegistered(prisma, eventId, data.userIds, await notAttendedFilter(prisma, eventId))) {
+                throw new Smorekopp('BAD DATA', 'Noen av brukerne møtte opp, eller hadde ikke plass på arrangementet.')
             }
         },
         operationImplementationFields: async ({ implementationParams, prisma }) => ({
@@ -780,13 +778,31 @@ async function writeAttendance(
 }
 
 /**
- * Whether every one of the users is registered to the event - what makes a dot for the event
- * theirs to get. Each user registers once per event, so the count of registrations says it.
+ * The registrations on the places of the event that were not shown up to. The waiting list never had
+ * a place to show up to.
  */
-async function allRegistered(prisma: PrismaPossibleTransaction<false>, eventId: number, userIds: number[]) {
+async function notAttendedFilter(
+    prisma: PrismaPossibleTransaction<false>,
+    eventId: number
+): Promise<Prisma.EventRegistrationWhereInput> {
+    const boundary = await firstOnWaitingList(prisma, eventId)
+    return { eventId, attendedAt: null, ...(boundary ? { id: { lt: boundary } } : {}) }
+}
+
+/**
+ * Whether every one of the users is registered to the event - what makes a dot for the event
+ * theirs to get - with a registration matching `where`, when given. Each user registers once per
+ * event, so the count of registrations says it.
+ */
+async function allRegistered(
+    prisma: PrismaPossibleTransaction<false>,
+    eventId: number,
+    userIds: number[],
+    where: Prisma.EventRegistrationWhereInput = {}
+) {
     const uniqueUserIds = Array.from(new Set(userIds))
     const registered = await prisma.eventRegistration.count({
-        where: { eventId, userId: { in: uniqueUserIds } },
+        where: { ...where, eventId, userId: { in: uniqueUserIds } },
     })
     return registered === uniqueUserIds.length
 }

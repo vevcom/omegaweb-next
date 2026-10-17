@@ -86,7 +86,7 @@ export const eventRegistrationSchemas = {
         readAttendanceCounts: eventId,
         readNotAttended: eventId,
         createDot: eventId,
-        createDotsForMany: eventId,
+        createDotsForNonattendingUsers: eventId,
         createPayment: paramsFieldSchemas.pick({
             userId: true,
             eventId: true,
