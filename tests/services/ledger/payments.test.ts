@@ -84,7 +84,10 @@ async function startStripeDeposit(ledgerAccountId: number) {
         params: { ledgerAccountId, provider: 'STRIPE', funds: DEPOSIT },
         bypassAuth: true,
     })
-    const paymentIntentId = transaction.payment?.stripePayment?.paymentIntentId
+    const stripePayment = transaction.payment
+        ? await prisma.stripePayment.findUnique({ where: { paymentId: transaction.payment.id } })
+        : null
+    const paymentIntentId = stripePayment?.paymentIntentId
     if (!paymentIntentId) throw new Error('The deposit was not sent to Stripe.')
 
     return { transactionId: transaction.id, paymentIntentId }
@@ -254,6 +257,52 @@ describe('canceling payments', () => {
             state: 'PENDING',
             payment: { state: 'PROCESSING' },
         })
+    })
+})
+
+describe('canceling a transaction is restricted to its debited side', () => {
+    const sessionOf = (userId: number) => Session.fromJsObject({
+        user: { id: userId } as NonNullable<Parameters<typeof Session.fromJsObject>[0]['user']>,
+        permissions: [],
+        memberships: [],
+    })
+
+    test('the credited side cannot cancel the debited side\'s pending attempt, but the debited side can', async () => {
+        const payer = await createAccount('cancelauthpayer')
+        const receiver = await createAccount('cancelauthreceiver')
+
+        const pending = await prisma.ledgerTransaction.create({
+            data: {
+                purpose: 'CABIN_BOOKING',
+                state: 'PENDING',
+                ledgerEntries: {
+                    create: [
+                        { ledgerAccountId: receiver.id, funds: 50_00 },
+                        { ledgerAccountId: payer.id, funds: -50_00 },
+                    ],
+                },
+            },
+        })
+
+        await expect(ledgerTransactionOperations.cancel({
+            params: { id: pending.id },
+            session: sessionOf(receiver.ownership.userId!),
+        })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+
+        await expect(ledgerTransactionOperations.cancel({
+            params: { id: pending.id },
+            session: sessionOf(payer.ownership.userId!),
+        })).resolves.toMatchObject({ state: 'CANCELED' })
+    })
+
+    test('a depositor may still cancel their own stuck deposit, which has no debited side at all', async () => {
+        const account = await createAccount('cancelauthdepositor')
+        const { transactionId } = await startStripeDeposit(account.id)
+
+        await expect(ledgerTransactionOperations.cancel({
+            params: { id: transactionId },
+            session: sessionOf(account.ownership.userId!),
+        })).resolves.toMatchObject({ state: 'CANCELED' })
     })
 })
 

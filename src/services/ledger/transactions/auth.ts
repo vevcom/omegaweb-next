@@ -38,8 +38,10 @@ export const ledgerTransactionAuth = {
         return Require.permission('LEDGER_USE').allOf(ownsEveryAccount.data({ accounts: debitAccounts }))
     },
 
-    // Being party to one side of the transaction is enough to cancel a stale attempt on it - same
-    // bar as read.
+    // Only the debited side (whose money is actually at stake) may cancel a stale attempt, not
+    // just any party to it - the credited side (e.g. the committee an event payment is going to)
+    // has no business canceling the payer's own attempt. Narrower than read: resolveTransactionAccounts
+    // is called with debitedOnly for this one.
     cancel: partyToAnyAccount,
 
     // Not meant to be called directly by a user - real callers (createPayment/createDeposit)
