@@ -1,6 +1,7 @@
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { stripe } from '@/lib/stripe'
+import logger from '@/lib/logger'
 import { prisma } from '@/prisma-pn-client-instance'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { stripeWebhookCallback } from '@/services/ledger/payments/stripeWebhookCallback'
@@ -342,15 +343,40 @@ describe('the Stripe webhook', () => {
         expect(await balanceOf(account.id)).toEqual({ amount: DEPOSIT, fees: STRIPE_FEE })
     })
 
-    test('a succeeded event delivered twice only credits the account once', async () => {
+    test('a succeeded event delivered twice only credits the account once, with no false alarm', async () => {
         const account = await createAccount('stripeduplicate')
         const { paymentIntentId } = await startStripeDeposit(account.id)
+        const errorSpy = jest.spyOn(logger, 'error')
 
         await stripeWebhookCallback(stripeEvent('payment_intent.succeeded', paymentIntentId))
+        errorSpy.mockClear()
         const response = await stripeWebhookCallback(stripeEvent('payment_intent.succeeded', paymentIntentId))
 
         expect(response.status).toBe(200)
         expect(await balanceOf(account.id)).toEqual({ amount: DEPOSIT, fees: STRIPE_FEE })
+        // The payment is already claimed by the transaction the first delivery advanced - the
+        // second finds no PENDING transaction either, but that's expected for a duplicate
+        // delivery, not an anomaly, so it must not raise a false MANUAL ADMIN ACTION alarm.
+        expect(errorSpy).not.toHaveBeenCalledWith(expect.stringContaining('MANUAL ADMIN ACTION REQUIRED'))
+    })
+
+    test('a payment that is genuinely unclaimed with no pending transaction still raises the alarm', async () => {
+        const account = await createAccount('stripeorphaned')
+        const { transactionId, paymentIntentId } = await startStripeDeposit(account.id)
+        await stripeWebhookCallback(stripeEvent('payment_intent.succeeded', paymentIntentId))
+
+        // Simulate a payment that ended up with no valid claim despite having succeeded - the
+        // genuine anomaly the log exists to catch, as opposed to an ordinary duplicate delivery.
+        const { paymentId } = await prisma.ledgerTransaction.findUniqueOrThrow({
+            where: { id: transactionId },
+            select: { paymentId: true },
+        })
+        await prisma.payment.update({ where: { id: paymentId! }, data: { claimedByTransactionId: null } })
+        const errorSpy = jest.spyOn(logger, 'error')
+
+        await stripeWebhookCallback(stripeEvent('payment_intent.succeeded', paymentIntentId))
+
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('MANUAL ADMIN ACTION REQUIRED'))
     })
 
     test('a failed payment fails the deposit, credits nothing and cancels the payment intent', async () => {
@@ -402,15 +428,47 @@ describe('the Stripe webhook', () => {
         const account = await createAccount('stripefailedraced')
         const { transactionId, paymentIntentId } = await startStripeDeposit(account.id)
         stripeMocks.cancelIntent.mockRejectedValueOnce(
-            new Stripe.errors.StripeInvalidRequestError({
-                type: 'invalid_request_error',
-                payment_intent: { status: 'succeeded' } as never,
-            })
+            new Stripe.errors.StripeInvalidRequestError({ type: 'invalid_request_error' })
         )
+        stripeMocks.retrieveIntent.mockResolvedValueOnce({ status: 'succeeded' } as never)
 
         const response = await stripeWebhookCallback(stripeEvent('payment_intent.payment_failed', paymentIntentId))
 
         expect(response.status).toBe(200)
+        expect(await readTransaction(transactionId)).toMatchObject({
+            state: 'PENDING',
+            payment: { state: 'PROCESSING' },
+        })
+    })
+
+    test('a failure whose intent Stripe already canceled on an earlier delivery still fails locally', async () => {
+        const account = await createAccount('stripefailedcanceled')
+        const { transactionId, paymentIntentId } = await startStripeDeposit(account.id)
+        stripeMocks.cancelIntent.mockRejectedValueOnce(
+            new Stripe.errors.StripeInvalidRequestError({ type: 'invalid_request_error' })
+        )
+        stripeMocks.retrieveIntent.mockResolvedValueOnce({ status: 'canceled' } as never)
+
+        const response = await stripeWebhookCallback(stripeEvent('payment_intent.payment_failed', paymentIntentId))
+
+        expect(response.status).toBe(200)
+        expect(await readTransaction(transactionId)).toMatchObject({
+            state: 'FAILED',
+            payment: { state: 'FAILED' },
+        })
+    })
+
+    test('the cancel call carries no fixed idempotency key, so a transient failure can be retried', async () => {
+        const account = await createAccount('stripefailedretry')
+        const { transactionId, paymentIntentId } = await startStripeDeposit(account.id)
+        stripeMocks.cancelIntent.mockRejectedValueOnce(new Error('Stripe is down'))
+
+        await expect(stripeWebhookCallback(stripeEvent('payment_intent.payment_failed', paymentIntentId)))
+            .rejects.toThrow('Stripe is down')
+
+        // No options object, so no idempotencyKey - a fixed one would make Stripe replay this
+        // exact failure on every retry instead of actually trying again.
+        expect(stripeMocks.cancelIntent.mock.calls[0][1]).toBeUndefined()
         expect(await readTransaction(transactionId)).toMatchObject({
             state: 'PENDING',
             payment: { state: 'PROCESSING' },
@@ -633,6 +691,34 @@ describe('resolving a manual review', () => {
             bypassAuth: true,
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
     })
+
+    test('two admins resolving the same review at once never both succeed', async () => {
+        const account = await createAccount('resolvereviewconcurrent')
+        const { transactionId, paymentIntentId } = await startStripeDeposit(account.id)
+        await stripeWebhookCallback(stripeEvent('payment_intent.succeeded', paymentIntentId))
+
+        const disputeEvent = {
+            type: 'charge.dispute.created',
+            data: { object: { id: 'ch_test', payment_intent: paymentIntentId } },
+        } as unknown as Stripe.Event
+        await stripeWebhookCallback(disputeEvent)
+        const review = await prisma.manualTransactionReview.findFirstOrThrow({ where: { transactionId } })
+
+        const resolve = (resolutionDescription: string) => ledgerTransactionOperations.resolveManualReview({
+            params: { reviewId: review.id },
+            data: { resolutionDescription },
+            bypassAuth: true,
+        })
+        const results = await Promise.allSettled([resolve('first admin'), resolve('second admin')])
+
+        // Exactly one of the two wins - a plain read-then-write would let both pass the read and
+        // the second silently overwrite the first's resolutionDescription instead of failing.
+        expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+        expect(results.filter(result => result.status === 'rejected')).toHaveLength(1)
+
+        const resolved = await prisma.manualTransactionReview.findUniqueOrThrow({ where: { id: review.id } })
+        expect(['first admin', 'second admin']).toContain(resolved.resolutionDescription)
+    })
 })
 
 describe('reimbursing an unapplied payment', () => {
@@ -736,5 +822,81 @@ describe('a payment can only be claimed by one succeeding transaction', () => {
         responses.forEach(response => expect(response.status).toBe(200))
         expect(await readTransaction(transactionId)).toMatchObject({ state: 'SUCCEEDED' })
         expect(await balanceOf(account.id)).toEqual({ amount: DEPOSIT, fees: STRIPE_FEE })
+    })
+})
+
+describe('backfilling claimedByTransactionId', () => {
+    // Mirrors the UPDATE in the add_manual_review_and_payment_claim migration directly, since the
+    // migration itself only ever runs once, against data that predates this test environment.
+    const runBackfill = () => prisma.$executeRaw`
+        UPDATE "Payment" AS p
+        SET "claimedByTransactionId" = t."id"
+        FROM "LedgerTransaction" AS t
+        WHERE t."paymentId" = p."id"
+          AND t."state" = 'SUCCEEDED'
+    `
+
+    test('a payment already backing a succeeded transaction is claimed by the backfill', async () => {
+        const account = await createAccount('backfillclaimed')
+        const transaction = await createSucceededDeposit(account.id, DEPOSIT)
+
+        // Simulate a payment that predates the claim column - advance() already claimed it
+        // through the normal flow above, which the backfill is meant to redo for rows where that
+        // never happened.
+        await prisma.payment.update({
+            where: { id: transaction.payment!.id },
+            data: { claimedByTransactionId: null },
+        })
+
+        await runBackfill()
+
+        expect(await prisma.payment.findUniqueOrThrow({ where: { id: transaction.payment!.id } }))
+            .toMatchObject({ claimedByTransactionId: transaction.id })
+    })
+
+    test('a payment with no succeeded transaction is left unclaimed by the backfill', async () => {
+        const payment = await paymentOperations.create({
+            params: { provider: 'MANUAL', funds: DEPOSIT, manualFees: 0 },
+            bypassAuth: true,
+        })
+
+        await runBackfill()
+
+        expect(await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } }))
+            .toMatchObject({ claimedByTransactionId: null })
+    })
+})
+
+describe("advance()'s balance check sees debits regardless of transaction id order", () => {
+    test('a transaction is not fooled by a higher-id competing debit into overcommitting the account', async () => {
+        const account = await createAccount('balanceordering')
+        const sink = await createAccount('balanceorderingsink')
+        await createSucceededDeposit(account.id, DEPOSIT)
+
+        // Both inserted directly as PENDING, bypassing create()'s own pre-check - simulating two
+        // concurrent requests that each read the account's balance before the other's row
+        // existed, exactly the race advance()'s own account lock exists to resolve correctly
+        // once it finally runs for each of them.
+        const transfer = (funds: number) => prisma.ledgerTransaction.create({
+            data: {
+                purpose: 'CABIN_BOOKING',
+                state: 'PENDING',
+                ledgerEntries: {
+                    create: [
+                        { ledgerAccountId: sink.id, funds, fees: 0 },
+                        { ledgerAccountId: account.id, funds: -funds, fees: 0 },
+                    ],
+                },
+            },
+        })
+        const low = await transfer(DEPOSIT * 0.7)
+        await transfer(DEPOSIT * 0.5)
+
+        const resolved = await ledgerTransactionOperations.advance({ params: { id: low.id }, bypassAuth: true })
+
+        // Combined, the two debits (0.7 + 0.5 of the deposit) exceed the account's balance - a
+        // check blind to the higher-id one would see only its own 0.7 against the full deposit
+        // and wrongly let this lower-id transaction succeed too.
+        expect(resolved.state).toBe('FAILED')
     })
 })
