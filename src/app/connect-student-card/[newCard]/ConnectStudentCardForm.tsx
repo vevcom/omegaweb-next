@@ -20,7 +20,7 @@ export default function ConnectStudentCardForm({ studentCard, userId }: { studen
                 action={action}
             >
                 <input type="hidden" name="studentCard" value={studentCard} />
-                <input type="hidden" name="confirmReplace" value="true" />
+                <input type="hidden" name="confirmReplace" value="on" />
             </Form>
         )
     }
