@@ -426,11 +426,11 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
         const eventId = await createPaidEvent(committee)
         const registrant = await createTestUser('paymentregistrant')
         const admin = await createTestUser('paymentregistrantadmin')
-        await register(registrant, eventId)
+        const registration = await register(registrant, eventId)
 
         // The admin parks an attempt on the registrant's behalf - this is exactly the shape that
         // used to block the registrant themselves for up to 30 minutes.
-        await eventRegistrationOperations.createPayment({
+        const { payment: adminAttempt } = await eventRegistrationOperations.createPayment({
             params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
             session: eventAdminSessionOf(admin),
         })
@@ -441,6 +441,12 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
             params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
             session: payerSessionOf(registrant),
         })).resolves.toBeDefined()
+
+        const liveAttempts = await prisma.ledgerTransaction.findMany({
+            where: { eventRegistrationId: registration.id, state: { in: ['PENDING', 'SUCCEEDED'] } },
+        })
+        expect(liveAttempts).toHaveLength(1)
+        expect(liveAttempts[0].paymentId).not.toBe(adminAttempt?.id)
     })
 
     test('someone other than the registrant still has to wait out the staleness window', async () => {
