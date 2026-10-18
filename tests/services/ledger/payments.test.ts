@@ -463,17 +463,30 @@ describe('refunding transactions', () => {
             { ledgerAccountId: destination.id, funds: -DEPOSIT },
             { ledgerAccountId: payer.id, funds: DEPOSIT },
         ]
-        await refundOperations.refund({
+        // Wrapped in its own transaction, the same way every real caller does it - refund posts
+        // its correction and its Refund row as two separate statements, so without this a
+        // duplicate attempt could commit the correction before failing on the Refund row's
+        // unique constraint, reversing the balance twice while still throwing DUPLICATE.
+        await prisma.$transaction(tx => refundOperations.refund({
             params: { originalTransactionId: transaction.id, reason: 'first attempt', ledgerEntries: reversalEntries },
+            prisma: tx,
             bypassAuth: true,
-        })
+        }))
 
-        await expect(refundOperations.refund({
+        expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
+        expect(await balanceOf(destination.id)).toEqual({ amount: DEPOSIT, fees: 0 })
+
+        await expect(prisma.$transaction(tx => refundOperations.refund({
             params: { originalTransactionId: transaction.id, reason: 'second attempt', ledgerEntries: reversalEntries },
+            prisma: tx,
             bypassAuth: true,
-        })).rejects.toThrow(new Smorekopp('DUPLICATE'))
+        }))).rejects.toThrow(new Smorekopp('DUPLICATE'))
 
         expect(await prisma.refund.count({ where: { originalTransactionId: transaction.id } })).toBe(1)
+        // The duplicate attempt's own correction must not have been left committed despite the
+        // throw - balances stay exactly where the first, successful refund left them.
+        expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
+        expect(await balanceOf(destination.id)).toEqual({ amount: DEPOSIT, fees: 0 })
     })
 
     test('only a SUCCEEDED transaction can be refunded this way', async () => {

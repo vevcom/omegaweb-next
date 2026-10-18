@@ -43,7 +43,10 @@ const EVENT_TYPE_TO_STATE: Partial<Record<Stripe.Event['type'], PaymentState>> =
 /**
  * Calls `refundOperations.reimburseUnappliedPayment`, logging rather than throwing on failure.
  * Any failure here means Stripe genuinely holds money that nothing will ever credit back on its
- * own, so it always needs a human regardless of why the call failed.
+ * own, so it always needs a human regardless of why the call failed. Wrapped in its own
+ * transaction so the payment's state update and the correction it posts commit together - without
+ * this, a duplicate webhook delivery could hit the Refund row's unique constraint after the
+ * payment was already marked SUCCEEDED and the correcting transaction already posted.
  */
 async function reimburseOrLogManualAction(
     originalTransactionId: number,
@@ -51,10 +54,11 @@ async function reimburseOrLogManualAction(
     fees?: number,
 ) {
     try {
-        await refundOperations.reimburseUnappliedPayment({
+        await prisma.$transaction(tx => refundOperations.reimburseUnappliedPayment({
             params: { originalTransactionId, reason, fees },
+            prisma: tx,
             bypassAuth: true,
-        })
+        }))
     } catch (error) {
         logger.error(
             `MANUAL ADMIN ACTION REQUIRED! Could not reimburse ledger transaction ${originalTransactionId}.`,
