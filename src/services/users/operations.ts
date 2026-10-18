@@ -16,6 +16,7 @@ import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { classOperations } from '@/services/groups/classes/operations'
 import { NTNUEmailDomain } from '@/services/mail/constants'
+import { feideEmailDomainsTrustedAsVerified } from '@/lib/feide/constants'
 import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
 import { sendEmailChangedMail } from '@/lib/email/systemMail/emailChanged'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
@@ -482,7 +483,11 @@ export const userOperations = {
                 throw new ServiceError('BAD PARAMETERS', 'Feil passord.')
             }
 
-            if (data.email === storedUser.feideAccount?.email) {
+            const emailDomain = data.email.split('@').pop() ?? ''
+            if (
+                data.email === storedUser.feideAccount?.email &&
+                feideEmailDomainsTrustedAsVerified.includes(emailDomain)
+            ) {
                 const updatedUser = await prisma.user.update({
                     where: {
                         id: params.id,
