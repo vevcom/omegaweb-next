@@ -401,6 +401,21 @@ export const ledgerTransactionOperations = {
                 bypassAuth: true,
             })
 
+            // This call claimed the payment above on the assumption it was driving the
+            // transition, but a concurrent cancel() can still have committed a terminal state
+            // (e.g. CANCELED) between that claim and the guarded updateMany just above - count
+            // is then 0 and the claim is left pointing at a transaction that never actually
+            // succeeded, orphaned: refundLateStripeSuccess and reimburseUnappliedPayment both see
+            // a non-null claim and refuse to act, so the captured money would never get credited
+            // to anyone. Release it, scoped to this call's own id so it can't clear a claim this
+            // call never actually held.
+            if (count === 0 && transaction.state !== 'SUCCEEDED' && transaction.paymentId !== null) {
+                await prisma.payment.updateMany({
+                    where: { id: transaction.paymentId, claimedByTransactionId: params.id },
+                    data: { claimedByTransactionId: null },
+                })
+            }
+
             // count > 0 means this call is the one that actually performed the PENDING ->
             // SUCCEEDED transition (updateMany matches 0 rows once it's already terminal), so
             // the hook fires exactly once no matter how many times/where advance is called from
