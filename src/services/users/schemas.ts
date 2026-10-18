@@ -33,8 +33,6 @@ export const userDataFieldSchemas = z.object({
     }).refine(value => value, 'Du må godta vilkårene for å bruke siden.'),
     // Whatever the card reader gives, as is: it is only ever compared to what the reader gives later.
     studentCard: z.string().trim().min(1).max(100),
-    // Confirms overwriting a student card already registered on the account.
-    confirmReplace: Zpn.checkboxOrBoolean({ label: 'Bekreft erstatning' }).optional(),
 })
 
 const groupFilter = z.object({
@@ -145,7 +143,6 @@ export const userSchemas = {
 
         connectStudentCard: userDataFieldSchemas.pick({
             studentCard: true,
-            confirmReplace: true,
         }),
     },
     params: {
