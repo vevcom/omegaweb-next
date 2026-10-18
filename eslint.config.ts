@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
         files: ['**/*.{ts,tsx}'],
         languageOptions: {
             parser: tsConfigs.parser,
+            parserOptions: {
+                projectService: true,
+            },
         },
         plugins: {
             '@typescript-eslint': tsConfigs.plugin,
@@ -25,8 +28,8 @@ const eslintConfig = defineConfig([
             },
         },
         extends: [
-            tsConfigs.configs.recommended,
-            tsConfigs.configs.eslintRecommended,
+            tsConfigs.configs.recommendedTypeChecked,
+            tsConfigs.configs.stylisticTypeChecked,
             nextVitals,
             tsNextRules,
         ],
@@ -543,7 +546,9 @@ const eslintConfig = defineConfig([
                     exceptions: ['i', 'j', 'k', 'a', 'b', 'x', 'y', 'e', '_'],
                     min: 2
                 }
-            ]
+            ],
+            // we use types in stead of interfaces
+            '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
         }
     },
     {
