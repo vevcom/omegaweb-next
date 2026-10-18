@@ -38,6 +38,8 @@ FROM base AS test
 ENV NODE_ENV=test
 
 COPY jest.config.ts ./
+# The production secrets test reads the development values from it, as the check itself does in prod.
+COPY .env.default ./
 # src and tests are expected to be binded in test
 
 CMD ["npm", "run", "test"]
