@@ -23,4 +23,8 @@ export const refundParamsSchemas = {
             { message: 'Beløp må oppgis for hver konto når flere kontoer er oppgitt.' }
         ),
     }),
+    reimburseUnappliedPayment: z.object({
+        originalTransactionId: z.number(),
+        reason: z.string(),
+    }),
 }

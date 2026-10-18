@@ -85,8 +85,14 @@ model LedgerTransaction {
   description String? // Manual comment describing what the transaction was for, e.g. "Kjøp av kiogeskapsvarer".
 
   ledgerEntries LedgerEntry[]
-  payment       Payment?      @relation(fields: [paymentId], references: [id])
-  paymentId     Int?          @unique
+  payment       Payment? @relation("PaymentUsage", fields: [paymentId], references: [id])
+  paymentId     Int?
+
+  // The payment this transaction is the one that successfully claimed, if any, which is the
+  // inverse of Payment.claimedBy. A transaction can have a `payment` without this ever being
+  // set, if it lost the race to use it, or never got far enough to try. See
+  // Payment.claimedByTransactionId.
+  claimsPayment Payment? @relation("PaymentClaim")
 
   // Relevant relations to other tables based on purpose. Not unique: a failed payment attempt
   // can be retried, leaving a new transaction referencing the same registration/booking/purchase.
@@ -103,6 +109,12 @@ model LedgerTransaction {
   // the Refund model below. A transaction may be corrected at most once, in full.
   refundOf   Refund? @relation("RefundOriginal")
   refundedBy Refund? @relation("RefundCredit")
+
+  // Every time something outside this transaction's own state machine has needed a human to look
+  // at it, e.g. a Stripe dispute, an external refund, or a failed automatic reimbursement. A
+  // transaction can need this more than once over its life. See ManualTransactionReview and
+  // ledgerTransactionOperations.readNeedingAttention.
+  manualReviews ManualTransactionReview[]
 
   // Present only for transactions migrated from OmegaWeb Basic (see LegacyLedgerTransaction).
   legacy LegacyLedgerTransaction?
@@ -135,6 +147,29 @@ model Refund {
   type                  RefundType
 
   createdAt DateTime @default(now())
+}
+
+enum ManualReviewState {
+  OPEN
+  RESOLVED
+}
+
+// Records that a transaction needed a human to look at it - a Stripe dispute, an external
+// refund, or a failed automatic reimbursement, none of which this codebase can resolve on its
+// own. One-to-many from LedgerTransaction rather than a single field on it, since a transaction
+// can need review more than once over its life (it fails, gets resolved, then fails again later
+// for an unrelated reason). See ledgerTransactionOperations.readNeedingAttention and
+// resolveManualReview.
+model ManualTransactionReview {
+  id                    Int               @id @default(autoincrement())
+  transaction           LedgerTransaction @relation(fields: [transactionId], references: [id])
+  transactionId         Int
+  state                 ManualReviewState @default(OPEN)
+  problemDescription    String
+  resolutionDescription String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Identifies which OmegaWeb Basic (OW) table a migrated transaction originated from.
@@ -233,8 +268,18 @@ model Payment {
   stripePayment    StripePayment?
   manualPayment    ManualPayment?
 
-  // Which ledger transaction this payment is part
-  ledgerTransaction LedgerTransaction?
+  // Every transaction ever created against this payment, normally exactly one. A transaction
+  // whose entries never took effect, because it ended FAILED or CANCELED, leaves this payment's
+  // funds unclaimed, so a later reimbursement can reference the same payment again instead of
+  // inventing a second one. At most one of these may ever reach SUCCEEDED. See
+  // claimedByTransactionId.
+  ledgerTransactions LedgerTransaction[] @relation("PaymentUsage")
+
+  // Set, once, by whichever transaction actually succeeds using this payment. Null means nobody
+  // has yet. The atomic claim in ledgerTransactionOperations.advance guarantees at most one ever
+  // can.
+  claimedByTransactionId Int?               @unique
+  claimedBy              LedgerTransaction? @relation("PaymentClaim", fields: [claimedByTransactionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -48,7 +48,8 @@ export async function runPaymentCompletionHook(
         await hook(transaction, context)
     } catch (error) {
         logger.error(
-            `Payment completion hook for purpose ${transaction.purpose} failed on transaction ${transaction.id}`,
+            'MANUAL ADMIN ACTION REQUIRED! Payment completion hook for purpose '
+            + `${transaction.purpose} failed on transaction ${transaction.id}`,
             { error }
         )
     }

@@ -11,6 +11,7 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
+import { Prisma as PrismaRuntime } from '@/prisma-generated-pn-client'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import type { ExpandedLedgerTransaction } from './types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
@@ -259,6 +260,50 @@ export const ledgerTransactionOperations = {
     }),
 
     /**
+     * Lists transactions a human needs to look at: any with an OPEN ManualTransactionReview.
+     * Admin-only, across every account, not scoped to one the caller is a party to.
+     */
+    readNeedingAttention: defineOperation({
+        authorizer: () => ledgerTransactionAuth.readNeedingAttention,
+        operation: async ({ prisma }) => prisma.ledgerTransaction.findMany({
+            where: { manualReviews: { some: { state: 'OPEN' } } },
+            select: {
+                id: true,
+                purpose: true,
+                state: true,
+                reason: true,
+                createdAt: true,
+                ledgerEntries: { select: { ledgerAccountId: true, funds: true } },
+                manualReviews: { orderBy: { createdAt: 'desc' } },
+            },
+            orderBy: { createdAt: 'desc' },
+        })
+    }),
+
+    /** Marks an open manual review resolved, with the admin's own account of how. */
+    resolveManualReview: defineOperation({
+        authorizer: () => ledgerTransactionAuth.resolveManualReview,
+        paramsSchema: ledgerTransactionSchemas.params.resolveManualReview,
+        dataSchema: ledgerTransactionSchemas.data.resolveManualReview,
+        operation: async ({ prisma, params, data }) => {
+            // Guarded in the update itself, not a separate read then write - two admins
+            // resolving the same review at once would otherwise both pass a plain read and the
+            // second would silently overwrite the first's resolutionDescription.
+            const { count } = await prisma.manualTransactionReview.updateMany({
+                where: { id: params.reviewId, state: 'OPEN' },
+                data: { state: 'RESOLVED', resolutionDescription: data.resolutionDescription },
+            })
+            if (count === 0) {
+                // Throws NOT FOUND for a missing id; otherwise it exists but wasn't OPEN.
+                await prisma.manualTransactionReview.findUniqueOrThrow({ where: { id: params.reviewId } })
+                throw new Smorekopp('BAD PARAMETERS', 'Denne saken er allerede løst.')
+            }
+
+            return await prisma.manualTransactionReview.findUniqueOrThrow({ where: { id: params.reviewId } })
+        },
+    }),
+
+    /**
      * Tries to advance the transactions state to a terminal state.
      * Also, updates the fees if possible.
      */
@@ -318,11 +363,35 @@ export const ledgerTransactionOperations = {
                 }
             }
 
+            // Lock the accounts this transaction debits before reading their balance below, so a
+            // concurrent advance() on the same account waits its turn instead of racing: both
+            // would otherwise compute their balance from the same committed state and could both
+            // conclude there's enough left. Sorted ascending so two transactions that debit the
+            // same two accounts always lock them in the same order, avoiding a deadlock. Credit-only
+            // entries never need this - crediting an account can't make its balance insufficient.
+            const debitLedgerAccountIds = Array.from(new Set(transaction.ledgerEntries
+                .filter(entry => entry.funds < 0 || (entry.fees ?? 0) < 0)
+                .map(entry => entry.ledgerAccountId)))
+                .sort((one, other) => one - other)
+            if (debitLedgerAccountIds.length > 0) {
+                await prisma.$queryRaw`
+                    SELECT id FROM "LedgerAccount"
+                    WHERE id IN (${PrismaRuntime.join(debitLedgerAccountIds)})
+                    ORDER BY id
+                    FOR UPDATE
+                `
+            }
+
+            // Live, unbounded balance, same as create()'s own pre-check below uses - not filtered
+            // to entries up to this transaction's own id. This transaction may have been created
+            // before another debit on the same account that has since reached SUCCEEDED with a
+            // higher id (e.g. it sat PENDING far longer, waiting on a slow Stripe checkout); that
+            // debit has already really happened and must count here regardless of id order, or
+            // this check would wrongly see enough balance and let the account go negative.
             const balances = transaction.ledgerEntries.length > 0
                 ? await ledgerAccountOperations.calculateBalances({
                     params: {
                         ledgerAccountIds: transaction.ledgerEntries.map(entry => entry.ledgerAccountId),
-                        atTransactionId: transaction.id,
                     },
                     bypassAuth: true,
                 })
@@ -339,7 +408,31 @@ export const ledgerTransactionOperations = {
             })
             const frozenAccountIds = new Set(frozenAccounts.map(account => account.id))
 
-            const transition = await determineTransactionState({ transaction, balances, frozenAccountIds })
+            let transition = await determineTransactionState({ transaction, balances, frozenAccountIds })
+
+            // A payment may be shared by more than one transaction, see Payment.ledgerTransactions,
+            // but only one of them may ever succeed with it. Claim it atomically here, the moment
+            // this transaction is about to become the one. `transaction.state` is still the state
+            // from the read at the top of this function, so this only runs on the call that's
+            // actually driving a fresh PENDING -> SUCCEEDED transition, never on a retry of an
+            // already-terminal transaction. The lock above already serializes two concurrent
+            // advance() calls for this same transaction (e.g. a duplicate webhook delivery), but
+            // the `where` below still has to recognize a retry of this transaction's own already-
+            // successful claim as success too, not a loss - otherwise the second call, now running
+            // after the first already committed, would see claimedByTransactionId === params.id
+            // (its own id, not null) and wrongly fail a transaction that already succeeded.
+            if (transaction.state === 'PENDING' && transition.state === 'SUCCEEDED' && transaction.payment) {
+                const { count: claimed } = await prisma.payment.updateMany({
+                    where: {
+                        id: transaction.payment.id,
+                        OR: [{ claimedByTransactionId: null }, { claimedByTransactionId: params.id }],
+                    },
+                    data: { claimedByTransactionId: params.id },
+                })
+                if (claimed === 0) {
+                    transition = { state: 'FAILED', reason: 'Betalingen er allerede brukt av en annen transaksjon.' }
+                }
+            }
 
             // We use `updateMany` in stead of just `update` here because
             // we don't want to throw in case the record is not found.
@@ -355,6 +448,21 @@ export const ledgerTransactionOperations = {
                 params: { id: params.id },
                 bypassAuth: true,
             })
+
+            // This call claimed the payment above on the assumption it was driving the
+            // transition, but a concurrent cancel() can still have committed a terminal state
+            // (e.g. CANCELED) between that claim and the guarded updateMany just above - count
+            // is then 0 and the claim is left pointing at a transaction that never actually
+            // succeeded, orphaned: refundLateStripeSuccess and reimburseUnappliedPayment both see
+            // a non-null claim and refuse to act, so the captured money would never get credited
+            // to anyone. Release it, scoped to this call's own id so it can't clear a claim this
+            // call never actually held.
+            if (count === 0 && transaction.state !== 'SUCCEEDED' && transaction.paymentId !== null) {
+                await prisma.payment.updateMany({
+                    where: { id: transaction.paymentId, claimedByTransactionId: params.id },
+                    data: { claimedByTransactionId: null },
+                })
+            }
 
             // Only the call that made the PENDING -> SUCCEEDED transition has count > 0, so the
             // hook fires exactly once.
