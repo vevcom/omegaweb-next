@@ -2,8 +2,9 @@ import logger from '@/lib/logger'
 import { stripe } from '@/lib/stripe'
 import { prisma } from '@/prisma/client'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { refundOperations } from '@/services/ledger/refunds/operations'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
-import type Stripe from 'stripe'
+import Stripe from 'stripe'
 import type { PaymentState } from '@/prisma-generated-pn-types'
 
 /**
@@ -40,6 +41,107 @@ const EVENT_TYPE_TO_STATE: Partial<Record<Stripe.Event['type'], PaymentState>> =
 }
 
 /**
+ * Calls `refundOperations.reimburseUnappliedPayment`, flagging the transaction for manual review
+ * rather than throwing on failure. Any failure here means Stripe genuinely holds money that
+ * nothing will automatically credit back, so it always needs a human regardless of why the call
+ * failed - there's no other page or system yet that would otherwise find this on its own.
+ * Wrapped in its own transaction so the payment's state update and the correction it posts commit
+ * together - without this, a duplicate webhook delivery could hit the Refund row's unique
+ * constraint after the payment was already marked SUCCEEDED and the correcting transaction
+ * already posted.
+ */
+async function reimburseOrLogManualAction(
+    originalTransactionId: number,
+    reason: string,
+    fees?: number,
+) {
+    try {
+        await prisma.$transaction(tx => refundOperations.reimburseUnappliedPayment({
+            params: { originalTransactionId, reason, fees },
+            prisma: tx,
+            bypassAuth: true,
+        }))
+    } catch (error) {
+        const note = `Automatisk tilbakebetaling mislyktes: ${reason}`
+        logger.error(
+            `MANUAL ADMIN ACTION REQUIRED! Could not reimburse ledger transaction ${originalTransactionId}.`,
+            { error }
+        )
+        await prisma.manualTransactionReview.create({
+            data: { transactionId: originalTransactionId, problemDescription: note },
+        })
+    }
+}
+
+/**
+ * Reimburses the payer when a Stripe payment intent succeeded but the local payment had already
+ * moved to a terminal state that can't accept a success, which the catch block below handles as
+ * a Prisma P2025 error. Neither side of the original transaction ever applied to anyone's ledger
+ * balance, even though Stripe genuinely took the money. Idempotent: a webhook retry for the same
+ * payment intent finds the payment already claimed and does nothing further.
+ */
+async function refundLateStripeSuccess(paymentIntentId: string, fee?: number) {
+    const stripePayment = await prisma.stripePayment.findUnique({
+        where: { paymentIntentId },
+        select: {
+            payment: {
+                select: {
+                    claimedByTransactionId: true,
+                    ledgerTransactions: { select: { id: true }, orderBy: { id: 'asc' }, take: 1 },
+                },
+            },
+        },
+    })
+
+    const originalTransaction = stripePayment?.payment?.ledgerTransactions[0]
+    if (!stripePayment?.payment || !originalTransaction) {
+        logger.error(
+            'MANUAL ADMIN ACTION REQUIRED! Could not find a transaction to reimburse for '
+            + `late-succeeding payment intent ${paymentIntentId}.`
+        )
+        return
+    }
+    if (stripePayment.payment.claimedByTransactionId !== null) return
+
+    await reimburseOrLogManualAction(
+        originalTransaction.id,
+        'Stripe-betalingen gikk gjennom etter at den lokalt var kansellert eller mislyktes.',
+        fee
+    )
+}
+
+/**
+ * Flags the transaction behind a payment intent for manual review - used for Stripe events that
+ * represent money moving back out through Stripe itself (a dispute, or a refund issued directly
+ * on Stripe's dashboard rather than through this app), which this codebase has no automated
+ * handling for. A dispute silently taking money back is worse than a refund, so these can't be
+ * left to just fall through as unsupported events the way a genuinely irrelevant one would.
+ */
+async function flagForManualReview(paymentIntentId: string, note: string) {
+    const stripePayment = await prisma.stripePayment.findUnique({
+        where: { paymentIntentId },
+        select: {
+            payment: {
+                select: { ledgerTransactions: { select: { id: true }, orderBy: { id: 'asc' }, take: 1 } },
+            },
+        },
+    })
+
+    const transactionId = stripePayment?.payment.ledgerTransactions[0]?.id
+    if (!transactionId) {
+        logger.error(
+            `MANUAL ADMIN ACTION REQUIRED! ${note} No ledger transaction found for payment intent ${paymentIntentId}.`
+        )
+        return
+    }
+
+    logger.error(`MANUAL ADMIN ACTION REQUIRED! ${note} Ledger transaction ${transactionId}.`)
+    await prisma.manualTransactionReview.create({
+        data: { transactionId, problemDescription: note },
+    })
+}
+
+/**
  * The function which is called when we receive a payment intent event from Stripe.
  * It expects that the fields `latest_charge.balance_transaction` are expanded.
  * (This is configured in the Stripe dashboard.)
@@ -59,6 +161,28 @@ const EVENT_TYPE_TO_STATE: Partial<Record<Stripe.Event['type'], PaymentState>> =
  * @returns An appropriate `Response`.
  */
 export async function stripeWebhookCallback(event: Stripe.Event): Promise<Response> {
+    // Money moving back out through Stripe itself, outside anything this app initiated - flag it
+    // and stop, rather than falling through to the "unsupported event" branch below as if it were
+    // irrelevant.
+    if (event.type === 'charge.refunded' || event.type === 'charge.dispute.created') {
+        const charge = event.data.object as Stripe.Charge
+        const paymentIntentId = typeof charge.payment_intent === 'string'
+            ? charge.payment_intent
+            : charge.payment_intent?.id
+        if (!paymentIntentId) {
+            logger.error(
+                `MANUAL ADMIN ACTION REQUIRED! ${event.type} for charge ${charge.id} has no payment intent to look up.`
+            )
+            return new Response('', { status: 200 })
+        }
+
+        const note = event.type === 'charge.refunded'
+            ? `Stripe-betalingen ble refundert direkte hos Stripe (${charge.amount_refunded} øre).`
+            : 'Stripe-betalingen er bestridt av kortholderen (dispute).'
+        await flagForManualReview(paymentIntentId, note)
+        return new Response('', { status: 200 })
+    }
+
     const paymentState = EVENT_TYPE_TO_STATE[event.type]
 
     if (!paymentState) {
@@ -79,6 +203,41 @@ export async function stripeWebhookCallback(event: Stripe.Event): Promise<Respon
     // If the payment succeeded we'll extract the fee
     if (event.type === 'payment_intent.succeeded') {
         fee = await retrieveStripeFees(paymentIntent)
+    }
+
+    // Cancel the payment intent on Stripe's side before marking anything FAILED locally below,
+    // not after: canceling first closes the window where a retry with another card could still
+    // succeed and only then get silently absorbed as a reimbursement instead of a normal
+    // completed payment.
+    if (event.type === 'payment_intent.payment_failed') {
+        try {
+            // No idempotency key: Stripe would otherwise replay this exact response - including a
+            // transient 500 - on every retry of this event, stranding the payment in
+            // PENDING/PROCESSING forever instead of letting a retry actually succeed.
+            await stripe.paymentIntents.cancel(paymentIntent.id)
+        } catch (err) {
+            if (!(err instanceof Stripe.errors.StripeInvalidRequestError)) throw err
+
+            // The cancel error itself doesn't reliably carry the intent's current status - look
+            // it up directly instead of trusting err.payment_intent?.status.
+            const currentPaymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id)
+
+            // Stripe refuses to cancel an intent that already succeeded - it raced ahead of this
+            // failure event. Don't mark anything FAILED in that case; its own success event,
+            // handled normally above, is what should apply instead.
+            if (currentPaymentIntent.status === 'succeeded') {
+                logger.error(
+                    `Payment intent ${paymentIntent.id} already succeeded on Stripe's side before its `
+                    + 'failure event was handled - ignoring the failure; its success event applies instead.'
+                )
+                return new Response('', { status: 200 })
+            }
+            // Already canceled by an earlier delivery of this same event - continue on to mark
+            // the payment FAILED below. Any other status is a real cancellation failure, left to
+            // throw on purpose: the payment would stay PENDING/PROCESSING forever if the cancel
+            // never actually goes through, so Stripe should keep retrying this event until it does.
+            if (currentPaymentIntent.status !== 'canceled') throw err
+        }
     }
 
     // Update the db model with the updated values.
@@ -107,10 +266,16 @@ export async function stripeWebhookCallback(event: Stripe.Event): Promise<Respon
                 payment: {
                     select: {
                         id: true,
-                        ledgerTransaction: {
-                            select: {
-                                id: true,
-                            },
+                        // Whether some transaction has already successfully claimed this payment -
+                        // see the MANUAL ADMIN ACTION log below.
+                        claimedByTransactionId: true,
+                        // There's at most one PENDING transaction on a payment at this point in
+                        // the flow, since a reimbursement referencing the same payment is only
+                        // ever created later, in response to this very update's outcome.
+                        ledgerTransactions: {
+                            where: { state: 'PENDING' },
+                            select: { id: true },
+                            take: 1,
                         },
                     },
                 },
@@ -125,37 +290,61 @@ export async function stripeWebhookCallback(event: Stripe.Event): Promise<Respon
                 `Ignoring Stripe event for payment intent ${paymentIntent.id}: `
                 + `payment is already in a state which conflicts with "${paymentState}".`
             )
+            // Stripe genuinely captured the money even though our side had already moved on,
+            // most likely because we canceled the payment locally moments before Stripe's
+            // success event arrived. Nobody's ledger balance reflects a CANCELED or FAILED
+            // transaction's entries, so credit the payer back.
+            if (paymentState === 'SUCCEEDED') {
+                await refundLateStripeSuccess(paymentIntent.id, fee)
+            }
             return new Response('', { status: 200 })
         }
 
         throw err
     }
 
-    if (stripePayment.payment.ledgerTransaction) {
+    const pendingTransaction = stripePayment.payment.ledgerTransactions[0]
+    if (pendingTransaction) {
         // No user session exists here. Stripe's signature verification, already checked by the
         // route handler, is what authorizes this call.
-        await ledgerTransactionOperations.advance({
+        //
+        // Wrapped in its own transaction (advance() itself never opens one, so it can also run
+        // nested inside a caller's, e.g. create()'s) so the account lock advance() takes while
+        // checking balances is actually held - a lock taken outside any transaction releases the
+        // instant its own statement finishes, before the balance read it was meant to protect.
+        // This matters here specifically: a duplicate webhook delivery for the same payment
+        // intent is exactly the kind of concurrent advance() call that lock exists for.
+        const transaction = await prisma.$transaction(async tx => ledgerTransactionOperations.advance({
             params: {
-                id: stripePayment.payment.ledgerTransaction.id,
+                id: pendingTransaction.id,
             },
+            prisma: tx,
             bypassAuth: true,
-        })
-    } else {
-        logger.error(`Stripe payment is not part of a ledger transaction: ${stripePayment.payment.id}`)
-    }
+        }))
 
-    // We only allow one payment attempt per payment intent.
-    // If this failed we cancel the payment intent to make sure it cannot be used in the future.
-    //
-    // A failure here is left to throw on purpose. If the cancel does not go through, the
-    // payment intent could still be paid later, but the payment is already marked FAILED, a
-    // state the success handler above refuses to leave. Throwing makes Stripe retry the event
-    // until the cancel actually succeeds.
-    if (event.type === 'payment_intent.payment_failed') {
-        await stripe.paymentIntents.cancel(
-            paymentIntent.id,
-            {},
-            { idempotencyKey: `project-next-payment-id-${paymentIntent.id}` },
+        // The payment just succeeded, but the transaction still ended up FAILED here, most
+        // commonly because an account involved was frozen after this very webhook arrived - or
+        // CANCELED, if a user canceled the attempt while this very call was in flight. Either
+        // way the entries never applied to anyone's balance, so reimburse the payer the same way
+        // refundLateStripeSuccess does above.
+        if (
+            (transaction.state === 'FAILED' || transaction.state === 'CANCELED')
+            && transaction.payment?.state === 'SUCCEEDED'
+        ) {
+            await reimburseOrLogManualAction(
+                transaction.id,
+                transaction.reason ?? 'Transaksjonen mislyktes etter at betalingen var gjennomført.'
+            )
+        }
+    } else if (stripePayment.payment.claimedByTransactionId === null) {
+        // Nothing has ever claimed this payment, and there's no PENDING transaction to advance
+        // either - a real anomaly. A duplicate delivery of an event already handled by an
+        // earlier one (the usual case for landing in this else branch) instead finds the payment
+        // already claimed, and says nothing: logging on every repeat of a Stripe webhook would
+        // bury real alerts under a steady stream of false ones.
+        logger.error(
+            'MANUAL ADMIN ACTION REQUIRED! Stripe payment has no pending ledger transaction to advance: '
+            + `${stripePayment.payment.id}`
         )
     }
 
