@@ -408,6 +408,9 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
             return { id: `pi_test_${intentCount}`, client_secret: `pi_test_${intentCount}_secret` } as never
         })
         jest.spyOn(stripe.paymentIntents, 'cancel').mockResolvedValue({} as never)
+        jest.spyOn(stripe.customers, 'create').mockImplementation(async () => (
+            { id: `cus_test_${intentCount}` } as never
+        ))
     })
 
     afterEach(() => {
