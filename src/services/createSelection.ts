@@ -10,10 +10,10 @@
  * @param fieldsToExpose - The fields to expose in an array
  * @returns
  */
-export function createSelection<const T extends string>(fieldsToExpose: T[]): { [K in T]: true } {
+export function createSelection<const T extends string>(fieldsToExpose: T[]): Record<T, true> {
     const selection = fieldsToExpose.reduce((prev, field) => ({
         ...prev,
         [field]: true
-    }), {} as { [K in T]: true })
+    }), {} as Record<T, true>)
     return selection
 }

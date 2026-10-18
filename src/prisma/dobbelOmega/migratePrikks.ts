@@ -55,7 +55,7 @@ export default async function migratePrikks(
         // demand, and the prikk archive points at far more users than the user step
         // itself brings over when limits are on.
         const userId = await userMigrator.getPnUserId(prikk.AccusedId)
-        const accuserId = await userMigrator.getPnUserId(prikk.AccuserId as number)
+        const accuserId = await userMigrator.getPnUserId(prikk.AccuserId!)
 
         await pnPrisma.dot.create({
             data: {

@@ -8,7 +8,7 @@ import type { OAuthConfig, OAuthUserConfig } from 'next-auth/providers/index'
  * The attributes on the id token are documented [here](https://docs.feide.no/reference/tokens.html#ref-id-token).
  * Only the attributes we use should be listen in the type.
  */
-interface FeideProfile extends Record<string, unknown> {
+type FeideProfile = {
     iss: 'https://auth.dataporten.no',
     jti: string,
     aud: string,
@@ -18,7 +18,7 @@ interface FeideProfile extends Record<string, unknown> {
     auth_time: number,
     email?: string,
     name?: string,
-}
+} & Record<string, unknown>
 
 export default function FeideProvider<P extends FeideProfile>(
     options: OAuthUserConfig<P>

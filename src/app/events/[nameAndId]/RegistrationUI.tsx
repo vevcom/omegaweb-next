@@ -124,7 +124,7 @@ export default function RegistrationUI({
     const userId = session.data.user.id
 
     const register = async (
-        createAction: typeof createEventRegistrationAction | typeof createEventRegistrationAsAdminAction
+        createAction: typeof createEventRegistrationAction
     ) => {
         const result = await createAction({
             params: {

@@ -4,14 +4,14 @@ import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { cmsImageOperations } from '@/cms/images/operations'
 import type { SpecialCmsImage, SpecialCmsParagraph } from '@/prisma-generated-pn-types'
 
-const ownedCmsParagraphs: Readonly<SpecialCmsParagraph[]> = [
+const ownedCmsParagraphs: readonly SpecialCmsParagraph[] = [
     'FRONTPAGE_1',
     'FRONTPAGE_2',
     'FRONTPAGE_3',
     'FRONTPAGE_4',
 ]
 
-const ownedCmsImages: Readonly<SpecialCmsImage[]> = [
+const ownedCmsImages: readonly SpecialCmsImage[] = [
     'FRONTPAGE_1',
     'FRONTPAGE_2',
     'FRONTPAGE_3',

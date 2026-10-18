@@ -63,7 +63,7 @@ export default function CommitteeLogoRoll({ committees, periodName }: PropTypes)
             nextIndex = currentIndex.current + 1
         }
 
-        let display: keyof typeof currentCommitteeIndexes = `display${toggle}` as keyof typeof currentCommitteeIndexes
+        let display: keyof typeof currentCommitteeIndexes = `display${toggle}`
         let nextToggle = toggle
         switch (toggle) {
             case 1:

@@ -14,7 +14,7 @@ import type { SessionMaybeUser } from '@/auth/session/Session'
 type ClientDataResult<Key extends string, Data> =
     | { status: 'loading' }
     | { status: 'error', errorCode: ErrorCode }
-    | ({ status: 'success' } & { [P in Key]: Data })
+    | ({ status: 'success' } & Record<Key, Data>)
 
 type ClientDataContext = {
     defaultPermissions: ClientDataResult<'defaultPermissions', Permission[]> | null,

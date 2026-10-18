@@ -243,7 +243,7 @@ export default function StateWrapper({
             : { bookingProducts, baseData, firstname, lastname, email, mobile })
 
         const cached = reservationCache.current
-        if (cached && cached.inputsKey === inputsKey && cached.reservation.expiresAt.getTime() > Date.now()) {
+        if (cached?.inputsKey === inputsKey && cached.reservation.expiresAt.getTime() > Date.now()) {
             return { success: true, data: cached.reservation }
         }
 

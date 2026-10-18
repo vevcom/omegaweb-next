@@ -45,7 +45,7 @@ export class StringQueryParam extends QueryParam<string> {
 export class LocalPathQueryParam extends StringQueryParam {
     decodeValue(value: string | string[] | undefined): string | null {
         const path = super.decodeValue(value)
-        if (path === null || !path.startsWith('/')) return null
+        if (!path?.startsWith('/')) return null
 
         // Resolved against a stand-in origin the way a browser would resolve it, which also reads
         // `/\` and `/<tab>/` as `//`. A path that stays on the site keeps that origin.

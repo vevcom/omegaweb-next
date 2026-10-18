@@ -68,7 +68,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
     async function destroyFile(
         fsLocation: string,
         dynamicStorePrefix?: string,
-        throwOnNotFound: boolean = true
+        throwOnNotFound = true
     ): Promise<void> {
         const filePath = dynamicStorePrefix
             ? join('store', config.staticStorePrefix, dynamicStorePrefix, fsLocation)

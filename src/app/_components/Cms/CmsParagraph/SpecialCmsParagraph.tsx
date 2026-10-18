@@ -24,7 +24,7 @@ type PropTypes = Omit<PropTypesCmsParapraph, 'cmsParagraph'> & {
  */
 export default async function SpecialCmsParagraph({ special, readSpecialCmsParagraphAction, ...props }: PropTypes) {
     const res = await configureAction(readSpecialCmsParagraphAction, { params: { special } })()
-    if (!res.success) return <i>Error: {res.error && res.error[0].message}</i>
+    if (!res.success) return <i>Error: {res.error?.[0].message}</i>
 
     return (
         <CmsParagraph cmsParagraph={res.data} {...props} />

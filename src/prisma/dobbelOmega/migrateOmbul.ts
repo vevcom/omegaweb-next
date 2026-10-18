@@ -95,7 +95,7 @@ export default async function migrateOmbul(
         const res = await fetch(fsLocationOldVev, {
             method: 'GET',
         }).catch(() => null)
-        if (!res || !res.ok) {
+        if (!res?.ok) {
             logger.error(`Failed to fetch ombul pdf from ${fsLocationOldVev}`)
             fetchBar.increment()
             return null

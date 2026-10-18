@@ -76,7 +76,7 @@ export const authOptions: AuthOptions = {
             const token = await decompressJwt(decodedToken)
 
             // iat = issued at (timestamp given in seconds since epoch)
-            if (!token || !token.iat) return null
+            if (!token?.iat) return null
 
             const user = await prisma.user.findUnique({
                 where: { id: token.user.id },

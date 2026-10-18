@@ -17,7 +17,7 @@ import type { Session } from '@/auth/session/Session'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
-export type SearchParams = { [key: string]: string | string[] | undefined }
+export type SearchParams = Record<string, string | string[] | undefined>
 
 export type ServerPageSession = Session<'HAS_USER'> | Session<'NO_USER'>
 

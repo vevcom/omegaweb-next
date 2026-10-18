@@ -147,7 +147,7 @@ export default function SubmitButton({
     return (
         <div className={styles.submit}>
             {
-                (confirmation && confirmation.confirm) ? (
+                (confirmation?.confirm) ? (
                     <>
                         <Button
                             className={`${styles.submitButton} ${className ?? ''}`}
@@ -174,7 +174,7 @@ export default function SubmitButton({
 
             <p className={[pending ? styles.pending : ' ', styles.error].join(' ')}>
                 {
-                    generalErrors && generalErrors[0]?.message
+                    generalErrors?.[0]?.message
                 }
             </p>
         </div>

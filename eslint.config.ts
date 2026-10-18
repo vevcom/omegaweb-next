@@ -663,6 +663,13 @@ const eslintConfig = defineConfig([
             ]
         }
     },
+    {
+        // Module augmentation (e.g. next-auth) relies on interface declaration merging
+        files: ['**/*.d.ts'],
+        rules: {
+            '@typescript-eslint/consistent-type-definitions': 'off',
+        },
+    },
     globalIgnores([
         '.next/**',
         'out/**',

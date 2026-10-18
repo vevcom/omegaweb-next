@@ -172,7 +172,7 @@ export default async function migrateImages(
                 return undefined
             })
 
-            if (!res || !res.ok) {
+            if (!res?.ok) {
                 // res is set only when the request completed but the status was bad,
                 // which the catch above never saw.
                 if (res) {

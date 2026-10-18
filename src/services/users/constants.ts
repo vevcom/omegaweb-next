@@ -88,7 +88,7 @@ export const sexConfig = {
         pronoun: 'Hends',
         label: 'Annet',
     }
-} as const satisfies { [key in SEX]: { title: string, pronoun: string, label: string } }
+} as const satisfies Record<SEX, { title: string, pronoun: string, label: string }>
 
 export const relationshipStatusConfig = {
     SINGLE: {
