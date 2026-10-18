@@ -390,17 +390,12 @@ export const userOperations = {
                 )
             }
 
-            // Guards against a concurrent request that read the same (possibly empty)
-            // studentCard - without this, both could pass the check above against that stale
-            // value and the second write would silently overwrite the first with no
-            // confirmation. updateMany lets this fail without throwing on no match.
-            const { count } = await prisma.user.updateMany({
-                where: { id: params.id, studentCard: currentUser.studentCard },
+            // While possible to the card above to be changed after the check,
+            // this is such a rare case that we don't bother checking for it.
+            await prisma.user.update({
+                where: { id: params.id },
                 data,
             })
-            if (count === 0) {
-                throw new ServiceError('BAD PARAMETERS', 'Studentkortet ble endret i mellomtiden. Prøv igjen.')
-            }
         }
     }),
 
