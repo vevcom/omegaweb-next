@@ -3,14 +3,11 @@ import ContactorNavBar from './_components/ContactorNavBar'
 import ContactorFooter from './_components/ContactorFooter'
 import { karla, sora } from './_lib/contactorFonts'
 import { contactorTheme } from './_lib/contactorTheme'
-import { careerNavLinks } from './_lib/contactorSite'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
-import { eventTagOperations } from '@/services/events/tags/operations'
 import { careerAuth } from '@/services/career/auth'
-import { serverLayout, withFallback } from '@/app/ServerPage'
+import { serverLayout } from '@/app/ServerPage'
 import type { Metadata } from 'next'
 
-// Contactor's pages carry its name, not Omega's, in the tab.
 export const metadata: Metadata = {
     title: {
         default: 'Contactor NTNU',
@@ -26,19 +23,14 @@ export const metadata: Metadata = {
  * as the rest of the site.
  */
 export default serverLayout({
-    operation: async () => ({
-        companyPresentationEventTag: await withFallback(
-            eventTagOperations.readSpecial({ params: { special: 'COMPANY_PRESENTATION' } }),
-            null
-        ),
-    }),
+    operation: async () => ({}),
     capabilities: () => ({
         canEditSpecialCmsLink: careerAuth.updateSpecialCmsLink,
     }),
-    render: ({ data, capabilities, children }) => (
+    render: ({ capabilities, children }) => (
         <div className={`${styles.site} ${karla.variable} ${sora.variable}`}>
             <SiteTheme colors={contactorTheme} />
-            <ContactorNavBar links={careerNavLinks(data.companyPresentationEventTag)} />
+            <ContactorNavBar />
             <main className={styles.content}>
                 {children}
             </main>

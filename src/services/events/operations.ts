@@ -1,7 +1,12 @@
 import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
-import { defaultSearchResultLimit, eventCompanySelection, eventListSelection } from './constants'
+import {
+    defaultSearchResultLimit,
+    eventArchiveFilterSelection,
+    eventCompanySelection,
+    eventListSelection,
+} from './constants'
 import { eventRegistrationQueueOrder } from './registration/constants'
 import { notifyPromotedFromWaitingList } from './registration/notifyPromotedFromWaitingList'
 import { notificationOperations } from '@/services/notifications/operations'
@@ -10,6 +15,7 @@ import { ServiceError } from '@/services/error'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
+import { osloDateTime, osloYearInterval } from '@/lib/dates/oslo'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
@@ -252,11 +258,43 @@ export const eventOperations = {
                         mode: 'insensitive'
                     },
                     eventTagEvents: eventTagSelector(params.paging.details.tags),
+                    companyId: params.paging.details.companyId,
+                    // The year the event started in, in Oslo.
+                    eventStart: params.paging.details.year ? osloYearInterval(params.paging.details.year) : undefined,
                     ...visibleEventsFilter(visibilityWhereFilter)
                 },
                 select: eventListSelection,
             })
             return events.map(withTagsAndRegistrationCounts)
+        }
+    }),
+
+    /**
+     * What the archive can be filtered on: the companies of the archived events with the given tags
+     * and the years they started in (in Oslo) - only those of events the session may see, so a
+     * filter never offers what would come up empty.
+     */
+    readArchiveFilters: defineOperation({
+        paramsSchema: eventSchemas.params.readArchiveFilters,
+        authorizer: () => eventAuth.readArchiveFilters,
+        operation: async ({ prisma, params }, visibilityWhereFilter) => {
+            const events = await prisma.event.findMany({
+                where: {
+                    eventEnd: {
+                        lt: new Date()
+                    },
+                    eventTagEvents: eventTagSelector(params.tags),
+                    ...visibleEventsFilter(visibilityWhereFilter)
+                },
+                select: eventArchiveFilterSelection,
+            })
+            const companies = new Map(events.flatMap(event => (event.company ? [[event.company.id, event.company]] : [])))
+            const years = new Set(events.map(event => osloDateTime(event.eventStart).year))
+            return {
+                companies: Array.from(companies.values())
+                    .sort((first, second) => first.name.localeCompare(second.name, 'nb')),
+                years: Array.from(years).sort((first, second) => second - first),
+            }
         }
     }),
 

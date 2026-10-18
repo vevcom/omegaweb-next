@@ -1,0 +1,15 @@
+@use '@/styles/ohma';
+
+.CompanyPresentationArchiveFilters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: calc(3 * #{ohma.$gap});
+    margin-bottom: calc(4 * #{ohma.$gap});
+
+    .reset {
+        padding-bottom: ohma.$gap;
+        color: ohma.$colors-text-muted;
+        font-size: ohma.$fonts-s;
+    }
+}

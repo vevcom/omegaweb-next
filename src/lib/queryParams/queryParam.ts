@@ -94,7 +94,8 @@ export class NumberQueryParam extends QueryParam<number> {
 
     decodeValue(value: string | string[] | undefined): number | null {
         if (typeof value === 'string') {
-            return parseInt(value, 10)
+            const number = parseInt(value, 10)
+            return Number.isNaN(number) ? null : number
         }
         return null
     }

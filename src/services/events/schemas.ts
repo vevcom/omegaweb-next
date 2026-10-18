@@ -60,6 +60,9 @@ const paramsFieldSchemas = z.object({
         .optional(),
     name: z.string().max(100).optional(),
     tags: z.array(z.string()).nullable(),
+    companyId: z.number().int().optional(),
+    year: z.number().int().min(1900).max(3000)
+        .optional(),
 })
 
 const waitingListRefiner = (data: {
@@ -126,8 +129,13 @@ export const eventSchemas = {
             paramsFieldSchemas.pick({
                 name: true,
                 tags: true,
+                companyId: true,
+                year: true,
             }),
         ),
+        readArchiveFilters: paramsFieldSchemas.pick({
+            tags: true,
+        }),
         search: paramsFieldSchemas.pick({
             query: true,
             limit: true,

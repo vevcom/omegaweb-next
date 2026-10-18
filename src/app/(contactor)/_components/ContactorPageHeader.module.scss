@@ -1,0 +1,58 @@
+@use '@/styles/ohma';
+@use '../_lib/contactor';
+
+.ContactorPageHeader {
+    @include contactor.band;
+    margin-bottom: calc(6 * #{ohma.$gap});
+    border-bottom: 1px solid var(--contactor-line);
+    background: linear-gradient(
+        135deg,
+        ohma.$colors-surface-raised,
+        color-mix(in srgb, var(--contactor-accent) 6%, ohma.$colors-surface-raised),
+        ohma.$colors-surface-raised
+    );
+
+    .inner {
+        @include contactor.inner;
+        padding-top: calc(8 * #{ohma.$gap});
+        padding-bottom: calc(8 * #{ohma.$gap});
+    }
+
+    .badge {
+        @include contactor.badge(var(--contactor-accent-dark));
+    }
+
+    h1 {
+        font-size: clamp(2rem, 5vw, 3rem);
+        line-height: 1.1;
+    }
+
+    .lead {
+        max-width: 36rem;
+        margin-top: calc(3 * #{ohma.$gap});
+        font-size: ohma.$fonts-l;
+        line-height: 1.6;
+        color: ohma.$colors-text-muted;
+    }
+
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: calc(3 * #{ohma.$gap});
+        margin-top: calc(4 * #{ohma.$gap});
+
+        a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4em;
+            color: var(--contactor-accent-dark);
+            font-weight: 600;
+        }
+
+        svg {
+            width: 0.8em;
+            height: 0.8em;
+        }
+    }
+}

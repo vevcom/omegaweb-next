@@ -1,6 +1,6 @@
 import { createSelection } from '@/services/createSelection'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { logoIncluder } from '@/services/career/companies/constants'
+import { companyOptionSelection, logoIncluder } from '@/services/career/companies/constants'
 import { EventCanView } from '@/prisma-generated-pn-types'
 import type { Event, Prisma } from '@/prisma-generated-pn-types'
 
@@ -62,5 +62,11 @@ export const eventCompanySelection = {
     website: true,
     ...logoIncluder,
 } as const satisfies Prisma.CompanySelect
+
+/** What the filters of the archive are made from: when each event started, and its company. */
+export const eventArchiveFilterSelection = {
+    eventStart: true,
+    company: { select: companyOptionSelection },
+} as const satisfies Prisma.EventSelect
 
 export const defaultSearchResultLimit = 5

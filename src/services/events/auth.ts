@@ -50,6 +50,7 @@ export const eventAuth = {
     read: Require.anyOf(isViewableByAll, regularLevelUnlessDraft),
     readManyCurrent: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
     readManyArchivedPage: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
+    readArchiveFilters: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
     search: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
 
     update: adminLevel,

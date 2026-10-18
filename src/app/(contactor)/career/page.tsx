@@ -1,11 +1,10 @@
 import styles from './page.module.scss'
 import ContactorHeroShape from '@/app/(contactor)/_components/ContactorHeroShape'
 import UpcomingCompanyPresentations from '@/app/(contactor)/_components/UpcomingCompanyPresentations'
-import { CAREER_PATH, companyPresentationsHref } from '@/app/(contactor)/_lib/contactorSite'
+import { contactorNavDef } from '@/app/(contactor)/_lib/contactorNavDef'
 import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagraph'
 import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
-import { eventTagOperations } from '@/services/events/tags/operations'
 import {
     readCareerSpecialCmsImageAction,
     readCareerSpecialCmsLinkAction,
@@ -15,7 +14,7 @@ import {
     updateCareerSpecialCmsParagraphContentAction,
 } from '@/services/career/actions'
 import { careerAuth } from '@/services/career/auth'
-import { serverPage, withFallback } from '@/app/ServerPage'
+import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
@@ -43,12 +42,7 @@ const programmes: {
 ]
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => ({
-        companyPresentationEventTag: await withFallback(
-            eventTagOperations.readSpecial({ params: { special: 'COMPANY_PRESENTATION' } }),
-            null
-        ),
-    }),
+    operation: async () => ({}),
     capabilities: () => ({
         canEditSpecialCmsParagraph: careerAuth.updateSpecialCmsParagraphContent,
         canEditSpecialCmsImage: careerAuth.updateSpecialCmsImage,
@@ -57,7 +51,7 @@ const { page, generateMetadata } = serverPage({
     // Absolute: the layout's "| Contactor NTNU" template only applies to the segments under it,
     // and the frontpage is the site's own name.
     metadata: () => ({ title: { absolute: 'Contactor NTNU' } }),
-    render: ({ data, capabilities }) => {
+    render: ({ capabilities }) => {
         const paragraphActions = {
             capabilities: { canEdit: capabilities.canEditSpecialCmsParagraph },
             readSpecialCmsParagraphAction: readCareerSpecialCmsParagraphAction,
@@ -88,7 +82,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </section>
 
-                <UpcomingCompanyPresentations eventsHref={companyPresentationsHref(data.companyPresentationEventTag)} />
+                <UpcomingCompanyPresentations />
 
                 <section id="studieprogrammene" className={styles.programmes}>
                     <div className={styles.inner}>
@@ -132,7 +126,7 @@ const { page, generateMetadata } = serverPage({
                             <span className={styles.badge}>Om oss</span>
                             <h2>Et dedikert team av studenter</h2>
                             <SpecialCmsParagraph special="CAREER_ABOUT" className={styles.paragraph} {...paragraphActions} />
-                            <Link href={`${CAREER_PATH}/about`} className={styles.primaryButton}>
+                            <Link href={contactorNavDef.about.href} className={styles.primaryButton}>
                                 Møt teamet
                                 <FontAwesomeIcon icon={faArrowRight} />
                             </Link>

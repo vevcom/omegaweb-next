@@ -1,0 +1,15 @@
+@use '@/styles/ohma';
+
+.list {
+    @include ohma.RowListLayout;
+    margin-bottom: calc(8 * #{ohma.$gap});
+}
+
+.empty {
+    margin-bottom: calc(8 * #{ohma.$gap});
+    padding: calc(6 * #{ohma.$gap});
+    border-radius: ohma.$rounding;
+    background: ohma.$colors-surface-raised;
+    color: ohma.$colors-text-muted;
+    text-align: center;
+}
