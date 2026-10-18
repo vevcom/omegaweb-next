@@ -19,7 +19,6 @@ import { seedDevJobAds } from './development/seedDevJobAds'
 import { seedDevEvents } from './development/seedDevEvents'
 import { seedEventTags } from './standardContent/seedEventTags'
 import { seedCabin } from './standardContent/seedCabin'
-import { seedAdmin } from './standardContent/seedAdmin'
 import { seedDevApplicationsAndPeriods } from './development/seedDevApplicationsAndPeriods'
 import { seedArticleCategories } from './standardContent/seedArticleCategories'
 import { seedImages } from './standardContent/seedImages'
@@ -53,7 +52,6 @@ export default async function seed({ devData, logging = true }: { devData: boole
         await step('Upserting standard cabins', () => seedCabin())
         await step('Upserting standard shops', () => seedShop())
         await step('Upserting standard event tags', () => seedEventTags())
-        await step('Upserting admin user', () => seedAdmin())
         await step('Upserting standard flairs', () => seedFlairs())
         await step('Upserting standard interest groups', () => seedInterestGroups())
     })
