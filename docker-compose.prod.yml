@@ -99,9 +99,10 @@ services:
     # full dependency tree (see the tools stage in the Dockerfile), so it ships as its
     # own image and is run on demand:
     #
-    #   docker compose -f docker-compose.prod.yml --profile tools run --rm tools
+    #   docker compose -f docker-compose.prod.yml --profile tools run --rm tools npm run dobbelOmega:run
     #
-    # The default command is DobbelOmega, which resets the whole database.
+    # The image has no default command, so the job must be named: DobbelOmega resets the whole
+    # database, and a bare `run tools` only opens a node prompt.
     tools:
         extends:
             file: docker-compose.base.yml

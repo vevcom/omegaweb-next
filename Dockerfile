@@ -73,15 +73,19 @@ RUN rm -rf .next/standalone/standard_store standard_store/dev_profile_images
 # The migration/seed toolchain: DobbelOmega and the seeder pull in the whole
 # service layer, so they need the full dependency tree and cannot run against
 # prod's traced subset. This is a separate image rather than extra weight in
-# prod. Also the image the migrate one-shot runs, with the command overridden - see
-# "Applying database schema migrations" and "Running DobbelOmega" in README.md.
+# prod. Also the image the migrate one-shot and the workers run - see "Applying
+# database schema migrations" and "Running DobbelOmega" in README.md.
+#
+# It has no command of its own: every service built from it sets the one it runs,
+# and so does whoever runs a one-shot job such as DobbelOmega. A default would be
+# whatever a bare `run tools` does, and none of these is safe to start by accident -
+# DobbelOmega resets the database it points at. Without a command the image falls
+# back to the node base image's default, a node prompt.
 FROM base AS tools
 
 ENV NODE_ENV=production
 
 COPY src src
-
-CMD ["npm", "run", "dobbelOmega:run"]
 
 ############################################################
 # prod is deliberately the last stage: a plain `docker build` with no
