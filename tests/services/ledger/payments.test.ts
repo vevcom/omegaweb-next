@@ -201,6 +201,23 @@ describe('creating payments', () => {
     })
 })
 
+describe('creating deposits', () => {
+    test('if sending the deposit to Stripe fails, the stuck attempt is canceled instead of left behind', async () => {
+        const account = await createAccount('depositinitiatefails')
+        stripeMocks.createIntent.mockRejectedValueOnce(new Error('Stripe is down'))
+
+        await expect(ledgerMovementOperations.createDeposit({
+            params: { ledgerAccountId: account.id, provider: 'STRIPE', funds: DEPOSIT },
+            bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('UNKNOWN ERROR'))
+
+        const [transaction] = await prisma.ledgerTransaction.findMany({
+            where: { ledgerEntries: { some: { ledgerAccountId: account.id } } },
+        })
+        expect(transaction.state).toBe('CANCELED')
+    })
+})
+
 describe('canceling payments', () => {
     const cancelTransaction = (id: number) => ledgerTransactionOperations.cancel({ params: { id }, bypassAuth: true })
 
