@@ -21,10 +21,10 @@ export default function LockerScanner() {
                     onScan={text => {
                         const path = lockerPathOfQrCode(text, window.location.origin)
                         if (!path) {
-                            return Promise.resolve({ success: false, text: 'QR-koden er ikke til et skap' })
+                            return { success: false, text: 'QR-koden er ikke til et skap' }
                         }
                         router.push(path)
-                        return Promise.resolve({ success: true, text: 'Skap funnet' })
+                        return { success: true, text: 'Skap funnet' }
                     }}
                 />
             </div>

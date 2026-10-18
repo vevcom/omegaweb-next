@@ -2,6 +2,7 @@ import { cabinBookingPaymentCompletionHook } from '@/services/cabin/booking/paym
 import logger from '@/lib/logger'
 import type { ExpandedLedgerTransaction } from './types'
 import type { LedgerTransactionPurpose, Prisma } from '@/prisma-generated-pn-types'
+import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * A hook a domain registers to react once a ledger transaction for one of its purposes has
@@ -17,7 +18,7 @@ import type { LedgerTransactionPurpose, Prisma } from '@/prisma-generated-pn-typ
 export type PaymentCompletionHook = (
     transaction: ExpandedLedgerTransaction,
     context: { prisma: Prisma.TransactionClient },
-) => Promise<void>
+) => Awaitable<void>
 
 /**
  * The single table every domain's "what happens when payment for X succeeds" hook is registered

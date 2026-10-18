@@ -10,6 +10,7 @@ import { notificationOperations } from '@/services/notifications/operations'
 import logger from '@/lib/logger'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { File } from 'node:buffer'
+import type { Awaitable } from '@/lib/awaitable'
 
 export const ombulOperations = {
     read: defineOperation({
@@ -239,7 +240,7 @@ export const ombulOperations = {
  */
 async function withStoredOmbulFile<Result>(
     ombulFile: File,
-    write: (fsLocation: string) => Promise<Result>,
+    write: (fsLocation: string) => Awaitable<Result>,
 ): Promise<Result> {
     const { fsLocation } = await ombulStore.createFile(ombulFile, ['pdf'])
     try {

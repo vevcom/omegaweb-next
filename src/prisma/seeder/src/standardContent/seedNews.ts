@@ -52,7 +52,7 @@ async function upsertNews(prisma: PrismaClient, news: SeedNewsConfig) {
             select: { id: true }
         }),
         create: () => createNews(prisma, news),
-        update: () => Promise.resolve(),
+        update: () => {},
     })
 }
 

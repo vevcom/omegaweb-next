@@ -179,7 +179,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             select: { id: true },
         }),
         create: () => createRootChannel(prisma, rChan, DEFAULT_NOTIFCIATION_ALIAS),
-        update: () => Promise.resolve(),
+        update: () => {},
     })
 
     await Promise.all(channels

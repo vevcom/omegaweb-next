@@ -7,6 +7,7 @@ import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 import type { DoubleLevelVisibilityMatrix, VisibilityMatrix } from './types'
+import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * The admin level must always be a sub-visibility of the regular level - an administrator who
@@ -35,21 +36,21 @@ type Authorizers<
             params: z.infer<ImplementationParamsSchema>,
             doubleLevelMatrix: DoubleLevelVisibilityMatrix,
         }
-    ) => Authorizer | Promise<Authorizer>
+    ) => Awaitable<Authorizer>
     updateRegularLevel: (
         args: {
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>,
             doubleLevelMatrix: DoubleLevelVisibilityMatrix,
         }
-    ) => Authorizer | Promise<Authorizer>,
+    ) => Awaitable<Authorizer>,
     updateAdminLevel: (
         args: {
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>,
             doubleLevelMatrix: DoubleLevelVisibilityMatrix,
         }
-    ) => Authorizer | Promise<Authorizer>
+    ) => Awaitable<Authorizer>
 }
 
 export const visibilityIncluder = {

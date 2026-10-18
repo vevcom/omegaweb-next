@@ -5,15 +5,14 @@ import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { GroupType } from '@/prisma-generated-pn-types'
 import type { SetPensioned } from './types'
+import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * An authorizer for an operation that addresses one particular group. The group type's own auth
  * decides what it needs the groupId for - typically binding `RequirePermissionOrGroupAdmin` so that
  * the group's own admins are allowed through.
  */
-export type GroupAuthorizerOfGroup = (args: { groupId: number }) =>
-    | Authorizer
-    | Promise<Authorizer>
+export type GroupAuthorizerOfGroup = (args: { groupId: number }) => Awaitable<Authorizer>
 
 /**
  * The ownership check shared by every common operation addressing a single group: the group must be

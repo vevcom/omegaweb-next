@@ -2,6 +2,7 @@
 import { createContext, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { UserBasic } from '@/services/users/types'
+import type { Awaitable } from '@/lib/awaitable'
 
 type PropTypes = {
     children: ReactNode
@@ -18,7 +19,7 @@ export const UserSelectionContext = createContext<{
     onSelection: (handler: Handler) => void
         } | null>(null)
 
-type Handler = (user: UserBasic | null) => void | Promise<void>
+type Handler = (user: UserBasic | null) => Awaitable<void>
 
 export default function UserSelectionProvider({ children, initialUser }: PropTypes) {
     const [user, setUser] = useState<UserBasic | null>(initialUser ? initialUser : null)

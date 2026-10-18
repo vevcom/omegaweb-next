@@ -9,7 +9,7 @@ export default function OmegaIdContainer({
 }) {
     return <OmegaIdReader
         publicKey={publicKey}
-        successCallback={(userId) => Promise.resolve({
+        successCallback={(userId) => ({
             success: true,
             text: `userID: ${userId}`,
         })}

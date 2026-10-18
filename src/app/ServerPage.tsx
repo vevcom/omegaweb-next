@@ -15,6 +15,7 @@ import type { Capabilities, CapabilityAuthorizers, CapabilityKey } from '@/auth/
 import type { Session } from '@/auth/session/Session'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
+import type { Awaitable } from '@/lib/awaitable'
 
 export type SearchParams = Record<string, string | string[] | undefined>
 
@@ -150,14 +151,14 @@ export function serverPage<
     Authorizers extends CapabilityAuthorizers<Authorizers> = Record<never, never>,
 >({ allowUnregistered = false, operation, capabilities, metadata, render }: {
     allowUnregistered?: boolean,
-    operation: (args: PageOperationArgs<Params>) => Data | Promise<Data>,
+    operation: (args: PageOperationArgs<Params>) => Awaitable<Data>,
     capabilities?: CapabilitiesOf<Data, Authorizers>,
     metadata?: (data: Data) => Metadata,
     render: (args: {
         data: Data,
         capabilities: PageCapabilities<Authorizers>,
         session: ServerPageSession,
-    }) => ReactNode | Promise<ReactNode>,
+    }) => Awaitable<ReactNode>,
 }): {
     page: (props: PageProps<Params>) => Promise<ReactNode>,
     generateMetadata: (props: PageProps<Params>) => Promise<Metadata>,
@@ -261,14 +262,14 @@ export function serverLayout<
     Data,
     Authorizers extends CapabilityAuthorizers<Authorizers> = Record<never, never>,
 >({ operation, capabilities, render }: {
-    operation: (args: LayoutOperationArgs<Params>) => Data | Promise<Data>,
+    operation: (args: LayoutOperationArgs<Params>) => Awaitable<Data>,
     capabilities?: CapabilitiesOf<Data, Authorizers>,
     render: (args: {
         data: Data,
         capabilities: PageCapabilities<Authorizers>,
         children: ReactNode,
         session: ServerPageSession,
-    }) => ReactNode | Promise<ReactNode>,
+    }) => Awaitable<ReactNode>,
 }): (props: LayoutProps<Params>) => Promise<ReactNode> {
     return async ({ params, children }) => {
         try {
@@ -328,7 +329,7 @@ export async function withFallback<Data, Fallback>(
  * them hit the error boundary. Layouts use {@link serverLayout}, which handles them.
  */
 export async function withPageSession<Result>(
-    callback: (session: ServerPageSession) => Promise<Result>
+    callback: (session: ServerPageSession) => Awaitable<Result>
 ): Promise<Result> {
     const session = await ServerSession.fromNextAuth()
     return withServiceContext({ session }, false, () => callback(session))

@@ -103,7 +103,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
             select: { id: true },
         }),
         create: () => createEvent(prisma, event, registrationCount, coverImage.id),
-        update: () => Promise.resolve(),
+        update: () => {},
     })))
 })
 

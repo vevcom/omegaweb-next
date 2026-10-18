@@ -7,6 +7,7 @@ import type { ArgsAuthGetterAndOwnershipCheck, PrismaPossibleTransaction } from 
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { Prisma, SpecialCmsArticle } from '@/prisma-generated-pn-types'
 import type { articleSchemas } from './schemas'
+import type { Awaitable } from '@/lib/awaitable'
 
 type ParamsSchema = typeof articleSchemas.params.update
 type OwnedArticle = Prisma.ArticleGetPayload<{
@@ -39,13 +40,13 @@ export function implementUpdateArticleOperations<
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>
         }
-    ) => Authorizer | Promise<Authorizer>,
+    ) => Awaitable<Authorizer>,
     ownedArticles: (
         args: {
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>
         }
-    ) => Promise<OwnedArticle[]>
+    ) => Awaitable<OwnedArticle[]>
     /**
      * Runs after authorization and before any of these operations. It lets the owner refuse the
      * whole set at once - a pensioned group, say, whose content may no longer be edited.
@@ -55,7 +56,7 @@ export function implementUpdateArticleOperations<
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>
         }
-    ) => void | Promise<void>,
+    ) => Awaitable<void>,
 }) {
     const ownershipCheckArticle = async (
         args: Omit<ArgsAuthGetterAndOwnershipCheck<false, ParamsSchema, undefined, ImplementationParamsSchema>, 'data'>

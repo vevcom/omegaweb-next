@@ -155,7 +155,7 @@ async function upsertSpecialCmsImage(
                 data: { imageId: image.id }
             })
         },
-        update: () => Promise.resolve(),
+        update: () => {},
     })
 }
 
@@ -178,7 +178,7 @@ async function upsertSpecialCmsParagraph(
                 data: { markdown: readFileSync(join(CMS_PARAGRAPHS_DIR, file), 'utf-8') }
             })
         },
-        update: () => Promise.resolve(),
+        update: () => {},
     })
 }
 
@@ -201,7 +201,7 @@ async function upsertSpecialCmsLink(
                 data: link
             })
         },
-        update: () => Promise.resolve(),
+        update: () => {},
     })
 }
 
@@ -216,7 +216,7 @@ async function upsertSpecialCmsArticle(
             select: { id: true }
         }),
         create: () => createSpecialCmsArticle(prisma, special, article),
-        update: () => Promise.resolve(),
+        update: () => {},
     })
 }
 

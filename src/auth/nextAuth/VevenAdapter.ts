@@ -200,28 +200,28 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
             )
         },
         deleteUser() {
-            return Promise.reject<void>(new Error('Delete user from next auth is not implemented'))
+            throw new Error('Delete user from next auth is not implemented')
         },
         unlinkAccount() {
-            return Promise.reject(new Error('Unlink account from next auth is not implemented'))
+            throw new Error('Unlink account from next auth is not implemented')
         },
         createSession() {
-            return Promise.reject(new Error('Create session from next auth is not implemented'))
+            throw new Error('Create session from next auth is not implemented')
         },
         getSessionAndUser() {
-            return Promise.reject(new Error('Get session and user from next auth is not implemented'))
+            throw new Error('Get session and user from next auth is not implemented')
         },
         updateSession() {
-            return Promise.reject(new Error('Update session from next auth is not implemented'))
+            throw new Error('Update session from next auth is not implemented')
         },
         deleteSession() {
-            return Promise.reject<void>(new Error('Delete session from next auth is not implemented'))
+            throw new Error('Delete session from next auth is not implemented')
         },
         createVerificationToken() {
-            return Promise.reject(new Error('Create verification token from next auth is not implemented'))
+            throw new Error('Create verification token from next auth is not implemented')
         },
         useVerificationToken() {
-            return Promise.reject(new Error('Use verification token from next auth is not implemented'))
+            throw new Error('Use verification token from next auth is not implemented')
         },
     }
 }

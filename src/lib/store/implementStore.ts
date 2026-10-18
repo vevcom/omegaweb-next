@@ -5,6 +5,7 @@ import { v4 as uuid } from 'uuid'
 import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import type { File } from 'buffer'
+import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * This implements the store and lets a service use the store. The staticStorePrefix is where the service will store
@@ -27,7 +28,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
     async function createFile(
         file: File,
         allowedExt: readonly AllowedExt[number][] = config.allowedExtentions,
-        prosessor: (buffer: Buffer) => Promise<Buffer> = (buffer) => Promise.resolve(buffer),
+        prosessor: (buffer: Buffer) => Awaitable<Buffer> = buffer => buffer,
         dynamicStorePrefix?: string,
     ): Promise<{
         fsLocation: string,

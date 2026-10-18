@@ -6,15 +6,16 @@ import { File } from 'node:buffer'
 import type { StandardLicenseName } from '@/services/licenses/constants'
 import type { imageSchemas } from '@/services/images/subservice/schemas'
 import type { z } from 'zod'
+import type { Awaitable } from '@/lib/awaitable'
 
 const standardStoreRoot = join(process.cwd(), 'standard_store')
 
 export type StandardStoreFile = {
-    file: () => Promise<File>,
+    file: () => Awaitable<File>,
     credit: () => string | null,
     license: () => StandardLicenseName | null,
     originOfFile: () => URL | string
-    imageUploadData: (imageData: { name: string, alt: string }) => Promise<z.input<typeof imageSchemas.data.uploadImage>>
+    imageUploadData: (imageData: { name: string, alt: string }) => Awaitable<z.input<typeof imageSchemas.data.uploadImage>>
 }
 
 const standardStoreFile = (config: {

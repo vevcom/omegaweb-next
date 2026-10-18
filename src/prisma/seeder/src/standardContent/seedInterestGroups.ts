@@ -124,6 +124,6 @@ export const seedInterestGroups = defineSeedOperation(async (prisma: PrismaClien
                 },
             }
         }),
-        update: () => Promise.resolve(),
+        update: () => {},
     })))
 })

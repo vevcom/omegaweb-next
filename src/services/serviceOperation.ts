@@ -12,6 +12,7 @@ import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { z } from 'zod'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma, PrismaClient } from '@/prisma-generated-pn-client'
+import type { Awaitable } from '@/lib/awaitable'
 
 export type InferredOrInput<Schema extends z.ZodTypeAny | undefined, InferredOrInputMode extends 'INFERRED' | 'INPUT'> =
     Schema extends undefined
@@ -85,7 +86,7 @@ export type ServiceOperationOperation<
         & DataObject<DataSchema, 'INFERRED'>
         & ServiceOperationContext<OpensTransaction>
     , prismaWhereFilter: PrismaWhereFilter | undefined
-) => Promise<Return> | Return
+) => Awaitable<Return>
 
 export type SubServiceOperationConfig<
     ParamsSchema extends z.ZodTypeAny | undefined,
@@ -124,13 +125,9 @@ export type AuthorizerGetter<
 > = (
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
 ) =>
-        | Authorizer<
+        Awaitable<Authorizer<
             'USER_NOT_REQUIRED_FOR_AUTHORIZED' | 'USER_REQUIRED_FOR_AUTHORIZED', PrismaWhereFilter
-        > | Promise<
-            Authorizer<
-                'USER_NOT_REQUIRED_FOR_AUTHORIZED' | 'USER_REQUIRED_FOR_AUTHORIZED', PrismaWhereFilter
-            >
-        >
+        >>
 
 export type OwnershipCheck<
     OpensTransaction extends boolean,
@@ -139,7 +136,7 @@ export type OwnershipCheck<
     ImplementationParamsSchema extends z.ZodTypeAny | undefined,
 > = (
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
-) => boolean | Promise<boolean>
+) => Awaitable<boolean>
 
 /**
  * A hook an implementation may run right before the operation itself. It gets the same arguments as
@@ -157,7 +154,7 @@ export type BeforeRun<
     ImplementationParamsSchema extends z.ZodTypeAny | undefined,
 > = (
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
-) => void | Promise<void>
+) => Awaitable<void>
 
 export type ServiceOperationImplementationConfigInternalCall<
     ImplementationParamsSchema extends z.ZodTypeAny | undefined,
@@ -655,7 +652,7 @@ const prismaErrorCodes: Record<string, [ServiceErrorCode, string]> = {
  * NOT FOUND), a service error passes through, and anything else is an UNKNOWN ERROR. So everything
  * an operation throws is a Smorekopp, which is what `makeAction` relies on.
  */
-async function prismaErrorWrapper<Result>(call: () => Result | Promise<Result>): Promise<Result> {
+async function prismaErrorWrapper<Result>(call: () => Awaitable<Result>): Promise<Result> {
     try {
         return await call()
     } catch (error) {

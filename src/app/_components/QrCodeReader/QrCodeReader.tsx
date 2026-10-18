@@ -3,6 +3,7 @@ import { qrCodeReaderConfig } from './constants'
 import styles from './QrCodeReader.module.scss'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { useEffect, useEffectEvent, useId, useState } from 'react'
+import type { Awaitable } from '@/lib/awaitable'
 
 export type ScanResult = {
     success: boolean,
@@ -15,7 +16,7 @@ type PropTypes = {
      * what is shown as it is, for a read the caller chose to ignore. A caller doing slow work for a
      * read (a request to the server) calls `showWaiting` before it, so the reader shows it is busy.
      */
-    onScan: (text: string, showWaiting: () => void) => Promise<ScanResult | null>,
+    onScan: (text: string, showWaiting: () => void) => Awaitable<ScanResult | null>,
     /** Stops scanning after the first read that succeeds. */
     singleRead?: boolean,
     /** The size (in pixels) of the square the code is scanned within. */
@@ -57,10 +58,12 @@ export default function QrCodeReader({ onScan, singleRead = false, qrboxSize }: 
             if (reading) return
             reading = true
 
-            const result = await scan(text, () => setFeedback({ status: 'WAITING', text: '...' })).catch(() => ({
-                success: false,
-                text: 'Noe gikk galt. Prøv igjen.',
-            }))
+            let result: ScanResult | null
+            try {
+                result = await scan(text, () => setFeedback({ status: 'WAITING', text: '...' }))
+            } catch {
+                result = { success: false, text: 'Noe gikk galt. Prøv igjen.' }
+            }
             reading = false
             // An ignored read leaves the outcome of the last one showing.
             if (result === null) return

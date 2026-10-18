@@ -4,6 +4,7 @@ import { parseJWTClient } from '@/jwt/parseJWTClient'
 import { decompressOmegaId } from '@/services/omegaid/compress'
 import { useRef } from 'react'
 import type { ScanResult } from '@/components/QrCodeReader/QrCodeReader'
+import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * Renders a component for reading OmegaId QR codes.
@@ -26,7 +27,7 @@ export default function OmegaIdReader({
     singleRead,
     qrboxSize,
 }: {
-    successCallback: (user: number, token: string) => Promise<ScanResult>,
+    successCallback: (user: number, token: string) => Awaitable<ScanResult>,
     publicKey: string,
     expiryOffset?: number,
     debounceThreshold?: number,

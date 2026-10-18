@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { feideRealmsLinkableByEmail } from '@/lib/feide/constants'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
+import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * Next auth links a Feide login that has no Feide account yet to the user the adapter finds by
@@ -17,7 +18,7 @@ export async function feideLoginMayLinkByEmail(prisma: PrismaClient, {
 }: {
     providerAccountId: string,
     email: string | undefined | null,
-    readRealms: () => Promise<string[]> | string[],
+    readRealms: () => Awaitable<string[]>,
 }) {
     const feideAccount = await prisma.feideAccount.findUnique({
         where: { id: providerAccountId },
