@@ -3,6 +3,7 @@ import { stripe } from '@/lib/stripe'
 import { prisma } from '@/prisma/client'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { refundOperations } from '@/services/ledger/refunds/operations'
+import { createManualReview } from '@/services/ledger/transactions/manualReview'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import Stripe from 'stripe'
 import type { PaymentState } from '@/prisma-generated-pn-types'
@@ -61,25 +62,16 @@ async function reimburseOrLogManualAction(
             bypassAuth: true,
         }))
     } catch (error) {
-        const note = `Automatisk tilbakebetaling mislyktes: ${reason}`
-        logger.error(
-            `MANUAL ADMIN ACTION REQUIRED! Could not reimburse ledger transaction ${originalTransactionId}.`,
-            { error }
-        )
-        await prisma.manualTransactionReview.create({
-            data: { transactionId: originalTransactionId, problemDescription: note },
-        })
+        await createManualReview(originalTransactionId, `Automatisk tilbakebetaling mislyktes: ${reason}`, { error })
     }
 }
 
 /**
- * Reimburses the payer when a Stripe payment intent succeeded but the local payment had already
- * moved to a terminal state that can't accept a success, which the catch block below handles as
- * a Prisma P2025 error. Neither side of the original transaction ever applied to anyone's ledger
- * balance, even though Stripe genuinely took the money. Idempotent: a webhook retry for the same
- * payment intent finds the payment already claimed and does nothing further.
+ * The transaction behind a Stripe payment intent, shared by `refundLateStripeSuccess` and
+ * `flagForManualReview` - both start from the same payment intent and need the same lookup, just
+ * with different fields and a different not-found message.
  */
-async function refundLateStripeSuccess(paymentIntentId: string, fee?: number) {
+async function findTransactionBehindPaymentIntent(paymentIntentId: string) {
     const stripePayment = await prisma.stripePayment.findUnique({
         where: { paymentIntentId },
         select: {
@@ -93,15 +85,33 @@ async function refundLateStripeSuccess(paymentIntentId: string, fee?: number) {
         },
     })
 
-    const originalTransaction = stripePayment?.payment?.ledgerTransactions[0]
-    if (!stripePayment?.payment || !originalTransaction) {
+    const transactionId = stripePayment?.payment.ledgerTransactions[0]?.id
+    if (!stripePayment || !transactionId) return undefined
+
+    return {
+        transactionId,
+        paymentId: stripePayment.payment.id,
+        claimedByTransactionId: stripePayment.payment.claimedByTransactionId,
+    }
+}
+
+/**
+ * Reimburses the payer when a Stripe payment intent succeeded but the local payment had already
+ * moved to a terminal state that can't accept a success, which the catch block below handles as
+ * a Prisma P2025 error. Neither side of the original transaction ever applied to anyone's ledger
+ * balance, even though Stripe genuinely took the money. Idempotent: a webhook retry for the same
+ * payment intent finds the payment already claimed and does nothing further.
+ */
+async function refundLateStripeSuccess(paymentIntentId: string, fee?: number) {
+    const found = await findTransactionBehindPaymentIntent(paymentIntentId)
+    if (!found) {
         logger.error(
             'MANUAL ADMIN ACTION REQUIRED! Could not find a transaction to reimburse for '
             + `late-succeeding payment intent ${paymentIntentId}.`
         )
         return
     }
-    if (stripePayment.payment.claimedByTransactionId !== null) return
+    if (found.claimedByTransactionId !== null) return
 
     // Payment.fees is the single source of truth for what Stripe actually charged, but the
     // webhook's own guarded update above never got to write it here - that update targets a
@@ -109,11 +119,11 @@ async function refundLateStripeSuccess(paymentIntentId: string, fee?: number) {
     // handle. This is the only place that ever learns the real fee for this case, so write it
     // directly rather than threading it through reimburseUnappliedPayment's params.
     if (fee !== undefined) {
-        await prisma.payment.update({ where: { id: stripePayment.payment.id }, data: { fees: fee } })
+        await prisma.payment.update({ where: { id: found.paymentId }, data: { fees: fee } })
     }
 
     await reimburseOrLogManualAction(
-        originalTransaction.id,
+        found.transactionId,
         'Stripe-betalingen gikk gjennom etter at den lokalt var kansellert eller mislyktes.',
     )
 }
@@ -126,27 +136,15 @@ async function refundLateStripeSuccess(paymentIntentId: string, fee?: number) {
  * left to just fall through as unsupported events the way a genuinely irrelevant one would.
  */
 async function flagForManualReview(paymentIntentId: string, note: string) {
-    const stripePayment = await prisma.stripePayment.findUnique({
-        where: { paymentIntentId },
-        select: {
-            payment: {
-                select: { ledgerTransactions: { select: { id: true }, orderBy: { id: 'asc' }, take: 1 } },
-            },
-        },
-    })
-
-    const transactionId = stripePayment?.payment.ledgerTransactions[0]?.id
-    if (!transactionId) {
+    const found = await findTransactionBehindPaymentIntent(paymentIntentId)
+    if (!found) {
         logger.error(
             `MANUAL ADMIN ACTION REQUIRED! ${note} No ledger transaction found for payment intent ${paymentIntentId}.`
         )
         return
     }
 
-    logger.error(`MANUAL ADMIN ACTION REQUIRED! ${note} Ledger transaction ${transactionId}.`)
-    await prisma.manualTransactionReview.create({
-        data: { transactionId, problemDescription: note },
-    })
+    await createManualReview(found.transactionId, note)
 }
 
 /**
