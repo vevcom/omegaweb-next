@@ -220,10 +220,13 @@ export const ledgerTransactionOperations = {
 
     /**
      * Lists transactions a human needs to look at: either explicitly flagged (see
-     * needsManualReview, e.g. a Stripe dispute or an external refund), or a FAILED transaction
-     * whose Stripe payment nonetheless shows SUCCEEDED - a late success after a local failure
-     * that reimburseOrLogManualAction couldn't resolve on its own. Admin-only, across every
-     * account, not scoped to one the caller is a party to.
+     * needsManualReview, e.g. a Stripe dispute or an external refund), or a FAILED or CANCELED
+     * transaction whose Stripe payment nonetheless shows SUCCEEDED - a late success after a local
+     * failure or cancel that reimburseOrLogManualAction couldn't resolve on its own. `refundOf`
+     * and `claimedByTransactionId` both being null excludes one reimburseOrLogManualAction did
+     * resolve - the transaction itself stays FAILED/CANCELED forever as a historical record once
+     * resolved, so state alone can't tell a resolved one from one still needing attention.
+     * Admin-only, across every account, not scoped to one the caller is a party to.
      */
     readNeedingAttention: defineOperation({
         authorizer: () => ledgerTransactionAuth.readNeedingAttention,
@@ -231,7 +234,15 @@ export const ledgerTransactionOperations = {
             where: {
                 OR: [
                     { needsManualReview: { not: null } },
-                    { state: 'FAILED', payment: { stripePayment: { isNot: null }, state: 'SUCCEEDED' } },
+                    {
+                        state: { in: ['FAILED', 'CANCELED'] },
+                        refundOf: null,
+                        payment: {
+                            stripePayment: { isNot: null },
+                            state: 'SUCCEEDED',
+                            claimedByTransactionId: null,
+                        },
+                    },
                 ],
             },
             select: {
