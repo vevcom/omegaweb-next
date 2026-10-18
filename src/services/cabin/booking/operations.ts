@@ -35,7 +35,7 @@ const dayMs = 24 * 60 * 60 * 1000
  * What blocks the calendar: a booking that is not canceled and either is paid (its window is
  * cleared) or is still inside the window its payment must start in.
  */
-const blocksCalendar = (): Prisma.BookingWhereInput => ({
+export const blocksCalendar = (): Prisma.BookingWhereInput => ({
     canceled: null,
     OR: [
         { transactionTimeout: null },
@@ -421,6 +421,7 @@ export const cabinBookingOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsmetode må oppgis.')
             }
 
+            let payment: ExpandedPayment | undefined
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
                 // Extends the reservation window to cover the full lifetime a pending attempt is
                 // allowed to stay open for (see stalePendingTransactionMs above), so the dates
@@ -443,10 +444,8 @@ export const cabinBookingOperations = {
                     )
                 }
 
-                let paymentId: number | undefined
-
                 if (shortfall > 0) {
-                    const payment = await paymentOperations.create({
+                    payment = await paymentOperations.create({
                         params: {
                             provider: params.provider!,
                             funds: shortfall,
@@ -456,7 +455,6 @@ export const cabinBookingOperations = {
                         },
                         prisma: tx,
                     })
-                    paymentId = payment.id
                 }
 
                 // Outer authorizer (cabinBookingAuth.createPayment) already covers whether this
@@ -479,7 +477,7 @@ export const cabinBookingOperations = {
                                 ? [{ ledgerAccountId: payerAccount.id, funds: -params.amountFromBalance }]
                                 : []),
                         ],
-                        paymentId,
+                        paymentId: payment?.id,
                         bookingId: booking.id,
                         description: params.provider === 'MANUAL' ? params.description : undefined,
                     },
@@ -487,20 +485,21 @@ export const cabinBookingOperations = {
                 })
             })
 
-            let payment = transaction.payment
-            if (payment?.state === 'PENDING') {
-                payment = await paymentOperations.initiate({
-                    params: { paymentId: payment.id },
-                })
-            }
-
             // Clearing the reservation window and sending the confirmation once the transaction
             // actually reaches SUCCEEDED is handled by cabinBookingPaymentCompletionHook (see
             // ledger/transactions/paymentCompletionHooks.ts), dispatched from
             // ledgerTransactionOperations.advance - called synchronously above via .create() for
             // MANUAL/balance-only payments, or later from the Stripe webhook for STRIPE ones.
 
-            return { payment }
+            // Starts collecting the payment and returns its live clientSecret - initiate cancels
+            // the transaction and its hold-window extension along with it if starting the
+            // payment fails, so the booking can be paid for again instead of sitting stuck.
+            return {
+                payment: await ledgerTransactionOperations.initiate({
+                    params: { id: transaction.id },
+                    bypassAuth: true,
+                }),
+            }
         },
     }),
 

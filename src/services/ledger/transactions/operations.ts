@@ -13,6 +13,7 @@ import { defineOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import type { ExpandedLedgerTransaction } from './types'
+import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 /**
@@ -133,6 +134,57 @@ export const ledgerTransactionOperations = {
                 bypassAuth: true,
             })
             return canceled
+        },
+    }),
+
+    /**
+     * Starts collecting a transaction's own payment, if it has one and it's still PENDING -
+     * every caller that creates a transaction backed by a fresh payment needs this, not
+     * paymentOperations.initiate directly: a payment no longer unambiguously knows which
+     * transaction depends on it (one can be reused across claims), but the transaction does,
+     * which is what lets this cancel itself if starting the payment fails, instead of being
+     * left stuck with no way to ever pay for it. Returns the full payment (its live Stripe
+     * client secret, not ExpandedLedgerTransaction's restricted copy), or null if the
+     * transaction has none at all.
+     */
+    initiate: defineOperation({
+        authorizer: () => ledgerTransactionAuth.initiate,
+        paramsSchema: ledgerTransactionSchemas.params.initiate,
+        opensTransaction: true,
+        operation: async ({ prisma, params }): Promise<ExpandedPayment | null> => {
+            const transaction = await ledgerTransactionOperations.read({
+                params: { id: params.id },
+                bypassAuth: true,
+            })
+            if (!transaction.payment) return null
+
+            if (transaction.payment.state !== 'PENDING') {
+                return await prisma.payment.findUniqueOrThrow({
+                    where: { id: transaction.payment.id },
+                    include: { stripePayment: true, manualPayment: true },
+                })
+            }
+
+            try {
+                return await paymentOperations.initiate({ params: { paymentId: transaction.payment.id } })
+            } catch (error) {
+                // A concurrent cancellation can make the initiate call above throw because the
+                // payment was pulled out from under it - cancel then finds the transaction already
+                // non-PENDING and throws its own guard error, which would otherwise replace the
+                // real one. Swallow only that expected race; any other cleanup failure (e.g. cancel
+                // itself hitting a real error) must still surface.
+                try {
+                    await ledgerTransactionOperations.cancel({ params: { id: params.id }, bypassAuth: true })
+                } catch (cleanupError) {
+                    if (
+                        !(cleanupError instanceof Smorekopp)
+                        || cleanupError.errors[0]?.message !== 'Bare en ventende transaksjon kan kanselleres.'
+                    ) {
+                        throw cleanupError
+                    }
+                }
+                throw error
+            }
         },
     }),
 

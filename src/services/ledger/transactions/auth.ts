@@ -41,4 +41,12 @@ export const ledgerTransactionAuth = {
     // Being party to one side of the transaction is enough to cancel a stale attempt on it - same
     // bar as read.
     cancel: partyToAnyAccount,
+
+    // Not meant to be called directly by a user - real callers (createPayment/createDeposit)
+    // always pass bypassAuth; the outer operation they're part of already established whether
+    // this session may act on the resource being paid for, which can include an admin paying on
+    // someone else's behalf. LEDGER_USE here is a safety net for any other caller, matching
+    // paymentAuth.initiate's own bar - not an ownership check, which would wrongly reject that
+    // admin case.
+    initiate: Require.permission('LEDGER_USE'),
 } as const

@@ -7,6 +7,7 @@ import { stripeWebhookCallback } from '@/services/ledger/payments/stripeWebhookC
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { refundOperations } from '@/services/ledger/refunds/operations'
 import { userOperations } from '@/services/users/operations'
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import type Stripe from 'stripe'
@@ -93,6 +94,40 @@ const readTransaction = (id: number) => prisma.ledgerTransaction.findUniqueOrThr
     where: { id },
     include: { payment: true },
 })
+
+/**
+ * A SUCCEEDED transfer between two ledger accounts, no payment involved - the shape
+ * reverseTransaction actually reverses in production (a purchase/booking/payment, destination
+ * credited and payer debited). `fromAccountId` must already hold at least `funds`.
+ */
+async function createSucceededTransfer(fromAccountId: number, toAccountId: number, funds: number) {
+    return ledgerTransactionOperations.create({
+        params: {
+            purpose: 'CABIN_BOOKING',
+            ledgerEntries: [
+                { ledgerAccountId: toAccountId, funds },
+                { ledgerAccountId: fromAccountId, funds: -funds },
+            ],
+        },
+        bypassAuth: true,
+    })
+}
+
+/** A SUCCEEDED manual deposit, with nothing refunded against it yet. */
+async function createSucceededDeposit(ledgerAccountId: number, funds: number) {
+    const payment = await paymentOperations.create({
+        params: { provider: 'MANUAL', funds, manualFees: 0 },
+        bypassAuth: true,
+    })
+    return ledgerTransactionOperations.create({
+        params: {
+            purpose: 'DEPOSIT',
+            ledgerEntries: [{ ledgerAccountId, funds }],
+            paymentId: payment.id,
+        },
+        bypassAuth: true,
+    })
+}
 
 describe('creating payments', () => {
     test('a manual payment succeeds at once with the given fees, and is never sent to Stripe', async () => {
@@ -299,5 +334,151 @@ describe('the Stripe webhook', () => {
             payment: { state: 'PROCESSING' },
         })
         expect(await balanceOf(account.id)).toEqual({ amount: 0, fees: 0 })
+    })
+})
+
+describe('reversing transactions', () => {
+    test('a reversal flips the full transaction, with no accounts to name', async () => {
+        const payer = await createAccount('reversefullpayer')
+        const destination = await createAccount('reversefulldest')
+        await createSucceededDeposit(payer.id, DEPOSIT)
+        const transaction = await createSucceededTransfer(payer.id, destination.id, DEPOSIT)
+
+        const reversalTransaction = await refundOperations.reverseTransaction({
+            params: { originalTransactionId: transaction.id, reason: 'full reversal' },
+            bypassAuth: true,
+        })
+
+        expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
+        expect(await balanceOf(destination.id)).toEqual({ amount: 0, fees: 0 })
+        expect(await prisma.refund.findUnique({ where: { originalTransactionId: transaction.id } }))
+            .toMatchObject({ type: 'REVERSAL', refundTransactionId: reversalTransaction.id })
+    })
+
+    test('a transaction may only be reversed once', async () => {
+        const payer = await createAccount('reversetwicepayer')
+        const destination = await createAccount('reversetwicedest')
+        await createSucceededDeposit(payer.id, DEPOSIT)
+        // Padding so the destination still has enough balance for a second (duplicate) reversal
+        // attempt's debit to pass the balance check and reach the real guard this test is about:
+        // Refund.originalTransactionId's uniqueness.
+        await createSucceededDeposit(destination.id, DEPOSIT)
+        const transaction = await createSucceededTransfer(payer.id, destination.id, DEPOSIT)
+
+        // Wrapped in its own transaction, the same way every real caller does it -
+        // reverseTransaction posts its correction and its Refund row as two separate statements,
+        // so without this a duplicate attempt could commit the correction before failing on the
+        // Refund row's unique constraint, reversing the balance twice while still throwing
+        // DUPLICATE.
+        await prisma.$transaction(tx => refundOperations.reverseTransaction({
+            params: { originalTransactionId: transaction.id, reason: 'first attempt' },
+            prisma: tx,
+            bypassAuth: true,
+        }))
+
+        expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
+        expect(await balanceOf(destination.id)).toEqual({ amount: DEPOSIT, fees: 0 })
+
+        await expect(prisma.$transaction(tx => refundOperations.reverseTransaction({
+            params: { originalTransactionId: transaction.id, reason: 'second attempt' },
+            prisma: tx,
+            bypassAuth: true,
+        }))).rejects.toThrow(new Smorekopp('DUPLICATE'))
+
+        expect(await prisma.refund.count({ where: { originalTransactionId: transaction.id } })).toBe(1)
+        // The duplicate attempt's own correction must not have been left committed despite the
+        // throw - balances stay exactly where the first, successful reversal left them.
+        expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
+        expect(await balanceOf(destination.id)).toEqual({ amount: DEPOSIT, fees: 0 })
+    })
+
+    test('only a SUCCEEDED transaction can be reversed this way', async () => {
+        const account = await createAccount('reversewrongstate')
+        const payment = await paymentOperations.create({
+            params: { provider: 'STRIPE', funds: DEPOSIT },
+            bypassAuth: true,
+        })
+        const transaction = await ledgerTransactionOperations.create({
+            params: {
+                purpose: 'DEPOSIT',
+                ledgerEntries: [{ ledgerAccountId: account.id, funds: DEPOSIT }],
+                paymentId: payment.id,
+            },
+            bypassAuth: true,
+        })
+        expect(transaction.state).toBe('PENDING')
+
+        await expect(refundOperations.reverseTransaction({
+            params: { originalTransactionId: transaction.id, reason: 'not succeeded yet' },
+            bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+    })
+
+    test('flipping alone fails when the original was funded by an outside payment', async () => {
+        const committee = await createAccount('reversenoaccountcommittee')
+        // A single-entry transaction, same shape as a cabin/event payment made entirely through
+        // Stripe: there's no entry for a payer to flip back, since the money never touched a
+        // ledger balance on its way in.
+        const transaction = await createSucceededDeposit(committee.id, DEPOSIT)
+
+        await expect(refundOperations.reverseTransaction({
+            params: { originalTransactionId: transaction.id, reason: 'no account named' },
+            bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+    })
+
+    test('naming the one account to refund resolves the rest automatically', async () => {
+        const committee = await createAccount('reverseoneaccountcommittee')
+        const payer = await createAccount('reverseoneaccountpayer')
+        const transaction = await createSucceededDeposit(committee.id, DEPOSIT)
+
+        await refundOperations.reverseTransaction({
+            params: {
+                originalTransactionId: transaction.id,
+                reason: 'paid entirely through Stripe',
+                refundTo: [{ ledgerAccountId: payer.id }],
+            },
+            bypassAuth: true,
+        })
+
+        expect(await balanceOf(committee.id)).toEqual({ amount: 0, fees: 0 })
+        expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
+    })
+
+    test('naming an account the flip already touched overwrites its amount instead of adding to it', async () => {
+        const committee = await createAccount('reverseoverwritecommittee')
+        const payer = await createAccount('reverseoverwritepayer')
+        await createSucceededDeposit(payer.id, 40_00)
+        // Mirrors a real mixed payment: 40 of the 100 came from the payer's own balance, the
+        // other 60 through Stripe, so the payer's own entry only covers part of the price.
+        const shortfallPayment = await paymentOperations.create({
+            params: { provider: 'MANUAL', funds: 60_00, manualFees: 0 },
+            bypassAuth: true,
+        })
+        const transaction = await ledgerTransactionOperations.create({
+            params: {
+                purpose: 'CABIN_BOOKING',
+                ledgerEntries: [
+                    { ledgerAccountId: committee.id, funds: DEPOSIT },
+                    { ledgerAccountId: payer.id, funds: -40_00 },
+                ],
+                paymentId: shortfallPayment.id,
+            },
+            bypassAuth: true,
+        })
+
+        await refundOperations.reverseTransaction({
+            params: {
+                originalTransactionId: transaction.id,
+                reason: 'double-booked after a mixed payment',
+                refundTo: [{ ledgerAccountId: payer.id, funds: DEPOSIT }],
+            },
+            bypassAuth: true,
+        })
+
+        // The payer is owed the full price back, not just their own 40 balance portion plus the
+        // named 100 - that would be the "add" behavior this test rules out.
+        expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
+        expect(await balanceOf(committee.id)).toEqual({ amount: 0, fees: 0 })
     })
 })

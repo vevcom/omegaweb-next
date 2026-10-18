@@ -1,4 +1,8 @@
 import { sendCabinBookingConfirmationMail } from '@/lib/email/systemMail/cabinBookingConfirmation'
+import { refundOperations } from '@/services/ledger/refunds/operations'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { blocksCalendar } from '@/services/cabin/booking/operations'
+import logger from '@/lib/logger'
 import type { ConfirmedBooking } from '@/lib/email/systemMail/cabinBookingConfirmation'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -34,7 +38,54 @@ export async function cabinBookingPaymentCompletionHook(
 ): Promise<void> {
     if (transaction.bookingId === null) return
 
-    const booking = await prisma.booking.update({
+    const booking = await prisma.booking.findUniqueOrThrow({ where: { id: transaction.bookingId } })
+
+    // The hold on a booking is time-boxed, not tied to the payment's real completion. A Stripe
+    // webhook can still arrive after that window expired, once another booking has already
+    // taken and paid for the same dates. This check is a backstop for that race.
+    //
+    // The real fix is a sweeper that cancels a PENDING transaction once its hold expires. That
+    // also cancels its Stripe PaymentIntent, so a late success can never arrive in the first
+    // place. Remove this check once that sweeper exists.
+    const conflicting = await prisma.booking.findFirst({
+        where: {
+            id: { not: booking.id },
+            start: { lt: booking.end },
+            end: { gt: booking.start },
+            ...blocksCalendar(),
+        },
+    })
+
+    if (conflicting) {
+        await prisma.booking.update({ where: { id: booking.id }, data: { canceled: new Date() } })
+
+        if (booking.userId) {
+            const payerAccount = await ledgerAccountOperations.read({
+                params: { userId: booking.userId },
+                bypassAuth: true,
+                prisma,
+            })
+            await refundOperations.reverseTransaction({
+                params: {
+                    originalTransactionId: transaction.id,
+                    reason: 'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk.',
+                    refundTo: [{ ledgerAccountId: payerAccount.id }],
+                },
+                prisma,
+                bypassAuth: true,
+            })
+        } else {
+            // A guest booking has no session and no ledger account to credit. This needs a
+            // human to issue an actual Stripe refund.
+            logger.error(
+                `MANUAL ADMIN ACTION REQUIRED! Booking ${booking.id} double-booked after a late `
+                + 'payment success with no user account to refund to automatically.'
+            )
+        }
+        return
+    }
+
+    const confirmedBooking = await prisma.booking.update({
         where: { id: transaction.bookingId },
         data: { transactionTimeout: null },
         include: {
@@ -43,5 +94,5 @@ export async function cabinBookingPaymentCompletionHook(
         },
     })
 
-    await sendBookingConfirmation(booking)
+    await sendBookingConfirmation(confirmedBooking)
 }
