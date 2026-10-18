@@ -57,6 +57,32 @@ const eslintConfig = defineConfig([
             '@typescript-eslint/restrict-template-expressions': 'off',
             // allow empty functions, e.g. no-op callbacks
             '@typescript-eslint/no-empty-function': 'off',
+            // allow destructuring methods, e.g. `const { refresh } = useRouter()`
+            '@typescript-eslint/unbound-method': 'off',
+            // allow async functions as JSX event handlers, React ignores what they return
+            '@typescript-eslint/no-misused-promises': [
+                'error',
+                {
+                    checksVoidReturn: {
+                        attributes: false
+                    }
+                }
+            ],
+            // only prefer ?? where it is equivalent to ||, falsy fallbacks of primitives are often intended
+            '@typescript-eslint/prefer-nullish-coalescing': [
+                'error',
+                {
+                    ignoreTernaryTests: true,
+                    ignorePrimitives: {
+                        string: true,
+                        number: true,
+                        boolean: true,
+                        bigint: true
+                    }
+                }
+            ],
+            // require caught errors in .catch callbacks to be typed unknown
+            '@typescript-eslint/use-unknown-in-catch-callback-variable': 'error',
             // suggest using arrow functions as callbacks
             'prefer-arrow-callback': 'error',
             // suggest using template literals instead of string concatenation
@@ -682,7 +708,7 @@ const eslintConfig = defineConfig([
         'pncli/**',
         'docs/**',
         'generated/**',
-        '.design-sync/.cache/**',
+        '.design-sync/**',
         'ds-bundle/**',
     ]),
 ])
