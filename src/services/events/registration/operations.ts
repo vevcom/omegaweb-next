@@ -286,6 +286,7 @@ export const eventRegistrationOperations = {
                     select: {
                         id: true,
                         eventId: true,
+                        userId: true,
                         event: { select: { name: true, places: true, registrationEnd: true } },
                     },
                 })
@@ -300,21 +301,30 @@ export const eventRegistrationOperations = {
                 const heldPlace = await queuePosition(tx, registration) < registration.event.places
 
                 const paidTransaction = await tx.ledgerTransaction.findFirst({
-                    where: { eventRegistrationId: params.registrationId, state: 'SUCCEEDED' },
+                    where: { eventRegistrationId: params.registrationId, ...paidAndNotRefundedFilter },
                     include: { ledgerEntries: true },
                 })
-                if (paidTransaction) {
-                    // This is a full reversal, not a single-sided credit. The original
-                    // transaction SUCCEEDED, so both sides, the debited payer and the credited
-                    // committee, actually took effect and both need undoing.
+                const destinationEntry = paidTransaction?.ledgerEntries.find(entry => entry.funds > 0)
+                if (paidTransaction && destinationEntry && registration.userId) {
+                    // Debit the destination (the committee) back, and credit the registrant's own
+                    // ledger account with the same amount - not the original entries negated,
+                    // which only sums to zero when the whole price came from the payer's own
+                    // balance. Paid wholly or partly through Stripe, there's no debit entry to
+                    // negate for that part, so this follows cabinBookingPaymentCompletionHook's
+                    // shape instead.
+                    const payerAccount = await ledgerAccountOperations.read({
+                        params: { userId: registration.userId },
+                        bypassAuth: true,
+                        prisma: tx,
+                    })
                     await refundOperations.refund({
                         params: {
                             originalTransactionId: paidTransaction.id,
                             reason: 'Avregistrert fra betalt arrangement.',
-                            ledgerEntries: paidTransaction.ledgerEntries.map(entry => ({
-                                ledgerAccountId: entry.ledgerAccountId,
-                                funds: -entry.funds,
-                            })),
+                            ledgerEntries: [
+                                { ledgerAccountId: destinationEntry.ledgerAccountId, funds: -destinationEntry.funds },
+                                { ledgerAccountId: payerAccount.id, funds: destinationEntry.funds },
+                            ],
                         },
                         prisma: tx,
                         bypassAuth: true,
