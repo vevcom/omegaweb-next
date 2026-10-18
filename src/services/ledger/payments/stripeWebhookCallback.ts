@@ -53,11 +53,10 @@ const EVENT_TYPE_TO_STATE: Partial<Record<Stripe.Event['type'], PaymentState>> =
 async function reimburseOrLogManualAction(
     originalTransactionId: number,
     reason: string,
-    fees?: number,
 ) {
     try {
         await prisma.$transaction(tx => refundOperations.reimburseUnappliedPayment({
-            params: { originalTransactionId, reason, fees },
+            params: { originalTransactionId, reason },
             prisma: tx,
             bypassAuth: true,
         }))
@@ -86,6 +85,7 @@ async function refundLateStripeSuccess(paymentIntentId: string, fee?: number) {
         select: {
             payment: {
                 select: {
+                    id: true,
                     claimedByTransactionId: true,
                     ledgerTransactions: { select: { id: true }, orderBy: { id: 'asc' }, take: 1 },
                 },
@@ -103,10 +103,18 @@ async function refundLateStripeSuccess(paymentIntentId: string, fee?: number) {
     }
     if (stripePayment.payment.claimedByTransactionId !== null) return
 
+    // Payment.fees is the single source of truth for what Stripe actually charged, but the
+    // webhook's own guarded update above never got to write it here - that update targets a
+    // payment already in a final state, which is exactly the P2025 this function exists to
+    // handle. This is the only place that ever learns the real fee for this case, so write it
+    // directly rather than threading it through reimburseUnappliedPayment's params.
+    if (fee !== undefined) {
+        await prisma.payment.update({ where: { id: stripePayment.payment.id }, data: { fees: fee } })
+    }
+
     await reimburseOrLogManualAction(
         originalTransaction.id,
         'Stripe-betalingen gikk gjennom etter at den lokalt var kansellert eller mislyktes.',
-        fee
     )
 }
 
