@@ -5,7 +5,7 @@ import { exit } from 'process'
 
 process.env.SEED = 'true'
 
-seed({ devData: process.env.NODE_ENV === 'development' })
+void seed({ devData: process.env.NODE_ENV === 'development' })
     .then(async () => {
         await prisma.$disconnect()
     })

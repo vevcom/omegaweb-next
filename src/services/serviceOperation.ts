@@ -56,6 +56,23 @@ export type ServiceOperationExecuteArgs<
         )
     )
 
+/**
+ * The arguments a caller passes to a service operation. Data is parsed with zfd.formData, so a caller
+ * may also pass the FormData from a form as it is.
+ */
+export type ServiceOperationCallArgs<
+    Unsafe extends 'UNSAFE' | 'SAFE',
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    ImplementationParamsSchema extends z.ZodTypeAny | undefined
+> =
+    | ServiceOperationExecuteArgs<Unsafe, ParamsSchema, DataSchema, ImplementationParamsSchema>
+    | (DataSchema extends undefined ? never : (
+        & ParamsObject<ParamsSchema, 'INPUT'>
+        & ImplementationParamsObject<ImplementationParamsSchema, 'INPUT'>
+        & { data: FormData }
+    ))
+
 export type ServiceOperationOperation<
     OpensTransaction extends boolean,
     ParamsSchema extends z.ZodTypeAny | undefined,
@@ -291,7 +308,7 @@ export type ServiceOperation<
      */
     <Unsafe extends 'UNSAFE' | 'SAFE' = 'SAFE'>(
         args:
-            & ServiceOperationExecuteArgs<Unsafe, ParamsSchema, DataSchema, ImplementationParamsSchema>
+            & ServiceOperationCallArgs<Unsafe, ParamsSchema, DataSchema, ImplementationParamsSchema>
             & Partial<ServiceOperationContext<OpensTransaction>>
     ): Promise<Return>,
     paramsSchema?: ParamsSchema,

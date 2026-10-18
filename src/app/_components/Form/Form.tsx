@@ -42,7 +42,7 @@ function Input({ input, errors }: InputType) {
             </div>
             <p className={[pending ? styles.pending : ' ', styles.error].join(' ')}>
                 {
-                    errors && errors[0]?.message
+                    errors?.[0]?.message
                 }
             </p>
         </span>

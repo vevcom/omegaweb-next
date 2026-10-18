@@ -182,8 +182,8 @@ function generateCalendarData(
 }
 
 function dateInBooking(date: Date, bookings: BookingFiltered[], dateIsStart: boolean) {
-    for (let i = 0; i < bookings.length; i++) {
-        if (dateInInterval(date, bookings[i].start, bookings[i].end, dateIsStart, !dateIsStart)) {
+    for (const booking of bookings) {
+        if (dateInInterval(date, booking.start, booking.end, dateIsStart, !dateIsStart)) {
             return true
         }
     }

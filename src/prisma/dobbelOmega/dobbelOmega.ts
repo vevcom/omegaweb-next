@@ -71,7 +71,7 @@ export default async function dobbelOmega(pnPrisma: PrismaClientPn) {
 
     await seedProdPermissions(pnPrisma)
 
-    owPrisma.$disconnect()
+    await owPrisma.$disconnect()
     manifest.info('┌──────────────────────────────────┐')
     manifest.info('│ Dobbel Omega ferdig, dagen derpå │')
     manifest.info('└──────────────────────────────────┘')

@@ -3,7 +3,7 @@
 import { signOut } from 'next-auth/react'
 
 export default function LogOut() {
-    signOut({
+    void signOut({
         redirect: true,
         callbackUrl: '/'
     })

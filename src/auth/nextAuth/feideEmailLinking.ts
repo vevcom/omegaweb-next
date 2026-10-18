@@ -17,7 +17,7 @@ export async function feideLoginMayLinkByEmail(prisma: PrismaClient, {
 }: {
     providerAccountId: string,
     email: string | undefined | null,
-    readRealms: () => Promise<string[]>,
+    readRealms: () => Promise<string[]> | string[],
 }) {
     const feideAccount = await prisma.feideAccount.findUnique({
         where: { id: providerAccountId },

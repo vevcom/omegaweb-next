@@ -143,7 +143,7 @@ export const userOperations = {
                 },
             }).then(async userData => ({
                 ...userData,
-                image: userData.image || defaultProfileImage,
+                image: userData.image ?? defaultProfileImage,
             }))
 
             const [committeeMemberships, studyProgrammeMemberships, interestGroupMemberships] = await Promise.all([
@@ -629,11 +629,9 @@ export const userOperations = {
                 }
             })
 
-            if (!user.image) {
-                user.image = await standardImageCollectionOperations.readStandardImage({
-                    params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
-                })
-            }
+            user.image ??= await standardImageCollectionOperations.readStandardImage({
+                params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
+            })
 
             // bypassAuth: userAuth.readUserWithBalance above already applies the ledger's rule (the
             // user themselves or LEDGER_ADMIN); ledgerAccountAuth.read/calculateBalance's own check would

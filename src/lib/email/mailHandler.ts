@@ -2,7 +2,7 @@ import '@pn-server-only'
 import logger from '@/lib/logger'
 import { TRANSPORT_OPTIONS } from '@/lib/email/constants'
 import nodemailer from 'nodemailer'
-import type { SMTPPoolSentMessageInfo, SMTPSentMessageInfo, TestAccount, Transporter as MailTransporter } from 'nodemailer'
+import type { SMTPPoolSentMessageInfo, TestAccount, Transporter as MailTransporter } from 'nodemailer'
 import type Mail from 'nodemailer/lib/mailer'
 
 const isProd = process.env.NODE_ENV === 'production'
@@ -19,7 +19,7 @@ class MailHandler {
     queue: Mail.Options[] = []
 
     constructor() {
-        this.setup()
+        void this.setup()
     }
 
     async getTransporter(): Promise<Transporter> {

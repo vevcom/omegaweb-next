@@ -194,14 +194,17 @@ export default function ManageGroupMembers({
                                     buttonClassName={styles.titleSave}
                                     submitText="Lagre"
                                     submitColor="secondary"
-                                    action={formData => configureAction(
-                                        setMemberTitleAction, { params: { groupId, order: selectedOrder } }
-                                    )({
-                                        data: {
-                                            userId: member.userId,
-                                            title: String(formData.get('title') ?? ''),
-                                        },
-                                    })}
+                                    action={formData => {
+                                        const title = formData.get('title')
+                                        return configureAction(
+                                            setMemberTitleAction, { params: { groupId, order: selectedOrder } }
+                                        )({
+                                            data: {
+                                                userId: member.userId,
+                                                title: typeof title === 'string' ? title : '',
+                                            },
+                                        })
+                                    }}
                                     refreshOnSuccess
                                 >
                                     <TextInput
