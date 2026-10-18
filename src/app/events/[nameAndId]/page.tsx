@@ -6,7 +6,7 @@ import ManualRegistrationForm from './ManualRegistrationForm'
 import EventVisibilityAdmin from './EventVisibilityAdmin'
 import ConnectEventToLedgerForm from './ConnectEventToLedgerForm'
 import EventLocationMap from '@/components/Event/EventLocationMap'
-import Date from '@/components/Date/Date'
+import DateDisplay from '@/components/Date/Date'
 import CreateOrUpdateEventForm from '@/app/events/CreateOrUpdateEventForm'
 import CmsImage from '@/components/Cms/CmsImage/CmsImage'
 import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
@@ -104,6 +104,13 @@ const { page, generateMetadata } = serverPage({
             eventPaymentCustomerSessionSecret = customerSession?.customerSessionClientSecret
         }
 
+        // Who did not show up, for giving them dots once the event is over. Readable only by those
+        // who administrate the event, so a visitor without that access simply gets no list.
+        const eventHasEnded = event.eventEnd < new Date()
+        const notAttended = event.takesRegistration && eventHasEnded
+            ? await withFallback(eventRegistrationOperations.readNotAttended({ params: { eventId: event.id } }), null)
+            : null
+
         return {
             event,
             tags,
@@ -114,6 +121,7 @@ const { page, generateMetadata } = serverPage({
             ownRegistration,
             eventPaymentBalance,
             eventPaymentCustomerSessionSecret,
+            notAttended,
         }
     },
     capabilities: (data, session) => ({
@@ -153,6 +161,11 @@ const { page, generateMetadata } = serverPage({
             userId: session.user.id,
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }) : Require.user(),
+        // Dots for the event are given in the name of the session's own user, by its admin level.
+        canGiveDots: session.user ? eventRegistrationAuth.createDot.data({
+            userId: session.user.id,
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        }) : Require.user(),
         // Registering takes the regular level of the event (its admin level while it is a draft),
         // for the session's own user.
         canRegister: session.user ? eventRegistrationAuth.create.data({
@@ -165,6 +178,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data, capabilities, session }) => {
         const { event, tags, committees, doubleLevelVisibility, ledgerAccounts, dotPunishment, ownRegistration } = data
         const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
+        const dotGiverId = capabilities.canGiveDots.authorized && session.user ? session.user.id : null
 
         return (
             <div className={styles.wrapper}>
@@ -250,7 +264,9 @@ const { page, generateMetadata } = serverPage({
                 <aside>
                     <p>
                         <FontAwesomeIcon icon={faCalendar} />
-                        <Date date={event.eventStart} includeTime /> - <Date date={event.eventEnd} includeTime />
+                        <DateDisplay date={event.eventStart} includeTime />
+                        {' - '}
+                        <DateDisplay date={event.eventEnd} includeTime />
                     </p>
                     <p>
                         <FontAwesomeIcon icon={faLocationDot} />
@@ -270,10 +286,10 @@ const { page, generateMetadata } = serverPage({
                             {event.numOfRegistrations} / {event.places}
                         </p>
                         <p>
-                            Påmelding start: <Date date={event.registrationStart} includeTime />
+                            Påmelding start: <DateDisplay date={event.registrationStart} includeTime />
                         </p>
                         <p>
-                            Påmelding slutt: <Date date={event.registrationEnd} includeTime />
+                            Påmelding slutt: <DateDisplay date={event.registrationEnd} includeTime />
                         </p>
                         {event.waitingList && <p>
                             På venteliste: {event.numOnWaitingList}
@@ -318,6 +334,8 @@ const { page, generateMetadata } = serverPage({
                             event={event}
                             canReadDetailed={capabilities.canReadRegistrationsDetailed.authorized}
                             attendanceTakerId={attendanceTakerId}
+                            dotGiverId={dotGiverId}
+                            notAttended={data.notAttended}
                         />
                     </div>
                 )}

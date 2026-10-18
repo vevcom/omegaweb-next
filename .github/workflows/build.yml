@@ -19,6 +19,22 @@ jobs:
     # owns it there. Nothing creates it on a runner, so compose refuses to start.
     - name: create network
       run: docker network create dokploy-network
+    # Production refuses to start on the development secrets in .env.default. Values in the
+    # environment take precedence over --env-file, so these replace them for this run.
+    - name: generate secrets
+      run: |
+        openssl ecparam -name prime256v1 -genkey -noout -out jwt-private.pem
+        openssl ec -in jwt-private.pem -pubout -out jwt-public.pem
+        {
+          echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)"
+          echo "JWT_SECRET=$(openssl rand -base64 32)"
+          echo "PASSWORD_ENCRYPTION_KEY=$(openssl rand -base64 32)"
+          echo "API_KEY_ENCRYPTION_KEY=$(openssl rand -base64 32)"
+          echo "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=$(openssl rand -base64 32)"
+          echo "JWT_PRIVATE_KEY=$(base64 -w0 jwt-private.pem)"
+          echo "JWT_PUBLIC_KEY=$(base64 -w0 jwt-public.pem)"
+        } >> "$GITHUB_ENV"
+        rm jwt-private.pem jwt-public.pem
     - name: build
       run: docker compose --env-file .env.default -f docker-compose.prod.yml --profile localdb build
     # localdb stands in for the Dokploy Postgres resource, which lives outside the

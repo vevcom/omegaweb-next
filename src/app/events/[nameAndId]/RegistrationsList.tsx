@@ -1,5 +1,7 @@
 'use client'
 import styles from './RegistrationsList.module.scss'
+import GiveDotPopUp from './GiveDotPopUp'
+import GiveDotsToAbsentees from './GiveDotsToAbsentees'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { EventRegistrationPagingProvider, EventRegistrationPagingContext } from '@/contexts/paging/EventRegistrationPaging'
 import UserCard from '@/components/User/UserCard'
@@ -18,16 +20,21 @@ import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { EventFiltered } from '@/services/events/types'
+import type { EventRegistrationNotAttended } from '@/services/events/registration/types'
 
 function DetailedTable({
     event,
     type,
     attendanceTakerId,
+    dotGiverId,
 }: {
     event: EventFiltered,
     type: REGISTRATION_READER_TYPE,
     attendanceTakerId: number | null,
+    dotGiverId: number | null,
 }) {
+    const columns = 6 + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
+
     return <EventRegistrationDetailedPagingProvider
         serverRenderedData={[]}
         startPage={{
@@ -49,13 +56,14 @@ function DetailedTable({
                         <th>Allergier</th>
                         <th>Notat</th>
                         {attendanceTakerId !== null && <th>Møtt</th>}
+                        {dotGiverId !== null && <th>Prikk</th>}
                         <th>Slett</th>
                     </tr>
                 </thead>
                 <tbody>
                     <EndlessScroll
                         pagingContext={EventRegistrationDetailedPagingContext}
-                        loadingInfoWrapper={loadingInfo => <tr><td colSpan={6}>{loadingInfo}</td></tr>}
+                        loadingInfoWrapper={loadingInfo => <tr><td colSpan={columns}>{loadingInfo}</td></tr>}
                         renderer={row => {
                             const name = row.user ? <Link href={`/users/${row.user.username}`}>
                                 <UserDisplayName user={row.user} width={20} />
@@ -82,6 +90,14 @@ function DetailedTable({
                                             value={row.attendedAt ? FIELD_IS_PRESENT_VALUE : 'on'}
                                         />
                                     </Form>
+                                </td>}
+                                {dotGiverId !== null && <td>
+                                    {row.user && <GiveDotPopUp
+                                        eventId={event.id}
+                                        accuserId={dotGiverId}
+                                        userId={row.user.id}
+                                        popUpKey={`giveDot-${row.id}`}
+                                    />}
                                 </td>}
                                 <td>
                                     <Form
@@ -145,15 +161,26 @@ export default function RegistrationsList({
     event,
     canReadDetailed,
     attendanceTakerId,
+    dotGiverId,
+    notAttended,
 }: {
     event: EventFiltered,
     canReadDetailed: boolean,
     attendanceTakerId: number | null,
+    /** The session's user when they may give dots for the event, like attendanceTakerId. */
+    dotGiverId: number | null,
+    /** Who did not show up, once the event is over - null while it is not, or for those who may not give dots. */
+    notAttended: EventRegistrationNotAttended[] | null,
 }) {
     const [detailedView, setDetailedView] = useState(false)
 
     return <>
         <h4>Påmeldte</h4>
+        {dotGiverId !== null && notAttended && notAttended.length > 0 && <GiveDotsToAbsentees
+            eventId={event.id}
+            accuserId={dotGiverId}
+            notAttended={notAttended}
+        />}
         {canReadDetailed && <Slider
             label="Detaljert visning"
             name="detailedView"
@@ -164,6 +191,7 @@ export default function RegistrationsList({
             event={event}
             type={REGISTRATION_READER_TYPE.REGISTRATIONS}
             attendanceTakerId={attendanceTakerId}
+            dotGiverId={dotGiverId}
         /> : <DefaultList
             event={event}
             type={REGISTRATION_READER_TYPE.REGISTRATIONS}
@@ -175,6 +203,7 @@ export default function RegistrationsList({
                 event={event}
                 type={REGISTRATION_READER_TYPE.WAITING_LIST}
                 attendanceTakerId={attendanceTakerId}
+                dotGiverId={dotGiverId}
             /> : <DefaultList
                 event={event}
                 type={REGISTRATION_READER_TYPE.WAITING_LIST}

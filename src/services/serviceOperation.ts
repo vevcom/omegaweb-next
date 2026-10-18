@@ -142,16 +142,13 @@ export type BeforeRun<
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
 ) => void | Promise<void>
 
-export type ServiceOperationImplementationConfigInternalCall<
-    ImplementationParamsSchema extends z.ZodTypeAny | undefined,
+/** The fields the schemas of a sub-operation are built from, required when the sub-operation takes them. */
+type SchemaImplementationFieldsConfig<
     ParamsSchemaImplementationFields extends object | undefined,
     DataSchemaImplementationFields extends object | undefined,
-    OperationImplementationFields extends object | undefined,
 > = {
-    implementationParamsSchema?: ImplementationParamsSchema,
     paramsSchemaImplementationFields?: ParamsSchemaImplementationFields
     dataSchemaImplementationFields?: DataSchemaImplementationFields
-    operationImplementationFields?: OperationImplementationFields
 } & (ParamsSchemaImplementationFields extends undefined ?
     object
     : {
@@ -160,11 +157,38 @@ export type ServiceOperationImplementationConfigInternalCall<
         object
         : {
             dataSchemaImplementationFields: DataSchemaImplementationFields
-        }) & (OperationImplementationFields extends undefined ?
-            object
-            : {
-                operationImplementationFields: OperationImplementationFields
-            })
+        })
+
+export type ServiceOperationImplementationConfigInternalCall<
+    ImplementationParamsSchema extends z.ZodTypeAny | undefined,
+    ParamsSchemaImplementationFields extends object | undefined,
+    DataSchemaImplementationFields extends object | undefined,
+    OperationImplementationFields extends object | undefined,
+> = {
+    implementationParamsSchema?: ImplementationParamsSchema,
+    operationImplementationFields?: OperationImplementationFields
+} & SchemaImplementationFieldsConfig<ParamsSchemaImplementationFields, DataSchemaImplementationFields>
+    & (OperationImplementationFields extends undefined ?
+        object
+        : {
+            operationImplementationFields: OperationImplementationFields
+        })
+
+/**
+ * The fields the operation of a sub-operation is built from, as a function of the call: of what the
+ * implementation receives, its implementation params above all, which the operation itself never
+ * sees. An event appending its name to the reason of a dot reads the name this way. Fields that are
+ * the same on every call are given as the plain value instead; both land here as this function.
+ */
+export type OperationImplementationFieldsOf<
+    OpensTransaction extends boolean,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    ImplementationParamsSchema extends z.ZodTypeAny | undefined,
+    OperationImplementationFields extends object | undefined,
+> = (
+    args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
+) => OperationImplementationFields | Promise<OperationImplementationFields>
 
 export type ServiceOperationImplementationConfig<
     OpensTransaction extends boolean,
@@ -175,18 +199,24 @@ export type ServiceOperationImplementationConfig<
     DataSchemaImplementationFields extends object | undefined,
     OperationImplementationFields extends object | undefined,
     PrismaWhereFilter extends object | undefined
-> = ServiceOperationImplementationConfigInternalCall<
-    ImplementationParamsSchema,
-    ParamsSchemaImplementationFields,
-    DataSchemaImplementationFields,
-    OperationImplementationFields
-> & {
+> = {
+    implementationParamsSchema?: ImplementationParamsSchema,
+    operationImplementationFields?: OperationImplementationFields | OperationImplementationFieldsOf<
+        OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema, OperationImplementationFields
+    >,
     authorizer: AuthorizerGetter<
         OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema, PrismaWhereFilter | undefined
     >,
     ownershipCheck: OwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
     beforeRun?: BeforeRun<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
-}
+} & SchemaImplementationFieldsConfig<ParamsSchemaImplementationFields, DataSchemaImplementationFields>
+    & (OperationImplementationFields extends undefined ?
+        object
+        : {
+            operationImplementationFields: OperationImplementationFields | OperationImplementationFieldsOf<
+                OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema, OperationImplementationFields
+            >
+        })
 
 /**
  * This is the type for the prisma client that is passed to the service operation.
@@ -513,9 +543,20 @@ export function defineSubOperation<
                         })
                     )
 
+                    // Given as a plain value or as a function of the call: made the one shape here. No
+                    // field type is a function itself, so typeof tells the two apart.
+                    const fieldsOf = (
+                        typeof implementationArgs.operationImplementationFields === 'function'
+                            ? implementationArgs.operationImplementationFields
+                            : () => implementationArgs.operationImplementationFields
+                    ) as OperationImplementationFieldsOf<
+                        OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema, OperationImplementationFields
+                    >
+                    const operationImplementationFields = await prismaErrorWrapper(() => fieldsOf({ ...args, prisma }))
+
                     return prismaErrorWrapper(() =>
                         serviceOperationConfig.operation(
-                            implementationArgs.operationImplementationFields!
+                            operationImplementationFields
                         )({ ...args, prisma, bypassAuth, session }, prismaWhereFilter)
                     )
                 })

@@ -49,6 +49,10 @@ export const eventRegistrationAuth = {
     registerAttendance: eventAdminAsUser,
     setAttendance: eventAdminAsUser,
     readAttendanceCounts: eventAdminLevel,
+    readNotAttended: eventAdminLevel,
+
+    createDot: eventAdminAsUser,
+    createDotsForNonattendingUsers: eventAdminAsUser,
 
     // Domain access only: may this session pay for *this* registration - the registrant
     // themselves, or a genuine event admin. Deliberately not eventRegistrationAuth.create

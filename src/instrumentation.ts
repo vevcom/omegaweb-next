@@ -4,6 +4,12 @@
 export async function register() {
     if (process.env.NEXT_RUNTIME !== 'nodejs') return
 
+    // First, so production refuses to start on the development secrets before doing anything else.
+    if (process.env.NODE_ENV === 'production') {
+        const { assertProductionSecrets } = await import('@/lib/productionSecrets')
+        assertProductionSecrets()
+    }
+
     const { prepareReleaseCountdown } = await import('@/services/releaseCountdown/prepare')
     await prepareReleaseCountdown()
 }
