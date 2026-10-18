@@ -51,8 +51,12 @@ const eslintConfig = defineConfig([
                 'error',
                 'never'
             ],
-            // Allow the use of namespaces
+            // allow the use of namespaces
             '@typescript-eslint/no-namespace': 'off',
+            // allow any value in template literals
+            '@typescript-eslint/restrict-template-expressions': 'off',
+            // allow empty functions, e.g. no-op callbacks
+            '@typescript-eslint/no-empty-function': 'off',
             // suggest using arrow functions as callbacks
             'prefer-arrow-callback': 'error',
             // suggest using template literals instead of string concatenation
