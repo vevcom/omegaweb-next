@@ -48,6 +48,12 @@ describe('production secrets', () => {
     test('refuses short and missing secrets', () => {
         process.env.JWT_SECRET = 'too-short'
         Reflect.deleteProperty(process.env, 'NEXTAUTH_SECRET')
-        expect(() => assertProductionSecrets()).toThrow(/NEXTAUTH_SECRET is shorter[\s\S]*JWT_SECRET is shorter/)
+        expect(() => assertProductionSecrets()).toThrow(/NEXTAUTH_SECRET is not set[\s\S]*JWT_SECRET is shorter/)
+    })
+
+    test('refuses a missing key pair, which nothing else checks until a token is signed', () => {
+        Reflect.deleteProperty(process.env, 'JWT_PRIVATE_KEY')
+        Reflect.deleteProperty(process.env, 'JWT_PUBLIC_KEY')
+        expect(() => assertProductionSecrets()).toThrow(/JWT_PRIVATE_KEY is not set[\s\S]*JWT_PUBLIC_KEY is not set/)
     })
 })
