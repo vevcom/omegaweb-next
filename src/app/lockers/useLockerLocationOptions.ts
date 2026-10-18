@@ -15,7 +15,8 @@ type LockerLocation = {
  */
 export function useLockerLocationOptions(locations: LockerLocation[], initial?: LockerLocation) {
     const buildings = Array.from(new Set(locations.map(location => location.building)))
-    const [building, setBuilding] = useState(initial?.building ?? buildings[0] ?? '')
+    const [chosenBuilding, setBuilding] = useState(initial?.building ?? buildings[0] ?? '')
+    const building = buildings.includes(chosenBuilding) ? chosenBuilding : buildings[0] ?? ''
 
     const floorOptions = locations
         .filter(location => location.building === building)
