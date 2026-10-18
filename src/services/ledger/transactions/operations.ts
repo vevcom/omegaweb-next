@@ -21,10 +21,14 @@ import type { Prisma } from '@/prisma-generated-pn-types'
  * to know whether the caller is a party to it. By default resolves every account the transaction
  * touches, debited or credited (see read below); with `debitedOnly`, resolves only the debited
  * side (see cancel below) - being credited by a transaction was never this caller's money to
- * begin with, so that alone shouldn't let them cancel someone else's attempt at it. A transaction
- * with no debit side at all (e.g. a deposit, whose debit side is external to the ledger - see
- * ledgerTransactionAuth.create) has no debited party to narrow down to, so debitedOnly falls back
- * to every party for it, the same as read: being credited is the only bar there is to be.
+ * begin with, so that alone shouldn't let them cancel someone else's attempt at it. A DEPOSIT has
+ * no debit side at all (its debit side is external to the ledger - see
+ * ledgerTransactionAuth.create), so debitedOnly falls back to every party for one, the same as
+ * read: being credited (the depositor's own account) is the only bar there is to be. Every other
+ * purpose paid wholly through Stripe also has no debit entry, but there the credited side is the
+ * destination account (e.g. the hosting committee), not the payer - falling back the same way
+ * would let a member of that account cancel someone else's payment attempt, so debitedOnly
+ * returns no accounts at all for those instead, leaving only LEDGER_ADMIN able to cancel it.
  */
 async function resolveTransactionAccounts(
     prisma: Prisma.TransactionClient,
@@ -34,6 +38,7 @@ async function resolveTransactionAccounts(
     const transaction = await prisma.ledgerTransaction.findUnique({
         where: { id: transactionId },
         select: {
+            purpose: true,
             ledgerEntries: {
                 select: {
                     funds: true,
@@ -48,7 +53,13 @@ async function resolveTransactionAccounts(
 
     const entries = transaction?.ledgerEntries ?? []
     const debitEntries = entries.filter(entry => entry.funds < 0 || (entry.fees ?? 0) < 0)
-    const relevantEntries = debitedOnly && debitEntries.length > 0 ? debitEntries : entries
+
+    let relevantEntries = entries
+    if (debitedOnly && debitEntries.length > 0) {
+        relevantEntries = debitEntries
+    } else if (debitedOnly && transaction?.purpose !== 'DEPOSIT') {
+        relevantEntries = []
+    }
 
     return relevantEntries.map(entry => ({
         userId: entry.ledgerAccount?.user?.id ?? null,
