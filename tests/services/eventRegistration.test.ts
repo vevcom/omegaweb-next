@@ -132,21 +132,22 @@ async function createCommittee(shortName: string) {
             paragraph: { create: {} },
         },
     })
-    await prisma.ledgerAccount.create({
+    const ledgerAccount = await prisma.ledgerAccount.create({
         data: { type: 'GROUP', name: shortName, groups: { create: { groupId: committee.groupId } } },
     })
-    return committee.id
+    return { committeeId: committee.id, ledgerAccountId: ledgerAccount.id }
 }
 
 /** A paid event, open for registration and payment right now, hosted by a committee. */
-async function createPaidEvent(hostedByCommiteeId: number) {
+async function createPaidEvent({ committeeId, ledgerAccountId }: { committeeId: number, ledgerAccountId: number }) {
     const event = await eventOperations.create({
         data: {
             name: 'Betalt testarrangement',
             location: 'Lophtet',
             eventStart: new Date(Date.now() + 7 * 24 * HOUR),
             eventEnd: new Date(Date.now() + 7 * 24 * HOUR + 2 * HOUR),
-            canBeViewdBy: 'ALL',
+            canBeViewedBy: 'ALL',
+            hostedByCommitteeId: committeeId,
             takesRegistration: true,
             places: 10,
             waitingList: false,
@@ -161,9 +162,12 @@ async function createPaidEvent(hostedByCommiteeId: number) {
         },
         bypassAuth: true,
     })
-    // Not settable through the public API yet - set directly for this test's own purposes.
-    await prisma.event.update({ where: { id: event.id }, data: { hostedByCommiteeId } })
     await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
+    await eventOperations.connectToLedger({
+        params: { id: event.id },
+        data: { ledgerAccountId },
+        bypassAuth: true,
+    })
     return event.id
 }
 
@@ -418,8 +422,8 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
     })
 
     test('the registrant may replace an attempt an admin started on their behalf immediately', async () => {
-        const committeeId = await createCommittee('payment-committee')
-        const eventId = await createPaidEvent(committeeId)
+        const committee = await createCommittee('payment-committee')
+        const eventId = await createPaidEvent(committee)
         const registrant = await createTestUser('paymentregistrant')
         const admin = await createTestUser('paymentregistrantadmin')
         await register(registrant, eventId)
@@ -440,8 +444,8 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
     })
 
     test('someone other than the registrant still has to wait out the staleness window', async () => {
-        const committeeId = await createCommittee('payment-committee-2')
-        const eventId = await createPaidEvent(committeeId)
+        const committee = await createCommittee('payment-committee-2')
+        const eventId = await createPaidEvent(committee)
         const registrant = await createTestUser('paymentregistrant2')
         const admin = await createTestUser('paymentregistrantadmin2')
         await register(registrant, eventId)
