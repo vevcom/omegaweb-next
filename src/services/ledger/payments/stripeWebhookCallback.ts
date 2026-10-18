@@ -3,7 +3,7 @@ import { stripe } from '@/lib/stripe'
 import { prisma } from '@/prisma/client'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { refundOperations } from '@/services/ledger/refunds/operations'
-import { createManualReview } from '@/services/ledger/transactions/manualReview'
+import { manualReviewOperations } from '@/services/ledger/transactions/manualReviews/operations'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import Stripe from 'stripe'
 import type { PaymentState } from '@/prisma-generated-pn-types'
@@ -62,7 +62,14 @@ async function reimburseOrLogManualAction(
             bypassAuth: true,
         }))
     } catch (error) {
-        await createManualReview(originalTransactionId, `Automatisk tilbakebetaling mislyktes: ${reason}`, { error })
+        await manualReviewOperations.create({
+            params: {
+                transactionId: originalTransactionId,
+                problemDescription: `Automatisk tilbakebetaling mislyktes: ${reason}`,
+                error,
+            },
+            bypassAuth: true,
+        })
     }
 }
 
@@ -144,7 +151,10 @@ async function flagForManualReview(paymentIntentId: string, note: string) {
         return
     }
 
-    await createManualReview(found.transactionId, note)
+    await manualReviewOperations.create({
+        params: { transactionId: found.transactionId, problemDescription: note },
+        bypassAuth: true,
+    })
 }
 
 /**

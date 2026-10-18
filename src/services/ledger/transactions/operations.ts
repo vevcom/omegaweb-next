@@ -260,50 +260,6 @@ export const ledgerTransactionOperations = {
     }),
 
     /**
-     * Lists transactions a human needs to look at: any with an OPEN ManualTransactionReview.
-     * Admin-only, across every account, not scoped to one the caller is a party to.
-     */
-    readNeedingAttention: defineOperation({
-        authorizer: () => ledgerTransactionAuth.readNeedingAttention,
-        operation: async ({ prisma }) => prisma.ledgerTransaction.findMany({
-            where: { manualReviews: { some: { state: 'OPEN' } } },
-            select: {
-                id: true,
-                purpose: true,
-                state: true,
-                reason: true,
-                createdAt: true,
-                ledgerEntries: { select: { ledgerAccountId: true, funds: true } },
-                manualReviews: { orderBy: { createdAt: 'desc' } },
-            },
-            orderBy: { createdAt: 'desc' },
-        })
-    }),
-
-    /** Marks an open manual review resolved, with the admin's own account of how. */
-    resolveManualReview: defineOperation({
-        authorizer: () => ledgerTransactionAuth.resolveManualReview,
-        paramsSchema: ledgerTransactionSchemas.params.resolveManualReview,
-        dataSchema: ledgerTransactionSchemas.data.resolveManualReview,
-        operation: async ({ prisma, params, data }) => {
-            // Guarded in the update itself, not a separate read then write - two admins
-            // resolving the same review at once would otherwise both pass a plain read and the
-            // second would silently overwrite the first's resolutionDescription.
-            const { count } = await prisma.manualTransactionReview.updateMany({
-                where: { id: params.reviewId, state: 'OPEN' },
-                data: { state: 'RESOLVED', resolutionDescription: data.resolutionDescription },
-            })
-            if (count === 0) {
-                // Throws NOT FOUND for a missing id; otherwise it exists but wasn't OPEN.
-                await prisma.manualTransactionReview.findUniqueOrThrow({ where: { id: params.reviewId } })
-                throw new Smorekopp('BAD PARAMETERS', 'Denne saken er allerede løst.')
-            }
-
-            return await prisma.manualTransactionReview.findUniqueOrThrow({ where: { id: params.reviewId } })
-        },
-    }),
-
-    /**
      * Tries to advance the transactions state to a terminal state.
      * Also, updates the fees if possible.
      */

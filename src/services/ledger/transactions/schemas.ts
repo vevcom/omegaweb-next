@@ -18,11 +18,6 @@ const paramsFieldSchemas = z.object({
     eventRegistrationId: z.number().optional(),
     bookingId: z.number().optional(),
     purchaseId: z.number().optional(),
-    reviewId: z.number(),
-})
-
-const dataFieldSchemas = z.object({
-    resolutionDescription: z.string().trim().min(1),
 })
 
 const transaction = paramsFieldSchemas.pick({
@@ -51,14 +46,6 @@ export const ledgerTransactionSchemas = {
             eventRegistrationId: true,
             bookingId: true,
             purchaseId: true,
-        }),
-        resolveManualReview: paramsFieldSchemas.pick({
-            reviewId: true,
-        }),
-    },
-    data: {
-        resolveManualReview: dataFieldSchemas.pick({
-            resolutionDescription: true,
         }),
     },
 }
