@@ -1,10 +1,7 @@
 import winston from 'winston'
 import 'winston-daily-rotate-file'
 
-// Compose passes an unset LOG_LEVEL through as an empty string, so empty means unset too.
-const logger = winston.createLogger({
-    level: process.env.LOG_LEVEL || 'info',
-})
+const logger = winston.createLogger()
 
 if (process.env.LOG_TO_CONSOLE === 'true') {
     logger.add(new winston.transports.Console({

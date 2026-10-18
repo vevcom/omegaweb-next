@@ -15,10 +15,11 @@ services:
             OW_STORE_URL: ${OW_STORE_URL}
             OW_DB_URI: ${OW_DB_URI}
             MIGRATION_WITH_LIMITS: ${MIGRATION_WITH_LIMITS}
-            LOG_LEVEL: ${LOG_LEVEL}
             LOG_TO_CONSOLE: ${LOG_TO_CONSOLE}
+            LOG_CONSOLE_LEVEL: ${LOG_CONSOLE_LEVEL}
             LOG_TO_FOLDER: ${LOG_TO_FOLDER}
             LOG_TO_FILE: ${LOG_TO_FILE}
+            LOG_FILE_LEVEL: ${LOG_FILE_LEVEL}
             LOG_MAX_FILES: ${LOG_MAX_FILES}
             NEXTAUTH_URL: ${NEXTAUTH_URL}
             NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
