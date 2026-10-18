@@ -7,10 +7,10 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     id: z.number(),
-    bullshitPosterId: z.number(),
+    bulshitPosterId: z.number(),
 })
 
-export const bullshitSchemas = {
+export const bulshitSchemas = {
     data: {
         create: dataFieldSchemas.pick({
             quote: true,
@@ -18,7 +18,7 @@ export const bullshitSchemas = {
     },
     params: {
         create: paramsFieldSchemas.pick({
-            bullshitPosterId: true,
+            bulshitPosterId: true,
         }),
         readPage: readPageInputSchemaObject(
             paramsFieldSchemas.pick({

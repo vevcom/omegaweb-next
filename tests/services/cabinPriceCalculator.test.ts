@@ -14,6 +14,8 @@ const spring: PricePeriod = { id: 1, validFrom: date('2026-01-01') }
 const summer: PricePeriod = { id: 2, validFrom: date('2026-06-01') }
 const pricePeriods = [spring, summer]
 
+const timestamps = { createdAt: date('2026-01-01'), updatedAt: date('2026-01-01') }
+
 // Day of week in the cron intervals: 0 is Sunday.
 const SUNDAY_TO_THURSDAY = '* * 0-4'
 const FRIDAY_AND_SATURDAY = '* * 5-6'
@@ -38,6 +40,7 @@ const cabin: CabinProductExtended = {
     name: 'Hytta',
     type: 'CABIN',
     amount: 1,
+    ...timestamps,
     CabinProductPrice: [
         price(spring, SUNDAY_TO_THURSDAY, 1000_00),
         price(spring, FRIDAY_AND_SATURDAY, 1500_00),
@@ -51,6 +54,7 @@ const bed: CabinProductExtended = {
     name: 'Seng',
     type: 'BED',
     amount: 10,
+    ...timestamps,
     CabinProductPrice: [
         price(spring, '* * *', 200_00),
         // Members pay less, but only when at least half the party are members.

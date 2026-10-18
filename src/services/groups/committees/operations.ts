@@ -317,10 +317,6 @@ const migration = implementManualMigrationPerGroup({
         migrateGroup: ({ groupId }) => committeeAuth.migrateGroup.data({ groupId }),
         pension: () => committeeAuth.pension,
     },
-    setPensioned: (prisma, groupId, pensioned) => prisma.committee.update({
-        where: { groupId },
-        data: { pensioned },
-    }),
 })
 
 export const committeeOperations = {

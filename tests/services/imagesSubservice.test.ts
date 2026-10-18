@@ -234,4 +234,21 @@ describe('destroyCollection', () => {
 
         expect(await fileExists(image.fsLocationOriginal)).toBe(false)
     })
+
+    test('refuses, keeping the collection, when one of its images is used as a flair', async () => {
+        const image = await uploadAndProcessImage('Flair Image')
+        // The seeded flairs take their ranks explicitly, so the rank sequence cannot be trusted here.
+        const highestRank = await prisma.flair.aggregate({ _max: { rank: true } })
+        await prisma.flair.create({
+            data: { name: 'Test flair', imageId: image.id, rank: (highestRank._max.rank ?? 0) + 1 },
+        })
+
+        await expect(imageOperations.destroyCollection.internalCall({
+            prisma,
+            params: { collectionId },
+        })).rejects.toMatchObject({ errorCode: 'BAD PARAMETERS' })
+
+        expect(await prisma.imageCollection.findUnique({ where: { id: collectionId } })).not.toBeNull()
+        await expectFilesExist(image.allFsLocations, true)
+    })
 })

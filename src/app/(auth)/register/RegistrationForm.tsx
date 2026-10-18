@@ -6,7 +6,7 @@ import Checkbox from '@/components/UI/Checkbox'
 import { SelectString } from '@/components/UI/Select'
 import TextInput from '@/components/UI/TextInput'
 import { sexConfig } from '@/services/users/constants'
-import { SEX, type User } from '@/prisma-generated-pn-types'
+import { Sex, type User } from '@/prisma-generated-pn-types'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 
@@ -18,9 +18,9 @@ export default function RegistrationForm({
     callbackUrl: string,
 }) {
     const [lastPassword, setLastPassword] = useState('')
-    const [sexValue, setSexValue] = useState<SEX | undefined>(userData.sex ?? undefined)
+    const [sexValue, setSexValue] = useState<Sex | undefined>(userData.sex ?? undefined)
 
-    const sexOptions = Object.values(SEX).map(sex => ({
+    const sexOptions = Object.values(Sex).map(sex => ({
         value: sex,
         label: sexConfig[sex].label
     }))
@@ -44,7 +44,7 @@ export default function RegistrationForm({
             name="sex"
             options={sexOptions}
             value={sexValue}
-            onChange={(e) => setSexValue(e as SEX)} />
+            onChange={(e) => setSexValue(e as Sex)} />
         <Checkbox label="Jeg samtykker til å bli tatt bilde av" name="imageConsent" />
         <Checkbox label="Jeg godtar vilkårene" name="acceptedTerms" />
     </Form>

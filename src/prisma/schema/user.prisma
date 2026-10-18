@@ -1,4 +1,4 @@
-enum SEX {
+enum Sex {
   FEMALE
   MALE
   OTHER
@@ -32,7 +32,7 @@ model User {
   archived                         Boolean            @default(false)
   acceptedTerms                    DateTime?
   imageConsent                     Boolean            @default(false) //if the user has consented to being photographed
-  sex                              SEX?
+  sex                              Sex?
   allergies                        String?
   mobile                           String?
   emailVerified                    DateTime?
@@ -43,10 +43,10 @@ model User {
   // it was started with and is only valid while that still matches.
   sessionEpoch                     Int                @default(0)
 
-  bullshit    Bullshit[]
-  image       Image?  @relation(fields: [imageId], references: [id])
-  imageId     Int?    @unique
-  studentCard String? @unique
+  bulshit     Bulshit[]
+  image       Image?    @relation(fields: [imageId], references: [id])
+  imageId     Int?      @unique
+  studentCard String?   @unique
 
   // The bio shown on the user's profile, edited in place there by the user or a user admin.
   bioParagraph   CmsParagraph @relation(fields: [bioParagraphId], references: [id])
@@ -105,9 +105,6 @@ model User {
   dots        Dot[] @relation(name: "dot_user")
   dotsAccused Dot[] @relation(name: "dot_accuser")
 
-  // The queue used to determine who is registering cards at Kiogeskabet.
-  registerStudentCardQueue RegisterStudentCardQueue[]
-
   // Which cabin bookings the user has made.
   cabinBooking Booking[] @relation()
 
@@ -152,14 +149,6 @@ model StripeCustomer {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-// When a user wants to register their student card, they are put in this queue.
-// Then they must scan their card with the card reader at Kiogeskabet.
-model RegisterStudentCardQueue {
-  userId Int      @id
-  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiry DateTime
 }
 
 // TODO: Someone should add a comment for ContactDetails because I have noe idea what it is for. Is it for anonymous users?

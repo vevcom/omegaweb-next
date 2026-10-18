@@ -30,11 +30,29 @@ export const imageOperations = {
                         select: {
                             fsLocationOriginal: true,
                             processedFiles: true,
+                            // Uses of an image that refuse to let it be deleted.
+                            flair: { select: { id: true } },
+                            promo: { select: { id: true } },
+                            ombul: { select: { id: true } },
+                            committee: { select: { id: true } },
                         }
                     }
                 }
             })
             if (!collection) throw new ServiceError('NOT FOUND', 'Collection ikke funnet')
+
+            const blockingUses = [
+                { name: 'flair', used: collection.images.some(image => image.flair) },
+                { name: 'promo', used: collection.images.some(image => image.promo) },
+                { name: 'ombul-forside', used: collection.images.some(image => image.ombul) },
+                { name: 'komitélogo', used: collection.images.some(image => image.committee) },
+            ].filter(use => use.used).map(use => use.name)
+            if (blockingUses.length) {
+                throw new Smorekopp(
+                    'BAD PARAMETERS',
+                    `Samlingen kan ikke slettes fordi den har bilder som brukes som ${blockingUses.join(', ')}.`
+                )
+            }
 
             // Extract all file locations before deleting from DB
             const fileLocationsToDelete = collection.images.flatMap(storedFileLocationsOfImage)

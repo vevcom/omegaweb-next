@@ -84,7 +84,7 @@ describe('pensioning groups', () => {
             session,
         })
 
-        expect(await prisma.manualGroup.findUniqueOrThrow({ where: { groupId } }))
+        expect(await prisma.group.findUniqueOrThrow({ where: { id: groupId } }))
             .toMatchObject({ pensioned: true })
         expect(await prisma.membership.count({ where: { groupId, active: true } })).toEqual(0)
 
@@ -94,7 +94,7 @@ describe('pensioning groups', () => {
             session,
         })
 
-        expect(await prisma.manualGroup.findUniqueOrThrow({ where: { groupId } }))
+        expect(await prisma.group.findUniqueOrThrow({ where: { id: groupId } }))
             .toMatchObject({ pensioned: false })
         expect(await prisma.group.findUniqueOrThrow({ where: { id: groupId } }))
             .toMatchObject({ order: currentOrder })

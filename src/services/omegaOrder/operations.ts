@@ -26,13 +26,7 @@ export const omegaOrderOperations = {
                 by: ['groupType'],
                 where: {
                     order: { lt: order },
-                    NOT: {
-                        OR: [
-                            { committee: { pensioned: true } },
-                            { interestGroup: { pensioned: true } },
-                            { manualGroup: { pensioned: true } },
-                        ],
-                    },
+                    pensioned: false,
                 },
                 _count: { _all: true },
             })

@@ -54,8 +54,8 @@ async function resolveTransactionAccounts(
     }
 
     return relevantEntries.map(entry => ({
-        userId: entry.ledgerAccount?.user?.id ?? null,
-        groupIds: entry.ledgerAccount?.groups.map(group => group.groupId) ?? [],
+        userId: entry.ledgerAccount.user?.id ?? null,
+        groupIds: entry.ledgerAccount.groups.map(group => group.groupId),
     }))
 }
 

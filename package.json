@@ -29,8 +29,9 @@
     "reseed": "npx prisma migrate reset --force && npm run seed:data",
     "seed:data": "IGNORE_SERVER_ONLY=true npx prisma db seed",
     "dev-seed": "(if [ ! -d './node_modules/.prisma-dobbel-omega' ]; then npm run dobbelOmega:generate; fi) && npm run migrate:deploy-and-seed && npm run dev",
-    "migrate:dev": "npx prisma migrate dev",
-    "migrate:deploy": "npx prisma migrate deploy",
+    "migrate:rename": "npx prisma db execute --file src/prisma/renameMigrations.sql",
+    "migrate:dev": "npm run migrate:rename && npx prisma migrate dev",
+    "migrate:deploy": "npm run migrate:rename && npx prisma migrate deploy",
     "migrate:deploy-and-seed": "npm run migrate:deploy && npm run seed:data",
     "prisma-studio": "npx prisma studio --port 5555 --browser none"
   },

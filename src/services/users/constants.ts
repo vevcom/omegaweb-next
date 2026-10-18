@@ -1,5 +1,5 @@
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import type { Prisma, SEX } from '@/prisma-generated-pn-types'
+import type { Prisma, Sex } from '@/prisma-generated-pn-types'
 
 export const maxNumberOfGroupsInFilter = 7
 
@@ -88,7 +88,7 @@ export const sexConfig = {
         pronoun: 'Hends',
         label: 'Annet',
     }
-} as const satisfies Record<SEX, { title: string, pronoun: string, label: string }>
+} as const satisfies Record<Sex, { title: string, pronoun: string, label: string }>
 
 export const relationshipStatusConfig = {
     SINGLE: {

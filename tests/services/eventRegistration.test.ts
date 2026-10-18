@@ -582,3 +582,16 @@ describe('unregistering from a paid event', () => {
             .resolves.toMatchObject({ state: 'PENDING', eventRegistrationId: registration.id })
     })
 })
+
+describe('deleting an event', () => {
+    test('an event with registrations can be deleted, taking its registrations with it', async () => {
+        const eventId = await createEvent({ places: 5, waitingList: true })
+        const user = await createTestUser('destroyeventregistered')
+        await register(user, eventId)
+
+        await eventOperations.destroy({ params: { id: eventId }, bypassAuth: true })
+
+        expect(await prisma.event.findUnique({ where: { id: eventId } })).toBeNull()
+        expect(await countRegistrations(eventId)).toBe(0)
+    })
+})

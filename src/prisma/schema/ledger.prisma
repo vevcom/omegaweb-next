@@ -34,11 +34,11 @@ enum SpecialLedgerAccount {
 // A ledger account is equivalent to you real life bank account
 // It is used to store internal funds for either users or groups
 model LedgerAccount {
-  id                  Int                  @id @default(autoincrement())
+  id                  Int                   @id @default(autoincrement())
   user                User?
   groups              GroupLedgerAccount[]
   type                LedgerAccountType
-  frozen              Boolean              @default(false) // If true, no transactions may be made on this account.
+  frozen              Boolean               @default(false) // If true, no transactions may be made on this account.
   name                String? // Optional display name for the account, only used for group accounts
   payoutAccountNumber String? // For display only, only used for group accounts
   special             SpecialLedgerAccount? @unique
@@ -192,7 +192,7 @@ model LedgerEntry {
   // Must be non-null when completing a transaction. It must be explicitly set to 0 to indicate no fees.
   fees                Int?
   // The account which should be credited/debited on completions
-  ledgerAccount       LedgerAccount?    @relation(fields: [ledgerAccountId], references: [id])
+  ledgerAccount       LedgerAccount     @relation(fields: [ledgerAccountId], references: [id])
   ledgerAccountId     Int
   // The transaction this ledger entry is part of
   // Accounts are credited only when the transaction succeeds.

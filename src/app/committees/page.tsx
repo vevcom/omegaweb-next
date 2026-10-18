@@ -9,8 +9,8 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: committees }) => {
         // A pensioned committee is part of Omega's history rather than of it now, so it is listed
         // below the ones that still run rather than mixed in among them.
-        const active = committees.filter(committee => !committee.pensioned)
-        const pensioned = committees.filter(committee => committee.pensioned)
+        const active = committees.filter(committee => !committee.group.pensioned)
+        const pensioned = committees.filter(committee => committee.group.pensioned)
 
         const committeeCards = (toShow: typeof committees) => (
             <div className={styles.committeeList}>

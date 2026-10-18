@@ -145,7 +145,6 @@ export default async function migrateCommittees(
             data: {
                 name: committee.name,
                 shortName: committee.shortname,
-                pensioned,
                 logoImage: logoImageId ? {
                     connect: {
                         id: logoImageId
@@ -169,6 +168,7 @@ export default async function migrateCommittees(
                     create: {
                         groupType: 'COMMITTEE',
                         order: groupOrder,
+                        pensioned,
                     },
                 }
             }

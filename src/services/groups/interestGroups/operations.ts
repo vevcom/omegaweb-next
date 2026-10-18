@@ -42,10 +42,6 @@ const migration = implementManualMigrationPerGroup({
         migrateGroup: ({ groupId }) => interestGroupAuth.migrateGroup.data({ groupId }),
         pension: () => interestGroupAuth.pension,
     },
-    setPensioned: (prisma, groupId, pensioned) => prisma.interestGroup.update({
-        where: { groupId },
-        data: { pensioned },
-    }),
 })
 
 /** The group behind an interest group, for the authorizers and the pensioned check. */
@@ -93,6 +89,7 @@ export const interestGroupOperations = {
                 articleSection: {
                     include: articleSectionsRelationsIncluder,
                 },
+                group: { select: { pensioned: true } },
             },
             orderBy: [
                 { name: 'asc' },
@@ -112,6 +109,7 @@ export const interestGroupOperations = {
                 articleSection: {
                     include: articleSectionsRelationsIncluder,
                 },
+                group: { select: { pensioned: true } },
             }
         })
     }),

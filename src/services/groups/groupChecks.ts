@@ -20,21 +20,23 @@ export async function isGroupOfType(
 }
 
 /**
- * The row of the group's own type that carries the pensioned flag, with its name. Only the group
- * types that are migrated by hand carry the flag; for the rest this is null.
+ * The group's pensioned flag, with the name of its own type's row. Only the group types that are
+ * migrated by hand have a name here, and only they can be pensioned.
  */
 async function readPensionableGroup(prisma: PrismaPossibleTransaction<false>, groupId: number) {
-    const select = { select: { name: true, pensioned: true } } as const
+    const select = { select: { name: true } } as const
     const group = await prisma.group.findUnique({
         where: { id: groupId },
-        select: { committee: select, interestGroup: select, manualGroup: select },
+        select: { pensioned: true, committee: select, interestGroup: select, manualGroup: select },
     })
-    return group?.committee ?? group?.interestGroup ?? group?.manualGroup ?? null
+    if (!group) return null
+    const name = (group.committee ?? group.interestGroup ?? group.manualGroup)?.name ?? 'Gruppen'
+    return { name, pensioned: group.pensioned }
 }
 
 /**
  * Whether the group has been pensioned - retired rather than migrated. Only the group types that are
- * migrated by hand carry the flag; for the rest this is always false.
+ * migrated by hand can be pensioned; for the rest this is always false.
  */
 export async function isGroupPensioned(
     prisma: PrismaPossibleTransaction<false>,

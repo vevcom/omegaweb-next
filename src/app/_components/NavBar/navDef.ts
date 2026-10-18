@@ -15,7 +15,7 @@ import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
 import { userAuth } from '@/services/users/auth'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
-import { bullshitAuth } from '@/services/bullshit/auth'
+import { bulshitAuth } from '@/services/bulshit/auth'
 import { lockerAuth } from '@/services/lockers/auth'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
@@ -128,10 +128,10 @@ export const navDef: NavItem[] = [
         authorizers: () => [omegaQuotesAuth.readPage],
     },
     {
-        name: 'Bullshit',
-        href: '/bullshit',
+        name: 'Bulshit',
+        href: '/bulshit',
         icon: faPoo,
-        authorizers: () => [bullshitAuth.readPage, bullshitAuth.createOwn],
+        authorizers: () => [bulshitAuth.readPage, bulshitAuth.createOwn],
     },
     {
         name: 'Artikler',

@@ -1,19 +1,19 @@
-import BullshitList from './BullshitList'
-import Bullshit from './Bullshit'
-import BullshitForm from './CreateBullshitForm'
-import { BullshitPagingProvider } from '@/contexts/paging/BullshitPaging'
+import BulshitList from './BulshitList'
+import Bulshit from './Bulshit'
+import BulshitForm from './CreateBulshitForm'
+import { BulshitPagingProvider } from '@/contexts/paging/BulshitPaging'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { bullshitOperations } from '@/services/bullshit/operations'
-import { bullshitAuth } from '@/services/bullshit/auth'
+import { bulshitOperations } from '@/services/bulshit/operations'
+import { bulshitAuth } from '@/services/bulshit/auth'
 import { serverPage, withFallback } from '@/app/ServerPage'
-import type { PageSizeBullshit } from '@/contexts/paging/BullshitPaging'
+import type { PageSizeBulshit } from '@/contexts/paging/BulshitPaging'
 
-const pageSize: PageSizeBullshit = 20
+const pageSize: PageSizeBulshit = 20
 
 const { page, generateMetadata } = serverPage({
     // Someone who may not read the page still gets it, empty - they may be allowed to create.
     operation: async () => withFallback(
-        bullshitOperations.readPage({
+        bulshitOperations.readPage({
             params: {
                 paging: {
                     page: {
@@ -29,32 +29,32 @@ const { page, generateMetadata } = serverPage({
         ['UNAUTHORIZED', 'UNAUTHENTICATED']
     ),
     capabilities: () => ({
-        canCreate: bullshitAuth.createOwn,
+        canCreate: bulshitAuth.createOwn,
     }),
-    metadata: () => ({ title: 'Bullshit' }),
-    render: ({ data: bullshits, capabilities, session }) => (
+    metadata: () => ({ title: 'Bulshit' }),
+    render: ({ data: bulshits, capabilities, session }) => (
         <PageWrapper headerItem={
-            session.user && capabilities.canCreate.authorized && <BullshitForm bullshitPosterId={session.user.id} />
+            session.user && capabilities.canCreate.authorized && <BulshitForm bulshitPosterId={session.user.id} />
         }>
-            {bullshits && (
-                <BullshitPagingProvider
+            {bulshits && (
+                <BulshitPagingProvider
                     // router.refresh() after a submit hands down a new first page, but the provider
                     // seeds its paging state from serverRenderedData only on mount. Keying on the
                     // first page remounts it, so a new quote cannot push one out of sight.
-                    key={bullshits.map(bullshit => bullshit.id).join(',')}
+                    key={bulshits.map(bulshit => bulshit.id).join(',')}
                     startPage={{
                         pageSize,
                         page: 1,
                     }}
                     details={undefined}
-                    serverRenderedData={bullshits}
+                    serverRenderedData={bulshits}
                 >
                     <main>
-                        <BullshitList
-                            serverRendered={bullshits.map(bullshit => <Bullshit key={bullshit.id} quote={bullshit} />)}
+                        <BulshitList
+                            serverRendered={bulshits.map(bulshit => <Bulshit key={bulshit.id} quote={bulshit} />)}
                         />
                     </main>
-                </BullshitPagingProvider>
+                </BulshitPagingProvider>
             )}
         </PageWrapper>
     ),

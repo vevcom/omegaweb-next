@@ -1,33 +1,33 @@
 'use client'
 
-import styles from './CreateBullshitFrom.module.scss'
+import styles from './CreateBulshitForm.module.scss'
 import Form from '@/components/Form/Form'
-import { createBullshitAction } from '@/services/bullshit/actions'
+import { createBulshitAction } from '@/services/bulshit/actions'
 import Textarea from '@/components/UI/Textarea'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { configureAction } from '@/services/configureAction'
 import { useRouter } from 'next/navigation'
 
 type PropTypes = {
-    bullshitPosterId: number
+    bulshitPosterId: number
 }
 
-export default function CreateBullshitForm({ bullshitPosterId }: PropTypes) {
+export default function CreateBulshitForm({ bulshitPosterId }: PropTypes) {
     const { refresh } = useRouter()
 
     return (
-        <AddHeaderItemPopUp popUpKey="new_omega_bullshit">
+        <AddHeaderItemPopUp popUpKey="new_omega_bulshit">
             <Form
-                title="Ny Bullshit"
+                title="Ny Bulshit"
                 submitText="Legg til"
-                action={configureAction(createBullshitAction, { params: { bullshitPosterId } })}
+                action={configureAction(createBulshitAction, { params: { bulshitPosterId } })}
                 successCallback={refresh}
                 className={styles.popupForm}
             >
                 <Textarea
                     name="quote"
-                    label="Bullshit"
-                    placeholder="Bullshit"
+                    label="Bulshit"
+                    placeholder="Bulshit"
                     className={styles.textarea}
                 />
             </Form>

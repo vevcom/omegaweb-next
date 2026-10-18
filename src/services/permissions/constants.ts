@@ -371,15 +371,15 @@ export const permissionConfig = {
         category: 'public',
         canBeDefault: false,
     },
-    BULLSHIT_WRITE: {
-        name: 'Lage bullshit',
-        description: 'Kan sende inn bullshit',
+    BULSHIT_WRITE: {
+        name: 'Lage bulshit',
+        description: 'Kan sende inn bulshit',
         category: 'ombul',
         canBeDefault: true,
     },
-    BULLSHIT_USE: {
-        name: 'Les bullshit',
-        description: 'Kan lese bullshit',
+    BULSHIT_USE: {
+        name: 'Les bulshit',
+        description: 'Kan lese bulshit',
         category: 'ombul',
         canBeDefault: true,
     },
