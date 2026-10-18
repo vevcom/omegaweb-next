@@ -301,7 +301,7 @@ export default function UserList({
                 <table className={styles.list}>
                     <thead>
                         <tr>
-                            {(usersSelection || userSelection) && <th></th>}
+                            {(usersSelection ?? userSelection) && <th></th>}
                             {displayForUser && <th></th>}
                             <th className={styles.sortable} aria-sort={ariaSort('name')}>
                                 <button type="button" onClick={() => handleSort('name')}>

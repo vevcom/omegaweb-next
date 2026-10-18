@@ -199,29 +199,29 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                 `to Feide account with ID ${feideAccount.id}.`
             )
         },
-        async deleteUser() {
-            throw new Error('Delete user from next auth is not implemented')
+        deleteUser() {
+            return Promise.reject<void>(new Error('Delete user from next auth is not implemented'))
         },
-        async unlinkAccount() {
-            throw new Error('Unlink account from next auth is not implemented')
+        unlinkAccount() {
+            return Promise.reject(new Error('Unlink account from next auth is not implemented'))
         },
-        async createSession() {
-            throw new Error('Create session from next auth is not implemented')
+        createSession() {
+            return Promise.reject(new Error('Create session from next auth is not implemented'))
         },
-        async getSessionAndUser() {
-            throw new Error('Get session and user from next auth is not implemented')
+        getSessionAndUser() {
+            return Promise.reject(new Error('Get session and user from next auth is not implemented'))
         },
-        async updateSession() {
-            throw new Error('Update session from next auth is not implemented')
+        updateSession() {
+            return Promise.reject(new Error('Update session from next auth is not implemented'))
         },
-        async deleteSession() {
-            throw new Error('Delete session from next auth is not implemented')
+        deleteSession() {
+            return Promise.reject<void>(new Error('Delete session from next auth is not implemented'))
         },
-        async createVerificationToken() {
-            throw new Error('Create verification token from next auth is not implemented')
+        createVerificationToken() {
+            return Promise.reject(new Error('Create verification token from next auth is not implemented'))
         },
-        async useVerificationToken() {
-            throw new Error('Use verification token from next auth is not implemented')
+        useVerificationToken() {
+            return Promise.reject(new Error('Use verification token from next auth is not implemented'))
         },
     }
 }

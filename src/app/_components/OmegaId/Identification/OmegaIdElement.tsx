@@ -23,7 +23,7 @@ export default function OmegaIdElement({ token }: {
     const [expiryTime, setExpiryTime] = useState(new Date((JWTPayload.exp - EXPIRY_THRESHOLD) * 1000))
 
     useEffect(() => {
-        const interval = setInterval(async () => {
+        const refreshToken = async () => {
             if (expiryTime < new Date()) {
                 if (session.loading || !session.session.user) return
                 const results = await generateOmegaIdAction({ params: { userId: session.session.user.id } })
@@ -38,7 +38,8 @@ export default function OmegaIdElement({ token }: {
 
                 setExpiryTime(new Date((pld.exp - EXPIRY_THRESHOLD) * 1000))
             }
-        }, 15 * 1000)
+        }
+        const interval = setInterval(() => void refreshToken(), 15 * 1000)
 
         return () => clearInterval(interval)
     })

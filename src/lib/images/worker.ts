@@ -20,7 +20,7 @@ async function main() {
     logger.info('Image processing worker stopped')
 }
 
-main().catch(error => {
+main().catch((error: unknown) => {
     logger.error(`Image processing worker crashed: ${error}`)
     process.exitCode = 1
 })

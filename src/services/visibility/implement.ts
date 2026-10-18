@@ -27,7 +27,7 @@ export function assertAdminLevelIsSubOfRegularLevel(resultingMatrix: DoubleLevel
 }
 
 type Authorizers<
-    ImplementationParamsSchema extends z.ZodTypeAny,
+    ImplementationParamsSchema extends z.ZodType<unknown>,
 > = {
     readDoubleLevelMatrix: (
         args: {
@@ -60,7 +60,7 @@ export const visibilityIncluder = {
     }
 } as const
 
-type ReadVisibilityDoubleLevel<ImplementationParamsSchema extends z.ZodTypeAny> = (
+type ReadVisibilityDoubleLevel<ImplementationParamsSchema extends z.ZodType<unknown>> = (
     args: {
         include: typeof visibilityIncluder,
         prisma: PrismaPossibleTransaction<false>,
@@ -72,7 +72,7 @@ type ReadVisibilityDoubleLevel<ImplementationParamsSchema extends z.ZodTypeAny> 
 }>
 
 export function implementDoubleLevelVisibilityOperations<
-    const ImplementationParamsSchema extends z.ZodTypeAny
+    const ImplementationParamsSchema extends z.ZodType<unknown>
 >({
     implementationParamsSchema,
     authorizers,

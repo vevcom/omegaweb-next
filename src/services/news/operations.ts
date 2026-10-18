@@ -180,7 +180,7 @@ export const newsOperations = {
                             name: data.name
                         }
                     },
-                    endDateTime: data.endDateTime || undefined,
+                    endDateTime: data.endDateTime ?? undefined,
                 }
             })
     }),

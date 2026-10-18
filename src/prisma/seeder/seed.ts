@@ -9,7 +9,7 @@ void seed({ devData: process.env.NODE_ENV === 'development' })
     .then(async () => {
         await prisma.$disconnect()
     })
-    .catch(async (error) => {
+    .catch(async (error: unknown) => {
         // Not every error that gets here is an Error - a driver adapter throws its own shape with
         // no `message`, and winston then logs the whole failure as "error: undefined". Pull out
         // something printable first, and keep the original as metadata.

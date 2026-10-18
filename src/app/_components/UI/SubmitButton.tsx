@@ -44,9 +44,7 @@ export default function SubmitButton({
     disabled?: boolean,
 }) {
     const formStatus = useFormStatus()
-    if (pending === undefined) {
-        pending = formStatus.pending
-    }
+    pending ??= formStatus.pending
 
     const [confirmedOpen, setConfirmedOpen] = useState(false)
     const popUpKey = useId()

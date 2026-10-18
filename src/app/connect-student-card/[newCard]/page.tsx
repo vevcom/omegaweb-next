@@ -8,7 +8,7 @@ import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ params }: PageOperationArgs<{ newCard: string }>) => ({
+    operation: ({ params }: PageOperationArgs<{ newCard: string }>) => ({
         studentCard: params.newCard,
     }),
     capabilities: (data, session) => ({

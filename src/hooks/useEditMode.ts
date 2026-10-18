@@ -34,7 +34,7 @@ export default function useEditMode({
         authorizer: authorizer ? authorizer : Require.nothing()
     })
     const authResult = givenAuthResult ? givenAuthResult : authorizerAuthResult
-    const { addEditableContent, removeEditableContent } = editModeCtx || {
+    const { addEditableContent, removeEditableContent } = editModeCtx ?? {
         addEditableContent: () => { },
         removeEditableContent: () => { },
     }

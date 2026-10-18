@@ -60,7 +60,7 @@ describe('service operation', () => {
         // Simple service operation that just returns its own context
         const inner = defineOperation({
             authorizer: () => Require.nothing(),
-            operation: async (context) => context,
+            operation: (context) => context,
         })
 
         // Outer service operation that calls the inner one and returns its context

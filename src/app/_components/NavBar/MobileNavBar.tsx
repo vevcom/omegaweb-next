@@ -13,7 +13,7 @@ type PropTypes = {
     navItems: NavLink[]
 }
 
-export default async function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
+export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
     const itemsForNav = navItems.slice(0, 2)
     const itemsForMenu = navItems.slice(2, navItems.length)
 

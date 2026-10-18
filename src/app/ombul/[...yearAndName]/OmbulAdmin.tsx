@@ -55,13 +55,13 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
         { params: { id: ombul.id } }
     )
 
-    const handleChange = async (newOmbul: ExpandedOmbul | undefined) => {
+    const handleChange = (newOmbul: ExpandedOmbul | undefined) => {
         if (!newOmbul) return
         push(`/ombul/${newOmbul.year}/${newOmbul.name}`)
         refresh()
     }
 
-    const handleDestroy = async () => {
+    const handleDestroy = () => {
         push('/ombul')
         refresh()
     }

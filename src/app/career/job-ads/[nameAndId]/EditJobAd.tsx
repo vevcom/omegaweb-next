@@ -76,7 +76,7 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
                             includeTime
                             label="Søknadsfrist"
                             name="applicationDeadline"
-                            defaultValue={jobAd.applicationDeadline || ''}
+                            defaultValue={jobAd.applicationDeadline ?? ''}
                         />
                         <Slider
                             label="Aktiv"

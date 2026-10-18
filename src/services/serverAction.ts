@@ -149,11 +149,7 @@ async function safeServerCall<Return>(call: () => Promise<Return>): Promise<Acti
             return createActionError('BAD PARAMETERS', error.parseError.error.issues)
         }
         if (error instanceof Smorekopp) {
-            // An authorizer that passes never throws, so the two passing statuses exist only in the type.
-            const errorCode = error.errorCode === 'AUTHORIZED' || error.errorCode === 'AUTHORIZED_NO_USER'
-                ? 'UNKNOWN ERROR'
-                : error.errorCode
-            return createActionError(errorCode, error.errors)
+            return createActionError(error.errorCode, error.errors)
         }
         return createActionError('UNKNOWN ERROR', 'unknown error')
     }

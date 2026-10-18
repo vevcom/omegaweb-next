@@ -502,7 +502,7 @@ export function defineSubOperation<
                             const authResult = authorizer.auth(session)
 
                             if (!authResult.authorized) {
-                                throw new Smorekopp(authResult.status, authResult.getErrorMessage)
+                                throw new Smorekopp(authResult.failureStatus, authResult.getErrorMessage)
                             }
 
                             return authResult.prismaWhereFilter

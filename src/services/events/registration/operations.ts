@@ -206,7 +206,7 @@ export const eventRegistrationOperations = {
 
             return registrations.map(registration => ({
                 ...registration,
-                image: registration.user?.image || defaultImage,
+                image: registration.user?.image ?? defaultImage,
             }))
         },
     }),

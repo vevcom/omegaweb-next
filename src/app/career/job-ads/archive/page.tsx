@@ -7,7 +7,7 @@ import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 
-export default async function JobAdsArchive() {
+export default function JobAdsArchive() {
     return (
         <PageWrapper headerItem={
             <Link href="/career/job-ads" className={styles.backLink}>

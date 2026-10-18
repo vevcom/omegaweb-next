@@ -21,10 +21,10 @@ type ClientDataContext = {
     standardImages: ClientDataResult<'standardImages', Record<StandardImage, ExpandedImage>> | null,
     groups: ClientDataResult<'groups', ExpandedGroupsOfAllTypes> | null,
     specialCollections: ClientDataResult<'specialCollections', ExpandedImageCollection[]> | null,
-    loadDefaultPermissions: () => void,
-    loadStandardImages: () => void,
-    loadGroups: () => void,
-    loadSpecialCollections: () => void,
+    loadDefaultPermissions: () => Promise<void>,
+    loadStandardImages: () => Promise<void>,
+    loadGroups: () => Promise<void>,
+    loadSpecialCollections: () => Promise<void>,
 }
 
 const ClientDataContext = createContext<ClientDataContext | null>(null)
@@ -168,7 +168,7 @@ function useClientData(): ClientDataContext {
 export function useDefaultPermissions(): ClientDataResult<'defaultPermissions', Permission[]> {
     const { defaultPermissions, loadDefaultPermissions } = useClientData()
     useEffect(() => {
-        if (defaultPermissions === null) loadDefaultPermissions()
+        if (defaultPermissions === null) void loadDefaultPermissions()
     }, [defaultPermissions, loadDefaultPermissions])
     return defaultPermissions ?? { status: 'loading' }
 }
@@ -176,7 +176,7 @@ export function useDefaultPermissions(): ClientDataResult<'defaultPermissions', 
 export function useStandardImages(): ClientDataResult<'standardImages', Record<StandardImage, ExpandedImage>> {
     const { standardImages, loadStandardImages } = useClientData()
     useEffect(() => {
-        if (standardImages === null) loadStandardImages()
+        if (standardImages === null) void loadStandardImages()
     }, [standardImages, loadStandardImages])
     return standardImages ?? { status: 'loading' }
 }
@@ -184,7 +184,7 @@ export function useStandardImages(): ClientDataResult<'standardImages', Record<S
 export function useGroups(): ClientDataResult<'groups', ExpandedGroupsOfAllTypes> {
     const { groups, loadGroups } = useClientData()
     useEffect(() => {
-        if (groups === null) loadGroups()
+        if (groups === null) void loadGroups()
     }, [groups, loadGroups])
     return groups ?? { status: 'loading' }
 }
@@ -192,7 +192,7 @@ export function useGroups(): ClientDataResult<'groups', ExpandedGroupsOfAllTypes
 export function useSpecialCollections(): ClientDataResult<'specialCollections', ExpandedImageCollection[]> {
     const { specialCollections, loadSpecialCollections } = useClientData()
     useEffect(() => {
-        if (specialCollections === null) loadSpecialCollections()
+        if (specialCollections === null) void loadSpecialCollections()
     }, [specialCollections, loadSpecialCollections])
     return specialCollections ?? { status: 'loading' }
 }

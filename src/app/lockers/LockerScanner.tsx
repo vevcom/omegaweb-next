@@ -18,13 +18,13 @@ export default function LockerScanner() {
                 <QrCodeReader
                     singleRead
                     qrboxSize={250}
-                    onScan={async text => {
+                    onScan={text => {
                         const path = lockerPathOfQrCode(text, window.location.origin)
                         if (!path) {
-                            return { success: false, text: 'QR-koden er ikke til et skap' }
+                            return Promise.resolve({ success: false, text: 'QR-koden er ikke til et skap' })
                         }
                         router.push(path)
-                        return { success: true, text: 'Skap funnet' }
+                        return Promise.resolve({ success: true, text: 'Skap funnet' })
                     }}
                 />
             </div>

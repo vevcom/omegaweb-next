@@ -1,9 +1,9 @@
 'use client'
 import { useEffect } from 'react'
 
-export default function useInterval(callback: () => void, interval: number) {
+export default function useInterval(callback: () => void | Promise<void>, interval: number) {
     useEffect(() => {
-        const id = setInterval(callback, interval)
+        const id = setInterval(() => void callback(), interval)
         return () => clearInterval(id)
     }, [callback, interval])
 }

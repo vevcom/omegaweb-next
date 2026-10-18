@@ -15,8 +15,8 @@ type PropTypes = {
 
 export default function CompanyListFilter({ currentName }: PropTypes) {
     const { replace } = useRouter()
-    const { setDetails } = useContext(CompanyPagingContext) || {
-        setDetails: () => { /**/ }
+    const { setDetails } = useContext(CompanyPagingContext) ?? {
+        setDetails: () => {}
     }
     const setNameFilter = useDebounce((name: string) => {
         replace(`/career/companies/?${QueryParams.companyName.encodeUrl(name)}`)

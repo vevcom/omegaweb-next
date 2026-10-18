@@ -23,7 +23,7 @@ type PropTypes = {
  */
 export default function ChangeName({ children, ombulId }: PropTypes) {
     const editable = useEditMode({ authorizer: ombulAuth.update })
-    const handleChange = async (data: ExpandedOmbul | undefined) => {
+    const handleChange = (data: ExpandedOmbul | undefined) => {
         const name = data?.name
         if (!name) return
         const url = window.location.pathname

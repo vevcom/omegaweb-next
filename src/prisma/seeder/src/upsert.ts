@@ -17,7 +17,7 @@ export async function upsert<ReturnCreate, ReturnUpdate>(
         update: () => ReturnUpdate,
     }
 ): Promise<Awaited<ReturnCreate> | Awaited<ReturnUpdate>> {
-    const exists = await config.checkExistence().catch(error => {
+    const exists = await config.checkExistence().catch((error: unknown) => {
         if (error instanceof Smorekopp && error.errorCode === 'NOT FOUND') return false
         throw error
     })

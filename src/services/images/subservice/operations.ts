@@ -178,7 +178,7 @@ export const imageOperations = {
             })
 
             const buffer = Buffer.from(await imageFile.arrayBuffer())
-            const storedOriginal = await imageStore.readStoredFile(image.fsLocationOriginal).catch(error => {
+            const storedOriginal = await imageStore.readStoredFile(image.fsLocationOriginal).catch((error: unknown) => {
                 // A missing original is exactly what replacing it repairs.
                 if (error instanceof ServiceError && error.errorCode === 'NOT FOUND') return null
                 throw error
@@ -206,7 +206,7 @@ export const imageOperations = {
                         processingError: null,
                     }
                 })
-            }).catch(async error => {
+            }).catch(async (error: unknown) => {
                 await destroyStoredFiles([original.fsLocation], 'a failed image file replacement')
                 throw error
             })
@@ -255,7 +255,7 @@ export const imageOperations = {
                         widthHugeSize: variants.huge?.width,
                         heightHugeSize: variants.huge?.height,
                     }
-                }).catch(async error => {
+                }).catch(async (error: unknown) => {
                     // The variants are written, but no row will point at them.
                     await destroyStoredFiles(variantLocations, 'a failed variant record')
                     throw error

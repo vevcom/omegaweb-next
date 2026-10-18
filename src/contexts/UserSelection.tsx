@@ -15,16 +15,16 @@ type PropTypes = {
 export const UserSelectionContext = createContext<{
     user: UserBasic | null
     setUser: (user: UserBasic | null) => void
-    onSelection: (handler: (user: UserBasic | null) => void) => void
+    onSelection: (handler: Handler) => void
         } | null>(null)
 
-type Handler = (user: UserBasic | null) => void
+type Handler = (user: UserBasic | null) => void | Promise<void>
 
 export default function UserSelectionProvider({ children, initialUser }: PropTypes) {
     const [user, setUser] = useState<UserBasic | null>(initialUser ? initialUser : null)
     const onSelection = useRef<Handler>(() => {})
     useEffect(() => {
-        onSelection.current(user)
+        void onSelection.current(user)
     }, [user])
 
     return <UserSelectionContext.Provider value={{

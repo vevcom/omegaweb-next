@@ -3,7 +3,7 @@ import FooterSponsors from './FooterSponsors'
 import SocialIcons from '@/components/SocialIcons/SocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 
-async function Footer() {
+function Footer() {
     const emailDomain = process.env.EMAIL_DOMAIN
 
     return (

@@ -12,7 +12,7 @@ import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('admission', session),
+    operation: ({ session }: PageOperationArgs) => authorizeAdminPage('admission', session),
     capabilities: () => ({
         canSearchUsers: userAuth.readPage,
     }),

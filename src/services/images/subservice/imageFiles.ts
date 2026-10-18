@@ -126,7 +126,7 @@ export async function destroyStoredFiles(fsLocations: string[], context: string)
     const errors = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
     if (errors.length > 0) {
         logger.error(`Failed to clean up ${errors.length} image file(s) after ${context}`, {
-            errors: errors.map(error => error.reason)
+            errors: errors.map((error): unknown => error.reason)
         })
     }
 }

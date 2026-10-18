@@ -68,11 +68,9 @@ function findBranchInTree(branch: NotificationBranch, branchId: number): Notific
 }
 
 function changeMethodsInBranch(branch: NotificationBranch, newMethods: NotificationMethodGeneral): NotificationBranch {
-    if (!branch.subscription) {
-        branch.subscription = {
-            new: true,
-            methods: newAllMethodsOff(),
-        }
+    branch.subscription ??= {
+        new: true,
+        methods: newAllMethodsOff(),
     }
 
     const changedMethod = booleanOperationOnMethods(

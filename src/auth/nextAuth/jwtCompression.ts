@@ -25,7 +25,13 @@ async function compressField(data: any): Promise<any> {
 }
 
 // eslint-disable-next-line
-async function decompressField(data: any): Promise<any> {
+async function decompressField(data: unknown): Promise<any> {
+    if (typeof data !== 'string') {
+        logger.error('Failed to decompress JWT field: it is not a string.')
+
+        return null
+    }
+
     try {
         const buffer = Buffer.from(data, 'base64')
         const inflated = await inflateAsync(buffer)
@@ -58,6 +64,8 @@ export async function decompressJwt(token: JWT): Promise<JWT | null> {
 
     for (const field of fieldsToCompress) {
         if (field in decompressedJwt) {
+            // The field was compressed by compressField, so it is trusted to have the type JWT declares for it
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const decompressedField = await decompressField(decompressedJwt[field])
 
             if (decompressedField === null) {

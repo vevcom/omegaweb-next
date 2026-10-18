@@ -21,7 +21,7 @@ async function main() {
     logger.info('Notification worker stopped')
 }
 
-main().catch(error => {
+main().catch((error: unknown) => {
     logger.error(`Notification worker crashed: ${error}`)
     process.exitCode = 1
 })

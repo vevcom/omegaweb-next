@@ -14,12 +14,12 @@ let paymentIntentCount = 0
  * intent gets its own id, since the id is unique across the stored payments.
  */
 function mockStripe() {
-    jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => {
+    jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => {
         paymentIntentCount += 1
-        return {
+        return Promise.resolve({
             id: `pi_test_${paymentIntentCount}`,
             client_secret: `pi_test_${paymentIntentCount}_secret`,
-        } as never
+        } as never)
     })
     jest.spyOn(stripe.paymentIntents, 'cancel').mockResolvedValue({} as never)
 }

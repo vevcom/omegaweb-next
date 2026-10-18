@@ -50,7 +50,8 @@ export function apiHandler<
     // TODO: I think I will rewrite this to be easier to read
     return async (req: Request, { params: rawParams }: { params: Promise<RawParams> }) =>
         await apiHandlerGeneric<Return>(req, async session => {
-            let data
+            // Validated by the operation's data schema.
+            let data: unknown
 
             if (serviceOperation.dataSchema) {
                 try {
@@ -63,7 +64,7 @@ export function apiHandler<
                 }
             }
 
-            let parsedParams
+            let parsedParams: unknown
             if (query) {
                 parsedParams = query(new URL(req.url).searchParams)
             } else if (params) {

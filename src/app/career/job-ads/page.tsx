@@ -10,7 +10,7 @@ import { jobAdAuth } from '@/services/career/jobAds/auth'
 import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => ({}),
+    operation: () => ({}),
     capabilities: () => ({
         canCreate: jobAdAuth.create,
     }),

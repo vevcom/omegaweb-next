@@ -141,7 +141,7 @@ export const userOperations = {
                     bioParagraph: true,
                     image: { include: expandedImageIncluder },
                 },
-            }).then(async userData => ({
+            }).then(userData => ({
                 ...userData,
                 image: userData.image ?? defaultProfileImage,
             }))

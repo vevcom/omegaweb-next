@@ -268,7 +268,7 @@ export const ledgerTransactionOperations = {
             })
             const frozenAccountIds = new Set(frozenAccounts.map(account => account.id))
 
-            const transition = await determineTransactionState({ transaction, balances, frozenAccountIds })
+            const transition = determineTransactionState({ transaction, balances, frozenAccountIds })
 
             // We use `updateMany` in stead of just `update` here because
             // we don't want to throw in case the record is not found.

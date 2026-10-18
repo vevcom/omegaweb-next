@@ -10,7 +10,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 const popUpKey = 'createGroupLedgerAccount'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('accounts', session),
+    operation: ({ session }: PageOperationArgs) => authorizeAdminPage('accounts', session),
     capabilities: () => ({
         canCreate: ledgerAccountAuth.create,
     }),

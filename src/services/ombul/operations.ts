@@ -256,7 +256,7 @@ async function withStoredOmbulFile<Result>(
  * than thrown.
  */
 async function destroyStoredOmbulFile(fsLocation: string, context: string): Promise<void> {
-    await ombulStore.destroyFile(fsLocation, undefined, false).catch(error => {
+    await ombulStore.destroyFile(fsLocation, undefined, false).catch((error: unknown) => {
         logger.error(`Failed to clean up ombul file ${fsLocation} after ${context}`, { error })
     })
 }

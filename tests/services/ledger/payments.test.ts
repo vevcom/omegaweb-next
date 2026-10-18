@@ -17,7 +17,7 @@ const STRIPE_FEE = 1_23
 let createdIntents = 0
 
 /** What `stripe.charges.list` pages through for a payment intent: one charge, with its fee expanded. */
-async function* chargesWithStripeFee() {
+function* chargesWithStripeFee() {
     yield { id: 'ch_test', balance_transaction: { fee: STRIPE_FEE } }
 }
 
@@ -29,12 +29,12 @@ async function* chargesWithStripeFee() {
  * replaced on the client itself instead.
  */
 function mockStripe() {
-    const createIntent = jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => {
+    const createIntent = jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => {
         createdIntents++
-        return {
+        return Promise.resolve({
             id: `pi_test_${createdIntents}`,
             client_secret: `pi_test_${createdIntents}_secret`,
-        } as never
+        } as never)
     })
     const cancelIntent = jest.spyOn(stripe.paymentIntents, 'cancel').mockResolvedValue({} as never)
     const retrieveIntent = jest.spyOn(stripe.paymentIntents, 'retrieve')

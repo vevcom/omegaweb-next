@@ -118,7 +118,7 @@ export const authOptions: AuthOptions = {
             })
             return mayLink ? true : '/login?error=FeideEmailInUse'
         },
-        async session({ session, token }) {
+        session({ session, token }) {
             session.user = token.user
             session.permissions = token.permissions
             session.memberships = token.memberships

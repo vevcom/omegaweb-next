@@ -52,7 +52,7 @@ export default function QrCodeReader({ onScan, singleRead = false, qrboxSize }: 
         }, false)
 
         let reading = false
-        html5QrcodeScanner.render(async text => {
+        const handleRead = async (text: string) => {
             // The camera keeps reading while a read is handled; those reads are dropped.
             if (reading) return
             reading = true
@@ -69,10 +69,11 @@ export default function QrCodeReader({ onScan, singleRead = false, qrboxSize }: 
                 html5QrcodeScanner.clear().catch(() => {})
             }
             setFeedback({ status: result.success ? 'SUCCESS' : 'ERROR', text: result.text })
-        }, () => {})
+        }
+        html5QrcodeScanner.render(text => void handleRead(text), () => {})
 
         return () => {
-            html5QrcodeScanner.clear().catch(error => {
+            html5QrcodeScanner.clear().catch((error: unknown) => {
                 console.error('Failed to clear html5QrcodeScanner. ', error)
             })
         }

@@ -11,7 +11,6 @@ import { notFound, redirect, unstable_rethrow as unstableRethrow } from 'next/na
 import { headers } from 'next/headers'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
-import type { AuthStatus } from '@/auth/authorizer/AuthResult'
 import type { Capabilities, CapabilityAuthorizers, CapabilityKey } from '@/auth/authorizer/capabilities'
 import type { Session } from '@/auth/session/Session'
 import type { Metadata } from 'next'
@@ -24,7 +23,7 @@ export type ServerPageSession = Session<'HAS_USER'> | Session<'NO_USER'>
 /**
  * The arguments a serverPage operation receives. Pages with route params annotate their
  * operation callback with this to declare the params' shape:
- * `operation: async ({ params }: PageOperationArgs<{ id: string }>) => ...`
+ * `operation: ({ params }: PageOperationArgs<{ id: string }>) => ...`
  */
 export type PageOperationArgs<Params extends object = object> = {
     params: Params,
@@ -58,7 +57,7 @@ function pageCapabilities<Data, Authorizers extends CapabilityAuthorizers<Author
  * conventional treatment: NOT FOUND renders the not-found page and UNAUTHENTICATED sends
  * the user to login. Every other service error is returned for the caller to display.
  */
-export async function handleServiceError(error: unknown): Promise<Smorekopp<ErrorCode | AuthStatus>> {
+export async function handleServiceError(error: unknown): Promise<Smorekopp> {
     unstableRethrow(error)
     if (!(error instanceof Smorekopp)) throw error
     if (error.errorCode === 'NOT FOUND') notFound()
@@ -128,7 +127,7 @@ async function urlWithCallback(url: string) {
  *
  * @example
  * const { page, generateMetadata } = serverPage({
- *     operation: async ({ params }: { params: { username: string } }) =>
+ *     operation: ({ params }: { params: { username: string } }) =>
  *         userOperations.readProfile({ params: { username: params.username } }),
  *     capabilities: (profile) => ({
  *         canUpdate: userAuth.update.data({ username: profile.user.username }),
@@ -151,7 +150,7 @@ export function serverPage<
     Authorizers extends CapabilityAuthorizers<Authorizers> = Record<never, never>,
 >({ allowUnregistered = false, operation, capabilities, metadata, render }: {
     allowUnregistered?: boolean,
-    operation: (args: PageOperationArgs<Params>) => Promise<Data>,
+    operation: (args: PageOperationArgs<Params>) => Data | Promise<Data>,
     capabilities?: CapabilitiesOf<Data, Authorizers>,
     metadata?: (data: Data) => Metadata,
     render: (args: {
@@ -252,7 +251,7 @@ type LayoutProps<Params extends object> = {
  *
  * @example
  * export default serverLayout({
- *     operation: async ({ params }: LayoutOperationArgs<{ category: string }>) =>
+ *     operation: ({ params }: LayoutOperationArgs<{ category: string }>) =>
  *         articleCategoryOperations.read({ params: { name: decodeURIComponent(params.category) } }),
  *     render: ({ data: category, children }) => <SideBar category={category}>{children}</SideBar>,
  * })
@@ -262,7 +261,7 @@ export function serverLayout<
     Data,
     Authorizers extends CapabilityAuthorizers<Authorizers> = Record<never, never>,
 >({ operation, capabilities, render }: {
-    operation: (args: LayoutOperationArgs<Params>) => Promise<Data>,
+    operation: (args: LayoutOperationArgs<Params>) => Data | Promise<Data>,
     capabilities?: CapabilitiesOf<Data, Authorizers>,
     render: (args: {
         data: Data,

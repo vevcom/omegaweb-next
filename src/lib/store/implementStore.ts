@@ -27,7 +27,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
     async function createFile(
         file: File,
         allowedExt: readonly AllowedExt[number][] = config.allowedExtentions,
-        prosessor: (buffer: Buffer) => Promise<Buffer> = async (buffer) => buffer,
+        prosessor: (buffer: Buffer) => Promise<Buffer> = (buffer) => Promise.resolve(buffer),
         dynamicStorePrefix?: string,
     ): Promise<{
         fsLocation: string,

@@ -303,8 +303,8 @@ export const ledgerAccountOperations = {
             // replace all nulls with zeros to handle accounts with no entries yet.
             // Set the balance of accounts that have no entries to zero.
             const balanceRecord = Object.fromEntries([
-                ...ids.map(id => [id, { amount: 0, fees: 0 }]),
-                ...balanceArray.map(balance => [
+                ...ids.map((id): [number, Balance] => [id, { amount: 0, fees: 0 }]),
+                ...balanceArray.map((balance): [number, Balance] => [
                     balance.ledgerAccountId,
                     {
                         amount: balance._sum.funds ?? 0,

@@ -40,7 +40,7 @@ class MailHandler {
 
         const transporter = await this.getTransporter()
 
-        transporter.on('idle', async () => await this.handleNewMail())
+        transporter.on('idle', () => void this.handleNewMail())
     }
 
     async setupTransporter() {
