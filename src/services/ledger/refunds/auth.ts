@@ -5,4 +5,5 @@ import { Require } from '@/auth/authorizer/Require'
 // caller, same pattern as ledgerTransactionAuth.advance.
 export const refundAuth = {
     reverseTransaction: Require.permission('LEDGER_ADMIN'),
+    reimburseUnappliedPayment: Require.permission('LEDGER_ADMIN'),
 } as const

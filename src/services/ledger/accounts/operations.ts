@@ -231,15 +231,15 @@ export const ledgerAccountOperations = {
     }),
 
     /**
-     * Calculates the balance and fees of every ledger account matching any of the given filters.
-     * Optionally takes a transaction ID to calculate the balance up until that transaction.
+     * Calculates the live current balance and fees of every ledger account matching any of the
+     * given filters - every SUCCEEDED credit/debit and every still-PENDING debit (a debit
+     * reserves its funds the moment it's created, not only once it succeeds).
      *
      * @warning An account that does not exist is treated as having a balance of zero.
      *
      * @param params.ledgerAccountIds IDs of specific ledger accounts to include.
      * @param params.userIds IDs of users whose account should be included.
      * @param params.groupIds IDs of groups whose accounts should be included.
-     * @param params.atTransactionId Optional transaction ID to calculate the balance up until that transaction.
      *
      * @returns The balances of the ledger accounts.
      */
@@ -267,12 +267,6 @@ export const ledgerAccountOperations = {
                     // Select which accounts we want to calculate the balance for
                     ledgerAccountId: {
                         in: ids,
-                    },
-                    // Since transaction ids are sequential we can use the less than operator
-                    // to filter for all the transactions that happened before the given one.
-                    // This is useful in case we need to know the balance in the past.
-                    ledgerTransactionId: {
-                        lte: params.atTransactionId,
                     },
                     // Credit and debit ledger entries are valid under slight different conditions.
                     OR: [
@@ -322,7 +316,6 @@ export const ledgerAccountOperations = {
      *
      * @param params.userId The ID of the user whose account to calculate the balance for.
      * @param params.ledgerAccountId The ID of the account to calculate the balance for.
-     * @param params.atTransactionId Optional transaction ID to calculate the balance up until that transaction.
      *
      * @returns The balance of the ledger account.
      */
@@ -337,10 +330,7 @@ export const ledgerAccountOperations = {
             })
 
             const balances = await ledgerAccountOperations.calculateBalances({
-                params: {
-                    ledgerAccountIds: [account.id],
-                    atTransactionId: params.atTransactionId,
-                },
+                params: { ledgerAccountIds: [account.id] },
             })
 
             return balances[account.id]

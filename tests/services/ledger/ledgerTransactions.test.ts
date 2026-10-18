@@ -111,6 +111,37 @@ describe('ledger transactions', () => {
             })
         })
 
+        test('only one of two simultaneous debits for the full balance succeeds', async () => {
+            const accountId = testAccountIds[0]
+            const otherAccountId = testAccountIds[1]
+
+            // Wrapped in its own transaction, the same way every real caller (shop purchase,
+            // cabin booking, event registration, a payout) does it - the row lock advance() takes
+            // only has effect while held inside a transaction.
+            const debit = () => prisma.$transaction(tx => ledgerTransactionOperations.create({
+                params: {
+                    purpose: 'CABIN_BOOKING',
+                    ledgerEntries: [
+                        { ledgerAccountId: otherAccountId, funds: INITIAL_BALANCE.amount },
+                        { ledgerAccountId: accountId, funds: -INITIAL_BALANCE.amount },
+                    ],
+                },
+                prisma: tx,
+                bypassAuth: true,
+            }))
+
+            const results = await Promise.allSettled([debit(), debit()])
+
+            expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+            expect(results.filter(result => result.status === 'rejected')).toHaveLength(1)
+
+            const balance = await ledgerAccountOperations.calculateBalance({
+                params: { ledgerAccountId: accountId },
+                bypassAuth: true,
+            })
+            expect(balance.amount).toBe(0)
+        })
+
         const invalidLedgerEntries: number[][] = [
             // Only one entry
             [100],
