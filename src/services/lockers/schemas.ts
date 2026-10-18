@@ -11,6 +11,10 @@ const paramsFieldSchemas = z.object({
     id: z.number(),
 })
 
+const lockerId = paramsFieldSchemas.pick({
+    id: true,
+})
+
 export const lockersSchemas = {
     data: {
         create: dataFieldSchemas.pick({
@@ -18,11 +22,16 @@ export const lockersSchemas = {
             floor: true,
             id: true,
         }),
+        // The number stays: it is what the QR code on the locker points at.
+        update: dataFieldSchemas.pick({
+            building: true,
+            floor: true,
+        }),
     },
     params: {
-        read: paramsFieldSchemas.pick({
-            id: true,
-        }),
+        read: lockerId,
+        update: lockerId,
+        destroy: lockerId,
         readPage: readPageInputSchemaObject(
             paramsFieldSchemas.pick({
                 id: true,

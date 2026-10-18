@@ -56,7 +56,6 @@
     "hast-util-to-html": "^9.0.5",
     "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.3",
-    "jsqr": "^1.4.0",
     "luxon": "^3.7.2",
     "next": "^16.1.6",
     "next-auth": "^4.24.11",

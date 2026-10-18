@@ -20,4 +20,5 @@ export const lockerReservationAuth = {
     create: reservationOfUser,
     read: Require.permission('LOCKER_USE'),
     update: reservationOfUser,
+    deactivate: Require.permission('LOCKER_ADMIN').or().permission('LOCKER_USE').userId(),
 } as const

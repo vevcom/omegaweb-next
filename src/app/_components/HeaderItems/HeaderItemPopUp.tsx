@@ -4,7 +4,7 @@ import PopUp from '@/components/PopUp/PopUp'
 import React from 'react'
 import { FontAwesomeIcon, type FontAwesomeIconProps } from '@fortawesome/react-fontawesome'
 import {
-    faArchive, faCog, faEye, faPlus, faQuestionCircle, faTag, faUpload, faUsers
+    faArchive, faCog, faEye, faPlus, faQrcode, faQuestionCircle, faTag, faUpload, faUsers
 } from '@fortawesome/free-solid-svg-icons'
 import type { PropTypes as PopUpProps } from '@/components/PopUp/PopUp'
 
@@ -78,3 +78,8 @@ export const TagHeasderItemPopUp = createHeaderItemPopUp(faTag)
  * Component that can be used to show a archive pop up for a page
  */
 export const ArchiveHeaderItemPopUp = createHeaderItemPopUp(faArchive, 40, 'Arkiv')
+
+/**
+ * Component that can be used to open a QR code scanner in a pop up
+ */
+export const ScanHeaderItemPopUp = createHeaderItemPopUp(faQrcode, 40, 'Skann')

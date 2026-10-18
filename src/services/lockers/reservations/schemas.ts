@@ -34,6 +34,7 @@ export const lockerReservationSchemas = {
         }),
         read: reservationId,
         update: reservationId,
+        deactivate: reservationId,
         // Every locker's when no locker is given.
         deactivateExpiredReservations: paramsFieldSchemas.pick({
             lockerId: true,

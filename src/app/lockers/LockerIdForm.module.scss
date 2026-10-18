@@ -1,4 +1,16 @@
-.goToLockerLink {
-    text-decoration: none;
-    color: inherit;
+@use '@/styles/ohma';
+
+.LockerIdForm {
+    display: flex;
+    align-items: flex-end;
+    gap: ohma.$gap;
+
+    > div {
+        margin: 0;
+    }
+
+    > button {
+        margin: 0;
+        white-space: nowrap;
+    }
 }

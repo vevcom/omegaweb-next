@@ -1,0 +1,38 @@
+@use '@/styles/ohma';
+
+.showButton {
+    @include ohma.btn(ohma.$colors-accent-blue);
+}
+
+.GiveDotsToAbsentees {
+    min-width: min(28rem, 85vw);
+}
+
+.receiving {
+    list-style: none;
+    padding: 0;
+    margin: ohma.$gap 0;
+    max-height: 50vh;
+    overflow-y: auto;
+
+    > li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: ohma.$gap;
+        padding: calc(0.5 * #{ohma.$gap}) 0;
+        border-bottom: 1px solid ohma.$colors-gray-500;
+
+        > button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: ohma.$colors-accent-red;
+            padding: calc(0.5 * #{ohma.$gap});
+        }
+    }
+}
+
+.nobody {
+    color: ohma.$colors-text-muted;
+}

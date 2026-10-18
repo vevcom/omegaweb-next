@@ -38,6 +38,8 @@ FROM base AS test
 ENV NODE_ENV=test
 
 COPY jest.config.ts ./
+# The production secrets test reads the development values from it, as the check itself does in prod.
+COPY .env.default ./
 # src and tests are expected to be binded in test
 
 CMD ["npm", "run", "test"]
@@ -112,6 +114,10 @@ COPY --from=builder /usr/src/app/public ./public
 # Assets read from disk at runtime by lib/standardStore. dev_profile_images is
 # only ever touched by the development seeder, and is 78 MB, so it stays out.
 COPY --from=builder /usr/src/app/standard_store ./standard_store
+
+# Never loaded as environment - Next does not read .env.default. src/lib/productionSecrets.ts
+# reads it at start-up to refuse the development secrets it holds.
+COPY .env.default ./.env.default
 
 # Bind mount targets in compose; created here so the image works without them too.
 RUN mkdir -p store/images logs dobbelOmegaManifest

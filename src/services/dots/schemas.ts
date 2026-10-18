@@ -1,3 +1,4 @@
+import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -8,6 +9,9 @@ const dataFieldSchemas = z.object({
     ),
     reason: z.string().max(200, 'Begrunnelse kan ha maks 200 tegn').trim(),
     userId: z.coerce.number().int(),
+    userIds: Zpn.numberListCheckboxFriendly({ label: 'Brukere' }).refine(
+        userIds => userIds.length > 0, 'Velg minst én bruker'
+    ),
 })
 
 const paramsFieldSchemas = z.object({
@@ -21,6 +25,10 @@ const dotId = paramsFieldSchemas.pick({
     id: true,
 })
 
+const accuser = paramsFieldSchemas.pick({
+    accuserId: true,
+})
+
 export const dotSchemas = {
     data: {
         createInternal: dataFieldSchemas.pick({
@@ -28,15 +36,19 @@ export const dotSchemas = {
             reason: true,
             userId: true,
         }),
+        createManyInternal: dataFieldSchemas.pick({
+            value: true,
+            reason: true,
+            userIds: true,
+        }),
         update: dataFieldSchemas.pick({
             value: true,
             reason: true,
         }).partial(),
     },
     params: {
-        createInternal: paramsFieldSchemas.pick({
-            accuserId: true,
-        }),
+        createInternal: accuser,
+        createManyInternal: accuser,
         numberOfActiveDotsForUser: paramsFieldSchemas.pick({
             userId: true,
         }),

@@ -37,7 +37,6 @@ function newPrisma() {
         // Sets select query to silly as it generates an unreasonable amount of logs.
         if (e.query.includes('SELECT')) {
             logger.silly('Prisma', {
-                params: e.params,
                 query: e.query,
                 duration: e.duration,
                 userName: context?.session.user?.username,
@@ -47,7 +46,6 @@ function newPrisma() {
             })
         } else {
             logger.debug('Prisma', {
-                params: e.params,
                 query: e.query,
                 duration: e.duration,
                 userName: context?.session.user?.username,
