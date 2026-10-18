@@ -1,5 +1,6 @@
 import { createSelection } from '@/services/createSelection'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
+import { logoIncluder } from '@/services/career/companies/constants'
 import { EventCanView } from '@/prisma-generated-pn-types'
 import type { Event, Prisma } from '@/prisma-generated-pn-types'
 
@@ -53,5 +54,13 @@ export const eventListSelection = {
         }
     },
 } as const satisfies Prisma.EventSelect
+
+/** The company of an event as its page shows it: its name and logo, linking to its website. */
+export const eventCompanySelection = {
+    id: true,
+    name: true,
+    website: true,
+    ...logoIncluder,
+} as const satisfies Prisma.CompanySelect
 
 export const defaultSearchResultLimit = 5

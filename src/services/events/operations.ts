@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
-import { defaultSearchResultLimit, eventListSelection } from './constants'
+import { defaultSearchResultLimit, eventCompanySelection, eventListSelection } from './constants'
 import { eventRegistrationQueueOrder } from './registration/constants'
 import { notifyPromotedFromWaitingList } from './registration/notifyPromotedFromWaitingList'
 import { notificationOperations } from '@/services/notifications/operations'
@@ -97,6 +97,7 @@ const read = defineOperation({
                     }
                 },
                 hostedByCommittee: { select: { id: true, name: true, shortName: true } },
+                company: { select: eventCompanySelection },
                 ledgerAccount: { select: { id: true, name: true } },
                 _count: {
                     select: {
@@ -161,6 +162,11 @@ export const eventOperations = {
                         hostedByCommittee: data.hostedByCommitteeId ? {
                             connect: {
                                 id: data.hostedByCommitteeId
+                            }
+                        } : undefined,
+                        company: data.companyId ? {
+                            connect: {
+                                id: data.companyId
                             }
                         } : undefined,
                         waitingList: data.waitingList,

@@ -5,6 +5,7 @@ import RegistrationsList from './RegistrationsList'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import EventVisibilityAdmin from './EventVisibilityAdmin'
 import ConnectEventToLedgerForm from './ConnectEventToLedgerForm'
+import EventCompany from './EventCompany'
 import EventLocationMap from '@/components/Event/EventLocationMap'
 import Date from '@/components/Date/Date'
 import CreateOrUpdateEventForm from '@/app/(omegaweb)/events/CreateOrUpdateEventForm'
@@ -16,6 +17,7 @@ import { SettingsHeaderItemPopUp, UsersHeaderItemPopUp } from '@/components/Head
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { committeeOperations } from '@/services/groups/committees/operations'
+import { companyOperations } from '@/services/career/companies/operations'
 import {
     destroyEventAction,
     updateEventCmsCoverImageAction,
@@ -69,6 +71,9 @@ const { page, generateMetadata } = serverPage({
                 params: { includeGroupAccounts: true, includeUserAccounts: false },
             }), [])
             : []
+        // The same goes for the companies of the company picker, which takes COMPANY_USE besides:
+        // without it there is no picker (null), rather than one that would clear the company.
+        const companies = administers ? await withFallback(companyOperations.readAll({}), null) : null
 
         // What the dots of the one visiting hold them back from - nothing to tell a visitor
         // without a user, and nothing to hide either, as it is their own dots it is read from.
@@ -108,6 +113,7 @@ const { page, generateMetadata } = serverPage({
             event,
             tags,
             committees,
+            companies,
             doubleLevelVisibility,
             ledgerAccounts,
             dotPunishment,
@@ -163,7 +169,16 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: (data) => ({ title: data.event.name }),
     render: ({ data, capabilities, session }) => {
-        const { event, tags, committees, doubleLevelVisibility, ledgerAccounts, dotPunishment, ownRegistration } = data
+        const {
+            event,
+            tags,
+            committees,
+            companies,
+            doubleLevelVisibility,
+            ledgerAccounts,
+            dotPunishment,
+            ownRegistration,
+        } = data
         const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
 
         return (
@@ -207,7 +222,12 @@ const { page, generateMetadata } = serverPage({
                         }
                         <SettingsHeaderItemPopUp scale={30} popUpKey="EditEvent">
                             {capabilities.canUpdate.authorized &&
-                                <CreateOrUpdateEventForm event={event} eventTags={tags} committees={committees} />
+                                <CreateOrUpdateEventForm
+                                    event={event}
+                                    eventTags={tags}
+                                    committees={committees}
+                                    companies={companies}
+                                />
                             }
                             {capabilities.canConnectToLedger.authorized && <>
                                 <p>
@@ -256,6 +276,7 @@ const { page, generateMetadata } = serverPage({
                         <FontAwesomeIcon icon={faLocationDot} />
                         {event.location}
                     </p>
+                    {event.company && <EventCompany company={event.company} />}
                     {event.hostedByCommittee && <p>
                         <FontAwesomeIcon icon={faPeopleGroup} />
                         <span>

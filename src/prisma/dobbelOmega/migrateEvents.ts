@@ -83,9 +83,9 @@ export default async function migrateEvents(
                 coverImageId: coverIage.id,
                 cmsParagraphId: paragraph.id,
                 waitingList: event.waitingList ?? true,
-                lead: event.lead,
-                company: event.company,
-                extraFields: event.extraFields ?? undefined,
+                legacy_ow_basic_lead: event.lead,
+                legacy_ow_basic_company: event.company,
+                legacy_ow_basic_extraFields: event.extraFields ?? undefined,
                 createdById: event.CreatedByUserId ? await userMigrator.getPnUserId(event.CreatedByUserId) : undefined,
                 published: true,
                 ...(await createVisibilities(pnPrisma)),
@@ -96,10 +96,10 @@ export default async function migrateEvents(
             const result = await pnPrisma.eventRegistration.create({
                 data: {
                     eventId: newEvent.id,
-                    company: registration.company,
-                    manuallyPaid: registration.manPaid,
+                    legacy_ow_basic_manuallyPaid: registration.manPaid,
+                    legacy_ow_basic_company: registration.company,
                     note: registration.note,
-                    extraFieldChoices: registration.extraFieldChoices ?? undefined,
+                    legacy_ow_basic_extraFieldChoices: registration.extraFieldChoices ?? undefined,
                     userId: registration.UserId ? await userMigrator.getPnUserId(registration.UserId) : undefined,
                 }
             })

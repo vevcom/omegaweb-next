@@ -11,6 +11,7 @@ import { eventTagOperations } from '@/services/events/tags/operations'
 import { eventTagAuth } from '@/services/events/tags/auth'
 import { eventAuth } from '@/services/events/auth'
 import { committeeOperations } from '@/services/groups/committees/operations'
+import { companyOperations } from '@/services/career/companies/operations'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
@@ -20,15 +21,17 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ searchParams }: PageOperationArgs) => {
         const tagNames = QueryParams.eventTags.decode(searchParams)
 
-        const [currentEvents, eventTags, committees] = await Promise.all([
+        const [currentEvents, eventTags, committees, companies] = await Promise.all([
             eventOperations.readManyCurrent({ params: { tags: tagNames } }),
             eventTagOperations.readAll({}),
             // Only used to populate the "hosting committee" picker; a session without
             // COMMITTEE_USE gets no picker rather than losing the whole page.
             withFallback(committeeOperations.readAll({}), null),
+            // The same for the company picker, which takes COMPANY_USE.
+            withFallback(companyOperations.readAll({}), null),
         ])
 
-        return { tagNames, currentEvents, eventTags, committees }
+        return { tagNames, currentEvents, eventTags, committees, companies }
     },
     capabilities: () => ({
         canUpdateTags: eventTagAuth.update,
@@ -38,7 +41,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Hvad der hender' }),
     render: ({ data, capabilities }) => {
-        const { tagNames, currentEvents, eventTags, committees } = data
+        const { tagNames, currentEvents, eventTags, committees, companies } = data
         const currentTags = tagNames ? eventTags.filter(tag => tagNames.includes(tag.name)) : []
 
         return (
@@ -70,7 +73,11 @@ const { page, generateMetadata } = serverPage({
                         {capabilities.canCreate.authorized && (
                             <AddHeaderItemPopUp popUpKey="CreateEventPopUp">
                                 <div className={styles.createEvent}>
-                                    <CreateOrUpdateEventForm eventTags={eventTags} committees={committees} />
+                                    <CreateOrUpdateEventForm
+                                        eventTags={eventTags}
+                                        committees={committees}
+                                        companies={companies}
+                                    />
                                 </div>
                             </AddHeaderItemPopUp>
                         )}

@@ -43,6 +43,7 @@ model Company {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   JobAd     JobAd[]
+  events    Event[]
 
   @@index([sponsorTier])
 }

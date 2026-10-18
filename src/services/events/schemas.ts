@@ -16,6 +16,8 @@ const dataFieldSchemas = z.object({
     canBeViewedBy: z.nativeEnum(EventCanView),
     // The committee hosting the event, shown on its page. The form sends 'NULL' for none.
     hostedByCommitteeId: z.literal('NULL').transform(() => null).or(z.coerce.number().int()).optional(),
+    // The company the event is held with or for. The form sends 'NULL' for none.
+    companyId: z.literal('NULL').transform(() => null).or(z.coerce.number().int()).optional(),
     // The account a paid event is paid into. Linked apart from the rest of the event (see
     // connectToLedger), since linking an account takes access to that account.
     ledgerAccountId: z.coerce.number().int(),
@@ -76,6 +78,7 @@ const eventFields = {
     eventEnd: true,
     canBeViewedBy: true,
     hostedByCommitteeId: true,
+    companyId: true,
     takesRegistration: true,
     places: true,
     registrationStart: true,

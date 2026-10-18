@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { companyAuth } from './auth'
 import {
+    companyOptionSelection,
     companySponsorOrdering,
     logoIncluder,
     sponsorSelection,
@@ -40,6 +41,16 @@ export const companyOperations = {
             },
             orderBy: companySponsorOrdering,
             select: sponsorSelection,
+        })
+    }),
+    /**
+     * Every company by name, for choosing one from a list - such as the company of an event.
+     */
+    readAll: defineOperation({
+        authorizer: () => companyAuth.readAll,
+        operation: async ({ prisma }) => await prisma.company.findMany({
+            select: companyOptionSelection,
+            orderBy: { name: 'asc' },
         })
     }),
     readPage: defineOperation({

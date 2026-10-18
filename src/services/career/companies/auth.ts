@@ -3,6 +3,7 @@ import { Require } from '@/auth/authorizer/Require'
 export const companyAuth = {
     readSponsors: Require.nothing(),
     create: Require.permission('COMPANY_ADMIN'),
+    readAll: Require.permission('COMPANY_USE'),
     readPage: Require.permission('COMPANY_USE'),
     update: Require.permission('COMPANY_ADMIN'),
     updateSponsorTier: Require.permission('COMPANY_ADMIN'),

@@ -1,4 +1,4 @@
-import type { eventFilterSelection } from './constants'
+import type { eventCompanySelection, eventFilterSelection } from './constants'
 import type { eventSchemas } from './schemas'
 import type { ExpandedCmsImage } from '@/cms/images/types'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
@@ -20,6 +20,8 @@ export type EventExpanded = EventFiltered & {
     coverImage: Pick<ExpandedCmsImage, 'image'>
     tags: EventTag[],
 }
+
+export type CompanyOfEvent = Prisma.CompanyGetPayload<{ select: typeof eventCompanySelection }>
 
 export type EventArchiveCursor = InferPagingCursor<typeof eventSchemas.params.readManyArchivedPage>
 

@@ -17,14 +17,14 @@ import { configureAction } from '@/services/configureAction'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
-import type { Event, EventLocationMap, EventTag as EventTagT, Committee } from '@/prisma-generated-pn-types'
+import type { Event, EventLocationMap, EventTag as EventTagT, Committee, Company } from '@/prisma-generated-pn-types'
 import type { ChangeEvent } from 'react'
 
 type PropTypes = {
     event?: Event & { tags: EventTagT[], locationMap: EventLocationMap | null }
     eventTags: EventTagT[]
-    /** The committees to choose the host from, or null when they could not be read (they take COMMITTEE_USE). */
     committees: Committee[] | null
+    companies: Pick<Company, 'id' | 'name'>[] | null
 }
 
 /**
@@ -34,12 +34,13 @@ type PropTypes = {
  * @param eventTags - The tags to choose from
  * @returns
  */
-export default function CreateOrUpdateEventForm({ event, eventTags, committees }: PropTypes) {
+export default function CreateOrUpdateEventForm({ event, eventTags, committees, companies }: PropTypes) {
     const [showRegistrationOptions, setShowRegistrationOptions] = useState(event?.takesRegistration ?? false)
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
     const action = event ? configureAction(updateEventAction, { params: { id: event.id } }) : createEventAction
     const canSetHostCommittee = committees !== null
+    const canSetCompany = companies !== null
 
     const handleShowRegistration = (changeEvent: ChangeEvent<HTMLInputElement>) => {
         setShowRegistrationOptions(changeEvent.target.checked)
@@ -89,6 +90,19 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         ))
                     }
                 </ul>
+                {/*
+                  * Left out when the companies could not be read: offered without the company of
+                  * the event, the select would submit its first option and clear it.
+                  */}
+                {canSetCompany && <SelectNumberPossibleNULL
+                    label="Bedrift"
+                    name="companyId"
+                    options={[
+                        { value: 'NULL', label: 'Ingen bedrift' },
+                        ...companies.map(company => ({ value: company.id, label: company.name })),
+                    ]}
+                    defaultValue={event?.companyId ?? 'NULL'}
+                />}
                 <Slider
                     label="Med registrering"
                     name="takesRegistration"
@@ -96,10 +110,6 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                     defaultChecked={event?.takesRegistration}
                 />
 
-                {/*
-                  * Only when creating: an existing event has both levels in the admin panel on its
-                  * own page, where they are saved one at a time against the stored visibilities.
-                  */}
                 {!event && <div className={styles.visibility}>
                     <h2>Hvem kan administrere arrangementet?</h2>
                     <VisibilityMatrixEditor
@@ -140,10 +150,6 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         min={0}
                         defaultValue={event?.price ? event.price / 100 : undefined}
                     />
-                    {/*
-                      * Left out when the committees could not be read: offered without the committee
-                      * of the event, the select would submit its first option and clear it.
-                      */}
                     {canSetHostCommittee && <SelectNumberPossibleNULL
                         label="Arrangeres av"
                         name="hostedByCommitteeId"

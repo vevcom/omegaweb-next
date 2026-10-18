@@ -33,6 +33,12 @@ export const companySponsorTierOptions = Object.values(CompanySponsorTier).map(
     })
 )
 
+/** What choosing a company from a list takes: its id and its name. */
+export const companyOptionSelection = {
+    id: true,
+    name: true,
+} as const satisfies Prisma.CompanySelect
+
 export const companySponsorOrdering = [
     { sponsorTier: 'asc' },
     { id: 'asc' },

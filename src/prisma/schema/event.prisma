@@ -19,6 +19,8 @@ model Event {
   canBeViewedBy        EventCanView @map("canBeViewdBy")
   hostedByCommittee    Committee?   @relation(fields: [hostedByCommitteeId], references: [id])
   hostedByCommitteeId  Int?         @map("hostedByCommiteeId")
+  company              Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyId            Int?
   createdBy            User?        @relation(fields: [createdById], references: [id])
   createdById          Int?
   // The account a paid event is paid into. Payments fail with a clear error until someone
@@ -50,9 +52,9 @@ model Event {
   visibilityRegularId Int        @unique
 
   // Legacy from OW basic database
-  company     Boolean @default(false) // If a plus one is allowed
-  lead        String?
-  extraFields Json?   @db.Json
+  legacy_ow_basic_company     Boolean @default(false) // If a plus one is allowed
+  legacy_ow_basic_lead        String?
+  legacy_ow_basic_extraFields Json?   @db.Json
 }
 
 enum MapProvider {
@@ -113,10 +115,10 @@ model EventRegistration {
   attendanceRegisteredBy   User?     @relation(name: "attendanceRegisteredBy", fields: [attendanceRegisteredById], references: [id], onDelete: SetNull)
   attendanceRegisteredById Int?
 
-  // Legacy from old database
-  manuallyPaid      Boolean @default(false)
-  company           Boolean @default(false) // This is if a registrations has a plus one.
-  extraFieldChoices Json?   @db.Json
+  // Legacy from OW basic database
+  legacy_ow_basic_manuallyPaid      Boolean @default(false)
+  legacy_ow_basic_company           Boolean @default(false) // This is if a registrations has a plus one.
+  legacy_ow_basic_extraFieldChoices Json?   @db.Json
 
   ledgerTransactions LedgerTransaction[]
 
