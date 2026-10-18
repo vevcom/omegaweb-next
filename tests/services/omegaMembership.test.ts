@@ -230,12 +230,15 @@ describe('createTrial only accepts a soelle', () => {
     // createTrial writes the acting user onto the trial as `registeredBy`, which is why its
     // authorizer requires a session user - so the tests hand it one rather than bypassing auth.
     let registrarSession: ReturnType<typeof Session.fromJsObject>
+    let registrarId: number
 
     beforeAll(async () => {
+        const registrar = await createTestUser('omegaregistrar')
+        registrarId = registrar.id
         registrarSession = Session.fromJsObject({
             memberships: [],
             permissions: ['ADMISSION_USE'],
-            user: await createTestUser('omegaregistrar'),
+            user: registrar,
         })
     })
 
@@ -290,6 +293,13 @@ describe('createTrial only accepts a soelle', () => {
             params: { userId: user.id }, bypassAuth: true,
         })).level).toBe('SYSKEN')
         expect(await countTrials(user.id)).toBe(2)
+    })
+
+    test('a soelle may not register a trial for themselves', async () => {
+        await setLevel(registrarId, 'SOELLE')
+
+        await expect(createTrial(registrarId)).rejects.toThrow(Smorekopp)
+        expect(await countTrials(registrarId)).toBe(0)
     })
 })
 
