@@ -305,10 +305,14 @@ export async function stripeWebhookCallback(event: Stripe.Event): Promise<Respon
         }))
 
         // The payment just succeeded, but the transaction still ended up FAILED here, most
-        // commonly because an account involved was frozen after this very webhook arrived. The
-        // failed entries never applied to anyone's balance, so reimburse the payer the same way
+        // commonly because an account involved was frozen after this very webhook arrived - or
+        // CANCELED, if a user canceled the attempt while this very call was in flight. Either
+        // way the entries never applied to anyone's balance, so reimburse the payer the same way
         // refundLateStripeSuccess does above.
-        if (transaction.state === 'FAILED' && transaction.payment?.state === 'SUCCEEDED') {
+        if (
+            (transaction.state === 'FAILED' || transaction.state === 'CANCELED')
+            && transaction.payment?.state === 'SUCCEEDED'
+        ) {
             await reimburseOrLogManualAction(
                 transaction.id,
                 transaction.reason ?? 'Transaksjonen mislyktes etter at betalingen var gjennomført.'
