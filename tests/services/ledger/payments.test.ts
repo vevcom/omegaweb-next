@@ -8,6 +8,7 @@ import { stripeWebhookCallback } from '@/services/ledger/payments/stripeWebhookC
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { manualReviewOperations } from '@/services/ledger/transactions/manualReviews/operations'
 import { refundOperations } from '@/services/ledger/refunds/operations'
 import { userOperations } from '@/services/users/operations'
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals'
@@ -657,10 +658,10 @@ describe('resolving a manual review', () => {
         await stripeWebhookCallback(disputeEvent)
 
         const review = await prisma.manualTransactionReview.findFirstOrThrow({ where: { transactionId } })
-        expect((await ledgerTransactionOperations.readNeedingAttention({ bypassAuth: true }))
+        expect((await manualReviewOperations.readOpen({ bypassAuth: true }))
             .some(transaction => transaction.id === transactionId)).toBe(true)
 
-        const resolved = await ledgerTransactionOperations.resolveManualReview({
+        const resolved = await manualReviewOperations.resolve({
             params: { reviewId: review.id },
             data: { resolutionDescription: 'Avvist hos Stripe, ingen handling nødvendig.' },
             bypassAuth: true,
@@ -670,7 +671,7 @@ describe('resolving a manual review', () => {
             state: 'RESOLVED',
             resolutionDescription: 'Avvist hos Stripe, ingen handling nødvendig.',
         })
-        expect((await ledgerTransactionOperations.readNeedingAttention({ bypassAuth: true }))
+        expect((await manualReviewOperations.readOpen({ bypassAuth: true }))
             .some(transaction => transaction.id === transactionId)).toBe(false)
     })
 
@@ -686,13 +687,13 @@ describe('resolving a manual review', () => {
         await stripeWebhookCallback(disputeEvent)
 
         const review = await prisma.manualTransactionReview.findFirstOrThrow({ where: { transactionId } })
-        await ledgerTransactionOperations.resolveManualReview({
+        await manualReviewOperations.resolve({
             params: { reviewId: review.id },
             data: { resolutionDescription: 'first' },
             bypassAuth: true,
         })
 
-        await expect(ledgerTransactionOperations.resolveManualReview({
+        await expect(manualReviewOperations.resolve({
             params: { reviewId: review.id },
             data: { resolutionDescription: 'second' },
             bypassAuth: true,
@@ -711,7 +712,7 @@ describe('resolving a manual review', () => {
         await stripeWebhookCallback(disputeEvent)
         const review = await prisma.manualTransactionReview.findFirstOrThrow({ where: { transactionId } })
 
-        const resolve = (resolutionDescription: string) => ledgerTransactionOperations.resolveManualReview({
+        const resolve = (resolutionDescription: string) => manualReviewOperations.resolve({
             params: { reviewId: review.id },
             data: { resolutionDescription },
             bypassAuth: true,

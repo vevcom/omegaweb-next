@@ -1,5 +1,5 @@
+import { manualReviewOperations } from './manualReviews/operations'
 import { cabinBookingPaymentCompletionHook } from '@/services/cabin/booking/paymentCompletion'
-import { createManualReview } from './manualReview'
 import type { ExpandedLedgerTransaction } from './types'
 import type { LedgerTransactionPurpose, Prisma } from '@/prisma-generated-pn-types'
 
@@ -47,18 +47,17 @@ export async function runPaymentCompletionHook(
     try {
         await hook(transaction, context)
     } catch (error) {
-        // context.prisma, not the top-level client: when advance() runs nested inside create()'s
-        // own transaction, the transaction row this review references was created by that same
-        // connection and isn't visible to any other one until it commits - writing through a
-        // fresh client here would wait on a commit that can't happen until this very write
-        // finishes. If the hook's failure already left this connection's transaction unable to
-        // accept more statements, the write below fails too, but createManualReview's own log
-        // line above it still fires either way, and its own catch never throws, which honors this
-        // function's own never-throws contract.
-        await createManualReview(
-            transaction.id,
-            `Fullføringshook for ${transaction.purpose} feilet etter vellykket betaling.`,
-            { error, prisma: context.prisma }
-        )
+        // context.prisma, not the top-level client: the transaction row this review references
+        // was created by that same connection and isn't visible to any other one until it
+        // commits.
+        await manualReviewOperations.create({
+            params: {
+                transactionId: transaction.id,
+                problemDescription: `Fullføringshook for ${transaction.purpose} feilet etter vellykket betaling.`,
+                error,
+            },
+            prisma: context.prisma,
+            bypassAuth: true,
+        })
     }
 }

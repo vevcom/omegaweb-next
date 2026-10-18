@@ -1,6 +1,6 @@
 import styles from './page.module.scss'
 import ResolveManualReviewForm from './ResolveManualReviewForm'
-import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { manualReviewOperations } from '@/services/ledger/transactions/manualReviews/operations'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { displayAmount } from '@/lib/currency/convert'
 import Date from '@/components/Date/Date'
@@ -10,7 +10,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
         authorizeAdminPage('ledger-review', session)
-        return ledgerTransactionOperations.readNeedingAttention({})
+        return manualReviewOperations.readOpen({})
     },
     metadata: () => ({ title: 'Trenger oppfølging' }),
     render: ({ data: transactions }) => (

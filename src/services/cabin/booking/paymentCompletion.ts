@@ -2,7 +2,7 @@ import { sendCabinBookingConfirmationMail } from '@/lib/email/systemMail/cabinBo
 import { refundOperations } from '@/services/ledger/refunds/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { blocksCalendar } from '@/services/cabin/booking/operations'
-import { createManualReview } from '@/services/ledger/transactions/manualReview'
+import { manualReviewOperations } from '@/services/ledger/transactions/manualReviews/operations'
 import type { ConfirmedBooking } from '@/lib/email/systemMail/cabinBookingConfirmation'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -79,12 +79,15 @@ export async function cabinBookingPaymentCompletionHook(
             // human to issue an actual Stripe refund. Uses the ambient prisma, not the default
             // top-level client, so the review commits together with the booking cancellation
             // above - if this transaction ever rolls back, the review shouldn't outlive it either.
-            await createManualReview(
-                transaction.id,
-                'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk for booking '
-                + `${booking.id}, men gjesten har ingen konto å refundere til automatisk.`,
-                { prisma }
-            )
+            await manualReviewOperations.create({
+                params: {
+                    transactionId: transaction.id,
+                    problemDescription: 'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk for '
+                        + `booking ${booking.id}, men gjesten har ingen konto å refundere til automatisk.`,
+                },
+                prisma,
+                bypassAuth: true,
+            })
         }
         return
     }
