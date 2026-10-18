@@ -1,10 +1,9 @@
 'use client'
-import { qrCodeReaderConfig } from './constants'
-import styles from './OmegaIdReader.module.scss'
+import QrCodeReader from '@/components/QrCodeReader/QrCodeReader'
 import { parseJWTClient } from '@/jwt/parseJWTClient'
 import { decompressOmegaId } from '@/services/omegaid/compress'
-import { Html5QrcodeScanner } from 'html5-qrcode'
-import { useEffect, useId, useState } from 'react'
+import { useRef } from 'react'
+import type { ScanResult } from '@/components/QrCodeReader/QrCodeReader'
 
 /**
  * Renders a component for reading OmegaId QR codes.
@@ -27,106 +26,40 @@ export default function OmegaIdReader({
     singleRead,
     qrboxSize,
 }: {
-    successCallback: (user: number, token: string) => Promise<{
-        success: boolean,
-        text: string,
-    }>,
+    successCallback: (user: number, token: string) => Promise<ScanResult>,
     publicKey: string,
     expiryOffset?: number,
     debounceThreshold?: number,
     singleRead?: boolean,
     qrboxSize?: number,
 }) {
-    const [feedback, setFeedBack] = useState<{
-        status: 'EMPTY' | 'ERROR' | 'SUCCESS' | 'WAITING',
-        text: string,
-    }>({
-        status: 'EMPTY',
-        text: '',
-    })
+    const lastRead = useRef({ userId: -1, time: 0 })
 
-    const qrcodeRegionId = useId()
-
-    useEffect(() => {
-        const html5QrcodeScanner = new Html5QrcodeScanner(qrcodeRegionId, {
-            ...qrCodeReaderConfig,
-            // html5-qrcode rejects a box wider than the video, which a narrow phone would hit.
-            ...(qrboxSize ? {
-                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                    const size = Math.min(qrboxSize, viewfinderWidth, viewfinderHeight)
-                    return { width: size, height: size }
-                },
-            } : {}),
-        }, false)
-
-        let lastReadTime = 0
-        let lastReadUserId = -1
-
-        html5QrcodeScanner.render(async (rawToken) => {
-            const token = decompressOmegaId(rawToken)
-            if (!token.success) {
-                setFeedBack({
-                    status: 'ERROR',
-                    text: 'Ugyldig QR kode'
-                })
-                return
-            }
-            const parse = await parseJWTClient(token.data, publicKey, expiryOffset ?? 100, 'omegaid')
-            if (!parse.success) {
-                const msg = parse.error?.map(e => e.message).join(' / ') ?? 'Ukjent feil'
-
-                setFeedBack({
-                    status: 'ERROR',
-                    text: msg,
-                })
-                return
-            }
-
-            const userId = parse.data
-
-            if (userId === lastReadUserId && Date.now() - lastReadTime < (debounceThreshold ?? 5000)) {
-                lastReadTime = Date.now()
-                return
-            }
-
-            setFeedBack({
-                status: 'WAITING',
-                text: '...',
-            })
-
-            const results = await successCallback(userId, token.data)
-
-            if (results.success && (singleRead ?? false)) {
-                html5QrcodeScanner.clear()
-            }
-
-            setFeedBack({
-                status: results.success ? 'SUCCESS' : 'ERROR',
-                text: results.text,
-            })
-
-            lastReadUserId = userId
-            lastReadTime = Date.now()
-        }, () => {})
-
-        // cleanup function when component will unmount
-        return () => {
-            html5QrcodeScanner.clear().catch(error => {
-                console.error('Failed to clear html5QrcodeScanner. ', error)
-            })
+    const handleScan = async (rawToken: string, showWaiting: () => void): Promise<ScanResult | null> => {
+        const token = decompressOmegaId(rawToken)
+        if (!token.success) {
+            return { success: false, text: 'Ugyldig QR kode' }
         }
-    }, [])
+        const parse = await parseJWTClient(token.data, publicKey, expiryOffset ?? 100, 'omegaid')
+        if (!parse.success) {
+            return {
+                success: false,
+                text: parse.error?.map(error => error.message).join(' / ') ?? 'Ukjent feil',
+            }
+        }
 
-    return <div className={styles.OmegaIdReader}>
-        <div id={qrcodeRegionId} />
+        const userId = parse.data
+        // The same code held in front of the camera is read over and over; only the first counts.
+        if (userId === lastRead.current.userId && Date.now() - lastRead.current.time < (debounceThreshold ?? 5000)) {
+            lastRead.current.time = Date.now()
+            return null
+        }
 
-        <div className={`
-            ${styles.feedbackBox}
-            ${(feedback.status === 'SUCCESS' && !singleRead) ? styles.success : ''}
-            ${feedback.status === 'ERROR' ? styles.error : ''}
-            ${feedback.status === 'WAITING' ? styles.waiting : ''}
-        `} >
-            <span>{feedback.text}</span>
-        </div>
-    </div>
+        showWaiting()
+        const result = await successCallback(userId, token.data)
+        lastRead.current = { userId, time: Date.now() }
+        return result
+    }
+
+    return <QrCodeReader onScan={handleScan} singleRead={singleRead} qrboxSize={qrboxSize} />
 }
