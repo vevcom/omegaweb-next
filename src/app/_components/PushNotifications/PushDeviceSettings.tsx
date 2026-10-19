@@ -5,7 +5,7 @@ import {
     readBrowserPushSubscription,
     readPushSupport,
     removeBrowserPushSubscription,
-    savePushSubscription,
+    saveBrowserPushSubscription,
     subscribeBrowser,
     usesServerKey,
 } from './browserPushSubscription'
@@ -27,7 +27,7 @@ async function readStatus(userId: number, vapidPublicKey: string | null): Promis
         return 'off'
     }
 
-    const saved = await savePushSubscription(userId, subscription)
+    const saved = await saveBrowserPushSubscription(userId, subscription)
     return saved.success ? 'on' : 'off'
 }
 

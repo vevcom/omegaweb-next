@@ -57,7 +57,7 @@ model NotificationSubscription {
 // A browser that receives the user's push notifications. Pushes are sent to the browser's push
 // service at pushServiceUrl, for example Google's or Apple's, and are encrypted with the browser's
 // public key and auth secret so only that browser can read them.
-model PushSubscription {
+model BrowserPushSubscription {
   id             Int      @id @default(autoincrement())
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

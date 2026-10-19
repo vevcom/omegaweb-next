@@ -1,6 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 
-export const pushSubscriptionAuth = {
+export const browserPushSubscriptionAuth = {
     create: Require.userId(),
     destroy: Require.userId(),
 } as const

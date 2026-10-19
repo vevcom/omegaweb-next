@@ -9,4 +9,4 @@ export const pushServiceDomains = [
     'notify.windows.com',
 ] as const
 
-export const maxPushSubscriptionsPerUser = 10
+export const maxBrowserPushSubscriptionsPerUser = 10

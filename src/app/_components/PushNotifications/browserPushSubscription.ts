@@ -1,7 +1,7 @@
 import {
-    createPushSubscriptionAction,
-    destroyPushSubscriptionAction,
-} from '@/services/notifications/pushSubscription/actions'
+    createBrowserPushSubscriptionAction,
+    destroyBrowserPushSubscriptionAction,
+} from '@/services/notifications/browserPushSubscription/actions'
 
 export type PushSupport = 'supported' | 'needsHomeScreen' | 'unsupported'
 
@@ -27,9 +27,9 @@ export function usesServerKey(subscription: PushSubscription, vapidPublicKey: st
     return key !== null && base64Url(new Uint8Array(key)) === vapidPublicKey
 }
 
-export function savePushSubscription(userId: number, subscription: PushSubscription) {
+export function saveBrowserPushSubscription(userId: number, subscription: PushSubscription) {
     const { keys } = subscription.toJSON()
-    return createPushSubscriptionAction({ params: { userId } }, {
+    return createBrowserPushSubscriptionAction({ params: { userId } }, {
         data: {
             pushServiceUrl: subscription.endpoint,
             publicKey: keys?.p256dh ?? '',
@@ -45,7 +45,7 @@ export async function subscribeBrowser(userId: number, vapidPublicKey: string) {
         userVisibleOnly: true,
         applicationServerKey: fromBase64Url(vapidPublicKey),
     })
-    const result = await savePushSubscription(userId, subscription)
+    const result = await saveBrowserPushSubscription(userId, subscription)
     if (!result.success) {
         await subscription.unsubscribe()
     }
@@ -57,7 +57,7 @@ export async function removeBrowserPushSubscription() {
     const subscription = await readBrowserPushSubscription()
     if (!subscription) return
 
-    await destroyPushSubscriptionAction({ params: { pushServiceUrl: subscription.endpoint } })
+    await destroyBrowserPushSubscriptionAction({ params: { pushServiceUrl: subscription.endpoint } })
     await subscription.unsubscribe()
 }
 

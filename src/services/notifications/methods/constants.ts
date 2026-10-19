@@ -55,4 +55,4 @@ export const pushRecipientIncluder = {
     user: {
         select: userBasicSelection,
     },
-} as const satisfies Prisma.PushSubscriptionInclude
+} as const satisfies Prisma.BrowserPushSubscriptionInclude

@@ -55,7 +55,7 @@ export const notificationMethodOperations = {
             })
 
             const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })
-            const recipients = await prisma.pushSubscription.findMany({
+            const recipients = await prisma.browserPushSubscription.findMany({
                 where: {
                     user: recipientsWhere(notification, 'push', defaultPermissions),
                 },
@@ -64,7 +64,7 @@ export const notificationMethodOperations = {
 
             const { pushed, goneSubscriptionIds } = await sendNotificationPushes(notification, recipients)
 
-            await prisma.pushSubscription.deleteMany({
+            await prisma.browserPushSubscription.deleteMany({
                 where: {
                     id: {
                         in: goneSubscriptionIds,

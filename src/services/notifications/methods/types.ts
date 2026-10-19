@@ -6,4 +6,4 @@ export type NotificationWithChannel = Notification & { channel: { name: string }
 
 export type WeeklyDigestNotification = NotificationWithChannel
 
-export type PushRecipient = Prisma.PushSubscriptionGetPayload<{ include: typeof pushRecipientIncluder }>
+export type PushRecipient = Prisma.BrowserPushSubscriptionGetPayload<{ include: typeof pushRecipientIncluder }>

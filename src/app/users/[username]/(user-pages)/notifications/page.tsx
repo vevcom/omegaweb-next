@@ -3,7 +3,7 @@ import NotificationSettings from './NotificationSettings'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
-import { pushSubscriptionAuth } from '@/services/notifications/pushSubscription/auth'
+import { browserPushSubscriptionAuth } from '@/services/notifications/browserPushSubscription/auth'
 import { pushIsConfigured, vapid } from '@/services/notifications/methods/constants'
 import PushDeviceSettings from '@/components/PushNotifications/PushDeviceSettings'
 import { serverPage } from '@/app/ServerPage'
@@ -25,7 +25,7 @@ const { page, generateMetadata } = serverPage({
         return { profile, channels, subscriptions }
     },
     capabilities: (data) => ({
-        canManagePushDevice: pushSubscriptionAuth.create.data({ userId: data.profile.user.id }),
+        canManagePushDevice: browserPushSubscriptionAuth.create.data({ userId: data.profile.user.id }),
     }),
     render: ({ data, capabilities }) => (
         <div className={styles.wrapper}>

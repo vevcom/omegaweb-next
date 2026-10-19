@@ -20,7 +20,7 @@ const paramsFieldSchemas = z.object({
     pushServiceUrl: z.string(),
 })
 
-export const pushSubscriptionSchemas = {
+export const browserPushSubscriptionSchemas = {
     data: {
         create: dataFieldSchemas.pick({
             pushServiceUrl: true,
