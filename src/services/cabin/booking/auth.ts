@@ -19,7 +19,7 @@ export const cabinBookingAuth = {
 
     readLedgerAccount: Require.permission('CABIN_ADMIN'),
 
-    connectToLedger: Require.allOf(Require.permission('CABIN_ADMIN'), ledgerAccountAccess('LEDGER_ADMIN')),
+    connectToLedgerAccount: Require.allOf(Require.permission('CABIN_ADMIN'), ledgerAccountAccess('LEDGER_ADMIN')),
 
     readSpecialCmsParagraphCabinContract: Require.permission('CABIN_USE'),
 

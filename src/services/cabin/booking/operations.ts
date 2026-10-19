@@ -128,7 +128,7 @@ async function readBookingProducts(
 }
 
 /**
- * The account every booking is paid into: the one marked CABIN, chosen through connectToLedger
+ * The account every booking is paid into: the one marked CABIN, chosen through connectToLedgerAccount
  * below. Until one is, bookings can neither be reserved nor paid for.
  */
 /**
@@ -314,11 +314,11 @@ export const cabinBookingOperations = {
      * it is given.
      * @param data.ledgerAccountId - The account to credit
      */
-    connectToLedger: defineOperation({
-        authorizer: async ({ data, prisma }) => cabinBookingAuth.connectToLedger.data({
+    connectToLedgerAccount: defineOperation({
+        authorizer: async ({ data, prisma }) => cabinBookingAuth.connectToLedgerAccount.data({
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
         }),
-        dataSchema: cabinBookingSchemas.data.connectToLedger,
+        dataSchema: cabinBookingSchemas.data.connectToLedgerAccount,
         opensTransaction: true,
         operation: async ({ prisma, data }) => {
             const account = await prisma.ledgerAccount.findUniqueOrThrow({

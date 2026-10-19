@@ -1,5 +1,5 @@
 'use client'
-import { connectShopToLedgerAction } from '@/services/shop/shop/actions'
+import { connectShopToLedgerAccountAction } from '@/services/shop/shop/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
 import { SelectNumber } from '@/components/UI/Select'
@@ -17,7 +17,7 @@ export default function ConnectShopToLedgerForm({
     if (ledgerAccounts.length === 0) return <p>Du har ingen gruppekontoer å knytte butikken til.</p>
 
     return <Form
-        action={configureAction(connectShopToLedgerAction, { params: { shopId } })}
+        action={configureAction(connectShopToLedgerAccountAction, { params: { shopId } })}
         submitText="Knytt til konto"
         refreshOnSuccess
         closePopUpOnSuccess="shopSettings"

@@ -164,7 +164,7 @@ async function createPaidEvent({ committeeId, ledgerAccountId }: { committeeId: 
         bypassAuth: true,
     })
     await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
-    await eventOperations.connectToLedger({
+    await eventOperations.connectToLedgerAccount({
         params: { id: event.id },
         data: { ledgerAccountId },
         bypassAuth: true,

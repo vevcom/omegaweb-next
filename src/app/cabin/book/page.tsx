@@ -91,7 +91,7 @@ const { page, generateMetadata } = serverPage({
     },
     capabilities: (data) => ({
         canEditSpecialCmsParagraphContract: cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract,
-        canConnectToLedger: cabinBookingAuth.connectToLedger.data({
+        canConnectToLedgerAccount: cabinBookingAuth.connectToLedgerAccount.data({
             accounts: data.ledgerAccounts.map(account => account.ownership),
         }),
     }),
@@ -102,7 +102,7 @@ const { page, generateMetadata } = serverPage({
         const ledgerAccount = data.cabinLedgerAccount
 
         return <PageWrapper
-            headerItem={capabilities.canConnectToLedger.authorized && (
+            headerItem={capabilities.canConnectToLedgerAccount.authorized && (
                 <SettingsHeaderItemPopUp scale={30} popUpKey="cabinSettings">
                     <p>
                         Konto: {ledgerAccount

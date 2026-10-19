@@ -375,10 +375,10 @@ export const eventOperations = {
      * @param params.id - The event to link
      * @param data.ledgerAccountId - The account to credit
      */
-    connectToLedger: defineOperation({
-        paramsSchema: eventSchemas.params.connectToLedger,
-        dataSchema: eventSchemas.data.connectToLedger,
-        authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedger.data({
+    connectToLedgerAccount: defineOperation({
+        paramsSchema: eventSchemas.params.connectToLedgerAccount,
+        dataSchema: eventSchemas.data.connectToLedgerAccount,
+        authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedgerAccount.data({
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
         }),

@@ -53,7 +53,7 @@ export const eventAuth = {
     search: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
 
     update: adminLevel,
-    connectToLedger: Require.allOf(adminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
+    connectToLedgerAccount: Require.allOf(adminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
     setPublished: adminLevel,
     updateCmsCoverImage: adminLevel,
     updateParagraphContent: adminLevel,

@@ -81,7 +81,7 @@ export const cabinBookingSchemas = {
         createBedBookingUserAttached: bookingUserAttached,
         createCabinBookingNoUser: bookingNoUser,
         createBedBookingNoUser: bookingNoUser,
-        connectToLedger: dataFieldSchemas.pick({
+        connectToLedgerAccount: dataFieldSchemas.pick({
             ledgerAccountId: true,
         }),
     },
