@@ -319,35 +319,24 @@ export const eventRegistrationOperations = {
                         prisma: tx,
                     })
 
-                    const reverse = () => refundOperations.reverseTransaction({
-                        params: {
-                            originalTransactionId: liveTransaction.id,
-                            reason: 'Avregistrert fra betalt arrangement.',
-                            refundTo: [{ ledgerAccountId: payerAccount.id }],
-                        },
-                        prisma: tx,
-                        bypassAuth: true,
-                    })
-
                     if (liveTransaction.state === 'SUCCEEDED') {
-                        await reverse()
+                        await refundOperations.reverseTransaction({
+                            params: {
+                                originalTransactionId: liveTransaction.id,
+                                reason: 'Avregistrert fra betalt arrangement.',
+                                refundTo: payerAccount.id,
+                            },
+                            prisma: tx,
+                            bypassAuth: true,
+                        })
                     } else {
-                        // Cancel first, so a late webhook can't complete it. If cancel fails, reverse
-                        // only if the payment succeeded in the meantime; otherwise rethrow cancel's error.
-                        try {
-                            await ledgerTransactionOperations.cancel({
-                                params: { id: liveTransaction.id },
-                                prisma: tx,
-                                bypassAuth: true,
-                            })
-                        } catch (error) {
-                            const current = await tx.ledgerTransaction.findUniqueOrThrow({
-                                where: { id: liveTransaction.id },
-                                select: { state: true },
-                            })
-                            if (current.state !== 'SUCCEEDED') throw error
-                            await reverse()
-                        }
+                        // Canceled so a late webhook can't complete it. If the payment succeeds at that
+                        // very moment, the cancel fails, and unregistering again reverses it instead.
+                        await ledgerTransactionOperations.cancel({
+                            params: { id: liveTransaction.id },
+                            prisma: tx,
+                            bypassAuth: true,
+                        })
                     }
                 }
 

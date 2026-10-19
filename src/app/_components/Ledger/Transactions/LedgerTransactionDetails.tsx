@@ -6,6 +6,7 @@ import { displayDate } from '@/lib/dates/displayDate'
 import { Require } from '@/auth/authorizer/Require'
 import { configureAction } from '@/services/configureAction'
 import { cancelLedgerTransactionAction } from '@/services/ledger/transactions/actions'
+import { ledgerTransactionAuth } from '@/services/ledger/transactions/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { LedgerTransactionPurpose, LedgerTransactionState, PaymentProvider } from '@/prisma-generated-pn-types'
@@ -46,6 +47,7 @@ function DetailRow({ label, value }: { label: string, value: ReactNode }) {
 
 export default function LedgerTransactionDetails({ transaction, accountId }: Props) {
     const canViewFees = useAuthorizer({ authorizer: Require.permission('LEDGER_ADMIN') }).authorized
+    const canCancel = useAuthorizer({ authorizer: ledgerTransactionAuth.cancel }).authorized
     const totalFunds = (
         transaction.ledgerEntries.reduce((sum, entry) => sum + Math.abs(entry.funds), 0)
         + Math.abs(transaction.payment?.funds ?? 0)
@@ -127,11 +129,7 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
             </div>
         )}
 
-        {transaction.state === 'PENDING' && (
-            canViewFees
-            || transaction.purpose === 'DEPOSIT'
-            || (accountEntry && (accountEntry.funds < 0 || (accountEntry.fees ?? 0) < 0))
-        ) && (
+        {transaction.state === 'PENDING' && canCancel && (
             <Form
                 submitText="Avbryt betaling"
                 submitColor="red"

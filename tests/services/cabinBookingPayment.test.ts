@@ -60,8 +60,8 @@ function releaseReservation(booking: { id: number, secret: string }) {
     })
 }
 
-/** The error either operation gives up with when the other got to the booking first. */
-function raceLost(message: string) {
+/** The error an operation is refused with. */
+function refusal(message: string) {
     return { errorCode: 'BAD PARAMETERS', errors: [{ message: expect.stringContaining(message) }] }
 }
 
@@ -100,41 +100,30 @@ describe('cabin booking payment and release', () => {
         await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: true, liveAttempts: 0 })
     })
 
-    test('a payment attempt that a release got ahead of creates nothing', async () => {
+    test('a payment attempt after a release creates nothing', async () => {
         const booking = await createReservation(new Date('2030-02-10'))
-        // createPayment looks up the cabin's account after reading the booking and before it
-        // claims it, which gives the release a point to run at.
-        const findAccount = prisma.ledgerAccount.findUnique.bind(prisma.ledgerAccount)
-        jest.spyOn(prisma.ledgerAccount, 'findUnique').mockImplementationOnce((async (args: never) => {
-            await releaseReservation(booking)
-            return findAccount(args)
-        }) as never)
+        await releaseReservation(booking)
 
-        await expect(createPayment(booking)).rejects.toMatchObject(raceLost('i mellomtiden'))
+        await expect(createPayment(booking)).rejects.toMatchObject(refusal('kansellert'))
 
         await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: true, liveAttempts: 0 })
     })
 
-    test('a release that a payment attempt got ahead of keeps the reservation', async () => {
+    test('a payment attempt and a release at the same time always end released', async () => {
         const booking = await createReservation(new Date('2030-03-10'))
-        await createPayment(booking)
-        const cancel = ledgerTransactionOperations.cancel
-        jest.spyOn(ledgerTransactionOperations, 'cancel').mockImplementationOnce(async args => {
-            const canceled = await cancel(args)
-            await createPayment(booking)
-            return canceled
-        })
 
-        await expect(releaseReservation(booking)).rejects.toMatchObject(raceLost('Prøv igjen'))
+        // Whichever locks the booking first, the release cancels the reservation and any attempt.
+        const [, release] = await Promise.allSettled([createPayment(booking), releaseReservation(booking)])
 
-        await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 1 })
+        expect(release.status).toBe('fulfilled')
+        await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: true, liveAttempts: 0 })
     })
 
     test('a second payment attempt is refused while one is pending', async () => {
         const booking = await createReservation(new Date('2030-05-10'))
         await createPayment(booking)
 
-        await expect(createPayment(booking)).rejects.toMatchObject(raceLost('allerede en betaling under behandling'))
+        await expect(createPayment(booking)).rejects.toMatchObject(refusal('allerede en betaling under behandling'))
 
         await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 1 })
     })

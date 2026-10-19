@@ -60,7 +60,7 @@ export async function cabinBookingPaymentCompletionHook(
                 params: {
                     originalTransactionId: transaction.id,
                     reason: 'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk.',
-                    refundTo: [{ ledgerAccountId: payerAccount.id }],
+                    refundTo: payerAccount.id,
                 },
                 prisma,
                 bypassAuth: true,

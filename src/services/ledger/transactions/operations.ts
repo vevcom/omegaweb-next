@@ -4,37 +4,25 @@ import { determineTransactionState } from './determineTransactionState'
 import { runPaymentCompletionHook } from './paymentCompletionHooks'
 import { ledgerTransactionAuth } from './auth'
 import { ledgerTransactionSchemas } from './schemas'
+import { expandedLedgerTransactionInclude } from './constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { resolveAccountOwnership, resolveAccountsOwnership } from '@/services/ledger/accounts/ownership'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
-import logger from '@/lib/logger'
 import { Prisma as PrismaRuntime } from '@/prisma-generated-pn-client'
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import type { ExpandedLedgerTransaction } from './types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-/**
- * Resolves the owners of a transaction's accounts, for authorizers. With `debitedOnly`, only the
- * debited side, except a DEPOSIT, which falls back to every party. Other transactions with no
- * debit entry (paid through Stripe) resolve to none, so only LEDGER_ADMIN can cancel them.
- */
-async function resolveTransactionAccounts(
-    prisma: Prisma.TransactionClient,
-    transactionId: number,
-    { debitedOnly = false }: { debitedOnly?: boolean } = {},
-) {
+/** Resolves the owners of a transaction's accounts, for authorizers. */
+async function resolveTransactionAccounts(prisma: Prisma.TransactionClient, transactionId: number) {
     const transaction = await prisma.ledgerTransaction.findUnique({
         where: { id: transactionId },
         select: {
-            purpose: true,
             ledgerEntries: {
                 select: {
-                    funds: true,
-                    fees: true,
                     ledgerAccount: {
                         select: { user: { select: { id: true } }, groups: { select: { groupId: true } } },
                     },
@@ -43,17 +31,7 @@ async function resolveTransactionAccounts(
         },
     })
 
-    const entries = transaction?.ledgerEntries ?? []
-    const debitEntries = entries.filter(entry => entry.funds < 0 || (entry.fees ?? 0) < 0)
-
-    let relevantEntries = entries
-    if (debitedOnly && debitEntries.length > 0) {
-        relevantEntries = debitEntries
-    } else if (debitedOnly && transaction?.purpose !== 'DEPOSIT') {
-        relevantEntries = []
-    }
-
-    return relevantEntries.map(entry => ({
+    return (transaction?.ledgerEntries ?? []).map(entry => ({
         userId: entry.ledgerAccount.user?.id ?? null,
         groupIds: entry.ledgerAccount.groups.map(group => group.groupId),
     }))
@@ -75,39 +53,7 @@ export const ledgerTransactionOperations = {
                 where: {
                     id: params.id,
                 },
-                include: {
-                    ledgerEntries: true,
-                    payment: {
-                        include: {
-                            // See ExpandedLedgerTransaction's comment: no clientSecret/paymentIntentId here.
-                            stripePayment: { select: { createdAt: true, updatedAt: true } },
-                            manualPayment: true,
-                        },
-                    },
-                    // See ExpandedLedgerTransaction's comment: no secret, notes, tenantNotes,
-                    // userId or guestUserId here.
-                    booking: {
-                        select: {
-                            start: true,
-                            end: true,
-                            numberOfMembers: true,
-                            numberOfNonMembers: true,
-                            totalPrice: true,
-                            event: { select: { name: true } },
-                        },
-                    },
-                    eventRegistration: {
-                        include: {
-                            event: { select: { name: true, location: true, eventStart: true, eventEnd: true } },
-                        },
-                    },
-                    purchase: {
-                        include: {
-                            shop: { select: { name: true } },
-                            PurchaseProduct: { include: { product: { select: { name: true } } } },
-                        },
-                    },
-                },
+                include: expandedLedgerTransactionInclude,
             })
 
             return transaction
@@ -116,9 +62,7 @@ export const ledgerTransactionOperations = {
 
     /** Cancels a PENDING transaction and its payment, so a late webhook can't mark it SUCCEEDED. */
     cancel: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
-            accounts: await resolveTransactionAccounts(prisma, params.id, { debitedOnly: true }),
-        }),
+        authorizer: () => ledgerTransactionAuth.cancel,
         paramsSchema: ledgerTransactionSchemas.params.cancel,
         operation: async ({ prisma, params }) => {
             const transaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
@@ -185,18 +129,10 @@ export const ledgerTransactionOperations = {
             try {
                 return await paymentOperations.initiate({ params: { paymentId: transaction.payment.id } })
             } catch (error) {
-                // After a concurrent cancel, our cancel throws a guard error that would hide the
-                // real one. Swallow only that.
-                try {
-                    await ledgerTransactionOperations.cancel({ params: { id: params.id }, bypassAuth: true })
-                } catch (cleanupError) {
-                    if (
-                        !(cleanupError instanceof Smorekopp)
-                        || cleanupError.errors[0]?.message !== 'Bare en ventende transaksjon kan kanselleres.'
-                    ) {
-                        throw cleanupError
-                    }
-                }
+                // Canceled so the payer can start over. If that fails too, the ledger sweeper cancels
+                // it once it is stale.
+                await ledgerTransactionOperations.cancel({ params: { id: params.id }, bypassAuth: true })
+                    .catch(() => undefined)
                 throw error
             }
         },
@@ -218,39 +154,7 @@ export const ledgerTransactionOperations = {
                     },
                 },
             },
-            include: {
-                ledgerEntries: true,
-                payment: {
-                    include: {
-                        // See ExpandedLedgerTransaction's comment: no clientSecret/paymentIntentId here.
-                        stripePayment: { select: { createdAt: true, updatedAt: true } },
-                        manualPayment: true,
-                    },
-                },
-                // See ExpandedLedgerTransaction's comment: no secret, notes, tenantNotes, userId
-                // or guestUserId here.
-                booking: {
-                    select: {
-                        start: true,
-                        end: true,
-                        numberOfMembers: true,
-                        numberOfNonMembers: true,
-                        totalPrice: true,
-                        event: { select: { name: true } },
-                    },
-                },
-                eventRegistration: {
-                    include: {
-                        event: { select: { name: true, location: true, eventStart: true, eventEnd: true } },
-                    },
-                },
-                purchase: {
-                    include: {
-                        shop: { select: { name: true } },
-                        PurchaseProduct: { include: { product: { select: { name: true } } } },
-                    },
-                },
-            },
+            include: expandedLedgerTransactionInclude,
             orderBy: [
                 { createdAt: 'desc' },
                 { id: 'desc' },
@@ -276,46 +180,16 @@ export const ledgerTransactionOperations = {
 
             const creditFees = calculateCreditFees(transaction.ledgerEntries, transaction.payment)
 
-            // Update credit fees if they could be calculated.
-            // Credit fees are null while the payment is pending, since
-            // the final fees are unknown until the payment is completed.
+            // Update credit fees if they could be calculated. Credit fees are null while the payment
+            // is pending, since the final fees are unknown until the payment is completed. Written
+            // only while still PENDING, so a transaction that settled concurrently keeps its fees.
             if (creditFees) {
-                const creditEntries = transaction.ledgerEntries.filter(entry => entry.funds > 0)
-
-                const ledgerEntryUpdateInput = creditEntries.map(entry => ({
-                    where: {
-                        id: entry.id,
-                    },
-                    data: {
-                        fees: creditFees[entry.ledgerAccountId],
-                    },
-                })) satisfies Prisma.LedgerEntryUpdateWithWhereUniqueWithoutLedgerTransactionInput[] // X_x
-
-                try {
-                    await prisma.ledgerTransaction.update({
-                        where: {
-                            id: params.id,
-                            state: 'PENDING', // Protect against modifying a completed transaction.
-                        },
-                        data: {
-                            ledgerEntries: {
-                                update: ledgerEntryUpdateInput,
-                            },
-                        },
+                for (const entry of transaction.ledgerEntries.filter(credit => credit.funds > 0)) {
+                    await prisma.ledgerEntry.updateMany({
+                        where: { id: entry.id, ledgerTransaction: { state: 'PENDING' } },
+                        data: { fees: creditFees[entry.ledgerAccountId] },
                     })
-
-                    transaction.ledgerEntries.forEach(entry => {
-                        entry.fees = creditFees[entry.ledgerAccountId] ?? entry.fees
-                    })
-                } catch (err) {
-                    // A P2025 here means the transaction left PENDING concurrently, e.g. a
-                    // racing duplicate call to advance. The final read below returns whatever
-                    // state it actually settled into, so there is nothing more to do here.
-                    if (!(err instanceof PrismaClientKnownRequestError) || err.code !== 'P2025') {
-                        throw err
-                    }
-
-                    logger.error(`Ledger transaction ${params.id} left the PENDING state before fees could be updated.`)
+                    entry.fees = creditFees[entry.ledgerAccountId] ?? entry.fees
                 }
             }
 

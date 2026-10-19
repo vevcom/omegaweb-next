@@ -14,6 +14,7 @@ import { reimburseUnclaimedPayments } from '@/services/ledger/sweeper'
 import { userOperations } from '@/services/users/operations'
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import Stripe from 'stripe'
+import type { Permission } from '@/prisma-generated-pn-types'
 
 const DEPOSIT = 100_00
 const STRIPE_FEE = 1_23
@@ -273,48 +274,25 @@ describe('canceling payments', () => {
     })
 })
 
-describe('canceling a transaction is restricted to its debited side', () => {
-    const sessionOf = (userId: number) => Session.fromJsObject({
+describe('canceling a transaction', () => {
+    const sessionOf = (userId: number, permissions: Permission[]) => Session.fromJsObject({
         user: { id: userId } as NonNullable<Parameters<typeof Session.fromJsObject>[0]['user']>,
-        permissions: [],
+        permissions,
         memberships: [],
     })
 
-    test('the credited side cannot cancel the debited side\'s pending attempt, but the debited side can', async () => {
-        const payer = await createAccount('cancelauthpayer')
-        const receiver = await createAccount('cancelauthreceiver')
-
-        const pending = await prisma.ledgerTransaction.create({
-            data: {
-                purpose: 'CABIN_BOOKING',
-                state: 'PENDING',
-                ledgerEntries: {
-                    create: [
-                        { ledgerAccountId: receiver.id, funds: 50_00 },
-                        { ledgerAccountId: payer.id, funds: -50_00 },
-                    ],
-                },
-            },
-        })
-
-        await expect(ledgerTransactionOperations.cancel({
-            params: { id: pending.id },
-            session: sessionOf(receiver.ownership.userId!),
-        })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
-
-        await expect(ledgerTransactionOperations.cancel({
-            params: { id: pending.id },
-            session: sessionOf(payer.ownership.userId!),
-        })).resolves.toMatchObject({ state: 'CANCELED' })
-    })
-
-    test('a depositor may still cancel their own stuck deposit, which has no debited side at all', async () => {
+    test('only an admin can cancel, since the ledger sweeper cancels abandoned attempts', async () => {
         const account = await createAccount('cancelauthdepositor')
         const { transactionId } = await startStripeDeposit(account.id)
 
         await expect(ledgerTransactionOperations.cancel({
             params: { id: transactionId },
-            session: sessionOf(account.ownership.userId!),
+            session: sessionOf(account.ownership.userId!, ['LEDGER_USE']),
+        })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+
+        await expect(ledgerTransactionOperations.cancel({
+            params: { id: transactionId },
+            session: sessionOf(account.ownership.userId!, ['LEDGER_ADMIN']),
         })).resolves.toMatchObject({ state: 'CANCELED' })
     })
 })
@@ -622,7 +600,7 @@ describe('reversing transactions', () => {
             params: {
                 originalTransactionId: transaction.id,
                 reason: 'paid entirely through Stripe',
-                refundTo: [{ ledgerAccountId: payer.id }],
+                refundTo: payer.id,
             },
             bypassAuth: true,
         })
@@ -631,7 +609,7 @@ describe('reversing transactions', () => {
         expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
     })
 
-    test('naming an account the flip already touched overwrites its amount instead of adding to it', async () => {
+    test('after a mixed payment, the payer gets back both their balance part and the rest', async () => {
         const committee = await createAccount('reverseoverwritecommittee')
         const payer = await createAccount('reverseoverwritepayer')
         await createSucceededDeposit(payer.id, 40_00)
@@ -657,13 +635,12 @@ describe('reversing transactions', () => {
             params: {
                 originalTransactionId: transaction.id,
                 reason: 'double-booked after a mixed payment',
-                refundTo: [{ ledgerAccountId: payer.id, funds: DEPOSIT }],
+                refundTo: payer.id,
             },
             bypassAuth: true,
         })
 
-        // The payer is owed the full price back, not just their own 40 balance portion plus the
-        // named 100 - that would be the "add" behavior this test rules out.
+        // The flipped 40 from the payer's own balance plus the 60 that came in from outside.
         expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
         expect(await balanceOf(committee.id)).toEqual({ amount: 0, fees: 0 })
     })

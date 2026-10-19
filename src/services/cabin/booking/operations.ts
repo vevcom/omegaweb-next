@@ -131,6 +131,15 @@ async function readBookingProducts(
  * The account every booking is paid into: the one marked CABIN, chosen through connectToLedger
  * below. Until one is, bookings can neither be reserved nor paid for.
  */
+/**
+ * Reads the booking with its row locked for the rest of the transaction, so a payment attempt and
+ * a release of the same booking run one after the other instead of interleaving.
+ */
+async function lockBooking(tx: Prisma.TransactionClient, bookingId: number) {
+    await tx.$queryRaw`SELECT id FROM "Booking" WHERE id = ${bookingId} FOR UPDATE`
+    return await tx.booking.findUniqueOrThrow({ where: { id: bookingId } })
+}
+
 async function readDestinationLedgerAccountId(prisma: Prisma.TransactionClient) {
     const account = await prisma.ledgerAccount.findUnique({ where: { special: 'CABIN' }, select: { id: true } })
     if (!account) {
@@ -369,69 +378,50 @@ export const cabinBookingOperations = {
         },
         opensTransaction: true,
         operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
-            const booking = await prisma.booking.findUniqueOrThrow({
-                where: { id: params.bookingId },
-                include: { guestUser: true },
-            })
-
-            if (booking.canceled !== null) {
-                throw new Smorekopp('BAD PARAMETERS', 'Reservasjonen er kansellert.')
-            }
-
-            if (booking.transactionTimeout !== null && booking.transactionTimeout < new Date()) {
-                throw new Smorekopp('BAD PARAMETERS', 'Reservasjonen er utløpt. Vennligst book på nytt.')
-            }
-
-            const existingAttempt = await prisma.ledgerTransaction.findFirst({
-                where: {
-                    bookingId: booking.id,
-                    state: { in: ['PENDING', 'SUCCEEDED'] },
-                },
-            })
-            if (existingAttempt?.state === 'SUCCEEDED') {
-                throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen er allerede betalt.')
-            }
-            if (existingAttempt) {
-                throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen har allerede en betaling under behandling.')
-            }
-
-            const destinationLedgerAccountId = await readDestinationLedgerAccountId(prisma)
-
-            const funds = booking.totalPrice
-            if (params.amountFromBalance > funds) {
-                throw new Smorekopp('BAD PARAMETERS', 'Beløpet fra kontosaldo kan ikke overstige prisen.')
-            }
-            if (params.amountFromBalance > 0 && booking.userId === null) {
-                throw new Smorekopp('BAD PARAMETERS', 'Bare innloggede brukere kan betale med kontosaldo.')
-            }
-            const shortfall = funds - params.amountFromBalance
-
-            if (shortfall > 0 && !params.provider) {
-                throw new Smorekopp('BAD PARAMETERS', 'Betalingsmetode må oppgis.')
-            }
-
             let payment: ExpandedPayment | undefined
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
-                // Extends the reservation window to cover the full lifetime a pending attempt is
-                // allowed to stay open for before the ledger sweeper cancels it, so the dates
-                // can't be released to another booker while this attempt can still succeed.
-                // Matching on the window read above also serializes this attempt against a
-                // concurrent release or attempt: whichever of them got to the row first changed
-                // it, and the loser matches nothing.
-                const { count } = await tx.booking.updateMany({
+                const booking = await lockBooking(tx, params.bookingId)
+
+                if (booking.canceled !== null) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Reservasjonen er kansellert.')
+                }
+
+                if (booking.transactionTimeout !== null && booking.transactionTimeout < new Date()) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Reservasjonen er utløpt. Vennligst book på nytt.')
+                }
+
+                const existingAttempt = await tx.ledgerTransaction.findFirst({
                     where: {
-                        id: booking.id,
-                        canceled: null,
-                        transactionTimeout: booking.transactionTimeout,
+                        bookingId: booking.id,
+                        state: { in: ['PENDING', 'SUCCEEDED'] },
                     },
+                })
+                if (existingAttempt?.state === 'SUCCEEDED') {
+                    throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen er allerede betalt.')
+                }
+                if (existingAttempt) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen har allerede en betaling under behandling.')
+                }
+
+                const funds = booking.totalPrice
+                if (params.amountFromBalance > funds) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Beløpet fra kontosaldo kan ikke overstige prisen.')
+                }
+                if (params.amountFromBalance > 0 && booking.userId === null) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Bare innloggede brukere kan betale med kontosaldo.')
+                }
+                const shortfall = funds - params.amountFromBalance
+
+                if (shortfall > 0 && !params.provider) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Betalingsmetode må oppgis.')
+                }
+
+                // Holds the dates for as long as the attempt may stay open before the ledger sweeper
+                // cancels it, so they can't go to another booker while it can still succeed.
+                await tx.booking.update({
+                    where: { id: booking.id },
                     data: { transactionTimeout: new Date(Date.now() + stalePendingTransactionMs) },
                 })
-                if (count === 0) {
-                    throw new Smorekopp(
-                        'BAD PARAMETERS',
-                        'Reservasjonen ble kansellert eller fikk en annen betaling i mellomtiden.'
-                    )
-                }
 
                 if (shortfall > 0) {
                     payment = await paymentOperations.create({
@@ -456,6 +446,7 @@ export const cabinBookingOperations = {
                         prisma: tx,
                     })
                     : undefined
+                const destinationLedgerAccountId = await readDestinationLedgerAccountId(tx)
 
                 return await ledgerTransactionOperations.create({
                     params: {
@@ -480,9 +471,8 @@ export const cabinBookingOperations = {
             // ledgerTransactionOperations.advance - called synchronously above via .create() for
             // MANUAL/balance-only payments, or later from the Stripe webhook for STRIPE ones.
 
-            // Starts collecting the payment and returns its live clientSecret - initiate cancels
-            // the transaction and its hold-window extension along with it if starting the
-            // payment fails, so the booking can be paid for again instead of sitting stuck.
+            // Starts collecting the payment and returns its live clientSecret. If starting it fails,
+            // initiate cancels the attempt, so the booking can be paid for again.
             return {
                 payment: await ledgerTransactionOperations.initiate({
                     params: { id: transaction.id },
@@ -495,8 +485,7 @@ export const cabinBookingOperations = {
     /**
      * Gives up a reservation that was never paid for, so its dates free up right away instead of
      * once its payment window runs out. A payment attempt still under way is canceled with it, so
-     * it can never complete for dates that are no longer held. Releasing it again does nothing;
-     * releasing while a new payment attempt is being started fails and asks for a retry.
+     * it can never complete for dates that are no longer held. Releasing it again does nothing.
      */
     releaseReservation: defineOperation({
         paramsSchema: cabinBookingSchemas.params.releaseReservation,
@@ -511,15 +500,12 @@ export const cabinBookingOperations = {
                 providedSecret: params.secret,
             })
         },
-        operation: async ({ prisma, params }) => {
-            const booking = await prisma.booking.findUniqueOrThrow({
-                where: { id: params.bookingId },
-                select: { canceled: true, transactionTimeout: true },
-            })
-
+        opensTransaction: true,
+        operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
+            const booking = await lockBooking(tx, params.bookingId)
             if (booking.canceled !== null) return
 
-            const attempt = await prisma.ledgerTransaction.findFirst({
+            const attempt = await tx.ledgerTransaction.findFirst({
                 where: {
                     bookingId: params.bookingId,
                     state: { in: ['PENDING', 'SUCCEEDED'] },
@@ -533,32 +519,12 @@ export const cabinBookingOperations = {
                 // booking, which is the right bar for canceling a payment attempt on it.
                 await ledgerTransactionOperations.cancel({
                     params: { id: attempt.id },
+                    prisma: tx,
                     bypassAuth: true,
                 })
             }
 
-            // Matching on the window read above protects a booking that got paid for meanwhile
-            // (the window is cleared) or got a new payment attempt (the window is extended) - see
-            // createPayment, which matches the same way.
-            const { count } = await prisma.booking.updateMany({
-                where: {
-                    id: params.bookingId,
-                    canceled: null,
-                    transactionTimeout: booking.transactionTimeout,
-                },
-                data: { canceled: new Date() },
-            })
-            if (count === 0) {
-                const current = await prisma.booking.findUniqueOrThrow({
-                    where: { id: params.bookingId },
-                    select: { canceled: true },
-                })
-                if (current.canceled !== null) return
-                throw new Smorekopp(
-                    'BAD PARAMETERS',
-                    'En betaling for reservasjonen ble startet i mellomtiden. Prøv igjen.'
-                )
-            }
-        },
+            await tx.booking.update({ where: { id: booking.id }, data: { canceled: new Date() } })
+        }),
     }),
 } as const
