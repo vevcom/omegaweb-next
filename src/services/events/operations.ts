@@ -5,7 +5,6 @@ import { defaultSearchResultLimit, eventListSelection } from './constants'
 import { eventRegistrationQueueOrder } from './registration/constants'
 import { notifyPromotedFromWaitingList } from './registration/notifyPromotedFromWaitingList'
 import { notificationOperations } from '@/services/notifications/operations'
-import { getOsloTime } from '@/lib/dates/getOsloTime'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
@@ -15,6 +14,7 @@ import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
+import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import {
     assertAdminLevelIsSubOfRegularLevel,
     implementDoubleLevelVisibilityOperations,
@@ -22,7 +22,7 @@ import {
     visibilityIncluder
 } from '@/services/visibility/implement'
 import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
-import type { EventCanView, EventTag, Prisma } from '@/prisma-generated-pn-types'
+import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
 
 const visibility = implementDoubleLevelVisibilityOperations({
@@ -53,10 +53,6 @@ const visibility = implementDoubleLevelVisibilityOperations({
     }
 })
 
-// TODO: Give dots to registrations from here, f.ex. to everyone that has not paid for an event / not met.
-// The dots service exposes dotOperations.internal.createInternal for other services to give dots
-// with, so this is a matter of an operation over the registrations of an event that implements it.
-
 const read = defineOperation({
     paramsSchema: eventSchemas.params.read,
     authorizer: async ({ params, prisma }) => {
@@ -64,14 +60,15 @@ const read = defineOperation({
             where: { id: params.id },
             select: {
                 published: true,
-                canBeViewdBy: true,
+                canBeViewedBy: true,
                 visibilityRegular: { include: visibilityIncluder },
                 visibilityAdmin: { include: visibilityIncluder }
             }
         })
-        return eventAuth.read({
-            level: readLevelOfEvent(event),
-            doubleLevelMatrix: {
+        return eventAuth.read.data({
+            published: event.published,
+            canBeViewedBy: event.canBeViewedBy,
+            visibility: {
                 regularLevel: toMatrix(event.visibilityRegular),
                 adminLevel: toMatrix(event.visibilityAdmin)
             }
@@ -95,6 +92,8 @@ const read = defineOperation({
                         tag: true
                     }
                 },
+                hostedByCommittee: { select: { id: true, name: true, shortName: true } },
+                ledgerAccount: { select: { id: true, name: true } },
                 _count: {
                     select: {
                         eventRegistrations: true,
@@ -152,9 +151,14 @@ export const eventOperations = {
                         eventEnd: data.eventEnd,
                         takesRegistration: data.takesRegistration,
                         places: data.places,
-                        registrationStart: data.registrationStart ?? getOsloTime(),
-                        registrationEnd: data.registrationEnd ?? new Date(getOsloTime().getTime() + 1000 * 60 * 60 * 24),
-                        canBeViewdBy: data.canBeViewdBy,
+                        registrationStart: data.registrationStart ?? new Date(),
+                        registrationEnd: data.registrationEnd ?? new Date(Date.now() + 1000 * 60 * 60 * 24),
+                        canBeViewedBy: data.canBeViewedBy,
+                        hostedByCommittee: data.hostedByCommitteeId ? {
+                            connect: {
+                                id: data.hostedByCommitteeId
+                            }
+                        } : undefined,
                         waitingList: data.waitingList,
                         price: data.price,
                         paymentStart: data.paymentStart,
@@ -211,7 +215,7 @@ export const eventOperations = {
                 select: eventListSelection,
                 where: {
                     eventEnd: {
-                        gte: getOsloTime()
+                        gte: new Date()
                     },
                     eventTagEvents: eventTagSelector(params.tags),
                     ...visibleEventsFilter(visibilityWhereFilter)
@@ -231,7 +235,7 @@ export const eventOperations = {
                 ...cursorPagingSelection(params.paging.page),
                 where: {
                     eventEnd: {
-                        lt: getOsloTime()
+                        lt: new Date()
                     },
                     name: {
                         contains: params.paging.details.name,
@@ -362,6 +366,35 @@ export const eventOperations = {
 
             return eventUpdate
         }
+    }),
+
+    /**
+     * Links an event to the GROUP ledger account its registrations are paid into, replacing any
+     * earlier link.
+     * @param params.id - The event to link
+     * @param data.ledgerAccountId - The account to credit
+     */
+    connectToLedger: defineOperation({
+        paramsSchema: eventSchemas.params.connectToLedger,
+        dataSchema: eventSchemas.data.connectToLedger,
+        authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedger.data({
+            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
+        }),
+        operation: async ({ prisma, params, data }) => {
+            const account = await prisma.ledgerAccount.findUniqueOrThrow({
+                where: { id: data.ledgerAccountId },
+                select: { type: true },
+            })
+            if (account.type !== 'GROUP') {
+                throw new ServiceError('BAD PARAMETERS', 'Et arrangement kan bare knyttes til en gruppekonto.')
+            }
+
+            return await prisma.event.update({
+                where: { id: params.id },
+                data: { ledgerAccountId: data.ledgerAccountId },
+            })
+        },
     }),
 
     updateCmsCoverImage: cmsImageOperations.update.implement({
@@ -507,17 +540,7 @@ async function readPublished(prisma: PrismaPossibleTransaction<false>, eventId: 
 }
 
 /**
- * Which visibility level it takes to see one event: while it is unpublished only those who
- * administrate it, and once published everyone - unless the event is limited to those who can
- * register for it, which is what its regular level decides.
- */
-function readLevelOfEvent(event: { published: boolean, canBeViewdBy: EventCanView }): 'PUBLIC' | 'REGULAR' | 'ADMIN' {
-    if (!event.published) return 'ADMIN'
-    return event.canBeViewdBy === 'ALL' ? 'PUBLIC' : 'REGULAR'
-}
-
-/**
- * The same rule as readLevelOfEvent, as a filter over a list of events.
+ * The same rule as eventAuth.read, as a filter over a list of events.
  *
  * The visibility filter is undefined only when the session bypasses visibility with EVENT_ADMIN,
  * which administrates every event - hence no filtering at all in that case.
@@ -527,8 +550,8 @@ function visibleEventsFilter(visibilityWhereFilter: VisibilityFilter | undefined
     return {
         OR: [
             { published: false, visibilityAdmin: visibilityWhereFilter },
-            { published: true, canBeViewdBy: 'ALL' },
-            { published: true, canBeViewdBy: 'CAN_REGISTER', visibilityRegular: visibilityWhereFilter },
+            { published: true, canBeViewedBy: 'ALL' },
+            { published: true, canBeViewedBy: 'CAN_REGISTER', visibilityRegular: visibilityWhereFilter },
         ]
     }
 }

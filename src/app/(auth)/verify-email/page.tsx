@@ -1,49 +1,27 @@
-import { EmailVerifiedWrapper } from './EmailVerifiedWrapper'
+import VerifyEmail from './VerifyEmail'
+import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { authOperations } from '@/services/auth/operations'
-import { serverPage } from '@/app/serverPage'
-import { notFound, redirect } from 'next/navigation'
-import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import { notFound } from 'next/navigation'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     allowUnregistered: true,
+    // Only reads the token: opening the link confirms nothing. A mail scanner fetching it ahead of
+    // the user would otherwise confirm the address and use up the token before they click.
     operation: async ({ searchParams }: PageOperationArgs) => {
         const token = QueryParams.token.decode(searchParams)
         if (!token) {
             notFound()
         }
-
-        const updatedUser = await authOperations.verifyEmail({ params: { token } })
-        return updatedUser
+        return token
     },
-    render: ({ data: updatedUser, session }) => {
-        const userId = session.user?.id
-
-        if (!userId) {
-            // TODO: If the user arrives here by an invitation email
-            // or from another verify email email, we should log the user inn,
-            // not just ask the user to do so. Escpecially since invited users can't login with feide.
-            return <EmailVerifiedWrapper>
-                <Link href="/login">Logg inn</Link>
-            </EmailVerifiedWrapper>
-        }
-
-        if (userId !== updatedUser.id) {
-            return <EmailVerifiedWrapper>
-                <p>Ups, du er visst logged inn som noen andre, dette kan skape litt problemer.</p>
-                <Link href="/logout">Logg ut</Link>
-            </EmailVerifiedWrapper>
-        }
-
-        if (updatedUser.acceptedTerms) {
-            return <EmailVerifiedWrapper>
-                <Link href="/users/me">Gå til profil siden</Link>
-            </EmailVerifiedWrapper>
-        }
-
-        return redirect('/register')
-    },
+    metadata: () => ({ title: 'Bekreft e-post' }),
+    render: ({ data: token }) => (
+        <PageWrapper>
+            <VerifyEmail token={token} />
+        </PageWrapper>
+    ),
 })
 
 export default page

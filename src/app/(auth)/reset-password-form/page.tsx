@@ -1,4 +1,4 @@
-import ResetPasswordForm from './resetpasswordForm'
+import ResetPasswordForm from './ResetPasswordForm'
 import { verifyResetPasswordTokenAction } from '@/services/auth/actions'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import type { SearchParamsServerSide } from '@/lib/queryParams/types'

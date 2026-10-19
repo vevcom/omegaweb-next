@@ -16,9 +16,9 @@ import Article from '@/components/Cms/Article/Article'
 import getCommittee from '@/app/committees/[shortName]/getCommittee'
 import { configureAction } from '@/services/configureAction'
 import { committeeAuth } from '@/services/groups/committees/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { Require } from '@/auth/authorizer/Require'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ shortName: string }>) => {

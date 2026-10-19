@@ -1,6 +1,6 @@
-import OmegaIdContainer from './container'
+import OmegaIdContainer from './OmegaIdContainer'
 import { omegaIdOperations } from '@/services/omegaid/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => omegaIdOperations.readPublicKey({}),

@@ -14,8 +14,8 @@ import { studyProgrammeOperations } from '@/services/groups/studyProgrammes/oper
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { interestGroupOperations } from '@/services/groups/interestGroups/operations'
 import { manualGroupOperations } from '@/services/groups/manualGroups/operations'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 // Each group type guards the memberships in it on its own, so the page shows the types the
 // session may read and leaves the rest out.

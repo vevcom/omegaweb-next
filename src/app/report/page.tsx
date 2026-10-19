@@ -15,7 +15,7 @@ import { reportOperations } from '@/services/report/operations'
 import SpecialArticle from '@/cms/SpecialArticle/SpecialArticle'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { reportAuth } from '@/services/report/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => reportOperations.read({}),

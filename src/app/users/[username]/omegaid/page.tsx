@@ -1,8 +1,8 @@
 import styles from './page.module.scss'
-import OmegaId from '@/components/OmegaId/identification/OmegaId'
-import { serverPage } from '@/app/serverPage'
+import OmegaId from '@/components/OmegaId/Identification/OmegaId'
+import { serverPage } from '@/app/ServerPage'
 import { forbidden, notFound, redirect } from 'next/navigation'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {

@@ -7,7 +7,7 @@ const dataFieldSchemas = z.object({
     ombulFile: z.instanceof(File).refine(file => file.size < maxOmbulFileSize, 'Fil må være mindre enn 10mb'),
     ombulCoverImage: imageFileSchema,
     year: z.coerce.number().int().refine(val =>
-        (val === undefined) || (val >= 1919 && val <= (new Date()).getFullYear()),
+        (val === undefined) || (val >= 1919 && val <= (new Date()).getUTCFullYear()),
     'Må være mellom 1919 og nåværende år'
     ),
     issueNumber: z.coerce.number().optional().refine(val =>

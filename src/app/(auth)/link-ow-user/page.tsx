@@ -2,9 +2,9 @@ import ConfirmLinkOwUserForm from './ConfirmLinkOwUserForm'
 import LinkOwUserForm from './LinkOwUserForm'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { authOperations } from '@/services/auth/operations'
-import { serverPage, withFallback } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page } = serverPage({
     // A Feide login whose email matched no imported user gets a fresh user, and claims the old one

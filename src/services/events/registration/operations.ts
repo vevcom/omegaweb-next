@@ -1,9 +1,11 @@
 import '@pn-server-only'
 import {
     eventRegistrationAttendanceSelection,
+    eventRegistrationNotAttendedSelection,
     eventRegistrationSelectionDetailed,
     eventRegistrationQueueOrder,
     eventRegistrationSelection,
+    maxDotsForNotShowingUp,
 } from './constants'
 import { eventAdminLevel, eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
@@ -30,6 +32,7 @@ import type {
     EventAttendanceRegistration,
     EventAttendanceScan,
     EventRegistrationExpanded,
+    EventRegistrationNotAttended,
     EventRegistrationWithWaitingList,
 } from './types'
 
@@ -390,6 +393,74 @@ export const eventRegistrationOperations = {
     }),
 
     /**
+     * The registrations on the places of the event whose user did not show up - the ones dots for
+     * not showing up go to. Guests have no user to give a dot, and the waiting list never had a
+     * place to show up to.
+     */
+    readNotAttended: defineOperation({
+        paramsSchema: eventRegistrationSchemas.params.readNotAttended,
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readNotAttended.data({
+            visibility: await eventVisibility(prisma, params.eventId),
+        }),
+        operation: async ({ prisma, params }): Promise<EventRegistrationNotAttended[]> => {
+            const registrations = await prisma.eventRegistration.findMany({
+                where: { ...await notAttendedFilter(prisma, params.eventId), userId: { not: null } },
+                orderBy: eventRegistrationQueueOrder,
+                select: eventRegistrationNotAttendedSelection,
+            })
+            return registrations.flatMap(registration => (
+                registration.user ? [{ ...registration, user: registration.user }] : []
+            ))
+        },
+    }),
+
+    /**
+     * Gives a dot to someone registered to the event, with the name of the event appended to the
+     * reason. It takes the admin level of the event rather than DOTS_ADMIN, so the ones running an
+     * event may punish not showing up to it - and only that: the user must be registered to it.
+     */
+    createDot: dotOperations.internal.createInternal.implement({
+        implementationParamsSchema: eventRegistrationSchemas.params.createDot,
+        authorizer: async ({ implementationParams, params, prisma }) => eventRegistrationAuth.createDot.data({
+            visibility: await eventVisibility(prisma, implementationParams.eventId),
+            userId: params.accuserId,
+        }),
+        ownershipCheck: async ({ implementationParams, data, prisma }) =>
+            await allRegistered(prisma, implementationParams.eventId, [data.userId]),
+        operationImplementationFields: async ({ implementationParams, prisma }) => ({
+            reasonContext: await eventName(prisma, implementationParams.eventId),
+        }),
+    }),
+
+    /**
+     * Gives everyone in the list a dot of the same value for not showing up to the event, as
+     * `createDot` gives one. Each of them must have held a place and not shown up (see
+     * `readNotAttended`), or none get a dot. The value is capped, since this hands out dots by the dozen.
+     */
+    createDotsForNonattendingUsers: dotOperations.internal.createManyInternal.implement({
+        implementationParamsSchema: eventRegistrationSchemas.params.createDotsForNonattendingUsers,
+        authorizer: async ({ implementationParams, params, prisma }) =>
+            eventRegistrationAuth.createDotsForNonattendingUsers.data({
+                visibility: await eventVisibility(prisma, implementationParams.eventId),
+                userId: params.accuserId,
+            }),
+        ownershipCheck: async ({ implementationParams, data, prisma }) =>
+            await allRegistered(prisma, implementationParams.eventId, data.userIds),
+        beforeRun: async ({ implementationParams, data, prisma }) => {
+            if (data.value > maxDotsForNotShowingUp) {
+                throw new Smorekopp('BAD DATA', `Kan gi høyst ${maxDotsForNotShowingUp} prikker om gangen.`)
+            }
+            const eventId = implementationParams.eventId
+            if (!await allRegistered(prisma, eventId, data.userIds, await notAttendedFilter(prisma, eventId))) {
+                throw new Smorekopp('BAD DATA', 'Noen av brukerne møtte opp, eller hadde ikke plass på arrangementet.')
+            }
+        },
+        operationImplementationFields: async ({ implementationParams, prisma }) => ({
+            reasonContext: await eventName(prisma, implementationParams.eventId),
+        }),
+    }),
+
+    /**
      * Pays for a registration created separately via `create`/`createGuest`. Never creates a
      * registration itself. Supports paying part of the price from the payer's own ledger
      * balance (`amountFromBalance`) and the rest (`shortfall`) via `provider`; `provider` is
@@ -407,13 +478,7 @@ export const eventRegistrationOperations = {
                         userId: params.userId,
                     },
                 },
-                include: {
-                    event: {
-                        include: {
-                            hostedByCommitee: true,
-                        },
-                    },
-                },
+                include: { event: true },
             })
 
             if (!registration) {
@@ -431,18 +496,9 @@ export const eventRegistrationOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
             }
 
-            if (!event.hostedByCommitee) {
-                throw new Smorekopp('SERVER ERROR', 'Arrangementet har ingen tilknyttet komité å betale til.')
-            }
-
-            // Crediting the destination account needs no ownership over it, only reading it -
-            // bypassed since the payer (our caller) is neither its owner nor LEDGER_ADMIN.
-            const [destinationAccount] = await ledgerAccountOperations.readMany({
-                params: { groupIds: [event.hostedByCommitee.groupId] },
-                bypassAuth: true,
-            })
-            if (!destinationAccount) {
-                throw new Smorekopp('SERVER ERROR', 'Komiteen som arrangerer har ingen tilknyttet konto.')
+            const destinationAccountId = event.ledgerAccountId
+            if (!destinationAccountId) {
+                throw new Smorekopp('SERVER ERROR', 'Arrangementet er ikke knyttet til en konto å betale til.')
             }
 
             const funds = event.price
@@ -516,7 +572,7 @@ export const eventRegistrationOperations = {
                     params: {
                         purpose: 'EVENT_PAYMENT',
                         ledgerEntries: [
-                            { ledgerAccountId: destinationAccount.id, funds },
+                            { ledgerAccountId: destinationAccountId, funds },
                             ...(payerAccount
                                 ? [{ ledgerAccountId: payerAccount.id, funds: -params.amountFromBalance }]
                                 : []),
@@ -719,4 +775,42 @@ async function writeAttendance(
         where: { id: registrationId },
         select: eventRegistrationAttendanceSelection,
     })
+}
+
+/**
+ * The registrations on the places of the event that were not shown up to. The waiting list never had
+ * a place to show up to.
+ */
+async function notAttendedFilter(
+    prisma: PrismaPossibleTransaction<false>,
+    eventId: number
+): Promise<Prisma.EventRegistrationWhereInput> {
+    const boundary = await firstOnWaitingList(prisma, eventId)
+    return { eventId, attendedAt: null, ...(boundary ? { id: { lt: boundary } } : {}) }
+}
+
+/**
+ * Whether every one of the users is registered to the event - what makes a dot for the event
+ * theirs to get - with a registration matching `where`, when given. Each user registers once per
+ * event, so the count of registrations says it.
+ */
+async function allRegistered(
+    prisma: PrismaPossibleTransaction<false>,
+    eventId: number,
+    userIds: number[],
+    where: Prisma.EventRegistrationWhereInput = {}
+) {
+    const uniqueUserIds = Array.from(new Set(userIds))
+    const registered = await prisma.eventRegistration.count({
+        where: { ...where, eventId, userId: { in: uniqueUserIds } },
+    })
+    return registered === uniqueUserIds.length
+}
+
+async function eventName(prisma: PrismaPossibleTransaction<false>, eventId: number) {
+    const event = await prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { name: true },
+    })
+    return event.name
 }

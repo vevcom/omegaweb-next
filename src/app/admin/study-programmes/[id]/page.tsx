@@ -5,13 +5,13 @@ import {
 } from '@/services/groups/studyProgrammes/actions'
 import { studyProgrammeOperations } from '@/services/groups/studyProgrammes/operations'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import ManageGroupMembers from '@/components/Group/ManageGroupMembers'
 import { groupMembersByOrder } from '@/components/Group/groupMembersByOrder'
 import { ClassLevelConfig } from '@/services/groups/constants'
 import { notFound } from 'next/navigation'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 /**
  * Administers one study programme's members.

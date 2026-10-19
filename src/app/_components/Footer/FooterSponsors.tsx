@@ -1,7 +1,7 @@
 import styles from './FooterSponsors.module.scss'
 import Image from '@/components/Image/Image'
 import { companyOperations } from '@/services/career/companies/operations'
-import { withFallback, withPageSession } from '@/app/serverPage'
+import { withFallback, withPageSession } from '@/app/ServerPage'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import type { SponsorCompany } from '@/services/career/companies/types'

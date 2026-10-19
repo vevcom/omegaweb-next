@@ -2,9 +2,9 @@ import styles from './page.module.scss'
 import SpecialCollectionPanel from './SpecialCollectionPanel'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { specialImagePanelOperations } from '@/services/images/specialPanels/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
 
 /**

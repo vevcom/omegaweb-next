@@ -3,12 +3,12 @@ import BumpClasses from './BumpClasses'
 import { classOperations } from '@/services/groups/classes/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { classAuth } from '@/services/groups/classes/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
 import { CLASS_LEVEL_ORDERING } from '@/services/groups/constants'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

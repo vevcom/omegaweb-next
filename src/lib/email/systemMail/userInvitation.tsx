@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { userInvitationExpiration } from './constants'
 import { generateVerifyEmailJWT } from './verifyEmailToken'
-import { sendMailOperations } from '@/services/notifications/send-mail/operations'
+import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { UserInvitationTemplate } from '@/lib/email/templates/userInvitation'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import logger from '@/lib/logger'

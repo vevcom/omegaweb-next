@@ -1,4 +1,4 @@
-import StateWrapper from './stateWrapper'
+import StateWrapper from './StateWrapper'
 import ConnectCabinToLedgerForm from './ConnectCabinToLedgerForm'
 import SpecialCmsParagraph from '@/app/_components/Cms/CmsParagraph/SpecialCmsParagraph'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -16,8 +16,8 @@ import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { displayDate } from '@/lib/dates/displayDate'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
-import { serverPage, withFallback } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 import type { ReleasePeriod } from '@/prisma-generated-pn-types'
 
 function findCurrentReleasePeriod(releasePeriods: ReleasePeriod[]) {

@@ -6,7 +6,11 @@ import type { visibilityRequirementsSchema } from './schemas'
 import type { VisibilityRequirementGroupType } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
-type VisibilityCondition = {
+/**
+ * A condition as stored: unlike `VisibilityCondition` in types.ts, every row has an order, the
+ * current one for an ACTIVE condition.
+ */
+type VisibilityConditionRow = {
     groupId: number,
     type: VisibilityRequirementGroupType,
     order: number,
@@ -21,8 +25,8 @@ type VisibilityCondition = {
  * different things to checkVisibility. Those still hit the unique index and roll the transaction
  * back, which is the safe outcome.
  */
-function dedupeConditions(conditions: VisibilityCondition[]): VisibilityCondition[] {
-    const seen = new Map<string, VisibilityCondition>()
+function dedupeConditions(conditions: VisibilityConditionRow[]): VisibilityConditionRow[] {
+    const seen = new Map<string, VisibilityConditionRow>()
     conditions.forEach(condition => {
         seen.set(`${condition.groupId}-${condition.type}-${condition.order}`, condition)
     })

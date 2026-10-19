@@ -16,8 +16,8 @@ import {
 import { articleCategoryOperations } from '@/services/articleCategories/operations'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ category: string, nameAndId: string }>) => {

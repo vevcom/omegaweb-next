@@ -1,7 +1,7 @@
 import { userOperations } from '@/services/users/operations'
 import { userNavDef } from '@/app/users/[username]/userNavDef'
 import { notFound, redirect } from 'next/navigation'
-import type { ServerPageSession } from '@/app/serverPage'
+import type { ServerPageSession } from '@/app/ServerPage'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 
 type Params = {

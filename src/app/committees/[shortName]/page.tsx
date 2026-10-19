@@ -6,9 +6,9 @@ import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
 import UserCard from '@/components/User/UserCard'
 import { configureAction } from '@/services/configureAction'
 import { committeeAuth } from '@/services/groups/committees/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { Require } from '@/auth/authorizer/Require'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 export type PropTypes = {
     params: Promise<{

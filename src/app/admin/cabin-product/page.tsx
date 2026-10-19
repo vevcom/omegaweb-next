@@ -3,10 +3,10 @@ import { AddHeaderItemPopUp } from '@/app/_components/HeaderItems/HeaderItemPopU
 import { cabinProductOperations } from '@/services/cabin/product/operations'
 import { cabinProductAuth } from '@/services/cabin/product/auth'
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

@@ -1,10 +1,10 @@
 import { cabinBookingOperations } from '@/services/cabin/booking/operations'
 import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { displayDate } from '@/lib/dates/displayDate'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

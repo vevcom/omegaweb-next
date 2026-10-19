@@ -2,8 +2,8 @@ import styles from './layout.module.scss'
 import SlideSidebar from './SlideSidebar'
 import { visibleAdminNav } from '@/app/admin/adminNavDef'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
-import { serverLayout } from '@/app/serverPage'
-import type { LayoutOperationArgs } from '@/app/serverPage'
+import { serverLayout } from '@/app/ServerPage'
+import type { LayoutOperationArgs } from '@/app/ServerPage'
 
 export default serverLayout({
     // Only what the sidebar renders crosses into it - the authorizers stay on the server.

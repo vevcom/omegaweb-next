@@ -2,8 +2,8 @@ import styles from './page.module.scss'
 import Permission from '@/components/Permission/Permission'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { permissionOperations } from '@/services/permissions/operations'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {

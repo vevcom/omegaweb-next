@@ -23,7 +23,7 @@ export const eventFieldsToExpose = [
     'waitingList',
     'registrationStart',
     'registrationEnd',
-    'canBeViewdBy',
+    'canBeViewedBy',
     'takesRegistration',
     'price',
     'paymentStart',

@@ -1,7 +1,7 @@
 import DynamicCollectionPanel from './DynamicCollectionPanel'
 import { dynamicImageOperations } from '@/services/images/dynamic/operations'
-import { serverPage, withFallback } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ name: string }>) => {

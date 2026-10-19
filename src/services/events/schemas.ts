@@ -13,7 +13,12 @@ const dataFieldSchemas = z.object({
     order: z.coerce.number().int().optional(),
     eventStart: Zpn.date({ label: 'Starttid' }),
     eventEnd: Zpn.date({ label: 'Sluttid' }),
-    canBeViewdBy: z.nativeEnum(EventCanView),
+    canBeViewedBy: z.nativeEnum(EventCanView),
+    // The committee hosting the event, shown on its page. The form sends 'NULL' for none.
+    hostedByCommitteeId: z.literal('NULL').transform(() => null).or(z.coerce.number().int()).optional(),
+    // The account a paid event is paid into. Linked apart from the rest of the event (see
+    // connectToLedger), since linking an account takes access to that account.
+    ledgerAccountId: z.coerce.number().int(),
 
     takesRegistration: Zpn.checkboxOrBoolean({ label: 'Tar påmelding' }),
     places: z.coerce.number().int().optional(),
@@ -69,7 +74,8 @@ const eventFields = {
     order: true,
     eventStart: true,
     eventEnd: true,
-    canBeViewdBy: true,
+    canBeViewedBy: true,
+    hostedByCommitteeId: true,
     takesRegistration: true,
     places: true,
     registrationStart: true,
@@ -100,6 +106,9 @@ export const eventSchemas = {
         setPublished: dataFieldSchemas.pick({
             published: true,
         }),
+        connectToLedger: dataFieldSchemas.pick({
+            ledgerAccountId: true,
+        }),
     },
     params: {
         visibility: eventId,
@@ -123,6 +132,7 @@ export const eventSchemas = {
         update: eventId,
         updateCmsCoverImage: eventImplementationId,
         setPublished: eventId,
+        connectToLedger: eventId,
         destroy: eventId,
         updateParagraphContent: eventImplementationId,
     },

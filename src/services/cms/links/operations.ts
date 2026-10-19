@@ -53,10 +53,7 @@ export const cmsLinkOperations = {
                 where: {
                     id: params.linkId
                 },
-                data: {
-                    ...data,
-                    url: data.url ?? './'
-                }
+                data
             })
     }),
 

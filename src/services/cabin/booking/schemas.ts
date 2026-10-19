@@ -24,7 +24,9 @@ const paramsFieldSchemas = z.object({
     id: z.number(),
     userId: z.number(),
     bookingId: z.number(),
-    secret: z.string().min(1),
+    // Booking secrets are 48 hex characters. The cap keeps an oversized one from costing memory and time
+    // in the comparison, which walks the longer of the two.
+    secret: z.string().min(1).max(128),
     bookingProducts: z.array(z.object({
         cabinProductId: z.number(),
         quantity: z.number().int().min(1),

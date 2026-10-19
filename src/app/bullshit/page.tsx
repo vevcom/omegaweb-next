@@ -5,7 +5,7 @@ import { BullshitPagingProvider } from '@/contexts/paging/BullshitPaging'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { bullshitOperations } from '@/services/bullshit/operations'
 import { bullshitAuth } from '@/services/bullshit/auth'
-import { serverPage, withFallback } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import type { PageSizeBullshit } from '@/contexts/paging/BullshitPaging'
 
 const pageSize: PageSizeBullshit = 20
@@ -29,12 +29,12 @@ const { page, generateMetadata } = serverPage({
         ['UNAUTHORIZED', 'UNAUTHENTICATED']
     ),
     capabilities: () => ({
-        canCreate: bullshitAuth.create,
+        canCreate: bullshitAuth.createOwn,
     }),
     metadata: () => ({ title: 'Bullshit' }),
     render: ({ data: bullshits, capabilities, session }) => (
         <PageWrapper headerItem={
-            session.user && capabilities.canCreate.authorized && <BullshitForm />
+            session.user && capabilities.canCreate.authorized && <BullshitForm bullshitPosterId={session.user.id} />
         }>
             {bullshits && (
                 <BullshitPagingProvider

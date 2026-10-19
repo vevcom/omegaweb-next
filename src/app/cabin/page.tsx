@@ -14,7 +14,7 @@ import { cabinArticleOperations } from '@/services/cabin/article/operations'
 import SpecialArticle from '@/cms/SpecialArticle/SpecialArticle'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
 
 const { page, generateMetadata } = serverPage({

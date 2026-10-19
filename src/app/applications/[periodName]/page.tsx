@@ -2,7 +2,7 @@ import styles from './page.module.scss'
 import PrioritizedCommittees from './PrioritizedCommittees'
 import { default as DateComponent } from '@/components/Date/Date'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import CountDown from '@/components/countDown/CountDown'
+import CountDown from '@/components/CountDown/CountDown'
 import BackdropImage from '@/components/BackdropImage/BackdropImage'
 import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
 import CmsLink from '@/components/Cms/CmsLink/CmsLink'
@@ -34,9 +34,9 @@ import { applicationAuth } from '@/services/applications/auth'
 import { configureAction } from '@/services/configureAction'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { Require } from '@/auth/authorizer/Require'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
-import type { PageOperationArgs, ServerPageSession } from '@/app/serverPage'
+import type { PageOperationArgs, ServerPageSession } from '@/app/ServerPage'
 
 export type PropTypes = {
     params: Promise<{
@@ -82,10 +82,10 @@ const { page, generateMetadata } = serverPage({
             committeesParticipating: period.committeesParticipating.map(part => ({
                 ...part,
                 priority: applications.find(
-                    application => application.applicationPeriodCommiteeId === part.id
+                    application => application.applicationPeriodCommitteeId === part.id
                 )?.priority ?? null,
                 text: applications.find(
-                    application => application.applicationPeriodCommiteeId === part.id
+                    application => application.applicationPeriodCommitteeId === part.id
                 )?.text ?? ''
             })).toSorted((partOne, partTwo) => {
                 if (partOne.priority === null && partTwo.priority === null) return 0

@@ -19,8 +19,8 @@ import {
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { committeeAuth } from '@/services/groups/committees/auth'
-import { serverPage } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ shortName: string }>) => {

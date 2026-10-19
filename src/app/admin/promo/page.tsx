@@ -1,7 +1,7 @@
 import { createPromoAction } from '@/services/promo/actions'
 import { promoOperations } from '@/services/promo/operations'
 import { promoAuth } from '@/services/promo/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import Form from '@/components/Form/Form'
@@ -14,7 +14,7 @@ import SimpleTable from '@/components/Table/SimpleTable'
 import Image from '@/components/Image/Image'
 import DateDisplay from '@/components/Date/Date'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {

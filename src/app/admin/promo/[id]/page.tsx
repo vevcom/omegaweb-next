@@ -13,10 +13,10 @@ import {
 } from '@/services/promo/actions'
 import { promoOperations } from '@/services/promo/operations'
 import { promoAuth } from '@/services/promo/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { configureAction } from '@/services/configureAction'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ id: string }>) =>

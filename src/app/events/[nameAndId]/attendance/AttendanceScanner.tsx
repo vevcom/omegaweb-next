@@ -1,7 +1,7 @@
 'use client'
 import styles from './AttendanceScanner.module.scss'
 import { useAttendanceCounts } from './AttendanceCounts'
-import OmegaIdReader from '@/components/OmegaId/reader/OmegaIdReader'
+import OmegaIdReader from '@/components/OmegaId/Reader/OmegaIdReader'
 import { registerEventAttendanceAction } from '@/services/events/registration/actions'
 
 export default function AttendanceScanner({

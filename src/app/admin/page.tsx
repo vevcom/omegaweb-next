@@ -1,9 +1,9 @@
 import styles from './page.module.scss'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faScrewdriverWrench } from '@fortawesome/free-solid-svg-icons'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => authorizeAdminPage(null, session),

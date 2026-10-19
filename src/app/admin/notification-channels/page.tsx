@@ -1,14 +1,14 @@
 import styles from './page.module.scss'
-import AddNotificationChannel from './addNotificationChannel'
+import AddNotificationChannel from './AddNotificationChannel'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
 import { notificationChannelAuth } from '@/services/notifications/channel/auth'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import Link from 'next/link'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 type ChannelRow = {
     channel: ExpandedNotificationChannel,

@@ -71,7 +71,7 @@ async function createEvent({
             location: 'Lophtet',
             eventStart: new Date(Date.now() + 7 * 24 * HOUR),
             eventEnd: new Date(Date.now() + 7 * 24 * HOUR + 2 * HOUR),
-            canBeViewdBy: 'ALL',
+            canBeViewedBy: 'ALL',
             takesRegistration: true,
             places,
             waitingList,

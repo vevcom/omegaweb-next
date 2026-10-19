@@ -1,6 +1,6 @@
 'use client'
 import styles from './RegistrationUI.module.scss'
-import CountDown from '@/components/countDown/CountDown'
+import CountDown from '@/components/CountDown/CountDown'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import SubmitButton from '@/components/UI/SubmitButton'

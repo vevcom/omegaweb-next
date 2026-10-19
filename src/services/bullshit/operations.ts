@@ -3,24 +3,20 @@ import { bullshitAuth } from './auth'
 import { bullshitSchemas } from './schemas'
 import { bullshitFilterSelection } from './constants'
 import { defineOperation } from '@/services/serviceOperation'
-import { Smorekopp } from '@/services/error'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 
 export const bullshitOperations = {
     create: defineOperation({
-        authorizer: () => bullshitAuth.create,
+        authorizer: ({ params }) => bullshitAuth.create.data({ userId: params.bullshitPosterId }),
         dataSchema: bullshitSchemas.data.create,
-        operation: async ({ prisma, data, session }) => {
-            if (!session.user) {
-                throw new Smorekopp('UNAUTHORIZED', 'Du må være logget inn for å legge ut bullshit.')
-            }
-
+        paramsSchema: bullshitSchemas.params.create,
+        operation: async ({ prisma, data, params }) => {
             await prisma.bullshit.create({
                 data: {
                     ...data,
                     bullshitPoster: {
                         connect: {
-                            id: session.user.id
+                            id: params.bullshitPosterId
                         }
                     }
                 }

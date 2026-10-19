@@ -1,18 +1,69 @@
 import styles from './page.module.scss'
+import CreateLockerForm from './CreateLockerForm'
+import CreateLockerLocationForm from './CreateLockerLocationForm'
+import LockerLocationSettings from './LockerLocationSettings'
+import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import SimpleTable from '@/components/Table/SimpleTable'
+import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import { lockerLocationOperations } from '@/services/lockers/locations/operations'
+import { lockerAuth } from '@/services/lockers/auth'
+import { lockerLocationAuth } from '@/services/lockers/locations/auth'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import { serverPage } from '@/app/serverPage'
-import Link from 'next/link'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('lockers', session),
-    render: () => (
-        <div className={styles.wrapper}>
-            <h3>Skapreservasjoner</h3>
-            <Link aria-label={'Opprett ny skaplokasjon'} href={'/admin/lockers/location'}>Opprett ny skaplokasjon</Link>
-            <Link aria-label={'Opprett nytt skap'} href={'/admin/lockers/locker'}>Opprett nytt skap</Link>
-        </div>
-    ),
+    operation: async ({ session }: PageOperationArgs) => {
+        authorizeAdminPage('lockers', session)
+        return lockerLocationOperations.readAll({})
+    },
+    capabilities: () => ({
+        canCreateLocker: lockerAuth.create,
+        canCreateLockerLocation: lockerLocationAuth.create,
+        canUpdateLockerLocation: lockerLocationAuth.update,
+        canDestroyLockerLocation: lockerLocationAuth.destroy,
+    }),
+    metadata: () => ({ title: 'Administrer skap' }),
+    render: ({ data: locations, capabilities }) => {
+        const sortedLocations = [...locations].sort(
+            (one, two) => one.building.localeCompare(two.building, 'nb') || one.floor - two.floor
+        )
+
+        return (
+            <PageWrapper headerItem={
+                <div className={styles.header}>
+                    {capabilities.canCreateLockerLocation.authorized && (
+                        <AddHeaderItemPopUp popUpKey="create_locker_location" label="Ny lokasjon">
+                            <CreateLockerLocationForm />
+                        </AddHeaderItemPopUp>
+                    )}
+                    {capabilities.canCreateLocker.authorized && (
+                        <AddHeaderItemPopUp popUpKey="create_locker" label="Nytt skap">
+                            <CreateLockerForm locations={sortedLocations} />
+                        </AddHeaderItemPopUp>
+                    )}
+                </div>
+            }>
+                <h2>Skaplokasjoner</h2>
+                <SimpleTable
+                    header={['Bygning', 'Etasje', 'Skap', '']}
+                    body={sortedLocations.map(location => [
+                        location.building,
+                        `${location.floor}.`,
+                        location._count.lockers,
+                        <LockerLocationSettings
+                            key={location.id}
+                            location={location}
+                            capabilities={{
+                                canUpdate: capabilities.canUpdateLockerLocation,
+                                canDestroy: capabilities.canDestroyLockerLocation,
+                            }}
+                        />,
+                    ])}
+                />
+            </PageWrapper>
+        )
+    },
 })
 
 export default page

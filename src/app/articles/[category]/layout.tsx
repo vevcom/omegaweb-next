@@ -2,8 +2,8 @@ import styles from './layout.module.scss'
 import SideBar from './SideBar'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { articleCategoryOperations } from '@/services/articleCategories/operations'
-import { serverLayout } from '@/app/serverPage'
-import type { LayoutOperationArgs } from '@/app/serverPage'
+import { serverLayout } from '@/app/ServerPage'
+import type { LayoutOperationArgs } from '@/app/ServerPage'
 
 export default serverLayout({
     operation: async ({ params }: LayoutOperationArgs<{ category: string }>) =>

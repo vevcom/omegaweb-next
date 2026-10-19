@@ -1,5 +1,5 @@
 import { adminNavAuthorizers, adminNavDef } from '@/app/admin/adminNavDef'
-import type { ServerPageSession } from '@/app/serverPage'
+import type { ServerPageSession } from '@/app/ServerPage'
 
 /**
  * Guards an admin page with the authorizers its `adminNavDef` link declares, on the same terms as

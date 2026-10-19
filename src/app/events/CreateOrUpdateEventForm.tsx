@@ -2,7 +2,7 @@
 import styles from './CreateOrUpdateEventForm.module.scss'
 import EventLocationInput from './EventLocationInput'
 import Checkbox from '@/components/UI/Checkbox'
-import { SelectString } from '@/components/UI/Select'
+import { SelectString, SelectNumberPossibleNULL } from '@/components/UI/Select'
 import DateInput from '@/components/UI/DateInput'
 import Slider from '@/components/UI/Slider'
 import NumberInput from '@/components/UI/NumberInput'
@@ -17,12 +17,14 @@ import { configureAction } from '@/services/configureAction'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
-import type { Event, EventLocationMap, EventTag as EventTagT } from '@/prisma-generated-pn-types'
+import type { Event, EventLocationMap, EventTag as EventTagT, Committee } from '@/prisma-generated-pn-types'
 import type { ChangeEvent } from 'react'
 
 type PropTypes = {
     event?: Event & { tags: EventTagT[], locationMap: EventLocationMap | null }
     eventTags: EventTagT[]
+    /** The committees to choose the host from, or null when they could not be read (they take COMMITTEE_USE). */
+    committees: Committee[] | null
 }
 
 /**
@@ -32,11 +34,12 @@ type PropTypes = {
  * @param eventTags - The tags to choose from
  * @returns
  */
-export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes) {
+export default function CreateOrUpdateEventForm({ event, eventTags, committees }: PropTypes) {
     const [showRegistrationOptions, setShowRegistrationOptions] = useState(event?.takesRegistration ?? false)
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
     const action = event ? configureAction(updateEventAction, { params: { id: event.id } }) : createEventAction
+    const canSetHostCommittee = committees !== null
 
     const handleShowRegistration = (changeEvent: ChangeEvent<HTMLInputElement>) => {
         setShowRegistrationOptions(changeEvent.target.checked)
@@ -58,11 +61,11 @@ export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes)
                 <TextInput label="Sted" name="location" defaultValue={event?.location ?? ''} />
                 <EventLocationInput name="locationMap" defaultValue={event?.locationMap} />
                 <SelectString
-                    className={styles.canBeViewdBy}
+                    className={styles.canBeViewedBy}
                     label="Hvem kan se"
-                    name="canBeViewdBy"
+                    name="canBeViewedBy"
                     options={eventCanBeViewdByOptions}
-                    defaultValue={event?.canBeViewdBy}
+                    defaultValue={event?.canBeViewedBy}
                 />
                 <DateInput label="Start" name="eventStart" includeTime defaultValue={event?.eventStart} />
                 <DateInput label="Slutt" name="eventEnd" includeTime defaultValue={event?.eventEnd} />
@@ -137,6 +140,19 @@ export default function CreateOrUpdateEventForm({ event, eventTags }: PropTypes)
                         min={0}
                         defaultValue={event?.price ? event.price / 100 : undefined}
                     />
+                    {/*
+                      * Left out when the committees could not be read: offered without the committee
+                      * of the event, the select would submit its first option and clear it.
+                      */}
+                    {canSetHostCommittee && <SelectNumberPossibleNULL
+                        label="Arrangeres av"
+                        name="hostedByCommitteeId"
+                        options={[
+                            { value: 'NULL', label: 'Ingen komité' },
+                            ...committees.map(committee => ({ value: committee.id, label: committee.name })),
+                        ]}
+                        defaultValue={event?.hostedByCommitteeId ?? 'NULL'}
+                    />}
                     <DateInput
                         label="Registrering Start"
                         name="registrationStart"

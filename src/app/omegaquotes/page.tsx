@@ -6,7 +6,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { omegaquoteOperations } from '@/services/omegaquotes/operations'
 import { omegaQuotesAuth } from '@/services/omegaquotes/auth'
 import { Require } from '@/auth/authorizer/Require'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import type { PageSizeOmegaquote } from '@/contexts/paging/OmegaquotesPaging'
 
 const pageSize: PageSizeOmegaquote = 20

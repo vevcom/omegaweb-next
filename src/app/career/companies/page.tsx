@@ -12,8 +12,8 @@ import { companyListRenderer } from '@/components/Company/CompanyListRenderer'
 import SponsorLegend from '@/components/Company/SponsorLegend'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import CompanyListFilter from '@/app/_components/Company/CompanyListFilter'
-import { serverPage, withFallback } from '@/app/serverPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 import type { PageSizeCompany } from '@/contexts/paging/CompanyPaging'
 
 const pageSize = 10 satisfies PageSizeCompany

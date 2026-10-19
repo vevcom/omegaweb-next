@@ -1,0 +1,13 @@
+@use '@/styles/ohma';
+
+.LockerLocationSettings {
+    display: flex;
+    flex-direction: column;
+    gap: calc(2 * #{ohma.$gap});
+    min-width: min(360px, 80vw);
+}
+
+.blocked {
+    max-width: 360px;
+    color: ohma.$colors-text-muted;
+}

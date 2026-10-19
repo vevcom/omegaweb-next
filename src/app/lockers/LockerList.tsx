@@ -3,25 +3,21 @@ import styles from './LockerList.module.scss'
 import LockerRow from './LockerRow'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { LockerPagingContext } from '@/contexts/paging/LockerPaging'
-import { useContext } from 'react'
 
 export default function LockerList() {
-    const context = useContext(LockerPagingContext)
-    if (!context) throw new Error('Ingen kontekst')
     return (
-        <div className={styles.lockerList}>
-            <div className={styles.lockerListHeader}>
-                <h3>Skap nr.</h3>
-                <h3>Bygg</h3>
-                <h3>Etasje</h3>
-                <h3 className={styles.hideSecond}>Person</h3>
-                <h3 className={styles.hideFirst}>Gruppe</h3>
-                <h3>Dato</h3>
+        <div className={styles.LockerList} role="table">
+            <div className={`${styles.row} ${styles.headerRow}`} role="row">
+                <span className={styles.colId} role="columnheader">Skap</span>
+                <span className={styles.colLocation} role="columnheader">Sted</span>
+                <span className={styles.colUser} role="columnheader">Reservert av</span>
+                <span className={styles.colGroup} role="columnheader">For</span>
+                <span className={styles.colEnd} role="columnheader">Til</span>
             </div>
-            <div>
+            <div className={styles.body} role="rowgroup">
                 <EndlessScroll
                     pagingContext={LockerPagingContext}
-                    renderer={(locker) => <LockerRow locker={locker} key={locker.id} />}
+                    renderer={locker => <LockerRow locker={locker} key={locker.id} />}
                 />
             </div>
         </div>

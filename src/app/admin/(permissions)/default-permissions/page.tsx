@@ -4,9 +4,9 @@ import { permissionsAuth } from '@/services/permissions/auth'
 import { permissionsAllowedAsDefault } from '@/services/permissions/constants'
 import Form from '@/components/Form/Form'
 import DisplayAllPermissions from '@/components/Permission/DisplayAllPermissions'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const allowedAsDefault = permissionsAllowedAsDefault()
 

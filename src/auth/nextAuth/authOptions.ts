@@ -4,7 +4,7 @@ import { feideLoginMayLinkByEmail } from './feideEmailLinking'
 import { compressJwt, decompressJwt } from './jwtCompression'
 import { permissionsMaxAge } from './constants'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
-import FeideProvider from '@/lib/feide/FeideProvider'
+import FeideProvider from '@/lib/feide/feideProvider'
 import { fetchStudyProgrammeRealmsFromFeide } from '@/lib/feide/api'
 import {
     inferClassFromStudyProgrammes,
@@ -242,8 +242,9 @@ export const authOptions: AuthOptions = {
         warn(code) {
             logger.warn(`NextAuth warning: ${code}`, { code })
         },
-        debug(code, metadata) {
-            logger.debug(`NextAuth debug: ${code}`, { code, metadata })
-        },
+        // No debug hook, on purpose. next-auth calls one whenever it is given, whatever its `debug`
+        // option says, and hands it the tokens Feide returns (access and ID token), the user's Feide
+        // profile and the PKCE, state and nonce values of every sign-in - credentials and personal
+        // data that would end up in the log files.
     }
 }

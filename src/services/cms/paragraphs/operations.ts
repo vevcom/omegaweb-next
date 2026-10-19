@@ -62,21 +62,20 @@ export const cmsParagraphOperations = {
         paramsSchema: () => cmsParagraphSchemas.params.updateContent,
         dataSchema: () => cmsParagraphSchemas.data.updateContent,
         operation: () => async ({ params, prisma, data }) => {
-            try {
-                const contentHtml = (await markdownToSafeHtml(data.markdown))
-                    .replace(/<img[^>]*>/g, 'Bilder i markdown er ikke støttet. Bruk det innebygde bildeverktøyet.')
-                return await prisma.cmsParagraph.update({
-                    where: {
-                        id: params.paragraphId
-                    },
-                    data: {
-                        contentMd: data.markdown,
-                        contentHtml,
-                    }
-                })
-            } catch {
+            const safeHtml = await markdownToSafeHtml(data.markdown).catch(() => {
                 throw new ServiceError('BAD PARAMETERS', 'Invalid markdown')
-            }
+            })
+            const contentHtml = safeHtml
+                .replace(/<img[^>]*>/g, 'Bilder i markdown er ikke støttet. Bruk det innebygde bildeverktøyet.')
+            return await prisma.cmsParagraph.update({
+                where: {
+                    id: params.paragraphId
+                },
+                data: {
+                    contentMd: data.markdown,
+                    contentHtml,
+                }
+            })
         }
     }),
 

@@ -15,9 +15,9 @@ import { userOperations } from '@/services/users/operations'
 import { classAuth } from '@/services/groups/classes/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { studyProgrammeOperations } from '@/services/groups/studyProgrammes/operations'
-import { serverPage } from '@/app/serverPage'
+import { serverPage } from '@/app/ServerPage'
 import { configureAction } from '@/services/configureAction'
-import type { PageOperationArgs } from '@/app/serverPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 /**
  * The first cards are what the user may change about themselves, which an administrator may change
