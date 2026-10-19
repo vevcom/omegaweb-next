@@ -93,3 +93,36 @@ describe('reserving the cabin', () => {
         await expect(reserveAsGuest('double@example.com', 34, 35, 2)).rejects.toThrow(Smorekopp)
     })
 })
+
+describe('reserving beds', () => {
+    let bed: { id: number, amount: number }
+
+    beforeAll(async () => {
+        bed = await prisma.cabinProduct.findFirstOrThrow({ where: { type: 'BED' }, select: { id: true, amount: true } })
+    })
+
+    const reserveBeds = (email: string, start: number, end: number, quantity: number) =>
+        cabinBookingOperations.createBedBookingNoUser({
+            params: { bookingProducts: [{ cabinProductId: bed.id, quantity }] },
+            data: {
+                start: date(start),
+                end: date(end),
+                acceptedTerms: true,
+                firstname: 'Gjest',
+                lastname: 'Gjestesen',
+                email,
+                mobile: '12345678',
+            },
+            session: guestSession,
+        })
+
+    test('bed bookings share the nights until the beds run out', async () => {
+        await reserveBeds('bed-one@example.com', 36, 38, 1)
+        await expect(reserveBeds('bed-two@example.com', 37, 39, bed.amount - 1)).resolves.toBeDefined()
+        await expect(reserveBeds('bed-three@example.com', 37, 38, 1)).rejects.toThrow(Smorekopp)
+    })
+
+    test('the whole cabin cannot be booked over booked beds', async () => {
+        await expect(reserveAsGuest('cabin-over-beds@example.com', 36, 37)).rejects.toThrow(Smorekopp)
+    })
+})

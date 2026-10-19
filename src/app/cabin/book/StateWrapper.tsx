@@ -145,15 +145,21 @@ export default function StateWrapper({
         setReservationState({ checked: true, reservation: readStoredReservation(storageKey) })
     }, [storageKey])
 
+    const blockingBookings = useMemo(
+        () => (bookingType === 'BED' ? cabinAvailability.filter(booking => booking.type !== 'BED') : cabinAvailability),
+        [bookingType, cabinAvailability]
+    )
+
     const calendar = useMemo(() => (
         <CabinCalendar
+            key={bookingType}
             startDate={new Date()}
             bookingUntil={releaseUntil}
             defaultDateRange={dateRange}
             intervalChangeCallback={setDateRange}
-            bookings={cabinAvailability}
+            bookings={blockingBookings}
         />
-    ), [cabinAvailability, releaseUntil, dateRange])
+    ), [bookingType, blockingBookings, releaseUntil, dateRange])
 
     const productAmounts = useMemo(
         () => (bookingType === 'BED' ? bedAmounts : [1]),

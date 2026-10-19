@@ -1,7 +1,7 @@
 import { sendCabinBookingConfirmationMail } from '@/lib/email/systemMail/cabinBookingConfirmation'
 import { refundOperations } from '@/services/ledger/refunds/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
-import { blocksCalendar } from '@/services/cabin/booking/operations'
+import { findAvailabilityConflict } from '@/services/cabin/booking/operations'
 import { manualReviewOperations } from '@/services/ledger/transactions/manualReviews/operations'
 import type { ConfirmedBooking } from '@/lib/email/systemMail/cabinBookingConfirmation'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
@@ -33,7 +33,10 @@ export async function cabinBookingPaymentCompletionHook(
 ): Promise<void> {
     if (transaction.bookingId === null) return
 
-    const booking = await prisma.booking.findUniqueOrThrow({ where: { id: transaction.bookingId } })
+    const booking = await prisma.booking.findUniqueOrThrow({
+        where: { id: transaction.bookingId },
+        include: { BookingProduct: { include: { product: { select: { amount: true } } } } },
+    })
 
     // A booking paid within its hold blocked the calendar the whole time, so nothing else can have
     // taken its dates. Checking anyway would let a booking paid after its own hold ran out win.
@@ -45,13 +48,16 @@ export async function cabinBookingPaymentCompletionHook(
     // Backstop: the hold is time-boxed, so a late Stripe webhook can arrive after another booking
     // took the same dates. The ledger sweeper cancels stale attempts, but not before the hold ends
     // or while the worker is down.
-    const conflicting = !paidWithinHold && await prisma.booking.findFirst({
-        where: {
-            id: { not: booking.id },
-            start: { lt: booking.end },
-            end: { gt: booking.start },
-            ...blocksCalendar(),
-        },
+    const conflicting = !paidWithinHold && await findAvailabilityConflict(prisma, {
+        id: booking.id,
+        type: booking.type,
+        start: booking.start,
+        end: booking.end,
+        products: booking.BookingProduct.map(bookingProduct => ({
+            cabinProductId: bookingProduct.cabinProductId,
+            quantity: bookingProduct.quantity,
+            amount: bookingProduct.product.amount,
+        })),
     })
 
     if (conflicting) {
