@@ -28,9 +28,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: radial-gradient(ellipse at center bottom, transparent 20%, ohma.$colors-surface-base 70%, ohma.$colors-surface-base 100%);
-        rotate: 180deg;
-        scale: 1.5;
+        background: linear-gradient(to bottom, transparent 55%, ohma.$colors-surface-base);
         z-index: 0;
     }
     > *:first-child {
@@ -86,7 +84,7 @@
             text-transform: uppercase;
         }
         &::after {
-            background: radial-gradient(ellipse at center bottom, transparent 20%, ohma.$colors-accent-magenta 70%, ohma.$colors-accent-magenta 100%);
+            background: linear-gradient(to bottom, transparent 55%, ohma.$colors-accent-magenta);
         }
     }
 }

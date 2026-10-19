@@ -3,6 +3,7 @@ import Nav from './Nav'
 import styles from './layout.module.scss'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import CommitteeImage from '@/components/Committee/CommitteeImage/CommitteeImage'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { serverLayout } from '@/app/ServerPage'
@@ -24,7 +25,7 @@ export default serverLayout({
     }),
     render: ({ data: { committee, shortNameParam }, capabilities, children }) => (
         <div className={styles.pageLayout}>
-            <div className={styles.main}>
+            <ScrollArea className={styles.main}>
                 <CommitteeImage
                     capabilities={capabilities}
                     shortName={committee.shortName}
@@ -41,7 +42,7 @@ export default serverLayout({
                     )}
                     { children }
                 </PageWrapper>
-            </div>
+            </ScrollArea>
             <Nav shortName={shortNameParam} groupId={committee.groupId} />
         </div>
     ),
