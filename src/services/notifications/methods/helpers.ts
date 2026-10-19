@@ -35,6 +35,10 @@ export function booleanOperationOnMethods(
     return ret
 }
 
+export function truncate(text: string, maxLength: number) {
+    return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text
+}
+
 export function replaceSpecialSymbols(text: string, user: UserBasic) {
     return text
         .replaceAll('%u', user.username)
