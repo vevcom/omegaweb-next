@@ -3,6 +3,9 @@ import NotificationSettings from './NotificationSettings'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
+import { pushSubscriptionAuth } from '@/services/notifications/pushSubscription/auth'
+import { pushIsConfigured, vapid } from '@/services/notifications/methods/constants'
+import PushDeviceSettings from '@/components/PushNotifications/PushDeviceSettings'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -21,9 +24,18 @@ const { page, generateMetadata } = serverPage({
 
         return { profile, channels, subscriptions }
     },
-    render: ({ data }) => (
+    capabilities: (data) => ({
+        canManagePushDevice: pushSubscriptionAuth.create.data({ userId: data.profile.user.id }),
+    }),
+    render: ({ data, capabilities }) => (
         <div className={styles.wrapper}>
             <h2>Notifikasjoner</h2>
+            {capabilities.canManagePushDevice.authorized && (
+                <PushDeviceSettings
+                    userId={data.profile.user.id}
+                    vapidPublicKey={pushIsConfigured ? vapid.publicKey : null}
+                />
+            )}
             <NotificationSettings
                 user={data.profile.user}
                 channels={data.channels}
