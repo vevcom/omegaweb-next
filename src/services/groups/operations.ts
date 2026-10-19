@@ -112,8 +112,10 @@ export const groupOperations = {
     addMembers: defineSubOperation({
         paramsSchema: () => groupSchemas.params.addMembers,
         dataSchema: () => groupSchemas.data.addMembers,
-        operation: () => async ({ prisma, params, data }) => {
-            const group = await readGroupOrderAndType(prisma, params.groupId)
+        // Its writes and the session invalidation have to land together.
+        opensTransaction: true,
+        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
+            const group = await readGroupOrderAndType(tx, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
             const userIds = data.users.map(user => user.userId)
 
@@ -121,7 +123,7 @@ export const groupOperations = {
                 MigratedStraightAwayOnIncrement[group.groupType]
 
             if (active) {
-                await Promise.all([true, false].map(admin => prisma.membership.updateMany({
+                await Promise.all([true, false].map(admin => tx.membership.updateMany({
                     where: {
                         groupId: params.groupId,
                         userId: { in: data.users.filter(user => user.admin === admin).map(user => user.userId) },
@@ -131,7 +133,7 @@ export const groupOperations = {
                 })))
             }
 
-            await prisma.membership.createMany({
+            await tx.membership.createMany({
                 data: data.users.map(({ userId, admin }) => ({
                     groupId: params.groupId,
                     userId,
@@ -142,8 +144,8 @@ export const groupOperations = {
                 skipDuplicates: true,
             })
 
-            await invalidateManyUserSessionData(prisma, userIds)
-        }
+            await invalidateManyUserSessionData(tx, userIds)
+        }),
     }),
 
     /**
@@ -154,11 +156,13 @@ export const groupOperations = {
     removeMembers: defineSubOperation({
         paramsSchema: () => groupSchemas.params.removeMembers,
         dataSchema: () => groupSchemas.data.removeMembers,
-        operation: () => async ({ prisma, params, data }) => {
-            const group = await readGroupOrderAndType(prisma, params.groupId)
+        // Its writes and the session invalidation have to land together.
+        opensTransaction: true,
+        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
+            const group = await readGroupOrderAndType(tx, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
 
-            await prisma.membership.updateMany({
+            await tx.membership.updateMany({
                 where: {
                     groupId: params.groupId,
                     userId: { in: data.userIds },
@@ -167,8 +171,8 @@ export const groupOperations = {
                 data: { active: false },
             })
 
-            await invalidateManyUserSessionData(prisma, data.userIds)
-        }
+            await invalidateManyUserSessionData(tx, data.userIds)
+        }),
     }),
 
     /**
@@ -181,11 +185,13 @@ export const groupOperations = {
     setMemberAdmin: defineSubOperation({
         paramsSchema: () => groupSchemas.params.setMemberAdmin,
         dataSchema: () => groupSchemas.data.setMemberAdmin,
-        operation: () => async ({ prisma, params, data }) => {
-            const group = await readGroupOrderAndType(prisma, params.groupId)
+        // Its writes and the session invalidation have to land together.
+        opensTransaction: true,
+        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
+            const group = await readGroupOrderAndType(tx, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
 
-            const membership = await prisma.membership.update({
+            const membership = await tx.membership.update({
                 where: {
                     userId_groupId_order: {
                         groupId: params.groupId,
@@ -196,9 +202,9 @@ export const groupOperations = {
                 data: { admin: data.admin },
             })
 
-            await invalidateOneUserSessionData(prisma, data.userId)
+            await invalidateOneUserSessionData(tx, data.userId)
             return membership
-        }
+        }),
     }),
 
     /**

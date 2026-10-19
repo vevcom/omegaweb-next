@@ -6,20 +6,6 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { DateTime } from 'luxon'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-let stopping = false
-let wakeUp: () => void = () => {}
-
-// The sleep is interruptible so a stop signal ends the loop right away instead of waiting out
-// the poll interval. The timer must also be cleared on wake-up - a pending timeout keeps the
-// node process alive long after the loop has exited.
-const sleep = (ms: number) => new Promise<void>(resolve => {
-    const timeout = setTimeout(resolve, ms)
-    wakeUp = () => {
-        clearTimeout(timeout)
-        resolve()
-    }
-})
-
 /**
  * Claims the oldest claimable notification, atomically, so concurrent workers never dispatch the
  * same one. The claimable filter must also accept claims that went stale, so a dispatch that died
@@ -141,30 +127,18 @@ async function withErrorsLogged<Result>(task: string, run: () => Promise<Result>
 }
 
 /**
- * Polls until stopNotificationWorker is called, dispatching undispatched notifications by email
- * and push, and sending the weekly digest mails when they are due. Errors are logged and retried on
- * the next tick rather than killing the loop, which also covers the database being unreachable while
- * the schema is reset in dev. Each method fails on its own, so a mail server that is down does not
- * hold back the pushes.
+ * The notification worker's tick (src/workers/notifications.ts): dispatches one undispatched
+ * notification by email and one by push, or, when there is none, sends the weekly digest mails that
+ * are due. Each method fails on its own, so a mail server that is down does not hold back the pushes.
+ *
+ * @returns whether a notification was dispatched - if so there may be more waiting.
  */
-export async function runNotificationWorker() {
-    if (!pushIsConfigured) {
-        logger.warn('Notification worker will not push notifications, since the VAPID keys are not set')
-    }
-
-    while (!stopping) {
-        const [emailed, pushed] = await Promise.all([
-            withErrorsLogged('email dispatch', dispatchNextEmailNotification, false),
-            withErrorsLogged('push dispatch', dispatchNextPushNotification, false),
-        ])
-        if (emailed || pushed) continue
-
-        await withErrorsLogged('weekly digest', weeklyTick, undefined)
-        await sleep(emailDispatch.pollIntervalMs)
-    }
-}
-
-export function stopNotificationWorker() {
-    stopping = true
-    wakeUp()
+export async function notificationWorkerTick(): Promise<boolean> {
+    const [emailed, pushed] = await Promise.all([
+        withErrorsLogged('email dispatch', dispatchNextEmailNotification, false),
+        withErrorsLogged('push dispatch', dispatchNextPushNotification, false),
+    ])
+    if (emailed || pushed) return true
+    await weeklyTick()
+    return false
 }

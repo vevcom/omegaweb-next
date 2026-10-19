@@ -24,17 +24,26 @@ export const notificationSubscriptionOperations = {
         }),
     }),
 
+    /**
+     * Subscribes the user to every default channel they are not already subscribed to. Opens no
+     * transaction of its own, so that registration can run it on its own transaction, and skips the
+     * channels the user already has, so running it again is harmless.
+     */
     createDefault: defineSubOperation({
         paramsSchema: () => notificationSubscriptionSchemas.params.createDefault,
-        opensTransaction: true,
         operation: () => async ({ prisma, params, session }) => {
             const channels = await notificationChannelOperations.readDefault({
                 session,
+                prisma,
                 bypassAuth: true,
             })
+            const subscribed = new Set((await prisma.notificationSubscription.findMany({
+                where: { userId: params.userId },
+                select: { channelId: true },
+            })).map(subscription => subscription.channelId))
 
-            await prisma.$transaction(channels.map(channel =>
-                prisma.notificationSubscription.create({
+            for (const channel of channels.filter(defaultChannel => !subscribed.has(defaultChannel.id))) {
+                await prisma.notificationSubscription.create({
                     data: {
                         user: {
                             connect: {
@@ -51,7 +60,7 @@ export const notificationSubscriptionOperations = {
                         }
                     }
                 })
-            ))
+            }
         }
     }),
 

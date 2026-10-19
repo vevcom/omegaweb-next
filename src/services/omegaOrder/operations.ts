@@ -82,8 +82,11 @@ export const omegaOrderOperations = {
     create: defineOperation({
         opensTransaction: true,
         authorizer: () => omegaOrderAuth.create,
-        operation: async ({ prisma }) => {
-            const requirements = await omegaOrderOperations.readRequirements({ bypassAuth: true })
+        // The requirements are read on the transaction that writes the new order, so the order they
+        // were checked against is the one incremented. Two increments at once still race; the loser
+        // runs into the unique order and is turned away as a duplicate.
+        operation: async ({ prisma }) => await prisma.$transaction(async tx => {
+            const requirements = await omegaOrderOperations.readRequirements({ prisma: tx, bypassAuth: true })
             const unfulfilled = requirements.filter(requirement => !requirement.fulfilled)
 
             if (unfulfilled.length) {
@@ -95,26 +98,24 @@ export const omegaOrderOperations = {
                 )
             }
 
-            const { order: oldOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
+            const { order: oldOrder } = await omegaOrderOperations.readCurrent({ prisma: tx, bypassAuth: true })
             const newOrder = oldOrder + 1
 
-            await prisma.$transaction([
-                prisma.omegaOrder.create({
-                    data: {
-                        order: newOrder
-                    }
-                }),
-                prisma.group.updateMany({
-                    where: {
-                        groupType: { in: groupTypesMigratedStraightAway },
-                        order: { lt: newOrder },
-                    },
-                    data: {
-                        order: newOrder
-                    }
-                }),
-            ])
-        }
+            await tx.omegaOrder.create({
+                data: {
+                    order: newOrder
+                }
+            })
+            await tx.group.updateMany({
+                where: {
+                    groupType: { in: groupTypesMigratedStraightAway },
+                    order: { lt: newOrder },
+                },
+                data: {
+                    order: newOrder
+                }
+            })
+        }),
     }),
     readCurrent: defineOperation({
         authorizer: () => omegaOrderAuth.readCurrent,
