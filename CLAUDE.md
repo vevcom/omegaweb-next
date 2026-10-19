@@ -157,6 +157,19 @@ Rules:
 - **`actions.ts`**: must have `'use server'` at the top; only calls `makeAction()`
 - Sub-domains, such as `mail/alias/`, follow the same layout within their subfolder
 
+### Background Workers
+
+Work that runs outside requests lives in `src/workers/`:
+
+- **`definitions.ts`** defines every worker (`images`, `notifications`, `store`) as `{ name, intervalMs, tick }`: what it does, in what order and how often.
+- **`types.ts`** holds the `Worker` type that shape follows and `WorkerName`, the names `main.ts` accepts.
+- **`main.ts`** is the entrypoint of the `worker` compose service (`npm run worker`). It runs the workers side by side in one process: the loops, the wait between ticks and shutting down on SIGTERM/SIGINT. Naming workers as arguments (`tsx src/workers/main.ts images`) runs only those, so one can be moved into a container of its own from compose alone.
+
+Nothing outside `src/workers/` is called a worker.
+
+- **Services** export the units of work, named for what they do, next to the domain logic they use: `processNextImage` (`images/subservice/processingQueue.ts`), `dispatchNextEmailNotification`, `dispatchNextPushNotification` and `sendDueWeeklyDigests` (`notifications/methods/dispatchQueue.ts`), `destroyImageOrphans` and `destroyOmbulOrphans`.
+- A unit of work that handles one item at a time returns `true` when there may be more waiting, so the worker comes straight back instead of waiting out its interval.
+
 ### Prisma Schema Organization
 
 Prisma schemas are split into multiple domain-specific files in `src/prisma/schema/`:
