@@ -229,6 +229,10 @@ The project includes a custom CMS for content management:
 
 Files that must run only on the server import `'@pn-server-only'` at the top. This is enforced to prevent accidental client-side execution of sensitive code.
 
+### Awaitable callbacks
+
+A callback whose result is only awaited is typed `Awaitable<T>` (`T | Promise<T>`, from `@/lib/awaitable`), so callers with nothing to wait for pass a plain function rather than an `async` one or `Promise.resolve(...)`. Keep `Promise<T>` only where the promise itself is needed (`.catch`, `prisma.$transaction`, a third-party type).
+
 ### Dates and Timezones
 
 Server-side code (services, lib, server components) only ever works with real instants —
@@ -315,7 +319,7 @@ Layouts that load data are built with `serverLayout`, also from `@/app/ServerPag
 
 ```tsx
 export default serverLayout({
-    operation: async ({ params }: LayoutOperationArgs<{ category: string }>) =>
+    operation: ({ params }: LayoutOperationArgs<{ category: string }>) =>
         articleCategoryOperations.read({ params: { name: decodeURIComponent(params.category) } }),
     render: ({ data: category, children }) => <SideBar category={category}>{children}</SideBar>,
 })
