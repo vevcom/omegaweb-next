@@ -40,8 +40,6 @@ export const eventRegistrationSelectionDetailed = {
         },
     },
     contact: true,
-    // Only needs to know whether a payment exists and is still in effect, same as readOfUser.
-    // This lets organisers see who has paid without exposing payment details.
     ledgerTransactions: {
         where: validTransactionFilter,
         select: { id: true },

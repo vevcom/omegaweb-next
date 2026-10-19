@@ -24,13 +24,8 @@ export async function sendBookingConfirmation(
 }
 
 /**
- * Registered under CABIN_BOOKING in ledger/transactions/paymentCompletionHooks.ts, so
- * ledgerTransactionOperations.advance calls this the moment a cabin booking's transaction
- * actually reaches SUCCEEDED - whether that happens synchronously (a MANUAL or balance-only
- * payment, from cabinBookingOperations.createPayment) or asynchronously (a STRIPE payment,
- * confirmed later via the webhook). This is the one place that reacts to the booking's payment
- * succeeding: it clears the reservation window (the booking now blocks the calendar
- * unconditionally instead of expiring) and sends the confirmation.
+ * Runs when a cabin booking's transaction reaches SUCCEEDED (see paymentCompletionHooks.ts), either
+ * synchronously or from the Stripe webhook. Clears the reservation window and sends the confirmation.
  */
 export async function cabinBookingPaymentCompletionHook(
     transaction: ExpandedLedgerTransaction,
@@ -40,13 +35,8 @@ export async function cabinBookingPaymentCompletionHook(
 
     const booking = await prisma.booking.findUniqueOrThrow({ where: { id: transaction.bookingId } })
 
-    // The hold on a booking is time-boxed, not tied to the payment's real completion. A Stripe
-    // webhook can still arrive after that window expired, once another booking has already
-    // taken and paid for the same dates. This check is a backstop for that race.
-    //
-    // The real fix is a sweeper that cancels a PENDING transaction once its hold expires. That
-    // also cancels its Stripe PaymentIntent, so a late success can never arrive in the first
-    // place. Remove this check once that sweeper exists.
+    // Backstop: the hold is time-boxed, so a late Stripe webhook can arrive after another booking
+    // took the same dates. Remove once a sweeper cancels expired PENDING transactions.
     const conflicting = await prisma.booking.findFirst({
         where: {
             id: { not: booking.id },
@@ -75,10 +65,8 @@ export async function cabinBookingPaymentCompletionHook(
                 bypassAuth: true,
             })
         } else {
-            // A guest booking has no session and no ledger account to credit. This needs a
-            // human to issue an actual Stripe refund. Uses the ambient prisma, not the default
-            // top-level client, so the review commits together with the booking cancellation
-            // above - if this transaction ever rolls back, the review shouldn't outlive it either.
+            // A guest has no ledger account, so a human must refund through Stripe. Uses the ambient
+            // prisma, so the review rolls back with the booking cancellation.
             await manualReviewOperations.create({
                 params: {
                     transactionId: transaction.id,

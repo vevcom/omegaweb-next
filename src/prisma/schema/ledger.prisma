@@ -88,10 +88,8 @@ model LedgerTransaction {
   payment       Payment? @relation("PaymentUsage", fields: [paymentId], references: [id])
   paymentId     Int?
 
-  // The payment this transaction is the one that successfully claimed, if any, which is the
-  // inverse of Payment.claimedBy. A transaction can have a `payment` without this ever being
-  // set, if it lost the race to use it, or never got far enough to try. See
-  // Payment.claimedByTransactionId.
+  // The payment this transaction claimed, if any (inverse of Payment.claimedBy). One that lost the
+  // race, or never tried, has a `payment` but no claim.
   claimsPayment Payment? @relation("PaymentClaim")
 
   // Relevant relations to other tables based on purpose. Not unique: a failed payment attempt
@@ -110,10 +108,7 @@ model LedgerTransaction {
   refundOf   Refund? @relation("RefundOriginal")
   refundedBy Refund? @relation("RefundCredit")
 
-  // Every time something outside this transaction's own state machine has needed a human to look
-  // at it, e.g. a Stripe dispute, an external refund, or a failed automatic reimbursement. A
-  // transaction can need this more than once over its life. See ManualTransactionReview and
-  // ledgerTransactionOperations.readNeedingAttention.
+  // Every time this transaction needed a human, e.g. a Stripe dispute. See ManualTransactionReview.
   manualReviews ManualTransactionReview[]
 
   // Present only for transactions migrated from OmegaWeb Basic (see LegacyLedgerTransaction).
@@ -130,13 +125,9 @@ enum RefundType {
   REIMBURSEMENT
 }
 
-// Records that refundTransaction, a REFUND transaction, corrects originalTransaction, an
-// earlier one. For example, a Stripe charge succeeded after the local payment was canceled, an
-// account was frozen after Stripe had already captured the money, or someone unregistered from
-// a paid event. This is kept deliberately thin. The money movement itself is just another
-// LedgerTransaction, purpose REFUND. This model only records why, which two transactions it
-// connects, and what type of correction it was. A transaction may be corrected once, in full.
-// See LedgerTransaction.refundOf.
+// Links a REFUND transaction to the earlier transaction it corrects, e.g. a Stripe charge that
+// succeeded after the local payment was canceled. The money moves in the REFUND transaction;
+// this only records why. A transaction may be corrected once, in full.
 model Refund {
   id                    Int               @id @default(autoincrement())
   originalTransaction   LedgerTransaction @relation("RefundOriginal", fields: [originalTransactionId], references: [id])
@@ -154,12 +145,8 @@ enum ManualReviewState {
   RESOLVED
 }
 
-// Records that a transaction needed a human to look at it - a Stripe dispute, an external
-// refund, or a failed automatic reimbursement, none of which this codebase can resolve on its
-// own. One-to-many from LedgerTransaction rather than a single field on it, since a transaction
-// can need review more than once over its life (it fails, gets resolved, then fails again later
-// for an unrelated reason). See ledgerTransactionOperations.readNeedingAttention and
-// resolveManualReview.
+// A transaction needing a human: a Stripe dispute, an external refund or a failed automatic
+// reimbursement. A transaction can need review more than once.
 model ManualTransactionReview {
   id                    Int               @id @default(autoincrement())
   transaction           LedgerTransaction @relation(fields: [transactionId], references: [id])
@@ -268,10 +255,8 @@ model Payment {
   stripePayment    StripePayment?
   manualPayment    ManualPayment?
 
-  // Every transaction ever created against this payment, normally exactly one. A transaction
-  // whose entries never took effect, because it ended FAILED or CANCELED, leaves this payment's
-  // funds unclaimed, so a later reimbursement can reference the same payment again instead of
-  // inventing a second one. At most one of these may ever reach SUCCEEDED. See
+  // Every transaction created against this payment, normally one. A FAILED or CANCELED one leaves the
+  // funds unclaimed, so a reimbursement can reuse the payment. At most one may succeed, see
   // claimedByTransactionId.
   ledgerTransactions LedgerTransaction[] @relation("PaymentUsage")
 

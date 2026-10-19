@@ -7,10 +7,8 @@ import logger from '@/lib/logger'
 
 export const manualReviewOperations = {
     /**
-     * Flags a transaction for a human to look at: logs "MANUAL ADMIN ACTION REQUIRED!" and
-     * records a ManualTransactionReview row. Never throws, even if the write itself fails -
-     * every real caller is already in a best-effort path (a payment hook, a webhook handler)
-     * that must not fail because of this.
+     * Flags a transaction for a human: logs "MANUAL ADMIN ACTION REQUIRED!" and records a
+     * ManualTransactionReview. Never throws, since every caller is a best-effort path.
      */
     create: defineOperation({
         authorizer: () => manualReviewAuth.create,

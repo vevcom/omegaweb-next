@@ -319,12 +319,8 @@ export const ledgerTransactionOperations = {
                 }
             }
 
-            // Lock the accounts this transaction debits before reading their balance below, so a
-            // concurrent advance() on the same account waits its turn instead of racing: both
-            // would otherwise compute their balance from the same committed state and could both
-            // conclude there's enough left. Sorted ascending so two transactions that debit the
-            // same two accounts always lock them in the same order, avoiding a deadlock. Credit-only
-            // entries never need this - crediting an account can't make its balance insufficient.
+            // Lock the debited accounts before reading their balance, so concurrent advance() calls can't
+            // both see enough funds. Sorted to avoid deadlocks; credits can't overdraw an account.
             const debitLedgerAccountIds = Array.from(new Set(transaction.ledgerEntries
                 .filter(entry => entry.funds < 0 || (entry.fees ?? 0) < 0)
                 .map(entry => entry.ledgerAccountId)))
@@ -338,12 +334,8 @@ export const ledgerTransactionOperations = {
                 `
             }
 
-            // Live, unbounded balance, same as create()'s own pre-check below uses - not filtered
-            // to entries up to this transaction's own id. This transaction may have been created
-            // before another debit on the same account that has since reached SUCCEEDED with a
-            // higher id (e.g. it sat PENDING far longer, waiting on a slow Stripe checkout); that
-            // debit has already really happened and must count here regardless of id order, or
-            // this check would wrongly see enough balance and let the account go negative.
+            // Live balance, not limited to entries before this id: a later debit that already SUCCEEDED
+            // (e.g. while this one sat on a slow checkout) must count too.
             const balances = transaction.ledgerEntries.length > 0
                 ? await ledgerAccountOperations.calculateBalances({
                     params: {
@@ -366,17 +358,9 @@ export const ledgerTransactionOperations = {
 
             let transition = await determineTransactionState({ transaction, balances, frozenAccountIds })
 
-            // A payment may be shared by more than one transaction, see Payment.ledgerTransactions,
-            // but only one of them may ever succeed with it. Claim it atomically here, the moment
-            // this transaction is about to become the one. `transaction.state` is still the state
-            // from the read at the top of this function, so this only runs on the call that's
-            // actually driving a fresh PENDING -> SUCCEEDED transition, never on a retry of an
-            // already-terminal transaction. The lock above already serializes two concurrent
-            // advance() calls for this same transaction (e.g. a duplicate webhook delivery), but
-            // the `where` below still has to recognize a retry of this transaction's own already-
-            // successful claim as success too, not a loss - otherwise the second call, now running
-            // after the first already committed, would see claimedByTransactionId === params.id
-            // (its own id, not null) and wrongly fail a transaction that already succeeded.
+            // Only one transaction may succeed with a payment, so claim it atomically on a fresh PENDING ->
+            // SUCCEEDED transition. The `where` also accepts this transaction's own earlier claim, so a
+            // serialized retry (e.g. a duplicate webhook) doesn't fail.
             if (transaction.state === 'PENDING' && transition.state === 'SUCCEEDED' && transaction.payment) {
                 const { count: claimed } = await prisma.payment.updateMany({
                     where: {
@@ -405,14 +389,8 @@ export const ledgerTransactionOperations = {
                 bypassAuth: true,
             })
 
-            // This call claimed the payment above on the assumption it was driving the
-            // transition, but a concurrent cancel() can still have committed a terminal state
-            // (e.g. CANCELED) between that claim and the guarded updateMany just above - count
-            // is then 0 and the claim is left pointing at a transaction that never actually
-            // succeeded, orphaned: refundLateStripeSuccess and reimburseUnappliedPayment both see
-            // a non-null claim and refuse to act, so the captured money would never get credited
-            // to anyone. Release it, scoped to this call's own id so it can't clear a claim this
-            // call never actually held.
+            // A concurrent cancel() can commit between our claim and the update above (count 0), orphaning
+            // the claim so no reimbursement would ever run. Release it, if it is ours.
             if (count === 0 && transaction.state !== 'SUCCEEDED' && transaction.paymentId !== null) {
                 await prisma.payment.updateMany({
                     where: { id: transaction.paymentId, claimedByTransactionId: params.id },

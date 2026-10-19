@@ -21,10 +21,7 @@ describe('runPaymentCompletionHook', () => {
                     { prisma: tx }
                 )
 
-                // Read through the same, still-open transaction: already visible to it, before
-                // the outer transaction here has committed. A write through a separate
-                // connection would never reach this point - it would still be stuck waiting for
-                // this very transaction to commit.
+                // Read through the still-open transaction; a separate connection would block until it commits.
                 return tx.manualTransactionReview.findFirst({ where: { transactionId: transaction.id } })
             })
 

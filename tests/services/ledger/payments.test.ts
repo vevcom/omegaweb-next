@@ -874,10 +874,8 @@ describe("advance()'s balance check sees debits regardless of transaction id ord
         const sink = await createAccount('balanceorderingsink')
         await createSucceededDeposit(account.id, DEPOSIT)
 
-        // Both inserted directly as PENDING, bypassing create()'s own pre-check - simulating two
-        // concurrent requests that each read the account's balance before the other's row
-        // existed, exactly the race advance()'s own account lock exists to resolve correctly
-        // once it finally runs for each of them.
+        // Inserted as PENDING directly, skipping create()'s pre-check, to simulate two concurrent
+        // requests that advance()'s account lock must resolve.
         const transfer = (funds: number) => prisma.ledgerTransaction.create({
             data: {
                 purpose: 'CABIN_BOOKING',
