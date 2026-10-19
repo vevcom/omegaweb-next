@@ -17,6 +17,7 @@ import { Theme, lightThemes, themeCssVars, themes } from '@/lib/theme'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
 import GlobalSearch from '@/UI/GlobalSearch'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
+import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import { visibleNavItems } from '@/components/NavBar/navDef'
 import NavBar from '@/components/NavBar/NavBar'
 import { Inter } from 'next/font/google'
@@ -120,7 +121,12 @@ export default async function RootLayout({ children }: PropTypes) {
                                                         <DesktopSideBar navItems={navItems} />
                                                     </aside>
                                                     <main className={styles.content}>
-                                                        {children}
+                                                        <ScrollArea
+                                                            className={styles.contentScroll}
+                                                            scrollerClassName={styles.contentScroller}
+                                                        >
+                                                            {children}
+                                                        </ScrollArea>
                                                     </main>
                                                     <div className={styles.mobileNavBar}>
                                                         <MobileNavBar
