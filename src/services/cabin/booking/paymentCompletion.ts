@@ -1,4 +1,8 @@
 import { sendCabinBookingConfirmationMail } from '@/lib/email/systemMail/cabinBookingConfirmation'
+import { refundOperations } from '@/services/ledger/refunds/operations'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { blocksCalendar } from '@/services/cabin/booking/operations'
+import { manualReviewOperations } from '@/services/ledger/transactions/manualReviews/operations'
 import type { ConfirmedBooking } from '@/lib/email/systemMail/cabinBookingConfirmation'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -20,13 +24,8 @@ export async function sendBookingConfirmation(
 }
 
 /**
- * Registered under CABIN_BOOKING in ledger/transactions/paymentCompletionHooks.ts, so
- * ledgerTransactionOperations.advance calls this the moment a cabin booking's transaction
- * actually reaches SUCCEEDED - whether that happens synchronously (a MANUAL or balance-only
- * payment, from cabinBookingOperations.createPayment) or asynchronously (a STRIPE payment,
- * confirmed later via the webhook). This is the one place that reacts to the booking's payment
- * succeeding: it clears the reservation window (the booking now blocks the calendar
- * unconditionally instead of expiring) and sends the confirmation.
+ * Runs when a cabin booking's transaction reaches SUCCEEDED (see paymentCompletionHooks.ts), either
+ * synchronously or from the Stripe webhook. Clears the reservation window and sends the confirmation.
  */
 export async function cabinBookingPaymentCompletionHook(
     transaction: ExpandedLedgerTransaction,
@@ -34,7 +33,54 @@ export async function cabinBookingPaymentCompletionHook(
 ): Promise<void> {
     if (transaction.bookingId === null) return
 
-    const booking = await prisma.booking.update({
+    const booking = await prisma.booking.findUniqueOrThrow({ where: { id: transaction.bookingId } })
+
+    // Backstop: the hold is time-boxed, so a late Stripe webhook can arrive after another booking
+    // took the same dates. Remove once a sweeper cancels expired PENDING transactions.
+    const conflicting = await prisma.booking.findFirst({
+        where: {
+            id: { not: booking.id },
+            start: { lt: booking.end },
+            end: { gt: booking.start },
+            ...blocksCalendar(),
+        },
+    })
+
+    if (conflicting) {
+        await prisma.booking.update({ where: { id: booking.id }, data: { canceled: new Date() } })
+
+        if (booking.userId) {
+            const payerAccount = await ledgerAccountOperations.read({
+                params: { userId: booking.userId },
+                bypassAuth: true,
+                prisma,
+            })
+            await refundOperations.reverseTransaction({
+                params: {
+                    originalTransactionId: transaction.id,
+                    reason: 'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk.',
+                    refundTo: [{ ledgerAccountId: payerAccount.id }],
+                },
+                prisma,
+                bypassAuth: true,
+            })
+        } else {
+            // A guest has no ledger account, so a human must refund through Stripe. Uses the ambient
+            // prisma, so the review rolls back with the booking cancellation.
+            await manualReviewOperations.create({
+                params: {
+                    transactionId: transaction.id,
+                    problemDescription: 'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk for '
+                        + `booking ${booking.id}, men gjesten har ingen konto å refundere til automatisk.`,
+                },
+                prisma,
+                bypassAuth: true,
+            })
+        }
+        return
+    }
+
+    const confirmedBooking = await prisma.booking.update({
         where: { id: transaction.bookingId },
         data: { transactionTimeout: null },
         include: {
@@ -43,5 +89,5 @@ export async function cabinBookingPaymentCompletionHook(
         },
     })
 
-    await sendBookingConfirmation(booking)
+    await sendBookingConfirmation(confirmedBooking)
 }

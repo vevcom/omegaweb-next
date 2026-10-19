@@ -1,10 +1,12 @@
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
+import { stripe } from '@/lib/stripe'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { userOperations } from '@/services/users/operations'
-import { beforeAll, describe, expect, test } from '@jest/globals'
+import { afterEach, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { UserFiltered } from '@/services/users/types'
 
@@ -119,6 +121,56 @@ const readOfUser = (user: UserFiltered, eventId: number) => eventRegistrationOpe
 const countRegistrations = (eventId: number, user?: UserFiltered) => prisma.eventRegistration.count({
     where: { eventId, userId: user?.id },
 })
+
+/** A committee with a linked ledger account, to host a paid event's payments. */
+async function createCommittee(shortName: string) {
+    const committee = await prisma.committee.create({
+        data: {
+            name: shortName,
+            shortName,
+            group: { create: { groupType: 'COMMITTEE', order: currentOrder } },
+            committeeArticle: { create: { name: shortName, coverImage: { create: {} } } },
+            paragraph: { create: {} },
+        },
+    })
+    const ledgerAccount = await prisma.ledgerAccount.create({
+        data: { type: 'GROUP', name: shortName, groups: { create: { groupId: committee.groupId } } },
+    })
+    return { committeeId: committee.id, ledgerAccountId: ledgerAccount.id }
+}
+
+/** A paid event, open for registration and payment right now, hosted by a committee. */
+async function createPaidEvent({ committeeId, ledgerAccountId }: { committeeId: number, ledgerAccountId: number }) {
+    const event = await eventOperations.create({
+        data: {
+            name: 'Betalt testarrangement',
+            location: 'Lophtet',
+            eventStart: new Date(Date.now() + 7 * 24 * HOUR),
+            eventEnd: new Date(Date.now() + 7 * 24 * HOUR + 2 * HOUR),
+            canBeViewedBy: 'ALL',
+            hostedByCommitteeId: committeeId,
+            takesRegistration: true,
+            places: 10,
+            waitingList: false,
+            registrationStart: new Date(Date.now() - HOUR),
+            registrationEnd: new Date(Date.now() + 24 * HOUR),
+            price: 50,
+            paymentStart: new Date(Date.now() - HOUR),
+            paymentEnd: new Date(Date.now() + 24 * HOUR),
+            tagIds: [],
+            visibilityRegularRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] }],
+            visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] }],
+        },
+        bypassAuth: true,
+    })
+    await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
+    await eventOperations.connectToLedger({
+        params: { id: event.id },
+        data: { ledgerAccountId },
+        bypassAuth: true,
+    })
+    return event.id
+}
 
 beforeAll(async () => {
     currentOrder = (await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })).order
@@ -336,5 +388,197 @@ describe('unregistering from an event', () => {
 
         await unregister(registration.id, organiserSessionOf(organiser))
         expect(await countRegistrations(eventId, user)).toBe(0)
+    })
+})
+
+/** createPayment's own paymentOperations.create call isn't bypassed, so it re-checks the caller's
+ * actual session - LEDGER_USE is needed on top of whatever else lets the call through. */
+const payerSessionOf = (user: UserFiltered) => Session.fromJsObject({
+    user, permissions: ['LEDGER_USE'], memberships: sessionOf(user).memberships,
+})
+
+/** createPayment's authorizer needs the global EVENT_ADMIN, not the event's own admin level. */
+const eventAdminSessionOf = (user: UserFiltered) => Session.fromJsObject({
+    user, permissions: ['EVENT_ADMIN', 'LEDGER_USE'], memberships: [],
+})
+
+describe('paying for an event, replacing an admin-parked attempt', () => {
+    let intentCount = 0
+
+    beforeEach(() => {
+        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => {
+            intentCount += 1
+            return { id: `pi_test_${intentCount}`, client_secret: `pi_test_${intentCount}_secret` } as never
+        })
+        jest.spyOn(stripe.paymentIntents, 'cancel').mockResolvedValue({} as never)
+        jest.spyOn(stripe.customers, 'create').mockImplementation(async () => (
+            { id: `cus_test_${intentCount}` } as never
+        ))
+    })
+
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
+    test('the registrant may replace an attempt an admin started on their behalf immediately', async () => {
+        const committee = await createCommittee('payment-committee')
+        const eventId = await createPaidEvent(committee)
+        const registrant = await createTestUser('paymentregistrant')
+        const admin = await createTestUser('paymentregistrantadmin')
+        const registration = await register(registrant, eventId)
+
+        // The admin parks an attempt on the registrant's behalf - this is exactly the shape that
+        // used to block the registrant themselves for up to 30 minutes.
+        const { payment: adminAttempt } = await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: eventAdminSessionOf(admin),
+        })
+
+        // The registrant themselves, calling right away (no 30-minute wait), replaces it instead
+        // of being told a payment is already under way.
+        await expect(eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: payerSessionOf(registrant),
+        })).resolves.toBeDefined()
+
+        const liveAttempts = await prisma.ledgerTransaction.findMany({
+            where: { eventRegistrationId: registration.id, state: { in: ['PENDING', 'SUCCEEDED'] } },
+        })
+        expect(liveAttempts).toHaveLength(1)
+        expect(liveAttempts[0].paymentId).not.toBe(adminAttempt?.id)
+    })
+
+    test('someone other than the registrant still has to wait out the staleness window', async () => {
+        const committee = await createCommittee('payment-committee-2')
+        const eventId = await createPaidEvent(committee)
+        const registrant = await createTestUser('paymentregistrant2')
+        const admin = await createTestUser('paymentregistrantadmin2')
+        await register(registrant, eventId)
+
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: payerSessionOf(registrant),
+        })
+
+        await expect(eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: eventAdminSessionOf(admin),
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.'))
+    })
+})
+
+/** paymentOperations.create's own MANUAL branch isn't bypassed either, and MANUAL requires
+ * LEDGER_ADMIN on top of LEDGER_USE. */
+const manualPayerSessionOf = (user: UserFiltered) => Session.fromJsObject({
+    user, permissions: ['LEDGER_USE', 'LEDGER_ADMIN'], memberships: sessionOf(user).memberships,
+})
+
+describe('unregistering from a paid event', () => {
+    beforeEach(() => {
+        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => (
+            { id: 'pi_test_unregister', client_secret: 'pi_test_unregister_secret' } as never
+        ))
+        jest.spyOn(stripe.paymentIntents, 'cancel').mockResolvedValue({} as never)
+        jest.spyOn(stripe.customers, 'create').mockResolvedValue({ id: 'cus_test_unregister' } as never)
+    })
+
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
+    test('unregistering after a successful payment reverses it', async () => {
+        const committee = await createCommittee('payment-reverse-committee')
+        const eventId = await createPaidEvent(committee)
+        const registrant = await createTestUser('paymentreverseuser')
+        const registration = await register(registrant, eventId)
+
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'MANUAL', manualFees: 0 },
+            session: manualPayerSessionOf(registrant),
+        })
+        const [paidTransaction] = await prisma.ledgerTransaction.findMany({
+            where: { eventRegistrationId: registration.id },
+        })
+        expect(paidTransaction.state).toBe('SUCCEEDED')
+
+        await unregister(registration.id, sessionOf(registrant))
+
+        expect(await countRegistrations(eventId, registrant)).toBe(0)
+        await expect(prisma.ledgerTransaction.findUniqueOrThrow({ where: { id: paidTransaction.id } }))
+            .resolves.toMatchObject({ state: 'SUCCEEDED', eventRegistrationId: null })
+        await expect(prisma.refund.findUnique({ where: { originalTransactionId: paidTransaction.id } }))
+            .resolves.toMatchObject({ type: 'REVERSAL' })
+
+        const registrantAccount = await ledgerAccountOperations.read({
+            params: { userId: registrant.id },
+            bypassAuth: true,
+        })
+        expect(await ledgerAccountOperations.calculateBalance({
+            params: { ledgerAccountId: registrantAccount.id },
+            bypassAuth: true,
+        })).toMatchObject({ amount: 50_00 })
+        expect(await ledgerAccountOperations.calculateBalance({
+            params: { ledgerAccountId: committee.ledgerAccountId },
+            bypassAuth: true,
+        })).toMatchObject({ amount: 0 })
+    })
+
+    test('unregistering while a payment is still processing cancels it instead', async () => {
+        const committee = await createCommittee('payment-cancel-committee')
+        const eventId = await createPaidEvent(committee)
+        const registrant = await createTestUser('paymentcanceluser')
+        const registration = await register(registrant, eventId)
+
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: payerSessionOf(registrant),
+        })
+        const [pendingTransaction] = await prisma.ledgerTransaction.findMany({
+            where: { eventRegistrationId: registration.id },
+        })
+        expect(pendingTransaction.state).toBe('PENDING')
+
+        await unregister(registration.id, sessionOf(registrant))
+
+        expect(stripe.paymentIntents.cancel).toHaveBeenCalled()
+        expect(await countRegistrations(eventId, registrant)).toBe(0)
+        await expect(prisma.ledgerTransaction.findUniqueOrThrow({ where: { id: pendingTransaction.id } }))
+            .resolves.toMatchObject({ state: 'CANCELED', eventRegistrationId: null })
+    })
+
+    test('a cancel failure unrelated to the payment already succeeding surfaces as itself', async () => {
+        const committee = await createCommittee('payment-cancel-fails-committee')
+        const eventId = await createPaidEvent(committee)
+        const registrant = await createTestUser('paymentcancelfailsuser')
+        const registration = await register(registrant, eventId)
+
+        // Distinct ids, so the two STRIPE payments here don't collide on unique constraints.
+        jest.spyOn(stripe.customers, 'create').mockResolvedValue({ id: 'cus_test_unregister_fails' } as never)
+        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => (
+            { id: 'pi_test_unregister_fails', client_secret: 'pi_test_unregister_fails_secret' } as never
+        ))
+
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: payerSessionOf(registrant),
+        })
+        const [pendingTransaction] = await prisma.ledgerTransaction.findMany({
+            where: { eventRegistrationId: registration.id },
+        })
+        expect(pendingTransaction.state).toBe('PENDING')
+
+        // Cancel fails for a reason that has nothing to do with the payment having already
+        // succeeded (e.g. a Stripe outage) - the intent is still open, not succeeded or canceled.
+        jest.spyOn(stripe.paymentIntents, 'cancel').mockRejectedValue(new Error('Stripe is down'))
+        jest.spyOn(stripe.paymentIntents, 'retrieve').mockResolvedValue(
+            { status: 'requires_payment_method' } as never
+        )
+
+        await expect(unregister(registration.id, sessionOf(registrant)))
+            .rejects.toThrow(new Smorekopp('SERVER ERROR'))
+
+        expect(await countRegistrations(eventId, registrant)).toBe(1)
+        await expect(prisma.ledgerTransaction.findUniqueOrThrow({ where: { id: pendingTransaction.id } }))
+            .resolves.toMatchObject({ state: 'PENDING', eventRegistrationId: registration.id })
     })
 })

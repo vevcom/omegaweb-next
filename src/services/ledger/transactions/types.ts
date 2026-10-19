@@ -5,12 +5,20 @@ export type ExpandedLedgerTransaction = Prisma.LedgerTransactionGetPayload<{
         ledgerEntries: true,
         payment: {
             include: {
-                stripePayment: true,
+                // Never clientSecret/paymentIntentId: both sides can read this. The payer gets
+                // the clientSecret from ExpandedPayment instead.
+                stripePayment: { select: { createdAt: true, updatedAt: true } },
                 manualPayment: true,
             },
         },
         booking: {
-            include: {
+            // Never secret, notes, tenantNotes, userId or guestUserId: both sides can read this.
+            select: {
+                start: true,
+                end: true,
+                numberOfMembers: true,
+                numberOfNonMembers: true,
+                totalPrice: true,
                 event: { select: { name: true } },
             },
         },

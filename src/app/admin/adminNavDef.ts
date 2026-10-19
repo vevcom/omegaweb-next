@@ -22,6 +22,7 @@ import { cabinReleasePeriodAuth } from '@/services/cabin/releasePeriod/auth'
 import { cabinProductAuth } from '@/services/cabin/product/auth'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
+import { manualReviewAuth } from '@/services/ledger/transactions/manualReviews/auth'
 import { promoAuth } from '@/services/promo/auth'
 import { licenseAuth } from '@/services/licenses/auth'
 import { flairAuth } from '@/services/flairs/auth'
@@ -264,6 +265,11 @@ export const adminNavDef: AdminNavGroup[] = [
                 title: 'Kontoer',
                 path: 'accounts',
                 authorizers: () => [ledgerAccountAuth.readPage],
+            },
+            {
+                title: 'Trenger oppfølging',
+                path: 'ledger-review',
+                authorizers: () => [manualReviewAuth.readOpen],
             },
         ],
     },

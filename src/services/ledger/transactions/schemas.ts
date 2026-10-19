@@ -28,6 +28,7 @@ export const ledgerTransactionSchemas = {
     params: {
         read: transaction,
         cancel: transaction,
+        initiate: transaction,
         readPage: readPageInputSchemaObject(
             paramsFieldSchemas.pick({
                 id: true,

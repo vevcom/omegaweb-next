@@ -1,5 +1,6 @@
 import { userBasicSelection, userCardSelection } from '@/services/users/constants'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
+import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 export const eventRegistrationSelection = {
@@ -39,6 +40,10 @@ export const eventRegistrationSelectionDetailed = {
         },
     },
     contact: true,
+    ledgerTransactions: {
+        where: validTransactionFilter,
+        select: { id: true },
+    },
 } satisfies Prisma.EventRegistrationSelect
 
 /**
