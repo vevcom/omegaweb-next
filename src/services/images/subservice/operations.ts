@@ -237,7 +237,7 @@ export const imageOperations = {
     /**
      * Produces the real avif variants for an already-uploaded image.
      * See createRasterVariants for which tiers get skipped.
-     * Called by the background worker container (src/lib/images/worker.ts), never directly from a request.
+     * Called by the background worker container (src/workers/definitions.ts), never directly from a request.
      */
     processImageVariants: defineSubOperation({
         paramsSchema: () => imageSchemas.params.processImageVariants,

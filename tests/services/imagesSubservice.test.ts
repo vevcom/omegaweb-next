@@ -1,11 +1,13 @@
 import '@pn-server-only'
 import { prisma } from '@/prisma-pn-client-instance'
 import { imageOperations } from '@/services/images/subservice/operations'
+import { imageStore, referencedImageFiles } from '@/services/images/subservice/imageFiles'
+import { createOrphanDestroyer } from '@/lib/store/orphanDestroyer'
 import { allowedExtensions } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { imageSourceForResolution, srcSetForImage } from '@/lib/images/imageSource'
 import { beforeEach, describe, expect, test } from '@jest/globals'
-import { access, unlink } from 'fs/promises'
+import { access, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { File } from 'node:buffer'
 
@@ -250,5 +252,67 @@ describe('destroyCollection', () => {
 
         expect(await prisma.imageCollection.findUnique({ where: { id: collectionId } })).not.toBeNull()
         await expectFilesExist(image.allFsLocations, true)
+    })
+})
+
+describe('referencedImageFiles', () => {
+    test('knows the original and every variant of an image, and nothing else', async () => {
+        const image = await uploadAndProcessImage('Referenced Image')
+        const unknown = `unknown-${Date.now()}.png`
+
+        const referenced = await referencedImageFiles(prisma, [...image.allFsLocations, unknown])
+
+        expect(Array.from(referenced).sort()).toEqual([...image.allFsLocations].sort())
+    })
+})
+
+describe('createOrphanDestroyer', () => {
+    const hourMs = 60 * 60 * 1000
+    const dayMs = 24 * hourMs
+
+    /**
+     * The store is shared with the test files running alongside this one, and a run at a time a
+     * day ahead would take their files for confirmed orphans too - so only the files a test writes
+     * itself are ever unreferenced here.
+     */
+    function orphanDestroyerOfOwnFiles(ownFiles: string[], state: { referenced: Set<string> }) {
+        return createOrphanDestroyer(imageStore, {
+            confirmAfterMs: dayMs,
+            context: 'the image store',
+            referenced: fsLocations => new Set(fsLocations.filter(
+                fsLocation => !ownFiles.includes(fsLocation) || state.referenced.has(fsLocation)
+            )),
+        })
+    }
+
+    async function writeOwnFiles(...names: string[]) {
+        const fsLocations = names.map(name => `${name}-${Date.now()}.png`)
+        await Promise.all(fsLocations.map(fsLocation => writeFile(storePath(fsLocation), pngBuffer)))
+        return fsLocations
+    }
+
+    async function removeLeftovers(fsLocations: string[]) {
+        await Promise.all(fsLocations.map(fsLocation => unlink(storePath(fsLocation)).catch(() => undefined)))
+    }
+
+    test('destroys a file only once it has been unreferenced on every run for the whole delay', async () => {
+        const [orphan, seededLater] = await writeOwnFiles('orphan', 'seeded-later')
+        const state = { referenced: new Set<string>() }
+        const destroyOrphans = orphanDestroyerOfOwnFiles([orphan, seededLater], state)
+        const start = Date.now()
+
+        expect(await destroyOrphans(start)).toBe(0)
+
+        // A row for it turns up between two runs, as it would once seeding gets to it.
+        state.referenced.add(seededLater)
+        expect(await destroyOrphans(start + 12 * hourMs)).toBe(0)
+        state.referenced.delete(seededLater)
+
+        expect(await destroyOrphans(start + dayMs)).toBe(1)
+        expect(await fileExists(orphan)).toBe(false)
+        // Unreferenced again, but only since the last run - its wait starts over.
+        expect(await fileExists(seededLater)).toBe(true)
+
+        await removeLeftovers([orphan, seededLater])
     })
 })

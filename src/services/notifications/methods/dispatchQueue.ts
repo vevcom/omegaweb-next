@@ -68,10 +68,13 @@ function claimNextPushNotification() {
 }
 
 /**
+ * Claims one notification that has not been emailed yet and emails it. Run by the notification
+ * worker (src/workers/definitions.ts).
+ *
  * @returns whether a notification was claimed and dispatched - if so there may be more waiting,
- * so the loop should come straight back rather than sleeping.
+ * so the caller should come straight back rather than waiting.
  */
-async function dispatchNextEmailNotification(): Promise<boolean> {
+export async function dispatchNextEmailNotification(): Promise<boolean> {
     const notificationId = await claimNextEmailNotification()
     if (notificationId === null) return false
 
@@ -82,7 +85,14 @@ async function dispatchNextEmailNotification(): Promise<boolean> {
     return true
 }
 
-async function dispatchNextPushNotification(): Promise<boolean> {
+/**
+ * Claims one notification that has not been pushed yet and pushes it, unless push is not
+ * configured. Run by the notification worker (src/workers/definitions.ts).
+ *
+ * @returns whether a notification was claimed and dispatched - if so there may be more waiting,
+ * so the caller should come straight back rather than waiting.
+ */
+export async function dispatchNextPushNotification(): Promise<boolean> {
     if (!pushIsConfigured) return false
 
     const notificationId = await claimNextPushNotification()
@@ -96,12 +106,15 @@ async function dispatchNextPushNotification(): Promise<boolean> {
 }
 
 /**
+ * Sends the weekly digest mails that are due. Run by the notification worker
+ * (src/workers/definitions.ts) whenever it has no immediate emails or pushes left to send.
+ *
  * On the digest day, materializes the weekly outbox for everything created before the start of
  * that day (in Oslo time) - the cutoff is what makes repeated materializations harmless, and
  * notifications created during the day itself wait for the next digest. The outbox is then
- * drained whenever it has entries, which also retries digests that failed on an earlier tick.
+ * drained whenever it has entries, which also retries digests that failed on an earlier run.
  */
-async function weeklyTick() {
+export async function sendDueWeeklyDigests() {
     const nowInOslo = DateTime.now().setZone('Europe/Oslo')
     if (nowInOslo.weekday === weeklyDigest.osloWeekday) {
         await notificationMethodOperations.materializeWeeklyOutbox.internalCall({
@@ -115,30 +128,4 @@ async function weeklyTick() {
     if (result.digests > 0 || result.failed > 0) {
         logger.info(`Notification worker sent ${result.digests} weekly digests (${result.failed} failed)`)
     }
-}
-
-async function withErrorsLogged<Result>(task: string, run: () => Promise<Result>, fallback: Result) {
-    try {
-        return await run()
-    } catch (error) {
-        logger.error(`Notification worker ${task} failed: ${error}`)
-        return fallback
-    }
-}
-
-/**
- * The notification worker's tick (src/workers/notifications.ts): dispatches one undispatched
- * notification by email and one by push, or, when there is none, sends the weekly digest mails that
- * are due. Each method fails on its own, so a mail server that is down does not hold back the pushes.
- *
- * @returns whether a notification was dispatched - if so there may be more waiting.
- */
-export async function notificationWorkerTick(): Promise<boolean> {
-    const [emailed, pushed] = await Promise.all([
-        withErrorsLogged('email dispatch', dispatchNextEmailNotification, false),
-        withErrorsLogged('push dispatch', dispatchNextPushNotification, false),
-    ])
-    if (emailed || pushed) return true
-    await weeklyTick()
-    return false
 }

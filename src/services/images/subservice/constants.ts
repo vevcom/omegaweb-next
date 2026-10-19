@@ -41,7 +41,6 @@ export const imageSizes = {
 
 export const imageProcessing = {
     maxAttempts: 3,
-    pollIntervalMs: 2000,
     /**
      * How long a worker can take to process an image before its claim is considered stale and
      * another worker can pick it up. This is a safety valve for when a worker dies mid-processing,

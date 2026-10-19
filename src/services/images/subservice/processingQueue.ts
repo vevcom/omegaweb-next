@@ -5,8 +5,6 @@ import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-let stopping = false
-
 /**
  * Claims one unprocessed image, atomically, so concurrent workers never pick the same row.
  * Images whose claim went stale (the process died mid-processing) become claimable again, and
@@ -44,10 +42,13 @@ async function claimNextImage(): Promise<number | null> {
 }
 
 /**
+ * Claims one image whose resized variants have not been produced yet and produces them. Run by the
+ * image worker (src/workers/definitions.ts).
+ *
  * @returns whether an image was claimed and processed - if so there may be more waiting, so the
- * loop should come straight back rather than sleeping.
+ * caller should come straight back rather than waiting.
  */
-async function processNextImage(): Promise<boolean> {
+export async function processNextImage(): Promise<boolean> {
     const imageId = await claimNextImage()
     if (imageId === null) return false
 
@@ -59,27 +60,4 @@ async function processNextImage(): Promise<boolean> {
     if (!result.success) logger.error(`Image processing worker failed to process image ${imageId}: ${result.error}`)
     else logger.info(`Image processing worker finished processing image ${imageId}`)
     return true
-}
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
-/**
- * Polls for images whose resized variants have not been produced yet and processes them one at a
- * time. Runs until stopImageProcessingWorker is called. Errors (including the database being
- * unreachable, e.g. while the schema is being reset in dev) are logged and retried on the next
- * tick rather than killing the loop.
- */
-export async function runImageProcessingWorker() {
-    while (!stopping) {
-        try {
-            if (await processNextImage()) continue
-        } catch (error) {
-            logger.error(`Image processing worker tick failed: ${error}`)
-        }
-        await sleep(imageProcessing.pollIntervalMs)
-    }
-}
-
-export function stopImageProcessingWorker() {
-    stopping = true
 }
