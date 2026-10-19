@@ -11,23 +11,19 @@ import PopUp from '@/components/PopUp/PopUp'
 import { configureAction } from '@/services/configureAction'
 import { ombulAuth } from '@/services/ombul/auth'
 import { serverPage } from '@/app/ServerPage'
+import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ yearAndName: string[] }>) => {
-        // Checked before decoding: a missing name segment would decode to the string 'undefined'.
         if (params.yearAndName.length !== 2) notFound()
-        const year = parseInt(decodeURIComponent(params.yearAndName[0]), 10)
-        const name = decodeURIComponent(params.yearAndName[1])
-        if (!year || !name) notFound()
 
         return ombulOperations.read({
             params: {
-                name,
-                year
-            }
+                id: decodeVevenUriHandleError(params.yearAndName[1]),
+            },
         })
     },
     capabilities: () => ({

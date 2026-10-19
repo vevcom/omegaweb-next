@@ -8,6 +8,7 @@ import { defineOperation } from '@/services/serviceOperation'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import logger from '@/lib/logger'
+import { formatVevenUri } from '@/lib/urlEncoding'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { File } from 'node:buffer'
 
@@ -17,13 +18,8 @@ export const ombulOperations = {
         paramsSchema: ombulSchemas.params.read,
         operation: ({ params, prisma }) =>
             prisma.ombul.findUniqueOrThrow({
-                where: typeof params.id === 'number' ? {
-                    id: params.id
-                } : {
-                    year_name: {
-                        name: params.name,
-                        year: params.year
-                    }
+                where: {
+                    id: params.id,
                 },
                 include: expandedOmbulIncluder,
             })
@@ -99,7 +95,7 @@ export const ombulOperations = {
                 data: {
                     title: 'Ny ombul',
                     message: `Ny ombul er ute! ${ombul.name}`,
-                    url: `/ombul/${ombul.year}/${encodeURIComponent(ombul.name)}`,
+                    url: `/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`,
                     audience: { permission: 'OMBUL_USE' },
                 },
             })
