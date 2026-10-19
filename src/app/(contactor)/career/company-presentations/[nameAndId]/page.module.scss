@@ -1,0 +1,43 @@
+@use '@/styles/ohma';
+
+// The description and the details side by side, the details wrapping below on a narrow screen.
+.layout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: calc(4 * #{ohma.$gap});
+    margin-bottom: calc(8 * #{ohma.$gap});
+
+    .description {
+        flex: 999 1 420px;
+        min-width: 0;
+        padding: calc(4 * #{ohma.$gap});
+        border-radius: ohma.$rounding;
+        background: ohma.$colors-surface-raised;
+    }
+
+    .coverImage {
+        margin-bottom: calc(4 * #{ohma.$gap});
+        border-radius: ohma.$rounding;
+        overflow: hidden;
+
+        img {
+            width: 100%;
+            max-height: 24rem;
+            object-fit: cover;
+        }
+    }
+
+    // On the page's surface-base background, the details stand out the way the description does.
+    .details {
+        flex: 1 1 380px;
+        background: ohma.$colors-surface-raised;
+    }
+
+    @include ohma.screenMobile {
+        .description,
+        .details {
+            flex-basis: 100%;
+        }
+    }
+}

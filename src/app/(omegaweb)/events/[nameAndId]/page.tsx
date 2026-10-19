@@ -1,16 +1,14 @@
 import styles from './page.module.scss'
 import ShowAndEditName from './ShowAndEditName'
-import RegistrationUI from './RegistrationUI'
 import RegistrationsList from './RegistrationsList'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import EventVisibilityAdmin from './EventVisibilityAdmin'
 import ConnectEventToLedgerForm from './ConnectEventToLedgerForm'
-import EventCompany from './EventCompany'
-import EventLocationMap from '@/components/Event/EventLocationMap'
-import Date from '@/components/Date/Date'
+import EventDetails from '@/components/Event/EventDetails'
+import EventDescription from '@/components/Event/EventDescription'
+import { eventRegistrationCapabilities, readEventRegistrationPageData } from '@/components/Event/eventPageData'
 import CreateOrUpdateEventForm from '@/app/(omegaweb)/events/CreateOrUpdateEventForm'
 import CmsImage from '@/components/Cms/CmsImage/CmsImage'
-import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
 import Form from '@/components/Form/Form'
 import EventTag from '@/components/Event/EventTag'
 import { SettingsHeaderItemPopUp, UsersHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
@@ -18,15 +16,9 @@ import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { companyOperations } from '@/services/career/companies/operations'
-import {
-    destroyEventAction,
-    updateEventCmsCoverImageAction,
-    updateEventParagraphContentAction
-} from '@/services/events/actions'
+import { destroyEventAction, updateEventCmsCoverImageAction } from '@/services/events/actions'
 import { eventOperations } from '@/services/events/operations'
-import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
-import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError, formatVevenUri } from '@/lib/urlEncoding'
 import { eventAuth } from '@/services/events/auth'
@@ -35,8 +27,6 @@ import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
-import { faCalendar, faExclamation, faLocationDot, faPeopleGroup, faUsers } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -75,40 +65,6 @@ const { page, generateMetadata } = serverPage({
         // without it there is no picker (null), rather than one that would clear the company.
         const companies = administers ? await withFallback(companyOperations.readAll({}), null) : null
 
-        // What the dots of the one visiting hold them back from - nothing to tell a visitor
-        // without a user, and nothing to hide either, as it is their own dots it is read from.
-        const dotPunishment = event.takesRegistration && session.user
-            ? await eventRegistrationOperations.readDotPunishmentOfUser({
-                params: { userId: session.user.id },
-            })
-            : null
-
-        // The registration of the one visiting, if they are registered - the same holds as for
-        // the dots.
-        const ownRegistration = event.takesRegistration && session.user
-            ? await eventRegistrationOperations.readOfUser({
-                params: { eventId: event.id, userId: session.user.id },
-            })
-            : null
-
-        // What paying for the event out of pocket would take: the visitor's balance, and a
-        // Stripe customer session for saved payment methods. Only relevant when the event is
-        // priced and the visitor can register at all.
-        let eventPaymentBalance: number | undefined
-        let eventPaymentCustomerSessionSecret: string | undefined
-
-        if (event.takesRegistration && event.price && session.user) {
-            eventPaymentBalance = (await ledgerAccountOperations.calculateBalance({
-                params: { userId: session.user.id },
-            })).amount
-
-            const customerSession = await withFallback(
-                stripeCustomerOperations.createSession({ params: { userId: session.user.id } }),
-                null
-            )
-            eventPaymentCustomerSessionSecret = customerSession?.customerSessionClientSecret
-        }
-
         return {
             event,
             tags,
@@ -116,10 +72,7 @@ const { page, generateMetadata } = serverPage({
             companies,
             doubleLevelVisibility,
             ledgerAccounts,
-            dotPunishment,
-            ownRegistration,
-            eventPaymentBalance,
-            eventPaymentCustomerSessionSecret,
+            registration: await readEventRegistrationPageData(event, session),
         }
     },
     capabilities: (data, session) => ({
@@ -149,9 +102,6 @@ const { page, generateMetadata } = serverPage({
         canReadRegistrationsDetailed: eventRegistrationAuth.readPageDetailed.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
-        canRegisterAsAdmin: eventRegistrationAuth.createAsAdmin.data({
-            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
-        }),
         canRegisterGuest: eventRegistrationAuth.createGuest.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
@@ -159,26 +109,11 @@ const { page, generateMetadata } = serverPage({
             userId: session.user.id,
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }) : Require.user(),
-        // Registering takes the regular level of the event (its admin level while it is a draft),
-        // for the session's own user.
-        canRegister: session.user ? eventRegistrationAuth.create.data({
-            userId: session.user.id,
-            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
-            published: data.event.published,
-        }) : Require.user(),
+        ...eventRegistrationCapabilities(data, session),
     }),
     metadata: (data) => ({ title: data.event.name }),
     render: ({ data, capabilities, session }) => {
-        const {
-            event,
-            tags,
-            committees,
-            companies,
-            doubleLevelVisibility,
-            ledgerAccounts,
-            dotPunishment,
-            ownRegistration,
-        } = data
+        const { event, tags, committees, companies, doubleLevelVisibility, ledgerAccounts, registration } = data
         const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
 
         return (
@@ -267,70 +202,17 @@ const { page, generateMetadata } = serverPage({
                         </SettingsHeaderItemPopUp>
                     </div>
                 </span>
-                <aside>
-                    <p>
-                        <FontAwesomeIcon icon={faCalendar} />
-                        <Date date={event.eventStart} includeTime /> - <Date date={event.eventEnd} includeTime />
-                    </p>
-                    <p>
-                        <FontAwesomeIcon icon={faLocationDot} />
-                        {event.location}
-                    </p>
-                    {event.company && <EventCompany company={event.company} />}
-                    {event.hostedByCommittee && <p>
-                        <FontAwesomeIcon icon={faPeopleGroup} />
-                        <span>
-                            Arrangeres av <Link href={`/committees/${event.hostedByCommittee.shortName}`}>
-                                {event.hostedByCommittee.name}
-                            </Link>
-                        </span>
-                    </p>}
-                    {event.takesRegistration ? <>
-                        <p>
-                            <FontAwesomeIcon icon={faUsers} />
-                            {event.numOfRegistrations} / {event.places}
-                        </p>
-                        <p>
-                            Påmelding start: <Date date={event.registrationStart} includeTime />
-                        </p>
-                        <p>
-                            Påmelding slutt: <Date date={event.registrationEnd} includeTime />
-                        </p>
-                        {event.waitingList && <p>
-                            På venteliste: {event.numOnWaitingList}
-                        </p>}
-                        <RegistrationUI
-                            event={event}
-                            registration={ownRegistration}
-                            dotPunishment={dotPunishment}
-                            availableBalance={data.eventPaymentBalance}
-                            customerSessionClientSecret={data.eventPaymentCustomerSessionSecret}
-                            capabilities={{
-                                canRegister: capabilities.canRegister.toJsObject(),
-                                canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
-                            }}
-                        />
-                    </> : <p>
-                        <FontAwesomeIcon icon={faExclamation} />
-                        Dette arrangementet tar ikke påmeldinger
-                    </p>}
-
-                </aside>
+                <EventDetails
+                    className={styles.details}
+                    event={event}
+                    {...registration}
+                    capabilities={{
+                        canRegister: capabilities.canRegister,
+                        canRegisterAsAdmin: capabilities.canRegisterAsAdmin,
+                    }}
+                />
                 <main>
-                    <CmsParagraph
-                        capabilities={{ canEdit: capabilities.canEditCmsParagraph }}
-                        cmsParagraph={event.paragraph}
-                        updateCmsParagraphAction={
-                            configureAction(
-                                updateEventParagraphContentAction,
-                                { implementationParams: { eventId: event.id } }
-                            )
-                        }
-                    />
-                    {event.locationMap && <section aria-label="Kart til arrangementet">
-                        <h2>Her finner du oss</h2>
-                        <EventLocationMap locationMap={event.locationMap} />
-                    </section>}
+                    <EventDescription event={event} capabilities={{ canEdit: capabilities.canEditCmsParagraph }} />
                 </main>
 
                 {event.takesRegistration && capabilities.canReadRegistrations.authorized && (

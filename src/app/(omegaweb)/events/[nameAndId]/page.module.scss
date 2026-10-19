@@ -70,30 +70,12 @@
         }
     }
 
-    >aside {
+    >.details {
         // Grows only to fill a line it has to itself. When the article still fits beside it the
         // article's far larger flex-grow takes practically all the free space, so the aside
         // holds its 650px; once the article wraps away, the aside is alone and stretches to the
         // full width instead of leaving dead space beside it.
         flex: 1 1 650px;
-        background: ohma.$colors-surface-base;
-        border-radius: ohma.$rounding;
-        padding: calc(4 * #{ohma.$gap}) calc(4 * #{ohma.$gap}) calc(1 * #{ohma.$gap});
-        display: flex;
-        flex-direction: column;
-        gap: calc(2 * #{ohma.$gap});
-
-        >p {
-            display: flex;
-            align-items: center;
-            gap: 1em;
-            font-size: ohma.$fonts-l;
-
-            svg {
-                width: 1.5em;
-                height: 1.5em;
-            }
-        }
     }
 
     >main {
@@ -122,7 +104,7 @@
             height: 14em;
         }
 
-        >aside,
+        >.details,
         >main {
             flex-basis: 100%;
         }

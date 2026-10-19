@@ -57,7 +57,7 @@ const { page, generateMetadata } = serverPage({
                     startPage={{ page: 0, pageSize: 12 }}
                     details={{ tags: tagNames, companyId: companyId ?? undefined, year: year ?? undefined }}
                 >
-                    <EventArchiveList />
+                    <EventArchiveList eventBasePath={contactorNavDef.companyPresentations.href} />
                 </EventArchivePagingProvider>
             </div>
         </>

@@ -1,0 +1,22 @@
+@use '@/styles/ohma';
+
+.EventDetails {
+    background: ohma.$colors-surface-base;
+    border-radius: ohma.$rounding;
+    padding: calc(4 * #{ohma.$gap}) calc(4 * #{ohma.$gap}) calc(1 * #{ohma.$gap});
+    display: flex;
+    flex-direction: column;
+    gap: calc(2 * #{ohma.$gap});
+
+    >p {
+        display: flex;
+        align-items: center;
+        gap: 1em;
+        font-size: ohma.$fonts-l;
+
+        svg {
+            width: 1.5em;
+            height: 1.5em;
+        }
+    }
+}

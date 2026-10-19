@@ -9,16 +9,18 @@ import type { EventExpanded } from '@/services/events/types'
 
 type PropTypes = {
     event: EventExpanded
+    /** Where the page of the event lives, the event's name and id appended: Omega's by default. */
+    basePath?: string
 }
 
 const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des']
 
 const twoDigitHour = (date: Date) => String(osloDateTime(date).hour).padStart(2, '0')
 
-export default function EventCard({ event }: PropTypes) {
+export default function EventCard({ event, basePath = '/events' }: PropTypes) {
     const attendanceRatio = event.places > 0 ? event.numOfRegistrations / event.places : 0
     const attendance = `${Math.max(0, Math.min(attendanceRatio, 1)) * 100}%`
-    const link = `/events/${formatVevenUri(`${event.name}`, event.id)}`
+    const link = `${basePath}/${formatVevenUri(`${event.name}`, event.id)}`
     const from = event.takesRegistration ? event.registrationStart : event.eventStart
     const to = event.takesRegistration ? event.registrationEnd : event.eventEnd
 

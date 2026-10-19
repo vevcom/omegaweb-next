@@ -31,7 +31,11 @@ const { page, generateMetadata } = serverPage({
             {companyPresentations.length ? (
                 <div className={styles.list}>
                     {companyPresentations.map(companyPresentation =>
-                        <EventCard key={companyPresentation.id} event={companyPresentation} />
+                        <EventCard
+                            key={companyPresentation.id}
+                            event={companyPresentation}
+                            basePath={contactorNavDef.companyPresentations.href}
+                        />
                     )}
                 </div>
             ) : (
