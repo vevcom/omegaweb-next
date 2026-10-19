@@ -7,6 +7,7 @@ import PopUpProvider from '@/contexts/PopUp'
 import ClientDataProvider from '@/contexts/ClientData'
 import { PageTitleProvider } from '@/contexts/PageTitle'
 import GlobalSearchProvider from '@/contexts/GlobalSearch'
+import NavMenuProvider from '@/contexts/NavMenu'
 import { permissionOperations } from '@/services/permissions/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { userOperations } from '@/services/users/operations'
@@ -106,27 +107,29 @@ export default async function RootLayout({ children }: PropTypes) {
                                 <PopUpProvider>
                                     <PageTitleProvider>
                                         <ReleaseCountdownGate>
-                                            <div className={styles.wrapper}>
-                                                <div className={styles.navBar}>
-                                                    <NavBar
-                                                        isLoggedIn={navUser !== null}
-                                                        profileImage={navUser?.image ?? null}
-                                                        navItems={navItems}
-                                                    />
+                                            <NavMenuProvider>
+                                                <div className={styles.wrapper}>
+                                                    <div className={styles.navBar}>
+                                                        <NavBar
+                                                            isLoggedIn={navUser !== null}
+                                                            profileImage={navUser?.image ?? null}
+                                                            navItems={navItems}
+                                                        />
+                                                    </div>
+                                                    <aside className={styles.sideBar}>
+                                                        <DesktopSideBar navItems={navItems} />
+                                                    </aside>
+                                                    <main className={styles.content}>
+                                                        {children}
+                                                    </main>
+                                                    <div className={styles.mobileNavBar}>
+                                                        <MobileNavBar
+                                                            isLoggedIn={navUser !== null}
+                                                            navItems={navItems}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <aside className={styles.sideBar}>
-                                                    <DesktopSideBar navItems={navItems} />
-                                                </aside>
-                                                <main className={styles.content}>
-                                                    {children}
-                                                </main>
-                                                <div className={styles.mobileNavBar}>
-                                                    <MobileNavBar
-                                                        isLoggedIn={navUser !== null}
-                                                        navItems={navItems}
-                                                    />
-                                                </div>
-                                            </div>
+                                            </NavMenuProvider>
                                         </ReleaseCountdownGate>
                                     </PageTitleProvider>
                                 </PopUpProvider>
