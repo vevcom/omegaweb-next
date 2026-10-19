@@ -17,18 +17,9 @@ import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 /**
- * Resolves the owning users/groups of a transaction's ledger entries, for authorizers that need
- * to know whether the caller is a party to it. By default resolves every account the transaction
- * touches, debited or credited (see read below); with `debitedOnly`, resolves only the debited
- * side (see cancel below) - being credited by a transaction was never this caller's money to
- * begin with, so that alone shouldn't let them cancel someone else's attempt at it. A DEPOSIT has
- * no debit side at all (its debit side is external to the ledger - see
- * ledgerTransactionAuth.create), so debitedOnly falls back to every party for one, the same as
- * read: being credited (the depositor's own account) is the only bar there is to be. Every other
- * purpose paid wholly through Stripe also has no debit entry, but there the credited side is the
- * destination account (e.g. the hosting committee), not the payer - falling back the same way
- * would let a member of that account cancel someone else's payment attempt, so debitedOnly
- * returns no accounts at all for those instead, leaving only LEDGER_ADMIN able to cancel it.
+ * Resolves the owners of a transaction's accounts, for authorizers. With `debitedOnly`, only the
+ * debited side, except a DEPOSIT, which falls back to every party. Other transactions with no
+ * debit entry (paid through Stripe) resolve to none, so only LEDGER_ADMIN can cancel them.
  */
 async function resolveTransactionAccounts(
     prisma: Prisma.TransactionClient,
@@ -122,12 +113,7 @@ export const ledgerTransactionOperations = {
         }
     }),
 
-    /**
-     * Cancels a transaction that is still PENDING (e.g. a stale/abandoned Stripe attempt).
-     * Cancels its payment too (see paymentOperations.cancel), so a webhook that arrives late can
-     * never later mark it SUCCEEDED. Refuses to touch a transaction that already reached a
-     * terminal state.
-     */
+    /** Cancels a PENDING transaction and its payment, so a late webhook can't mark it SUCCEEDED. */
     cancel: defineOperation({
         authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
             accounts: await resolveTransactionAccounts(prisma, params.id, { debitedOnly: true }),
@@ -173,14 +159,9 @@ export const ledgerTransactionOperations = {
     }),
 
     /**
-     * Starts collecting a transaction's own payment, if it has one and it's still PENDING -
-     * every caller that creates a transaction backed by a fresh payment needs this, not
-     * paymentOperations.initiate directly: a payment no longer unambiguously knows which
-     * transaction depends on it (one can be reused across claims), but the transaction does,
-     * which is what lets this cancel itself if starting the payment fails, instead of being
-     * left stuck with no way to ever pay for it. Returns the full payment (its live Stripe
-     * client secret, not ExpandedLedgerTransaction's restricted copy), or null if the
-     * transaction has none at all.
+     * Starts the transaction's PENDING payment, cancelling the transaction if that fails so it isn't
+     * stuck. Use this, not paymentOperations.initiate. Returns the full payment (with its live
+     * client secret), or null if the transaction has none.
      */
     initiate: defineOperation({
         authorizer: () => ledgerTransactionAuth.initiate,
@@ -203,11 +184,8 @@ export const ledgerTransactionOperations = {
             try {
                 return await paymentOperations.initiate({ params: { paymentId: transaction.payment.id } })
             } catch (error) {
-                // A concurrent cancellation can make the initiate call above throw because the
-                // payment was pulled out from under it - cancel then finds the transaction already
-                // non-PENDING and throws its own guard error, which would otherwise replace the
-                // real one. Swallow only that expected race; any other cleanup failure (e.g. cancel
-                // itself hitting a real error) must still surface.
+                // After a concurrent cancel, our cancel throws a guard error that would hide the
+                // real one. Swallow only that.
                 try {
                     await ledgerTransactionOperations.cancel({ params: { id: params.id }, bypassAuth: true })
                 } catch (cleanupError) {
@@ -288,10 +266,8 @@ export const ledgerTransactionOperations = {
         authorizer: () => ledgerTransactionAuth.advance,
         paramsSchema: ledgerTransactionSchemas.params.advance,
         operation: async ({ prisma, params }) => {
-            // advance recomputes the whole transaction, which can span two unrelated parties
-            // (e.g. a purchase debits the buyer and credits a shop group). Every call below is
-            // bypassed for that reason: an ownership check would reject whichever side isn't
-            // the actual caller.
+            // Bypassed: the transaction can span two parties (e.g. buyer and shop group), and an
+            // ownership check would reject whichever side isn't the caller.
             let transaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
                 params: { id: params.id },
                 bypassAuth: true,
@@ -380,15 +356,10 @@ export const ledgerTransactionOperations = {
                 bypassAuth: true,
             })
 
-            // count > 0 means this call is the one that actually performed the PENDING ->
-            // SUCCEEDED transition (updateMany matches 0 rows once it's already terminal), so
-            // the hook fires exactly once no matter how many times/where advance is called from
-            // (synchronously from create, or later from the Stripe webhook).
-            // TODO: When advance() runs synchronously inside create() from within a caller's
-            // prisma.$transaction, prisma here is that ambient tx client, so a hook's side
-            // effects (e.g. a confirmation email) can fire before the transaction commits. If the
-            // transaction then fails to commit, the side effect already happened. Defer hook
-            // execution until after commit instead.
+            // Only the call that made the PENDING -> SUCCEEDED transition has count > 0, so the
+            // hook fires exactly once.
+            // TODO: Inside a caller's prisma.$transaction, hook side effects (e.g. an email) can
+            // fire before the transaction commits. Run hooks after commit instead.
             if (count > 0 && transaction.state === 'SUCCEEDED') {
                 await runPaymentCompletionHook(transaction, { prisma })
             }
@@ -398,12 +369,8 @@ export const ledgerTransactionOperations = {
     }),
 
     /**
-     * Create a new transaction on the ledger with the given entries and optionally
-     * link to the provided payment and/or manual transfer.
-     *
-     * The fees transferred are automatically calculated.
-     *
-     * The lifecycle of the transaction is automatically handled by the system.
+     * Creates a ledger transaction with the given entries, optionally linked to a payment and/or a
+     * manual transfer. Fees and the transaction's lifecycle are handled automatically.
      */
     create: defineOperation({
         authorizer: async ({ params, prisma }) => {

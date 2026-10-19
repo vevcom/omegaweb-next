@@ -5,18 +5,14 @@ export type ExpandedLedgerTransaction = Prisma.LedgerTransactionGetPayload<{
         ledgerEntries: true,
         payment: {
             include: {
-                // Never clientSecret/paymentIntentId here. This type is read broadly by any
-                // party to either side of the transaction, per ledgerTransactionAuth.read, not
-                // just the payer. The live clientSecret for an in-flight payment comes from
-                // ExpandedPayment instead, the direct return of createPayment.
+                // Never clientSecret/paymentIntentId: both sides can read this. The payer gets
+                // the clientSecret from ExpandedPayment instead.
                 stripePayment: { select: { createdAt: true, updatedAt: true } },
                 manualPayment: true,
             },
         },
         booking: {
-            // Never secret, notes, tenantNotes, userId or guestUserId here - read broadly by any
-            // party to either side of the transaction, per ledgerTransactionAuth.read, not just
-            // the booker. secret in particular authorizes releasing/paying for the booking itself.
+            // Never secret, notes, tenantNotes, userId or guestUserId: both sides can read this.
             select: {
                 start: true,
                 end: true,
