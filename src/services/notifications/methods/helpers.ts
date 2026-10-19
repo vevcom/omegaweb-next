@@ -39,6 +39,11 @@ export function truncate(text: string, maxLength: number) {
     return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text
 }
 
+/** A markdown link to the page a notification is about, for the mails. */
+export function linkToNotificationPage(url: string | null) {
+    return url ? `[Les mer på Omegaveven](<${process.env.WEBSITE_URL}${url}>)` : null
+}
+
 export function replaceSpecialSymbols(text: string, user: UserBasic) {
     return text
         .replaceAll('%u', user.username)
