@@ -91,7 +91,8 @@ export const lockerReservationOperations = {
     }),
 
     /**
-     * Updates an existing locker reservation.
+     * Updates an existing locker reservation. One that has ended is refused: it no longer holds the
+     * locker, and changing it would not give it back.
      *
      * @param id The ID of the reservation to update.
      * @param data The new data to update the reservation with.
@@ -115,15 +116,72 @@ export const lockerReservationOperations = {
         },
         paramsSchema: lockerReservationSchemas.params.update,
         dataSchema: lockerReservationSchemas.data.update,
-        operation: async ({ prisma, data, params: { id } }) => await prisma.lockerReservation.update({
-            where: {
-                id,
-            },
-            data: {
-                groupId: data.groupId,
-                endDate: data.endDate,
+        operation: async ({ prisma, data, params: { id } }) => {
+            const { count } = await prisma.lockerReservation.updateMany({
+                where: {
+                    id,
+                    active: true,
+                },
+                data: {
+                    groupId: data.groupId,
+                    endDate: data.endDate,
+                }
+            })
+            if (count === 0) {
+                throw new ServiceError('BAD PARAMETERS', 'Reservasjonen er avsluttet, og kan ikke endres.')
             }
-        }),
+            return await prisma.lockerReservation.findUniqueOrThrow({
+                where: {
+                    id,
+                },
+            })
+        },
+    }),
+
+    /**
+     * Ends a reservation now, which frees the locker for a new one. The reservation is kept, as
+     * expired ones are; its end date becomes now unless it was already set to end earlier.
+     *
+     * @param id The ID of the reservation to end.
+     */
+    deactivate: defineOperation({
+        authorizer: async ({ prisma, params }) => {
+            const reservation = await prisma.lockerReservation.findUniqueOrThrow({
+                where: {
+                    id: params.id,
+                },
+                select: {
+                    userId: true,
+                },
+            })
+            return lockerReservationAuth.deactivate.data({ userId: reservation.userId })
+        },
+        paramsSchema: lockerReservationSchemas.params.deactivate,
+        operation: async ({ prisma, params: { id } }) => {
+            const now = new Date()
+            const { count } = await prisma.lockerReservation.updateMany({
+                where: {
+                    id,
+                    active: true,
+                    OR: [{ endDate: null }, { endDate: { gt: now } }],
+                },
+                data: {
+                    active: false,
+                    endDate: now,
+                },
+            })
+            if (count === 0) {
+                await prisma.lockerReservation.updateMany({
+                    where: {
+                        id,
+                        active: true,
+                    },
+                    data: {
+                        active: false,
+                    },
+                })
+            }
+        },
     }),
 
     deactivateExpiredReservations,

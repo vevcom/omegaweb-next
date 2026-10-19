@@ -101,7 +101,7 @@ The same one-shot then runs the standard seed (`seed:data`, via `migrate:deploy-
 
 Migrations therefore run *before* the new code is serving, while the previous release may still be up. Keep each migration backward-compatible with the release before it: add columns nullable, backfill, and drop the old shape in a later release rather than in the same one.
 
-The `migrate` service runs the `tools` image with the command overridden. A dedicated leaner stage was measured and abandoned: at 2.80 GB against `tools`' 2.81 GB it saved nothing, because the weight is all in the shared `base` layer (`npm ci` with devDependencies, both generated Prisma clients) rather than in the source tree on top. Reusing `tools` means the one-shot is the same image `imageworker` already builds, so it adds no build time at all. Note that `tools` defaults to DobbelOmega, which force-resets the database - overriding the command is what makes this safe to run on every deploy.
+The `migrate` service runs the `tools` image with the command overridden. A dedicated leaner stage was measured and abandoned: at 2.80 GB against `tools`' 2.81 GB it saved nothing, because the weight is all in the shared `base` layer (`npm ci` with devDependencies, both generated Prisma clients) rather than in the source tree on top. Reusing `tools` means the one-shot is the same image `imageworker` already builds, so it adds no build time at all. The `tools` image has no default command: `migrate`, `imageworker` and `notificationworker` each set their own, and a one-shot job such as DobbelOmega - which force-resets the database - only runs when it is named.
 
 To run it by hand against a database - the first deploy into an empty Dokploy Postgres resource, say:
 
@@ -141,8 +141,10 @@ Deploying it:
 To load data from Omegaweb-basic, run the `tools` service. **This is a one-time bulk import, not a routine deploy step: it force-resets the database, deleting everything currently in it.** For ordinary schema changes once the site has real data, the `migrate` service above already handles it.
 
 ```bash
-docker compose -f docker-compose.prod.yml --profile tools run --rm tools
+docker compose -f docker-compose.prod.yml --profile tools run --rm tools npm run dobbelOmega:run
 ```
+
+The command has to be named: the `tools` image has no default, so a `run tools` meant for something else - or pointed at the wrong database - opens a node prompt rather than wiping it.
 
 `tools` sits behind a profile so it never starts with the stack - it is a one-shot job, not a service. It is a separate image because the deployed web application no longer contains the toolchain: the `prod` stage ships only the modules the Next.js server actually imports (via `output: 'standalone'`), which takes it from 2.8 GB to under 500 MB - the difference between a ~6 minute rollout and about one. The seeder and DobbelOmega import the whole service layer, so they need the full dependency tree; keeping that in the deployed image would have put the 2.3 GB straight back.
 

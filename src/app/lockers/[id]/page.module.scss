@@ -44,3 +44,12 @@
         margin: 0;
     }
 }
+
+.actionForm {
+    margin-top: calc(2 * #{ohma.$gap});
+}
+
+.blocked {
+    margin-top: calc(2 * #{ohma.$gap});
+    color: ohma.$colors-text-muted;
+}

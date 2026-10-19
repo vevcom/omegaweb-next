@@ -46,6 +46,10 @@ const registrationId = paramsFieldSchemas.pick({
     registrationId: true,
 })
 
+const eventId = paramsFieldSchemas.pick({
+    eventId: true,
+})
+
 export const eventRegistrationSchemas = {
     data: {
         createGuest: dataFieldSchemas.pick({
@@ -61,9 +65,7 @@ export const eventRegistrationSchemas = {
     },
     params: {
         create: userAndEvent,
-        createGuest: paramsFieldSchemas.pick({
-            eventId: true,
-        }),
+        createGuest: eventId,
         readDotPunishmentOfUser: paramsFieldSchemas.pick({
             userId: true,
         }),
@@ -81,9 +83,10 @@ export const eventRegistrationSchemas = {
             registrationId: true,
             registeredById: true,
         }),
-        readAttendanceCounts: paramsFieldSchemas.pick({
-            eventId: true,
-        }),
+        readAttendanceCounts: eventId,
+        readNotAttended: eventId,
+        createDot: eventId,
+        createDotsForNonattendingUsers: eventId,
         createPayment: paramsFieldSchemas.pick({
             userId: true,
             eventId: true,

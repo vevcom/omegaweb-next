@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { getHttpErrorCode, ServiceError, Smorekopp } from '@/services/error'
 import { ServerSession } from '@/auth/session/ServerSession'
+import logger from '@/lib/logger'
 import type { ServiceOperation } from '@/services/serviceOperation'
 import type { ErrorCode, ErrorMessage } from '@/services/error'
 import type { SessionNoUser } from '@/auth/session/Session'
@@ -34,11 +35,10 @@ async function apiHandlerGeneric<Return>(req: Request, handle: (session: Session
         if (error instanceof Smorekopp) {
             return createApiErrorRespone(error.errorCode, error.errors)
         }
-        if (error instanceof Error) {
-            return createApiErrorRespone('UNKNOWN ERROR', error.message)
-        }
+        // Anything else is a bug or a failing dependency, Prisma say, whose message is for the log only.
+        logger.error('API request failed with an unexpected error:', error)
     }
-    return createApiErrorRespone('SERVER ERROR', 'Noe veldig uventet skjedde')
+    return createApiErrorRespone('UNKNOWN ERROR', 'Noe uventet skjedde')
 }
 
 export function apiHandler<
@@ -93,6 +93,6 @@ function createApiErrorRespone(errorCode: ErrorCode, message: string | ErrorMess
 }
 
 function createApiResponse<Return>(res: Return) {
-    const data = res ? JSON.stringify(res) : ''
-    return Response.json(data, { status: 200 })
+    // Response.json encodes it - an operation returning nothing answers null.
+    return Response.json(res ?? null, { status: 200 })
 }

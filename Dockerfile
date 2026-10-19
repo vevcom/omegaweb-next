@@ -38,6 +38,8 @@ FROM base AS test
 ENV NODE_ENV=test
 
 COPY jest.config.ts ./
+# The production secrets test reads the development values from it, as the check itself does in prod.
+COPY .env.default ./
 # src and tests are expected to be binded in test
 
 CMD ["npm", "run", "test"]
@@ -71,15 +73,19 @@ RUN rm -rf .next/standalone/standard_store standard_store/dev_profile_images
 # The migration/seed toolchain: DobbelOmega and the seeder pull in the whole
 # service layer, so they need the full dependency tree and cannot run against
 # prod's traced subset. This is a separate image rather than extra weight in
-# prod. Also the image the migrate one-shot runs, with the command overridden - see
-# "Applying database schema migrations" and "Running DobbelOmega" in README.md.
+# prod. Also the image the migrate one-shot and the workers run - see "Applying
+# database schema migrations" and "Running DobbelOmega" in README.md.
+#
+# It has no command of its own: every service built from it sets the one it runs,
+# and so does whoever runs a one-shot job such as DobbelOmega. A default would be
+# whatever a bare `run tools` does, and none of these is safe to start by accident -
+# DobbelOmega resets the database it points at. Without a command the image falls
+# back to the node base image's default, a node prompt.
 FROM base AS tools
 
 ENV NODE_ENV=production
 
 COPY src src
-
-CMD ["npm", "run", "dobbelOmega:run"]
 
 ############################################################
 # prod is deliberately the last stage: a plain `docker build` with no
@@ -108,6 +114,10 @@ COPY --from=builder /usr/src/app/public ./public
 # Assets read from disk at runtime by lib/standardStore. dev_profile_images is
 # only ever touched by the development seeder, and is 78 MB, so it stays out.
 COPY --from=builder /usr/src/app/standard_store ./standard_store
+
+# Never loaded as environment - Next does not read .env.default. src/lib/productionSecrets.ts
+# reads it at start-up to refuse the development secrets it holds.
+COPY .env.default ./.env.default
 
 # Bind mount targets in compose; created here so the image works without them too.
 RUN mkdir -p store/images logs dobbelOmegaManifest

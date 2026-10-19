@@ -1,6 +1,7 @@
 import styles from './page.module.scss'
 import CreateLockerForm from './CreateLockerForm'
 import CreateLockerLocationForm from './CreateLockerLocationForm'
+import LockerLocationSettings from './LockerLocationSettings'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import SimpleTable from '@/components/Table/SimpleTable'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
@@ -19,6 +20,8 @@ const { page, generateMetadata } = serverPage({
     capabilities: () => ({
         canCreateLocker: lockerAuth.create,
         canCreateLockerLocation: lockerLocationAuth.create,
+        canUpdateLockerLocation: lockerLocationAuth.update,
+        canDestroyLockerLocation: lockerLocationAuth.destroy,
     }),
     metadata: () => ({ title: 'Administrer skap' }),
     render: ({ data: locations, capabilities }) => {
@@ -43,8 +46,20 @@ const { page, generateMetadata } = serverPage({
             }>
                 <h2>Skaplokasjoner</h2>
                 <SimpleTable
-                    header={['Bygning', 'Etasje']}
-                    body={sortedLocations.map(location => [location.building, `${location.floor}.`])}
+                    header={['Bygning', 'Etasje', 'Skap', '']}
+                    body={sortedLocations.map(location => [
+                        location.building,
+                        `${location.floor}.`,
+                        location._count.lockers,
+                        <LockerLocationSettings
+                            key={location.id}
+                            location={location}
+                            capabilities={{
+                                canUpdate: capabilities.canUpdateLockerLocation,
+                                canDestroy: capabilities.canDestroyLockerLocation,
+                            }}
+                        />,
+                    ])}
                 />
             </PageWrapper>
         )

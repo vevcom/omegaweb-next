@@ -1,0 +1,6 @@
+@use '@/styles/ohma';
+
+.showButton {
+    @include ohma.btn(ohma.$colors-accent-blue);
+    white-space: nowrap;
+}

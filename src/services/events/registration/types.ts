@@ -1,5 +1,6 @@
 import type {
     eventRegistrationAttendanceSelection,
+    eventRegistrationNotAttendedSelection,
     eventRegistrationSelectionDetailed,
     eventRegistrationSelection,
 } from './constants'
@@ -62,4 +63,13 @@ export type EventAttendanceScan = {
     registration: EventAttendanceRegistration,
     counts: EventAttendanceCounts,
     alreadyAttended: boolean,
+}
+
+/** A registration whose user did not show up. The selection allows a guest's null user; this type does not. */
+export type EventRegistrationNotAttended = Omit<Prisma.EventRegistrationGetPayload<{
+    select: typeof eventRegistrationNotAttendedSelection
+}>, 'user'> & {
+    user: NonNullable<Prisma.EventRegistrationGetPayload<{
+        select: typeof eventRegistrationNotAttendedSelection
+    }>['user']>,
 }
