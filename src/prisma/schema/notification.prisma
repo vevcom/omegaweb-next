@@ -33,7 +33,7 @@ model NotificationMethod {
   id          Int     @id @default(autoincrement())
   email       Boolean @default(false)
   emailWeekly Boolean @default(false)
-  //feat: add push method
+  push        Boolean @default(false)
 
   channelDefault   NotificationChannel[]      @relation(name: "defaultMethods")
   channelAvailable NotificationChannel[]      @relation(name: "availableMethods")

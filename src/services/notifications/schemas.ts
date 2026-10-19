@@ -4,6 +4,7 @@ import { z } from 'zod'
 export const notificationMethodSchema = z.object({
     email: z.boolean(),
     emailWeekly: z.boolean(),
+    push: z.boolean(),
 })
 
 const dataFieldSchemas = z.object({
