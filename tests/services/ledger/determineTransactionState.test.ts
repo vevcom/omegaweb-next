@@ -45,6 +45,16 @@ describe('determineTransactionState', () => {
         expect(transition.state).toBe('FAILED')
     })
 
+    test('a fee-only payout against an insufficient fee balance fails', () => {
+        const entries = [{ ledgerAccountId: SELLER, funds: 0, fees: -1_00 }]
+        const payment = { state: 'SUCCEEDED' as const, funds: 0, fees: -1_00 }
+        const balances: BalanceRecord = { [SELLER]: { amount: 0, fees: -1 } }
+
+        const transition = stateOf(transactionOf({ entries, payment }), balances)
+
+        expect(transition.state).toBe('FAILED')
+    })
+
     test('entries that do not sum to zero fail', () => {
         const entries = [
             { ledgerAccountId: SELLER, funds: 50_00, fees: 0 },
