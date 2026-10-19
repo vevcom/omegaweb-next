@@ -11,20 +11,30 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
+import { Prisma as PrismaRuntime } from '@/prisma-generated-pn-client'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import type { ExpandedLedgerTransaction } from './types'
+import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 /**
- * Resolves the owning users/groups of every account a transaction's ledger entries touch, for
- * authorizers that need to know whether the caller is a party to it (see read/cancel below).
+ * Resolves the owners of a transaction's accounts, for authorizers. With `debitedOnly`, only the
+ * debited side, except a DEPOSIT, which falls back to every party. Other transactions with no
+ * debit entry (paid through Stripe) resolve to none, so only LEDGER_ADMIN can cancel them.
  */
-async function resolveTransactionAccounts(prisma: Prisma.TransactionClient, transactionId: number) {
+async function resolveTransactionAccounts(
+    prisma: Prisma.TransactionClient,
+    transactionId: number,
+    { debitedOnly = false }: { debitedOnly?: boolean } = {},
+) {
     const transaction = await prisma.ledgerTransaction.findUnique({
         where: { id: transactionId },
         select: {
+            purpose: true,
             ledgerEntries: {
                 select: {
+                    funds: true,
+                    fees: true,
                     ledgerAccount: {
                         select: { user: { select: { id: true } }, groups: { select: { groupId: true } } },
                     },
@@ -33,7 +43,17 @@ async function resolveTransactionAccounts(prisma: Prisma.TransactionClient, tran
         },
     })
 
-    return (transaction?.ledgerEntries ?? []).map(entry => ({
+    const entries = transaction?.ledgerEntries ?? []
+    const debitEntries = entries.filter(entry => entry.funds < 0 || (entry.fees ?? 0) < 0)
+
+    let relevantEntries = entries
+    if (debitedOnly && debitEntries.length > 0) {
+        relevantEntries = debitEntries
+    } else if (debitedOnly && transaction?.purpose !== 'DEPOSIT') {
+        relevantEntries = []
+    }
+
+    return relevantEntries.map(entry => ({
         userId: entry.ledgerAccount?.user?.id ?? null,
         groupIds: entry.ledgerAccount?.groups.map(group => group.groupId) ?? [],
     }))
@@ -59,12 +79,20 @@ export const ledgerTransactionOperations = {
                     ledgerEntries: true,
                     payment: {
                         include: {
-                            stripePayment: true,
+                            // See ExpandedLedgerTransaction's comment: no clientSecret/paymentIntentId here.
+                            stripePayment: { select: { createdAt: true, updatedAt: true } },
                             manualPayment: true,
                         },
                     },
+                    // See ExpandedLedgerTransaction's comment: no secret, notes, tenantNotes,
+                    // userId or guestUserId here.
                     booking: {
-                        include: {
+                        select: {
+                            start: true,
+                            end: true,
+                            numberOfMembers: true,
+                            numberOfNonMembers: true,
+                            totalPrice: true,
                             event: { select: { name: true } },
                         },
                     },
@@ -86,15 +114,10 @@ export const ledgerTransactionOperations = {
         }
     }),
 
-    /**
-     * Cancels a transaction that is still PENDING (e.g. a stale/abandoned Stripe attempt).
-     * Cancels its payment too (see paymentOperations.cancel), so a webhook that arrives late can
-     * never later mark it SUCCEEDED. Refuses to touch a transaction that already reached a
-     * terminal state.
-     */
+    /** Cancels a PENDING transaction and its payment, so a late webhook can't mark it SUCCEEDED. */
     cancel: defineOperation({
         authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
-            accounts: await resolveTransactionAccounts(prisma, params.id),
+            accounts: await resolveTransactionAccounts(prisma, params.id, { debitedOnly: true }),
         }),
         paramsSchema: ledgerTransactionSchemas.params.cancel,
         operation: async ({ prisma, params }) => {
@@ -137,6 +160,49 @@ export const ledgerTransactionOperations = {
     }),
 
     /**
+     * Starts the transaction's PENDING payment, cancelling the transaction if that fails so it isn't
+     * stuck. Use this, not paymentOperations.initiate. Returns the full payment (with its live
+     * client secret), or null if the transaction has none.
+     */
+    initiate: defineOperation({
+        authorizer: () => ledgerTransactionAuth.initiate,
+        paramsSchema: ledgerTransactionSchemas.params.initiate,
+        opensTransaction: true,
+        operation: async ({ prisma, params }): Promise<ExpandedPayment | null> => {
+            const transaction = await ledgerTransactionOperations.read({
+                params: { id: params.id },
+                bypassAuth: true,
+            })
+            if (!transaction.payment) return null
+
+            if (transaction.payment.state !== 'PENDING') {
+                return await prisma.payment.findUniqueOrThrow({
+                    where: { id: transaction.payment.id },
+                    include: { stripePayment: true, manualPayment: true },
+                })
+            }
+
+            try {
+                return await paymentOperations.initiate({ params: { paymentId: transaction.payment.id } })
+            } catch (error) {
+                // After a concurrent cancel, our cancel throws a guard error that would hide the
+                // real one. Swallow only that.
+                try {
+                    await ledgerTransactionOperations.cancel({ params: { id: params.id }, bypassAuth: true })
+                } catch (cleanupError) {
+                    if (
+                        !(cleanupError instanceof Smorekopp)
+                        || cleanupError.errors[0]?.message !== 'Bare en ventende transaksjon kan kanselleres.'
+                    ) {
+                        throw cleanupError
+                    }
+                }
+                throw error
+            }
+        },
+    }),
+
+    /**
      * Read several ledger transactions including its ledger entries, payment and manual transfer (if any).
      */
     readPage: defineOperation({
@@ -156,12 +222,20 @@ export const ledgerTransactionOperations = {
                 ledgerEntries: true,
                 payment: {
                     include: {
-                        stripePayment: true,
+                        // See ExpandedLedgerTransaction's comment: no clientSecret/paymentIntentId here.
+                        stripePayment: { select: { createdAt: true, updatedAt: true } },
                         manualPayment: true,
                     },
                 },
+                // See ExpandedLedgerTransaction's comment: no secret, notes, tenantNotes, userId
+                // or guestUserId here.
                 booking: {
-                    include: {
+                    select: {
+                        start: true,
+                        end: true,
+                        numberOfMembers: true,
+                        numberOfNonMembers: true,
+                        totalPrice: true,
                         event: { select: { name: true } },
                     },
                 },
@@ -193,10 +267,8 @@ export const ledgerTransactionOperations = {
         authorizer: () => ledgerTransactionAuth.advance,
         paramsSchema: ledgerTransactionSchemas.params.advance,
         operation: async ({ prisma, params }) => {
-            // advance recomputes the whole transaction, which can span two unrelated parties
-            // (e.g. a purchase debits the buyer and credits a shop group). Every call below is
-            // bypassed for that reason: an ownership check would reject whichever side isn't
-            // the actual caller.
+            // Bypassed: the transaction can span two parties (e.g. buyer and shop group), and an
+            // ownership check would reject whichever side isn't the caller.
             let transaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
                 params: { id: params.id },
                 bypassAuth: true,
@@ -247,11 +319,27 @@ export const ledgerTransactionOperations = {
                 }
             }
 
+            // Lock the debited accounts before reading their balance, so concurrent advance() calls can't
+            // both see enough funds. Sorted to avoid deadlocks; credits can't overdraw an account.
+            const debitLedgerAccountIds = Array.from(new Set(transaction.ledgerEntries
+                .filter(entry => entry.funds < 0 || (entry.fees ?? 0) < 0)
+                .map(entry => entry.ledgerAccountId)))
+                .sort((one, other) => one - other)
+            if (debitLedgerAccountIds.length > 0) {
+                await prisma.$queryRaw`
+                    SELECT id FROM "LedgerAccount"
+                    WHERE id IN (${PrismaRuntime.join(debitLedgerAccountIds)})
+                    ORDER BY id
+                    FOR UPDATE
+                `
+            }
+
+            // Live balance, not limited to entries before this id: a later debit that already SUCCEEDED
+            // (e.g. while this one sat on a slow checkout) must count too.
             const balances = transaction.ledgerEntries.length > 0
                 ? await ledgerAccountOperations.calculateBalances({
                     params: {
                         ledgerAccountIds: transaction.ledgerEntries.map(entry => entry.ledgerAccountId),
-                        atTransactionId: transaction.id,
                     },
                     bypassAuth: true,
                 })
@@ -268,7 +356,23 @@ export const ledgerTransactionOperations = {
             })
             const frozenAccountIds = new Set(frozenAccounts.map(account => account.id))
 
-            const transition = await determineTransactionState({ transaction, balances, frozenAccountIds })
+            let transition = await determineTransactionState({ transaction, balances, frozenAccountIds })
+
+            // Only one transaction may succeed with a payment, so claim it atomically on a fresh PENDING ->
+            // SUCCEEDED transition. The `where` also accepts this transaction's own earlier claim, so a
+            // serialized retry (e.g. a duplicate webhook) doesn't fail.
+            if (transaction.state === 'PENDING' && transition.state === 'SUCCEEDED' && transaction.payment) {
+                const { count: claimed } = await prisma.payment.updateMany({
+                    where: {
+                        id: transaction.payment.id,
+                        OR: [{ claimedByTransactionId: null }, { claimedByTransactionId: params.id }],
+                    },
+                    data: { claimedByTransactionId: params.id },
+                })
+                if (claimed === 0) {
+                    transition = { state: 'FAILED', reason: 'Betalingen er allerede brukt av en annen transaksjon.' }
+                }
+            }
 
             // We use `updateMany` in stead of just `update` here because
             // we don't want to throw in case the record is not found.
@@ -285,15 +389,19 @@ export const ledgerTransactionOperations = {
                 bypassAuth: true,
             })
 
-            // count > 0 means this call is the one that actually performed the PENDING ->
-            // SUCCEEDED transition (updateMany matches 0 rows once it's already terminal), so
-            // the hook fires exactly once no matter how many times/where advance is called from
-            // (synchronously from create, or later from the Stripe webhook).
-            // TODO: When advance() runs synchronously inside create() from within a caller's
-            // prisma.$transaction, prisma here is that ambient tx client, so a hook's side
-            // effects (e.g. a confirmation email) can fire before the transaction commits. If the
-            // transaction then fails to commit, the side effect already happened. Defer hook
-            // execution until after commit instead.
+            // A concurrent cancel() can commit between our claim and the update above (count 0), orphaning
+            // the claim so no reimbursement would ever run. Release it, if it is ours.
+            if (count === 0 && transaction.state !== 'SUCCEEDED' && transaction.paymentId !== null) {
+                await prisma.payment.updateMany({
+                    where: { id: transaction.paymentId, claimedByTransactionId: params.id },
+                    data: { claimedByTransactionId: null },
+                })
+            }
+
+            // Only the call that made the PENDING -> SUCCEEDED transition has count > 0, so the
+            // hook fires exactly once.
+            // TODO: Inside a caller's prisma.$transaction, hook side effects (e.g. an email) can
+            // fire before the transaction commits. Run hooks after commit instead.
             if (count > 0 && transaction.state === 'SUCCEEDED') {
                 await runPaymentCompletionHook(transaction, { prisma })
             }
@@ -303,12 +411,8 @@ export const ledgerTransactionOperations = {
     }),
 
     /**
-     * Create a new transaction on the ledger with the given entries and optionally
-     * link to the provided payment and/or manual transfer.
-     *
-     * The fees transferred are automatically calculated.
-     *
-     * The lifecycle of the transaction is automatically handled by the system.
+     * Creates a ledger transaction with the given entries, optionally linked to a payment and/or a
+     * manual transfer. Fees and the transaction's lifecycle are handled automatically.
      */
     create: defineOperation({
         authorizer: async ({ params, prisma }) => {

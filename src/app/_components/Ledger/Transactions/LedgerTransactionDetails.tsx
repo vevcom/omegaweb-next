@@ -1,8 +1,11 @@
 'use client'
 import styles from './LedgerTransactionDetails.module.scss'
+import Form from '@/components/Form/Form'
 import { displayAmount } from '@/lib/currency/convert'
 import { displayDate } from '@/lib/dates/displayDate'
 import { Require } from '@/auth/authorizer/Require'
+import { configureAction } from '@/services/configureAction'
+import { cancelLedgerTransactionAction } from '@/services/ledger/transactions/actions'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { LedgerTransactionPurpose, LedgerTransactionState, PaymentProvider } from '@/prisma-generated-pn-types'
@@ -122,6 +125,24 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
                     ))}
                 </ul>
             </div>
+        )}
+
+        {transaction.state === 'PENDING' && (
+            canViewFees
+            || transaction.purpose === 'DEPOSIT'
+            || (accountEntry && (accountEntry.funds < 0 || (accountEntry.fees ?? 0) < 0))
+        ) && (
+            <Form
+                submitText="Avbryt betaling"
+                submitColor="red"
+                confirmation={{
+                    confirm: true,
+                    text: 'Er du sikker på at du vil avbryte denne betalingen?',
+                }}
+                action={configureAction(cancelLedgerTransactionAction, {
+                    params: { id: transaction.id },
+                })}
+            />
         )}
     </div>
 }

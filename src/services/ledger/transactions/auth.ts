@@ -18,15 +18,8 @@ export const ledgerTransactionAuth = {
     // safety net for any other caller.
     advance: Require.permission('LEDGER_ADMIN'),
 
-    // Additionally requires ownership of every account the transaction debits. A transaction with
-    // no debit entries at all (e.g. a deposit, where the debit side is an external payment, not a
-    // ledger entry) has nothing to check ownership of, so LEDGER_USE alone is sufficient for it.
-    //
-    // "No debit entries" is read off the requested IDs, never off the resolved ownerships: an ID
-    // that resolves to no account leaves fewer ownerships than IDs, and a debit nobody can be shown
-    // to own takes LEDGER_ADMIN.
-    //
-    // A function since which rule applies depends on the transaction itself.
+    // Also requires owning every debited account; with no debit entries (e.g. a deposit) LEDGER_USE
+    // is enough. Read off the requested ids, so an id resolving to no account takes LEDGER_ADMIN.
     create: ({ debitLedgerAccountIds, debitAccounts }: {
         debitLedgerAccountIds: number[],
         debitAccounts: LedgerAccountOwnership[],
@@ -38,7 +31,10 @@ export const ledgerTransactionAuth = {
         return Require.permission('LEDGER_USE').allOf(ownsEveryAccount.data({ accounts: debitAccounts }))
     },
 
-    // Being party to one side of the transaction is enough to cancel a stale attempt on it - same
-    // bar as read.
+    // Only the debited side may cancel; resolveTransactionAccounts is called with debitedOnly.
     cancel: partyToAnyAccount,
+
+    // Real callers (createPayment/createDeposit) pass bypassAuth after authorizing the resource.
+    // LEDGER_USE is a safety net, not an ownership check, so admins can still pay for others.
+    initiate: Require.permission('LEDGER_USE'),
 } as const

@@ -20,7 +20,6 @@ const paramsFieldSchemas = z.object({
     ledgerAccountIds: z.number().array().optional(),
     userIds: z.number().array().optional(),
     groupIds: z.number().array().optional(),
-    atTransactionId: z.number().optional(),
     accountType: z.nativeEnum(LedgerAccountType).optional(),
     includeGroupAccounts: z.boolean(),
     includeUserAccounts: z.boolean(),
@@ -85,12 +84,10 @@ export const ledgerAccountSchemas = {
             ledgerAccountIds: true,
             userIds: true,
             groupIds: true,
-            atTransactionId: true,
         }).refine(...atLeastOneIdList),
         calculateBalance: paramsFieldSchemas.pick({
             userId: true,
             ledgerAccountId: true,
-            atTransactionId: true,
         }).refine(...oneAccountKey),
     },
 }
