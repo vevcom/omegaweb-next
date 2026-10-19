@@ -82,6 +82,7 @@ model User {
   // What notifications the user whiches to received and
   // which mailing lists the user is on.
   notificationSubscriptions NotificationSubscription[]
+  pushSubscriptions         PushSubscription[]
   notificationsTargeted     Notification[]          @relation(name: "NotificationTargets")
   weeklyMailOutboxEntries   WeeklyMailOutboxEntry[]
   mailingLists              MailingListUser[]

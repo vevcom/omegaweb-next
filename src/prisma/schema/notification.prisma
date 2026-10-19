@@ -54,6 +54,22 @@ model NotificationSubscription {
   @@unique([userId, channelId])
 }
 
+// A browser that receives the user's push notifications. Pushes are sent to the browser's push
+// service (Google, Mozilla, Apple, ...) at pushServiceUrl, encrypted with the browser's public key
+// and auth secret so only that browser can read them.
+model PushSubscription {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pushServiceUrl String   @unique
+  publicKey      String
+  authSecret     String
+
+  @@index([userId])
+}
+
 model Notification {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
