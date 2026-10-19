@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { calculateCreditFees, calculateDebitFees } from './calculateFees'
 import { determineTransactionState } from './determineTransactionState'
-import { runPaymentCompletionHook } from './paymentCompletionHooks'
+import { hasPaymentCompletionHook } from './paymentCompletionHooks'
 import { ledgerTransactionAuth } from './auth'
 import { ledgerTransactionSchemas } from './schemas'
 import { expandedLedgerTransactionInclude } from './constants'
@@ -255,7 +255,14 @@ export const ledgerTransactionOperations = {
                     id: params.id,
                     state: 'PENDING', // Protect against changing final state.
                 },
-                data: transition,
+                // Requested in the same write as the success, so the payment completion worker only
+                // sees it once the success has committed.
+                data: {
+                    ...transition,
+                    ...(transition.state === 'SUCCEEDED' && hasPaymentCompletionHook(transaction.purpose) && {
+                        completionHookRequestedAt: new Date(),
+                    }),
+                },
             })
 
             transaction = await ledgerTransactionOperations.read({
@@ -270,14 +277,6 @@ export const ledgerTransactionOperations = {
                     where: { id: transaction.paymentId, claimedByTransactionId: params.id },
                     data: { claimedByTransactionId: null },
                 })
-            }
-
-            // Only the call that made the PENDING -> SUCCEEDED transition has count > 0, so the
-            // hook fires exactly once.
-            // TODO: Inside a caller's prisma.$transaction, hook side effects (e.g. an email) can
-            // fire before the transaction commits. Run hooks after commit instead.
-            if (count > 0 && transaction.state === 'SUCCEEDED') {
-                await runPaymentCompletionHook(transaction, { prisma })
             }
 
             return transaction

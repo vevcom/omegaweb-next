@@ -465,11 +465,8 @@ export const cabinBookingOperations = {
                 })
             })
 
-            // Clearing the reservation window and sending the confirmation once the transaction
-            // actually reaches SUCCEEDED is handled by cabinBookingPaymentCompletionHook (see
-            // ledger/transactions/paymentCompletionHooks.ts), dispatched from
-            // ledgerTransactionOperations.advance - called synchronously above via .create() for
-            // MANUAL/balance-only payments, or later from the Stripe webhook for STRIPE ones.
+            // Once the transaction has SUCCEEDED, the payment completion worker clears the reservation
+            // window and sends the confirmation, see cabinBookingPaymentCompletionHook.
 
             // Starts collecting the payment and returns its live clientSecret. If starting it fails,
             // initiate cancels the attempt, so the booking can be paid for again.

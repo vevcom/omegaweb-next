@@ -1,13 +1,16 @@
+import '@pn-server-only'
 import { manualReviewOperations } from './manualReviews/operations'
+import { expandedLedgerTransactionInclude } from './constants'
 import { cabinBookingPaymentCompletionHook } from '@/services/cabin/booking/paymentCompletion'
+import { prisma } from '@/prisma-pn-client-instance'
 import type { ExpandedLedgerTransaction } from './types'
 import type { LedgerTransactionPurpose, Prisma } from '@/prisma-generated-pn-types'
 import type { Awaitable } from '@/lib/awaitable'
 
 /**
- * Lets a domain react once a transaction for its purpose reaches SUCCEEDED (e.g. send a
- * confirmation). It can only fail its own side effects, never the payment. `prisma` is the
- * client ambient in the advance() call that triggered it.
+ * Lets a domain react once a transaction for its purpose has SUCCEEDED, for example by sending a
+ * confirmation. The payment completion worker runs it after the success has committed, in a
+ * transaction of its own, so a failing hook only rolls back its own changes, never the payment.
  */
 export type PaymentCompletionHook = (
     transaction: ExpandedLedgerTransaction,
@@ -15,39 +18,60 @@ export type PaymentCompletionHook = (
 ) => Awaitable<void>
 
 /**
- * Hooks per LedgerTransactionPurpose, dispatched by advance(). Most purposes have none. See
+ * Hooks per LedgerTransactionPurpose. Most purposes have none. See
  * cabin/booking/paymentCompletion.ts for an example.
  */
 const paymentCompletionHooks: Partial<Record<LedgerTransactionPurpose, PaymentCompletionHook>> = {
     CABIN_BOOKING: cabinBookingPaymentCompletionHook,
 }
 
+/** Whether a transaction of this purpose waits for the payment completion worker once it succeeds. */
+export function hasPaymentCompletionHook(purpose: LedgerTransactionPurpose) {
+    return paymentCompletionHooks[purpose] !== undefined
+}
+
 /**
- * Runs the hook for the transaction's purpose, if any. Never throws, so a failing side effect
- * can't make the caller (e.g. the webhook) treat the payment as failed.
+ * Runs the hook that has waited the longest since it was requested. A failing hook is marked as
+ * run, flagged for an admin and not retried, so it can't hold up the ones behind it or repeat a
+ * side effect like an email.
+ *
+ * @returns whether a hook was waiting, since more may be.
  */
-export async function runPaymentCompletionHook(
-    transaction: ExpandedLedgerTransaction,
-    context: { prisma: Prisma.TransactionClient },
-): Promise<void> {
-    const hook = paymentCompletionHooks[transaction.purpose]
-    if (!hook) return
+export async function runNextPaymentCompletionHook(): Promise<boolean> {
+    const transaction = await prisma.ledgerTransaction.findFirst({
+        where: { completionHookRequestedAt: { not: null }, completionHookRanAt: null },
+        include: expandedLedgerTransactionInclude,
+        orderBy: { completionHookRequestedAt: 'asc' },
+    })
+    if (!transaction) return false
 
     try {
-        await hook(transaction, context)
+        await prisma.$transaction(async tx => {
+            // Guarded on it not having run yet, so a transaction is never completed twice.
+            const { count } = await tx.ledgerTransaction.updateMany({
+                where: { id: transaction.id, completionHookRanAt: null },
+                data: { completionHookRanAt: new Date() },
+            })
+            if (count > 0) await paymentCompletionHooks[transaction.purpose]?.(transaction, { prisma: tx })
+        })
     } catch (error) {
-        // context.prisma, not the top-level client: the transaction row this review references
-        // was created by that same connection and isn't visible to any other one until it
-        // commits.
-        await manualReviewOperations.create({
-            params: {
-                transactionId: transaction.id,
-                problem: 'COMPLETION_HOOK_FAILED',
-                problemDescription: `Fullføringshook for ${transaction.purpose} feilet etter vellykket betaling.`,
-                error,
-            },
-            prisma: context.prisma,
-            bypassAuth: true,
+        // Together, so a failed hook is never marked as run without also being flagged.
+        await prisma.$transaction(async tx => {
+            await tx.ledgerTransaction.update({
+                where: { id: transaction.id },
+                data: { completionHookRanAt: new Date() },
+            })
+            await manualReviewOperations.create({
+                params: {
+                    transactionId: transaction.id,
+                    problem: 'COMPLETION_HOOK_FAILED',
+                    problemDescription: `Fullføringshook for ${transaction.purpose} feilet etter vellykket betaling.`,
+                    error,
+                },
+                prisma: tx,
+                bypassAuth: true,
+            })
         })
     }
+    return true
 }

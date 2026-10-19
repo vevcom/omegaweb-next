@@ -24,8 +24,8 @@ export async function sendBookingConfirmation(
 }
 
 /**
- * Runs when a cabin booking's transaction reaches SUCCEEDED (see paymentCompletionHooks.ts), either
- * synchronously or from the Stripe webhook. Clears the reservation window and sends the confirmation.
+ * Run by the payment completion worker once a cabin booking's transaction has SUCCEEDED (see
+ * paymentCompletionHooks.ts). Clears the reservation window and sends the confirmation.
  */
 export async function cabinBookingPaymentCompletionHook(
     transaction: ExpandedLedgerTransaction,

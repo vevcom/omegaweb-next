@@ -13,6 +13,7 @@ import {
     flagUnbalancedLedgerTransactions,
     reimburseUnclaimedPayments,
 } from '@/services/ledger/sweeper'
+import { runNextPaymentCompletionHook } from '@/services/ledger/transactions/paymentCompletionHooks'
 import logger from '@/lib/logger'
 import type { Worker } from './types'
 
@@ -58,6 +59,15 @@ export const workers = {
             await sendDueWeeklyDigests()
             return false
         },
+    },
+
+    /** Runs what a domain does once a payment for it has succeeded, e.g. confirming a cabin booking. */
+    paymentCompletion: {
+        name: 'Payment completion worker',
+        // How long to wait before looking again once no payment is waiting. Short, so a paid booking
+        // is confirmed right away.
+        intervalMs: 1000,
+        tick: runNextPaymentCompletionHook,
     },
 
     /**

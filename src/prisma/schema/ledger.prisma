@@ -114,8 +114,18 @@ model LedgerTransaction {
   // Present only for transactions migrated from OmegaWeb Basic (see LegacyLedgerTransaction).
   legacy LegacyLedgerTransaction?
 
+  // When the transaction's payment completion hook was requested, in the same write that made it
+  // SUCCEEDED, and when the payment completion worker ran it. Both stay null for a purpose without
+  // a hook. A run that failed is still marked as run, and has a ManualTransactionReview saying so.
+  completionHookRequestedAt DateTime?
+  completionHookRanAt       DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([paymentId])
+  // What the payment completion worker looks for: a hook requested but not yet run.
+  @@index([completionHookRanAt, completionHookRequestedAt])
 }
 
 enum RefundType {
