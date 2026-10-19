@@ -13,55 +13,44 @@ const { page, generateMetadata } = serverPage({
         return manualReviewOperations.readOpen({})
     },
     metadata: () => ({ title: 'Trenger oppfølging' }),
-    render: ({ data: transactions }) => (
+    render: ({ data: reviews }) => (
         <div className={styles.wrapper}>
-            <h1>Transaksjoner som trenger oppfølging</h1>
+            <h1>Saker som trenger oppfølging</h1>
             <p>
-                Transaksjoner med en åpen sak (f.eks. en Stripe-dispute, en refusjon gjort direkte
-                hos Stripe, eller en automatisk tilbakebetaling som mislyktes). Disse må håndteres
-                manuelt.
+                Åpne saker om en transaksjon eller betaling (f.eks. en Stripe-dispute, en refusjon gjort
+                direkte hos Stripe, en automatisk tilbakebetaling som mislyktes, eller en feil funnet av
+                den automatiske gjennomgangen av hovedboken). Disse må håndteres manuelt.
             </p>
-            {transactions.length === 0 ? <p>Ingen transaksjoner trenger oppfølging akkurat nå.</p> : (
-                <table className={styles.transactions}>
+            {reviews.length === 0 ? <p>Ingen saker trenger oppfølging akkurat nå.</p> : (
+                <table className={styles.reviews}>
                     <thead>
                         <tr>
-                            <th>id</th>
                             <th>Dato</th>
-                            <th>Formål</th>
-                            <th>Status</th>
+                            <th>Problem</th>
+                            <th>Transaksjon</th>
+                            <th>Betaling</th>
                             <th>Beløp</th>
-                            <th>Saker</th>
+                            <th>Løsning</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {transactions.map(transaction => {
-                            const amount = transaction.ledgerEntries
+                        {reviews.map(({ transaction, payment, ...review }) => {
+                            const amount = payment?.funds ?? transaction?.ledgerEntries
                                 .filter(entry => entry.funds > 0)
-                                .reduce((sum, entry) => sum + entry.funds, 0)
+                                .reduce((sum, entry) => sum + entry.funds, 0) ?? 0
+                            // A review about a payment alone lists the transactions the payment was for.
+                            const transactions = transaction
+                                ? `${transaction.id} (${transaction.purpose}, ${transaction.state})`
+                                : payment?.ledgerTransactions.map(({ id }) => id).join(', ')
 
                             return (
-                                <tr key={transaction.id}>
-                                    <td>{transaction.id}</td>
-                                    <td><Date date={transaction.createdAt} /></td>
-                                    <td>{transaction.purpose}</td>
-                                    <td>{transaction.state}</td>
+                                <tr key={review.id}>
+                                    <td><Date date={review.createdAt} /></td>
+                                    <td>{review.problemDescription}</td>
+                                    <td>{transactions || '-'}</td>
+                                    <td>{payment ? `${payment.id} (${payment.provider}, ${payment.state})` : '-'}</td>
                                     <td>{displayAmount(amount, false)}</td>
-                                    <td>
-                                        <ul className={styles.reviews}>
-                                            {transaction.manualReviews.map(review => (
-                                                <li key={review.id}>
-                                                    <p>{review.problemDescription}</p>
-                                                    {review.state === 'OPEN' ? (
-                                                        <ResolveManualReviewForm reviewId={review.id} />
-                                                    ) : (
-                                                        <p className={styles.resolved}>
-                                                            Løst: {review.resolutionDescription}
-                                                        </p>
-                                                    )}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </td>
+                                    <td><ResolveManualReviewForm reviewId={review.id} /></td>
                                 </tr>
                             )
                         })}

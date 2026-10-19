@@ -8,6 +8,11 @@ import {
 import { pushIsConfigured } from '@/services/notifications/methods/constants'
 import { destroyImageOrphans } from '@/services/images/subservice/imageFiles'
 import { destroyOmbulOrphans } from '@/services/ombul/store'
+import {
+    cancelStaleLedgerTransactions,
+    flagUnbalancedLedgerTransactions,
+    reimburseUnclaimedPayments,
+} from '@/services/ledger/sweeper'
 import logger from '@/lib/logger'
 import type { Worker } from './types'
 
@@ -75,6 +80,34 @@ export const workers = {
                 await destroyOmbulOrphans()
             } catch (error) {
                 logger.error(`Store worker failed to destroy the orphans of the ombul store: ${error}`)
+            }
+        },
+    },
+
+    /**
+     * The ledger sweeper, see ledger/sweeper.ts. Stale transactions go first, since settling one can
+     * leave an unclaimed payment behind. One check failing does not keep the others from running.
+     */
+    ledger: {
+        name: 'Ledger sweeper',
+        intervalMs: 60 * 1000,
+        tick: async () => {
+            try {
+                await cancelStaleLedgerTransactions()
+            } catch (error) {
+                logger.error(`Ledger sweeper failed to cancel stale transactions: ${error}`)
+            }
+
+            try {
+                await reimburseUnclaimedPayments()
+            } catch (error) {
+                logger.error(`Ledger sweeper failed to reimburse unclaimed payments: ${error}`)
+            }
+
+            try {
+                await flagUnbalancedLedgerTransactions()
+            } catch (error) {
+                logger.error(`Ledger sweeper failed to flag unbalanced transactions: ${error}`)
             }
         },
     },

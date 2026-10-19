@@ -36,7 +36,8 @@ export async function cabinBookingPaymentCompletionHook(
     const booking = await prisma.booking.findUniqueOrThrow({ where: { id: transaction.bookingId } })
 
     // Backstop: the hold is time-boxed, so a late Stripe webhook can arrive after another booking
-    // took the same dates. Remove once a sweeper cancels expired PENDING transactions.
+    // took the same dates. The ledger sweeper cancels stale attempts, but not before the hold ends
+    // or while the worker is down.
     const conflicting = await prisma.booking.findFirst({
         where: {
             id: { not: booking.id },
@@ -70,6 +71,7 @@ export async function cabinBookingPaymentCompletionHook(
             await manualReviewOperations.create({
                 params: {
                     transactionId: transaction.id,
+                    problem: 'CABIN_DOUBLE_BOOKING',
                     problemDescription: 'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk for '
                         + `booking ${booking.id}, men gjesten har ingen konto å refundere til automatisk.`,
                 },

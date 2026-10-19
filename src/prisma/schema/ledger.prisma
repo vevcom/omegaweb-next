@@ -145,13 +145,30 @@ enum ManualReviewState {
   RESOLVED
 }
 
-// A transaction needing a human: a Stripe dispute, an external refund or a failed automatic
-// reimbursement. A transaction can need review more than once.
+// What kind of problem a review is about, which code looks reviews up by. Its default description
+// lives in manualReviews/constants.ts.
+enum ManualReviewProblem {
+  STRIPE_DISPUTE
+  STRIPE_REFUND
+  COMPLETION_HOOK_FAILED
+  CABIN_DOUBLE_BOOKING
+  // Found by the ledger sweeper, see services/ledger/sweeper.ts.
+  STALE_PENDING
+  UNCLAIMED_PAYMENT
+  UNBALANCED
+}
+
+// Something needing a human, for example a Stripe dispute or a problem the ledger sweeper could not
+// fix. It points to the transaction and/or payment involved when there is one, and otherwise its
+// description says what it is about. Either can need review more than once.
 model ManualTransactionReview {
-  id                    Int               @id @default(autoincrement())
-  transaction           LedgerTransaction @relation(fields: [transactionId], references: [id])
-  transactionId         Int
-  state                 ManualReviewState @default(OPEN)
+  id                    Int                 @id @default(autoincrement())
+  transaction           LedgerTransaction?  @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  transactionId         Int?
+  payment               Payment?            @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  paymentId             Int?
+  state                 ManualReviewState   @default(OPEN)
+  problem               ManualReviewProblem
   problemDescription    String
   resolutionDescription String?
 
@@ -265,6 +282,9 @@ model Payment {
   // can.
   claimedByTransactionId Int?               @unique
   claimedBy              LedgerTransaction? @relation("PaymentClaim", fields: [claimedByTransactionId], references: [id])
+
+  // Every time this payment itself needed a human, e.g. a Stripe dispute. See ManualTransactionReview.
+  manualReviews ManualTransactionReview[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -42,6 +42,7 @@ export async function runPaymentCompletionHook(
         await manualReviewOperations.create({
             params: {
                 transactionId: transaction.id,
+                problem: 'COMPLETION_HOOK_FAILED',
                 problemDescription: `Fullføringshook for ${transaction.purpose} feilet etter vellykket betaling.`,
                 error,
             },

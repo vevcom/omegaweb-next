@@ -77,7 +77,7 @@ export const refundOperations = {
                 select: {
                     state: true,
                     purpose: true,
-                    payment: { select: { id: true, funds: true, provider: true } },
+                    payment: { select: { id: true, funds: true, provider: true, state: true } },
                     ledgerEntries: { select: { ledgerAccountId: true, funds: true } },
                 },
             })
@@ -94,14 +94,9 @@ export const refundOperations = {
             if (original.payment?.provider !== 'STRIPE') {
                 throw new ServiceError('BAD PARAMETERS', 'Det finnes ingen Stripe-betaling å tilbakebetale.')
             }
-            // Not gated on SUCCEEDED: this is for payments still stored as CANCELED/FAILED because Stripe's
-            // success arrived too late. Fix the state, or the correction reusing this payment fails too.
-            // The caller that knows the real fee (refundLateStripeSuccess) writes it.
-            await prisma.payment.update({
-                where: { id: original.payment.id },
-                data: { state: 'SUCCEEDED' },
-            })
-
+            if (original.payment.state !== 'SUCCEEDED') {
+                throw new ServiceError('BAD PARAMETERS', 'Betalingen har ikke gått gjennom.')
+            }
             // A deposit's single entry is the payer's. Otherwise the payer only has an entry (the debit) if
             // part of the price came from their balance; if not, this errors below.
             const payerEntry = original.purpose === 'DEPOSIT'

@@ -2,7 +2,6 @@ import { prisma } from '@/prisma/client'
 import { stripe } from '@/lib/stripe'
 import { cabinBookingOperations } from '@/services/cabin/booking/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
-import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
 import { afterEach, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 
 const dayMs = 24 * 60 * 60 * 1000
@@ -61,19 +60,6 @@ function releaseReservation(booking: { id: number, secret: string }) {
     })
 }
 
-/**
- * Starts an attempt on the booking and ages it past the stale limit. Both createPayment and
- * releaseReservation cancel such an attempt through ledgerTransactionOperations.cancel before
- * they touch the booking, which gives a test a point to run the racing operation at.
- */
-async function createStaleAttempt(booking: { id: number, secret: string }) {
-    await createPayment(booking)
-    await prisma.ledgerTransaction.updateMany({
-        where: { bookingId: booking.id },
-        data: { createdAt: new Date(Date.now() - stalePendingTransactionMs - 1000) },
-    })
-}
-
 /** The error either operation gives up with when the other got to the booking first. */
 function raceLost(message: string) {
     return { errorCode: 'BAD PARAMETERS', errors: [{ message: expect.stringContaining(message) }] }
@@ -116,11 +102,13 @@ describe('cabin booking payment and release', () => {
 
     test('a payment attempt that a release got ahead of creates nothing', async () => {
         const booking = await createReservation(new Date('2030-02-10'))
-        await createStaleAttempt(booking)
-        jest.spyOn(ledgerTransactionOperations, 'cancel').mockImplementationOnce(async () => {
+        // createPayment looks up the cabin's account after reading the booking and before it
+        // claims it, which gives the release a point to run at.
+        const findAccount = prisma.ledgerAccount.findUnique.bind(prisma.ledgerAccount)
+        jest.spyOn(prisma.ledgerAccount, 'findUnique').mockImplementationOnce((async (args: never) => {
             await releaseReservation(booking)
-            return undefined as never
-        })
+            return findAccount(args)
+        }) as never)
 
         await expect(createPayment(booking)).rejects.toMatchObject(raceLost('i mellomtiden'))
 
@@ -129,13 +117,24 @@ describe('cabin booking payment and release', () => {
 
     test('a release that a payment attempt got ahead of keeps the reservation', async () => {
         const booking = await createReservation(new Date('2030-03-10'))
-        await createStaleAttempt(booking)
-        jest.spyOn(ledgerTransactionOperations, 'cancel').mockImplementationOnce(async () => {
+        await createPayment(booking)
+        const cancel = ledgerTransactionOperations.cancel
+        jest.spyOn(ledgerTransactionOperations, 'cancel').mockImplementationOnce(async args => {
+            const canceled = await cancel(args)
             await createPayment(booking)
-            return undefined as never
+            return canceled
         })
 
         await expect(releaseReservation(booking)).rejects.toMatchObject(raceLost('Prøv igjen'))
+
+        await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 1 })
+    })
+
+    test('a second payment attempt is refused while one is pending', async () => {
+        const booking = await createReservation(new Date('2030-05-10'))
+        await createPayment(booking)
+
+        await expect(createPayment(booking)).rejects.toMatchObject(raceLost('allerede en betaling under behandling'))
 
         await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 1 })
     })

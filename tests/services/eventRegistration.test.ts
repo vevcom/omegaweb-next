@@ -448,7 +448,7 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
         expect(liveAttempts[0].paymentId).not.toBe(adminAttempt?.id)
     })
 
-    test('someone other than the registrant still has to wait out the staleness window', async () => {
+    test('someone other than the registrant has to wait for the pending attempt to be canceled', async () => {
         const committee = await createCommittee('payment-committee-2')
         const eventId = await createPaidEvent(committee)
         const registrant = await createTestUser('paymentregistrant2')

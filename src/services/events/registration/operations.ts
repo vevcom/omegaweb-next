@@ -21,7 +21,7 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { refundOperations } from '@/services/ledger/refunds/operations'
-import { stalePendingTransactionMs, validTransactionFilter } from '@/services/ledger/transactions/constants'
+import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -584,10 +584,8 @@ export const eventRegistrationOperations = {
                 }
                 if (existingAttempt) {
                     // The registrant may always replace a pending attempt, even one an admin
-                    // started for them. Anyone else has to wait until it is stale.
-                    const isRegistrant = session.user?.id === params.userId
-                    const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
-                    if (!isRegistrant && !isStale) {
+                    // started for them. Anyone else has to wait until the ledger sweeper cancels it.
+                    if (session.user?.id !== params.userId) {
                         throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.')
                     }
                     // Cancel it, so a late webhook can't complete it. Bypassed, since the outer

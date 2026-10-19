@@ -40,8 +40,8 @@ services:
             - logs:/usr/src/app/logs
         restart: "no"
 
-    # Runs every background worker in one process: image processing, notification sending and the
-    # store's orphan destroyer (src/workers/main.ts). Must stay at 1 replica - the weekly digest
+    # Runs every background worker in one process: image processing, notification sending, the
+    # store's orphan destroyer and the ledger sweeper (src/workers/main.ts). Must stay at 1 replica - the weekly digest
     # is only guarded against repeats by its date cutoff, not against concurrent senders.
     worker:
         extends:

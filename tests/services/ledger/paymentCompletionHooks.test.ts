@@ -25,7 +25,10 @@ describe('runPaymentCompletionHook', () => {
                 return tx.manualTransactionReview.findFirst({ where: { transactionId: transaction.id } })
             })
 
-            expect(review).toMatchObject({ problemDescription: expect.stringContaining('CABIN_BOOKING') })
+            expect(review).toMatchObject({
+                problem: 'COMPLETION_HOOK_FAILED',
+                problemDescription: expect.stringContaining('CABIN_BOOKING'),
+            })
         }
     )
 })

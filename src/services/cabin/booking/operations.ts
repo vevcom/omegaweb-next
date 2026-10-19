@@ -392,18 +392,7 @@ export const cabinBookingOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen er allerede betalt.')
             }
             if (existingAttempt) {
-                const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
-                if (!isStale) {
-                    throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen har allerede en betaling under behandling.')
-                }
-                // Stale (likely abandoned) attempt - cancel it (also cancels any Stripe payment
-                // intent, so a late webhook for it can never complete) and let this one proceed.
-                // Bypassed: the outer authorizer already established this caller may pay for
-                // this booking, which is the right bar for canceling a stale attempt on it.
-                await ledgerTransactionOperations.cancel({
-                    params: { id: existingAttempt.id },
-                    bypassAuth: true,
-                })
+                throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen har allerede en betaling under behandling.')
             }
 
             const destinationLedgerAccountId = await readDestinationLedgerAccountId(prisma)
@@ -424,7 +413,7 @@ export const cabinBookingOperations = {
             let payment: ExpandedPayment | undefined
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
                 // Extends the reservation window to cover the full lifetime a pending attempt is
-                // allowed to stay open for (see stalePendingTransactionMs above), so the dates
+                // allowed to stay open for before the ledger sweeper cancels it, so the dates
                 // can't be released to another booker while this attempt can still succeed.
                 // Matching on the window read above also serializes this attempt against a
                 // concurrent release or attempt: whichever of them got to the row first changed

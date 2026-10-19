@@ -1,7 +1,7 @@
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-// How long a PENDING attempt (e.g. an abandoned Stripe checkout) blocks a new attempt from
-// cancelling it and retrying.
+// How long a PENDING transaction, such as an abandoned Stripe checkout, stays open before the
+// ledger sweeper cancels it.
 export const stalePendingTransactionMs = 30 * 60 * 1000
 
 // A SUCCEEDED transaction that hasn't been refunded. A refund leaves the original SUCCEEDED,
