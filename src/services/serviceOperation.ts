@@ -308,6 +308,15 @@ export function withServiceContext<T, OpensTransaction extends boolean>(
 }
 
 
+/**
+ * Get the current service operation context.
+ * This includes the current user/api session,
+ * prisma client, and whether auth is bypassed.
+ *
+ * This should only ever be used as a last resort!
+ * In service operations you always have the contents
+ * of the context available as arguments to the operation.
+ */
 export function getContext() {
     const localContext = asyncLocalStorage.getStore()
     return localContext

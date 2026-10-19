@@ -7,10 +7,8 @@ import { defineOperation } from '@/services/serviceOperation'
 import type { LedgerAccount, LedgerAccountType, Prisma } from '@/prisma-generated-pn-types'
 import type { Balance, BalanceRecord, ExpandedLedgerAccount } from './types'
 
-// Nested calls between these operations are not bypassed unless noted otherwise: the checks
-// involved are cheap (a session permission, or one indexed lookup), so checking access again
-// on each call is worth it. bypassAuth is used only where a nested operation's own policy would
-// otherwise reject a caller the outer check already allows.
+// Nested calls are not bypassed unless noted, since checking access again is cheap. bypassAuth is
+// only used where a nested operation would reject a caller the outer check allows.
 const ownershipIncluder = {
     user: { select: { id: true } },
     groups: { select: { groupId: true } },
@@ -208,10 +206,8 @@ export const ledgerAccountOperations = {
                 },
                 data: {
                     ...scalarData,
-                    // groups isn't a real field on the model. It's the groups relation, via the
-                    // GroupLedgerAccount join table. deleteMany/createMany only touch the given
-                    // group IDs, rather than replacing the whole relation, so that concurrent
-                    // updates to different groups on the same account don't clobber each other.
+                    // Only the given group ids are touched, so concurrent updates to different groups don't
+                    // clobber each other.
                     ...((addGroupIds?.length || removeGroupIds?.length) && {
                         groups: {
                             ...(removeGroupIds?.length && {
@@ -231,15 +227,14 @@ export const ledgerAccountOperations = {
     }),
 
     /**
-     * Calculates the balance and fees of every ledger account matching any of the given filters.
-     * Optionally takes a transaction ID to calculate the balance up until that transaction.
+     * Calculates the live balance and fees of every matching account: SUCCEEDED entries and PENDING
+     * debits, which reserve their funds.
      *
      * @warning An account that does not exist is treated as having a balance of zero.
      *
      * @param params.ledgerAccountIds IDs of specific ledger accounts to include.
      * @param params.userIds IDs of users whose account should be included.
      * @param params.groupIds IDs of groups whose accounts should be included.
-     * @param params.atTransactionId Optional transaction ID to calculate the balance up until that transaction.
      *
      * @returns The balances of the ledger accounts.
      */
@@ -267,12 +262,6 @@ export const ledgerAccountOperations = {
                     // Select which accounts we want to calculate the balance for
                     ledgerAccountId: {
                         in: ids,
-                    },
-                    // Since transaction ids are sequential we can use the less than operator
-                    // to filter for all the transactions that happened before the given one.
-                    // This is useful in case we need to know the balance in the past.
-                    ledgerTransactionId: {
-                        lte: params.atTransactionId,
                     },
                     // Credit and debit ledger entries are valid under slight different conditions.
                     OR: [
@@ -322,7 +311,6 @@ export const ledgerAccountOperations = {
      *
      * @param params.userId The ID of the user whose account to calculate the balance for.
      * @param params.ledgerAccountId The ID of the account to calculate the balance for.
-     * @param params.atTransactionId Optional transaction ID to calculate the balance up until that transaction.
      *
      * @returns The balance of the ledger account.
      */
@@ -337,10 +325,7 @@ export const ledgerAccountOperations = {
             })
 
             const balances = await ledgerAccountOperations.calculateBalances({
-                params: {
-                    ledgerAccountIds: [account.id],
-                    atTransactionId: params.atTransactionId,
-                },
+                params: { ledgerAccountIds: [account.id] },
             })
 
             return balances[account.id]

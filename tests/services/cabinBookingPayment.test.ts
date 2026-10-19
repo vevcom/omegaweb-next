@@ -139,4 +139,17 @@ describe('cabin booking payment and release', () => {
 
         await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 1 })
     })
+
+    test('reading a transaction never exposes its booking\'s secret', async () => {
+        const booking = await createReservation(new Date('2030-04-10'))
+        await createPayment(booking)
+
+        const transaction = await prisma.ledgerTransaction.findFirstOrThrow({ where: { bookingId: booking.id } })
+        const read = await ledgerTransactionOperations.read({ params: { id: transaction.id }, bypassAuth: true })
+
+        expect(read.booking).not.toHaveProperty('secret')
+        expect(read.booking).not.toHaveProperty('notes')
+        expect(read.booking).not.toHaveProperty('tenantNotes')
+        expect(read.booking).toMatchObject({ numberOfMembers: 1, numberOfNonMembers: 0, totalPrice: 100_00 })
+    })
 })

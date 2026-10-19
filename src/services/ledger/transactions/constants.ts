@@ -1,5 +1,12 @@
-// How long a PENDING transaction attempt (e.g. an abandoned Stripe checkout) is treated as
-// still legitimately in flight before a new payment attempt for the same resource is allowed to
-// cancel it and retry. Long enough not to race a real, slow-but-active checkout; short enough
-// that an abandoned one doesn't lock a user out for good.
+import type { Prisma } from '@/prisma-generated-pn-types'
+
+// How long a PENDING attempt (e.g. an abandoned Stripe checkout) blocks a new attempt from
+// cancelling it and retrying.
 export const stalePendingTransactionMs = 30 * 60 * 1000
+
+// A SUCCEEDED transaction that hasn't been refunded. A refund leaves the original SUCCEEDED,
+// so use this instead of checking state alone to ask "has this been paid for".
+export const validTransactionFilter = {
+    state: 'SUCCEEDED',
+    refundOf: null,
+} satisfies Prisma.LedgerTransactionWhereInput

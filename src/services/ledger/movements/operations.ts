@@ -5,6 +5,18 @@ import { ledgerTransactionOperations } from '@/services/ledger/transactions/oper
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { defineOperation } from '@/services/serviceOperation'
+import type { ExpandedPayment } from '@/services/ledger/payments/types'
+
+/**
+ * `ledgerTransactionOperations.create` returns a payment without its clientSecret. The callers here
+ * created the payment themselves, so swap in the full one for their modal to read.
+ */
+function withFullPayment<Transaction extends { payment: unknown }>(
+    transaction: Transaction,
+    payment: ExpandedPayment
+): Omit<Transaction, 'payment'> & { payment: ExpandedPayment } {
+    return { ...transaction, payment }
+}
 
 // `ledgerMovementOperations` provides functions to orchestrate account related actions,
 // such as depositing funds or creating payouts. If the ledger is needed for
@@ -27,7 +39,7 @@ export const ledgerMovementOperations = {
         opensTransaction: true,
         paramsSchema: ledgerMovementSchemas.params.createDeposit,
         operation: async ({ prisma, params }) => {
-            const transaction = await prisma.$transaction(async tx => {
+            const created = await prisma.$transaction(async tx => {
                 const payment = await paymentOperations.create({
                     params: {
                         provider: params.provider,
@@ -39,7 +51,7 @@ export const ledgerMovementOperations = {
                     prisma: tx,
                 })
 
-                return await ledgerTransactionOperations.create({
+                const transaction = await ledgerTransactionOperations.create({
                     params: {
                         purpose: 'DEPOSIT',
                         ledgerEntries: [{
@@ -51,15 +63,18 @@ export const ledgerMovementOperations = {
                     },
                     prisma: tx,
                 })
+
+                return { transaction, payment }
             })
 
-            if (transaction.payment?.state === 'PENDING') {
-                transaction.payment = await paymentOperations.initiate({
-                    params: { paymentId: transaction.payment.id },
-                })
-            }
-
-            return transaction
+            // Returns the live clientSecret for LedgerTransactionModal. If starting the payment
+            // fails, initiate cancels the deposit.
+            const resolvedPayment = await ledgerTransactionOperations.initiate({
+                params: { id: created.transaction.id },
+                bypassAuth: true,
+            })
+            // createDeposit always attaches a payment, so this can never come back null.
+            return withFullPayment(created.transaction, resolvedPayment!)
         }
     }),
 
@@ -109,7 +124,8 @@ export const ledgerMovementOperations = {
                 prisma: tx,
             })
 
-            return transaction
+            // The caller's own modal reads payment.stripePayment off this response directly.
+            return withFullPayment(transaction, payment)
         })
     }),
 } as const

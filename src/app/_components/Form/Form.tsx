@@ -25,6 +25,7 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     navigateOnSuccess?: string | ((data?: ReturnType) => string | null),
     closePopUpOnSuccess?: PopUpKeyType,
     buttonClassName?: string,
+    disabled?: boolean,
 }
 type InputType = {
     input: ReactNode,
@@ -93,6 +94,7 @@ export default function Form<GiveActionReturn>({
     navigateOnSuccess,
     closePopUpOnSuccess,
     buttonClassName,
+    disabled,
     ...props
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
@@ -180,6 +182,7 @@ export default function Form<GiveActionReturn>({
                 generalErrors={generalErrors}
                 confirmation={confirmation}
                 className={`${buttonClassName} ${styles.submitButton}`}
+                disabled={disabled}
             >
                 {submitText}
             </SubmitButton>

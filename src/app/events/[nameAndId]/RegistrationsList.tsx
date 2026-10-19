@@ -33,7 +33,7 @@ function DetailedTable({
     attendanceTakerId: number | null,
     dotGiverId: number | null,
 }) {
-    const columns = 6 + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
+    const columns = 7 + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
 
     return <EventRegistrationDetailedPagingProvider
         serverRenderedData={[]}
@@ -55,6 +55,7 @@ function DetailedTable({
                         <th>Mobil</th>
                         <th>Allergier</th>
                         <th>Notat</th>
+                        <th>Betalt</th>
                         {attendanceTakerId !== null && <th>Møtt</th>}
                         {dotGiverId !== null && <th>Prikk</th>}
                         <th>Slett</th>
@@ -74,6 +75,7 @@ function DetailedTable({
                                 <td>{row.user ? row.user.mobile : row.contact?.mobile}</td>
                                 <td>{row.user ? row.user.allergies : 'Ukjent'}</td>
                                 <td>{row.note}</td>
+                                <td>{row.ledgerTransactions.length > 0 ? 'Ja' : 'Nei'}</td>
                                 {attendanceTakerId !== null && <td>
                                     <Form
                                         action={configureAction(
