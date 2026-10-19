@@ -3,6 +3,7 @@ import { notificationOperations } from '@/services/notifications/operations'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import logger from '@/lib/logger'
 import { escapeHtml } from '@/lib/html/escapeHtml'
+import { formatVevenUri } from '@/lib/urlEncoding'
 
 /**
  * Tells the ones whose registrations were promoted from the waiting list of an event to one of its
@@ -10,13 +11,13 @@ import { escapeHtml } from '@/lib/html/escapeHtml'
  * if any. Call it only once the change that promoted them is saved.
  */
 export async function notifyPromotedFromWaitingList(
-    eventName: string,
+    event: { id: number, name: string },
     registrations: { userId: number | null, contact: { email: string | null } | null }[],
 ) {
     const title = 'Opprykk fra venteliste ved Omegas nettsider'
     const congratulation = 'Gratulerer! Du har rykket opp fra venteliste på arrangementet'
-    const message = `${congratulation} ${eventName}.`
-    const mailBody = `${congratulation} ${escapeHtml(eventName)}.`
+    const message = `${congratulation} ${event.name}.`
+    const mailBody = `${congratulation} ${escapeHtml(event.name)}.`
 
     const userIds = registrations.flatMap(registration => (
         registration.userId === null ? [] : [registration.userId]
@@ -33,6 +34,7 @@ export async function notifyPromotedFromWaitingList(
             data: {
                 title,
                 message,
+                url: `/events/${formatVevenUri(event.name, event.id)}`,
                 audience: { userIds },
             },
         })
@@ -46,7 +48,7 @@ export async function notifyPromotedFromWaitingList(
     sendings.forEach((sending, index) => {
         if (sending.status === 'rejected') {
             logger.error(
-                `Could not mail ${guestEmails[index]} about being promoted from the waiting list of ${eventName}`,
+                `Could not mail ${guestEmails[index]} about being promoted from the waiting list of ${event.name}`,
                 { error: sending.reason },
             )
         }

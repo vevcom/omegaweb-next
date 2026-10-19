@@ -33,6 +33,7 @@ export async function sendNotificationPushes(notification: NotificationWithChann
             title: replaceSpecialSymbols(notification.title, recipient.user),
             body: truncate(replaceSpecialSymbols(notification.message, recipient.user), pushDispatch.maxBodyLength),
             tag: `notification-${notification.id}`,
+            url: notification.url ?? undefined,
         }),
         {
             vapidDetails: vapid,

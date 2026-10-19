@@ -369,11 +369,11 @@ export const eventRegistrationOperations = {
                         contact: true,
                     }
                 })
-                return nextInLine ? { eventName: registration.event.name, nextInLine } : null
+                return nextInLine ? { event: { id: registration.eventId, name: registration.event.name }, nextInLine } : null
             })
 
             if (promoted) {
-                await notifyPromotedFromWaitingList(promoted.eventName, [promoted.nextInLine])
+                await notifyPromotedFromWaitingList(promoted.event, [promoted.nextInLine])
             }
         }
     }),

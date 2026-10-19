@@ -75,6 +75,8 @@ model Notification {
   createdAt DateTime @default(now())
   title     String
   message   String
+  // The page the notification is about, as a path on the site. Tapping the push opens it.
+  url       String?
 
   // Who is supposed to get this notification. Recipients are resolved by the notification worker
   // right before dispatching (not at create time), so subscription, membership and visibility

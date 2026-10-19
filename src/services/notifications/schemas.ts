@@ -11,6 +11,7 @@ const dataFieldSchemas = z.object({
     channelId: z.coerce.number().min(1),
     title: z.string().min(2),
     message: z.string().min(10),
+    url: z.string().max(2048).regex(/^\/(?![/\\])/, 'Lenken må være en sti på nettsiden, som /events').optional(),
     // Who the notification is for, on top of being subscribed to its channel. Each given part narrows it.
     audience: z.object({
         userIds: z.number().array().optional(),
@@ -29,11 +30,13 @@ export const notificationSchemas = {
             channelId: true,
             title: true,
             message: true,
+            url: true,
             audience: true,
         }),
         createSpecial: dataFieldSchemas.pick({
             title: true,
             message: true,
+            url: true,
             audience: true,
         }),
     },

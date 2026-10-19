@@ -99,6 +99,7 @@ export const ombulOperations = {
                 data: {
                     title: 'Ny ombul',
                     message: `Ny ombul er ute! ${ombul.name}`,
+                    url: `/ombul/${ombul.year}/${encodeURIComponent(ombul.name)}`,
                     audience: { permission: 'OMBUL_USE' },
                 },
             })
