@@ -9,9 +9,6 @@ on:
 jobs:
   build: 
     runs-on: ubuntu-latest
-    env:
-      #Make sure er do not try to make admin user in ci as it will trigger unsafe password error
-      SEED_ADMIN_PASSWORD: "" 
     steps:
     - name: checkout
       uses: actions/checkout@v3
