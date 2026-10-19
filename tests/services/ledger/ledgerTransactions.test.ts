@@ -4,6 +4,7 @@ import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { userOperations } from '@/services/users/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { beforeAll, beforeEach, afterEach, describe, expect, test } from '@jest/globals'
 
 const TEST_ACCOUNT_COUNT = 3
@@ -43,37 +44,55 @@ describe('ledger transactions', () => {
         await prisma.ledgerTransaction.deleteMany({})
     })
 
-    describe('external transactions', () => {
+    beforeEach(async () => {
+        await allSettledOrThrow(testAccountIds.map(async accountId => {
+            const manualPayment = await paymentOperations.create({
+                params: {
+                    funds: INITIAL_BALANCE.amount,
+                    provider: 'MANUAL',
+                    manualFees: INITIAL_BALANCE.fees,
+                },
+                bypassAuth: true,
+            })
 
+            await ledgerTransactionOperations.create({
+                params: {
+                    purpose: 'DEPOSIT',
+                    ledgerEntries: [{
+                        ledgerAccountId: accountId,
+                        funds: INITIAL_BALANCE.amount,
+                    }],
+                    paymentId: manualPayment.id,
+                },
+                bypassAuth: true,
+            })
+        })
+        )
+    })
+
+    describe('external transactions', () => {
+        test('a payout of fees alone can not pay out more fees than the account holds', async () => {
+            const accountId = testAccountIds[0]
+            const payOutFees = (fees: number) => ledgerMovementOperations.createPayout({
+                params: { ledgerAccountId: accountId, funds: 0, fees },
+                bypassAuth: true,
+            })
+
+            await expect(payOutFees(INITIAL_BALANCE.fees)).resolves.toMatchObject({ state: 'SUCCEEDED' })
+            // Refused only if the balance counts the first payout, an entry with fees but no funds.
+            await expect(payOutFees(1_00)).rejects.toMatchObject({
+                errorCode: 'BAD PARAMETERS',
+                errors: [{ message: expect.stringContaining('Ikke nok midler') }],
+            })
+
+            expect(await ledgerAccountOperations.calculateBalance({
+                params: { ledgerAccountId: accountId },
+                bypassAuth: true,
+            })).toEqual({ amount: INITIAL_BALANCE.amount, fees: 0 })
+        })
     })
 
     describe('internal transactions', () => {
-        beforeEach(async () => {
-            await allSettledOrThrow(testAccountIds.map(async accountId => {
-                const manualPayment = await paymentOperations.create({
-                    params: {
-                        funds: INITIAL_BALANCE.amount,
-                        provider: 'MANUAL',
-                        manualFees: INITIAL_BALANCE.fees,
-                    },
-                    bypassAuth: true,
-                })
-
-                await ledgerTransactionOperations.create({
-                    params: {
-                        purpose: 'DEPOSIT',
-                        ledgerEntries: [{
-                            ledgerAccountId: accountId,
-                            funds: INITIAL_BALANCE.amount,
-                        }],
-                        paymentId: manualPayment.id,
-                    },
-                    bypassAuth: true,
-                })
-            })
-            )
-        })
-
         const validLedgerEntries: number[][] = [
             // No entries
             [],
