@@ -154,3 +154,5 @@ export function themeCssVars(theme: Theme): CSSProperties {
         Object.entries(themes[theme]).map(([key, value]) => [`--${key}`, value])
     )
 }
+
+export const lightThemes: ReadonlySet<Theme> = new Set([Theme.LIGHT, Theme.SOLARIZED, Theme.OW_BASIC])

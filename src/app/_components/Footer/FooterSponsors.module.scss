@@ -41,6 +41,10 @@
     img {
         max-width: 100%;
         height: auto;
+
+        @include ohma.lightTheme {
+            filter: invert(1) hue-rotate(180deg);
+        }
     }
 }
 

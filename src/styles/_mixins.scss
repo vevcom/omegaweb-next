@@ -464,6 +464,12 @@
     }
 }
 
+@mixin lightTheme {
+    :global(html[data-tone="light"]) & {
+        @content;
+    }
+}
+
 @mixin screenMobile {
     @media (max-width: variables.$mobileBreakpoint) {
         @content;

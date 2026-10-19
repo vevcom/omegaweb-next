@@ -12,7 +12,7 @@ import { standardImageCollectionOperations } from '@/services/images/standard/op
 import { userOperations } from '@/services/users/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
 import ReleaseCountdownGate from '@/components/ReleaseCountdown/ReleaseCountdownGate'
-import { Theme, themeCssVars, themes } from '@/lib/theme'
+import { Theme, lightThemes, themeCssVars, themes } from '@/lib/theme'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
 import GlobalSearch from '@/UI/GlobalSearch'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
@@ -88,7 +88,7 @@ export default async function RootLayout({ children }: PropTypes) {
     const theme = serverSession.user?.theme ?? Theme.STANDARD
 
     return (
-        <html lang="nb" style={themeCssVars(theme)}>
+        <html lang="nb" style={themeCssVars(theme)} data-tone={lightThemes.has(theme) ? 'light' : 'dark'}>
             <body className={`${inter.className} ${styles.body}`}>
                 {/* Hoisted into the head by React. Keeps the browser chrome in step with the theme;
                     picking another one refreshes the page, which renders it anew. */}
