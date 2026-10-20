@@ -52,9 +52,17 @@ export const ledgerAccountSchemas = {
             payoutAccountNumber: true,
             frozen: true,
         }).partial(),
+        // An owner may rename their account, set its payout number, and freeze it (stop its own
+        // spending) - but never unfreeze it or change its group links themselves, see
+        // updateAsAdmin. frozen is narrowed to the literal true so that's enforced by the schema
+        // itself, not a runtime check: this operation cannot even express an unfreeze attempt.
         update: dataFieldSchemas.pick({
             name: true,
             payoutAccountNumber: true,
+        }).extend({
+            frozen: z.literal(true).optional(),
+        }).partial(),
+        updateAsAdmin: dataFieldSchemas.pick({
             frozen: true,
             addGroupIds: true,
             removeGroupIds: true,
@@ -80,6 +88,7 @@ export const ledgerAccountSchemas = {
             }),
         ),
         update: account,
+        updateAsAdmin: account,
         calculateBalances: paramsFieldSchemas.pick({
             ledgerAccountIds: true,
             userIds: true,
