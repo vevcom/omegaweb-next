@@ -1,7 +1,7 @@
 'use client'
 
 import styles from './LedgerAccountGroupList.module.scss'
-import { updateLedgerAccountAction } from '@/services/ledger/accounts/actions'
+import { updateLedgerAccountAsAdminAction } from '@/services/ledger/accounts/actions'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useRouter } from 'next/navigation'
@@ -20,7 +20,7 @@ export default function LedgerAccountGroupList({ ledgerAccountId, groups, capabi
     const [error, setError] = useState<string | null>(null)
 
     const removeGroup = async (groupId: number) => {
-        const result = await updateLedgerAccountAction({
+        const result = await updateLedgerAccountAsAdminAction({
             params: { ledgerAccountId },
         }, {
             data: { removeGroupIds: [groupId] },

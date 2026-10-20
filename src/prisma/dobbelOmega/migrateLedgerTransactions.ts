@@ -1,5 +1,6 @@
 import { owIdToPnId, type IdMapper, type MappedResource } from './IdMapper'
 import manifest from './manifest'
+import { allocateTransferFees } from './allocateTransferFees'
 import type { Prisma, PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
 import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
 import type { Limits } from './migrationLimits'
@@ -62,16 +63,18 @@ async function migrateManualDeposits(
                 createdAt: deposit.createdAt,
                 updatedAt: deposit.updatedAt,
                 ledgerEntries: {
+                    // OW leaves manual deposit fees out of a user's unpaid fees, so they are not
+                    // migrated. The original value is kept in legacy.data.
                     create: [{
                         funds: deposit.amount,
-                        fees: deposit.fees ?? 0,
+                        fees: 0,
                         ledgerAccountId,
                     }],
                 },
                 payment: {
                     create: {
                         funds: deposit.amount,
-                        fees: deposit.fees ?? 0,
+                        fees: 0,
                         provider: 'MANUAL',
                         state: 'SUCCEEDED',
                         descriptionLong: 'Migrert innskudd (OmegaWeb Basic)',
@@ -138,7 +141,7 @@ async function migrateStripeDeposits(
                 payment: {
                     create: {
                         funds: deposit.amount,
-                        fees: deposit.fees ?? undefined,
+                        fees: states.payment === 'SUCCEEDED' ? (deposit.fees ?? 0) : deposit.fees,
                         provider: 'STRIPE',
                         state: states.payment,
                         createdAt: deposit.createdAt,
@@ -168,11 +171,40 @@ async function migrateStripeDeposits(
 async function migrateTransfers(
     { pnPrisma, owPrisma, drainAccountIdMap, legacySuspenseAccountId, limits }: MoneyMigrationContext
 ) {
-    const transfers = await owPrisma.moneyTransfers.findMany({
-        take: limits.moneyTransfers ? limits.moneyTransfers : undefined,
-    })
+    // The fee replay needs every payment and transfer, even when only some are migrated.
+    const [owPayments, owTransfers] = await Promise.all([
+        owPrisma.moneyPayments.findMany({
+            where: { MoneyCommodities: { isNot: null } },
+            select: {
+                id: true,
+                repaidFees: true,
+                createdAt: true,
+                MoneyCommodities: { select: { price: true, MoneyDrainAccountId: true } },
+            },
+        }),
+        owPrisma.moneyTransfers.findMany(),
+    ])
+    const feesByTransferId = allocateTransferFees(
+        owPayments.flatMap(payment => (payment.MoneyCommodities ? [{
+            id: payment.id,
+            drainAccountId: payment.MoneyCommodities.MoneyDrainAccountId,
+            price: payment.MoneyCommodities.price,
+            repaidFees: payment.repaidFees,
+            createdAt: payment.createdAt,
+        }] : [])),
+        owTransfers.map(transfer => ({
+            id: transfer.id,
+            drainAccountId: transfer.MoneyDrainAccountId,
+            amount: transfer.amount,
+            createdAt: transfer.createdAt,
+        })),
+    )
+    const transfers = limits.moneyTransfers ? owTransfers.slice(0, limits.moneyTransfers) : owTransfers
 
     await Promise.all(transfers.map(async transfer => {
+        // OW transfers are net of fees, while a native payout's funds include its fees.
+        const fees = feesByTransferId.get(transfer.id) ?? 0
+        const funds = transfer.amount + fees
         const ledgerAccountId = resolveOrSuspend(
             drainAccountIdMap, transfer.MoneyDrainAccountId, 'drain accounts', legacySuspenseAccountId,
             `MoneyTransfers ${transfer.id}`
@@ -187,15 +219,15 @@ async function migrateTransfers(
                 updatedAt: transfer.updatedAt,
                 ledgerEntries: {
                     create: [{
-                        funds: -transfer.amount,
-                        fees: 0,
+                        funds: -funds,
+                        fees: -fees,
                         ledgerAccountId,
                     }],
                 },
                 payment: {
                     create: {
-                        funds: -transfer.amount,
-                        fees: 0,
+                        funds: -funds,
+                        fees: -fees,
                         provider: 'MANUAL',
                         state: 'SUCCEEDED',
                         descriptionLong: 'Migrert utbetaling (OmegaWeb Basic)',
@@ -307,12 +339,12 @@ async function migratePayments({
                     create: [
                         {
                             funds: -commodity.price,
-                            fees: 0,
+                            fees: -payment.repaidFees,
                             ledgerAccountId: debitAccountId,
                         },
                         {
                             funds: commodity.price,
-                            fees: payment.repaidFees ?? 0,
+                            fees: payment.repaidFees,
                             ledgerAccountId: creditAccountId,
                         },
                     ],

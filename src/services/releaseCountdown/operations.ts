@@ -4,6 +4,7 @@ import { releaseCountdownSchemas } from './schemas'
 import { RELEASE_COUNTDOWN_COOKIE_NAME, RELEASE_COUNTDOWN_PASSWORD } from './constants'
 import { readSettings, writeGitGraph, writeSettings } from './storage'
 import { fetchGitGraph } from './gitGraph/fetch'
+import { buildMockGitGraph } from './gitGraph/mock'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { cookies } from 'next/headers'
@@ -119,6 +120,20 @@ export const releaseCountdownOperations = {
         operation: async ({ data }) => {
             assertPassword(data.password)
             const graph = await fetchGitGraph()
+            await writeGitGraph(graph)
+            return { commits: graph.commits.length }
+        }
+    }),
+    /**
+     * Replaces the git graph the countdown plays with a made-up one, for when GitHub cannot be
+     * reached.
+     */
+    mockGitGraph: defineOperation({
+        authorizer: () => releaseCountdownAuth.mockGitGraph,
+        dataSchema: releaseCountdownSchemas.data.mockGitGraph,
+        operation: async ({ data }) => {
+            assertPassword(data.password)
+            const graph = buildMockGitGraph()
             await writeGitGraph(graph)
             return { commits: graph.commits.length }
         }
