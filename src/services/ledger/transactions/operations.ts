@@ -3,9 +3,10 @@ import { calculateCreditFees, calculateDebitFees } from './calculateFees'
 import { determineTransactionState } from './determineTransactionState'
 import { ledgerTransactionAuth } from './auth'
 import { ledgerTransactionSchemas } from './schemas'
-import { expandedLedgerTransactionInclude, hasPaymentCompletionHook } from './constants'
+import { expandedLedgerTransactionIncluder, hasPaymentCompletionHook } from './constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
+import { paymentIncluder } from '@/services/ledger/payments/constants'
 import { resolveAccountOwnership, resolveAccountsOwnership } from '@/services/ledger/accounts/ownership'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { Smorekopp, ServiceError } from '@/services/error'
@@ -24,7 +25,7 @@ const read = defineSubOperation({
             where: {
                 id: params.id,
             },
-            include: expandedLedgerTransactionInclude,
+            include: expandedLedgerTransactionIncluder,
         }),
 })
 
@@ -81,7 +82,7 @@ const initiate = defineSubOperation({
         if (transaction.payment.state !== 'PENDING') {
             return await prisma.payment.findUniqueOrThrow({
                 where: { id: transaction.payment.id },
-                include: { stripePayment: true, manualPayment: true },
+                include: paymentIncluder,
             })
         }
 
@@ -262,8 +263,9 @@ const create = defineSubOperation({
 
         const transaction = await advance.internalCall({ params: { id } })
 
+        // Every transition to FAILED gives its reason (see determineTransactionState), which is the
+        // message the caller needs, so the fallback is only a safety net.
         if (transaction.state === 'FAILED') {
-            // TODO: Better error message.
             throw new ServiceError('BAD PARAMETERS', transaction.reason ?? 'Transaksjonen feilet av ukjent årsak.')
         }
 
@@ -286,6 +288,23 @@ export const ledgerTransactionOperations = {
     }),
 
     /**
+     * Same as cancel, opening its own transaction around it - for the client-facing cancel
+     * button, the only caller that doesn't already run inside one (every other caller, e.g.
+     * createPayment, nests cancel in its own). cancel's two writes - its payment's, and the
+     * transaction's own - are otherwise only atomic together by accident of whichever
+     * transaction happens to already be ambient when it's called. Deliberately reuses cancel's
+     * own params schema and authorizer rather than declaring matching ones under this name: it's
+     * the exact same check and shape, not a different operation that happens to look similar.
+     */
+    cancelOwn: defineOperation({
+        authorizer: () => ledgerTransactionAuth.cancel,
+        paramsSchema: ledgerTransactionSchemas.params.cancel,
+        opensTransaction: true,
+        operation: async ({ prisma, params }): Promise<ExpandedLedgerTransaction> => prisma.$transaction(tx =>
+            cancel.internalCall({ params, prisma: tx })),
+    }),
+
+    /**
      * Read several ledger transactions including its ledger entries, payment and manual transfer (if any).
      */
     readPage: defineOperation({
@@ -301,7 +320,7 @@ export const ledgerTransactionOperations = {
                     },
                 },
             },
-            include: expandedLedgerTransactionInclude,
+            include: expandedLedgerTransactionIncluder,
             orderBy: [
                 { createdAt: 'desc' },
                 { id: 'desc' },

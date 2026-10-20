@@ -4,6 +4,9 @@ import { ledgerMovementSchemas } from './schemas'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
+import { STRIPE_MINIMUM_PAYMENT_AMOUNT } from '@/services/ledger/payments/constants'
+import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
+import { displayAmount } from '@/lib/currency/convert'
 import { Smorekopp } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import type { CreatedPayment, CreatePaymentImplementationFields, PaymentCharge } from './types'
@@ -97,13 +100,25 @@ export const ledgerMovementOperations = {
     /**
      * Creates a deposit transaction, which is a deposit of funds into the ledger.
      *
-     * @param implementationParams.funds The amount to be deposited.
+     * @param implementationParams.funds The amount to be deposited, at least STRIPE_MINIMUM_PAYMENT_AMOUNT
+     * when paying by card.
      * @param implementationParams.ledgerAccountId The ID of the ledger account where the funds will be deposited.
      */
     createDeposit: createPayment.implement({
         implementationParamsSchema: ledgerMovementSchemas.params.createDeposit,
-        authorizer: () => ledgerMovementAuth.createDeposit,
+        authorizer: async ({ implementationParams, prisma }) => ledgerMovementAuth.createDeposit.data({
+            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: implementationParams.ledgerAccountId })],
+        }),
         ownershipCheck: () => true,
+        // Stripe's own processing floor, so a MANUAL deposit has none.
+        beforeRun: ({ params, implementationParams }) => {
+            if (params.provider === 'STRIPE' && implementationParams.funds < STRIPE_MINIMUM_PAYMENT_AMOUNT) {
+                throw new Smorekopp(
+                    'BAD PARAMETERS',
+                    `Innskudd med kort må være minst ${displayAmount(STRIPE_MINIMUM_PAYMENT_AMOUNT, false)}.`
+                )
+            }
+        },
         operationImplementationFields: ({ implementationParams }) => ({
             purpose: 'DEPOSIT',
             descriptionShort: 'Innskudd',
@@ -121,7 +136,7 @@ export const ledgerMovementOperations = {
     /**
      * Creates a payout transaction, which is a withdrawal of funds from the ledger.
      *
-     * @params params.amount The amount to be withdrawn.
+     * @params params.funds The amount to be withdrawn.
      * @params params.fees The fees associated with the payout.
      * @params params.ledgerAccountId The ID of the ledger account from which the funds will be withdrawn.
      *

@@ -26,14 +26,14 @@ export const ledgerMovementSchemas = {
             ledgerAccountId: true,
         }).extend({
             // Positive, so a deposit always has a payment to collect.
-            funds: z.coerce.number().positive(),
+            funds: z.coerce.number().int().positive(),
         }),
         createPayout: paramsFieldSchemas.pick({
             ledgerAccountId: true,
             fees: true,
             description: true,
         }).extend({
-            // A payout's funds default to 0 and are not coerced, unlike a deposit's.
+            // A payout has no minimum, its funds default to 0 and are not coerced, unlike a deposit's.
             funds: z.number().nonnegative().default(0),
         }).refine(({ funds, fees }) => funds || fees, 'Både beløp og avgifter kan ikke være 0 samtidig.'),
     },

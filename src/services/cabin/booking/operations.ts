@@ -17,7 +17,7 @@ import { Smorekopp, ServiceError } from '@/services/error'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
-import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
+import { stalePendingTransactionMs, validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import crypto from 'crypto'
@@ -30,14 +30,16 @@ import type { PaymentCharge } from '@/services/ledger/movements/types'
 const dayMs = 24 * 60 * 60 * 1000
 
 /**
- * What blocks the calendar: a booking that is not canceled and either is paid (its window is
- * cleared) or is still inside the window its payment must start in.
+ * What blocks the calendar: a booking that is not canceled and either is paid or is still inside
+ * the window its payment must start in. A paid booking keeps its window until the payment
+ * completion worker clears it, so its succeeded transaction counts too.
  */
 export const blocksCalendar = (): Prisma.BookingWhereInput => ({
     canceled: null,
     OR: [
         { transactionTimeout: null },
         { transactionTimeout: { gt: new Date() } },
+        { ledgerTransactions: { some: validTransactionFilter } },
     ],
 })
 
@@ -214,6 +216,7 @@ async function reserve(prisma: PrismaClient, { bookingType, bookingProducts, boo
             where: {
                 canceled: null,
                 transactionTimeout: { gt: new Date() },
+                ledgerTransactions: { none: validTransactionFilter },
                 ...('userId' in booker ? { userId: booker.userId } : { guestUser: { email: booker.guest.email } }),
             },
         })

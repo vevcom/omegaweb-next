@@ -251,6 +251,26 @@ describe('canceling payments', () => {
         expect(stripeMocks.cancelIntent.mock.calls[0][0]).toBe(paymentIntentId)
     })
 
+    test('cancelOwn cancels a pending deposit the same way', async () => {
+        const account = await createAccount('stripecancelown')
+        const { transactionId, paymentIntentId } = await startStripeDeposit(account.id)
+
+        await ledgerTransactionOperations.cancelOwn({
+            params: { id: transactionId },
+            session: Session.fromJsObject({
+                user: { id: account.ownership.userId! } as NonNullable<Parameters<typeof Session.fromJsObject>[0]['user']>,
+                permissions: ['LEDGER_ADMIN'],
+                memberships: [],
+            }),
+        })
+
+        expect(await readTransaction(transactionId)).toMatchObject({
+            state: 'CANCELED',
+            payment: { state: 'CANCELED' },
+        })
+        expect(stripeMocks.cancelIntent.mock.calls[0][0]).toBe(paymentIntentId)
+    })
+
     test('an intent Stripe has already canceled is written off here too', async () => {
         const account = await createAccount('stripecanceledbefore')
         const { transactionId } = await startStripeDeposit(account.id)

@@ -171,6 +171,44 @@ const calculateBalance = defineSubOperation({
     },
 })
 
+/** The actual write behind both update and updateAsAdmin - only the authorizer and the data each
+ * may touch differ between them. */
+async function writeAccountUpdate(
+    prisma: Prisma.TransactionClient,
+    accountId: number,
+    { addGroupIds, removeGroupIds, ...scalarData }: {
+        name?: string,
+        payoutAccountNumber?: string,
+        frozen?: boolean,
+        addGroupIds?: number[],
+        removeGroupIds?: number[],
+    },
+): Promise<LedgerAccount> {
+    return prisma.ledgerAccount.update({
+        where: {
+            id: accountId,
+        },
+        data: {
+            ...scalarData,
+            // Only the given group ids are touched, so concurrent updates to different groups don't
+            // clobber each other.
+            ...((addGroupIds?.length || removeGroupIds?.length) && {
+                groups: {
+                    ...(removeGroupIds?.length && {
+                        deleteMany: { groupId: { in: removeGroupIds } },
+                    }),
+                    ...(addGroupIds?.length && {
+                        createMany: {
+                            data: addGroupIds.map(groupId => ({ groupId })),
+                            skipDuplicates: true,
+                        },
+                    }),
+                },
+            }),
+        },
+    })
+}
+
 export const ledgerAccountOperations = {
     internal: {
         read,
@@ -286,39 +324,36 @@ export const ledgerAccountOperations = {
      * @returns The updated account.
      */
     update: defineOperation({
-        authorizer: async ({ params, data, prisma }) => ledgerAccountAuth.update({
+        authorizer: async ({ params, prisma }) => ledgerAccountAuth.update({
             accounts: [await resolveAccountOwnership(prisma, params)],
-            changesGroupLinks: Boolean(data.addGroupIds?.length || data.removeGroupIds?.length),
         }),
         paramsSchema: ledgerAccountSchemas.params.update,
         dataSchema: ledgerAccountSchemas.data.update,
         operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
             const account = await read.internalCall({ params })
-            const { addGroupIds, removeGroupIds, ...scalarData } = data
+            return writeAccountUpdate(prisma, account.id, data)
+        }
+    }),
 
-            return prisma.ledgerAccount.update({
-                where: {
-                    id: account.id,
-                },
-                data: {
-                    ...scalarData,
-                    // Only the given group ids are touched, so concurrent updates to different groups don't
-                    // clobber each other.
-                    ...((addGroupIds?.length || removeGroupIds?.length) && {
-                        groups: {
-                            ...(removeGroupIds?.length && {
-                                deleteMany: { groupId: { in: removeGroupIds } },
-                            }),
-                            ...(addGroupIds?.length && {
-                                createMany: {
-                                    data: addGroupIds.map(groupId => ({ groupId })),
-                                    skipDuplicates: true,
-                                },
-                            }),
-                        },
-                    }),
-                },
-            })
+    /**
+     * Updates an account's group links and/or unfreezes it - the changes that take LEDGER_ADMIN
+     * on top of ownership, split out from update (see ledgerAccountAuth.updateAsAdmin).
+     *
+     * @param params.userId The ID of the user whose account to update.
+     * @param params.ledgerAccountId The ID of the account to update.
+     * @param data The data to update the account with.
+     *
+     * @returns The updated account.
+     */
+    updateAsAdmin: defineOperation({
+        authorizer: async ({ params, prisma }) => ledgerAccountAuth.updateAsAdmin({
+            accounts: [await resolveAccountOwnership(prisma, params)],
+        }),
+        paramsSchema: ledgerAccountSchemas.params.updateAsAdmin,
+        dataSchema: ledgerAccountSchemas.data.updateAsAdmin,
+        operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
+            const account = await read.internalCall({ params })
+            return writeAccountUpdate(prisma, account.id, data)
         }
     }),
 

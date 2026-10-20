@@ -5,6 +5,7 @@ import TextInput from '@/components/UI/TextInput'
 import DateInput from '@/components/UI/DateInput'
 import Checkbox from '@/components/UI/Checkbox'
 import {
+    mockReleaseCountdownGitGraphAction,
     unlockReleaseCountdownAction,
     updateReleaseCountdownGitGraphAction,
     updateReleaseCountdownSettingsAction,
@@ -24,6 +25,7 @@ type PropTypes = {
 export default function ReleaseAdmin({ releaseDate, openToAll, onGitGraphUpdated }: PropTypes) {
     const [password, setPassword] = useState('')
     const [gitGraphCommits, setGitGraphCommits] = useState<number | null>(null)
+    const [mockGitGraphCommits, setMockGitGraphCommits] = useState<number | null>(null)
 
     return (
         <div className={styles.ReleaseAdmin}>
@@ -58,6 +60,21 @@ export default function ReleaseAdmin({ releaseDate, openToAll, onGitGraphUpdated
             >
                 <input type="hidden" name="password" value={password} />
                 {gitGraphCommits !== null && <p className={styles.note}>Hentet {gitGraphCommits} commits</p>}
+            </Form>
+            <Form
+                action={mockReleaseCountdownGitGraphAction}
+                submitText="Bruk en testgraf"
+                submitColor="secondary"
+                successCallback={data => {
+                    setMockGitGraphCommits(data?.commits ?? null)
+                    onGitGraphUpdated()
+                }}
+                className={styles.form}
+            >
+                <input type="hidden" name="password" value={password} />
+                {mockGitGraphCommits !== null && (
+                    <p className={styles.note}>Lagret en testgraf med {mockGitGraphCommits} commits</p>
+                )}
             </Form>
             <Form
                 action={unlockReleaseCountdownAction}

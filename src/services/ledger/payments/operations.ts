@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { paymentAuth } from './auth'
 import { paymentSchemas } from './schemas'
+import { paymentIncluder } from './constants'
 import { stripe } from '@/lib/stripe'
 import { ServiceError } from '@/services/error'
 import { defineSubOperation } from '@/services/serviceOperation'
@@ -39,10 +40,7 @@ const create = defineSubOperation({
                 },
             })
         },
-        include: {
-            stripePayment: true,
-            manualPayment: true,
-        }
+        include: paymentIncluder,
     }),
 })
 
@@ -67,6 +65,7 @@ const initiate = defineSubOperation({
                 state: true,
                 descriptionLong: true,
                 descriptionShort: true,
+                createdAt: true,
             },
         })
 
@@ -79,17 +78,6 @@ const initiate = defineSubOperation({
         }
 
         if (payment.provider === 'STRIPE') {
-            // Get timestamp of when the payment was created so that it
-            // can be used as part of the idempotency key.
-            const createdAt = (await prisma.payment.findUniqueOrThrow({
-                where: {
-                    id: params.paymentId,
-                },
-                select: {
-                    createdAt: true,
-                },
-            })).createdAt.getTime()
-
             const customerId = session.user
                 ? (await stripeCustomerOperations.readOrCreate({
                     params: { userId: session.user.id },
@@ -112,7 +100,7 @@ const initiate = defineSubOperation({
                 // The idempotency key makes it so that multiple requests with the
                 // same key return the same result. This is useful in case
                 // initiate payment is accidentally called twice.
-                idempotencyKey: `project-next-payment-id-${params.paymentId}-created-at-${createdAt}`,
+                idempotencyKey: `project-next-payment-id-${params.paymentId}-created-at-${payment.createdAt.getTime()}`,
             })
 
             if (paymentIntent.client_secret === null) {
@@ -137,10 +125,7 @@ const initiate = defineSubOperation({
                         },
                         state: 'PROCESSING',
                     },
-                    include: {
-                        stripePayment: true,
-                        manualPayment: true,
-                    }
+                    include: paymentIncluder,
                 })
             } catch (error) {
                 if (!(error instanceof PrismaClientKnownRequestError) || error.code !== 'P2025') throw error
@@ -207,7 +192,7 @@ const cancel = defineSubOperation({
 
         return await prisma.payment.findUniqueOrThrow({
             where: { id: params.paymentId },
-            include: { stripePayment: true, manualPayment: true },
+            include: paymentIncluder,
         })
     },
 })
