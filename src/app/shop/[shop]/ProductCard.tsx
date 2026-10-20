@@ -82,20 +82,20 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                     <p className="m-0 text-s text-text-muted line-clamp-2">{product.description}</p>
                 )}
 
-                <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-                    <span className="text-l font-bold tabular-nums">{displayAmount(product.price, false)}</span>
+                <div className="mt-auto flex flex-col gap-3 pt-3">
+                    <span className="text-l font-bold tabular-nums">{displayAmount(product.price)}</span>
                     {product.active && (
                         quantity === 0 ? (
                             <button
                                 type="button"
-                                className="btn m-0! flex items-center gap-2 py-2! px-4! rounded-full! text-s! [&_svg]:text-inherit [&_path]:text-inherit"
+                                className="btn m-0! flex w-full items-center justify-center gap-2 h-9 py-0! px-4! rounded-full! text-s! [&_svg]:text-inherit [&_path]:text-inherit"
                                 onClick={onAdd}
                             >
                                 <FontAwesomeIcon icon={faPlus} />
                                 Legg til
                             </button>
                         ) : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-between">
                                 <button type="button" className={stepButtonClassName} onClick={onRemove} aria-label={`Fjern én ${product.name}`}>
                                     <FontAwesomeIcon icon={faMinus} />
                                 </button>
