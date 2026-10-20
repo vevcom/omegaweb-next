@@ -24,37 +24,22 @@ export default function CommitteeImage({
     grayScale = false
 }: PropTypes) {
     return (
-        <div className={[
-            'flex items-stretch gap-2 w-full mb-2',
-            'max-mobile:relative max-mobile:h-[180px] max-mobile:bg-surface-base max-mobile:rounded-round',
-            'max-mobile:overflow-hidden',
-        ].join(' ')}>
-            <div className={[
-                'shrink-0 flex items-center justify-center bg-surface-base rounded-round p-4',
-                'max-mobile:relative max-mobile:z-1 max-mobile:m-auto max-mobile:bg-surface-base/70 max-mobile:p-2',
-                'max-mobile:pointer-events-none max-mobile:[&>*]:w-[120px]!',
-            ].join(' ')}>
+        <div className="flex items-stretch gap-2 w-full mb-2 max-mobile:relative max-mobile:h-[180px] max-mobile:bg-surface-base max-mobile:rounded-round max-mobile:overflow-hidden">
+            <div className="shrink-0 flex items-center justify-center bg-surface-base rounded-round p-4 max-mobile:relative max-mobile:z-1 max-mobile:m-auto max-mobile:bg-surface-base/70 max-mobile:p-2 max-mobile:pointer-events-none max-mobile:[&>*]:w-[120px]!">
                 <CommitteeLogo
                     className={grayScale ? 'grayscale brightness-50 contrast-150' : ''}
                     logoImage={logoImage}
                     width={200}
                 />
             </div>
-            <div className={[
-                'relative flex-1 min-w-0 h-80 bg-surface-base rounded-round overflow-hidden',
-                'max-mobile:absolute max-mobile:inset-0 max-mobile:h-auto max-mobile:rounded-none',
-            ].join(' ')}>
+            <div className="relative flex-1 min-w-0 h-80 bg-surface-base rounded-round overflow-hidden max-mobile:absolute max-mobile:inset-0 max-mobile:h-auto max-mobile:rounded-none">
                 <CmsImage
                     capabilities={{ canEdit: capabilities.canEditCoverImage }}
                     updateCmsImageAction={configureAction(
                         updateCommitteeArticleCoverImageAction,
                         { implementationParams: { shortName } }
                     )}
-                    className={[
-                        'absolute! inset-0 w-full! h-full! [&>*]:absolute [&>*]:inset-0 [&>*]:w-full! [&>*]:h-full!',
-                        '[&>*_div]:w-full! [&>*_div]:h-full!',
-                        '[&>*_img]:w-full! [&>*_img]:h-full! [&>*_img]:object-cover [&>*_img]:object-center',
-                    ].join(' ')}
+                    className="absolute! inset-0 w-full! h-full! [&>*]:absolute [&>*]:inset-0 [&>*]:w-full! [&>*]:h-full! [&>*_div]:w-full! [&>*_div]:h-full! [&>*_img]:w-full! [&>*_img]:h-full! [&>*_img]:object-cover [&>*_img]:object-center"
                     cmsImage={coverImage}
                     width={600}
                 />

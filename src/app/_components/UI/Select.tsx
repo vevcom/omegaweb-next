@@ -30,10 +30,7 @@ const colorClassNames = {
 
 const backgroundClassNames = {
     base: 'bg-surface-raised hover:bg-surface-hover focus:bg-surface-hover',
-    raised: [
-        'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
-        'focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
-    ].join(' '),
+    raised: 'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)] focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
 } as const
 
 export function SelectConstructor<ValueType extends string | number>(valueConverter: (value: string) => ValueType) {
@@ -64,12 +61,7 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                     id={selectId}
                     name={name}
                     className={[
-                        'peer appearance-none relative w-full flex items-center border-2 border-transparent rounded-inner',
-                        'outline-0 text-m',
-                        'leading-[calc(var(--text-m)*1.25)] text-left pt-6 pr-10 pb-2 pl-4',
-                        'transition-[border-color,background-color] duration-300 cursor-pointer disabled:cursor-not-allowed',
-                        'disabled:opacity-60',
-                        '[&_option]:bg-surface-raised [&_option]:text-text',
+                        'peer appearance-none relative w-full flex items-center border-2 border-transparent rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] text-left pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 [&_option]:bg-surface-raised [&_option]:text-text',
                         colorClassNames[color].field,
                         backgroundClassNames[background],
                     ].join(' ')}

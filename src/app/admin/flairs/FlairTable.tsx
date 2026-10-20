@@ -49,19 +49,12 @@ function FlairTableRow({ row, index, canReorder, onDragEnd }: RowPropTypes) {
             dragControls={dragControls}
             onDragEnd={() => onDragEnd(row.id)}
             whileDrag={{ scale: 1.01, boxShadow: '0 8px 20px rgba(0, 0, 0, 0.35)' }}
-            className={[
-                'relative flex items-center gap-2 bg-surface-raised py-3 px-4 transition-[background-color]',
-                'duration-300 even:bg-[color-mix(in_srgb,var(--surface-raised),white_3%)] hover:bg-surface-hover',
-            ].join(' ')}
+            className="relative flex items-center gap-2 bg-surface-raised py-3 px-4 transition-[background-color] duration-300 even:bg-[color-mix(in_srgb,var(--surface-raised),white_3%)] hover:bg-surface-hover"
         >
             <span className={columnClass.colHandle} role="cell">
                 {canReorder &&
                 <span
-                    className={[
-                        'flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab',
-                        'touch-none select-none transition-colors duration-300 hover:bg-surface-hover',
-                        'hover:text-ink-strong active:cursor-grabbing',
-                    ].join(' ')}
+                    className="flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab touch-none select-none transition-colors duration-300 hover:bg-surface-hover hover:text-ink-strong active:cursor-grabbing"
                     onPointerDown={startDrag}
                 >
                     <FontAwesomeIcon icon={faGripVertical} />
@@ -111,10 +104,7 @@ export default function FlairTable({ rows }: PropTypes) {
 
     return (
         <div
-            className={[
-                'w-full my-4 rounded-round overflow-hidden shadow-[var(--boxShadow)_0_1px_3px,var(--boxShadow)_0_1px_2px]',
-                'text-m [&_a_svg]:mr-[0.5rem]',
-            ].join(' ')}
+            className="w-full my-4 rounded-round overflow-hidden shadow-[var(--boxShadow)_0_1px_3px,var(--boxShadow)_0_1px_2px] text-m [&_a_svg]:mr-[0.5rem]"
             role="table"
         >
             <div className="flex items-center gap-2 bg-surface-raised text-ink-strong font-medium py-3 px-4" role="row">

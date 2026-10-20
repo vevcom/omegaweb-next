@@ -522,7 +522,9 @@ const eslintConfig = defineConfig([
             'max-len': [
                 'error',
                 {
-                    code: 125
+                    code: 125,
+                    ignoreStrings: true,
+                    ignoreTemplateLiterals: true,
                 }
             ],
             // dissallow relative imports (e.g. '../'), imports from same folder are stil allowed

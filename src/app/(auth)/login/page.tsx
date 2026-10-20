@@ -8,11 +8,7 @@ import Link from 'next/link'
 import type { FormEvent } from 'react'
 
 // A rule on each side of the text.
-const divider = [
-    'flex justify-center my-4',
-    'before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted',
-    'after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted',
-].join(' ')
+const divider = 'flex justify-center my-4 before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted'
 
 export default function LogIn() {
     const searchParams = useSearchParams()

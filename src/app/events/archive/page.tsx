@@ -31,12 +31,7 @@ const { page, generateMetadata } = serverPage({
         return (
             <PageWrapper headerItem={
                 <div className="flex justify-between items-center w-full gap-[1em]">
-                    <div className={[
-                        'flex items-center gap-[1em] [&_a]:no-underline [&_a]:relative',
-                        "[&_a:hover]:after:content-['✖'] [&_a:hover]:after:text-[4em] [&_a:hover]:after:text-text",
-                        '[&_a:hover]:after:absolute [&_a:hover]:after:left-1/2 [&_a:hover]:after:top-1/2',
-                        '[&_a:hover]:after:-translate-1/2',
-                    ].join(' ')}>
+                    <div className="flex items-center gap-[1em] [&_a]:no-underline [&_a]:relative [&_a:hover]:after:content-['✖'] [&_a:hover]:after:text-[4em] [&_a:hover]:after:text-text [&_a:hover]:after:absolute [&_a:hover]:after:left-1/2 [&_a:hover]:after:top-1/2 [&_a:hover]:after:-translate-1/2">
                         {currentTags.map(tag => {
                             const remainingTags = currentTags
                                 .filter(currentTag => currentTag.name !== tag.name)

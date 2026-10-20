@@ -60,16 +60,9 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
     if (!canUpdate && !canUpdateFile && !canDestroy && !canUpdateCover) return null
 
     return (
-        <div className={[
-            'mt-8 p-6 border border-surface-subtle rounded-round flex flex-row flex-wrap items-start gap-8',
-            '[&>h2]:flex-[1_1_100%] [&>h2]:text-m [&>h2]:font-medium [&>h2]:text-text-muted [&>h2]:uppercase',
-            '[&>h2]:tracking-[0.08em]',
-        ].join(' ')}>
+        <div className="mt-8 p-6 border border-surface-subtle rounded-round flex flex-row flex-wrap items-start gap-8 [&>h2]:flex-[1_1_100%] [&>h2]:text-m [&>h2]:font-medium [&>h2]:text-text-muted [&>h2]:uppercase [&>h2]:tracking-[0.08em]">
             <h2>Admin</h2>
-            <div className={[
-                'flex-[0_1_auto] [&>*:not(:last-child)]:border-b [&>*:not(:last-child)]:border-surface-subtle',
-                '[&>*:not(:last-child)]:pb-6 [&>*:not(:last-child)]:mb-6',
-            ].join(' ')}>
+            <div className="flex-[0_1_auto] [&>*:not(:last-child)]:border-b [&>*:not(:last-child)]:border-surface-subtle [&>*:not(:last-child)]:pb-6 [&>*:not(:last-child)]:mb-6">
                 {
                     canUpdate && (
                         <Form
@@ -130,10 +123,7 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
             <div>
                 {
                     canUpdateCover && (
-                        <div className={[
-                            'flex flex-wrap items-start gap-4',
-                            '[&>*:first-child]:rounded-round [&>*:first-child]:overflow-hidden',
-                        ].join(' ')}>
+                        <div className="flex flex-wrap items-start gap-4 [&>*:first-child]:rounded-round [&>*:first-child]:overflow-hidden">
                             <Image image={ombul.coverImage} width={200} />
                             <ImageUploader
                                 title="Endre forsidebilde"

@@ -13,10 +13,7 @@ export default async function LedgerAccountBalance({ ledgerAccountId: accountId,
         () => ledgerAccountOperations.calculateBalance({ params: { ledgerAccountId: accountId } })
     )
 
-    return <div className={[
-        'grid grid-cols-[auto_1fr_auto] grid-flow-row auto-cols-max gap-x-4 whitespace-nowrap overflow-hidden',
-        'max-mobile:grid-cols-[auto_1fr]',
-    ].join(' ')}>
+    return <div className="grid grid-cols-[auto_1fr_auto] grid-flow-row auto-cols-max gap-x-4 whitespace-nowrap overflow-hidden max-mobile:grid-cols-[auto_1fr]">
         <div className="contents text-xxl">
             <div>Saldo</div>
             <div className="text-right">{displayAmount(balance.amount)}</div>

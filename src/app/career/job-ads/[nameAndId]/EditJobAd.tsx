@@ -47,11 +47,7 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
 
     return (
         <div
-            className={[
-                'shrink-0 max-h-[80vh] grid gap-6 p-6 my-4 mx-[min(4rem,4vw)] rounded-round bg-surface-raised text-text',
-                'mobile:grid-cols-[minmax(240px,320px)_1fr] mobile:items-start',
-                'max-mobile:grid-cols-1 max-mobile:mx-2 max-mobile:max-h-none',
-            ].join(' ')}
+            className="shrink-0 max-h-[80vh] grid gap-6 p-6 my-4 mx-[min(4rem,4vw)] rounded-round bg-surface-raised text-text mobile:grid-cols-[minmax(240px,320px)_1fr] mobile:items-start max-mobile:grid-cols-1 max-mobile:mx-2 max-mobile:max-h-none"
         >
             <div className={columnClassName}>
                 <h3 className={headingClassName}>Annonse</h3>

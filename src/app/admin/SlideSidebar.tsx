@@ -31,10 +31,7 @@ export default function SlideSidebar({ navigation }: PropTypes) {
     useKeyPress('Escape', () => setOpen(false))
 
     return <div
-        className={[
-            'p-2 min-w-[250px] rounded-round max-h-[calc(100dvh-64px-26px)] overflow-y-scroll',
-            'max-mobile:p-0 max-mobile:m-0 max-mobile:min-w-0 max-mobile:max-h-none max-mobile:overflow-visible',
-        ].join(' ')}
+        className="p-2 min-w-[250px] rounded-round max-h-[calc(100dvh-64px-26px)] overflow-y-scroll max-mobile:p-0 max-mobile:m-0 max-mobile:min-w-0 max-mobile:max-h-none max-mobile:overflow-visible"
     >
         <div
             className={[
@@ -46,11 +43,7 @@ export default function SlideSidebar({ navigation }: PropTypes) {
             <button
                 type="button"
                 data-slide-sidebar-toggle
-                className={[
-                    'hidden max-mobile:flex items-center justify-center fixed top-4 right-6 z-6 size-[44px]',
-                    'border-none rounded-full bg-surface-raised text-text cursor-pointer',
-                    'shadow-[0_2px_8px_rgba(0,0,0,0.25)]',
-                ].join(' ')}
+                className="hidden max-mobile:flex items-center justify-center fixed top-4 right-6 z-6 size-[44px] border-none rounded-full bg-surface-raised text-text cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
                 aria-label={open ? 'Lukk meny' : 'Åpne meny'}
                 aria-expanded={open}
                 onClick={() => setOpen(previousOpen => !previousOpen)}
@@ -59,12 +52,7 @@ export default function SlideSidebar({ navigation }: PropTypes) {
             </button>
             <aside
                 className={[
-                    'flex flex-col gap-1 overflow-y-auto h-full text-text',
-                    'max-mobile:fixed max-mobile:top-[calc(64px+2*var(--gap))] max-mobile:left-0',
-                    'max-mobile:w-[min(85vw,320px)] max-mobile:h-[calc(100dvh-128px-4*var(--gap))]',
-                    'max-mobile:m-0 max-mobile:p-2 max-mobile:bg-surface-base',
-                    'max-mobile:rounded-r-round max-mobile:z-5 max-mobile:transition-transform max-mobile:duration-300',
-                    'max-mobile:ease-[ease]',
+                    'flex flex-col gap-1 overflow-y-auto h-full text-text max-mobile:fixed max-mobile:top-[calc(64px+2*var(--gap))] max-mobile:left-0 max-mobile:w-[min(85vw,320px)] max-mobile:h-[calc(100dvh-128px-4*var(--gap))] max-mobile:m-0 max-mobile:p-2 max-mobile:bg-surface-base max-mobile:rounded-r-round max-mobile:z-5 max-mobile:transition-transform max-mobile:duration-300 max-mobile:ease-[ease]',
                     open ? 'max-mobile:translate-x-0' : 'max-mobile:-translate-x-full',
                 ].join(' ')}
             >
@@ -72,10 +60,7 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                     navigation.map(group => (
                         <Fragment key={group.header.title}>
                             <h3
-                                className={[
-                                    'flex items-center gap-2 mt-4 mb-1 mx-0 first:mt-0 py-2 px-3 border-b border-surface-hover',
-                                    'text-l font-bold text-ink-strong [&_svg]:text-[0.8em] [&_svg]:text-inherit [&_path]:text-inherit',
-                                ].join(' ')}
+                                className="flex items-center gap-2 mt-4 mb-1 mx-0 first:mt-0 py-2 px-3 border-b border-surface-hover text-l font-bold text-ink-strong [&_svg]:text-[0.8em] [&_svg]:text-inherit [&_path]:text-inherit"
                             >
                                 <FontAwesomeIcon icon={group.header.icon} />
                                 {group.header.title}

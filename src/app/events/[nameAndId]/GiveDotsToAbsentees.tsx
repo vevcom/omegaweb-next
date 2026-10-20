@@ -56,13 +56,7 @@ export default function GiveDotsToAbsentees({ eventId, accuserId, notAttended }:
                         max={maxDotsForNotShowingUp}
                     />
                     <TextInput name="reason" label="Grunn" defaultValue="Møtte ikke opp" />
-                    <ul className={[
-                        'list-none p-0 my-2 max-h-[50vh] overflow-y-auto',
-                        '[&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-2',
-                        '[&>li]:py-1 [&>li]:border-b [&>li]:border-[#adb5bd]',
-                        '[&>li>button]:bg-transparent [&>li>button]:border-none [&>li>button]:cursor-pointer',
-                        '[&>li>button]:text-accent-red [&>li>button]:p-1',
-                    ].join(' ')} aria-label="Får prikker">
+                    <ul className="list-none p-0 my-2 max-h-[50vh] overflow-y-auto [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-2 [&>li]:py-1 [&>li]:border-b [&>li]:border-[#adb5bd] [&>li>button]:bg-transparent [&>li>button]:border-none [&>li>button]:cursor-pointer [&>li>button]:text-accent-red [&>li>button]:p-1" aria-label="Får prikker">
                         {receiving.map(registration => (
                             <li key={registration.id}>
                                 <span>{registration.user.firstname} {registration.user.lastname}</span>

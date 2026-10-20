@@ -3,11 +3,7 @@ import { displayDate } from '@/lib/dates/displayDate'
 import Link from 'next/link'
 import type { LockerWithReservation } from '@/services/lockers/types'
 
-export const lockerRowClassName = [
-    'flex items-center gap-2 bg-surface-raised py-3 px-4 text-inherit no-underline',
-    'transition-[background-color] duration-300',
-    '[&>span]:min-w-0 [&>span]:overflow-hidden [&>span]:text-ellipsis [&>span]:whitespace-nowrap',
-].join(' ')
+export const lockerRowClassName = 'flex items-center gap-2 bg-surface-raised py-3 px-4 text-inherit no-underline transition-[background-color] duration-300 [&>span]:min-w-0 [&>span]:overflow-hidden [&>span]:text-ellipsis [&>span]:whitespace-nowrap'
 
 export const lockerColumnClassName = {
     id: 'flex-[0_0_calc(7*var(--gap))]',

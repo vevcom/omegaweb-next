@@ -147,10 +147,7 @@ export function DropdownPanel<ValueType extends string | number>({
     }, [activeIndex])
 
     return (
-        <ul id={id} className={[
-            'absolute top-[calc(100%+var(--gap))] left-0 right-0 z-5 list-none m-0 p-2 max-h-[260px] overflow-y-auto',
-            'rounded-inner bg-surface-hover shadow-soft-hover',
-        ].join(' ')} role="listbox" ref={panelRef}>
+        <ul id={id} className="absolute top-[calc(100%+var(--gap))] left-0 right-0 z-5 list-none m-0 p-2 max-h-[260px] overflow-y-auto rounded-inner bg-surface-hover shadow-soft-hover" role="listbox" ref={panelRef}>
             {
                 options.length === 0 && emptyText ? (
                     <li className="py-2 px-4 text-text-muted text-s">{emptyText}</li>
@@ -162,11 +159,7 @@ export function DropdownPanel<ValueType extends string | number>({
                             aria-selected={option.value === value}
                             className={
                                 `${[
-                                    'w-full flex items-center justify-between gap-2 border-none bg-transparent text-left',
-                                    'text-m py-2 px-4',
-                                    'rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer transition-colors',
-                                    'duration-300',
-                                    'hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
+                                    'w-full flex items-center justify-between gap-2 border-none bg-transparent text-left text-m py-2 px-4 rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer transition-colors duration-300 hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
                                     option.value === value ? 'text-accent-blue' : 'text-text',
                                 ].join(' ')
                                 }${index === activeIndex ? 'bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]' : ''}`

@@ -33,8 +33,7 @@ function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'], scale = 40, d
                 ...(label ? {} : { width: `${buttonScale}px` }),
             }}
             showButtonClass={[
-                'border-none rounded-inner bg-surface-hover cursor-pointer',
-                'transition-[background-color,color,box-shadow] duration-300 hover:bg-surface-subtle hover:text-ink-strong',
+                'border-none rounded-inner bg-surface-hover cursor-pointer transition-[background-color,color,box-shadow] duration-300 hover:bg-surface-subtle hover:text-ink-strong',
                 label
                     ? 'flex flex-row items-center gap-3 pr-3.5 pl-5 text-ink-strong [&_svg]:text-text '
                         + '[&_svg]:transition-colors [&_svg]:duration-300 hover:[&_svg]:text-accent-blue'

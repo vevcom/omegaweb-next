@@ -20,10 +20,7 @@ type PropTypes = {
     capabilities: Capabilities<'canEditArticleSection' | 'canAdministrate'>
 }
 
-const administrate = [
-    'text-accent-blue p-2 size-[30px] ml-auto',
-    'hover:text-[color-mix(in_srgb,var(--accent-blue),black_10%)] hover:cursor-pointer',
-].join(' ')
+const administrate = 'text-accent-blue p-2 size-[30px] ml-auto hover:text-[color-mix(in_srgb,var(--accent-blue),black_10%)] hover:cursor-pointer'
 
 export default function InterestGroup({ interestGroup, capabilities }: PropTypes) {
     const cmsArticleActionConfig = { implementationParams: { interestGroupId: interestGroup.id } }

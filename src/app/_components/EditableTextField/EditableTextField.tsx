@@ -66,10 +66,7 @@ export default function EditableTextField<ReturnType>({
     return (
         <div className="relative">
             <div
-                className={[
-                    'relative p-[0.8rem] border border-solid border-accent-blue rounded-round focus:outline-2',
-                    'focus:outline-accent-blue',
-                ].join(' ')}
+                className="relative p-[0.8rem] border border-solid border-accent-blue rounded-round focus:outline-2 focus:outline-accent-blue"
                 contentEditable={true}
                 onInput={handleInput}
                 {...props}

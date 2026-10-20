@@ -97,11 +97,7 @@ const { page, generateMetadata } = serverPage({
                     sideBarContent={
                         <>
                             <ul
-                                className={[
-                                    'flex flex-col gap-[1em] [&>li]:grid [&>li]:grid-cols-[40px_1fr]',
-                                    '[&>li]:grid-rows-[auto_auto] [&>li_svg]:size-[20px]! [&>li_svg]:row-[1/3]',
-                                    '[&>li_svg]:col-[1/2] [&>li_svg]:my-auto [&>li_svg]:ml-auto [&>li_svg]:mr-2',
-                                ].join(' ')}
+                                className="flex flex-col gap-[1em] [&>li]:grid [&>li]:grid-cols-[40px_1fr] [&>li]:grid-rows-[auto_auto] [&>li_svg]:size-[20px]! [&>li_svg]:row-[1/3] [&>li_svg]:col-[1/2] [&>li_svg]:my-auto [&>li_svg]:ml-auto [&>li_svg]:mr-2"
                             >
                                 <li>
                                     <FontAwesomeIcon icon={faSuitcase} />

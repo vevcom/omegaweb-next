@@ -32,10 +32,7 @@ const focusBorderClassNames = {
 
 const backgroundClassNames = {
     base: 'bg-surface-raised hover:bg-surface-hover focus:bg-surface-hover',
-    raised: [
-        'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
-        'focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
-    ].join(' '),
+    raised: 'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)] focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
 } as const
 
 /**

@@ -29,12 +29,7 @@ const { page, generateMetadata } = serverPage({
                             <Link
                                 key={admission}
                                 href={`/admin/admission/${admission}`}
-                                className={[
-                                    'flex items-center gap-2 flex-[1_1_14rem] max-mobile:basis-full',
-                                    'p-(--card-padding) rounded-round bg-surface-raised text-text',
-                                    'transition-[background-color] duration-300 hover:bg-surface-hover',
-                                    'hover:text-ink-strong',
-                                ].join(' ')}
+                                className="flex items-center gap-2 flex-[1_1_14rem] max-mobile:basis-full p-(--card-padding) rounded-round bg-surface-raised text-text transition-[background-color] duration-300 hover:bg-surface-hover hover:text-ink-strong"
                             >
                                 <FontAwesomeIcon icon={faScroll} className="text-accent-blue text-xl" />
                                 <span className="flex-1 font-light">{admissionDisplayNames[admission]}</span>

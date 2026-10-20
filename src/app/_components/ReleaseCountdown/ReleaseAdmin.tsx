@@ -27,11 +27,7 @@ export default function ReleaseAdmin({ releaseDate, openToAll, onGitGraphUpdated
     const [mockGitGraphCommits, setMockGitGraphCommits] = useState<number | null>(null)
 
     return (
-        <div className={[
-            'flex flex-col gap-2 w-[min(28rem,calc(100vw-2*var(--gap)))] max-h-[calc(100vh-2*var(--gap))] overflow-y-auto',
-            'p-6 border border-[hsl(0,0%,20%)] rounded-[calc(3*var(--rounding))] bg-surface-base [&_h2]:m-0',
-            '[&_h2]:font-secondary',
-        ].join(' ')}>
+        <div className="flex flex-col gap-2 w-[min(28rem,calc(100vw-2*var(--gap)))] max-h-[calc(100vh-2*var(--gap))] overflow-y-auto p-6 border border-[hsl(0,0%,20%)] rounded-[calc(3*var(--rounding))] bg-surface-base [&_h2]:m-0 [&_h2]:font-secondary">
             <h2>Slippet</h2>
             <TextInput
                 type="password"

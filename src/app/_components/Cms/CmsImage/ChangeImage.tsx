@@ -13,10 +13,7 @@ type PropTypes = {
     updateCmsImageAction: UpdateCmsImageAction
 }
 
-const imageClipClassName = [
-    'overflow-hidden rounded-round relative flex justify-center items-center',
-    '[&_img]:w-full! [&_img]:max-h-full [&_img]:object-cover [&_img]:rounded-round [&_img]:overflow-hidden',
-].join(' ')
+const imageClipClassName = 'overflow-hidden rounded-round relative flex justify-center items-center [&_img]:w-full! [&_img]:max-h-full [&_img]:object-cover [&_img]:rounded-round [&_img]:overflow-hidden'
 
 const gridCellClassName = 'w-[calc(min(200px,24vh)/2)] max-h-[calc(min(200px,24vh)/2)] [&>*]:w-full! [&>*]:max-h-full'
 

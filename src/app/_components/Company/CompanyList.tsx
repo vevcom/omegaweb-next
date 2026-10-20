@@ -11,10 +11,7 @@ type PropTypes = {
 
 export default function CompanyList({ serverRenderedData, disableEditing }: PropTypes) {
     return (
-        <div className={[
-            'mt-6 grid grid-cols-[repeat(auto-fill,minmax(var(--company-card-min,200px),1fr))]',
-            'items-stretch gap-6 w-full',
-        ].join(' ')}>
+        <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(var(--company-card-min,200px),1fr))] items-stretch gap-6 w-full">
             {serverRenderedData}
             <EndlessScroll
                 pagingContext={CompanyPagingContext}

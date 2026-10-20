@@ -30,14 +30,8 @@ const weekClassName = 'w-full flex flex-row flex-nowrap'
 const dayClassName = 'relative min-h-[2.3rem]'
 
 const selectionClassNames: Record<Selection, string> = {
-    [Selection.START]: [
-        'before:absolute before:top-0 before:right-0 before:size-full before:bg-accent-blue',
-        'before:rounded-l-[10px]',
-    ].join(' '),
-    [Selection.END]: [
-        'before:absolute before:top-0 before:left-0 before:size-full before:bg-accent-blue',
-        'before:rounded-r-[10px]',
-    ].join(' '),
+    [Selection.START]: 'before:absolute before:top-0 before:right-0 before:size-full before:bg-accent-blue before:rounded-l-[10px]',
+    [Selection.END]: 'before:absolute before:top-0 before:left-0 before:size-full before:bg-accent-blue before:rounded-r-[10px]',
     [Selection.INRANGE]: 'bg-[color-mix(in_srgb,var(--accent-blue),white_30%)]',
 }
 
@@ -303,10 +297,7 @@ export default function CabinCalendar({
     }
 
     return <div
-        className={[
-            'w-full max-w-[30rem] max-h-[30rem] overflow-y-auto mt-[1rem] px-[5px]',
-            'border-2 border-surface-subtle rounded-round',
-        ].join(' ')}
+        className="w-full max-w-[30rem] max-h-[30rem] overflow-y-auto mt-[1rem] px-[5px] border-2 border-surface-subtle rounded-round"
     >
         <div className={`${weekClassName} bg-surface-base sticky top-0 z-2 py-[0.2rem]`}>
             <div className="w-[2.5rem]">Uke</div>

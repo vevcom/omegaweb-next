@@ -38,10 +38,7 @@ import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
 import type { PageOperationArgs, ServerPageSession } from '@/app/ServerPage'
 
-const periodDateItemClassName = [
-    'bg-surface-raised rounded-inner p-3 flex items-center gap-[0.5em] text-text',
-    '[&>b]:text-accent-blue [&>b]:font-medium [&>b]:whitespace-nowrap',
-].join(' ')
+const periodDateItemClassName = 'bg-surface-raised rounded-inner p-3 flex items-center gap-[0.5em] text-text [&>b]:text-accent-blue [&>b]:font-medium [&>b]:whitespace-nowrap'
 
 export type PropTypes = {
     params: Promise<{
@@ -126,10 +123,7 @@ const { page, generateMetadata } = serverPage({
                 <div className="h-full flex flex-col p-2 [&>h2]:shrink-0 [&>h2]:text-l [&>h2]:font-bold [&>h2]:mb-2">
                     <h2>{part.committee.name}</h2>
                     <CmsParagraph
-                        className={[
-                            'flex-[1_1_auto] min-h-0 mb-2 overflow-hidden max-mobile:max-h-[calc(14*var(--gap))]',
-                            '[mask-image:linear-gradient(to_bottom,black_calc(100%-2*var(--gap)),transparent)]',
-                        ].join(' ')}
+                        className="flex-[1_1_auto] min-h-0 mb-2 overflow-hidden max-mobile:max-h-[calc(14*var(--gap))] [mask-image:linear-gradient(to_bottom,black_calc(100%-2*var(--gap)),transparent)]"
                         capabilities={{ canEdit: cmsCapabilities.canEditParagraph }}
                         cmsParagraph={part.paragraph}
                         updateCmsParagraphAction={
@@ -216,10 +210,7 @@ const { page, generateMetadata } = serverPage({
                         Les mer
                         </Link>
                         <CmsLink
-                            className={[
-                                'min-w-0! h-auto! [&>a]:static! [&>a]:w-auto! [&>a]:h-auto!',
-                                '[&>span]:static! [&>span]:w-auto! [&>span]:h-auto!',
-                            ].join(' ')}
+                            className="min-w-0! h-auto! [&>a]:static! [&>a]:w-auto! [&>a]:h-auto! [&>span]:static! [&>span]:w-auto! [&>span]:h-auto!"
                             cmsLink={part.videoLink}
                             disabled={!videoLinkIsSet(part.videoLink)}
                             capabilities={{ canEdit: cmsCapabilities.canEditVideoLink }}

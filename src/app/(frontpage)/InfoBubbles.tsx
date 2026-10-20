@@ -6,19 +6,13 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 const bubble = 'm-10 flex flex-col items-center justify-start'
-const icon = [
-    'size-[150px] rounded-full bg-accent-blue flex items-center justify-center mb-4',
-    '[&>svg]:size-[75px] [&>svg]:text-text',
-].join(' ')
+const icon = 'size-[150px] rounded-full bg-accent-blue flex items-center justify-center mb-4 [&>svg]:size-[75px] [&>svg]:text-text'
 const heading = 'text-xl font-bold'
 const text = 'text-m font-light leading-[1.7em] text-center'
 
 function InfoBubbles() {
     return (
-        <div className={[
-            'w-full bg-layer backdrop-brightness-[0.2] text-text py-40 px-[10vw]',
-            'flex flex-row justify-around items-start max-mobile:flex-col',
-        ].join(' ')}>
+        <div className="w-full bg-layer backdrop-brightness-[0.2] text-text py-40 px-[10vw] flex flex-row justify-around items-start max-mobile:flex-col">
             <div className={bubble}>
                 <div className={icon}>
                     <FontAwesomeIcon icon={faHeart} />

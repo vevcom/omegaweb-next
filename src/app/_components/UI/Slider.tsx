@@ -21,10 +21,7 @@ const checkedColorClassNames = {
 export default function Slider({ label, name, color = 'primary', ...props }: PropTypes) {
     return (
         <label
-            className={[
-                'relative inline-block w-[60px] h-[34px] mt-[calc(var(--text-m)+.2em)]',
-                '[&_input]:opacity-0 [&_input]:w-0 [&_input]:h-0',
-            ].join(' ')}
+            className="relative inline-block w-[60px] h-[34px] mt-[calc(var(--text-m)+.2em)] [&_input]:opacity-0 [&_input]:w-0 [&_input]:h-0"
         >
             <p className="whitespace-nowrap text-m absolute top-[calc(-1*var(--text-m)-.2em)]">{label}</p>
             <input
@@ -35,9 +32,7 @@ export default function Slider({ label, name, color = 'primary', ...props }: Pro
                 className={`peer ${props.className ?? ''}`}
             />
             <div className={[
-                'w-[60px] absolute cursor-pointer inset-0 bg-surface-raised transition-all duration-400 rounded-[34px]',
-                'before:absolute before:h-[26px] before:w-[26px] before:left-[4px] before:bottom-[4px] before:bg-white',
-                'before:transition-all before:duration-400 before:rounded-full peer-checked:before:translate-x-[26px]',
+                'w-[60px] absolute cursor-pointer inset-0 bg-surface-raised transition-all duration-400 rounded-[34px] before:absolute before:h-[26px] before:w-[26px] before:left-[4px] before:bottom-[4px] before:bg-white before:transition-all before:duration-400 before:rounded-full peer-checked:before:translate-x-[26px]',
                 checkedColorClassNames[color],
             ].join(' ')} />
             <CheckboxFieldPresent name={name} />

@@ -31,8 +31,7 @@ export default function HorizontalSelector<ValueType extends string | number>({
                 htmlFor={id}
                 className={[
                     value === option.value ? 'btn' : 'secondary-btn',
-                    'flex items-center justify-center flex-1 m-0 rounded-none cursor-pointer',
-                    'font-normal leading-normal not-last:border-r not-last:border-surface-subtle',
+                    'flex items-center justify-center flex-1 m-0 rounded-none cursor-pointer font-normal leading-normal not-last:border-r not-last:border-surface-subtle',
                 ].join(' ')}
             >
                 <input

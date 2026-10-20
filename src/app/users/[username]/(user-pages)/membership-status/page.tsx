@@ -65,8 +65,7 @@ const { page, generateMetadata } = serverPage({
                     {[...OMEGA_MEMBERSHIP_LEVEL_RANKING].reverse().map(level => (
                         <li key={level} className="flex flex-col gap-2">
                             <div className={[
-                                'flex items-center justify-between gap-2',
-                                'p-(--card-padding) border-2 rounded-round',
+                                'flex items-center justify-between gap-2 p-(--card-padding) border-2 rounded-round',
                                 level === currentLevel
                                     ? 'border-accent-blue bg-surface-hover text-ink-strong font-bold'
                                     : 'border-transparent bg-surface-raised text-text-muted',
@@ -78,10 +77,7 @@ const { page, generateMetadata } = serverPage({
                                         : stepNames[level]}
                                 </span>
                                 {level === currentLevel
-                                    ? <span className={[
-                                        'text-[0.8rem] font-normal uppercase',
-                                        'tracking-[0.05em] text-accent-blue',
-                                    ].join(' ')}>Du er her</span>
+                                    ? <span className="text-[0.8rem] font-normal uppercase tracking-[0.05em] text-accent-blue">Du er her</span>
                                     : capabilities.canChangeLevel.authorized && (
                                         <Form
                                             className="m-0! p-0! text-[0.8rem]!"
@@ -109,9 +105,7 @@ const { page, generateMetadata } = serverPage({
                                         <li
                                             key={admission}
                                             className={[
-                                                'flex flex-col items-center gap-2 flex-[1_1_0] min-w-[8rem]',
-                                                'p-[calc(2*var(--rounding))] text-center border-2',
-                                                'rounded-round max-mobile:basis-full',
+                                                'flex flex-col items-center gap-2 flex-[1_1_0] min-w-[8rem] p-[calc(2*var(--rounding))] text-center border-2 rounded-round max-mobile:basis-full',
                                                 sittedTrials.has(admission)
                                                     ? 'border-solid border-accent-green text-ink-strong'
                                                     : 'border-dashed border-[#adb5bd] text-text-muted',
@@ -139,10 +133,7 @@ const { page, generateMetadata } = serverPage({
                     ))}
                 </ol>
 
-                <section className={[
-                    'mt-(--card-padding) pt-(--card-padding) border-t border-surface-hover',
-                    '[&_h3]:mt-0 [&_h3]:mx-0 [&_h3]:mb-2',
-                ].join(' ')}>
+                <section className="mt-(--card-padding) pt-(--card-padding) border-t border-surface-hover [&_h3]:mt-0 [&_h3]:mx-0 [&_h3]:mb-2">
                     <h3>Orden</h3>
                     <p>
                         Medlemskapet er udaf den {profile.omegaMembership.order}´dis orden.

@@ -40,18 +40,10 @@ export default function PaymentMethodList({ userId, paymentMethods }: Params) {
     return (
         <ul>
             {paymentMethods.length > 0 ? paymentMethods.map((method) => (
-                <li key={method.id} className={[
-                    'flex items-center justify-between gap-4 rounded-round border-2 border-solid border-surface-subtle',
-                    'my-2 p-4 text-l',
-                ].join(' ')}>
+                <li key={method.id} className="flex items-center justify-between gap-4 rounded-round border-2 border-solid border-surface-subtle my-2 p-4 text-l">
                     {displayPaymentMethod(method)}
                     {canDeletePaymentMethod &&
-                        <button onClick={() => removePaymentMethod(method.id)} className={[
-                            'text-l text-text-muted justify-self-end size-[20px] bg-white border-none rounded-full',
-                            'cursor-pointer',
-                            'transition-[background] duration-500 flex justify-center items-center',
-                            'hover:bg-[color-mix(in_srgb,white,black_10%)]',
-                        ].join(' ')}>
+                        <button onClick={() => removePaymentMethod(method.id)} className="text-l text-text-muted justify-self-end size-[20px] bg-white border-none rounded-full cursor-pointer transition-[background] duration-500 flex justify-center items-center hover:bg-[color-mix(in_srgb,white,black_10%)]">
                             <FontAwesomeIcon icon={faXmark}/>
                         </button>
                     }

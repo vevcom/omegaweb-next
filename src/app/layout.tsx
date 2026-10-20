@@ -111,19 +111,7 @@ export default async function RootLayout({ children }: PropTypes) {
                                     <PageTitleProvider>
                                         <ReleaseCountdownGate>
                                             <NavMenuProvider>
-                                                <div className={[
-                                                    'grid grid-cols-[64px_minmax(0,1fr)] grid-rows-[64px_1fr_64px] gap-2 h-dvh',
-                                                    'max-w-[2560px] mx-auto',
-                                                    "[grid-template-areas:'navBar_navBar'_'sideBar_content'_'sideBar_content']",
-                                                    'pt-[calc(var(--gap)+env(safe-area-inset-top))]',
-                                                    'pr-[calc(var(--gap)+env(safe-area-inset-right))]',
-                                                    'pb-[calc(var(--gap)+env(safe-area-inset-bottom))]',
-                                                    'pl-[calc(var(--gap)+env(safe-area-inset-left))]',
-                                                    'transition-[grid-template-columns] duration-300 ease-[ease]',
-                                                    'mobile:has-[>aside_[data-expanded=true]]:grid-cols-[220px_minmax(0,1fr)]',
-                                                    'max-mobile:grid-cols-[minmax(0,1fr)]',
-                                                    "max-mobile:[grid-template-areas:'navBar'_'content'_'mobileNavBar']",
-                                                ].join(' ')}>
+                                                <div className="grid grid-cols-[64px_minmax(0,1fr)] grid-rows-[64px_1fr_64px] gap-2 h-dvh max-w-[2560px] mx-auto [grid-template-areas:'navBar_navBar'_'sideBar_content'_'sideBar_content'] pt-[calc(var(--gap)+env(safe-area-inset-top))] pr-[calc(var(--gap)+env(safe-area-inset-right))] pb-[calc(var(--gap)+env(safe-area-inset-bottom))] pl-[calc(var(--gap)+env(safe-area-inset-left))] transition-[grid-template-columns] duration-300 ease-[ease] mobile:has-[>aside_[data-expanded=true]]:grid-cols-[220px_minmax(0,1fr)] max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:[grid-template-areas:'navBar'_'content'_'mobileNavBar']">
                                                     <div className="[grid-area:navBar] col-span-full h-[64px] z-3 rounded-round">
                                                         <NavBar
                                                             isLoggedIn={navUser !== null}
@@ -139,10 +127,7 @@ export default async function RootLayout({ children }: PropTypes) {
                                                             {children}
                                                         </ScrollArea>
                                                     </main>
-                                                    <div className={[
-                                                        'hidden z-3 rounded-round overflow-hidden [grid-area:mobileNavBar]',
-                                                        'max-mobile:block max-mobile:h-[64px] max-mobile:w-full',
-                                                    ].join(' ')}>
+                                                    <div className="hidden z-3 rounded-round overflow-hidden [grid-area:mobileNavBar] max-mobile:block max-mobile:h-[64px] max-mobile:w-full">
                                                         <MobileNavBar
                                                             isLoggedIn={navUser !== null}
                                                             navItems={navItems}

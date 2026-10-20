@@ -109,8 +109,7 @@ export default function ScrollIndicator({ scrollRef, className, style }: PropTyp
         >
             <div
                 className={[
-                    'absolute inset-x-0 min-h-[12px] rounded-full bg-surface-subtle pointer-events-auto touch-none',
-                    'before:absolute before:inset-y-0 before:-inset-x-[4px]',
+                    'absolute inset-x-0 min-h-[12px] rounded-full bg-surface-subtle pointer-events-auto touch-none before:absolute before:inset-y-0 before:-inset-x-[4px]',
                     dragging ? 'cursor-grabbing' : 'cursor-grab',
                 ].join(' ')}
                 style={{ top: `${thumb.topPercent}%`, height: `${thumb.heightPercent}%` }}

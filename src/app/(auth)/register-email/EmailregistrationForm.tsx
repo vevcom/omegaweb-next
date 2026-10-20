@@ -19,11 +19,7 @@ type PropTypes = {
 }
 
 // A rule on each side of the text.
-const divider = [
-    'flex justify-center items-center my-2 text-text-muted',
-    'before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted',
-    'after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted',
-].join(' ')
+const divider = 'flex justify-center items-center my-2 text-text-muted before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted'
 
 export default function EmailRegistrationForm({ user, feideLoginMatch, callbackUrl }: PropTypes) {
     const { push } = useRouter()

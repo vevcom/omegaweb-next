@@ -181,10 +181,7 @@ export default function MailFlow({
             </span>}
             {removable && <button
                 type="button"
-                className={[
-                    'ml-auto bg-transparent border-none cursor-pointer text-text-muted p-1 leading-none flex-none',
-                    'hover:text-accent-red',
-                ].join(' ')}
+                className="ml-auto bg-transparent border-none cursor-pointer text-text-muted p-1 leading-none flex-none hover:text-accent-red"
                 aria-label={`Fjern ${chip.label}`}
                 onClick={() => removeRelation(chip)}
             >

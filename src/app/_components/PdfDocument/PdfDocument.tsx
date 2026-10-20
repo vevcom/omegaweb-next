@@ -118,13 +118,7 @@ export default function PdfDocument({ src, className }: PropTypes) {
                 onLoadSuccess={onDocumentLoadSuccess}
             >
                 <div className="flex">
-                    <div className={[
-                        'w-1/2 flex [&>button]:bg-surface-raised [&>button]:border-none [&>button]:p-[1em]',
-                        '[&>button_svg]:text-text',
-                        '[&>button]:transition-[background-color] [&>button]:duration-300 [&>button_svg]:size-[25px]',
-                        '[&>button:hover]:bg-surface-hover [&>button:hover]:cursor-pointer',
-                        '[&>button]:rounded-l-round',
-                    ].join(' ')}>
+                    <div className="w-1/2 flex [&>button]:bg-surface-raised [&>button]:border-none [&>button]:p-[1em] [&>button_svg]:text-text [&>button]:transition-[background-color] [&>button]:duration-300 [&>button_svg]:size-[25px] [&>button:hover]:bg-surface-hover [&>button:hover]:cursor-pointer [&>button]:rounded-l-round">
                         {
                             currentPages.leftPage && (
                                 <button
@@ -134,10 +128,7 @@ export default function PdfDocument({ src, className }: PropTypes) {
                                 </button>
                             )
                         }
-                        <div ref={leftPageRef} className={[
-                            'w-full [&_p]:w-full [&_p]:flex',
-                            '[&_p]:justify-center [&_p]:items-center',
-                        ].join(' ')}>
+                        <div ref={leftPageRef} className="w-full [&_p]:w-full [&_p]:flex [&_p]:justify-center [&_p]:items-center">
                             {
                                 loadingPage && (
                                     <p style={{ height: pageHeight }}>Laster...</p>
@@ -157,17 +148,8 @@ export default function PdfDocument({ src, className }: PropTypes) {
                             }
                         </div>
                     </div>
-                    <div className={[
-                        'w-1/2 flex [&>button]:bg-surface-raised [&>button]:border-none [&>button]:p-[1em]',
-                        '[&>button_svg]:text-text',
-                        '[&>button]:transition-[background-color] [&>button]:duration-300 [&>button_svg]:size-[25px]',
-                        '[&>button:hover]:bg-surface-hover [&>button:hover]:cursor-pointer',
-                        '[&>button]:rounded-r-round',
-                    ].join(' ')}>
-                        <div ref={rightPageRef} className={[
-                            'w-full [&_p]:w-full [&_p]:flex',
-                            '[&_p]:justify-center [&_p]:items-center',
-                        ].join(' ')}>
+                    <div className="w-1/2 flex [&>button]:bg-surface-raised [&>button]:border-none [&>button]:p-[1em] [&>button_svg]:text-text [&>button]:transition-[background-color] [&>button]:duration-300 [&>button_svg]:size-[25px] [&>button:hover]:bg-surface-hover [&>button:hover]:cursor-pointer [&>button]:rounded-r-round">
+                        <div ref={rightPageRef} className="w-full [&_p]:w-full [&_p]:flex [&_p]:justify-center [&_p]:items-center">
                             {
                                 loadingPage && (
                                     <p style={{ height: pageHeight }}>Laster...</p>

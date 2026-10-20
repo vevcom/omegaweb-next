@@ -27,20 +27,14 @@ export default function RemovePart({ part, removePartFromArticleSectionAction, c
     return (
         <div ref={confirmRef} className="relative">
             <button
-                className={[
-                    'bg-[red] w-[30px] h-[30px] rounded-full border-none grid place-items-center',
-                    'transition-colors duration-300 hover:bg-[hsl(0,100%,40%)] hover:cursor-pointer',
-                ].join(' ')}
+                className="bg-[red] w-[30px] h-[30px] rounded-full border-none grid place-items-center transition-colors duration-300 hover:bg-[hsl(0,100%,40%)] hover:cursor-pointer"
                 onClick={() => setConfirmOpen(x => !x)}>
                 <FontAwesomeIcon icon={faX} />
             </button>
             {
                 confirmOpen && (
                     <div
-                        className={[
-                            'shadow-[0_0_10px_0_var(--boxShadow)] absolute top-full left-1/2 -translate-x-1/2 w-[200px]',
-                            'bg-surface-raised round grid place-items-center [&_form]:w-auto [&_form]:h-auto',
-                        ].join(' ')}
+                        className="shadow-[0_0_10px_0_var(--boxShadow)] absolute top-full left-1/2 -translate-x-1/2 w-[200px] bg-surface-raised round grid place-items-center [&_form]:w-auto [&_form]:h-auto"
                     >
                         <Form
                             action={handleRemove}

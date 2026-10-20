@@ -204,10 +204,7 @@ export default function ImagePanel<const PageSize extends number>({
         if (fetchPending) return <i>{images.length > 0 ? 'Laster inn flere...' : 'Laster inn...'}</i>
         if (allLoaded) {
             if (images.length > 0) return <i>Ingen flere å laste inn</i>
-            return <span className={[
-                'flex flex-col items-center gap-2 py-12 text-ink-hover text-center',
-                '[&>svg]:text-[calc(6*var(--gap))] [&>svg]:opacity-50',
-            ].join(' ')}>
+            return <span className="flex flex-col items-center gap-2 py-12 text-ink-hover text-center [&>svg]:text-[calc(6*var(--gap))] [&>svg]:opacity-50">
                 <FontAwesomeIcon icon={faImages} />
                 <i>Ingen bilder i denne samlingen enda</i>
             </span>

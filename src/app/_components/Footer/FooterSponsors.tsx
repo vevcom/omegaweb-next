@@ -8,11 +8,7 @@ import type { SponsorCompany } from '@/services/career/companies/types'
 const MAIN_LOGO_WIDTH = 190
 const SPONSOR_LOGO_WIDTH = 110
 
-const sponsorClassName = [
-    'text-m flex items-center justify-center max-w-full opacity-85 transition-opacity duration-300',
-    'hover:opacity-100 hover:no-underline [&_img]:max-w-full [&_img]:h-auto',
-    'tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180',
-].join(' ')
+const sponsorClassName = 'text-m flex items-center justify-center max-w-full opacity-85 transition-opacity duration-300 hover:opacity-100 hover:no-underline [&_img]:max-w-full [&_img]:h-auto tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180'
 
 function SponsorLink({ sponsor, children }: { sponsor: SponsorCompany, children: ReactNode }) {
     if (!sponsor.website) return <span className={sponsorClassName}>{children}</span>

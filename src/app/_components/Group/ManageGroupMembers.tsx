@@ -169,10 +169,7 @@ export default function ManageGroupMembers({
                 <p className="text-text-muted italic">Gruppen har ingen medlemskap i orden {selectedOrder}.</p>
             ) : (
                 <div className="flex flex-col gap-1">
-                    <div className={[
-                        'grid grid-cols-(--member-columns) items-center',
-                        'gap-4 px-4 text-text-muted text-s max-mobile:hidden',
-                    ].join(' ')} style={columnStyle}>
+                    <div className="grid grid-cols-(--member-columns) items-center gap-4 px-4 text-text-muted text-s max-mobile:hidden" style={columnStyle}>
                         <span>Navn</span>
                         <span>Tittel</span>
                         <span>Status</span>
@@ -185,11 +182,7 @@ export default function ManageGroupMembers({
                         // and ignore the new order's `defaultValue`. The same user is usually a
                         // member of several orders, which is exactly when that bites.
                         <div
-                            className={[
-                                'grid grid-cols-(--member-columns) items-center gap-4 py-2 px-4 rounded-round layer',
-                                'max-mobile:grid-cols-1 max-mobile:gap-2',
-                                '[&_p:empty]:min-h-0 [&_p:empty]:m-0',
-                            ].join(' ')}
+                            className="grid grid-cols-(--member-columns) items-center gap-4 py-2 px-4 rounded-round layer max-mobile:grid-cols-1 max-mobile:gap-2 [&_p:empty]:min-h-0 [&_p:empty]:m-0"
                             style={columnStyle}
                             key={`${selectedOrder}-${member.userId}`}
                         >
@@ -224,14 +217,8 @@ export default function ManageGroupMembers({
                                 <span className="text-text-muted text-s">{member.title}</span>
                             )}
                             <span className="flex gap-1">
-                                {member.admin && <span className={[
-                                    'px-2 rounded-round border text-s whitespace-nowrap',
-                                    'border-accent-blue text-accent-blue',
-                                ].join(' ')}>Admin</span>}
-                                {!member.active && <span className={[
-                                    'px-2 rounded-round border text-s whitespace-nowrap',
-                                    'border-text-muted text-text-muted',
-                                ].join(' ')}>Inaktiv</span>}
+                                {member.admin && <span className="px-2 rounded-round border text-s whitespace-nowrap border-accent-blue text-accent-blue">Admin</span>}
+                                {!member.active && <span className="px-2 rounded-round border text-s whitespace-nowrap border-text-muted text-text-muted">Inaktiv</span>}
                             </span>
                             {/* The action cells are rendered even when this member cannot use them,
                                 so that a row without them keeps the grid's columns. */}

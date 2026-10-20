@@ -46,21 +46,9 @@ export default function ArticleSection({
         // cmsImageWithControls fills this box via absolute positioning (see its classes),
         // so it no longer contributes in-flow content .image could size its own width from -
         // give it the configured image width explicitly instead.
-        <span className={[
-            'relative isolate max-w-full',
-            'max-mobile:order-2 max-mobile:rounded-round max-mobile:h-[min(300px,40vh)]',
-        ].join(' ')} style={{ width: articleSection.imageSize }}>
+        <span className="relative isolate max-w-full max-mobile:order-2 max-mobile:rounded-round max-mobile:h-[min(300px,40vh)]" style={{ width: articleSection.imageSize }}>
             {cmsImage && <>
-                <span className={[
-                    'absolute inset-0 flex overflow-hidden z-1',
-                    '[&>*:first-child]:absolute [&>*:first-child]:inset-0 [&>*:first-child]:w-full [&>*:first-child]:h-full',
-                    '[&>*:first-child]:rounded-round [&>*:first-child]:overflow-hidden [&>*:first-child]:max-w-[90vw]',
-                    '[&>*:first-child>*]:min-w-full [&>*:first-child>*]:max-w-[83vw]',
-                    '[&>*:first-child_div]:absolute [&>*:first-child_div]:inset-0 [&>*:first-child_div]:w-full',
-                    '[&>*:first-child_div]:h-full',
-                    '[&>*:first-child_img]:absolute [&>*:first-child_img]:inset-0 [&>*:first-child_img]:w-full',
-                    '[&>*:first-child_img]:h-full [&>*:first-child_img]:object-cover',
-                ].join(' ')}>
+                <span className="absolute inset-0 flex overflow-hidden z-1 [&>*:first-child]:absolute [&>*:first-child]:inset-0 [&>*:first-child]:w-full [&>*:first-child]:h-full [&>*:first-child]:rounded-round [&>*:first-child]:overflow-hidden [&>*:first-child]:max-w-[90vw] [&>*:first-child>*]:min-w-full [&>*:first-child>*]:max-w-[83vw] [&>*:first-child_div]:absolute [&>*:first-child_div]:inset-0 [&>*:first-child_div]:w-full [&>*:first-child_div]:h-full [&>*:first-child_img]:absolute [&>*:first-child_img]:inset-0 [&>*:first-child_img]:w-full [&>*:first-child_img]:h-full [&>*:first-child_img]:object-cover">
                     <CmsImage
                         width={articleSection.imageSize}
                         cmsImage={cmsImage}
@@ -104,10 +92,7 @@ export default function ArticleSection({
                 capabilities={clientCapabilities}
             >
                 <span
-                    className={[
-                        'flex flex-row flex-wrap gap-4 max-mobile:flex-col max-mobile:flex-nowrap',
-                        '[&>*:first-child]:z-2 [&>*:nth-child(2)]:z-1',
-                    ].join(' ')}
+                    className="flex flex-row flex-wrap gap-4 max-mobile:flex-col max-mobile:flex-nowrap [&>*:first-child]:z-2 [&>*:nth-child(2)]:z-1"
                 >
                     {
                         cmsImage && articleSection.imagePosition === 'LEFT' &&

@@ -39,10 +39,7 @@ type PropTypes = {
     onNavigateRight: () => void,
 }
 
-const navButtonClassName = [
-    'size-10 grid place-items-center rounded-full border-none cursor-pointer bg-surface-raised text-text',
-    'transition-[background-color] duration-300 hover:bg-surface-hover [&>svg]:w-[45%]! [&>svg]:h-[45%]!',
-].join(' ')
+const navButtonClassName = 'size-10 grid place-items-center rounded-full border-none cursor-pointer bg-surface-raised text-text transition-[background-color] duration-300 hover:bg-surface-hover [&>svg]:w-[45%]! [&>svg]:h-[45%]!'
 
 /**
  * The large view of the image an ImagePanel is currently displaying. A pure viewer - navigation,
@@ -74,23 +71,14 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
     }
 
     return (
-        <div className={[
-            'z-5 fixed top-0 left-0 w-screen h-dvh grid place-items-center',
-            'bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px]',
-        ].join(' ')}>
-            <div className={[
-                'relative w-[95vw] h-[95dvh] flex flex-col gap-4 p-4 rounded-round bg-surface-base',
-            ].join(' ')} ref={panelRef}>
+        <div className="z-5 fixed top-0 left-0 w-screen h-dvh grid place-items-center bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px]">
+            <div className="relative w-[95vw] h-[95dvh] flex flex-col gap-4 p-4 rounded-round bg-surface-base" ref={panelRef}>
                 <div className="shrink-0 flex items-start justify-between gap-4">
                     <div className="min-w-0">
                         <h2 className="font-secondary text-xl font-bold overflow-hidden text-ellipsis whitespace-nowrap">
                             {image.name}
                         </h2>
-                        <dl className={[
-                            'mt-2 flex flex-wrap gap-x-4 gap-y-0 text-s text-text-muted',
-                            '[&>div]:flex [&>div]:gap-[0.4em] [&>div]:min-w-0',
-                            '[&_dt]:text-ink-hover [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap',
-                        ].join(' ')}>
+                        <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-0 text-s text-text-muted [&>div]:flex [&>div]:gap-[0.4em] [&>div]:min-w-0 [&_dt]:text-ink-hover [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap">
                             <div>
                                 <dt>Alt-tekst:</dt>
                                 <dd>{image.alt}</dd>
@@ -124,12 +112,7 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                     </button>
                 </div>
 
-                <div className={[
-                    'flex-auto min-h-0 relative',
-                    '[&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full',
-                    '[&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full [&_img]:object-contain',
-                    '[&_img]:rounded-round',
-                ].join(' ')}>
+                <div className="flex-auto min-h-0 relative [&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full [&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full [&_img]:object-contain [&_img]:rounded-round">
                     {
                         loading ? (
                             <div className={styles.loading}></div>

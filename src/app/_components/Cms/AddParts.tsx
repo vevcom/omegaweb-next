@@ -45,10 +45,7 @@ export default function AddParts({
     ]
 
     return (
-        <div className={[
-            'z-1 flex [&_button]:flex [&_button]:items-center',
-            '[&_button]:justify-center [&_button]:hover:cursor-pointer',
-        ].join(' ')}>
+        <div className="z-1 flex [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:hover:cursor-pointer">
             {
                 parts.map((part, i) => part.shouldShow && (
                     <Button

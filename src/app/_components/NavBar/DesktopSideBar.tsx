@@ -26,17 +26,11 @@ export default function DesktopSideBar({ navItems }: PropTypes) {
     const activeHref = useActiveNavHref(navItems.map(item => item.href))
     return (
         <aside
-            className={[
-                'group/sidebar h-full w-full flex flex-col items-stretch gap-2 min-h-0 p-2 rounded-round',
-                'bg-surface-base',
-            ].join(' ')}
+            className="group/sidebar h-full w-full flex flex-col items-stretch gap-2 min-h-0 p-2 rounded-round bg-surface-base"
             data-expanded={expanded}
         >
             <div className="group/panel relative w-full flex-auto min-h-0">
-                <nav ref={navIconsRef} className={[
-                    'h-full w-full flex flex-col items-stretch gap-1 overflow-y-auto overflow-x-hidden',
-                    '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-                ].join(' ')} aria-label="Desktop navigation">
+                <nav ref={navIconsRef} className="h-full w-full flex flex-col items-stretch gap-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Desktop navigation">
                     {sideBarItems.map((item) => (
                         <SideBarNavItem
                             key={item.name}
@@ -46,20 +40,13 @@ export default function DesktopSideBar({ navItems }: PropTypes) {
                         />
                     ))}
                 </nav>
-                <ScrollIndicator scrollRef={navIconsRef} className={[
-                    'top-2 bottom-2 right-0.5 opacity-0 transition-opacity duration-300 ease-[ease]',
-                    'group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 data-[dragging=true]:opacity-100',
-                ].join(' ')} />
+                <ScrollIndicator scrollRef={navIconsRef} className="top-2 bottom-2 right-0.5 opacity-0 transition-opacity duration-300 ease-[ease] group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 data-[dragging=true]:opacity-100" />
             </div>
             <AdminNav showAdmin={showAdmin} expanded={expanded} active={activeHref === adminNavItemHref} />
             <hr className={dividerClassName} />
             <button
                 type="button"
-                className={[
-                    'group w-full h-10 flex items-center justify-center shrink-0 border-none bg-transparent cursor-pointer',
-                    '[&_svg]:text-text [&_svg]:transition-colors [&_svg]:duration-300 [&_path]:text-inherit',
-                    'hover:[&_svg]:text-accent-blue',
-                ].join(' ')}
+                className="group w-full h-10 flex items-center justify-center shrink-0 border-none bg-transparent cursor-pointer [&_svg]:text-text [&_svg]:transition-colors [&_svg]:duration-300 [&_path]:text-inherit hover:[&_svg]:text-accent-blue"
                 onClick={() => setExpanded(prev => !prev)}
                 aria-label={expanded ? 'Collapse navigation' : 'Expand navigation'}
             >

@@ -71,11 +71,7 @@ const { page, generateMetadata } = serverPage({
                 <ul className="flex-[1_1_300px] list-none p-0 m-0 flex flex-col gap-2 max-w-[40rem]">
                     {items.map(item => <li key={item.id}>
                         <Link href={`/admin/mail/${filter}/${item.id}`}
-                            className={[
-                                'flex flex-col gap-1 p-4 rounded-round bg-surface-raised text-text no-underline',
-                                'transition-[background-color] duration-300 hover:bg-surface-hover',
-                                '[&_span]:text-text-muted [&_span]:text-[0.9rem]',
-                            ].join(' ')}
+                            className="flex flex-col gap-1 p-4 rounded-round bg-surface-raised text-text no-underline transition-[background-color] duration-300 hover:bg-surface-hover [&_span]:text-text-muted [&_span]:text-[0.9rem]"
                         >
                             <strong>{item.label}</strong>
                             {item.description && <span>{item.description}</span>}
@@ -84,10 +80,7 @@ const { page, generateMetadata } = serverPage({
                     {items.length === 0 && <li className="text-text-muted italic">Ingen enda.</li>}
                 </ul>
                 {capabilities.canCreate.authorized && <aside
-                    className={[
-                        'flex-[0_1_20rem] bg-surface-raised',
-                        'rounded-[calc(3*var(--rounding))] p-(--card-padding)',
-                    ].join(' ')}
+                    className="flex-[0_1_20rem] bg-surface-raised rounded-[calc(3*var(--rounding))] p-(--card-padding)"
                 >
                     {filter === 'alias' && <CreateMailAlias />}
                     {filter === 'mailingList' && <CreateMailingList />}

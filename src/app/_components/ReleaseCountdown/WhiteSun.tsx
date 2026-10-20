@@ -30,8 +30,7 @@ export default function WhiteSun({ elapsed, duration }: PropTypes) {
             ].join(' ')}>
                 <div className={[
                     styles.spin,
-                    'size-full rounded-full [mask-image:radial-gradient(circle,black_10%,transparent_70%)]',
-                    'bg-[repeating-conic-gradient(rgb(255_250_235/22%)_0deg_3deg,transparent_3deg_15deg)]',
+                    'size-full rounded-full [mask-image:radial-gradient(circle,black_10%,transparent_70%)] bg-[repeating-conic-gradient(rgb(255_250_235/22%)_0deg_3deg,transparent_3deg_15deg)]',
                 ].join(' ')} />
             </div>
             <div className={[

@@ -40,13 +40,7 @@ function Section({
     // rather than height: 100% because this box's height comes from the grid row stretching to the
     // text column, and Firefox collapses a percentage height against that to 0.
     const imgContainer = (
-        <div style={{ width: imgWidth }} className={[
-            'm-4 rounded-round relative overflow-hidden mobile:max-w-[50vw]',
-            '[&_div]:absolute [&_div]:top-0 [&_div]:left-0 [&_div]:size-full',
-            '[&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:size-full [&_img]:object-cover',
-            'max-mobile:row-start-2 max-mobile:row-end-3',
-            'max-mobile:min-w-full max-mobile:max-h-[50vh] max-mobile:max-w-screen',
-        ].join(' ')}>
+        <div style={{ width: imgWidth }} className="m-4 rounded-round relative overflow-hidden mobile:max-w-[50vw] [&_div]:absolute [&_div]:top-0 [&_div]:left-0 [&_div]:size-full [&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:size-full [&_img]:object-cover max-mobile:row-start-2 max-mobile:row-end-3 max-mobile:min-w-full max-mobile:max-h-[50vh] max-mobile:max-w-screen">
             <SpecialCmsImage
                 capabilities={{ canEdit: capabilities.canEditSpecialCmsImage }}
                 special={specialCmsImage}
@@ -62,11 +56,7 @@ function Section({
             position === 'right' ? 'bg-[color-mix(in_srgb,var(--surface-base),black_15%)]' : 'bg-surface-base text-text',
         ].join(' ')}>
             {position === 'left' && imgContainer}
-            <div className={[
-                'p-30 h-full flex flex-col justify-center max-mobile:p-20 max-mobile:w-screen',
-                '[&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-2 [&_p]:text-m [&_p]:leading-[1.7em] [&_p]:mb-2',
-                '[&>a]:w-[120px] [&>a]:m-0',
-            ].join(' ')}>
+            <div className="p-30 h-full flex flex-col justify-center max-mobile:p-20 max-mobile:w-screen [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-2 [&_p]:text-m [&_p]:leading-[1.7em] [&_p]:mb-2 [&>a]:w-[120px] [&>a]:m-0">
                 <SpecialCmsParagraph
                     capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
                     className={position === 'right' ? '[&_:is(h1,h2,h3,h4,h5,h6,p,i)]:text-text' : ''}

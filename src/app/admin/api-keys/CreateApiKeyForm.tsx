@@ -78,10 +78,7 @@ export default function CreateApiKeyForm({ popUpKey }: PropTypes) {
                     {apiKeyToShow ? <p>{apiKeyToShow}</p> : <i>Generer en nøkkel først</i>}
                     {apiKeyToShow && (
                         <button
-                            className={[
-                                'bg-transparent border-none [&_svg]:text-text-muted',
-                                '[&_svg]:w-[1.5em]! [&_svg]:h-[1.5em]!',
-                            ].join(' ')}
+                            className="bg-transparent border-none [&_svg]:text-text-muted [&_svg]:w-[1.5em]! [&_svg]:h-[1.5em]!"
                             onClick={copyAPIKeyToClipboard}
                         >
                             <FontAwesomeIcon icon={faCopy} />

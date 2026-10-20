@@ -29,18 +29,11 @@ const { page, generateMetadata } = serverPage({
         return (
             <div className="min-h-full flex flex-col items-center justify-center gap-6 p-8 text-center">
                 <div
-                    className={[
-                        'rounded-round bg-surface-raised border-3 border-accent-blue py-12 px-16 flex flex-col',
-                        'items-center gap-2',
-                    ].join(' ')}
+                    className="rounded-round bg-surface-raised border-3 border-accent-blue py-12 px-16 flex flex-col items-center gap-2"
                 >
                     <p className="m-0 font-secondary text-l tracking-[0.3em] uppercase text-text-muted">Omega er i orden</p>
                     <h1
-                        className={[
-                            'm-0 font-secondary text-[length:clamp(6rem,20vw,12rem)] font-bold leading-none',
-                            'text-accent-blue',
-                            '[text-shadow:0_0_0.3em_color-mix(in_srgb,var(--accent-blue),transparent_40%)]',
-                        ].join(' ')}
+                        className="m-0 font-secondary text-[length:clamp(6rem,20vw,12rem)] font-bold leading-none text-accent-blue [text-shadow:0_0_0.3em_color-mix(in_srgb,var(--accent-blue),transparent_40%)]"
                     >{ data.currentOrder.order }</h1
                     >
                 </div>

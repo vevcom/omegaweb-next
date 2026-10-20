@@ -129,10 +129,7 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
             </div>
             <span className="mt-4 p-[.5em] bg-[color-mix(in_srgb,var(--accent-blue),white_15%)]">
                 <div
-                    className={[
-                        'flex justify-between content-center p-[.5em] [&>p]:w-full [&>p]:text-center',
-                        '[&>p:first-child]:text-left [&>p:last-child]:text-right',
-                    ].join(' ')}
+                    className="flex justify-between content-center p-[.5em] [&>p]:w-full [&>p]:text-center [&>p:first-child]:text-left [&>p:last-child]:text-right"
                 >
                     <p>Til opplastning: {files.length} {files.length === 1 ? 'fil' : 'filer'}</p>
                     <p>Total størrelse: {byteToUnderstandable(files.reduce((acc, file) => acc + file.file.size, 0))}</p>
@@ -147,10 +144,7 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
                         <li
                             id={`fileInfo${index}`}
                             key={`fileInfo${index}`}
-                            className={[
-                                'flex justify-between rounded-round p-[.5em] my-[.3em]',
-                                'bg-[color-mix(in_srgb,var(--accent-blue),white_40%)]',
-                            ].join(' ')}
+                            className="flex justify-between rounded-round p-[.5em] my-[.3em] bg-[color-mix(in_srgb,var(--accent-blue),white_40%)]"
                         >
                             <img
                                 src={URL.createObjectURL(file.file)}

@@ -17,10 +17,7 @@ export default function ImageCard({ image, title, children, href, className }: P
             'min-w-[200px] max-w-[400px] rounded-round relative text-inherit no-underline flex flex-col isolate',
             `overflow-hidden bg-surface-raised m-2 max-mobile:m-0 ${className}`,
         ].join(' ')}>
-            <div className={[
-                'relative shrink-0 w-full h-[160px] overflow-hidden',
-                '[&>*]:size-full [&>*]:object-cover [&>*_img]:size-full [&>*_img]:object-cover',
-            ].join(' ')}>
+            <div className="relative shrink-0 w-full h-[160px] overflow-hidden [&>*]:size-full [&>*]:object-cover [&>*_img]:size-full [&>*_img]:object-cover">
                 {
                     image && (
                         <Image
@@ -32,10 +29,7 @@ export default function ImageCard({ image, title, children, href, className }: P
                     )
                 }
             </div>
-            <div className={[
-                'flex-auto p-4 [&>h2]:text-xl [&>h2]:wrap-anywhere [&>h2]:mb-1',
-                '[&>p]:text-text-muted [&>p]:line-clamp-3',
-            ].join(' ')}>
+            <div className="flex-auto p-4 [&>h2]:text-xl [&>h2]:wrap-anywhere [&>h2]:mb-1 [&>p]:text-text-muted [&>p]:line-clamp-3">
                 <h2>{title}</h2>
                 {children}
             </div>

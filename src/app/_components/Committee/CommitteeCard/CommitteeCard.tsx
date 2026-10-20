@@ -12,15 +12,9 @@ type PropTypes = {
 
 export default function CommitteeCard({ image, title, children, href }: PropTypes) {
     return (
-        <div className={[
-            'w-full rounded-round bg-surface-base flex flex-col gap-2 p-2 transition-[background-color] duration-300',
-            'hover:bg-surface-raised',
-        ].join(' ')}>
+        <div className="w-full rounded-round bg-surface-base flex flex-col gap-2 p-2 transition-[background-color] duration-300 hover:bg-surface-raised">
             <Link href={href} className="flex flex-row items-center gap-4 text-inherit no-underline text-left">
-                <div className={[
-                    'size-[128px] shrink-0 rounded-inner bg-surface-hover p-2 grid place-items-center',
-                    '[&>*]:size-full! [&>*]:object-contain [&>*_img]:size-full [&>*_img]:object-contain',
-                ].join(' ')}>
+                <div className="size-[128px] shrink-0 rounded-inner bg-surface-hover p-2 grid place-items-center [&>*]:size-full! [&>*]:object-contain [&>*_img]:size-full [&>*_img]:object-contain">
                     {
                         image && (
                             <CommitteeLogo width={128} logoImage={image} />

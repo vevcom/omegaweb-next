@@ -225,23 +225,14 @@ export default function NotificationSettings({
     }
 
     return <>
-        <table cellSpacing="0" className={[
-            'ohma-table',
-            'max-mobile:[&_th]:py-2 max-mobile:[&_th]:px-[calc(1.2*var(--gap))]',
-            'max-mobile:[&_td]:py-2 max-mobile:[&_td]:px-[calc(1.2*var(--gap))]',
-        ].join(' ')}>
+        <table cellSpacing="0" className="ohma-table max-mobile:[&_th]:py-2 max-mobile:[&_th]:px-[calc(1.2*var(--gap))] max-mobile:[&_td]:py-2 max-mobile:[&_td]:px-[calc(1.2*var(--gap))]">
             <thead className="align-bottom">
                 <tr>
                     <th>Kanal</th>
                     {notificationMethodsArray.map(method =>
                         <th
                             key={method}
-                            className={[
-                                'w-[1%] whitespace-nowrap text-center mobile:min-w-[8rem]',
-                                'max-mobile:relative max-mobile:h-[6rem] max-mobile:min-w-[2.5rem]',
-                                'max-mobile:[&>span]:absolute max-mobile:[&>span]:right-1/2 max-mobile:[&>span]:bottom-2',
-                                'max-mobile:[&>span]:rotate-45 max-mobile:[&>span]:origin-bottom-right',
-                            ].join(' ')}
+                            className="w-[1%] whitespace-nowrap text-center mobile:min-w-[8rem] max-mobile:relative max-mobile:h-[6rem] max-mobile:min-w-[2.5rem] max-mobile:[&>span]:absolute max-mobile:[&>span]:right-1/2 max-mobile:[&>span]:bottom-2 max-mobile:[&>span]:rotate-45 max-mobile:[&>span]:origin-bottom-right"
                         >
                             <span>{notificationMethodsDisplayMap[method]}</span>
                         </th>

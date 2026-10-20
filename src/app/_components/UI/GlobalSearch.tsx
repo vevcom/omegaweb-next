@@ -52,10 +52,7 @@ const categoryOptions: { value: Category, label: string }[] = [
     { value: 'events', label: 'Arrangementer' },
 ]
 
-const kbdClassName = [
-    'inline-flex items-center justify-center min-w-4 py-[calc(0.15*var(--gap))] px-[calc(0.4*var(--gap))]',
-    'mr-[calc(0.3*var(--gap))] bg-surface-hover rounded-[calc(0.35*var(--gap))] text-s text-text',
-].join(' ')
+const kbdClassName = 'inline-flex items-center justify-center min-w-4 py-[calc(0.15*var(--gap))] px-[calc(0.4*var(--gap))] mr-[calc(0.3*var(--gap))] bg-surface-hover rounded-[calc(0.35*var(--gap))] text-s text-text'
 
 /**
  * Global command-K search popup, inspired by JetBrains' "Search Everywhere": a single box
@@ -235,20 +232,13 @@ export default function GlobalSearch({ navItems }: PropTypes) {
 
     return (
         <div className="fixed inset-0 bg-[rgba(0,0,0,0.55)] z-20 flex justify-center pt-[12vh] max-mobile:pt-0">
-            <div className={[
-                'w-[min(800px,90vw)] max-h-[70svh] h-[70svh] bg-[color-mix(in_srgb,var(--surface-base),transparent_40%)]',
-                'backdrop-blur-[8px] backdrop-saturate-[140%] rounded-round flex flex-col gap-2 p-4 overflow-hidden',
-                'max-mobile:w-screen max-mobile:max-h-svh max-mobile:h-svh max-mobile:rounded-none',
-            ].join(' ')} ref={ref}>
+            <div className="w-[min(800px,90vw)] max-h-[70svh] h-[70svh] bg-[color-mix(in_srgb,var(--surface-base),transparent_40%)] backdrop-blur-[8px] backdrop-saturate-[140%] rounded-round flex flex-col gap-2 p-4 overflow-hidden max-mobile:w-screen max-mobile:max-h-svh max-mobile:h-svh max-mobile:rounded-none" ref={ref}>
                 <div className="flex items-center gap-2 shrink-0">
                     <FontAwesomeIcon icon={faMagnifyingGlass} className="shrink-0 text-text-muted" />
                     <input
                         ref={inputRef}
                         type="text"
-                        className={[
-                            'flex-1 min-w-0 border-none bg-transparent outline-none text-l text-text',
-                            'placeholder:text-text-muted',
-                        ].join(' ')}
+                        className="flex-1 min-w-0 border-none bg-transparent outline-none text-l text-text placeholder:text-text-muted"
                         placeholder="Søk etter brukere, arrangementer og sider..."
                         autoComplete="off"
                         value={query}
@@ -283,8 +273,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                                                 <Link
                                                     href={item.href}
                                                     className={[
-                                                        'flex items-center gap-2 p-2 rounded-[calc(0.5*var(--gap))]',
-                                                        'no-underline transition-colors duration-300',
+                                                        'flex items-center gap-2 p-2 rounded-[calc(0.5*var(--gap))] no-underline transition-colors duration-300',
                                                         index === safeActiveIndex
                                                             ? 'bg-accent-blue text-text-inv'
                                                             : 'text-text hover:bg-surface-hover',
@@ -292,23 +281,14 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                                                     onMouseEnter={() => setActiveIndex(index)}
                                                     onClick={close}
                                                 >
-                                                    <span className={[
-                                                        'relative shrink-0 size-10 rounded-[calc(0.5*var(--gap))]',
-                                                        'overflow-hidden flex items-center justify-center',
-                                                        'bg-surface-hover text-text-muted [&_div]:w-full [&_div]:h-full',
-                                                        '[&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full',
-                                                        '[&_img]:object-cover',
-                                                    ].join(' ')}>
+                                                    <span className="relative shrink-0 size-10 rounded-[calc(0.5*var(--gap))] overflow-hidden flex items-center justify-center bg-surface-hover text-text-muted [&_div]:w-full [&_div]:h-full [&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full [&_img]:object-cover">
                                                         {item.thumb.type === 'image' ? (
                                                             <Image image={item.thumb.image} width={40} />
                                                         ) : (
                                                             <FontAwesomeIcon icon={item.thumb.icon} />
                                                         )}
                                                     </span>
-                                                    <span className={[
-                                                        'flex-1 min-w-0 overflow-hidden',
-                                                        'text-ellipsis whitespace-nowrap',
-                                                    ].join(' ')}>
+                                                    <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                                                         {item.label}
                                                     </span>
                                                     {item.sublabel && (

@@ -18,11 +18,7 @@ import type { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { CompanyExpanded } from '@/services/career/companies/types'
 
 const sponsorTierClass = {
-    MAIN: [
-        'border-[color-mix(in_srgb,var(--accent-yellow),transparent_50%)]',
-        'bg-[color-mix(in_srgb,var(--accent-yellow),var(--surface-raised)_94%)]',
-        'hover:bg-[color-mix(in_srgb,var(--accent-yellow),var(--surface-hover)_94%)]',
-    ].join(' '),
+    MAIN: 'border-[color-mix(in_srgb,var(--accent-yellow),transparent_50%)] bg-[color-mix(in_srgb,var(--accent-yellow),var(--surface-raised)_94%)] hover:bg-[color-mix(in_srgb,var(--accent-yellow),var(--surface-hover)_94%)]',
     SPONSOR: 'border-[color-mix(in_srgb,var(--accent-cyan),transparent_65%)] bg-surface-raised hover:bg-surface-hover',
     NONE: 'border-transparent bg-surface-raised hover:bg-surface-hover',
 } satisfies Record<CompanySponsorTier, string>
@@ -69,18 +65,14 @@ export default function Company({
                     capabilities={{ canEdit: canEditCmsImageLogo }}
                     disableEditor={disableEdit}
                     className={[
-                        'overflow-hidden flex items-center bg-surface-base rounded-inner',
-                        'tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180',
+                        'overflow-hidden flex items-center bg-surface-base rounded-inner tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180',
                         squareLogo ? 'aspect-square [&_div]:size-full [&_img]:size-full [&_img]:object-contain' : '',
                     ].join(' ')}
                     cmsImage={company.logo}
                     width={logoWidth}
                     updateCmsImageAction={updateCmsImageAction}
                 />
-                <SponsorBadge sponsorTier={company.sponsorTier} iconOnly className={[
-                    'absolute top-2 left-2',
-                    'max-w-[calc(100%-4*var(--gap))] z-1',
-                ].join(' ')} />
+                <SponsorBadge sponsorTier={company.sponsorTier} iconOnly className="absolute top-2 left-2 max-w-[calc(100%-4*var(--gap))] z-1" />
             </div>
             <div className={[
                 'mx-2 pb-2 relative flex-1 [&_h2]:text-l [&_h2]:truncate [&_p]:text-text-muted',
@@ -90,10 +82,7 @@ export default function Company({
                 <p>{company.description}</p>
                 {
                     showSettings ? (
-                        <SettingsHeaderItemPopUp showButtonClass={[
-                            'text-text absolute',
-                            'top-0 right-0 z-2',
-                        ].join(' ')} popUpKey={`Edit ${company.id}`}>
+                        <SettingsHeaderItemPopUp showButtonClass="text-text absolute top-0 right-0 z-2" popUpKey={`Edit ${company.id}`}>
                             {
                                 canUpdate.authorized && <Form
                                     title="Rediger bedrift"

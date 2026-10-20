@@ -85,22 +85,14 @@ const { page, generateMetadata } = serverPage({
                                             style={{ paddingLeft: `${depth * 1.5}rem` }}
                                         >
                                             {depth > 0 ? <span
-                                                className={[
-                                                    'inline-block size-[0.6em] mr-[0.6em]',
-                                                    'border-l-2 border-b-2 border-text-muted',
-                                                ].join(' ')}
+                                                className="inline-block size-[0.6em] mr-[0.6em] border-l-2 border-b-2 border-text-muted"
                                                 aria-hidden="true"
                                             /> : null}
                                             {channel.name}
                                         </span>
                                         {channel.special
                                             ? <span
-                                                className={[
-                                                    'ml-[0.6em] py-[0.1em] px-[0.6em] rounded-full',
-                                                    'bg-[color-mix(in_srgb,var(--accent-blue),transparent_80%)]',
-                                                    'text-accent-blue text-s font-medium uppercase tracking-[0.03em]',
-                                                    'whitespace-nowrap',
-                                                ].join(' ')}
+                                                className="ml-[0.6em] py-[0.1em] px-[0.6em] rounded-full bg-[color-mix(in_srgb,var(--accent-blue),transparent_80%)] text-accent-blue text-s font-medium uppercase tracking-[0.03em] whitespace-nowrap"
                                             >
                                                 {channel.special}
                                             </span>

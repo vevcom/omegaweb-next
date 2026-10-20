@@ -22,10 +22,7 @@ export type PropTypes = Omit<ImageProps, 'src' | 'alt'> & {
     tintAspectRatio?: number,
 }
 
-const imageClassName = [
-    '[:where(&)]:relative [:where(&)]:m-0 [:where(&)]:box-border [:where(&)]:flex [:where(&)]:flex-col',
-    '[:where(&)]:w-(--image-width) [&>img]:m-0 [&>img]:w-full [&>img]:h-full',
-].join(' ')
+const imageClassName = '[:where(&)]:relative [:where(&)]:m-0 [:where(&)]:box-border [:where(&)]:flex [:where(&)]:flex-col [:where(&)]:w-(--image-width) [&>img]:m-0 [&>img]:w-full [&>img]:h-full'
 
 const creditPlacementClassName = {
     top: 'top-0 left-0',
@@ -73,10 +70,7 @@ export default function Image({
                 // A mask has no intrinsic size, so aspect-ratio is set inline; `contain` letterboxes
                 // a mismatched ratio rather than stretching.
                 <div
-                    className={[
-                        'w-full [mask-image:var(--image-tint-mask)] mask-contain mask-no-repeat mask-center',
-                        'bg-(--image-tint-color)',
-                    ].join(' ')}
+                    className="w-full [mask-image:var(--image-tint-mask)] mask-contain mask-no-repeat mask-center bg-(--image-tint-color)"
                     style={{
                         '--image-tint-mask': `url('${url}')`,
                         '--image-tint-color': tint,
@@ -100,10 +94,7 @@ export default function Image({
                 </p>
             )}
             {!hideCopyRight && image.licenseLink && (
-                <div className={[
-                    'group absolute right-0 top-0 z-2 flex flex-row items-center justify-around no-underline text-text',
-                    'hover:bg-surface-base hover:opacity-80',
-                ].join(' ')}>
+                <div className="group absolute right-0 top-0 z-2 flex flex-row items-center justify-around no-underline text-text hover:bg-surface-base hover:opacity-80">
                     {disableLinkingToLicense ? (
                         <p className="hidden group-hover:inline text-s ml-[.5em]">{image.licenseName}</p>
                     ) : (

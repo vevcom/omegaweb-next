@@ -32,10 +32,7 @@ const focusClassNames = {
 
 const backgroundClassNames = {
     base: 'bg-surface-raised hover:bg-surface-hover peer-focus:bg-surface-hover',
-    raised: [
-        'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
-        'peer-focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
-    ].join(' '),
+    raised: 'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)] peer-focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
 } as const
 
 /**
@@ -83,10 +80,7 @@ export default function FileInput({
             <label
                 htmlFor={inputId}
                 className={[
-                    'relative w-full flex items-center border-2 border-transparent rounded-inner outline-0 text-m text-left',
-                    'text-ink-strong',
-                    'pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300 cursor-pointer',
-                    'peer-disabled:cursor-not-allowed peer-disabled:opacity-60',
+                    'relative w-full flex items-center border-2 border-transparent rounded-inner outline-0 text-m text-left text-ink-strong pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300 cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-60',
                     backgroundClassNames[background],
                     focus.trigger,
                 ].join(' ')}
