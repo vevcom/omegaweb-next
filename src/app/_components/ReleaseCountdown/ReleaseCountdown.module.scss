@@ -99,6 +99,19 @@
     animation: fade-in 1.5s ease-out both;
 }
 
+// Steps aside for the rush through the git history before the last minute.
+.leaving {
+    animation: leave 1.5s ease-in forwards;
+    pointer-events: none;
+}
+
+@keyframes leave {
+    to {
+        opacity: 0;
+        transform: translateY(-1rem);
+    }
+}
+
 .enterError {
     margin: 0;
     color: ohma.$colors-error;
