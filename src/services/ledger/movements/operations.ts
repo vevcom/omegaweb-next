@@ -29,13 +29,15 @@ export const ledgerMovementOperations = {
     /**
      * Creates a deposit transaction, which is a deposit of funds into the ledger.
      *
-     * @params params.amount The amount to be deposited.
+     * @params params.funds The amount to be deposited, at least STRIPE_MINIMUM_PAYMENT_AMOUNT when paying by card.
      * @params params.ledgerAccountId The ID of the ledger account where the funds will be deposited.
      *
      * @return The created transaction representing the deposit operation.
      */
     createDeposit: defineOperation({
-        authorizer: () => ledgerMovementAuth.createDeposit,
+        authorizer: async ({ params, prisma }) => ledgerMovementAuth.createDeposit.data({
+            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.ledgerAccountId })],
+        }),
         opensTransaction: true,
         paramsSchema: ledgerMovementSchemas.params.createDeposit,
         operation: async ({ prisma, params }) => {
@@ -81,7 +83,7 @@ export const ledgerMovementOperations = {
     /**
      * Creates a payout transaction, which is a withdrawal of funds from the ledger.
      *
-     * @params params.amount The amount to be withdrawn.
+     * @params params.funds The amount to be withdrawn.
      * @params params.fees The fees associated with the payout.
      * @params params.ledgerAccountId The ID of the ledger account from which the funds will be withdrawn.
      *
@@ -93,7 +95,7 @@ export const ledgerMovementOperations = {
         }),
         paramsSchema: ledgerMovementSchemas.params.createPayout,
         opensTransaction: true,
-        operation: async ({ prisma, params, session }) => prisma.$transaction(async tx => {
+        operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
             const payment = await paymentOperations.create({
                 params: {
                     provider: 'MANUAL',
@@ -105,11 +107,8 @@ export const ledgerMovementOperations = {
                 prisma: tx,
             })
 
-            // A payout is always implicitly manual, so it isn't itself LEDGER_ADMIN-gated (any
-            // account owner can self-serve one). A caller-supplied description is only honored
-            // for admins; everyone else falls back to a translated purpose label instead.
-            const isAdmin = session.permissions.includes('LEDGER_ADMIN')
-
+            // A payout is a MANUAL payment, which paymentAuth.create reserves for LEDGER_ADMIN, so the
+            // description given is always an admin's.
             const transaction = await ledgerTransactionOperations.create({
                 params: {
                     purpose: 'PAYOUT',
@@ -119,7 +118,7 @@ export const ledgerMovementOperations = {
                         fees: -params.fees,
                     }],
                     paymentId: payment.id,
-                    description: isAdmin ? params.description : undefined,
+                    description: params.description,
                 },
                 prisma: tx,
             })

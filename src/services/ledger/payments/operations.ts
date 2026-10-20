@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { paymentAuth } from './auth'
 import { paymentSchemas } from './schemas'
+import { paymentIncluder } from './constants'
 import { stripe } from '@/lib/stripe'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
@@ -41,10 +42,7 @@ export const paymentOperations = {
                     },
                 })
             },
-            include: {
-                stripePayment: true,
-                manualPayment: true,
-            }
+            include: paymentIncluder,
         }),
     }),
 
@@ -70,6 +68,7 @@ export const paymentOperations = {
                     state: true,
                     descriptionLong: true,
                     descriptionShort: true,
+                    createdAt: true,
                 },
             })
 
@@ -82,17 +81,6 @@ export const paymentOperations = {
             }
 
             if (payment.provider === 'STRIPE') {
-                // Get timestamp of when the payment was created so that it
-                // can be used as part of the idempotency key.
-                const createdAt = (await prisma.payment.findUniqueOrThrow({
-                    where: {
-                        id: params.paymentId,
-                    },
-                    select: {
-                        createdAt: true,
-                    },
-                })).createdAt.getTime()
-
                 const customerId = session.user
                     ? (await stripeCustomerOperations.readOrCreate({
                         params: { userId: session.user.id },
@@ -115,7 +103,7 @@ export const paymentOperations = {
                     // The idempotency key makes it so that multiple requests with the
                     // same key return the same result. This is useful in case
                     // initiate payment is accidentally called twice.
-                    idempotencyKey: `project-next-payment-id-${params.paymentId}-created-at-${createdAt}`,
+                    idempotencyKey: `project-next-payment-id-${params.paymentId}-created-at-${payment.createdAt.getTime()}`,
                 })
 
                 if (paymentIntent.client_secret === null) {
@@ -140,10 +128,7 @@ export const paymentOperations = {
                             },
                             state: 'PROCESSING',
                         },
-                        include: {
-                            stripePayment: true,
-                            manualPayment: true,
-                        }
+                        include: paymentIncluder,
                     })
                 } catch (error) {
                     if (!(error instanceof PrismaClientKnownRequestError) || error.code !== 'P2025') throw error
@@ -211,7 +196,7 @@ export const paymentOperations = {
 
             return await prisma.payment.findUniqueOrThrow({
                 where: { id: params.paymentId },
-                include: { stripePayment: true, manualPayment: true },
+                include: paymentIncluder,
             })
         },
     }),
