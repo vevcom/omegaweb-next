@@ -34,5 +34,5 @@ export const shopAuth = {
 
     // A shop's purchases are credited to the account it is linked to, so linking takes access to
     // that account on top of administering the shop. Needs `{ accounts }` via `.data()` as well.
-    connectToLedger: Require.allOf(shopAdminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
+    connectToLedgerAccount: Require.allOf(shopAdminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
 } as const

@@ -38,9 +38,9 @@ function generateChannelTree(channels: ExpandedNotificationChannel[], subscripti
     const channelTree = extendChannel(rootChannel)
 
     function searchTree(currentBranch: NotificationBranch) {
-        for (let i = 0; i < channels.length; i++) {
-            if (channels[i].parentId === currentBranch.id && channels[i].special !== 'ROOT') {
-                const obj = extendChannel(channels[i])
+        for (const channel of channels) {
+            if (channel.parentId === currentBranch.id && channel.special !== 'ROOT') {
+                const obj = extendChannel(channel)
                 currentBranch.children.push(obj)
                 searchTree(obj)
             }
@@ -57,8 +57,8 @@ function findBranchInTree(branch: NotificationBranch, branchId: number): Notific
         return branch
     }
 
-    for (let i = 0; i < branch.children.length; i++) {
-        const child = findBranchInTree(branch.children[i], branchId)
+    for (const branchChild of branch.children) {
+        const child = findBranchInTree(branchChild, branchId)
         if (child) {
             return child
         }
@@ -68,11 +68,9 @@ function findBranchInTree(branch: NotificationBranch, branchId: number): Notific
 }
 
 function changeMethodsInBranch(branch: NotificationBranch, newMethods: NotificationMethodGeneral): NotificationBranch {
-    if (!branch.subscription) {
-        branch.subscription = {
-            new: true,
-            methods: newAllMethodsOff(),
-        }
+    branch.subscription ??= {
+        new: true,
+        methods: newAllMethodsOff(),
     }
 
     const changedMethod = booleanOperationOnMethods(

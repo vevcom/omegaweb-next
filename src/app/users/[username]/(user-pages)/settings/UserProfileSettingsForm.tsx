@@ -6,7 +6,7 @@ import Dropdown from '@/components/UI/Dropdown'
 import { configureAction } from '@/services/configureAction'
 import { updateUserProfileAction } from '@/services/users/actions'
 import { sexConfig, relationshipStatusConfig } from '@/services/users/constants'
-import { RelationshipStatus, SEX } from '@/prisma-generated-pn-types'
+import { RelationshipStatus, Sex } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
 
 type PropTypes = {
@@ -15,7 +15,7 @@ type PropTypes = {
 }
 
 export default function UserProfileSettingsForm({ user, emailDomain } : PropTypes) {
-    const sexOptions = Object.values(SEX).map(sex => ({
+    const sexOptions = Object.values(Sex).map(sex => ({
         value: sex,
         label: sexConfig[sex].label
     }))
@@ -38,7 +38,7 @@ export default function UserProfileSettingsForm({ user, emailDomain } : PropType
                 label="Kjønn"
                 name="sex"
                 options={sexOptions}
-                defaultValue={user.sex ?? SEX.OTHER}
+                defaultValue={user.sex ?? Sex.OTHER}
             />
             <TextInput
                 label="Sivilstatus"

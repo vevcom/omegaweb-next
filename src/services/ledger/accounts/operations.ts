@@ -298,22 +298,12 @@ export const ledgerAccountOperations = {
                     ledgerAccountId: {
                         in: ids,
                     },
-                    // Credit and debit ledger entries are valid under slight different conditions.
                     OR: [
-                        {
-                            // If the amount is greater than zero the entry is a credit (i.e. giving money).
-                            funds: { gt: 0 },
-                            // The receiver should (logically) only receive the money if the transaction succeeded.
-                            ledgerTransaction: { state: 'SUCCEEDED' },
-                        },
-                        {
-                            // If the amount is less than zero the entry is a debit (i.e. taking money).
-                            funds: { lt: 0 },
-                            // The amount should be deducted from the source if the transaction succeeded (obviously)
-                            // OR when the transaction is pending. This is our way of reserving the funds
-                            // until the transaction is complete.
-                            ledgerTransaction: { state: { in: ['PENDING', 'SUCCEEDED'] } },
-                        },
+                        // Every entry counts once its transaction has succeeded.
+                        { ledgerTransaction: { state: 'SUCCEEDED' } },
+                        // A debit, taking funds or fees, also counts while its transaction is pending.
+                        // This is our way of reserving the funds until the transaction is complete.
+                        { ledgerTransaction: { state: 'PENDING' }, OR: [{ funds: { lt: 0 } }, { fees: { lt: 0 } }] },
                     ],
                 },
                 // Select what fields we should sum
@@ -327,8 +317,8 @@ export const ledgerAccountOperations = {
             // replace all nulls with zeros to handle accounts with no entries yet.
             // Set the balance of accounts that have no entries to zero.
             const balanceRecord = Object.fromEntries([
-                ...ids.map(id => [id, { amount: 0, fees: 0 }]),
-                ...balanceArray.map(balance => [
+                ...ids.map((id): [number, Balance] => [id, { amount: 0, fees: 0 }]),
+                ...balanceArray.map((balance): [number, Balance] => [
                     balance.ledgerAccountId,
                     {
                         amount: balance._sum.funds ?? 0,

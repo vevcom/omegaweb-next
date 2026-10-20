@@ -1,11 +1,14 @@
 import '@pn-server-only'
 import { allowedExtensions, avifConvertionOptions, imageSizes, maxImageInputPixels } from './constants'
 import { implementStore } from '@/lib/store/implementStore'
+import { createOrphanDestroyer } from '@/lib/store/orphanDestroyer'
+import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
 import { ServiceError } from '@/services/error'
 import sharp from 'sharp'
 import { File } from 'node:buffer'
 import type { ExpandedImage } from './types'
+import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 /** Where the image system keeps its files: the originals and the resized variants. */
 export const imageStore = implementStore({
@@ -126,7 +129,52 @@ export async function destroyStoredFiles(fsLocations: string[], context: string)
     const errors = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
     if (errors.length > 0) {
         logger.error(`Failed to clean up ${errors.length} image file(s) after ${context}`, {
-            errors: errors.map(error => error.reason)
+            errors: errors.map((error): unknown => error.reason)
         })
     }
 }
+
+/**
+ * Which of the given file names in the image store an image refers to, as its original or as any of
+ * its variants.
+ */
+export async function referencedImageFiles(prisma: PrismaClient, fsLocations: string[]): Promise<Set<string>> {
+    const [originals, variants] = await Promise.all([
+        prisma.image.findMany({
+            where: { fsLocationOriginal: { in: fsLocations } },
+            select: { fsLocationOriginal: true },
+        }),
+        prisma.processedImageFiles.findMany({
+            where: {
+                OR: [
+                    { fsLocationMicroSize: { in: fsLocations } },
+                    { fsLocationTinySize: { in: fsLocations } },
+                    { fsLocationSmallSize: { in: fsLocations } },
+                    { fsLocationMediumSize: { in: fsLocations } },
+                    { fsLocationLargeSize: { in: fsLocations } },
+                    { fsLocationHugeSize: { in: fsLocations } },
+                ],
+            },
+        }),
+    ])
+    return new Set([
+        ...originals.map(image => image.fsLocationOriginal),
+        ...variants.flatMap(processedFiles => [
+            processedFiles.fsLocationMicroSize,
+            processedFiles.fsLocationTinySize,
+            processedFiles.fsLocationSmallSize,
+            processedFiles.fsLocationMediumSize,
+            processedFiles.fsLocationLargeSize,
+            processedFiles.fsLocationHugeSize,
+        ]).filter((fsLocation): fsLocation is string => fsLocation !== null),
+    ])
+}
+
+/**
+ * Destroys the files in the image store no image refers to, as an original or a variant. See
+ * createOrphanDestroyer.
+ */
+export const destroyImageOrphans = createOrphanDestroyer(imageStore, {
+    context: 'the image store',
+    referenced: fsLocations => referencedImageFiles(globalPrisma, fsLocations),
+})

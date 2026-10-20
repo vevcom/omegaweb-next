@@ -31,7 +31,7 @@ const { page, generateMetadata } = serverPage({
                 name: committee.name,
                 order: expanded.order,
                 members: expanded.members,
-                pensioned: committee.pensioned,
+                pensioned: committee.group.pensioned,
                 href: `/committees/${committee.shortName}/admin`,
             }] : []
         })

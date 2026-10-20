@@ -2,7 +2,8 @@ import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 export const committeeLogoIncluder = {
-    logoImage: { include: expandedImageIncluder }
+    logoImage: { include: expandedImageIncluder },
+    group: { select: { pensioned: true } },
 } satisfies Prisma.CommitteeInclude
 
 export const committeeExpandedIncluder = {

@@ -143,7 +143,7 @@ export default function ImagePanel<const PageSize extends number>({
                 cursor: null,
             }
 
-        readPageOfImagesInCollectionAction(page).then(result => {
+        void readPageOfImagesInCollectionAction(page).then(result => {
             if (cancelled) return
             if (!result.success) {
                 setErrorCode(result.errorCode)

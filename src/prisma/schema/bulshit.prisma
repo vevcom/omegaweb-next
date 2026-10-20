@@ -1,7 +1,7 @@
-model Bullshit {
-  id           Int      @id @default(autoincrement())
-  quote        String
-  timestamp    DateTime @default(now())
-  bullshitPoster   User     @relation(fields: [bullshitPosterId], references: [id])
-  bullshitPosterId Int
+model Bulshit {
+  id              Int      @id @default(autoincrement())
+  quote           String
+  timestamp       DateTime @default(now())
+  bulshitPoster   User     @relation(fields: [bulshitPosterId], references: [id])
+  bulshitPosterId Int
 }

@@ -64,7 +64,7 @@ const { page, generateMetadata } = serverPage({
                     <tbody>
                         {/* Pensioned groups are done with - they belong under the ones still running. */}
                         {[...data.manualGroups]
-                            .sort((one, two) => Number(one.pensioned) - Number(two.pensioned))
+                            .sort((one, two) => Number(one.group.pensioned) - Number(two.group.pensioned))
                             .map(manualGroup => (
                                 <tr key={manualGroup.id}>
                                     {capabilities.canUpdateManualGroup.authorized && (
@@ -86,7 +86,7 @@ const { page, generateMetadata } = serverPage({
                                     <td>{manualGroup.shortName}</td>
                                     <td>{orderOfGroup(manualGroup.groupId)}</td>
                                     <td>{membersOfGroup(manualGroup.groupId)}</td>
-                                    <td>{manualGroup.pensioned ? 'Pensjonert' : 'Aktiv'}</td>
+                                    <td>{manualGroup.group.pensioned ? 'Pensjonert' : 'Aktiv'}</td>
                                     {capabilities.canDestroyManualGroup.authorized && (
                                         <td className={styles.rowActions}>
                                             <DestroyManualGroup id={manualGroup.id} name={manualGroup.name} />

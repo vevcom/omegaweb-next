@@ -34,11 +34,11 @@ enum SpecialLedgerAccount {
 // A ledger account is equivalent to you real life bank account
 // It is used to store internal funds for either users or groups
 model LedgerAccount {
-  id                  Int                  @id @default(autoincrement())
+  id                  Int                   @id @default(autoincrement())
   user                User?
   groups              GroupLedgerAccount[]
   type                LedgerAccountType
-  frozen              Boolean              @default(false) // If true, no transactions may be made on this account.
+  frozen              Boolean               @default(false) // If true, no transactions may be made on this account.
   name                String? // Optional display name for the account, only used for group accounts
   payoutAccountNumber String? // For display only, only used for group accounts
   special             SpecialLedgerAccount? @unique
@@ -114,8 +114,18 @@ model LedgerTransaction {
   // Present only for transactions migrated from OmegaWeb Basic (see LegacyLedgerTransaction).
   legacy LegacyLedgerTransaction?
 
+  // When the transaction's payment completion hook was requested, in the same write that made it
+  // SUCCEEDED, and when the payment completion worker ran it. Both stay null for a purpose without
+  // a hook. A run that failed is still marked as run, and has a ManualTransactionReview saying so.
+  completionHookRequestedAt DateTime?
+  completionHookRanAt       DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([paymentId])
+  // What the payment completion worker looks for: a hook requested but not yet run.
+  @@index([completionHookRanAt, completionHookRequestedAt])
 }
 
 enum RefundType {
@@ -145,13 +155,30 @@ enum ManualReviewState {
   RESOLVED
 }
 
-// A transaction needing a human: a Stripe dispute, an external refund or a failed automatic
-// reimbursement. A transaction can need review more than once.
+// What kind of problem a review is about, which code looks reviews up by. Its default description
+// lives in manualReviews/constants.ts.
+enum ManualReviewProblem {
+  STRIPE_DISPUTE
+  STRIPE_REFUND
+  COMPLETION_HOOK_FAILED
+  CABIN_DOUBLE_BOOKING
+  // Found by the ledger sweeper, see services/ledger/sweeper.ts.
+  STALE_PENDING
+  UNCLAIMED_PAYMENT
+  UNBALANCED
+}
+
+// Something needing a human, for example a Stripe dispute or a problem the ledger sweeper could not
+// fix. It points to the transaction and/or payment involved when there is one, and otherwise its
+// description says what it is about. Either can need review more than once.
 model ManualTransactionReview {
-  id                    Int               @id @default(autoincrement())
-  transaction           LedgerTransaction @relation(fields: [transactionId], references: [id])
-  transactionId         Int
-  state                 ManualReviewState @default(OPEN)
+  id                    Int                 @id @default(autoincrement())
+  transaction           LedgerTransaction?  @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  transactionId         Int?
+  payment               Payment?            @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  paymentId             Int?
+  state                 ManualReviewState   @default(OPEN)
+  problem               ManualReviewProblem
   problemDescription    String
   resolutionDescription String?
 
@@ -192,7 +219,7 @@ model LedgerEntry {
   // Must be non-null when completing a transaction. It must be explicitly set to 0 to indicate no fees.
   fees                Int?
   // The account which should be credited/debited on completions
-  ledgerAccount       LedgerAccount?    @relation(fields: [ledgerAccountId], references: [id])
+  ledgerAccount       LedgerAccount     @relation(fields: [ledgerAccountId], references: [id])
   ledgerAccountId     Int
   // The transaction this ledger entry is part of
   // Accounts are credited only when the transaction succeeds.
@@ -265,6 +292,9 @@ model Payment {
   // can.
   claimedByTransactionId Int?               @unique
   claimedBy              LedgerTransaction? @relation("PaymentClaim", fields: [claimedByTransactionId], references: [id])
+
+  // Every time this payment itself needed a human, e.g. a Stripe dispute. See ManualTransactionReview.
+  manualReviews ManualTransactionReview[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -156,7 +156,7 @@ async function upsertArticleInCategory(
             select: { id: true }
         }),
         create: () => createArticleInCategory(prisma, articleCategory.id, article),
-        update: () => Promise.resolve(),
+        update: () => {},
     })
 }
 

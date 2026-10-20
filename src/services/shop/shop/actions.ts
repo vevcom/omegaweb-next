@@ -4,7 +4,7 @@ import { shopOperations } from '@/services/shop/shop/operations'
 
 export const createShopAction = makeAction(shopOperations.create)
 export const updateShopAction = makeAction(shopOperations.update)
-export const connectShopToLedgerAction = makeAction(shopOperations.connectToLedger)
+export const connectShopToLedgerAccountAction = makeAction(shopOperations.connectToLedgerAccount)
 export const updateShopRegularLevelVisibilityAction = makeAction(shopOperations.visibility.updateRegularLevel)
 export const updateShopAdminLevelVisibilityAction = makeAction(shopOperations.visibility.updateAdminLevel)
 export const createShopProductAction = makeAction(shopOperations.createProduct)

@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
         files: ['**/*.{ts,tsx}'],
         languageOptions: {
             parser: tsConfigs.parser,
+            parserOptions: {
+                projectService: true,
+            },
         },
         plugins: {
             '@typescript-eslint': tsConfigs.plugin,
@@ -25,8 +28,8 @@ const eslintConfig = defineConfig([
             },
         },
         extends: [
-            tsConfigs.configs.recommended,
-            tsConfigs.configs.eslintRecommended,
+            tsConfigs.configs.recommendedTypeChecked,
+            tsConfigs.configs.stylisticTypeChecked,
             nextVitals,
             tsNextRules,
         ],
@@ -48,8 +51,38 @@ const eslintConfig = defineConfig([
                 'error',
                 'never'
             ],
-            // Allow the use of namespaces
+            // allow the use of namespaces
             '@typescript-eslint/no-namespace': 'off',
+            // allow any value in template literals
+            '@typescript-eslint/restrict-template-expressions': 'off',
+            // allow empty functions, e.g. no-op callbacks
+            '@typescript-eslint/no-empty-function': 'off',
+            // allow destructuring methods, e.g. `const { refresh } = useRouter()`
+            '@typescript-eslint/unbound-method': 'off',
+            // allow async functions as JSX event handlers, React ignores what they return
+            '@typescript-eslint/no-misused-promises': [
+                'error',
+                {
+                    checksVoidReturn: {
+                        attributes: false
+                    }
+                }
+            ],
+            // only prefer ?? where it is equivalent to ||, falsy fallbacks of primitives are often intended
+            '@typescript-eslint/prefer-nullish-coalescing': [
+                'error',
+                {
+                    ignoreTernaryTests: true,
+                    ignorePrimitives: {
+                        string: true,
+                        number: true,
+                        boolean: true,
+                        bigint: true
+                    }
+                }
+            ],
+            // require caught errors in .catch callbacks to be typed unknown
+            '@typescript-eslint/use-unknown-in-catch-callback-variable': 'error',
             // suggest using arrow functions as callbacks
             'prefer-arrow-callback': 'error',
             // suggest using template literals instead of string concatenation
@@ -543,7 +576,9 @@ const eslintConfig = defineConfig([
                     exceptions: ['i', 'j', 'k', 'a', 'b', 'x', 'y', 'e', '_'],
                     min: 2
                 }
-            ]
+            ],
+            // we use types in stead of interfaces
+            '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
         }
     },
     {
@@ -658,6 +693,13 @@ const eslintConfig = defineConfig([
             ]
         }
     },
+    {
+        // Module augmentation (e.g. next-auth) relies on interface declaration merging
+        files: ['**/*.d.ts'],
+        rules: {
+            '@typescript-eslint/consistent-type-definitions': 'off',
+        },
+    },
     globalIgnores([
         '.next/**',
         'out/**',
@@ -666,7 +708,7 @@ const eslintConfig = defineConfig([
         'pncli/**',
         'docs/**',
         'generated/**',
-        '.design-sync/.cache/**',
+        '.design-sync/**',
         'ds-bundle/**',
     ]),
 ])

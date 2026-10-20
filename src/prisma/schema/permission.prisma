@@ -123,9 +123,9 @@ enum Permission {
   //Flair/badge/cape
   FLAIR_ADMIN
 
-  //Bullshit
-  BULLSHIT_WRITE
-  BULLSHIT_USE
+  //Bulshit
+  BULSHIT_WRITE
+  BULSHIT_USE
   // News
   NEWS_CREATE
   NEWS_ADMIN

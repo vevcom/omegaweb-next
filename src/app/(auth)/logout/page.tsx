@@ -11,7 +11,7 @@ export default function LogOut() {
         if (loggingOut.current) return
         loggingOut.current = true
 
-        removeBrowserPushSubscription()
+        void removeBrowserPushSubscription()
             .catch(() => undefined)
             .finally(() => signOut({
                 redirect: true,

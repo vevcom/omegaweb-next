@@ -6,7 +6,7 @@ import { faScrewdriverWrench } from '@fortawesome/free-solid-svg-icons'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage(null, session),
+    operation: ({ session }: PageOperationArgs) => authorizeAdminPage(null, session),
     render: () => (
         <div className={styles.wrapper}>
             <FontAwesomeIcon icon={faScrewdriverWrench} className={styles.icon} />

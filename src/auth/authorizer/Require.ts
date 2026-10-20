@@ -314,7 +314,9 @@ export class RequireBuilder<
         EarlierUser | (LastUser & UserOfAny<Builders>),
         LastUser & UserOfAny<Builders>
     > {
-        return this.appendToLastGroup(builders.flatMap(builder => builder.groups))
+        return this.appendToLastGroup(
+            builders.flatMap<RequireGroup<CombinedData<Builders>, never>>(builder => builder.groups)
+        )
     }
 
     /** AND: authorized only if all of `builders` pass. Short-circuits on the first failure. Like

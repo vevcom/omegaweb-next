@@ -8,7 +8,7 @@ import { userAuth } from '@/services/users/auth'
 import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => ({}),
+    operation: () => ({}),
     capabilities: () => ({
         canCreate: userAuth.create,
     }),

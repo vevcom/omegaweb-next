@@ -93,6 +93,6 @@ export const seedDevJobAds = defineSeedOperation(async (prisma: PrismaClient) =>
                 }
             })
         },
-        update: () => Promise.resolve(),
+        update: () => {},
     })))
 })

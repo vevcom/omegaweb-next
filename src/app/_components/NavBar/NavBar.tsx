@@ -18,7 +18,7 @@ export type PropTypes = {
     navItems: NavLink[],
 }
 
-export default async function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes) {
+export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes) {
     const navSize = 4
     const itemsForNav = navItems.slice(0, navSize - 1)
 

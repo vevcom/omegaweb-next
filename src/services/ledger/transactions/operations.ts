@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { calculateCreditFees, calculateDebitFees } from './calculateFees'
 import { determineTransactionState } from './determineTransactionState'
-import { runPaymentCompletionHook } from './paymentCompletionHooks'
+import { hasPaymentCompletionHook } from './paymentCompletionHooks'
 import { ledgerTransactionAuth } from './auth'
 import { ledgerTransactionSchemas } from './schemas'
 import { expandedLedgerTransactionIncluder } from './constants'
@@ -16,12 +16,9 @@ import {
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
-import logger from '@/lib/logger'
 import { Prisma as PrismaRuntime } from '@/prisma-generated-pn-client'
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import type { ExpandedLedgerTransaction } from './types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
-import type { Prisma } from '@/prisma-generated-pn-types'
 
 // Nested calls to other operations are not bypassed unless noted: the checks involved are cheap,
 // so it is worth checking access again rather than assuming the outer check already covered it.
@@ -42,11 +39,12 @@ export const ledgerTransactionOperations = {
         }),
     }),
 
-    /** Cancels a PENDING transaction and its payment, so a late webhook can't mark it SUCCEEDED. */
+    /**
+     * Cancels a PENDING transaction and its payment, so a late webhook can't mark it SUCCEEDED.
+     * Throws if the transaction has already resolved, even when that happens during the cancel.
+     */
     cancel: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
-            accounts: await resolveTransactionAccounts(prisma, params.id, { debitedOnly: true }),
-        }),
+        authorizer: () => ledgerTransactionAuth.cancel,
         paramsSchema: ledgerTransactionSchemas.params.cancel,
         operation: async ({ prisma, params }) => {
             const transaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
@@ -68,7 +66,7 @@ export const ledgerTransactionOperations = {
                 })
             }
 
-            await prisma.ledgerTransaction.updateMany({
+            const { count } = await prisma.ledgerTransaction.updateMany({
                 where: {
                     id: params.id,
                     state: 'PENDING', // Protect against canceling a transaction that just resolved.
@@ -78,6 +76,10 @@ export const ledgerTransactionOperations = {
                     reason: 'Kansellert.',
                 },
             })
+            // A concurrent advance() resolved it after the check above, so callers must not act as if it was canceled.
+            if (count === 0) {
+                throw new Smorekopp('BAD PARAMETERS', 'Bare en ventende transaksjon kan kanselleres.')
+            }
 
             const canceled: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
                 params: { id: params.id },
@@ -113,18 +115,10 @@ export const ledgerTransactionOperations = {
             try {
                 return await paymentOperations.initiate({ params: { paymentId: transaction.payment.id } })
             } catch (error) {
-                // After a concurrent cancel, our cancel throws a guard error that would hide the
-                // real one. Swallow only that.
-                try {
-                    await ledgerTransactionOperations.cancel({ params: { id: params.id }, bypassAuth: true })
-                } catch (cleanupError) {
-                    if (
-                        !(cleanupError instanceof Smorekopp)
-                        || cleanupError.errors[0]?.message !== 'Bare en ventende transaksjon kan kanselleres.'
-                    ) {
-                        throw cleanupError
-                    }
-                }
+                // Canceled so the payer can start over. If that fails too, the ledger sweeper cancels
+                // it once it is stale.
+                await ledgerTransactionOperations.cancel({ params: { id: params.id }, bypassAuth: true })
+                    .catch(() => undefined)
                 throw error
             }
         },
@@ -140,9 +134,7 @@ export const ledgerTransactionOperations = {
      * the exact same check and shape, not a different operation that happens to look similar.
      */
     cancelOwn: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
-            accounts: await resolveTransactionAccounts(prisma, params.id, { debitedOnly: true }),
-        }),
+        authorizer: () => ledgerTransactionAuth.cancel,
         paramsSchema: ledgerTransactionSchemas.params.cancel,
         opensTransaction: true,
         operation: async ({ prisma, params }): Promise<ExpandedLedgerTransaction> => prisma.$transaction(tx =>
@@ -195,46 +187,16 @@ export const ledgerTransactionOperations = {
 
             const creditFees = calculateCreditFees(transaction.ledgerEntries, transaction.payment)
 
-            // Update credit fees if they could be calculated.
-            // Credit fees are null while the payment is pending, since
-            // the final fees are unknown until the payment is completed.
+            // Update credit fees if they could be calculated. Credit fees are null while the payment
+            // is pending, since the final fees are unknown until the payment is completed. Written
+            // only while still PENDING, so a transaction that settled concurrently keeps its fees.
             if (creditFees) {
-                const creditEntries = transaction.ledgerEntries.filter(entry => entry.funds > 0)
-
-                const ledgerEntryUpdateInput = creditEntries.map(entry => ({
-                    where: {
-                        id: entry.id,
-                    },
-                    data: {
-                        fees: creditFees[entry.ledgerAccountId],
-                    },
-                })) satisfies Prisma.LedgerEntryUpdateWithWhereUniqueWithoutLedgerTransactionInput[] // X_x
-
-                try {
-                    await prisma.ledgerTransaction.update({
-                        where: {
-                            id: params.id,
-                            state: 'PENDING', // Protect against modifying a completed transaction.
-                        },
-                        data: {
-                            ledgerEntries: {
-                                update: ledgerEntryUpdateInput,
-                            },
-                        },
+                for (const entry of transaction.ledgerEntries.filter(credit => credit.funds > 0)) {
+                    await prisma.ledgerEntry.updateMany({
+                        where: { id: entry.id, ledgerTransaction: { state: 'PENDING' } },
+                        data: { fees: creditFees[entry.ledgerAccountId] },
                     })
-
-                    transaction.ledgerEntries.forEach(entry => {
-                        entry.fees = creditFees[entry.ledgerAccountId] ?? entry.fees
-                    })
-                } catch (err) {
-                    // A P2025 here means the transaction left PENDING concurrently, e.g. a
-                    // racing duplicate call to advance. The final read below returns whatever
-                    // state it actually settled into, so there is nothing more to do here.
-                    if (!(err instanceof PrismaClientKnownRequestError) || err.code !== 'P2025') {
-                        throw err
-                    }
-
-                    logger.error(`Ledger transaction ${params.id} left the PENDING state before fees could be updated.`)
+                    entry.fees = creditFees[entry.ledgerAccountId] ?? entry.fees
                 }
             }
 
@@ -275,7 +237,7 @@ export const ledgerTransactionOperations = {
             })
             const frozenAccountIds = new Set(frozenAccounts.map(account => account.id))
 
-            let transition = await determineTransactionState({ transaction, balances, frozenAccountIds })
+            let transition = determineTransactionState({ transaction, balances, frozenAccountIds })
 
             // Only one transaction may succeed with a payment, so claim it atomically on a fresh PENDING ->
             // SUCCEEDED transition. The `where` also accepts this transaction's own earlier claim, so a
@@ -300,7 +262,14 @@ export const ledgerTransactionOperations = {
                     id: params.id,
                     state: 'PENDING', // Protect against changing final state.
                 },
-                data: transition,
+                // Requested in the same write as the success, so the payment completion worker only
+                // sees it once the success has committed.
+                data: {
+                    ...transition,
+                    ...(transition.state === 'SUCCEEDED' && hasPaymentCompletionHook(transaction.purpose) && {
+                        completionHookRequestedAt: new Date(),
+                    }),
+                },
             })
 
             transaction = await ledgerTransactionOperations.read({
@@ -315,14 +284,6 @@ export const ledgerTransactionOperations = {
                     where: { id: transaction.paymentId, claimedByTransactionId: params.id },
                     data: { claimedByTransactionId: null },
                 })
-            }
-
-            // Only the call that made the PENDING -> SUCCEEDED transition has count > 0, so the
-            // hook fires exactly once.
-            // TODO: Inside a caller's prisma.$transaction, hook side effects (e.g. an email) can
-            // fire before the transaction commits. Run hooks after commit instead.
-            if (count > 0 && transaction.state === 'SUCCEEDED') {
-                await runPaymentCompletionHook(transaction, { prisma })
             }
 
             return transaction

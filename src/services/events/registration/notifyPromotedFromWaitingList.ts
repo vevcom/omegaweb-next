@@ -47,9 +47,10 @@ export async function notifyPromotedFromWaitingList(
     )))
     sendings.forEach((sending, index) => {
         if (sending.status === 'rejected') {
+            const error: unknown = sending.reason
             logger.error(
                 `Could not mail ${guestEmails[index]} about being promoted from the waiting list of ${event.name}`,
-                { error: sending.reason },
+                { error },
             )
         }
     })

@@ -3,7 +3,7 @@
  * @param date - The date to display
  * @returns
  */
-export function displayDate(date: Date, includeTime: boolean = true): string {
+export function displayDate(date: Date, includeTime = true): string {
     if (!includeTime) {
         return date.toLocaleString('nb-NO', {
             year: 'numeric',

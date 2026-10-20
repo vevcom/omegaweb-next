@@ -4,16 +4,14 @@ import { assertGroupNotPensioned, isGroupOfType } from './groupChecks'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { GroupType } from '@/prisma-generated-pn-types'
-import type { SetPensioned } from './types'
+import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * An authorizer for an operation that addresses one particular group. The group type's own auth
  * decides what it needs the groupId for - typically binding `RequirePermissionOrGroupAdmin` so that
  * the group's own admins are allowed through.
  */
-export type GroupAuthorizerOfGroup = (args: { groupId: number }) =>
-    | Authorizer
-    | Promise<Authorizer>
+export type GroupAuthorizerOfGroup = (args: { groupId: number }) => Awaitable<Authorizer>
 
 /**
  * The ownership check shared by every common operation addressing a single group: the group must be
@@ -101,18 +99,12 @@ export function implementSimpleAddRemoveMembersOperation({ type, auth }: {
  * keep (committees, interest groups and manual groups). A group of such a type sits at either the
  * current omega order (migrated) or one below it (not yet migrated).
  */
-export function implementManualMigrationPerGroup({ type, auth, setPensioned }: {
+export function implementManualMigrationPerGroup({ type, auth }: {
     type: GroupType,
     auth: {
         migrateGroup: GroupAuthorizerOfGroup,
         pension: GroupAuthorizerOfGroup,
     },
-    /**
-     * How to write the group type's own pensioned flag. Pensioning is the alternative to migrating -
-     * a group that is not coming along into the new order is retired instead - which is why it is
-     * implemented alongside migration rather than on its own.
-     */
-    setPensioned: SetPensioned,
 }) {
     return {
         migrateGroup: groupOperations.migrateGroup.implement({
@@ -123,7 +115,6 @@ export function implementManualMigrationPerGroup({ type, auth, setPensioned }: {
         pension: groupOperations.pension.implement({
             authorizer: ({ params }) => auth.pension({ groupId: params.groupId }),
             ownershipCheck: ownershipCheckOfType(type),
-            operationImplementationFields: { setPensioned },
         }),
     } as const
 }

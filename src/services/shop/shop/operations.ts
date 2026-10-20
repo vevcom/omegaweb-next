@@ -143,13 +143,13 @@ export const shopOperations = {
      * @param params.shopId - The shop to link
      * @param data.ledgerAccountId - The account to credit
      */
-    connectToLedger: defineOperation({
-        authorizer: async ({ params, data, prisma }) => shopAuth.connectToLedger.data({
+    connectToLedgerAccount: defineOperation({
+        authorizer: async ({ params, data, prisma }) => shopAuth.connectToLedgerAccount.data({
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
         }),
-        paramsSchema: shopSchemas.params.connectToLedger,
-        dataSchema: shopSchemas.data.connectToLedger,
+        paramsSchema: shopSchemas.params.connectToLedgerAccount,
+        dataSchema: shopSchemas.data.connectToLedgerAccount,
         operation: async ({ prisma, params, data }) => {
             const account = await prisma.ledgerAccount.findUniqueOrThrow({
                 where: { id: data.ledgerAccountId },

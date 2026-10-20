@@ -6,20 +6,6 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { DateTime } from 'luxon'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-let stopping = false
-let wakeUp: () => void = () => {}
-
-// The sleep is interruptible so a stop signal ends the loop right away instead of waiting out
-// the poll interval. The timer must also be cleared on wake-up - a pending timeout keeps the
-// node process alive long after the loop has exited.
-const sleep = (ms: number) => new Promise<void>(resolve => {
-    const timeout = setTimeout(resolve, ms)
-    wakeUp = () => {
-        clearTimeout(timeout)
-        resolve()
-    }
-})
-
 /**
  * Claims the oldest claimable notification, atomically, so concurrent workers never dispatch the
  * same one. The claimable filter must also accept claims that went stale, so a dispatch that died
@@ -82,10 +68,13 @@ function claimNextPushNotification() {
 }
 
 /**
+ * Claims one notification that has not been emailed yet and emails it. Run by the notification
+ * worker (src/workers/definitions.ts).
+ *
  * @returns whether a notification was claimed and dispatched - if so there may be more waiting,
- * so the loop should come straight back rather than sleeping.
+ * so the caller should come straight back rather than waiting.
  */
-async function dispatchNextEmailNotification(): Promise<boolean> {
+export async function dispatchNextEmailNotification(): Promise<boolean> {
     const notificationId = await claimNextEmailNotification()
     if (notificationId === null) return false
 
@@ -96,7 +85,14 @@ async function dispatchNextEmailNotification(): Promise<boolean> {
     return true
 }
 
-async function dispatchNextPushNotification(): Promise<boolean> {
+/**
+ * Claims one notification that has not been pushed yet and pushes it, unless push is not
+ * configured. Run by the notification worker (src/workers/definitions.ts).
+ *
+ * @returns whether a notification was claimed and dispatched - if so there may be more waiting,
+ * so the caller should come straight back rather than waiting.
+ */
+export async function dispatchNextPushNotification(): Promise<boolean> {
     if (!pushIsConfigured) return false
 
     const notificationId = await claimNextPushNotification()
@@ -110,12 +106,15 @@ async function dispatchNextPushNotification(): Promise<boolean> {
 }
 
 /**
+ * Sends the weekly digest mails that are due. Run by the notification worker
+ * (src/workers/definitions.ts) whenever it has no immediate emails or pushes left to send.
+ *
  * On the digest day, materializes the weekly outbox for everything created before the start of
  * that day (in Oslo time) - the cutoff is what makes repeated materializations harmless, and
  * notifications created during the day itself wait for the next digest. The outbox is then
- * drained whenever it has entries, which also retries digests that failed on an earlier tick.
+ * drained whenever it has entries, which also retries digests that failed on an earlier run.
  */
-async function weeklyTick() {
+export async function sendDueWeeklyDigests() {
     const nowInOslo = DateTime.now().setZone('Europe/Oslo')
     if (nowInOslo.weekday === weeklyDigest.osloWeekday) {
         await notificationMethodOperations.materializeWeeklyOutbox.internalCall({
@@ -129,42 +128,4 @@ async function weeklyTick() {
     if (result.digests > 0 || result.failed > 0) {
         logger.info(`Notification worker sent ${result.digests} weekly digests (${result.failed} failed)`)
     }
-}
-
-async function withErrorsLogged<Result>(task: string, run: () => Promise<Result>, fallback: Result) {
-    try {
-        return await run()
-    } catch (error) {
-        logger.error(`Notification worker ${task} failed: ${error}`)
-        return fallback
-    }
-}
-
-/**
- * Polls until stopNotificationWorker is called, dispatching undispatched notifications by email
- * and push, and sending the weekly digest mails when they are due. Errors are logged and retried on
- * the next tick rather than killing the loop, which also covers the database being unreachable while
- * the schema is reset in dev. Each method fails on its own, so a mail server that is down does not
- * hold back the pushes.
- */
-export async function runNotificationWorker() {
-    if (!pushIsConfigured) {
-        logger.warn('Notification worker will not push notifications, since the VAPID keys are not set')
-    }
-
-    while (!stopping) {
-        const [emailed, pushed] = await Promise.all([
-            withErrorsLogged('email dispatch', dispatchNextEmailNotification, false),
-            withErrorsLogged('push dispatch', dispatchNextPushNotification, false),
-        ])
-        if (emailed || pushed) continue
-
-        await withErrorsLogged('weekly digest', weeklyTick, undefined)
-        await sleep(emailDispatch.pollIntervalMs)
-    }
-}
-
-export function stopNotificationWorker() {
-    stopping = true
-    wakeUp()
 }

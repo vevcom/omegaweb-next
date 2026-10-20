@@ -25,7 +25,7 @@ function createArrayFromRange(start: number, end: number) {
 }
 
 function numberInCronExpression(number: number, cronExpressionPart: string) {
-    if (!cronExpressionPart.match(/^[\*\d\-\,\/]+$/)) {
+    if (!(/^[\*\d\-\,\/]+$/.exec(cronExpressionPart))) {
         throw new Error('The cron expression is invalid. Can only contain numbers, *, - and /')
     }
     // I guess the cron is parsed in this order: comma, step, range

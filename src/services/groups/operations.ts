@@ -18,7 +18,6 @@ import { getMembershipFilter } from '@/auth/getMembershipFilter'
 import { invalidateManyUserSessionData, invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
-import type { SetPensioned } from './types'
 import type { GroupType } from '@/prisma-generated-pn-types'
 import type {
     ExpandedGroup,
@@ -113,8 +112,10 @@ export const groupOperations = {
     addMembers: defineSubOperation({
         paramsSchema: () => groupSchemas.params.addMembers,
         dataSchema: () => groupSchemas.data.addMembers,
-        operation: () => async ({ prisma, params, data }) => {
-            const group = await readGroupOrderAndType(prisma, params.groupId)
+        // Its writes and the session invalidation have to land together.
+        opensTransaction: true,
+        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
+            const group = await readGroupOrderAndType(tx, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
             const userIds = data.users.map(user => user.userId)
 
@@ -122,7 +123,7 @@ export const groupOperations = {
                 MigratedStraightAwayOnIncrement[group.groupType]
 
             if (active) {
-                await Promise.all([true, false].map(admin => prisma.membership.updateMany({
+                await Promise.all([true, false].map(admin => tx.membership.updateMany({
                     where: {
                         groupId: params.groupId,
                         userId: { in: data.users.filter(user => user.admin === admin).map(user => user.userId) },
@@ -132,7 +133,7 @@ export const groupOperations = {
                 })))
             }
 
-            await prisma.membership.createMany({
+            await tx.membership.createMany({
                 data: data.users.map(({ userId, admin }) => ({
                     groupId: params.groupId,
                     userId,
@@ -143,8 +144,8 @@ export const groupOperations = {
                 skipDuplicates: true,
             })
 
-            await invalidateManyUserSessionData(prisma, userIds)
-        }
+            await invalidateManyUserSessionData(tx, userIds)
+        }),
     }),
 
     /**
@@ -155,11 +156,13 @@ export const groupOperations = {
     removeMembers: defineSubOperation({
         paramsSchema: () => groupSchemas.params.removeMembers,
         dataSchema: () => groupSchemas.data.removeMembers,
-        operation: () => async ({ prisma, params, data }) => {
-            const group = await readGroupOrderAndType(prisma, params.groupId)
+        // Its writes and the session invalidation have to land together.
+        opensTransaction: true,
+        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
+            const group = await readGroupOrderAndType(tx, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
 
-            await prisma.membership.updateMany({
+            await tx.membership.updateMany({
                 where: {
                     groupId: params.groupId,
                     userId: { in: data.userIds },
@@ -168,8 +171,8 @@ export const groupOperations = {
                 data: { active: false },
             })
 
-            await invalidateManyUserSessionData(prisma, data.userIds)
-        }
+            await invalidateManyUserSessionData(tx, data.userIds)
+        }),
     }),
 
     /**
@@ -182,11 +185,13 @@ export const groupOperations = {
     setMemberAdmin: defineSubOperation({
         paramsSchema: () => groupSchemas.params.setMemberAdmin,
         dataSchema: () => groupSchemas.data.setMemberAdmin,
-        operation: () => async ({ prisma, params, data }) => {
-            const group = await readGroupOrderAndType(prisma, params.groupId)
+        // Its writes and the session invalidation have to land together.
+        opensTransaction: true,
+        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
+            const group = await readGroupOrderAndType(tx, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
 
-            const membership = await prisma.membership.update({
+            const membership = await tx.membership.update({
                 where: {
                     userId_groupId_order: {
                         groupId: params.groupId,
@@ -197,9 +202,9 @@ export const groupOperations = {
                 data: { admin: data.admin },
             })
 
-            await invalidateOneUserSessionData(prisma, data.userId)
+            await invalidateOneUserSessionData(tx, data.userId)
             return membership
-        }
+        }),
     }),
 
     /**
@@ -239,14 +244,13 @@ export const groupOperations = {
      * Bringing one back puts it straight into the current order. There is nothing to migrate through
      * - it has no active memberships - and leaving it behind would block the next increment.
      *
-     * Where the flag itself lives differs per group type, so the implementing type passes in how to
-     * set it.
+     * Only the group types that are migrated by hand implement it, so only those can be pensioned.
      */
     pension: defineSubOperation({
         opensTransaction: true,
         paramsSchema: () => groupSchemas.params.pension,
         dataSchema: () => groupSchemas.data.pension,
-        operation: ({ setPensioned }: { setPensioned: SetPensioned }) => async ({ prisma, params, data }) => {
+        operation: () => async ({ prisma, params, data }) => {
             const { order: currentOmegaOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
             if (!data.pensioned && !await isGroupPensioned(prisma, params.groupId)) {
@@ -257,7 +261,10 @@ export const groupOperations = {
             }
 
             await prisma.$transaction(async tx => {
-                await setPensioned(tx, params.groupId, data.pensioned)
+                await tx.group.update({
+                    where: { id: params.groupId },
+                    data: { pensioned: data.pensioned },
+                })
 
                 if (data.pensioned) {
                     const endedMemberships = await tx.membership.findMany({

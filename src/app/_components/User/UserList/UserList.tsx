@@ -22,7 +22,7 @@ import type { ExpandedGroup, ExpandedGroupsOfAllTypes } from '@/services/groups/
 
 type GroupSelectionType = Exclude<GroupType, 'INTEREST_GROUP' | 'MANUAL_GROUP'>
 
-type DisableGroupFilters = { [K in GroupSelectionType]?: boolean }
+type DisableGroupFilters = Partial<Record<GroupSelectionType, boolean>>
 
 type SortField = 'name' | 'username'
 
@@ -105,29 +105,27 @@ export default function UserList({
 
     const groupsResult = useGroups()
     const groups = groupsResult.status === 'success' ? groupsResult.groups : null
-    const [groupSelection, setGroupSelection] = useState<{
-        [T in GroupSelectionType]: {
+    const [groupSelection, setGroupSelection] = useState<Record<GroupSelectionType, {
             group: ExpandedGroup | null,
             groupOrder: number | 'ACTIVE'
-        }
-    }>({
-        COMMITTEE: {
-            group: null,
-            groupOrder: 'ACTIVE'
-        },
-        CLASS: {
-            group: null,
-            groupOrder: 'ACTIVE'
-        },
-        STUDY_PROGRAMME: {
-            group: null,
-            groupOrder: 'ACTIVE'
-        },
-        OMEGA_MEMBERSHIP_GROUP: {
-            group: null,
-            groupOrder: 'ACTIVE'
-        }
-    })
+        }>>({
+            COMMITTEE: {
+                group: null,
+                groupOrder: 'ACTIVE'
+            },
+            CLASS: {
+                group: null,
+                groupOrder: 'ACTIVE'
+            },
+            STUDY_PROGRAMME: {
+                group: null,
+                groupOrder: 'ACTIVE'
+            },
+            OMEGA_MEMBERSHIP_GROUP: {
+                group: null,
+                groupOrder: 'ACTIVE'
+            }
+        })
 
     useEffect(() => {
         userPaging?.setDetails({
@@ -303,7 +301,7 @@ export default function UserList({
                 <table className={styles.list}>
                     <thead>
                         <tr>
-                            {(usersSelection || userSelection) && <th></th>}
+                            {(usersSelection ?? userSelection) && <th></th>}
                             {displayForUser && <th></th>}
                             <th className={styles.sortable} aria-sort={ariaSort('name')}>
                                 <button type="button" onClick={() => handleSort('name')}>

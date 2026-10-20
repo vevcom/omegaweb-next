@@ -10,7 +10,6 @@ import { userBasicSelection } from '@/services/users/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { PurchaseMethod } from '@/prisma-generated-pn-types'
-import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 
 type PurchaseImplementation = 'create' | 'createOnBehalf'
 
@@ -96,7 +95,8 @@ const createPurchase = defineSubOperation({
             // `createOnBehalf`: the kiosk, charging a card whose owner may shop there). The generic
             // ledger-ownership check would reject the kiosk outright, as its API-key session owns
             // no account - the same precedent as ledgerTransactionOperations.advance's own bypass.
-            const transaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.create({
+            // Throws if the transaction fails, e.g. on insufficient funds, which rolls the purchase back.
+            await ledgerTransactionOperations.create({
                 params: {
                     purpose: 'SHOP_PURCHASE',
                     ledgerEntries: [
@@ -108,13 +108,6 @@ const createPurchase = defineSubOperation({
                 prisma: tx,
                 bypassAuth: true,
             })
-
-            if (transaction.state === 'FAILED') {
-                throw new ServiceError(
-                    'BAD PARAMETERS',
-                    transaction.reason ?? 'Kjøpet kunne ikke fullføres.'
-                )
-            }
         })
 
         const remainingBalance = await ledgerAccountOperations.calculateBalance({

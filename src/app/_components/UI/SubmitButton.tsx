@@ -44,9 +44,7 @@ export default function SubmitButton({
     disabled?: boolean,
 }) {
     const formStatus = useFormStatus()
-    if (pending === undefined) {
-        pending = formStatus.pending
-    }
+    pending ??= formStatus.pending
 
     const [confirmedOpen, setConfirmedOpen] = useState(false)
     const popUpKey = useId()
@@ -147,7 +145,7 @@ export default function SubmitButton({
     return (
         <div className={styles.submit}>
             {
-                (confirmation && confirmation.confirm) ? (
+                (confirmation?.confirm) ? (
                     <>
                         <Button
                             className={`${styles.submitButton} ${className ?? ''}`}
@@ -174,7 +172,7 @@ export default function SubmitButton({
 
             <p className={[pending ? styles.pending : ' ', styles.error].join(' ')}>
                 {
-                    generalErrors && generalErrors[0]?.message
+                    generalErrors?.[0]?.message
                 }
             </p>
         </div>

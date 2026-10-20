@@ -11,7 +11,7 @@ import type { RefundType, Prisma } from '@/prisma-generated-pn-types'
 export const refundOperations = {
     /**
      * Reverses a SUCCEEDED transaction in full by negating its entries. When part of the money came
-     * through Stripe that doesn't balance, so `refundTo` names the account(s) that get the rest.
+     * through Stripe that doesn't balance, so `refundTo` names the account that gets the rest.
      */
     reverseTransaction: defineOperation({
         authorizer: () => refundAuth.reverseTransaction,
@@ -28,27 +28,23 @@ export const refundOperations = {
                 throw new ServiceError('BAD PARAMETERS', 'Bare en vellykket transaksjon kan reverseres.')
             }
 
-            const entries = new Map(original.ledgerEntries.map(entry => [entry.ledgerAccountId, -entry.funds]))
+            const ledgerEntries = original.ledgerEntries.map(entry => ({
+                ledgerAccountId: entry.ledgerAccountId,
+                funds: -entry.funds,
+            }))
 
-            // A refundTo entry replaces the account's negated entry. The schema allows at most one
-            // entry without funds, which gets the remainder.
-            let pendingEntry: { ledgerAccountId: number } | undefined
-            for (const refundEntry of params.refundTo ?? []) {
-                if (refundEntry.funds === undefined) pendingEntry = refundEntry
-                else entries.set(refundEntry.ledgerAccountId, refundEntry.funds)
-            }
-            if (pendingEntry) {
-                entries.delete(pendingEntry.ledgerAccountId)
-                const remainder = -Array.from(entries.values()).reduce((sum, funds) => sum + funds, 0)
-                entries.set(pendingEntry.ledgerAccountId, remainder)
-            }
-
-            const ledgerEntries = Array.from(entries, ([ledgerAccountId, funds]) => ({ ledgerAccountId, funds }))
-            if (ledgerEntries.reduce((sum, entry) => sum + entry.funds, 0) !== 0) {
-                throw new ServiceError(
-                    'BAD PARAMETERS',
-                    'Beløpet går ikke opp ved å bare bytte fortegn - oppgi hvilken konto resten skal krediteres.'
-                )
+            // What came in from outside the ledger, e.g. through Stripe, is left over after flipping.
+            const remainder = -ledgerEntries.reduce((sum, entry) => sum + entry.funds, 0)
+            if (remainder !== 0) {
+                if (params.refundTo === undefined) {
+                    throw new ServiceError(
+                        'BAD PARAMETERS',
+                        'Beløpet går ikke opp ved å bare bytte fortegn - oppgi hvilken konto resten skal krediteres.'
+                    )
+                }
+                const refundEntry = ledgerEntries.find(entry => entry.ledgerAccountId === params.refundTo)
+                if (refundEntry) refundEntry.funds += remainder
+                else ledgerEntries.push({ ledgerAccountId: params.refundTo, funds: remainder })
             }
 
             return await createCorrection(
@@ -77,7 +73,7 @@ export const refundOperations = {
                 select: {
                     state: true,
                     purpose: true,
-                    payment: { select: { id: true, funds: true, provider: true } },
+                    payment: { select: { id: true, funds: true, provider: true, state: true } },
                     ledgerEntries: { select: { ledgerAccountId: true, funds: true } },
                 },
             })
@@ -94,14 +90,9 @@ export const refundOperations = {
             if (original.payment?.provider !== 'STRIPE') {
                 throw new ServiceError('BAD PARAMETERS', 'Det finnes ingen Stripe-betaling å tilbakebetale.')
             }
-            // Not gated on SUCCEEDED: this is for payments still stored as CANCELED/FAILED because Stripe's
-            // success arrived too late. Fix the state, or the correction reusing this payment fails too.
-            // The caller that knows the real fee (refundLateStripeSuccess) writes it.
-            await prisma.payment.update({
-                where: { id: original.payment.id },
-                data: { state: 'SUCCEEDED' },
-            })
-
+            if (original.payment.state !== 'SUCCEEDED') {
+                throw new ServiceError('BAD PARAMETERS', 'Betalingen har ikke gått gjennom.')
+            }
             // A deposit's single entry is the payer's. Otherwise the payer only has an entry (the debit) if
             // part of the price came from their balance; if not, this errors below.
             const payerEntry = original.purpose === 'DEPOSIT'

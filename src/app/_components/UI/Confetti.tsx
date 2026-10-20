@@ -27,7 +27,7 @@ export default function Confetti({
         let frameId = 0
 
         const frame = () => {
-            canvasConfetti({ particleCount, angle, spread, origin, colors })
+            void canvasConfetti({ particleCount, angle, spread, origin, colors })
             if (Date.now() < end) {
                 frameId = requestAnimationFrame(frame)
             }

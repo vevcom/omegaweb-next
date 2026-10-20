@@ -30,11 +30,29 @@ export const imageOperations = {
                         select: {
                             fsLocationOriginal: true,
                             processedFiles: true,
+                            // Uses of an image that refuse to let it be deleted.
+                            flair: { select: { id: true } },
+                            promo: { select: { id: true } },
+                            ombul: { select: { id: true } },
+                            committee: { select: { id: true } },
                         }
                     }
                 }
             })
             if (!collection) throw new ServiceError('NOT FOUND', 'Collection ikke funnet')
+
+            const blockingUses = [
+                { name: 'flair', used: collection.images.some(image => image.flair) },
+                { name: 'promo', used: collection.images.some(image => image.promo) },
+                { name: 'ombul-forside', used: collection.images.some(image => image.ombul) },
+                { name: 'komitélogo', used: collection.images.some(image => image.committee) },
+            ].filter(use => use.used).map(use => use.name)
+            if (blockingUses.length) {
+                throw new Smorekopp(
+                    'BAD PARAMETERS',
+                    `Samlingen kan ikke slettes fordi den har bilder som brukes som ${blockingUses.join(', ')}.`
+                )
+            }
 
             // Extract all file locations before deleting from DB
             const fileLocationsToDelete = collection.images.flatMap(storedFileLocationsOfImage)
@@ -178,7 +196,7 @@ export const imageOperations = {
             })
 
             const buffer = Buffer.from(await imageFile.arrayBuffer())
-            const storedOriginal = await imageStore.readStoredFile(image.fsLocationOriginal).catch(error => {
+            const storedOriginal = await imageStore.readStoredFile(image.fsLocationOriginal).catch((error: unknown) => {
                 // A missing original is exactly what replacing it repairs.
                 if (error instanceof ServiceError && error.errorCode === 'NOT FOUND') return null
                 throw error
@@ -206,7 +224,7 @@ export const imageOperations = {
                         processingError: null,
                     }
                 })
-            }).catch(async error => {
+            }).catch(async (error: unknown) => {
                 await destroyStoredFiles([original.fsLocation], 'a failed image file replacement')
                 throw error
             })
@@ -219,7 +237,7 @@ export const imageOperations = {
     /**
      * Produces the real avif variants for an already-uploaded image.
      * See createRasterVariants for which tiers get skipped.
-     * Called by the background worker container (src/lib/images/worker.ts), never directly from a request.
+     * Called by the background worker container (src/workers/definitions.ts), never directly from a request.
      */
     processImageVariants: defineSubOperation({
         paramsSchema: () => imageSchemas.params.processImageVariants,
@@ -255,7 +273,7 @@ export const imageOperations = {
                         widthHugeSize: variants.huge?.width,
                         heightHugeSize: variants.huge?.height,
                     }
-                }).catch(async error => {
+                }).catch(async (error: unknown) => {
                     // The variants are written, but no row will point at them.
                     await destroyStoredFiles(variantLocations, 'a failed variant record')
                     throw error

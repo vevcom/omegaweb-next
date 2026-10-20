@@ -81,13 +81,13 @@ const { page, generateMetadata } = serverPage({
                         <PensionGroup
                             groupId={interestGroup.groupId}
                             groupName={interestGroup.name}
-                            pensioned={interestGroup.pensioned}
+                            pensioned={interestGroup.group.pensioned}
                             currentOmegaOrder={currentOrder.order}
                             pensionGroupAction={pensionInterestGroupAction}
                         />
                     </div>
                 )}
-                {!interestGroup.pensioned && expanded
+                {!interestGroup.group.pensioned && expanded
                     && (capabilities.canAddMembers.authorized || capabilities.canRemoveMembers.authorized) && (
                     <div className={styles.management}>
                         <h2>Administrer medlemmer</h2>
@@ -116,7 +116,7 @@ const { page, generateMetadata } = serverPage({
                         />
                     </div>
                 )}
-                {!interestGroup.pensioned && capabilities.canMigrate.authorized && expanded && (
+                {!interestGroup.group.pensioned && capabilities.canMigrate.authorized && expanded && (
                     <div className={styles.migration}>
                         <h2>Migrering</h2>
                         <MigrateGroup

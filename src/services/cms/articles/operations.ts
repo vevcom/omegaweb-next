@@ -110,9 +110,9 @@ export const articleOperations = {
             const parts = await Promise.all(articleSectionParts
                 .filter(part => data.includeParts[part])
                 .map(part => createArticleSectionPart[part](tx)))
-            const section: Prisma.ArticleSectionCreateWithoutArticleInput = Object.assign(
+            const section = parts.reduce<Prisma.ArticleSectionCreateWithoutArticleInput>(
+                (sectionSoFar, part) => ({ ...sectionSoFar, ...part }),
                 { order: (sections._max.order ?? -1) + 1 },
-                ...parts,
             )
             return tx.article.update({
                 where: { id: params.articleId },

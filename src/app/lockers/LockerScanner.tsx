@@ -18,7 +18,7 @@ export default function LockerScanner() {
                 <QrCodeReader
                     singleRead
                     qrboxSize={250}
-                    onScan={async text => {
+                    onScan={text => {
                         const path = lockerPathOfQrCode(text, window.location.origin)
                         if (!path) {
                             return { success: false, text: 'QR-koden er ikke til et skap' }

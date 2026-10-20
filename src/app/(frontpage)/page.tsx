@@ -9,7 +9,7 @@ import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page } = serverPage({
-    operation: async ({ searchParams }: PageOperationArgs) => ({
+    operation: ({ searchParams }: PageOperationArgs) => ({
         frontpageVersion: QueryParams.frontpageVersion.decode(searchParams),
     }),
     capabilities: () => ({

@@ -16,6 +16,7 @@ import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
+import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import {
     assertAdminLevelIsSubOfRegularLevel,
     implementDoubleLevelVisibilityOperations,
@@ -375,10 +376,10 @@ export const eventOperations = {
      * @param params.id - The event to link
      * @param data.ledgerAccountId - The account to credit
      */
-    connectToLedger: defineOperation({
-        paramsSchema: eventSchemas.params.connectToLedger,
-        dataSchema: eventSchemas.data.connectToLedger,
-        authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedger.data({
+    connectToLedgerAccount: defineOperation({
+        paramsSchema: eventSchemas.params.connectToLedgerAccount,
+        dataSchema: eventSchemas.data.connectToLedgerAccount,
+        authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedgerAccount.data({
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
         }),
@@ -462,6 +463,24 @@ export const eventOperations = {
             })
 
             await prisma.$transaction(async tx => {
+                // Deleting the event cascades to its registrations. Their rows are locked first, as
+                // createPayment does, so no payment can start between this check and the delete.
+                await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE "eventId" = ${params.id} FOR UPDATE`
+                const liveTransaction = await tx.ledgerTransaction.findFirst({
+                    where: {
+                        eventRegistration: { eventId: params.id },
+                        OR: [{ state: 'PENDING' }, validTransactionFilter],
+                    },
+                    select: { id: true },
+                })
+                if (liveTransaction) {
+                    throw new ServiceError(
+                        'BAD PARAMETERS',
+                        'Arrangementet har betalte påmeldinger eller betalinger under behandling. '
+                        + 'Meld av deltakerne først, så de får pengene tilbake.'
+                    )
+                }
+
                 await tx.event.delete({
                     where: {
                         id: params.id

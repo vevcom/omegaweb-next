@@ -18,9 +18,9 @@ type LedgerTransactionRule = (context: LedgerTransactionRuleContext) => LedgerTr
 /**
  * Determines the state of a given transaction.
  */
-export async function determineTransactionState(
+export function determineTransactionState(
     context: LedgerTransactionRuleContext
-): Promise<LedgerTransactionTransition> {
+): LedgerTransactionTransition {
     // NOTE: The order of the rules are important!
     // Fee checks must run only after payment completes
     // since fees aren't set earlier.

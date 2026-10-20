@@ -2,7 +2,7 @@ import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { CabinProduct, CabinProductPrice } from '@/prisma-generated-pn-types'
 
-type SeedCabinProductConfig = Omit<CabinProduct, 'id'> & {
+type SeedCabinProductConfig = Omit<CabinProduct, 'id' | 'createdAt' | 'updatedAt'> & {
     CabinProductPrice: (Omit<CabinProductPrice, 'id' | 'cabinProductId' | 'pricePeriodId'>)[]
 }
 

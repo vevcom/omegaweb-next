@@ -14,17 +14,17 @@ model Event {
   location       String?
   locationMap    EventLocationMap?
 
-  eventStart           DateTime
-  eventEnd             DateTime
-  canBeViewedBy        EventCanView @map("canBeViewdBy")
-  hostedByCommittee    Committee?   @relation(fields: [hostedByCommitteeId], references: [id])
-  hostedByCommitteeId  Int?         @map("hostedByCommiteeId")
-  createdBy            User?        @relation(fields: [createdById], references: [id])
-  createdById          Int?
+  eventStart          DateTime
+  eventEnd            DateTime
+  canBeViewedBy       EventCanView
+  hostedByCommittee   Committee?     @relation(fields: [hostedByCommitteeId], references: [id])
+  hostedByCommitteeId Int?
+  createdBy           User?          @relation(fields: [createdById], references: [id])
+  createdById         Int?
   // The account a paid event is paid into. Payments fail with a clear error until someone
   // administrating the event links one.
-  ledgerAccount        LedgerAccount? @relation(fields: [ledgerAccountId], references: [id])
-  ledgerAccountId      Int?
+  ledgerAccount       LedgerAccount? @relation(fields: [ledgerAccountId], references: [id])
+  ledgerAccountId     Int?
 
   takesRegistration  Boolean
   places             Int                 @default(0)
@@ -38,9 +38,9 @@ model Event {
   paymentStart       DateTime?
   paymentEnd         DateTime?
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  cabinEvent  Booking[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  cabinEvent Booking[]
 
   published Boolean @default(false)
 
@@ -98,7 +98,7 @@ model EventTag {
 
 model EventRegistration {
   id        Int             @id @default(autoincrement())
-  event     Event           @relation(fields: [eventId], references: [id])
+  event     Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId   Int
   user      User?           @relation(name: "registration", fields: [userId], references: [id])
   userId    Int?
@@ -121,4 +121,5 @@ model EventRegistration {
   ledgerTransactions LedgerTransaction[]
 
   @@unique([eventId, userId])
+  @@index([userId])
 }

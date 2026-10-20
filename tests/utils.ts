@@ -16,12 +16,13 @@ export async function allSettledOrThrow<T>(promises: Promise<T>[]): Promise<T[]>
     const results = await Promise.allSettled(promises)
 
     const rejected = results.filter(result => result.status === 'rejected')
-    rejected.forEach(result => {
-        console.error('Promise rejected:', result.reason)
+    const reasons = rejected.map((result): unknown => result.reason)
+    reasons.forEach(reason => {
+        console.error('Promise rejected:', reason)
     })
-    if (rejected.length > 0) {
+    if (reasons.length > 0) {
         throw new Error('Some promises rejected.', {
-            cause: rejected.map(result => result.reason),
+            cause: reasons,
         })
     }
 

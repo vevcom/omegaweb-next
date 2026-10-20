@@ -164,7 +164,7 @@ async function createPaidEvent({ committeeId, ledgerAccountId }: { committeeId: 
         bypassAuth: true,
     })
     await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
-    await eventOperations.connectToLedger({
+    await eventOperations.connectToLedgerAccount({
         params: { id: event.id },
         data: { ledgerAccountId },
         bypassAuth: true,
@@ -406,12 +406,12 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
     let intentCount = 0
 
     beforeEach(() => {
-        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => {
+        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => {
             intentCount += 1
-            return { id: `pi_test_${intentCount}`, client_secret: `pi_test_${intentCount}_secret` } as never
+            return Promise.resolve({ id: `pi_test_${intentCount}`, client_secret: `pi_test_${intentCount}_secret` } as never)
         })
         jest.spyOn(stripe.paymentIntents, 'cancel').mockResolvedValue({} as never)
-        jest.spyOn(stripe.customers, 'create').mockImplementation(async () => (
+        jest.spyOn(stripe.customers, 'create').mockImplementation(() => Promise.resolve(
             { id: `cus_test_${intentCount}` } as never
         ))
     })
@@ -448,7 +448,7 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
         expect(liveAttempts[0].paymentId).not.toBe(adminAttempt?.id)
     })
 
-    test('someone other than the registrant still has to wait out the staleness window', async () => {
+    test('someone other than the registrant has to wait for the pending attempt to be canceled', async () => {
         const committee = await createCommittee('payment-committee-2')
         const eventId = await createPaidEvent(committee)
         const registrant = await createTestUser('paymentregistrant2')
@@ -475,7 +475,7 @@ const manualPayerSessionOf = (user: UserFiltered) => Session.fromJsObject({
 
 describe('unregistering from a paid event', () => {
     beforeEach(() => {
-        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => (
+        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => Promise.resolve(
             { id: 'pi_test_unregister', client_secret: 'pi_test_unregister_secret' } as never
         ))
         jest.spyOn(stripe.paymentIntents, 'cancel').mockResolvedValue({} as never)
@@ -554,7 +554,7 @@ describe('unregistering from a paid event', () => {
 
         // Distinct ids, so the two STRIPE payments here don't collide on unique constraints.
         jest.spyOn(stripe.customers, 'create').mockResolvedValue({ id: 'cus_test_unregister_fails' } as never)
-        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => (
+        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => Promise.resolve(
             { id: 'pi_test_unregister_fails', client_secret: 'pi_test_unregister_fails_secret' } as never
         ))
 
@@ -580,5 +580,88 @@ describe('unregistering from a paid event', () => {
         expect(await countRegistrations(eventId, registrant)).toBe(1)
         await expect(prisma.ledgerTransaction.findUniqueOrThrow({ where: { id: pendingTransaction.id } }))
             .resolves.toMatchObject({ state: 'PENDING', eventRegistrationId: registration.id })
+    })
+
+    test('unregistering is refused when the payment succeeds while it is being canceled', async () => {
+        const committee = await createCommittee('payment-cancel-race-committee')
+        const eventId = await createPaidEvent(committee)
+        const registrant = await createTestUser('paymentcanceluserrace')
+        const registration = await register(registrant, eventId)
+
+        jest.spyOn(stripe.customers, 'create').mockResolvedValue({ id: 'cus_test_unregister_race' } as never)
+        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => Promise.resolve(
+            { id: 'pi_test_unregister_race', client_secret: 'pi_test_unregister_race_secret' } as never
+        ))
+
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: payerSessionOf(registrant),
+        })
+        const [pendingTransaction] = await prisma.ledgerTransaction.findMany({
+            where: { eventRegistrationId: registration.id },
+        })
+
+        // Stands in for advance() committing the success while the unregistration cancels the attempt.
+        jest.spyOn(stripe.paymentIntents, 'cancel').mockImplementation(async () => {
+            await prisma.ledgerTransaction.update({ where: { id: pendingTransaction.id }, data: { state: 'SUCCEEDED' } })
+            return {} as never
+        })
+
+        await expect(unregister(registration.id, sessionOf(registrant)))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+
+        expect(await countRegistrations(eventId, registrant)).toBe(1)
+    })
+})
+
+describe('deleting an event', () => {
+    beforeEach(() => {
+        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => Promise.resolve(
+            { id: 'pi_test_destroy_event', client_secret: 'pi_test_destroy_event_secret' } as never
+        ))
+        jest.spyOn(stripe.customers, 'create').mockResolvedValue({ id: 'cus_test_destroy_event' } as never)
+    })
+
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
+    test('an event with registrations can be deleted, taking its registrations with it', async () => {
+        const eventId = await createEvent({ places: 5, waitingList: true })
+        const user = await createTestUser('destroyeventregistered')
+        await register(user, eventId)
+
+        await eventOperations.destroy({ params: { id: eventId }, bypassAuth: true })
+
+        expect(await prisma.event.findUnique({ where: { id: eventId } })).toBeNull()
+        expect(await countRegistrations(eventId)).toBe(0)
+    })
+
+    test('an event with a paid registration cannot be deleted', async () => {
+        const eventId = await createPaidEvent(await createCommittee('destroy-paid-committee'))
+        const registrant = await createTestUser('destroyeventpaid')
+        await register(registrant, eventId)
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'MANUAL', manualFees: 0 },
+            session: manualPayerSessionOf(registrant),
+        })
+
+        await expect(eventOperations.destroy({ params: { id: eventId }, bypassAuth: true }))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        expect(await countRegistrations(eventId, registrant)).toBe(1)
+    })
+
+    test('an event with a payment still processing cannot be deleted', async () => {
+        const eventId = await createPaidEvent(await createCommittee('destroy-pending-committee'))
+        const registrant = await createTestUser('destroyeventpending')
+        await register(registrant, eventId)
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: payerSessionOf(registrant),
+        })
+
+        await expect(eventOperations.destroy({ params: { id: eventId }, bypassAuth: true }))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        expect(await countRegistrations(eventId, registrant)).toBe(1)
     })
 })

@@ -17,7 +17,7 @@ const dataFieldSchemas = z.object({
     // The committee hosting the event, shown on its page. The form sends 'NULL' for none.
     hostedByCommitteeId: z.literal('NULL').transform(() => null).or(z.coerce.number().int()).optional(),
     // The account a paid event is paid into. Linked apart from the rest of the event (see
-    // connectToLedger), since linking an account takes access to that account.
+    // connectToLedgerAccount), since linking an account takes access to that account.
     ledgerAccountId: z.coerce.number().int(),
 
     takesRegistration: Zpn.checkboxOrBoolean({ label: 'Tar påmelding' }),
@@ -106,7 +106,7 @@ export const eventSchemas = {
         setPublished: dataFieldSchemas.pick({
             published: true,
         }),
-        connectToLedger: dataFieldSchemas.pick({
+        connectToLedgerAccount: dataFieldSchemas.pick({
             ledgerAccountId: true,
         }),
     },
@@ -132,7 +132,7 @@ export const eventSchemas = {
         update: eventId,
         updateCmsCoverImage: eventImplementationId,
         setPublished: eventId,
-        connectToLedger: eventId,
+        connectToLedgerAccount: eventId,
         destroy: eventId,
         updateParagraphContent: eventImplementationId,
     },

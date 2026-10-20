@@ -12,7 +12,7 @@ import Link from 'next/link'
 import type { ImageResolution } from '@/lib/images/resolutionForWidth'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
-const mimeTypes: { [key: string]: string } = {
+const mimeTypes: Record<string, string> = {
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
     png: 'image/png',

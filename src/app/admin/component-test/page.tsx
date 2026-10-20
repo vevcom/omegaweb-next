@@ -4,7 +4,7 @@ import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('component-test', session),
+    operation: ({ session }: PageOperationArgs) => authorizeAdminPage('component-test', session),
     render: () => <ComponentTest />,
 })
 

@@ -14,7 +14,7 @@ export async function prepareReleaseCountdown() {
     if (await hasGitGraph()) return
     fetchGitGraph()
         .then(writeGitGraph)
-        .catch(error => {
+        .catch((error: unknown) => {
             logger.error('Could not fetch the git graph for the release countdown', { error })
         })
 }

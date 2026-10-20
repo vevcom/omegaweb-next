@@ -50,6 +50,14 @@ export const admissionOperations = {
         dataSchema: admissionSchemas.data.createTrial,
         opensTransaction: true,
         operation: async ({ prisma, session, params, data }): Promise<ExpandedAdmissionTrail> => {
+            // The last trial makes the user a sysken, so registering one's own would be self-promotion.
+            if (data.userId === session.user?.id) {
+                throw new ServiceError(
+                    'BAD PARAMETERS',
+                    'Du kan ikke registrere en opptaksprøve for deg selv.'
+                )
+            }
+
             // Read before the transaction is opened: a user whose omega memberships are in a broken
             // state is put right first, and that writes.
             const omegaMembership = await omegaMembershipGroupOperations.readUserLevel({

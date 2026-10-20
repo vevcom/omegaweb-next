@@ -28,7 +28,7 @@ export default function InterestGroup({ interestGroup, capabilities }: PropTypes
         <div className={styles.interestGroup}>
             <div className={styles.title}>
                 <h2>{interestGroup.name}</h2>
-                {interestGroup.pensioned && <span className={styles.pensioned}>Pensjonert</span>}
+                {interestGroup.group.pensioned && <span className={styles.pensioned}>Pensjonert</span>}
                 {capabilities.canAdministrate.authorized && (
                     <Link
                         className={styles.administrate}
@@ -42,7 +42,7 @@ export default function InterestGroup({ interestGroup, capabilities }: PropTypes
                     interestGroupId={interestGroup.id}
                     interestGroupName={interestGroup.name}
                     groupId={interestGroup.groupId}
-                    pensioned={interestGroup.pensioned}
+                    pensioned={interestGroup.group.pensioned}
                 />
             </div>
             <ArticleSection

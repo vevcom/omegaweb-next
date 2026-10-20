@@ -11,7 +11,7 @@ export function readPushSupport(): PushSupport {
         return 'supported'
     }
     const appleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent)
-        || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
+        || (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1)
     const installed = window.matchMedia('(display-mode: standalone)').matches
     return appleMobile && !installed ? 'needsHomeScreen' : 'unsupported'
 }

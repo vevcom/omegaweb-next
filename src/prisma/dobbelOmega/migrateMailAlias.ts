@@ -79,8 +79,7 @@ export default async function migrateMailAliases(
     const alredyAdded = new Set<string>()
 
     const externalAdrsBar = createProgressBar('Migrating external addresses', externalAdrs.length)
-    for (let i = 0; i < externalAdrs.length; i++) {
-        const a = externalAdrs[i]
+    for (const a of externalAdrs) {
         if (omegaFilter(a) || studNtnuFilter(a)) {
             externalAdrsBar.increment()
             continue
@@ -146,9 +145,7 @@ export default async function migrateMailAliases(
     })
 
     const omegaForwardBar = createProgressBar('Migrating omega forwards', omegaForward.length)
-    for (let i = 0; i < omegaForward.length; i++) {
-        const a = omegaForward[i]
-
+    for (const a of omegaForward) {
         try {
             await pnPrisma.mailAliasMailingList.create({
                 data: {

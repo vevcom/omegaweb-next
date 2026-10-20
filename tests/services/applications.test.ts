@@ -46,13 +46,13 @@ async function priorities() {
 const apply = (participationId: number) => applicationOperations.create({
     params: { userId: user.id, committeeParticipationId: participationId },
     data: { text: 'Jeg vil være med' },
-    session: sessionOf([]),
+    session: sessionOf(['APPLICATION_USE']),
 })
 
 const move = (participationId: number, priority: 'UP' | 'DOWN') => applicationOperations.update({
     params: { userId: user.id, committeeParticipationId: participationId },
     data: { priority },
-    session: sessionOf([]),
+    session: sessionOf(['APPLICATION_USE']),
 })
 
 beforeAll(async () => {
@@ -116,9 +116,20 @@ describe('applications', () => {
     test('deleting an application closes the gap behind it', async () => {
         await applicationOperations.destroy({
             params: { userId: user.id, committeeParticipationId: participationOf.b },
-            session: sessionOf([]),
+            session: sessionOf(['APPLICATION_USE']),
         })
         expect(await priorities()).toEqual([[participationOf.a, 1]])
+    })
+
+    test('applying needs APPLICATION_USE, even to apply for oneself', async () => {
+        await expect(applicationOperations.create({
+            params: { userId: user.id, committeeParticipationId: participationOf.b },
+            data: { text: 'Jeg vil være med' },
+            session: sessionOf([]),
+        })).rejects.toThrow(Smorekopp)
+        expect(await prisma.application.count({
+            where: { userId: user.id, applicationPeriodCommitteeId: participationOf.b },
+        })).toBe(0)
     })
 
     test('a committee leaving the period takes its applications with it, and the rest close ranks', async () => {

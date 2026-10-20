@@ -24,8 +24,8 @@ export async function sendBookingConfirmation(
 }
 
 /**
- * Runs when a cabin booking's transaction reaches SUCCEEDED (see paymentCompletionHooks.ts), either
- * synchronously or from the Stripe webhook. Clears the reservation window and sends the confirmation.
+ * Run by the payment completion worker once a cabin booking's transaction has SUCCEEDED (see
+ * paymentCompletionHooks.ts). Clears the reservation window and sends the confirmation.
  */
 export async function cabinBookingPaymentCompletionHook(
     transaction: ExpandedLedgerTransaction,
@@ -35,9 +35,17 @@ export async function cabinBookingPaymentCompletionHook(
 
     const booking = await prisma.booking.findUniqueOrThrow({ where: { id: transaction.bookingId } })
 
+    // A booking paid within its hold blocked the calendar the whole time, so nothing else can have
+    // taken its dates. Checking anyway would let a booking paid after its own hold ran out win.
+    const paidWithinHold = booking.transactionTimeout === null || (
+        transaction.completionHookRequestedAt !== null
+        && transaction.completionHookRequestedAt <= booking.transactionTimeout
+    )
+
     // Backstop: the hold is time-boxed, so a late Stripe webhook can arrive after another booking
-    // took the same dates. Remove once a sweeper cancels expired PENDING transactions.
-    const conflicting = await prisma.booking.findFirst({
+    // took the same dates. The ledger sweeper cancels stale attempts, but not before the hold ends
+    // or while the worker is down.
+    const conflicting = !paidWithinHold && await prisma.booking.findFirst({
         where: {
             id: { not: booking.id },
             start: { lt: booking.end },
@@ -59,7 +67,7 @@ export async function cabinBookingPaymentCompletionHook(
                 params: {
                     originalTransactionId: transaction.id,
                     reason: 'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk.',
-                    refundTo: [{ ledgerAccountId: payerAccount.id }],
+                    refundTo: payerAccount.id,
                 },
                 prisma,
                 bypassAuth: true,
@@ -70,6 +78,7 @@ export async function cabinBookingPaymentCompletionHook(
             await manualReviewOperations.create({
                 params: {
                     transactionId: transaction.id,
+                    problem: 'CABIN_DOUBLE_BOOKING',
                     problemDescription: 'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk for '
                         + `booking ${booking.id}, men gjesten har ingen konto å refundere til automatisk.`,
                 },

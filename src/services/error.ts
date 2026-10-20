@@ -1,5 +1,4 @@
 import type { SafeParseError } from 'zod'
-import type { AuthStatus } from '@/auth/authorizer/AuthResult'
 
 export const errorCodes = [
     {
@@ -90,11 +89,16 @@ export type ErrorMessage = {
     message: string,
 }
 
-export class Smorekopp<ValidCodes extends ErrorCode | AuthStatus> extends Error {
-    errorCode: ValidCodes
+/**
+ * `errorCode` is typed as `Extract<ErrorCode, ValidCodes>` rather than plain `ValidCodes`: for any
+ * concrete `ValidCodes` the two are the same, but `instanceof Smorekopp` narrows to `Smorekopp<any>`,
+ * and there `Extract` still yields the full `ErrorCode` union instead of `any`.
+ */
+export class Smorekopp<ValidCodes extends ErrorCode = ErrorCode> extends Error {
+    errorCode: Extract<ErrorCode, ValidCodes>
     errors: ErrorMessage[]
 
-    constructor(errorCode: ValidCodes, errors?: string | ErrorMessage[]) {
+    constructor(errorCode: Extract<ErrorCode, ValidCodes>, errors?: string | ErrorMessage[]) {
         const parsedErrors = typeof errors === 'string'
             ? [{ message: errors }]
             : errors

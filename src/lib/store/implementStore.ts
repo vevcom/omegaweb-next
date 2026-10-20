@@ -2,9 +2,10 @@ import '@pn-server-only'
 import { extensionForContent, type StorableExtension } from './fileExtensions'
 import { ServiceError } from '@/services/error'
 import { v4 as uuid } from 'uuid'
-import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
+import { mkdir, opendir, readFile, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import type { File } from 'buffer'
+import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * This implements the store and lets a service use the store. The staticStorePrefix is where the service will store
@@ -19,6 +20,7 @@ import type { File } from 'buffer'
  * in the store volume.
  * It returns the fsLocation and ext of the stored file.
  * destroyFile takes the fsLocation of a file and deletes it from the store volume.
+ * listFiles lets the store worker find the files no row refers to (see createOrphanDestroyer).
  */
 export function implementStore<const AllowedExt extends readonly StorableExtension[]>(config: {
     staticStorePrefix: string,
@@ -27,7 +29,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
     async function createFile(
         file: File,
         allowedExt: readonly AllowedExt[number][] = config.allowedExtentions,
-        prosessor: (buffer: Buffer) => Promise<Buffer> = async (buffer) => buffer,
+        prosessor: (buffer: Buffer) => Awaitable<Buffer> = buffer => buffer,
         dynamicStorePrefix?: string,
     ): Promise<{
         fsLocation: string,
@@ -68,7 +70,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
     async function destroyFile(
         fsLocation: string,
         dynamicStorePrefix?: string,
-        throwOnNotFound: boolean = true
+        throwOnNotFound = true
     ): Promise<void> {
         const filePath = dynamicStorePrefix
             ? join('store', config.staticStorePrefix, dynamicStorePrefix, fsLocation)
@@ -84,6 +86,31 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
             }
             throw error
         }
+    }
+
+    /**
+     * The fsLocations of the files in the store, read from the directory a batch at a time so that a
+     * store of any size never has to be held in memory at once. Only the store's own directory is
+     * listed: no store keeps files under a dynamic prefix.
+     */
+    async function* listFiles(batchSize: number): AsyncGenerator<string[]> {
+        let directory
+        try {
+            directory = await opendir(join('store', config.staticStorePrefix), { bufferSize: batchSize })
+        } catch (error) {
+            if (isErrorWithCode(error) && error.code === 'ENOENT') return
+            throw error
+        }
+        let batch: string[] = []
+        for await (const entry of directory) {
+            if (!entry.isFile()) continue
+            batch.push(entry.name)
+            if (batch.length >= batchSize) {
+                yield batch
+                batch = []
+            }
+        }
+        if (batch.length > 0) yield batch
     }
 
     /**
@@ -111,6 +138,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
         storableExtension,
         readStoredFile,
         destroyFile,
+        listFiles,
     } as const
 }
 

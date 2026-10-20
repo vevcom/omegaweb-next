@@ -8,7 +8,7 @@ export function convertAmount(amount: string | number): number {
     return Math.round(Number(amount) * 100)
 }
 
-export function displayAmount(amount: number, short: boolean = true, withSign: boolean = false): string {
+export function displayAmount(amount: number, short = true, withSign = false): string {
     const convertedAmount = amount / 100
     const amountString = convertedAmount.toFixed(2)
 
