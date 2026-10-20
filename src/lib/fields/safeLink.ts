@@ -1,8 +1,9 @@
 /**
  * Whether a link is a path on this site. A path starting with `//` or `/\` is not, since browsers
- * read both as a link to another host.
+ * read both as a link to another host. Neither is a link with a tab or line break, since browsers
+ * drop those before reading it, so `/<tab>/host` would become `//host`.
  */
-export const isInternalPath = (link: string): boolean => /^\/(?![/\\])/.test(link)
+export const isInternalPath = (link: string): boolean => !/[\t\n\r]/.test(link) && /^\/(?![/\\])/.test(link)
 
 /**
  * Whether a link written by a user may go straight into an href: an internal path (`/...`, or the
