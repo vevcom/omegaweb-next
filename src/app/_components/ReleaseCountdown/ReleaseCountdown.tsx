@@ -1,6 +1,8 @@
 'use client'
 import styles from './ReleaseCountdown.module.scss'
 import GitGraphPlayer from './GitGraphPlayer'
+import WhiteSun from './WhiteSun'
+import FinalCountdown from './FinalCountdown'
 import ReleaseAdmin from './ReleaseAdmin'
 import Button from '@/components/UI/Button'
 import useKeyPress from '@/hooks/useKeyPress'
@@ -19,6 +21,17 @@ const MINUTE = 60 * SECOND
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 
+// The last minute is counted down in big numbers. Before it, the git graph rushes through the
+// whole history towards a white sun, which leaves the screen white as the last minute begins.
+const FINAL_COUNTDOWN_DURATION = MINUTE
+const RUSH_DURATION = 10 * SECOND
+
+function phaseOf(remaining: number | null) {
+    if (remaining === null || remaining > FINAL_COUNTDOWN_DURATION + RUSH_DURATION) return 'countdown'
+    if (remaining > FINAL_COUNTDOWN_DURATION) return 'rush'
+    return 'final'
+}
+
 const subscribeToClock = (onTick: () => void) => {
     const interval = setInterval(onTick, SECOND / 4)
     return () => clearInterval(interval)
@@ -34,10 +47,11 @@ type PropTypes = {
 }
 
 /**
- * Shown instead of the website until it is released.
+ * Shown instead of the website until it is released, ending with a rush through the git history
+ * and a final countdown of the last minute.
  * Pressing space opens the admin panel, where the password lets you in early, change the release
- * date, open the website to all and update the git graph. The button to go in is always shown, and
- * lets the visitor in once the website is open to all.
+ * date, open the website to all and update the git graph. The button to go in is shown until the
+ * rush, and lets the visitor in once the website is open to all.
  */
 export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) {
     const now = useSyncExternalStore(subscribeToClock, readClock, readServerClock)
@@ -49,6 +63,7 @@ export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) 
     const { refresh } = useRouter()
 
     const remaining = now === null ? null : Math.max(0, releaseDate - now)
+    const phase = phaseOf(remaining)
 
     useEffect(() => {
         if (remaining !== 0 || hasRefreshed.current) return
@@ -84,23 +99,39 @@ export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) 
 
     return (
         <div className={styles.ReleaseCountdown}>
-            <div className={styles.countdown}>
-                <h1>Project Next</h1>
-                <div className={styles.units}>
-                    {units.map(unit => (
-                        <div key={unit.label} className={styles.unit}>
-                            <span className={styles.value}>{unit.value}</span>
-                            <span className={styles.label}>{unit.label}</span>
+            {phase === 'final' && remaining !== null ? (
+                <FinalCountdown remaining={remaining} duration={FINAL_COUNTDOWN_DURATION} />
+            ) : (
+                <>
+                    <div className={`${styles.countdown} ${phase === 'rush' ? styles.leaving : ''}`}>
+                        <h1>Project Next</h1>
+                        <div className={styles.units}>
+                            {units.map(unit => (
+                                <div key={unit.label} className={styles.unit}>
+                                    <span className={styles.value}>{unit.value}</span>
+                                    <span className={styles.label}>{unit.label}</span>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
-                <p className={styles.releaseDate}>{releaseDateFormat.format(new Date(releaseDate))}</p>
-                <div className={styles.enter}>
-                    <Button onClick={enter}>Se nye veven</Button>
-                    {enterError && <p className={styles.enterError}>{enterError}</p>}
-                </div>
-            </div>
-            <GitGraphPlayer key={graphVersion} />
+                        <p className={styles.releaseDate}>{releaseDateFormat.format(new Date(releaseDate))}</p>
+                        <div className={styles.enter}>
+                            <Button onClick={enter}>Se nye veven</Button>
+                            {enterError && <p className={styles.enterError}>{enterError}</p>}
+                        </div>
+                    </div>
+                    <GitGraphPlayer
+                        key={graphVersion}
+                        rushStartsAt={releaseDate - FINAL_COUNTDOWN_DURATION - RUSH_DURATION}
+                        rushDuration={RUSH_DURATION}
+                    />
+                    {phase === 'rush' && remaining !== null && (
+                        <WhiteSun
+                            elapsed={FINAL_COUNTDOWN_DURATION + RUSH_DURATION - remaining}
+                            duration={RUSH_DURATION}
+                        />
+                    )}
+                </>
+            )}
             {showAdmin && (
                 <div className={styles.overlay} onClick={() => setShowAdmin(false)}>
                     <div onClick={event => event.stopPropagation()}>

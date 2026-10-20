@@ -3,7 +3,7 @@
 import styles from './AddGroupToLedgerAccount.module.scss'
 import { SelectNumber } from '@/components/UI/Select'
 import Button from '@/components/UI/Button'
-import { updateLedgerAccountAction } from '@/services/ledger/accounts/actions'
+import { updateLedgerAccountAsAdminAction } from '@/services/ledger/accounts/actions'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { ExpandedGroup } from '@/services/groups/types'
@@ -23,7 +23,7 @@ export default function AddGroupToLedgerAccount({ ledgerAccountId, availableGrou
     const addGroup = async () => {
         if (selectedGroupId === undefined) return
 
-        const result = await updateLedgerAccountAction({
+        const result = await updateLedgerAccountAsAdminAction({
             params: { ledgerAccountId },
         }, {
             data: { addGroupIds: [selectedGroupId] },
