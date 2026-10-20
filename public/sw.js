@@ -109,18 +109,28 @@ function readPushPayload(event) {
     }
 }
 
-// Focuses a window already showing the notification's page, or opens one. Only our own pages are
-// opened, whatever the push says.
+// Opens the notification's page. Only our own pages are opened, whatever the push says.
 self.addEventListener('notificationclick', (event) => {
     event.notification.close()
 
-    const target = new URL(event.notification.data?.url ?? '/', self.location.origin)
-    const url = target.origin === self.location.origin ? target.href : `${self.location.origin}/`
+    const link = event.notification.data?.url
+    const target = link ? new URL(link, self.location.origin) : null
+    const url = target?.origin === self.location.origin ? target.href : null
 
-    event.waitUntil(
-        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
-            const open = windows.find(client => client.url === url)
-            return open ? open.focus() : self.clients.openWindow(url)
-        })
-    )
+    event.waitUntil(openPage(url))
 })
+
+/**
+ * Navigates an open window to the page, since a running iOS home screen app ignores the url given
+ * to openWindow. Only controlled windows are listed, since navigate rejects others.
+ */
+async function openPage(url) {
+    const windows = await self.clients.matchAll({ type: 'window' })
+    const open = windows.find(client => client.url === url) ?? windows[0]
+    if (!open) {
+        return self.clients.openWindow(url ?? `${self.location.origin}/`)
+    }
+
+    const focused = await open.focus()
+    return !url || focused.url === url ? focused : focused.navigate(url)
+}
