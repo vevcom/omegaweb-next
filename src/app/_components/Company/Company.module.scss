@@ -27,6 +27,12 @@
     align-items: center;
     background-color: ohma.$colors-surface-base;
     border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
+
+    img {
+        @include ohma.lightTheme {
+            filter: invert(1) hue-rotate(180deg);
+        }
+    }
 }
 
 .logoSq {

@@ -5,7 +5,7 @@
     .channelName {
         --depth: 0;
 
-        padding-left: calc(var(--depth) * 1.5 * #{ohma.$gap});
+        padding-left: calc((1.5 + 1.5 * var(--depth)) * #{ohma.$gap});
     }
 
     .name {

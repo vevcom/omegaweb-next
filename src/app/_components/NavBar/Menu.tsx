@@ -5,7 +5,8 @@ import useKeyPress from '@/hooks/useKeyPress'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import useOnNavigation from '@/hooks/useOnNavigation'
 import { useGlobalSearch } from '@/contexts/GlobalSearch'
-import React, { useState } from 'react'
+import { useNavMenu } from '@/contexts/NavMenu'
+import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
@@ -18,7 +19,7 @@ type PropTypes = {
 
 
 export default function Menu({ items, openBtnVariant }: PropTypes) {
-    const [isOpen, setIsOpen] = useState(false)
+    const { isOpen, setIsOpen } = useNavMenu()
     const globalSearch = useGlobalSearch()
     function closeMenu(ref: React.RefObject<HTMLDivElement | null>) {
         ref?.current?.classList.add(styles.closeMenu)

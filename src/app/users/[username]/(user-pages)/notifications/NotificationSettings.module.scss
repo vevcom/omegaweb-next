@@ -17,12 +17,16 @@
             }
 
             @include ohma.screenMobile {
+                position: relative;
+                height: 6rem;
+                min-width: 2.5rem;
+
                 > span {
-                    -ms-writing-mode: tb-rl;
-                    -webkit-writing-mode: vertical-rl;
-                    writing-mode: vertical-rl;
-                    transform: rotate(180deg);
-                    white-space: nowrap;
+                    position: absolute;
+                    right: 50%;
+                    bottom: ohma.$gap;
+                    transform: rotate(45deg);
+                    transform-origin: bottom right;
                 }
             }
         }

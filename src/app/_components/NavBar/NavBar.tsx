@@ -4,10 +4,10 @@ import UserNavigation from './UserNavigation'
 import ReportButton from './ReportButton'
 import SearchButton from './SearchButton'
 import NavBarTitle from './NavBarTitle'
+import HomeLogoLink from './HomeLogoLink'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import ProfilePicture from '@/components/User/ProfilePicture'
-import Link from 'next/link'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { NavLink } from './navDef'
 
@@ -26,7 +26,7 @@ export default async function NavBar({ isLoggedIn, profileImage, navItems }: Pro
         <nav className={styles.NavBar}>
             <ul className={styles.list}>
                 <li className={styles.logoContainer}>
-                    <Link aria-label={'Gå til hjemmesiden'} href="/" className={styles.logo}>
+                    <HomeLogoLink className={styles.logo}>
                         <div className={styles.logoWrapper}>
                             <StandardImageServer
                                 standardImage="LOGO_SIMPLE"
@@ -35,7 +35,7 @@ export default async function NavBar({ isLoggedIn, profileImage, navItems }: Pro
                                 tint="var(--surface-base)"
                             />
                         </div>
-                    </Link>
+                    </HomeLogoLink>
                 </li>
 
                 <PageTitleSetter title="" />

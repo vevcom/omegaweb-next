@@ -74,13 +74,17 @@ const { page, generateMetadata } = serverPage({
                         <p className={styles.empty}>Ingen medlemskap.</p>
                     ) : (
                         <SimpleTable
-                            header={['Gruppe', 'Tittel', 'Orden', 'Status', 'Admin']}
+                            header={['Gruppe', 'Orden', 'Status']}
                             body={memberships.map(membership => [
-                                membership.groupName,
-                                membership.title,
+                                <>
+                                    {membership.groupName}
+                                    <span className={styles.secondary}>{membership.title}</span>
+                                </>,
                                 membership.order,
-                                membership.active ? 'Aktiv' : 'Inaktiv',
-                                membership.admin ? 'Ja' : 'Nei',
+                                <>
+                                    {membership.active ? 'Aktiv' : 'Inaktiv'}
+                                    {membership.admin && <span className={styles.secondary}>Admin</span>}
+                                </>,
                             ])}
                         />
                     )}

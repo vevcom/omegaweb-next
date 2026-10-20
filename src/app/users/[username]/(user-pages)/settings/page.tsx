@@ -57,28 +57,6 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <div className={styles.wrapper}>
-                {privateUser && capabilities.canUpdateProfile.authorized && (
-                    <UserProfileSettingsCard>
-                        <UserSettingsForm user={privateUser} emailDomain={process.env.EMAIL_DOMAIN} />
-                    </UserProfileSettingsCard>
-                )}
-                {capabilities.canUpdateBio.authorized && (
-                    <UserProfileSettingsCard>
-                        <h2>Bio</h2>
-                        <CmsParagraphEditorForm
-                            cmsParagraph={profile.user.bioParagraph}
-                            updateCmsParagraphAction={configureAction(
-                                updateUserBioParagraphContentAction,
-                                { implementationParams: { userId: profile.user.id } }
-                            )}
-                        />
-                    </UserProfileSettingsCard>
-                )}
-                {privateUser && capabilities.canRegisterNewEmail.authorized && (
-                    <UserProfileSettingsCard>
-                        <ChangeEmailForm user={privateUser} />
-                    </UserProfileSettingsCard>
-                )}
                 {capabilities.canUpdateImage.authorized && (
                     <UserProfileSettingsCard>
                         <h2>Profilbilde</h2>
@@ -93,6 +71,28 @@ const { page, generateMetadata } = serverPage({
                                 refreshOnSuccess
                             />
                         </div>
+                    </UserProfileSettingsCard>
+                )}
+                {capabilities.canUpdateBio.authorized && (
+                    <UserProfileSettingsCard>
+                        <h2>Bio</h2>
+                        <CmsParagraphEditorForm
+                            cmsParagraph={profile.user.bioParagraph}
+                            updateCmsParagraphAction={configureAction(
+                                updateUserBioParagraphContentAction,
+                                { implementationParams: { userId: profile.user.id } }
+                            )}
+                        />
+                    </UserProfileSettingsCard>
+                )}
+                {privateUser && capabilities.canUpdateProfile.authorized && (
+                    <UserProfileSettingsCard>
+                        <UserSettingsForm user={privateUser} emailDomain={process.env.EMAIL_DOMAIN} />
+                    </UserProfileSettingsCard>
+                )}
+                {privateUser && capabilities.canRegisterNewEmail.authorized && (
+                    <UserProfileSettingsCard>
+                        <ChangeEmailForm user={privateUser} />
                     </UserProfileSettingsCard>
                 )}
                 {capabilities.canUpdateUser.authorized && (

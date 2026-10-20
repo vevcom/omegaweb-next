@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
 
 export type PageTitle = {
     title: string
@@ -8,15 +8,32 @@ export type PageTitle = {
 }
 
 type PageTitleContextType = PageTitle & {
-    setTitle: (title: PageTitle) => void
+    setTitle: (id: string, title: PageTitle) => void
+    removeTitle: (id: string) => void
 }
 
 const PageTitleContext = createContext<PageTitleContextType | undefined>(undefined)
 
 export function PageTitleProvider({ children }: { children: React.ReactNode }) {
-    const [pageTitle, setTitle] = useState<PageTitle>({ title: '' })
+    const [entries, setEntries] = useState<{ id: string, title: PageTitle }[]>([])
+
+    const setTitle = useCallback((id: string, title: PageTitle) => setEntries(current => (
+        current.some(entry => entry.id === id)
+            ? current.map(entry => (entry.id === id ? { id, title } : entry))
+            : [...current, { id, title }]
+    )), [])
+    const removeTitle = useCallback((id: string) => setEntries(
+        current => current.filter(entry => entry.id !== id)
+    ), [])
+
+    const value = useMemo(() => ({
+        ...(entries.at(-1)?.title ?? { title: '' }),
+        setTitle,
+        removeTitle,
+    }), [entries, setTitle, removeTitle])
+
     return (
-        <PageTitleContext.Provider value={{ ...pageTitle, setTitle }}>
+        <PageTitleContext.Provider value={value}>
             {children}
         </PageTitleContext.Provider>
     )

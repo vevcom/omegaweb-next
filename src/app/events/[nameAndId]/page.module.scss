@@ -49,11 +49,12 @@
             align-items: baseline;
             gap: 0 1em;
             padding: calc(4 * #{ohma.$gap}) calc(3 * #{ohma.$gap}) calc(2 * #{ohma.$gap});
-            @include ohma.layer();
+            background: linear-gradient(to bottom, transparent, rgb(0 0 0 / 60%));
             border-radius: 0 0 ohma.$rounding ohma.$rounding;
 
             h1 {
                 font-size: ohma.$fonts-xxl;
+                overflow-wrap: anywhere;
                 color: ohma.$colors-white;
             }
 
@@ -119,7 +120,8 @@
 
     @include ohma.screenMobile {
         .coverImage {
-            height: 14em;
+            height: auto;
+            aspect-ratio: 16 / 9;
         }
 
         >aside,
