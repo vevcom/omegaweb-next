@@ -12,6 +12,7 @@ import migrateLockers from './migrateLockers'
 import migratePrikks from './migratePrikks'
 import migrateLedgerAccounts from './migrateLedgerAccounts'
 import migrateLedgerTransactions from './migrateLedgerTransactions'
+import reconcileLedger from './reconcileLedger'
 import seedProdPermissions from './seedProdPermissions'
 import manifest from './manifest'
 import { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
@@ -68,6 +69,7 @@ export default async function dobbelOmega(pnPrisma: PrismaClientPn) {
     await migrateLedgerTransactions({
         pnPrisma, owPrisma, userAccountIdMap, drainAccountIdMap, eventRegistrationIdMap, legacySuspenseAccountId, limits
     })
+    await reconcileLedger({ pnPrisma, owPrisma, userAccountIdMap, drainAccountIdMap, limits })
 
     await seedProdPermissions(pnPrisma)
 
