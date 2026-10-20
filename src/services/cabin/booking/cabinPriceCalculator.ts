@@ -89,9 +89,7 @@ function findPricesForProduct({
 
     for (const day of dateArray) {
         const price = matchPriceForDay({ day, memberShare, pricePeriods, prices: product.CabinProductPrice })
-        if (pricesHistogram[price.id] === undefined) {
-            pricesHistogram[price.id] = 0
-        }
+        pricesHistogram[price.id] ??= 0
         pricesHistogram[price.id]++
     }
 

@@ -23,7 +23,7 @@ seed({ devData: false })
         finish()
         await prisma.$disconnect()
     })
-    .catch(async (error) => {
+    .catch(async (error: unknown) => {
         const message = error instanceof Error ? (error.stack ?? error.message) : String(error)
         logger.error(message, { error })
         await prisma.$disconnect()

@@ -23,7 +23,7 @@ import type { ExpandedInterestGroup } from '@/services/groups/interestGroups/typ
  */
 const interestGroupAuthorizers = (interestGroup: ExpandedInterestGroup) => {
     const groupId = interestGroup.groupId
-    const notPensioned = Require.custom(() => !interestGroup.pensioned, { errorMessage: 'Gruppen er pensjonert' })
+    const notPensioned = Require.custom(() => !interestGroup.group.pensioned, { errorMessage: 'Gruppen er pensjonert' })
     return {
         canEditArticleSection: Require.allOf(interestGroupAuth.updateArticleSection.data({ groupId }), notPensioned),
         canAdministrate: Require.anyOf(
@@ -67,7 +67,7 @@ const { page, generateMetadata } = serverPage({
                         // Pensioned groups are part of the history rather than something to join, so
                         // they are listed after the ones that still run.
                         [...interestGroups]
-                            .sort((one, two) => Number(one.pensioned) - Number(two.pensioned))
+                            .sort((one, two) => Number(one.group.pensioned) - Number(two.group.pensioned))
                             .map(interestGroup => (
                                 <InterestGroup
                                     key={interestGroup.id}

@@ -25,11 +25,11 @@ describe('Require chain lacking data', () => {
         defineOperation({
             // @ts-expect-error - `groupId` has not been supplied
             authorizer: () => groupAdmin,
-            operation: async () => null,
+            operation: () => null,
         })
         const operation = defineOperation({
             authorizer: () => groupAdmin.data({ groupId: 1 }),
-            operation: async () => null,
+            operation: () => null,
         })
 
         expect(operation).toBeDefined()

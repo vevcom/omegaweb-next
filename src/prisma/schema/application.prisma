@@ -25,11 +25,11 @@ model CommitteeParticipationInApplicationPeriod {
 }
 
 model Application {
-  id                          Int                                       @id @default(autoincrement())
-  user                        User                                      @relation(fields: [userId], references: [id])
-  userId                      Int
+  id                           Int                                       @id @default(autoincrement())
+  user                         User                                      @relation(fields: [userId], references: [id])
+  userId                       Int
   applicationPeriodCommittee   CommitteeParticipationInApplicationPeriod @relation(fields: [applicationPeriodCommitteeId, applicationPeriodId], references: [id, applicationPeriodId], onDelete: Cascade)
-  applicationPeriodCommitteeId Int                                       @map("applicationPeriodCommiteeId")
+  applicationPeriodCommitteeId Int
   applicationPeriodId          Int
   priority                     Int
   text                         String

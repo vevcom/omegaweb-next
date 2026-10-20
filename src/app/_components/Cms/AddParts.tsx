@@ -3,6 +3,7 @@ import Button from '@/components/UI/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import type { ArticleSectionPart } from '@/cms/articleSections/types'
+import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * Component for adding parts to an article and article section.
@@ -13,7 +14,7 @@ export type PropTypes = {
     showParagraphAdd: boolean,
     showImageAdd: boolean,
     showLinkAdd: boolean
-    onClick: (part: ArticleSectionPart) => Promise<void>
+    onClick: (part: ArticleSectionPart) => Awaitable<void>
 }
 
 export default function AddParts({

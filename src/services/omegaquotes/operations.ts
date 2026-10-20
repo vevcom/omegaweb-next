@@ -23,7 +23,7 @@ export const omegaquoteOperations = {
                 }
             })
 
-            notificationOperations.createSpecial.internalCall({
+            await notificationOperations.createSpecial.internalCall({
                 params: {
                     special: 'NEW_OMEGAQUOTE',
                 },

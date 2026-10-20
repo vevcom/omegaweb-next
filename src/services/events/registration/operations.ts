@@ -21,7 +21,7 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { refundOperations } from '@/services/ledger/refunds/operations'
-import { stalePendingTransactionMs, validTransactionFilter } from '@/services/ledger/transactions/constants'
+import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -210,7 +210,7 @@ export const eventRegistrationOperations = {
 
             return registrations.map(registration => ({
                 ...registration,
-                image: registration.user?.image || defaultImage,
+                image: registration.user?.image ?? defaultImage,
             }))
         },
     }),
@@ -319,35 +319,24 @@ export const eventRegistrationOperations = {
                         prisma: tx,
                     })
 
-                    const reverse = () => refundOperations.reverseTransaction({
-                        params: {
-                            originalTransactionId: liveTransaction.id,
-                            reason: 'Avregistrert fra betalt arrangement.',
-                            refundTo: [{ ledgerAccountId: payerAccount.id }],
-                        },
-                        prisma: tx,
-                        bypassAuth: true,
-                    })
-
                     if (liveTransaction.state === 'SUCCEEDED') {
-                        await reverse()
+                        await refundOperations.reverseTransaction({
+                            params: {
+                                originalTransactionId: liveTransaction.id,
+                                reason: 'Avregistrert fra betalt arrangement.',
+                                refundTo: payerAccount.id,
+                            },
+                            prisma: tx,
+                            bypassAuth: true,
+                        })
                     } else {
-                        // Cancel first, so a late webhook can't complete it. If cancel fails, reverse
-                        // only if the payment succeeded in the meantime; otherwise rethrow cancel's error.
-                        try {
-                            await ledgerTransactionOperations.cancel({
-                                params: { id: liveTransaction.id },
-                                prisma: tx,
-                                bypassAuth: true,
-                            })
-                        } catch (error) {
-                            const current = await tx.ledgerTransaction.findUniqueOrThrow({
-                                where: { id: liveTransaction.id },
-                                select: { state: true },
-                            })
-                            if (current.state !== 'SUCCEEDED') throw error
-                            await reverse()
-                        }
+                        // Canceled so a late webhook can't complete it. If the payment succeeds at that
+                        // very moment, the cancel fails, and unregistering again reverses it instead.
+                        await ledgerTransactionOperations.cancel({
+                            params: { id: liveTransaction.id },
+                            prisma: tx,
+                            bypassAuth: true,
+                        })
                     }
                 }
 
@@ -584,10 +573,8 @@ export const eventRegistrationOperations = {
                 }
                 if (existingAttempt) {
                     // The registrant may always replace a pending attempt, even one an admin
-                    // started for them. Anyone else has to wait until it is stale.
-                    const isRegistrant = session.user?.id === params.userId
-                    const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
-                    if (!isRegistrant && !isStale) {
+                    // started for them. Anyone else has to wait until the ledger sweeper cancels it.
+                    if (session.user?.id !== params.userId) {
                         throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.')
                     }
                     // Cancel it, so a late webhook can't complete it. Bypassed, since the outer

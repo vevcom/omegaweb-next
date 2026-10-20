@@ -8,7 +8,7 @@ import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('users', session),
+    operation: ({ session }: PageOperationArgs) => authorizeAdminPage('users', session),
     capabilities: () => ({
         canCreateUser: userAuth.create,
         canLinkFeideAccount: authAuth.adminLinkFeideAccount,

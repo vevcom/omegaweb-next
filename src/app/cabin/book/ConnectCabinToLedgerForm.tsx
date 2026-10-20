@@ -1,5 +1,5 @@
 'use client'
-import { connectCabinToLedgerAction } from '@/services/cabin/booking/actions'
+import { connectCabinToLedgerAccountAction } from '@/services/cabin/booking/actions'
 import Form from '@/components/Form/Form'
 import { SelectNumber } from '@/components/UI/Select'
 import type { LedgerAccount } from '@/prisma-generated-pn-types'
@@ -14,7 +14,7 @@ export default function ConnectCabinToLedgerForm({
     if (ledgerAccounts.length === 0) return <p>Du har ingen gruppekontoer å knytte hytta til.</p>
 
     return <Form
-        action={connectCabinToLedgerAction}
+        action={connectCabinToLedgerAccountAction}
         submitText="Knytt til konto"
         refreshOnSuccess
         closePopUpOnSuccess="cabinSettings"

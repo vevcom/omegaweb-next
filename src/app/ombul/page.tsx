@@ -28,7 +28,7 @@ const { page, generateMetadata } = serverPage({
             }
             groups[year].push(ombul)
             return groups
-        }, {} as { [year: number]: ExpandedOmbul[] })).toSorted(
+        }, {} as Record<number, ExpandedOmbul[]>)).toSorted(
             ([yearOne], [yearTwo]) => parseInt(yearTwo, 10) - parseInt(yearOne, 10)
         )
 

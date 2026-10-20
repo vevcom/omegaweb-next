@@ -11,6 +11,7 @@ import logger from '@/lib/logger'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { File } from 'node:buffer'
+import type { Awaitable } from '@/lib/awaitable'
 
 export const ombulOperations = {
     read: defineOperation({
@@ -236,7 +237,7 @@ export const ombulOperations = {
  */
 async function withStoredOmbulFile<Result>(
     ombulFile: File,
-    write: (fsLocation: string) => Promise<Result>,
+    write: (fsLocation: string) => Awaitable<Result>,
 ): Promise<Result> {
     const { fsLocation } = await ombulStore.createFile(ombulFile, ['pdf'])
     try {
@@ -253,7 +254,7 @@ async function withStoredOmbulFile<Result>(
  * than thrown.
  */
 async function destroyStoredOmbulFile(fsLocation: string, context: string): Promise<void> {
-    await ombulStore.destroyFile(fsLocation, undefined, false).catch(error => {
+    await ombulStore.destroyFile(fsLocation, undefined, false).catch((error: unknown) => {
         logger.error(`Failed to clean up ombul file ${fsLocation} after ${context}`, { error })
     })
 }

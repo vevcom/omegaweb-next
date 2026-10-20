@@ -135,10 +135,11 @@
     .Menu {
         width: auto;
         max-width: unset;
-        top: calc(#{ohma.$nav-height} + #{ohma.$gap}*2);
-        height: calc(100dvh - #{ohma.$nav-height}*2 - #{ohma.$gap}*4);
-        left: ohma.$gap;
-        right: ohma.$gap;
+        top: calc(#{ohma.$nav-height} + #{ohma.$gap} * 2 + env(safe-area-inset-top));
+        bottom: calc(#{ohma.$nav-height} + #{ohma.$gap} * 2 + env(safe-area-inset-bottom));
+        height: auto;
+        left: calc(#{ohma.$gap} + env(safe-area-inset-left));
+        right: calc(#{ohma.$gap} + env(safe-area-inset-right));
         border-radius: ohma.$rounding;
         > div {
             top: 0;

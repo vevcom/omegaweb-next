@@ -9,7 +9,7 @@ export default function SimpleTable<T extends string[]>({
     links,
 }: {
     header: T,
-    body: Array<{ [K in keyof T]: ReactNode }>,
+    body: { [K in keyof T]: ReactNode }[],
     links?: T,
 }) {
     return <table className={styles.table}>

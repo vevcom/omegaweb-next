@@ -5,7 +5,7 @@ import { forbidden, notFound, redirect } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
+    operation: ({ params, session }: PageOperationArgs<{ username: string }>) => {
         if (!session.user) notFound()
 
         if (params.username === 'me') {

@@ -63,7 +63,7 @@ inside projectnext-container
 
 Production runs on [Dokploy](https://dokploy.com/) as a **Docker Compose application** built from `docker-compose.prod.yml`, plus a **separate Dokploy Postgres resource** for the database.
 
-The stack itself holds `projectnext` (the Next.js server) and `imageworker` (the background resize pipeline). The database stays outside it on purpose: as a Dokploy resource it keeps its scheduled backups and restore UI, and its data is not attached to the lifecycle of a stack you redeploy on every push. Mail stays outside it too - see [Mail](#mail).
+The stack itself holds `projectnext` (the Next.js server) and `worker` (the background workers: image resizing, notification mails and cleaning up orphaned files in the store). The database stays outside it on purpose: as a Dokploy resource it keeps its scheduled backups and restore UI, and its data is not attached to the lifecycle of a stack you redeploy on every push. Mail stays outside it too - see [Mail](#mail).
 
 There is no nginx. Next serves `/store/` itself (`src/app/store/[...path]/route.ts`), in dev and prod alike.
 
@@ -73,13 +73,13 @@ There is no nginx. Next serves `/store/` itself (`src/app/store/[...path]/route.
 2. **Stack**: create a Dokploy Docker Compose service pointed at this repository (`main`, or whichever branch tracks prod), with the compose path set to `docker-compose.prod.yml`.
 3. Configure the environment variables for the stack (see `.env.default` for the full list and dev-appropriate example values - set real secrets for production). Set `POSTGRES_HOST` to the database resource's internal hostname; `DB_URI` is built from it.
 4. Set `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` as a **build argument**, not only a runtime environment variable. Next bakes it into the build during `next build` to encrypt Server Action IDs, and a runtime env var is not automatically passed to the build - so a build without it generates a fresh random key every time. Because Dokploy rebuilds the image on every deploy, that invalidates any Server Action referenced by a page a client still has open across the deploy ("Failed to find Server Action"). `docker-compose.base.yml` already passes it through under `build.args`, so setting it as a stack environment variable is enough - but it must keep the same value across deploys.
-5. The `store` and `logs` volumes are declared in the compose file, so uploads and logs survive a redeploy without any extra setup. `store` is shared by `projectnext` and `imageworker` - the worker writes the resized variants and the app serves them back out.
+5. The `store` and `logs` volumes are declared in the compose file, so uploads and logs survive a redeploy without any extra setup. `store` is shared by `projectnext` and `worker` - the worker writes the resized variants and the app serves them back out.
 6. In Dokploy's UI, set the domain on the `projectnext` service. Dokploy injects the Traefik labels itself. A liveness endpoint is available at `/api/health` (also used by the compose healthcheck) if Dokploy asks for one.
 7. Ingress goes through a Cloudflare Tunnel app in Dokploy, which forwards to Dokploy's built-in Traefik; Traefik then routes to `projectnext`. Nothing needs host ports 80/443 opened directly.
 
 Dokploy brings the stack up itself. To deploy by hand on a host that already has `dokploy-network` and the database resource, `npm run docker:prod-deploy` runs the same file detached and without the `localdb` profile.
 
-**Every service joins `dokploy-network` explicitly**, and the compose file declares it `external: true`. Dokploy attaches that network automatically only to the service a domain is configured on, so without the explicit `networks:` entries `imageworker` cannot resolve the database's hostname at all - which presents as the worker failing to connect while the web app looks perfectly healthy.
+**Every service joins `dokploy-network` explicitly**, and the compose file declares it `external: true`. Dokploy attaches that network automatically only to the service a domain is configured on, so without the explicit `networks:` entries `worker` cannot resolve the database's hostname at all - which presents as the worker failing to connect while the web app looks perfectly healthy.
 
 Set `BUILDX_NO_DEFAULT_ATTESTATIONS=1` in the build environment. BuildKit otherwise attaches a provenance attestation and packs the result as a multi-platform manifest list, which nothing here consumes and which shows up as extra `exporting attestation manifest` work on every deploy.
 
@@ -101,7 +101,7 @@ The same one-shot then runs the standard seed (`seed:data`, via `migrate:deploy-
 
 Migrations therefore run *before* the new code is serving, while the previous release may still be up. Keep each migration backward-compatible with the release before it: add columns nullable, backfill, and drop the old shape in a later release rather than in the same one.
 
-The `migrate` service runs the `tools` image with the command overridden. A dedicated leaner stage was measured and abandoned: at 2.80 GB against `tools`' 2.81 GB it saved nothing, because the weight is all in the shared `base` layer (`npm ci` with devDependencies, both generated Prisma clients) rather than in the source tree on top. Reusing `tools` means the one-shot is the same image `imageworker` already builds, so it adds no build time at all. The `tools` image has no default command: `migrate`, `imageworker` and `notificationworker` each set their own, and a one-shot job such as DobbelOmega - which force-resets the database - only runs when it is named.
+The `migrate` service runs the `tools` image with the command overridden. A dedicated leaner stage was measured and abandoned: at 2.80 GB against `tools`' 2.81 GB it saved nothing, because the weight is all in the shared `base` layer (`npm ci` with devDependencies, both generated Prisma clients) rather than in the source tree on top. Reusing `tools` means the one-shot is the same image `worker` already builds, so it adds no build time at all. The `tools` image has no default command: `migrate` and `worker` each set their own, and a one-shot job such as DobbelOmega - which force-resets the database - only runs when it is named.
 
 To run it by hand against a database - the first deploy into an empty Dokploy Postgres resource, say:
 

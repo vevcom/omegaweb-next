@@ -98,7 +98,11 @@ async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number }
     })
     await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
     if (ledgerAccountId) {
-        await eventOperations.connectToLedger({ params: { id: event.id }, data: { ledgerAccountId }, bypassAuth: true })
+        await eventOperations.connectToLedgerAccount({
+            params: { id: event.id },
+            data: { ledgerAccountId },
+            bypassAuth: true,
+        })
     }
     return event.id
 }
@@ -155,7 +159,7 @@ describe('paying for an event', () => {
         const eventId = await createPaidEvent()
         const userAccount = await ledgerAccountOperations.read({ params: { userId: payer.id }, bypassAuth: true })
 
-        await expect(eventOperations.connectToLedger({
+        await expect(eventOperations.connectToLedgerAccount({
             params: { id: eventId },
             data: { ledgerAccountId: userAccount.id },
             bypassAuth: true,

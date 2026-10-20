@@ -45,7 +45,7 @@ export const shopSchemas = {
             visibilityRegularRequirements: true,
         }),
         update: shopDetails,
-        connectToLedger: dataFieldSchemas.pick({
+        connectToLedgerAccount: dataFieldSchemas.pick({
             ledgerAccountId: true,
         }),
         // A product created from a shop is what the product service stores, at a price the shop
@@ -69,7 +69,7 @@ export const shopSchemas = {
         visibility: shopId,
         read: shopId,
         update: shopId,
-        connectToLedger: shopId,
+        connectToLedgerAccount: shopId,
         createProduct: shopId,
         connectProduct: shopId,
         updateProduct: paramsFieldSchemas.pick({

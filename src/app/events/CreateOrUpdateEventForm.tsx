@@ -11,7 +11,7 @@ import TextInput from '@/components/UI/TextInput'
 import EventTag from '@/components/Event/EventTag'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { createEventAction, updateEventAction } from '@/services/events/actions'
-import { eventCanBeViewdByOptions } from '@/services/events/constants'
+import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import { configureAction } from '@/services/configureAction'
 import { formatVevenUri } from '@/lib/urlEncoding'
@@ -64,7 +64,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                     className={styles.canBeViewedBy}
                     label="Hvem kan se"
                     name="canBeViewedBy"
-                    options={eventCanBeViewdByOptions}
+                    options={eventCanBeViewedByOptions}
                     defaultValue={event?.canBeViewedBy}
                 />
                 <DateInput label="Start" name="eventStart" includeTime defaultValue={event?.eventStart} />

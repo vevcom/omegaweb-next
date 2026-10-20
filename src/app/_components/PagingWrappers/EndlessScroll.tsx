@@ -51,7 +51,7 @@ export default function EndlessScroll<Data, Cursor, const PageSize extends numbe
     }, [loadMore, inView])
 
     useEffect(() => {
-        loadMoreCallback()
+        void loadMoreCallback()
     }, [inView, loadMoreCallback])
 
 

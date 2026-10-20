@@ -13,7 +13,7 @@ type PropTypes = {
     navItems: NavLink[]
 }
 
-export default async function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
+export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
     return (
         <nav className={styles.MobileNavBar}>
             <MobileNavBarItems navItems={navItems} />

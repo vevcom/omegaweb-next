@@ -6,6 +6,7 @@ import { createCabinBookingPaymentAction } from '@/services/cabin/booking/action
 import type { LedgerTransactionPaymentMethod } from './LedgerTransactionModal'
 import type { ActionReturn } from '@/services/actionTypes'
 import type { ReactNode } from 'react'
+import type { Awaitable } from '@/lib/awaitable'
 
 export type CabinBookingReservation = {
     bookingId: number,
@@ -24,7 +25,7 @@ type Props = {
     // Creates (or, when resuming an already-reserved booking, simply returns) the booking to pay
     // for. Which of the create*/createBed* actions this calls - and whether one is even needed -
     // varies per caller, so it stays a callback rather than logic owned by this component.
-    getReservation: () => Promise<ActionReturn<CabinBookingReservation>>,
+    getReservation: () => Awaitable<ActionReturn<CabinBookingReservation>>,
     onReservationCreated?: (reservation: CabinBookingReservation) => void,
 }
 

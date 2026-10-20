@@ -27,7 +27,7 @@ function loginOf(email: string, realms: string[] = []) {
     return {
         providerAccountId: `feide-sub-${email}`,
         email,
-        readRealms: async () => realms,
+        readRealms: () => realms,
     }
 }
 

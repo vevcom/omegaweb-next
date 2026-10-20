@@ -38,10 +38,6 @@ const migration = implementManualMigrationPerGroup({
         migrateGroup: ({ groupId }) => manualGroupAuth.migrateGroup.data({ groupId }),
         pension: () => manualGroupAuth.pension,
     },
-    setPensioned: (prisma, groupId, pensioned) => prisma.manualGroup.update({
-        where: { groupId },
-        data: { pensioned },
-    }),
 })
 
 const create = defineOperation({
@@ -66,7 +62,9 @@ const create = defineOperation({
 
 const readMany = defineOperation({
     authorizer: () => manualGroupAuth.readMany,
-    operation: async ({ prisma }) => prisma.manualGroup.findMany()
+    operation: async ({ prisma }) => prisma.manualGroup.findMany({
+        include: { group: { select: { pensioned: true } } },
+    })
 })
 
 const read = defineOperation({
@@ -74,6 +72,7 @@ const read = defineOperation({
     authorizer: () => manualGroupAuth.read,
     operation: async ({ prisma, params }) => prisma.manualGroup.findUniqueOrThrow({
         where: { id: params.id },
+        include: { group: { select: { pensioned: true } } },
     })
 })
 

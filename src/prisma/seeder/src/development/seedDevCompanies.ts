@@ -33,6 +33,6 @@ export const seedDevCompanies = defineSeedOperation(async (prisma: PrismaClient)
                 data: devCompanySponsor(index),
             })
         },
-        update: () => Promise.resolve(),
+        update: () => {},
     })))
 })

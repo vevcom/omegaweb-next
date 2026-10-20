@@ -7,7 +7,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     // The page reads nothing - the operation only gates it.
-    operation: async ({ session }: PageOperationArgs) => {
+    operation: ({ session }: PageOperationArgs) => {
         authorizeAdminPage('send-mail', session)
         return null
     },

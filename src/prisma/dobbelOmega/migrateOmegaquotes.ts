@@ -48,7 +48,7 @@ export default async function migrateOmegaquotes(
         data.push({
             quote: quote.quote,
             author: quote.author,
-            timestamp: quote.timestamp || new Date(),
+            timestamp: quote.timestamp ?? new Date(),
             userPosterId: pnPosterId,
         })
         bar.increment()

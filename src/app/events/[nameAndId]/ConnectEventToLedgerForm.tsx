@@ -1,5 +1,5 @@
 'use client'
-import { connectEventToLedgerAction } from '@/services/events/actions'
+import { connectEventToLedgerAccountAction } from '@/services/events/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
 import { SelectNumber } from '@/components/UI/Select'
@@ -17,7 +17,7 @@ export default function ConnectEventToLedgerForm({
     if (ledgerAccounts.length === 0) return <p>Du har ingen gruppekontoer å knytte arrangementet til.</p>
 
     return <Form
-        action={configureAction(connectEventToLedgerAction, { params: { id: eventId } })}
+        action={configureAction(connectEventToLedgerAccountAction, { params: { id: eventId } })}
         submitText="Knytt til konto"
         refreshOnSuccess
         closePopUpOnSuccess="EditEvent"

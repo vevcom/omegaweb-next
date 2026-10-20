@@ -35,7 +35,7 @@ export function owIdToPnId(
 ): number | null {
     if (!owId) return null
     const entry = mapper.find(mapped => mapped.owId === owId)
-    if (entry && entry.pnId === null) return null
+    if (entry?.pnId === null) return null
     const id = entry?.pnId
     if (!id) {
         // A missing image is routine - migration limits leave the map short on purpose, and a limited

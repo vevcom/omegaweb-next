@@ -25,7 +25,7 @@ const { page, generateMetadata } = serverPage({
                 name: interestGroup.name,
                 order: expanded.order,
                 members: expanded.members,
-                pensioned: interestGroup.pensioned,
+                pensioned: interestGroup.group.pensioned,
                 href: `/interest-groups/${interestGroup.id}`,
             }] : []
         })

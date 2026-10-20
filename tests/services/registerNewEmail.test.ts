@@ -7,16 +7,16 @@ import { userSchemas } from '@/services/users/schemas'
 import { userPrivateSelection } from '@/services/users/constants'
 import { describe, expect, test } from '@jest/globals'
 
-// Sending mail does not work under jest, so these stay on the paths that send no verification mail:
-// a refusal, or a switch to the Feide email, which Feide has already verified.
+// Mail is not actually sent under jest (see mailHandler), so a verification mail shows up only as
+// `verified: false` with the email left unchanged.
 
 const password = 'riktig-passord-123'
 let userCounter = 0
 
-async function createUser({ withPassword }: { withPassword: boolean }) {
+async function createUser({ withPassword, feideDomain = 'stud.ntnu.no' }: { withPassword: boolean, feideDomain?: string }) {
     const username = `ny-epost-${++userCounter}`
     const email = `${username}@example.com`
-    const feideEmail = `feide-${username}@stud.ntnu.no`
+    const feideEmail = `feide-${username}@${feideDomain}`
     const user = await prisma.user.create({
         data: {
             username,
@@ -85,6 +85,13 @@ describe('changing the email of a user', () => {
     test('needs no password from a user still signing up', async () => {
         const testUser = await createUser({ withPassword: false })
         expect(await changeEmail(testUser, {})).toEqual({ verified: true, email: testUser.feideEmail })
+    })
+
+    test('verifies a Feide email from another organisation by mail rather than trusting it', async () => {
+        const testUser = await createUser({ withPassword: false, feideDomain: 'uio.no' })
+
+        expect(await changeEmail(testUser, {})).toEqual({ verified: false, email: testUser.feideEmail })
+        expect(await emailOf(testUser)).toBe(testUser.user.email)
     })
 
     test('lowercases and trims the email', () => {

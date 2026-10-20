@@ -7,7 +7,7 @@ import type { LayoutOperationArgs } from '@/app/ServerPage'
 
 export default serverLayout({
     // Only what the sidebar renders crosses into it - the authorizers stay on the server.
-    operation: async ({ session }: LayoutOperationArgs) => visibleAdminNav(session).map(group => ({
+    operation: ({ session }: LayoutOperationArgs) => visibleAdminNav(session).map(group => ({
         header: group.header,
         links: group.links.map(({ title, path }) => ({ title, path })),
     })),

@@ -1,7 +1,9 @@
 import { Smorekopp } from '@/services/error'
 import type { SessionType, UserGuaranteeOption } from '@/auth/session/Session'
 
-export type AuthStatus = 'AUTHORIZED' | 'UNAUTHORIZED' | 'AUTHORIZED_NO_USER' | 'UNAUTHENTICATED'
+export type AuthSuccessStatus = 'AUTHORIZED' | 'AUTHORIZED_NO_USER'
+export type AuthFailureStatus = 'UNAUTHORIZED' | 'UNAUTHENTICATED'
+export type AuthStatus = AuthSuccessStatus | AuthFailureStatus
 
 export type AuthResultTypeWithoutStatus<
     UserGuarantee extends UserGuaranteeOption,
@@ -60,12 +62,13 @@ export class AuthResult<
     }
 
     public get status(): AuthStatus {
-        if (this.authResult.session.user) {
-            if (this.authorized) return 'AUTHORIZED'
-            return 'UNAUTHORIZED'
-        }
-        if (this.authorized) return 'AUTHORIZED_NO_USER'
+        if (this.authorized) return this.authResult.session.user ? 'AUTHORIZED' : 'AUTHORIZED_NO_USER'
+        return this.failureStatus
+    }
 
+    /** The status the result would have if it were not authorized: what to throw when it isn't. */
+    public get failureStatus(): AuthFailureStatus {
+        if (this.authResult.session.user) return 'UNAUTHORIZED'
         if (typeof this.authResult.session.apiKeyId === 'number') return 'UNAUTHORIZED'
         return 'UNAUTHENTICATED'
     }
@@ -113,7 +116,7 @@ export class AuthResult<
      */
     public requireAuthorized(): Authorized extends true ? AuthResult<UserGuarantee, true, PrismaWhereFilter> : never {
         if (!this.authorized) {
-            throw new Smorekopp(this.status, this.getErrorMessage)
+            throw new Smorekopp(this.failureStatus, this.getErrorMessage)
         }
         return new AuthResult<UserGuarantee, true, PrismaWhereFilter>(
             this.session, true, this.authResult.prismaWhereFilter

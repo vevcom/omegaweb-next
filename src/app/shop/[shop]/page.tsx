@@ -48,7 +48,7 @@ const { page, generateMetadata } = serverPage({
         canUpdateShop: shopAuth.update.data({ visibility: data.shop.visibility }),
         canUpdateRegularLevel: shopAuth.updateRegularLevel.data({ visibility: data.shop.visibility }),
         canUpdateAdminLevel: shopAuth.updateAdminLevel.data({ visibility: data.shop.visibility }),
-        canConnectToLedger: shopAuth.connectToLedger.data({
+        canConnectToLedgerAccount: shopAuth.connectToLedgerAccount.data({
             visibility: data.shop.visibility,
             accounts: data.ledgerAccounts.map(account => account.ownership),
         }),
@@ -73,13 +73,13 @@ const { page, generateMetadata } = serverPage({
                     )}
                     {(
                         capabilities.canUpdateShop.authorized ||
-                        capabilities.canConnectToLedger.authorized ||
+                        capabilities.canConnectToLedgerAccount.authorized ||
                         capabilities.canUpdateRegularLevel.authorized ||
                         capabilities.canUpdateAdminLevel.authorized
                     ) && (
                         <SettingsHeaderItemPopUp scale={30} popUpKey="shopSettings">
                             {capabilities.canUpdateShop.authorized && <UpdateShopForm shop={shop} />}
-                            {capabilities.canConnectToLedger.authorized && <>
+                            {capabilities.canConnectToLedgerAccount.authorized && <>
                                 <p>
                                     Konto: {shop.ledgerAccount
                                         ? (shop.ledgerAccount.name ?? `Konto ${shop.ledgerAccount.id}`)

@@ -28,7 +28,7 @@ export default function VerifyEmail({ token }: { token: string }) {
                 submitText="Bekreft"
                 successCallback={(user?: VerifiedUser) => user && setVerifiedUser(user)}
                 navigateOnSuccess={(user?: VerifiedUser) => (
-                    user && user.id === sessionUserId && !user.acceptedTerms ? '/register' : null
+                    user?.id === sessionUserId && !user.acceptedTerms ? '/register' : null
                 )}
             />
         )

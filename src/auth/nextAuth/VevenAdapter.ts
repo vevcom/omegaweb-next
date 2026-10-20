@@ -199,28 +199,28 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                 `to Feide account with ID ${feideAccount.id}.`
             )
         },
-        async deleteUser() {
+        deleteUser() {
             throw new Error('Delete user from next auth is not implemented')
         },
-        async unlinkAccount() {
+        unlinkAccount() {
             throw new Error('Unlink account from next auth is not implemented')
         },
-        async createSession() {
+        createSession() {
             throw new Error('Create session from next auth is not implemented')
         },
-        async getSessionAndUser() {
+        getSessionAndUser() {
             throw new Error('Get session and user from next auth is not implemented')
         },
-        async updateSession() {
+        updateSession() {
             throw new Error('Update session from next auth is not implemented')
         },
-        async deleteSession() {
+        deleteSession() {
             throw new Error('Delete session from next auth is not implemented')
         },
-        async createVerificationToken() {
+        createVerificationToken() {
             throw new Error('Create verification token from next auth is not implemented')
         },
-        async useVerificationToken() {
+        useVerificationToken() {
             throw new Error('Use verification token from next auth is not implemented')
         },
     }

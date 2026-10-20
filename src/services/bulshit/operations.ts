@@ -1,22 +1,22 @@
 import '@pn-server-only'
-import { bullshitAuth } from './auth'
-import { bullshitSchemas } from './schemas'
-import { bullshitFilterSelection } from './constants'
+import { bulshitAuth } from './auth'
+import { bulshitSchemas } from './schemas'
+import { bulshitFilterSelection } from './constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 
-export const bullshitOperations = {
+export const bulshitOperations = {
     create: defineOperation({
-        authorizer: ({ params }) => bullshitAuth.create.data({ userId: params.bullshitPosterId }),
-        dataSchema: bullshitSchemas.data.create,
-        paramsSchema: bullshitSchemas.params.create,
+        authorizer: ({ params }) => bulshitAuth.create.data({ userId: params.bulshitPosterId }),
+        dataSchema: bulshitSchemas.data.create,
+        paramsSchema: bulshitSchemas.params.create,
         operation: async ({ prisma, data, params }) => {
-            await prisma.bullshit.create({
+            await prisma.bulshit.create({
                 data: {
                     ...data,
-                    bullshitPoster: {
+                    bulshitPoster: {
                         connect: {
-                            id: params.bullshitPosterId
+                            id: params.bulshitPosterId
                         }
                     }
                 }
@@ -24,10 +24,10 @@ export const bullshitOperations = {
         }
     }),
     readPage: defineOperation({
-        paramsSchema: bullshitSchemas.params.readPage,
-        authorizer: () => bullshitAuth.readPage,
+        paramsSchema: bulshitSchemas.params.readPage,
+        authorizer: () => bulshitAuth.readPage,
         operation: async ({ prisma, params }) =>
-            prisma.bullshit.findMany({
+            prisma.bulshit.findMany({
                 // `timestamp` alone is not a total order - the dev seed gives a whole batch the
                 // same one - while the cursor is `id`. Without `id` in the ordering a page
                 // boundary falling inside a group of tied timestamps skips or repeats quotes.
@@ -36,7 +36,7 @@ export const bullshitOperations = {
                     { id: 'desc' },
                 ],
                 ...cursorPagingSelection(params.paging.page),
-                select: bullshitFilterSelection,
+                select: bulshitFilterSelection,
             })
     }),
 } as const

@@ -1,12 +1,12 @@
 import { Zpn } from '@/lib/fields/zpn'
 import { imageSchemas } from '@/services/images/subservice/schemas'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
-import { SEX, RelationshipStatus, Theme } from '@/prisma-generated-pn-types'
+import { Sex, RelationshipStatus, Theme } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 export const userDataFieldSchemas = z.object({
     username: z.string().max(50).min(2).toLowerCase(),
-    sex: z.nativeEnum(SEX).optional().nullable(),
+    sex: z.nativeEnum(Sex).optional().nullable(),
     email: z.string().trim().toLowerCase()
         .max(200)
         .min(2)

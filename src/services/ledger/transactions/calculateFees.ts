@@ -46,7 +46,7 @@ export function calculateCreditFees(
 ) {
     // If payment is attached but fees are null,
     // return null until it completes.
-    if (payment && payment.fees === null) return null
+    if (payment?.fees === null) return null
 
     const creditLedgerEntries = ledgerEntries.filter(entry => entry.funds > 0)
     const debitLedgerEntries = ledgerEntries.filter(entry => entry.funds < 0)

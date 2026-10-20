@@ -143,7 +143,7 @@ async function upsertDynamicImageForCms(
             }),
             params: { collectionId }
         }),
-        update: () => Promise.resolve(),
+        update: () => {},
     })
 }
 

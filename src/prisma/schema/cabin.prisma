@@ -29,6 +29,9 @@ model CabinProduct {
   amount            Int
   CabinProductPrice CabinProductPrice[]
   BookingProduct    BookingProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model BookingProduct {
@@ -72,6 +75,9 @@ model Booking {
   event              Event?              @relation(fields: [eventId], references: [id])
   eventId            Int?
   BookingProduct     BookingProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CabinGuest {

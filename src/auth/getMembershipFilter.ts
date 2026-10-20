@@ -12,7 +12,7 @@ import type { Prisma } from '@/prisma-generated-pn-types'
  */
 export function getMembershipFilter(
     order: MembershipSelectorType,
-    groupId?: number | undefined,
+    groupId?: number,
     admin: boolean | undefined = undefined
 ) {
     return {

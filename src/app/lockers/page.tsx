@@ -10,7 +10,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     // The list is fetched by the client, so the page checks the rule of that read itself.
-    operation: async ({ session }: PageOperationArgs) => {
+    operation: ({ session }: PageOperationArgs) => {
         lockerAuth.readPage.auth(session).requireAuthorized()
     },
     metadata: () => ({ title: 'Skap' }),

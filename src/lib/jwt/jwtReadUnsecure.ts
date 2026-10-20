@@ -9,19 +9,26 @@ import type { JWT } from './jwt'
 export function readJWTPayload<T = Record<string, unknown>>(jwtString: string): JWT<T> {
     const payload = readJWTPart(jwtString, 1)
 
-    if (!(
-        payload &&
-        typeof payload === 'object' &&
-        typeof payload.iss === 'string' &&
-        typeof payload.aud === 'string' &&
-        (typeof payload.sub === 'number' || typeof payload.sub === 'string') &&
-        typeof payload.iat === 'number' &&
-        typeof payload.exp === 'number'
-    )) {
+    if (!hasRegisteredClaims<T>(payload)) {
         throw new Error('Invalid JWT string')
     }
 
     return payload
+}
+
+/**
+ * Checks the registered claims of a jwt payload. The claims of `T` are not checked, they are trusted.
+ */
+function hasRegisteredClaims<T>(payload: unknown): payload is JWT<T> {
+    return (
+        typeof payload === 'object' &&
+        payload !== null &&
+        'iss' in payload && typeof payload.iss === 'string' &&
+        'aud' in payload && typeof payload.aud === 'string' &&
+        'sub' in payload && (typeof payload.sub === 'number' || typeof payload.sub === 'string') &&
+        'iat' in payload && typeof payload.iat === 'number' &&
+        'exp' in payload && typeof payload.exp === 'number'
+    )
 }
 
 
@@ -31,9 +38,9 @@ export function readJWTPayload<T = Record<string, unknown>>(jwtString: string): 
  *
  * @param jwtString - The JWT string to read from.
  * @param part - The part of the JWT to read. Default is 1 (payload).
- * @returns The parsed JSON object of the specified JWT part.
+ * @returns The parsed JSON of the specified JWT part, unvalidated.
  */
-export function readJWTPart(jwtString: string, part: 0 | 1 | 2 = 1) {
+export function readJWTPart(jwtString: string, part: 0 | 1 | 2 = 1): unknown {
     const parts = jwtString.split('.')
     const payload = new TextDecoder().decode(decodeBase64Url(parts[part]))
     return JSON.parse(payload)

@@ -243,7 +243,7 @@ export default function StateWrapper({
             : { bookingProducts, baseData, firstname, lastname, email, mobile })
 
         const cached = reservationCache.current
-        if (cached && cached.inputsKey === inputsKey && cached.reservation.expiresAt.getTime() > Date.now()) {
+        if (cached?.inputsKey === inputsKey && cached.reservation.expiresAt.getTime() > Date.now()) {
             return { success: true, data: cached.reservation }
         }
 
@@ -284,7 +284,7 @@ export default function StateWrapper({
                 availablePaymentMethods={user ? ['STRIPE', 'MANUAL'] : ['STRIPE']}
                 availableBalance={user ? availableBalance : undefined}
                 customerSessionClientSecret={user ? customerSessionClientSecret : undefined}
-                getReservation={async () => ({ success: true, data: reservation })}
+                getReservation={() => ({ success: true, data: reservation })}
                 triggerLabel="Fullfør betaling"
             >
                 <p>Reservasjon #{reservation.bookingId}</p>

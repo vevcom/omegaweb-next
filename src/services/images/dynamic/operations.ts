@@ -64,7 +64,7 @@ const readCollection = defineOperation({
 
 const readCollectionPage = defineOperation({
     paramsSchema: dynamicImageSchemas.params.readCollectionPage,
-    authorizer: async () => dynamicImageAuth.readCollectionPage,
+    authorizer: () => dynamicImageAuth.readCollectionPage,
     operation: async ({ prisma, params }, prismaWhereFilter) => {
         const collections = await prisma.imageCollection.findMany({
             ...cursorPagingSelection(params.paging.page),

@@ -3,14 +3,14 @@ import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { EventCanView } from '@/prisma-generated-pn-types'
 import type { Event, Prisma } from '@/prisma-generated-pn-types'
 
-export const eventCanBeViewdBy = {
+export const eventCanBeViewedBy = {
     ALL: { label: 'Alle' },
     CAN_REGISTER: { label: 'Alle som kan melde seg på' }
 } satisfies Record<EventCanView, { label: string }>
 
-export const eventCanBeViewdByOptions = Object.values(EventCanView).map(opt => ({
+export const eventCanBeViewedByOptions = Object.values(EventCanView).map(opt => ({
     value: opt,
-    label: eventCanBeViewdBy[opt].label
+    label: eventCanBeViewedBy[opt].label
 }))
 
 export const eventFieldsToExpose = [

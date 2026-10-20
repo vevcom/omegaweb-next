@@ -2,7 +2,6 @@ import { prisma } from '@/prisma/client'
 import { stripe } from '@/lib/stripe'
 import { cabinBookingOperations } from '@/services/cabin/booking/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
-import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
 import { afterEach, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 
 const dayMs = 24 * 60 * 60 * 1000
@@ -14,12 +13,12 @@ let paymentIntentCount = 0
  * intent gets its own id, since the id is unique across the stored payments.
  */
 function mockStripe() {
-    jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => {
+    jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => {
         paymentIntentCount += 1
-        return {
+        return Promise.resolve({
             id: `pi_test_${paymentIntentCount}`,
             client_secret: `pi_test_${paymentIntentCount}_secret`,
-        } as never
+        } as never)
     })
     jest.spyOn(stripe.paymentIntents, 'cancel').mockResolvedValue({} as never)
 }
@@ -61,21 +60,8 @@ function releaseReservation(booking: { id: number, secret: string }) {
     })
 }
 
-/**
- * Starts an attempt on the booking and ages it past the stale limit. Both createPayment and
- * releaseReservation cancel such an attempt through ledgerTransactionOperations.cancel before
- * they touch the booking, which gives a test a point to run the racing operation at.
- */
-async function createStaleAttempt(booking: { id: number, secret: string }) {
-    await createPayment(booking)
-    await prisma.ledgerTransaction.updateMany({
-        where: { bookingId: booking.id },
-        data: { createdAt: new Date(Date.now() - stalePendingTransactionMs - 1000) },
-    })
-}
-
-/** The error either operation gives up with when the other got to the booking first. */
-function raceLost(message: string) {
+/** The error an operation is refused with. */
+function refusal(message: string) {
     return { errorCode: 'BAD PARAMETERS', errors: [{ message: expect.stringContaining(message) }] }
 }
 
@@ -114,28 +100,44 @@ describe('cabin booking payment and release', () => {
         await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: true, liveAttempts: 0 })
     })
 
-    test('a payment attempt that a release got ahead of creates nothing', async () => {
+    test('a payment attempt after a release creates nothing', async () => {
         const booking = await createReservation(new Date('2030-02-10'))
-        await createStaleAttempt(booking)
-        jest.spyOn(ledgerTransactionOperations, 'cancel').mockImplementationOnce(async () => {
-            await releaseReservation(booking)
-            return undefined as never
-        })
+        await releaseReservation(booking)
 
-        await expect(createPayment(booking)).rejects.toMatchObject(raceLost('i mellomtiden'))
+        await expect(createPayment(booking)).rejects.toMatchObject(refusal('kansellert'))
 
         await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: true, liveAttempts: 0 })
     })
 
-    test('a release that a payment attempt got ahead of keeps the reservation', async () => {
+    test('a payment attempt and a release at the same time always end released', async () => {
         const booking = await createReservation(new Date('2030-03-10'))
-        await createStaleAttempt(booking)
-        jest.spyOn(ledgerTransactionOperations, 'cancel').mockImplementationOnce(async () => {
-            await createPayment(booking)
-            return undefined as never
+
+        // Whichever locks the booking first, the release cancels the reservation and any attempt.
+        const [, release] = await Promise.allSettled([createPayment(booking), releaseReservation(booking)])
+
+        expect(release.status).toBe('fulfilled')
+        await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: true, liveAttempts: 0 })
+    })
+
+    test('a second payment attempt is refused while one is pending', async () => {
+        const booking = await createReservation(new Date('2030-05-10'))
+        await createPayment(booking)
+
+        await expect(createPayment(booking)).rejects.toMatchObject(refusal('allerede en betaling under behandling'))
+
+        await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 1 })
+    })
+
+    test('a release that loses to a payment success leaves the booking', async () => {
+        const booking = await createReservation(new Date('2030-06-10'))
+        await createPayment(booking)
+        // Stands in for advance() committing the success while the release cancels the attempt.
+        jest.spyOn(stripe.paymentIntents, 'cancel').mockImplementation(async () => {
+            await prisma.ledgerTransaction.updateMany({ where: { bookingId: booking.id }, data: { state: 'SUCCEEDED' } })
+            return {} as never
         })
 
-        await expect(releaseReservation(booking)).rejects.toMatchObject(raceLost('Prøv igjen'))
+        await expect(releaseReservation(booking)).rejects.toMatchObject(refusal('ventende'))
 
         await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 1 })
     })

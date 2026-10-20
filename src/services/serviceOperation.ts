@@ -12,6 +12,7 @@ import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { z } from 'zod'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma, PrismaClient } from '@/prisma-generated-pn-client'
+import type { Awaitable } from '@/lib/awaitable'
 
 export type InferredOrInput<Schema extends z.ZodTypeAny | undefined, InferredOrInputMode extends 'INFERRED' | 'INPUT'> =
     Schema extends undefined
@@ -56,6 +57,23 @@ export type ServiceOperationExecuteArgs<
         )
     )
 
+/**
+ * The arguments a caller passes to a service operation. Data is parsed with zfd.formData, so a caller
+ * may also pass the FormData from a form as it is.
+ */
+export type ServiceOperationCallArgs<
+    Unsafe extends 'UNSAFE' | 'SAFE',
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    ImplementationParamsSchema extends z.ZodTypeAny | undefined
+> =
+    | ServiceOperationExecuteArgs<Unsafe, ParamsSchema, DataSchema, ImplementationParamsSchema>
+    | (DataSchema extends undefined ? never : (
+        & ParamsObject<ParamsSchema, 'INPUT'>
+        & ImplementationParamsObject<ImplementationParamsSchema, 'INPUT'>
+        & { data: FormData }
+    ))
+
 export type ServiceOperationOperation<
     OpensTransaction extends boolean,
     ParamsSchema extends z.ZodTypeAny | undefined,
@@ -68,7 +86,7 @@ export type ServiceOperationOperation<
         & DataObject<DataSchema, 'INFERRED'>
         & ServiceOperationContext<OpensTransaction>
     , prismaWhereFilter: PrismaWhereFilter | undefined
-) => Promise<Return> | Return
+) => Awaitable<Return>
 
 export type SubServiceOperationConfig<
     ParamsSchema extends z.ZodTypeAny | undefined,
@@ -107,13 +125,9 @@ export type AuthorizerGetter<
 > = (
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
 ) =>
-        | Authorizer<
+        Awaitable<Authorizer<
             'USER_NOT_REQUIRED_FOR_AUTHORIZED' | 'USER_REQUIRED_FOR_AUTHORIZED', PrismaWhereFilter
-        > | Promise<
-            Authorizer<
-                'USER_NOT_REQUIRED_FOR_AUTHORIZED' | 'USER_REQUIRED_FOR_AUTHORIZED', PrismaWhereFilter
-            >
-        >
+        >>
 
 export type OwnershipCheck<
     OpensTransaction extends boolean,
@@ -122,7 +136,7 @@ export type OwnershipCheck<
     ImplementationParamsSchema extends z.ZodTypeAny | undefined,
 > = (
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
-) => boolean | Promise<boolean>
+) => Awaitable<boolean>
 
 /**
  * A hook an implementation may run right before the operation itself. It gets the same arguments as
@@ -140,7 +154,7 @@ export type BeforeRun<
     ImplementationParamsSchema extends z.ZodTypeAny | undefined,
 > = (
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
-) => void | Promise<void>
+) => Awaitable<void>
 
 /** The fields the schemas of a sub-operation are built from, required when the sub-operation takes them. */
 type SchemaImplementationFieldsConfig<
@@ -330,7 +344,7 @@ export type ServiceOperation<
      */
     <Unsafe extends 'UNSAFE' | 'SAFE' = 'SAFE'>(
         args:
-            & ServiceOperationExecuteArgs<Unsafe, ParamsSchema, DataSchema, ImplementationParamsSchema>
+            & ServiceOperationCallArgs<Unsafe, ParamsSchema, DataSchema, ImplementationParamsSchema>
             & Partial<ServiceOperationContext<OpensTransaction>>
     ): Promise<Return>,
     paramsSchema?: ParamsSchema,
@@ -524,7 +538,7 @@ export function defineSubOperation<
                             const authResult = authorizer.auth(session)
 
                             if (!authResult.authorized) {
-                                throw new Smorekopp(authResult.status, authResult.getErrorMessage)
+                                throw new Smorekopp(authResult.failureStatus, authResult.getErrorMessage)
                             }
 
                             return authResult.prismaWhereFilter
@@ -688,7 +702,7 @@ const prismaErrorCodes: Record<string, [ServiceErrorCode, string]> = {
  * NOT FOUND), a service error passes through, and anything else is an UNKNOWN ERROR. So everything
  * an operation throws is a Smorekopp, which is what `makeAction` relies on.
  */
-async function prismaErrorWrapper<Result>(call: () => Result | Promise<Result>): Promise<Result> {
+async function prismaErrorWrapper<Result>(call: () => Awaitable<Result>): Promise<Result> {
     try {
         return await call()
     } catch (error) {

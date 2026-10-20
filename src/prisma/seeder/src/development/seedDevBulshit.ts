@@ -1,26 +1,26 @@
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
-const BULLSHIT_COUNT = 100
+const BULSHIT_COUNT = 100
 
-export const seedDevBullshit = defineSeedOperation(async (prisma: PrismaClient) => {
+export const seedDevBulshit = defineSeedOperation(async (prisma: PrismaClient) => {
     const user = await prisma.user.findFirst({})
     if (!user) {
         return
     }
 
-    await Promise.all(Array.from({ length: BULLSHIT_COUNT }, async (_, index) => {
-        const quote = `Bullshit ${index + 1}`
-        const existing = await prisma.bullshit.findFirst({
+    await Promise.all(Array.from({ length: BULSHIT_COUNT }, async (_, index) => {
+        const quote = `Bulshit ${index + 1}`
+        const existing = await prisma.bulshit.findFirst({
             where: { quote },
             select: { id: true },
         })
         if (existing) return
 
-        await prisma.bullshit.create({
+        await prisma.bulshit.create({
             data: {
                 quote,
-                bullshitPoster: {
+                bulshitPoster: {
                     connect: {
                         id: user.id
                     }

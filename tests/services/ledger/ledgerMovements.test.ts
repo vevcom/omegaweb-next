@@ -58,12 +58,12 @@ describe('creating deposits', () => {
     let createIntent: ReturnType<typeof jest.spyOn>
 
     beforeEach(() => {
-        createIntent = jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => {
+        createIntent = jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => {
             createdIntents++
             const id = `pi_test_deposit_${createdIntents}`
-            return { id, client_secret: `${id}_secret` } as never
+            return Promise.resolve({ id, client_secret: `${id}_secret` } as never)
         })
-        jest.spyOn(stripe.customers, 'create').mockImplementation(async () => (
+        jest.spyOn(stripe.customers, 'create').mockImplementation(() => Promise.resolve(
             { id: `cus_test_deposit_${createdIntents}` } as never
         ))
     })

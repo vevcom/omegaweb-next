@@ -50,6 +50,8 @@ model Image {
   committee               Committee?
   ombul                   Ombul?
   promo                   Promo?
+
+  @@index([collectionId])
 }
 
 model ProcessedImageFiles {

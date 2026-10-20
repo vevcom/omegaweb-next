@@ -15,10 +15,12 @@ export default function MakeNewCollection() {
     // The admin level is collected here rather than after the fact: a collection created with an
     // empty one would be administrable by anyone until it was narrowed.
     async function handleCreate(formData: FormData) {
+        const collectionName = formData.get('collectionName')
+        const collectionDescription = formData.get('collectionDescription')
         return createDynamicImageCollectionAction({
             data: {
-                collectionName: String(formData.get('collectionName') ?? ''),
-                collectionDescription: String(formData.get('collectionDescription') ?? ''),
+                collectionName: typeof collectionName === 'string' ? collectionName : '',
+                collectionDescription: typeof collectionDescription === 'string' ? collectionDescription : '',
                 visibilityAdminRequirements: adminRequirements,
             }
         })

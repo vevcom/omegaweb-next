@@ -25,7 +25,7 @@ const balancesAfter = (buyerAmount: number): BalanceRecord => ({
     [SELLER]: { amount: 0, fees: 0 },
 })
 
-const stateOf = async (transaction: ExpandedLedgerTransaction, balances: BalanceRecord = balancesAfter(0)) =>
+const stateOf = (transaction: ExpandedLedgerTransaction, balances: BalanceRecord = balancesAfter(0)) =>
     determineTransactionState({ transaction, balances, frozenAccountIds: new Set() })
 
 const transfer = (funds: number, fees: number | null = 0): Entry[] => [
@@ -34,101 +34,101 @@ const transfer = (funds: number, fees: number | null = 0): Entry[] => [
 ]
 
 describe('determineTransactionState', () => {
-    test('a balanced transfer the buyer can afford succeeds', async () => {
-        expect(await stateOf(transactionOf({ entries: transfer(50_00) }), balancesAfter(50_00)))
+    test('a balanced transfer the buyer can afford succeeds', () => {
+        expect(stateOf(transactionOf({ entries: transfer(50_00) }), balancesAfter(50_00)))
             .toEqual({ state: 'SUCCEEDED' })
     })
 
-    test('a transfer that leaves the buyer below zero fails', async () => {
-        const transition = await stateOf(transactionOf({ entries: transfer(50_00) }), balancesAfter(-1))
+    test('a transfer that leaves the buyer below zero fails', () => {
+        const transition = stateOf(transactionOf({ entries: transfer(50_00) }), balancesAfter(-1))
 
         expect(transition.state).toBe('FAILED')
     })
 
-    test('a fee-only payout against an insufficient fee balance fails', async () => {
+    test('a fee-only payout against an insufficient fee balance fails', () => {
         const entries = [{ ledgerAccountId: SELLER, funds: 0, fees: -1_00 }]
         const payment = { state: 'SUCCEEDED' as const, funds: 0, fees: -1_00 }
         const balances: BalanceRecord = { [SELLER]: { amount: 0, fees: -1 } }
 
-        const transition = await stateOf(transactionOf({ entries, payment }), balances)
+        const transition = stateOf(transactionOf({ entries, payment }), balances)
 
         expect(transition.state).toBe('FAILED')
     })
 
-    test('entries that do not sum to zero fail', async () => {
+    test('entries that do not sum to zero fail', () => {
         const entries = [
             { ledgerAccountId: SELLER, funds: 50_00, fees: 0 },
             { ledgerAccountId: BUYER, funds: -49_99, fees: 0 },
         ]
 
-        expect((await stateOf(transactionOf({ entries }), balancesAfter(50_00))).state).toBe('FAILED')
+        expect(stateOf(transactionOf({ entries }), balancesAfter(50_00)).state).toBe('FAILED')
     })
 
-    test('a deposit must credit exactly what the payment brings in', async () => {
+    test('a deposit must credit exactly what the payment brings in', () => {
         const deposit = (credited: number) => transactionOf({
             entries: [{ ledgerAccountId: BUYER, funds: credited, fees: 0 }],
             payment: { state: 'SUCCEEDED', funds: 100_00, fees: 0 },
         })
 
-        expect((await stateOf(deposit(100_00))).state).toBe('SUCCEEDED')
-        expect((await stateOf(deposit(100_01))).state).toBe('FAILED')
+        expect(stateOf(deposit(100_00)).state).toBe('SUCCEEDED')
+        expect(stateOf(deposit(100_01)).state).toBe('FAILED')
     })
 
-    test('an entry whose fees have the opposite sign of its funds fails', async () => {
+    test('an entry whose fees have the opposite sign of its funds fails', () => {
         const entries = [
             { ledgerAccountId: SELLER, funds: 50_00, fees: -1_00 },
             { ledgerAccountId: BUYER, funds: -50_00, fees: 1_00 },
         ]
 
-        expect((await stateOf(transactionOf({ entries }), balancesAfter(50_00))).state).toBe('FAILED')
+        expect(stateOf(transactionOf({ entries }), balancesAfter(50_00)).state).toBe('FAILED')
     })
 
-    test('fees that do not sum to the fees of the payment fail', async () => {
+    test('fees that do not sum to the fees of the payment fail', () => {
         const transaction = transactionOf({
             entries: [{ ledgerAccountId: BUYER, funds: 100_00, fees: 1_00 }],
             payment: { state: 'SUCCEEDED', funds: 100_00, fees: 2_00 },
         })
 
-        expect((await stateOf(transaction)).state).toBe('FAILED')
+        expect(stateOf(transaction).state).toBe('FAILED')
     })
 
-    test('stays pending while the payment is under way', async () => {
+    test('stays pending while the payment is under way', () => {
         const underWay = (state: PaymentState) => transactionOf({
             entries: [{ ledgerAccountId: BUYER, funds: 100_00, fees: null }],
             payment: { state, funds: 100_00, fees: null },
         })
 
-        expect(await stateOf(underWay('PENDING'))).toEqual({ state: 'PENDING' })
-        expect(await stateOf(underWay('PROCESSING'))).toEqual({ state: 'PENDING' })
+        expect(stateOf(underWay('PENDING'))).toEqual({ state: 'PENDING' })
+        expect(stateOf(underWay('PROCESSING'))).toEqual({ state: 'PENDING' })
     })
 
-    test('fails when the payment fails or is canceled', async () => {
+    test('fails when the payment fails or is canceled', () => {
         const ended = (state: PaymentState) => transactionOf({
             entries: [{ ledgerAccountId: BUYER, funds: 100_00, fees: null }],
             payment: { state, funds: 100_00, fees: null },
         })
 
-        expect((await stateOf(ended('FAILED'))).state).toBe('FAILED')
-        expect((await stateOf(ended('CANCELED'))).state).toBe('FAILED')
+        expect(stateOf(ended('FAILED')).state).toBe('FAILED')
+        expect(stateOf(ended('CANCELED')).state).toBe('FAILED')
     })
 
-    test('a completed payment must have its fees settled before the transaction succeeds', async () => {
+    test('a completed payment must have its fees settled before the transaction succeeds', () => {
         const transaction = transactionOf({
             entries: [{ ledgerAccountId: BUYER, funds: 100_00, fees: null }],
             payment: { state: 'SUCCEEDED', funds: 100_00, fees: 1_00 },
         })
 
-        expect((await stateOf(transaction)).state).toBe('FAILED')
+        expect(stateOf(transaction).state).toBe('FAILED')
     })
 
-    test('a transaction that has already ended keeps its state', async () => {
+    test('a transaction that has already ended keeps its state', () => {
         const endedStates: LedgerTransactionState[] = ['SUCCEEDED', 'FAILED', 'CANCELED']
 
-        await Promise.all(endedStates.map(async state => {
+        endedStates.forEach(state => {
             // Entries that would fail every other rule, to show none of them are reached.
             const transaction = transactionOf({ state, entries: [{ ledgerAccountId: BUYER, funds: -1, fees: 1 }] })
 
-            expect((await stateOf(transaction, balancesAfter(-1))).state).toBe(state)
-        }))
+            expect(stateOf(transaction, balancesAfter(-1)).state).toBe(state)
+        })
     })
 })

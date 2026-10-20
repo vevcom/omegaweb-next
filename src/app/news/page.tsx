@@ -8,7 +8,7 @@ import { newsAuth } from '@/services/news/auth'
 import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => ({}),
+    operation: () => ({}),
     capabilities: () => ({
         canCreate: newsAuth.create,
     }),

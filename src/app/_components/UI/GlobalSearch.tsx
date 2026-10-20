@@ -116,7 +116,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
         let cancelled = false
         const limit = category === 'all' ? undefined : 20
 
-        Promise.all([
+        void Promise.all([
             canSearchUsers ? searchUsersAction({ params: { query: debouncedQuery, limit } }) : null,
             searchEventsAction({ params: { query: debouncedQuery, limit } }),
         ]).then(([usersResult, eventsResult]) => {

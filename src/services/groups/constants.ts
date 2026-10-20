@@ -38,9 +38,7 @@ export const groupTypesConfig = {
         namePlural: 'Andre grupper',
         description: 'øvrige grupper'
     }
-} as const satisfies {
-    [key in GroupType]: GroupTypeInfo
-}
+} as const satisfies Record<GroupType, GroupTypeInfo>
 
 /**
  * The class levels in the order a user moves through them. The class bump moves a user to the next
@@ -77,12 +75,10 @@ export const OmegaMembershipLevelConfig = {
         name: 'Eksterne',
         description: 'Ekstern bruker ikke i omega'
     }
-} as const satisfies {
-    [key in OmegaMembershipLevel]: {
+} as const satisfies Record<OmegaMembershipLevel, {
         name: string,
         description: string
-    }
-}
+    }>
 
 export const OMEGA_MEMBERSHIP_LEVEL_RANKING: OmegaMembershipLevel[] = [
     'DEN_GEMENE_HOB',

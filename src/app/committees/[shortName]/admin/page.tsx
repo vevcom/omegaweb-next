@@ -67,7 +67,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </header>
 
-                {!committee.pensioned && <section className={styles.section}>
+                {!committee.group.pensioned && <section className={styles.section}>
                     <h3>Logo</h3>
                     <div className={styles.logo}>
                         <Image image={committee.logoImage} width={300} />
@@ -92,14 +92,14 @@ const { page, generateMetadata } = serverPage({
                         <PensionGroup
                             groupId={committee.groupId}
                             groupName={committee.name}
-                            pensioned={committee.pensioned}
+                            pensioned={committee.group.pensioned}
                             currentOmegaOrder={currentOrder.order}
                             pensionGroupAction={pensionCommitteeAction}
                         />
                     </section>
                 )}
 
-                {!committee.pensioned && expanded
+                {!committee.group.pensioned && expanded
                     && (capabilities.canAddMembers.authorized || capabilities.canRemoveMembers.authorized) && (
                     <section className={styles.section}>
                         <h3>Medlemmer</h3>
@@ -123,7 +123,7 @@ const { page, generateMetadata } = serverPage({
                     </section>
                 )}
 
-                {!committee.pensioned && capabilities.canMigrate.authorized && expanded && (
+                {!committee.group.pensioned && capabilities.canMigrate.authorized && expanded && (
                     <section className={styles.section}>
                         <h3>Migrering</h3>
                         <MigrateGroup

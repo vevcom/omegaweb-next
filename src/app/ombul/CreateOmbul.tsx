@@ -76,7 +76,7 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
         })
     }
 
-    const handleCreate = async (ombul: Ombul | undefined) => {
+    const handleCreate = (ombul: Ombul | undefined) => {
         if (ombul) push(`/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`)
         refresh()
     }

@@ -236,8 +236,8 @@ describe('updateTheme', () => {
 
         await expect(userOperations.updateTheme({
             params: { username: user.username },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            data: { theme: 'NOT_A_THEME' as any },
+            // @ts-expect-error -- deliberately invalid theme, to test that the operation rejects it
+            data: { theme: 'NOT_A_THEME' },
             session: sessionOf(user),
         })).rejects.toThrow(ParseError)
 

@@ -54,7 +54,7 @@ async function upsertFlair(prisma: PrismaClient, flair: SeedFlairConfig) {
             select: { id: true }
         }),
         create: () => createFlair(flair),
-        update: () => Promise.resolve(),
+        update: () => {},
     })
 }
 

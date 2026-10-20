@@ -6,13 +6,16 @@ const nextConfig: NextConfig = {
     output: 'standalone',
     poweredByHeader: false,
     // The content security policy is set per request in src/proxy.ts, since it carries a nonce.
-    headers: async () => [{ source: '/:path*', headers: staticSecurityHeaders }],
+    headers: () => [{ source: '/:path*', headers: staticSecurityHeaders }],
     sassOptions: {
         includePaths: [path.join(__dirname, 'src/styles')],
     },
-    webpack: (config) => {
+    // Next types the webpack config as any
+    webpack: config => {
         // fix error with react-pdf use of canvas -if using webpack
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         config.resolve.alias.canvas = false
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return config
     },
     experimental: {

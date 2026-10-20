@@ -8,6 +8,7 @@ import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 import type { ArgsAuthGetterAndOwnershipCheck, PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { Awaitable } from '@/lib/awaitable'
 
 type ParamsSchema = typeof articleSectionSchemas.params.addPart
 type OwnedArticleSection = Prisma.ArticleSectionGetPayload<{
@@ -36,13 +37,13 @@ export function implementUpdateArticleSectionOperations<
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>
         }
-    ) => Authorizer | Promise<Authorizer>,
+    ) => Awaitable<Authorizer>,
     ownedArticleSections: (
         args: {
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>
         }
-    ) => Promise<OwnedArticleSection[]>
+    ) => Awaitable<OwnedArticleSection[]>
     destroyOnEmpty: boolean
     /**
      * Runs after authorization and before any of these operations. It lets the owner refuse the
@@ -53,7 +54,7 @@ export function implementUpdateArticleSectionOperations<
             prisma: PrismaPossibleTransaction<false>,
             implementationParams: z.infer<ImplementationParamsSchema>
         }
-    ) => void | Promise<void>,
+    ) => Awaitable<void>,
 }) {
     const ownershipCheckArticleSection = async (
         args: Omit<ArgsAuthGetterAndOwnershipCheck<false, ParamsSchema, undefined, ImplementationParamsSchema>, 'data'>

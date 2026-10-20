@@ -116,7 +116,7 @@ export default async function migrateLockers(
         const reservationData = reservation ? {
             id: reservation.id,
             lockerId: pnLockerId(locker),
-            userId: await userMigrator.getPnUserId(reservation.UserId as number),
+            userId: await userMigrator.getPnUserId(reservation.UserId!),
             groupId: owIdToPnId(committeeGroupIdMap, reservation.CommitteeId, 'committees'),
             // Omegaweb-basic recorded only when a locker was taken, never when it falls
             // free, so every migrated reservation comes across as open-ended and active -

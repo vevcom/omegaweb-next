@@ -14,7 +14,7 @@ export default function FinalCountdown({ periodName }: PropTypes) {
     const [applicants, setApplicants] = useState(0)
 
     useEffect(() => {
-        readNumberOfApplicationsAction({ params: { name: periodName } }).then(res => {
+        void readNumberOfApplicationsAction({ params: { name: periodName } }).then(res => {
             if (!res.success) return
             setApplicants(res.data)
         })

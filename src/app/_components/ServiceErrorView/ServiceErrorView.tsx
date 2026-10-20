@@ -2,8 +2,7 @@ import styles from './ServiceErrorView.module.scss'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { errorCodes } from '@/services/error'
-import type { ErrorCode, Smorekopp } from '@/services/error'
-import type { AuthStatus } from '@/auth/authorizer/AuthResult'
+import type { Smorekopp } from '@/services/error'
 
 /**
  * Renders a service error in place of a page or layout. Used by `serverPage` and `serverLayout`
@@ -11,7 +10,7 @@ import type { AuthStatus } from '@/auth/authorizer/AuthResult'
  * rendered on the server and receives the actual error instance, so no information
  * has to be smuggled through an encoded native Error.
  */
-export default function ServiceErrorView({ error }: { error: Smorekopp<ErrorCode | AuthStatus> }) {
+export default function ServiceErrorView({ error }: { error: Smorekopp }) {
     const errorConfig = errorCodes.find((code) => code.name === error.errorCode)
     const message = error.errors.at(0)?.message ?? errorConfig?.defaultMessage ?? 'En ukjent feil har oppstått'
 

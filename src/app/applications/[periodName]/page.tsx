@@ -53,7 +53,7 @@ const { page, generateMetadata } = serverPage({
         const [applications, committees] = await Promise.all([
             userId
                 ? applicationOperations.readForUser({ params: { userId, periodId: period.id } })
-                : Promise.resolve([]),
+                : [],
             committeeOperations.readAll({}),
         ])
         return { period, applications, committees }

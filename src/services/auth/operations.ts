@@ -270,10 +270,10 @@ export const authOperations = {
     sendResetPasswordEmail: defineOperation({
         dataSchema: authSchemas.data.sendResetPasswordEmail,
         authorizer: () => authAuth.sendResetPasswordEmail,
-        operation: async ({ data }) => {
+        operation: ({ data }) => {
             // Not awaited: the response must not wait on the lookup or the mail server, or how long
             // it takes would tell whether a user has this email. Failures are logged, never thrown.
-            void sendResetPasswordMail(data.email).catch(err => {
+            void sendResetPasswordMail(data.email).catch((err: unknown) => {
                 logger.error(`Failed to send reset password to email '${data.email}'`, { error: err })
             })
 

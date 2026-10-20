@@ -4,7 +4,7 @@ import { inferClassLadder } from './classLadder'
 import { createProgressBar } from './progressBar'
 import { createCmsParagraph } from './createCmsParagraph'
 import manifest from './manifest'
-import { Prisma, type PrismaClient as PrismaClientPn, type SEX } from '@/prisma-generated-pn-client'
+import { Prisma, type PrismaClient as PrismaClientPn, type Sex } from '@/prisma-generated-pn-client'
 import logger from '@/lib/logger'
 import { CLASS_LEVEL_ORDERING } from '@/services/groups/constants'
 import { allAdmissions } from '@/services/admission/constants'
@@ -49,7 +49,7 @@ const sexMap = {
     // eslint-disable-next-line id-length
     f: 'FEMALE',
     other: 'OTHER',
-} as const satisfies Record<SEXOW, SEX>
+} as const satisfies Record<SEXOW, Sex>
 
 type ExtendedMemberGroup = Prisma.OmegaMembershipGroupGetPayload<{
     include: {

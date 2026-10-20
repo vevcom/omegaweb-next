@@ -9,7 +9,7 @@ const { page, generateMetadata } = serverPage({
     allowUnregistered: true,
     // Only reads the token: opening the link confirms nothing. A mail scanner fetching it ahead of
     // the user would otherwise confirm the address and use up the token before they click.
-    operation: async ({ searchParams }: PageOperationArgs) => {
+    operation: ({ searchParams }: PageOperationArgs) => {
         const token = QueryParams.token.decode(searchParams)
         if (!token) {
             notFound()

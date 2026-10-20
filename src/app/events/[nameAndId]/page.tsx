@@ -142,7 +142,7 @@ const { page, generateMetadata } = serverPage({
             eventAuth.updateAdminLevel.data({ visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY }),
             eventAuth.setPublished.data({ visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY }),
         ),
-        canConnectToLedger: eventAuth.connectToLedger.data({
+        canConnectToLedgerAccount: eventAuth.connectToLedgerAccount.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
             accounts: data.ledgerAccounts.map(account => account.ownership),
         }),
@@ -226,7 +226,7 @@ const { page, generateMetadata } = serverPage({
                         }
                         {(
                             capabilities.canUpdate.authorized
-                            || capabilities.canConnectToLedger.authorized
+                            || capabilities.canConnectToLedgerAccount.authorized
                             || capabilities.canUpdateVisibility.authorized
                             || capabilities.canDestroy.authorized
                             || (event.takesRegistration && capabilities.canTakeAttendance.authorized)
@@ -235,7 +235,7 @@ const { page, generateMetadata } = serverPage({
                                 {capabilities.canUpdate.authorized &&
                                     <CreateOrUpdateEventForm event={event} eventTags={tags} committees={committees} />
                                 }
-                                {capabilities.canConnectToLedger.authorized && <>
+                                {capabilities.canConnectToLedgerAccount.authorized && <>
                                     <p>
                                         Konto: {event.ledgerAccount
                                             ? (event.ledgerAccount.name ?? `Konto ${event.ledgerAccount.id}`)

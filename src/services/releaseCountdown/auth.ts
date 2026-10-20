@@ -10,4 +10,5 @@ export const releaseCountdownAuth = {
     enter: Require.nothing(),
     updateSettings: Require.nothing(),
     updateGitGraph: Require.nothing(),
+    mockGitGraph: Require.nothing(),
 } as const

@@ -1,23 +1,26 @@
 import '@pn-server-only'
+import { z } from 'zod'
 
 /**
  * The attributes returned by the extended user info endpoint.
  * All possible attributes are documented [here](https://docs.feide.no/reference/schema/attributes/index.html).
  * Only a small subset of these will be available based on the scopes of the access token.
- * Only the attributes we use should be listed in the type.
+ * Only the attributes we use should be listed in the schema; the rest are kept as `unknown`.
  */
-type ExtendedUserInfo = Record<string, unknown> & {
-    cn?: string[], // Common name
-    displayName?: string,
-    eduPersonAffiliation?: string[],
-    eduPersonPrimaryAffiliation?: string,
-    eduPersonScopedAffiliation?: string[],
-    givenName?: string[], // Aka firstname
-    mail?: string[],
-    norEduPersonLegalName?: string,
-    schacHomeOrganization?: string,
-    sn?: string[], // Surname
-}
+const extendedUserInfoSchema = z.object({
+    cn: z.array(z.string()).optional(), // Common name
+    displayName: z.string().optional(),
+    eduPersonAffiliation: z.array(z.string()).optional(),
+    eduPersonPrimaryAffiliation: z.string().optional(),
+    eduPersonScopedAffiliation: z.array(z.string()).optional(),
+    givenName: z.array(z.string()).optional(), // Aka firstname
+    mail: z.array(z.string()).optional(),
+    norEduPersonLegalName: z.string().optional(),
+    schacHomeOrganization: z.string().optional(),
+    sn: z.array(z.string()).optional(), // Surname
+}).passthrough()
+
+type ExtendedUserInfo = z.infer<typeof extendedUserInfoSchema>
 
 /**
  * Retrives extended user info from Feide API.
@@ -36,21 +39,28 @@ export async function fetchExtendedUserInfoFromFeide(accessToken: string): Promi
         throw new Error(`Could not fetch extended user info from feide. Status: ${extendedUserInfoRequest.status}`)
     }
 
-    const ret = await extendedUserInfoRequest.json()
+    const result = extendedUserInfoSchema.safeParse(await extendedUserInfoRequest.json())
 
-    return ret
+    if (!result.success) {
+        throw new Error(`Feide returned malformed extended user info: ${result.error.message}`)
+    }
+
+    return result.data
 }
 
 /**
- *
+ * A group as returned by the Feide groups API. Only the attributes we use are listed; the rest are
+ * kept as `unknown`.
  */
-type FeideGroup = Record<string, unknown> & {
-    id: string,
-    displayName: string,
-    type?: string,
-    parent?: string,
-    membership?: Record<string, unknown>
-}
+const feideGroupsSchema = z.array(z.object({
+    id: z.string(),
+    displayName: z.string(),
+    type: z.string().optional(),
+    parent: z.string().optional(),
+    membership: z.record(z.string(), z.unknown()).optional(),
+}).passthrough())
+
+type FeideGroup = z.infer<typeof feideGroupsSchema>[number]
 
 /**
  * Retrives groups of a user from Feide API.
@@ -69,7 +79,13 @@ export async function fetchGroupsFromFeide(accessToken: string): Promise<FeideGr
         throw new Error(`Could not fetch groups from feide. Status: ${groupsRequest.status}`)
     }
 
-    return groupsRequest.json()
+    const result = feideGroupsSchema.safeParse(await groupsRequest.json())
+
+    if (!result.success) {
+        throw new Error(`Feide returned malformed groups: ${result.error.message}`)
+    }
+
+    return result.data
 }
 
 /**
