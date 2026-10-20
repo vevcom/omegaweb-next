@@ -57,16 +57,16 @@ const { page, generateMetadata } = serverPage({
         const showTrialRegistration = capabilities.canRegisterTrial.authorized && currentLevel === 'SOELLE'
 
         return (
-            <div className="bg-surface-base rounded-round p-[calc(3*var(--rounding))]">
+            <div className="bg-surface-base rounded-round p-(--card-padding)">
                 <h2>Medlemsstatus</h2>
 
                 {/* Highest standing first, so the ladder is read from the top down. */}
-                <ol className="flex flex-col gap-2 list-none mt-[calc(3*var(--rounding))] mx-0 mb-0 p-0">
+                <ol className="flex flex-col gap-2 list-none mt-(--card-padding) mx-0 mb-0 p-0">
                     {[...OMEGA_MEMBERSHIP_LEVEL_RANKING].reverse().map(level => (
                         <li key={level} className="flex flex-col gap-2">
                             <div className={[
                                 'flex items-center justify-between gap-2',
-                                'p-[calc(3*var(--rounding))] border-2 rounded-round',
+                                'p-(--card-padding) border-2 rounded-round',
                                 level === currentLevel
                                     ? 'border-accent-blue bg-surface-hover text-ink-strong font-bold'
                                     : 'border-transparent bg-surface-raised text-text-muted',
@@ -104,7 +104,7 @@ const { page, generateMetadata } = serverPage({
                                 gap between the two. Hidden from anyone who may not read them, since
                                 empty boxes would read as "none sat" rather than "not shown". */}
                             {level === 'SYSKEN' && capabilities.canReadTrials.authorized && (
-                                <ul className="flex flex-wrap gap-2 list-none m-0 py-0 px-[calc(3*var(--rounding))]">
+                                <ul className="flex flex-wrap gap-2 list-none m-0 py-0 px-(--card-padding)">
                                     {allAdmissions.map(admission => (
                                         <li
                                             key={admission}
@@ -140,7 +140,7 @@ const { page, generateMetadata } = serverPage({
                 </ol>
 
                 <section className={[
-                    'mt-[calc(3*var(--rounding))] pt-[calc(3*var(--rounding))] border-t border-surface-hover',
+                    'mt-(--card-padding) pt-(--card-padding) border-t border-surface-hover',
                     '[&_h3]:mt-0 [&_h3]:mx-0 [&_h3]:mb-2',
                 ].join(' ')}>
                     <h3>Orden</h3>

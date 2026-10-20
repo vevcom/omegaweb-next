@@ -214,7 +214,7 @@ export default function MailFlow({
         </section>
     }
 
-    return <div className="bg-surface-raised rounded-[calc(3*var(--rounding))] p-[calc(3*var(--rounding))]">
+    return <div className="bg-surface-raised rounded-[calc(3*var(--rounding))] p-(--card-padding)">
         <div className="flex flex-row items-stretch gap-4 max-mobile:flex-col">
             {renderStage('Alias', [{ chips: aliasChips }])}
             <FontAwesomeIcon

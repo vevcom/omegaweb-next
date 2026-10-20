@@ -32,7 +32,7 @@ const { page, generateMetadata } = serverPage({
         canUnAssign: flairAuth.unAssignToUser,
     }),
     render: ({ data, capabilities }) => (
-        <div className="bg-surface-base rounded-round p-[calc(3*var(--rounding))]">
+        <div className="bg-surface-base rounded-round p-(--card-padding)">
             <div className="ohma-table overflow-x-auto">
                 <p>
                     Den øverste tildelte flairen vises først på brukerens profil og

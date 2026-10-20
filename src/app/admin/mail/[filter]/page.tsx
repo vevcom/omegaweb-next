@@ -86,7 +86,7 @@ const { page, generateMetadata } = serverPage({
                 {capabilities.canCreate.authorized && <aside
                     className={[
                         'flex-[0_1_20rem] bg-surface-raised',
-                        'rounded-[calc(3*var(--rounding))] p-[calc(3*var(--rounding))]',
+                        'rounded-[calc(3*var(--rounding))] p-(--card-padding)',
                     ].join(' ')}
                 >
                     {filter === 'alias' && <CreateMailAlias />}

@@ -72,11 +72,11 @@ export default function ReleaseAdmin({ releaseDate, openToAll, onGitGraphUpdated
                     setMockGitGraphCommits(data?.commits ?? null)
                     onGitGraphUpdated()
                 }}
-                className={styles.form}
+                className="pt-2 border-t border-[hsl(0,0%,20%)]"
             >
                 <input type="hidden" name="password" value={password} />
                 {mockGitGraphCommits !== null && (
-                    <p className={styles.note}>Lagret en testgraf med {mockGitGraphCommits} commits</p>
+                    <p className="m-0 text-text-muted text-s">Lagret en testgraf med {mockGitGraphCommits} commits</p>
                 )}
             </Form>
             <Form

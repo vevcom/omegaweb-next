@@ -14,7 +14,7 @@ export default async function LedgerAccountTransactions({ params }: Props) {
         notFound()
     }
 
-    return <div className="bg-surface-base rounded-round p-[calc(3*var(--rounding))]">
+    return <div className="bg-surface-base rounded-round p-(--card-padding)">
         <TransactionList accountId={accountId} />
     </div>
 }

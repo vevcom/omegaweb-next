@@ -24,7 +24,7 @@ export default async function LedgerAccountPaymentMethods({ userId }: Props) {
     const hasBankCard = savedPaymentMethods.length > 0
     const hasStudentCard = user.studentCard !== null
 
-    return <div className="bg-surface-base rounded-round p-[calc(3*var(--rounding))]">
+    return <div className="bg-surface-base rounded-round p-(--card-padding)">
         <h2>Betalingsalternativer</h2>
         <div className="flex flex-col gap-2">
             <h3>Bankkort <BooleanIndicator value={hasBankCard} /></h3>

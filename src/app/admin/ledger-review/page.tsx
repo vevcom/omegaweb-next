@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import ResolveManualReviewForm from './ResolveManualReviewForm'
 import { manualReviewOperations } from '@/services/ledger/transactions/manualReviews/operations'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
@@ -14,7 +13,7 @@ const { page, generateMetadata } = serverPage({
     },
     metadata: () => ({ title: 'Trenger oppfølging' }),
     render: ({ data: reviews }) => (
-        <div className={styles.wrapper}>
+        <div className="p-[1em]">
             <h1>Saker som trenger oppfølging</h1>
             <p>
                 Åpne saker om en transaksjon eller betaling (f.eks. en Stripe-dispute, en refusjon gjort
@@ -22,7 +21,7 @@ const { page, generateMetadata } = serverPage({
                 den automatiske gjennomgangen av hovedboken). Disse må håndteres manuelt.
             </p>
             {reviews.length === 0 ? <p>Ingen saker trenger oppfølging akkurat nå.</p> : (
-                <table className={styles.reviews}>
+                <table className="ohma-table">
                     <thead>
                         <tr>
                             <th>Dato</th>

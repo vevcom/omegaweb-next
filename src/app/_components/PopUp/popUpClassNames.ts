@@ -8,7 +8,7 @@ export const popUpClassNames = {
         'mobile:absolute mobile:top-1/2 mobile:left-1/2 mobile:-translate-x-1/2 mobile:-translate-y-1/2',
         'max-mobile:w-[100svw] max-mobile:translate-y-[calc(100svh-100%)] max-mobile:rounded-b-none',
     ].join(' '),
-    overflow: 'overflow-x-visible overflow-y-auto m-0 p-0 max-h-[calc(95svh-var(--rounding)*6)]',
+    overflow: 'overflow-x-visible overflow-y-auto m-0 p-0 max-h-[calc(95svh-var(--card-padding)*2)]',
     closeBtn: [
         'close-btn absolute mobile:top-[calc(-48px-var(--gap))] mobile:left-0',
         'max-mobile:-top-14 max-mobile:left-4',

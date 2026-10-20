@@ -31,7 +31,7 @@ const { page, generateMetadata } = serverPage({
                                 href={`/admin/admission/${admission}`}
                                 className={[
                                     'flex items-center gap-2 flex-[1_1_14rem] max-mobile:basis-full',
-                                    'p-[calc(3*var(--rounding))] rounded-round bg-surface-raised text-text',
+                                    'p-(--card-padding) rounded-round bg-surface-raised text-text',
                                     'transition-[background-color] duration-300 hover:bg-surface-hover',
                                     'hover:text-ink-strong',
                                 ].join(' ')}

@@ -20,15 +20,26 @@ export default function WhiteSun({ elapsed, duration }: PropTypes) {
 
     return (
         <div
-            className={styles.WhiteSun}
+            className="absolute inset-0 z-2 overflow-hidden pointer-events-none"
             style={{ '--rush-duration': `${duration}ms`, '--rush-delay': `${delay}ms` } as CSSProperties}
             aria-hidden
         >
-            <div className={styles.rays}>
-                <div className={styles.spin} />
+            <div className={[
+                styles.grow,
+                'absolute left-[calc(50%-30vmax)] top-[calc(12%-30vmax)] size-[60vmax] motion-reduce:hidden',
+            ].join(' ')}>
+                <div className={[
+                    styles.spin,
+                    'size-full rounded-full [mask-image:radial-gradient(circle,black_10%,transparent_70%)]',
+                    'bg-[repeating-conic-gradient(rgb(255_250_235/22%)_0deg_3deg,transparent_3deg_15deg)]',
+                ].join(' ')} />
             </div>
-            <div className={styles.sun} />
-            <div className={styles.whiteout} />
+            <div className={[
+                styles.grow,
+                styles.sun,
+                'absolute left-[calc(50%-12vmax)] top-[calc(12%-12vmax)] size-[24vmax] rounded-full motion-reduce:hidden',
+            ].join(' ')} />
+            <div className={`${styles.whiteout} absolute inset-0 bg-white`} />
         </div>
     )
 }

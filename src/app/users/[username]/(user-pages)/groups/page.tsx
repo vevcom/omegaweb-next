@@ -64,10 +64,10 @@ const { page, generateMetadata } = serverPage({
             })))
     },
     render: ({ data: sections }) => (
-        <div className="bg-surface-base rounded-round p-[calc(3*var(--rounding))]">
+        <div className="bg-surface-base rounded-round p-(--card-padding)">
             <h2>Grupper</h2>
             {sections.map(({ type, memberships }) =>
-                <section key={type} className="mt-[calc(3*var(--rounding))] overflow-x-auto">
+                <section key={type} className="mt-(--card-padding) overflow-x-auto">
                     <h3>{groupTypesConfig[type].namePlural}</h3>
                     {memberships.length === 0 ? (
                         <p className="text-text-muted">Ingen medlemskap.</p>

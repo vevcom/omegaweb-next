@@ -46,7 +46,7 @@ export default async function LedgerAccountOverview({
         ? await getCustomerSessionClientSecret()
         : undefined
 
-    return <div className="bg-surface-base rounded-round p-[calc(3*var(--rounding))]">
+    return <div className="bg-surface-base rounded-round p-(--card-padding)">
         <h2>Kontooversikt</h2>
         <LedgerAccountBalance ledgerAccountId={ledgerAccount.id} showFees={showFees} />
         {

@@ -10,7 +10,7 @@ const { page, generateMetadata } = serverPage({
         return permissionOperations.readPermissionsOfUser({ params: { userId: profile.user.id } })
     },
     render: ({ data: permissions }) => (
-        <div className="bg-surface-base rounded-round p-[calc(3*var(--rounding))]">
+        <div className="bg-surface-base rounded-round p-(--card-padding)">
             <h2>Tilganger:</h2>
             <ul>
                 {permissions.map(permission =>

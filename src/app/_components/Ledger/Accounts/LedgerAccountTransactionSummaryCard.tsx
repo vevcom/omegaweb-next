@@ -7,7 +7,7 @@ type Props = {
 }
 
 export default function LedgerAccountTransactionSummary({ transactionsHref }: Props) {
-    return <div className="bg-surface-base rounded-round p-[calc(3*var(--rounding))]">
+    return <div className="bg-surface-base rounded-round p-(--card-padding)">
         <h2>Transaksjoner</h2>
         {
             transactionsHref &&
