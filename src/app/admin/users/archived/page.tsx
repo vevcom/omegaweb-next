@@ -6,7 +6,7 @@ import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => authorizeAdminPage('users/archived', session),
+    operation: ({ session }: PageOperationArgs) => authorizeAdminPage('users/archived', session),
     metadata: () => ({ title: 'Arkiverte brukere' }),
     render: () => (
         <PageWrapper fillHeight>
