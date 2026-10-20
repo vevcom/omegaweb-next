@@ -33,6 +33,11 @@
         }
         &.magicHat {
             position: relative;
+
+            // Read by the hat image's tint.
+            &.active {
+                --magic-hat-tint: #{ohma.$colors-accent-blue};
+            }
         }
         > button {
             background: none;

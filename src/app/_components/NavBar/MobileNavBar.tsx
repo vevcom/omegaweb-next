@@ -2,6 +2,7 @@ import styles from './MobileNavBar.module.scss'
 import Menu from './Menu'
 import UserNavigation from './UserNavigation'
 import MobileNavBarItems from './MobileNavBarItems'
+import MobileMagicHat from './MobileMagicHat'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
 import type { NavLink } from './navDef'
@@ -16,16 +17,16 @@ export default async function MobileNavBar({ isLoggedIn, navItems }: PropTypes) 
     return (
         <nav className={styles.MobileNavBar}>
             <MobileNavBarItems navItems={navItems} />
-            <div className={styles.magicHat}>
+            <MobileMagicHat>
                 <StandardImageServer
                     standardImage="MAGISK_HATT"
                     width={25}
                     height={25}
                     alt="log in button"
-                    tint="var(--text)"
+                    tint="var(--magic-hat-tint, var(--text))"
                 />
                 <UserNavigation isLoggedIn={isLoggedIn} />
-            </div>
+            </MobileMagicHat>
             <Menu
                 items={navItems}
                 openBtnVariant={'mobile'}
