@@ -63,13 +63,14 @@ const balanceOf = (ledgerAccountId: number) => ledgerAccountOperations.calculate
 
 /** A Stripe deposit that has been sent to Stripe and is waiting for the webhook. */
 async function startStripeDeposit(ledgerAccountId: number) {
-    const transaction = await ledgerMovementOperations.createDeposit({
-        params: { ledgerAccountId, provider: 'STRIPE', funds: DEPOSIT },
+    const { transaction, payment } = await ledgerMovementOperations.createDeposit({
+        implementationParams: { ledgerAccountId, funds: DEPOSIT },
+        params: { provider: 'STRIPE' },
         bypassAuth: true,
     })
-    const paymentId = transaction.payment.id
-    const stripePayment = await prisma.stripePayment.findUniqueOrThrow({ where: { paymentId } })
-    return { transactionId: transaction.id, paymentId, paymentIntentId: stripePayment.paymentIntentId }
+    if (!payment) throw new Error('The deposit has no payment.')
+    const stripePayment = await prisma.stripePayment.findUniqueOrThrow({ where: { paymentId: payment.id } })
+    return { transactionId: transaction.id, paymentId: payment.id, paymentIntentId: stripePayment.paymentIntentId }
 }
 
 /** A SUCCEEDED manual deposit. */
@@ -206,7 +207,7 @@ describe('unbalanced transactions', () => {
         const deposit = await createSucceededDeposit(account.id)
         const { transactionId: stripeDeposit, paymentId } = await startStripeDeposit(account.id)
         await prisma.payment.update({ where: { id: paymentId }, data: { state: 'SUCCEEDED', fees: STRIPE_FEE } })
-        await ledgerTransactionOperations.advance({ params: { id: stripeDeposit }, bypassAuth: true })
+        await ledgerTransactionOperations.internal.advance.internalCall({ params: { id: stripeDeposit } })
 
         await flagUnbalancedLedgerTransactions()
 

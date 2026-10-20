@@ -5,7 +5,6 @@ import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/Ledger
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
-import { paymentAuth } from '@/services/ledger/payments/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -20,13 +19,7 @@ const { page, generateMetadata } = serverPage({
     },
     capabilities: (data) => ({
         canDeposit: ledgerMovementAuth.createDeposit.data({ accounts: [data.ledgerAccount.ownership] }),
-        // A payout is always a MANUAL payment, which paymentAuth.create reserves for
-        // LEDGER_ADMIN - require it here too, or a non-admin owner would see the button and
-        // then get rejected the moment they actually try to use it.
-        canPayout: Require.allOf(
-            ledgerMovementAuth.createPayout.data({ accounts: [data.ledgerAccount.ownership] }),
-            paymentAuth.create({ provider: 'MANUAL' }),
-        ),
+        canPayout: ledgerMovementAuth.createPayout,
         // Unfreezing takes more than freezing, so the rule follows the state the button changes.
         canFreeze: data.ledgerAccount.frozen
             ? ledgerAccountAuth.updateAsAdmin({ accounts: [data.ledgerAccount.ownership] })

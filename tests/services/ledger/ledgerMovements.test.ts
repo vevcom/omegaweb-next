@@ -89,16 +89,17 @@ describe('creating deposits', () => {
 
     const deposit = (ledgerAccountId: number, session: SessionMaybeUser, funds = DEPOSIT, description?: string) =>
         ledgerMovementOperations.createDeposit({
-            params: { ledgerAccountId, provider: 'STRIPE', funds, description },
+            implementationParams: { ledgerAccountId, funds },
+            params: { provider: 'STRIPE', description },
             session,
         })
 
     test('a user may deposit to their own account, and it is sent to Stripe', async () => {
         const owner = await createUserWithAccount('depositowner')
 
-        const transaction = await deposit(owner.accountId, sessionOf(owner.userId, ['LEDGER_USE']))
+        const { payment } = await deposit(owner.accountId, sessionOf(owner.userId, ['LEDGER_USE']))
 
-        expect(transaction.payment).toMatchObject({ state: 'PROCESSING', funds: DEPOSIT })
+        expect(payment).toMatchObject({ state: 'PROCESSING', funds: DEPOSIT })
         expect(createIntent).toHaveBeenCalledTimes(1)
     })
 
@@ -132,10 +133,11 @@ describe('creating deposits', () => {
         // The minimum is Stripe's own processing floor, not a general rule - a MANUAL deposit
         // (e.g. an admin recording cash received) has no such floor.
         const byHand = await ledgerMovementOperations.createDeposit({
-            params: { ledgerAccountId: owner.accountId, provider: 'MANUAL', funds: STRIPE_MINIMUM_PAYMENT_AMOUNT - 1 },
+            implementationParams: { ledgerAccountId: owner.accountId, funds: STRIPE_MINIMUM_PAYMENT_AMOUNT - 1 },
+            params: { provider: 'MANUAL' },
             bypassAuth: true,
         })
-        expect(byHand.state).toBe('SUCCEEDED')
+        expect(byHand.transaction.state).toBe('SUCCEEDED')
     })
 
     test('LEDGER_ADMIN may deposit to any account, and only a MANUAL deposit keeps its description', async () => {
@@ -145,11 +147,12 @@ describe('creating deposits', () => {
 
         const byStripe = await deposit(owner.accountId, adminSession, DEPOSIT, 'Via Stripe')
         const byHand = await ledgerMovementOperations.createDeposit({
-            params: { ledgerAccountId: owner.accountId, provider: 'MANUAL', funds: DEPOSIT, description: 'Kontant' },
+            implementationParams: { ledgerAccountId: owner.accountId, funds: DEPOSIT },
+            params: { provider: 'MANUAL', description: 'Kontant' },
             session: adminSession,
         })
 
-        expect(byStripe.description).toBeNull()
-        expect(byHand.description).toBe('Kontant')
+        expect(byStripe.transaction.description).toBeNull()
+        expect(byHand.transaction.description).toBe('Kontant')
     })
 })

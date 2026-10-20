@@ -86,10 +86,9 @@ export default async function reconcileLedger(
     const userPnIds = toPnIds(userAccountIdMap, 'user accounts')
     const drainPnIds = toPnIds(drainAccountIdMap, 'drain accounts')
 
-    const balances = await ledgerAccountOperations.calculateBalances({
+    const balances = await ledgerAccountOperations.internal.calculateBalances.internalCall({
         params: { ledgerAccountIds: [...Array.from(userPnIds.values()), ...Array.from(drainPnIds.values())] },
         prisma: pnPrisma,
-        bypassAuth: true,
     })
 
     let mismatches = 0

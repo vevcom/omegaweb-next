@@ -33,13 +33,7 @@ const { page, generateMetadata } = serverPage({
             ledgerMovementAuth.createDeposit.data({ accounts: [ledgerAccount.ownership] }),
             paymentAuth.create({ provider: 'MANUAL' }),
         ),
-        // A payout is always a MANUAL payment, which paymentAuth.create reserves for
-        // LEDGER_ADMIN - require it here too, or a non-admin owner would see the button and
-        // then get rejected the moment they actually try to use it.
-        canPayout: Require.allOf(
-            ledgerMovementAuth.createPayout.data({ accounts: [ledgerAccount.ownership] }),
-            paymentAuth.create({ provider: 'MANUAL' }),
-        ),
+        canPayout: ledgerMovementAuth.createPayout,
         // Unfreezing takes more than freezing, so the rule follows the state the button changes.
         canFreeze: ledgerAccount.frozen
             ? ledgerAccountAuth.updateAsAdmin({ accounts: [ledgerAccount.ownership] })

@@ -87,8 +87,8 @@ export default function LedgerTransactionModal({
     // as a deliberate bypass of the normal payment flow) and the payment rule allows it - enforced
     // here so callers never need to re-derive it themselves. When MANUAL is the *only* method a
     // caller offers (e.g. a payout, which has no alternative provider at all), there's nothing to
-    // bypass, so it's left as-is; authorization for that case is the caller's own domain rule
-    // (e.g. account ownership), not this exclusivity rule.
+    // bypass, so it's left as-is; authorization for that case is the caller's own domain rule,
+    // not this exclusivity rule.
     const paymentMethods = availablePaymentMethods.length > 1
         ? availablePaymentMethods.filter(method => method !== 'MANUAL' || canPayManually)
         : availablePaymentMethods

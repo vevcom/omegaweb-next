@@ -78,7 +78,7 @@ describe('ledger transactions', () => {
                 bypassAuth: true,
             })
 
-            await expect(payOutFees(INITIAL_BALANCE.fees)).resolves.toMatchObject({ state: 'SUCCEEDED' })
+            await expect(payOutFees(INITIAL_BALANCE.fees)).resolves.toMatchObject({ transaction: { state: 'SUCCEEDED' } })
             // Refused only if the balance counts the first payout, an entry with fees but no funds.
             await expect(payOutFees(1_00)).rejects.toMatchObject({
                 errorCode: 'BAD PARAMETERS',
@@ -117,9 +117,8 @@ describe('ledger transactions', () => {
                 state: 'SUCCEEDED',
             })
 
-            const balances = await ledgerAccountOperations.calculateBalances({
+            const balances = await ledgerAccountOperations.internal.calculateBalances.internalCall({
                 params: { ledgerAccountIds: testAccountIds },
-                bypassAuth: true,
             })
 
             entries.forEach((amount, i) => {
@@ -182,9 +181,8 @@ describe('ledger transactions', () => {
 
             await expect(transactionPromise).rejects.toThrow()
 
-            const balances = await ledgerAccountOperations.calculateBalances({
+            const balances = await ledgerAccountOperations.internal.calculateBalances.internalCall({
                 params: { ledgerAccountIds: testAccountIds },
-                bypassAuth: true,
             })
 
             testAccountIds.forEach(accountId => {

@@ -1,14 +1,12 @@
 import '@pn-server-only'
 import { ledgerAccountSchemas } from './schemas'
 import { ledgerAccountAuth } from './auth'
-import { resolveAccountOwnership, resolveAccountsOwnership } from './ownership'
+import { resolveAccountOwnership } from './ownership'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import type { LedgerAccount, LedgerAccountType, Prisma } from '@/prisma-generated-pn-types'
 import type { Balance, BalanceRecord, ExpandedLedgerAccount } from './types'
 
-// Nested calls are not bypassed unless noted, since checking access again is cheap. bypassAuth is
-// only used where a nested operation would reject a caller the outer check allows.
 const ownershipIncluder = {
     user: { select: { id: true } },
     groups: { select: { groupId: true } },
@@ -20,6 +18,158 @@ const expandLedgerAccount = (
     const groupIds = groups.map(group => group.groupId)
     return { ...account, groupIds, ownership: { userId: user?.id ?? null, groupIds } }
 }
+
+/**
+ * Reads details of a ledger account by ledger account id or user id.
+ *
+ * **Note**: The balance of an account is not included in the response.
+ * Use the `calculateBalance` method to get the balance.
+ *
+ * @param params.userId The ID of the user to read the account for.
+ * @param params.ledgerAccountId The ID of the ledger account to read.
+ *
+ * @returns The account details.
+ */
+const read = defineSubOperation({
+    paramsSchema: () => ledgerAccountSchemas.params.read,
+    operation: () => async ({ prisma, params }): Promise<ExpandedLedgerAccount> => {
+        const account = await prisma.ledgerAccount.findFirstOrThrow({
+            where: {
+                id: params.ledgerAccountId,
+                user: params.userId !== undefined ? { id: params.userId } : undefined,
+            },
+            include: ownershipIncluder,
+        })
+
+        return expandLedgerAccount(account)
+    },
+})
+
+/**
+ * Reads all ledger accounts matching any of the given filters. An account is included if it
+ * matches at least one of `ledgerAccountIds`, `userIds` or `groupIds`: this is a batch fetch
+ * by several kinds of key, not a narrowing search, so the filters combine with OR, not AND.
+ *
+ * **Note**: The balance of the accounts are not included in the response.
+ * Use the `calculateBalances` method to get the balances.
+ *
+ * @param params.ledgerAccountIds IDs of specific ledger accounts to include.
+ * @param params.userIds IDs of users whose account should be included.
+ * @param params.groupIds IDs of groups whose accounts should be included.
+ *
+ * @returns List of account details, without duplicates even when an account
+ * matches more than one filter (e.g. it's shared by two requested groups).
+ */
+const readMany = defineSubOperation({
+    paramsSchema: () => ledgerAccountSchemas.params.readMany,
+    operation: () => async ({ prisma, params }): Promise<LedgerAccount[]> => {
+        const filters: Prisma.LedgerAccountWhereInput[] = []
+
+        if (params.ledgerAccountIds?.length) {
+            filters.push({ id: { in: params.ledgerAccountIds } })
+        }
+        if (params.userIds?.length) {
+            filters.push({ user: { id: { in: params.userIds } } })
+        }
+        if (params.groupIds?.length) {
+            filters.push({ groups: { some: { groupId: { in: params.groupIds } } } })
+        }
+
+        return await prisma.ledgerAccount.findMany({
+            where: { OR: filters },
+        })
+    },
+})
+
+/**
+ * Calculates the live balance and fees of every matching account: SUCCEEDED entries and PENDING
+ * debits, which reserve their funds.
+ *
+ * @warning An account that does not exist is treated as having a balance of zero.
+ *
+ * @param params.ledgerAccountIds IDs of specific ledger accounts to include.
+ * @param params.userIds IDs of users whose account should be included.
+ * @param params.groupIds IDs of groups whose accounts should be included.
+ *
+ * @returns The balances of the ledger accounts.
+ */
+const calculateBalances = defineSubOperation({
+    paramsSchema: () => ledgerAccountSchemas.params.calculateBalances,
+    operation: () => async ({ prisma, params }): Promise<BalanceRecord> => {
+        // Skip resolving userIds/groupIds to ledger account IDs when ledgerAccountIds
+        // alone was given, since there is then nothing to resolve.
+        const ids = params.userIds?.length || params.groupIds?.length
+            ? (await readMany.internalCall({
+                params: {
+                    ledgerAccountIds: params.ledgerAccountIds,
+                    userIds: params.userIds,
+                    groupIds: params.groupIds,
+                },
+            })).map(account => account.id)
+            : params.ledgerAccountIds ?? []
+
+        const balanceArray = await prisma.ledgerEntry.groupBy({
+            by: ['ledgerAccountId'],
+            where: {
+                // Select which accounts we want to calculate the balance for
+                ledgerAccountId: {
+                    in: ids,
+                },
+                OR: [
+                    // Every entry counts once its transaction has succeeded.
+                    { ledgerTransaction: { state: 'SUCCEEDED' } },
+                    // A debit, taking funds or fees, also counts while its transaction is pending.
+                    // This is our way of reserving the funds until the transaction is complete.
+                    { ledgerTransaction: { state: 'PENDING' }, OR: [{ funds: { lt: 0 } }, { fees: { lt: 0 } }] },
+                ],
+            },
+            // Select what fields we should sum
+            _sum: {
+                funds: true,
+                fees: true,
+            },
+        })
+
+        // Convert the array to an object as it's more convenient for lookups and
+        // replace all nulls with zeros to handle accounts with no entries yet.
+        // Set the balance of accounts that have no entries to zero.
+        const balanceRecord = Object.fromEntries([
+            ...ids.map((id): [number, Balance] => [id, { amount: 0, fees: 0 }]),
+            ...balanceArray.map((balance): [number, Balance] => [
+                balance.ledgerAccountId,
+                {
+                    amount: balance._sum.funds ?? 0,
+                    fees: balance._sum.fees ?? 0
+                }
+            ])
+        ])
+
+        return balanceRecord
+    },
+})
+
+/**
+ * Calcultates the balance of a single account. Under the hood it simply uses `calculateBalances`.
+ *
+ * @param params.userId The ID of the user whose account to calculate the balance for.
+ * @param params.ledgerAccountId The ID of the account to calculate the balance for.
+ *
+ * @returns The balance of the ledger account.
+ */
+const calculateBalance = defineSubOperation({
+    paramsSchema: () => ledgerAccountSchemas.params.calculateBalance,
+    operation: () => async ({ params }): Promise<Balance> => {
+        const account = await read.internalCall({
+            params: { userId: params.userId, ledgerAccountId: params.ledgerAccountId },
+        })
+
+        const balances = await calculateBalances.internalCall({
+            params: { ledgerAccountIds: [account.id] },
+        })
+
+        return balances[account.id]
+    },
+})
 
 /** The actual write behind both update and updateAsAdmin - only the authorizer and the data each
  * may touch differ between them. */
@@ -60,6 +210,13 @@ async function writeAccountUpdate(
 }
 
 export const ledgerAccountOperations = {
+    internal: {
+        read,
+        readMany,
+        calculateBalances,
+        calculateBalance,
+    },
+
     /**
      * Creates a new GROUP ledger account. USER accounts are created automatically alongside
      * their User (see userOperations.create and friends) and can't be created through here.
@@ -91,72 +248,11 @@ export const ledgerAccountOperations = {
         }),
     }),
 
-    /**
-     * Reads details of a ledger account by ledger account id, user id, or group id.
-     *
-     * **Note**: The balance of an account is not included in the response.
-     * Use the `calculateBalance` method to get the balance.
-     *
-     * @param params.userId The ID of the user to read the account for.
-     * @param params.ledgerAccountId The ID of the ledger account to read.
-     *
-     * @returns The account details.
-     */
-    read: defineOperation({
+    read: read.implement({
         authorizer: async ({ params, prisma }) => ledgerAccountAuth.read.data({
             accounts: [await resolveAccountOwnership(prisma, params)],
         }),
-        paramsSchema: ledgerAccountSchemas.params.read,
-        operation: async ({ prisma, params }): Promise<ExpandedLedgerAccount> => {
-            const account = await prisma.ledgerAccount.findFirstOrThrow({
-                where: {
-                    id: params.ledgerAccountId,
-                    user: params.userId !== undefined ? { id: params.userId } : undefined,
-                },
-                include: ownershipIncluder,
-            })
-
-            return expandLedgerAccount(account)
-        },
-    }),
-
-    /**
-     * Reads all ledger accounts matching any of the given filters. An account is included if it
-     * matches at least one of `ledgerAccountIds`, `userIds` or `groupIds`: this is a batch fetch
-     * by several kinds of key, not a narrowing search, so the filters combine with OR, not AND.
-     *
-     * **Note**: The balance of the accounts are not included in the response.
-     * Use the `calculateBalances` method to get the balances.
-     *
-     * @param params.ledgerAccountIds IDs of specific ledger accounts to include.
-     * @param params.userIds IDs of users whose account should be included.
-     * @param params.groupIds IDs of groups whose accounts should be included.
-     *
-     * @returns List of account details, without duplicates even when an account
-     * matches more than one filter (e.g. it's shared by two requested groups).
-     */
-    readMany: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerAccountAuth.readMany.data({
-            accounts: await resolveAccountsOwnership(prisma, params),
-        }),
-        paramsSchema: ledgerAccountSchemas.params.readMany,
-        operation: async ({ prisma, params }): Promise<LedgerAccount[]> => {
-            const filters: Prisma.LedgerAccountWhereInput[] = []
-
-            if (params.ledgerAccountIds?.length) {
-                filters.push({ id: { in: params.ledgerAccountIds } })
-            }
-            if (params.userIds?.length) {
-                filters.push({ user: { id: { in: params.userIds } } })
-            }
-            if (params.groupIds?.length) {
-                filters.push({ groups: { some: { groupId: { in: params.groupIds } } } })
-            }
-
-            return await prisma.ledgerAccount.findMany({
-                where: { OR: filters },
-            })
-        }
+        ownershipCheck: () => true,
     }),
 
     /**
@@ -209,7 +305,7 @@ export const ledgerAccountOperations = {
             })
 
             const balances = accounts.length > 0
-                ? await ledgerAccountOperations.calculateBalances({
+                ? await calculateBalances.internalCall({
                     params: { ledgerAccountIds: accounts.map(account => account.id) },
                 })
                 : {}
@@ -234,7 +330,7 @@ export const ledgerAccountOperations = {
         paramsSchema: ledgerAccountSchemas.params.update,
         dataSchema: ledgerAccountSchemas.data.update,
         operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
-            const account = await ledgerAccountOperations.read({ params })
+            const account = await read.internalCall({ params })
             return writeAccountUpdate(prisma, account.id, data)
         }
     }),
@@ -256,104 +352,15 @@ export const ledgerAccountOperations = {
         paramsSchema: ledgerAccountSchemas.params.updateAsAdmin,
         dataSchema: ledgerAccountSchemas.data.updateAsAdmin,
         operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
-            const account = await ledgerAccountOperations.read({ params })
+            const account = await read.internalCall({ params })
             return writeAccountUpdate(prisma, account.id, data)
         }
     }),
 
-    /**
-     * Calculates the live balance and fees of every matching account: SUCCEEDED entries and PENDING
-     * debits, which reserve their funds.
-     *
-     * @warning An account that does not exist is treated as having a balance of zero.
-     *
-     * @param params.ledgerAccountIds IDs of specific ledger accounts to include.
-     * @param params.userIds IDs of users whose account should be included.
-     * @param params.groupIds IDs of groups whose accounts should be included.
-     *
-     * @returns The balances of the ledger accounts.
-     */
-    calculateBalances: defineOperation({
-        authorizer: async ({ params, prisma }) => ledgerAccountAuth.calculateBalances.data({
-            accounts: await resolveAccountsOwnership(prisma, params),
-        }),
-        paramsSchema: ledgerAccountSchemas.params.calculateBalances,
-        operation: async ({ prisma, params }): Promise<BalanceRecord> => {
-            // Skip resolving userIds/groupIds to ledger account IDs when ledgerAccountIds
-            // alone was given, since there is then nothing to resolve.
-            const ids = params.userIds?.length || params.groupIds?.length
-                ? (await ledgerAccountOperations.readMany({
-                    params: {
-                        ledgerAccountIds: params.ledgerAccountIds,
-                        userIds: params.userIds,
-                        groupIds: params.groupIds,
-                    },
-                })).map(account => account.id)
-                : params.ledgerAccountIds ?? []
-
-            const balanceArray = await prisma.ledgerEntry.groupBy({
-                by: ['ledgerAccountId'],
-                where: {
-                    // Select which accounts we want to calculate the balance for
-                    ledgerAccountId: {
-                        in: ids,
-                    },
-                    OR: [
-                        // Every entry counts once its transaction has succeeded.
-                        { ledgerTransaction: { state: 'SUCCEEDED' } },
-                        // A debit, taking funds or fees, also counts while its transaction is pending.
-                        // This is our way of reserving the funds until the transaction is complete.
-                        { ledgerTransaction: { state: 'PENDING' }, OR: [{ funds: { lt: 0 } }, { fees: { lt: 0 } }] },
-                    ],
-                },
-                // Select what fields we should sum
-                _sum: {
-                    funds: true,
-                    fees: true,
-                },
-            })
-
-            // Convert the array to an object as it's more convenient for lookups and
-            // replace all nulls with zeros to handle accounts with no entries yet.
-            // Set the balance of accounts that have no entries to zero.
-            const balanceRecord = Object.fromEntries([
-                ...ids.map((id): [number, Balance] => [id, { amount: 0, fees: 0 }]),
-                ...balanceArray.map((balance): [number, Balance] => [
-                    balance.ledgerAccountId,
-                    {
-                        amount: balance._sum.funds ?? 0,
-                        fees: balance._sum.fees ?? 0
-                    }
-                ])
-            ])
-
-            return balanceRecord
-        }
-    }),
-
-    /**
-     * Calcultates the balance of a single account. Under the hood it simply uses `calculateBalances`.
-     *
-     * @param params.userId The ID of the user whose account to calculate the balance for.
-     * @param params.ledgerAccountId The ID of the account to calculate the balance for.
-     *
-     * @returns The balance of the ledger account.
-     */
-    calculateBalance: defineOperation({
+    calculateBalance: calculateBalance.implement({
         authorizer: async ({ params, prisma }) => ledgerAccountAuth.calculateBalance.data({
             accounts: [await resolveAccountOwnership(prisma, params)],
         }),
-        paramsSchema: ledgerAccountSchemas.params.calculateBalance,
-        operation: async ({ params }): Promise<Balance> => {
-            const account = await ledgerAccountOperations.read({
-                params: { userId: params.userId, ledgerAccountId: params.ledgerAccountId },
-            })
-
-            const balances = await ledgerAccountOperations.calculateBalances({
-                params: { ledgerAccountIds: [account.id] },
-            })
-
-            return balances[account.id]
-        }
+        ownershipCheck: () => true,
     }),
 } as const

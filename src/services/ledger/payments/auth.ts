@@ -10,14 +10,4 @@ export const paymentAuth = {
         const ledgerUse = Require.permission('LEDGER_USE')
         return provider === 'MANUAL' ? ledgerUse.permission('LEDGER_ADMIN') : ledgerUse
     },
-
-    // Starts real payment collection. Operates on a paymentId before any ledger entries exist,
-    // so there is no account to check ownership against. Like cancel, it takes any paymentId, which
-    // is safe only while both stay internal: no action exposes them, and their callers authorize
-    // whatever the payment is for first.
-    initiate: Require.permission('LEDGER_USE'),
-
-    // Cancels a still-pending payment attempt (e.g. an abandoned Stripe checkout). Same bar as
-    // initiate - no account exists to check ownership against at this stage either.
-    cancel: Require.permission('LEDGER_USE'),
 } as const

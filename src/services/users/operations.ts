@@ -651,17 +651,10 @@ export const userOperations = {
                 params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
             })
 
-            // bypassAuth: userAuth.readUserWithBalance above already applies the ledger's rule (the
-            // user themselves or LEDGER_ADMIN); ledgerAccountAuth.read/calculateBalance's own check would
-            // otherwise reject an API-key caller (no session user) looking up someone else's
-            // balance.
-            const account = await ledgerAccountOperations.read({
+            // userAuth.readUserWithBalance above already applies the ledger's rule, the user
+            // themselves or LEDGER_ADMIN, in a form an API-key caller with no session user can pass.
+            const balance = await ledgerAccountOperations.internal.calculateBalance.internalCall({
                 params: { userId: user.id },
-                bypassAuth: true,
-            })
-            const balance = await ledgerAccountOperations.calculateBalance({
-                params: { ledgerAccountId: account.id },
-                bypassAuth: true,
             })
 
             return {

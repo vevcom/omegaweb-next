@@ -78,17 +78,15 @@ const balanceOf = (ledgerAccountId: number) => ledgerAccountOperations.calculate
 
 /** A Stripe deposit that has been sent to Stripe and is waiting for the webhook. */
 async function startStripeDeposit(ledgerAccountId: number) {
-    const transaction = await ledgerMovementOperations.createDeposit({
-        params: { ledgerAccountId, provider: 'STRIPE', funds: DEPOSIT },
+    const { transaction, payment } = await ledgerMovementOperations.createDeposit({
+        implementationParams: { ledgerAccountId, funds: DEPOSIT },
+        params: { provider: 'STRIPE' },
         bypassAuth: true,
     })
-    const stripePayment = transaction.payment
-        ? await prisma.stripePayment.findUnique({ where: { paymentId: transaction.payment.id } })
-        : null
-    const paymentIntentId = stripePayment?.paymentIntentId
-    if (!paymentIntentId) throw new Error('The deposit was not sent to Stripe.')
+    const paymentIntentId = payment?.stripePayment?.paymentIntentId
+    if (!payment || !paymentIntentId) throw new Error('The deposit was not sent to Stripe.')
 
-    return { transactionId: transaction.id, paymentId: transaction.payment.id, paymentIntentId }
+    return { transactionId: transaction.id, paymentId: payment.id, paymentIntentId }
 }
 
 const readTransaction = (id: number) => prisma.ledgerTransaction.findUniqueOrThrow({
@@ -139,7 +137,7 @@ describe('creating payments', () => {
         expect(payment).toMatchObject({ state: 'SUCCEEDED', funds: DEPOSIT, fees: 5_00 })
         expect(payment.manualPayment).not.toBeNull()
 
-        await expect(paymentOperations.initiate({ params: { paymentId: payment.id }, bypassAuth: true }))
+        await expect(paymentOperations.internal.initiate.internalCall({ params: { paymentId: payment.id } }))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
         expect(stripeMocks.createIntent).not.toHaveBeenCalled()
     })
@@ -163,7 +161,7 @@ describe('creating payments', () => {
         expect(payment.state).toBe('PENDING')
         expect(stripeMocks.createIntent).not.toHaveBeenCalled()
 
-        const initiated = await paymentOperations.initiate({ params: { paymentId: payment.id }, bypassAuth: true })
+        const initiated = await paymentOperations.internal.initiate.internalCall({ params: { paymentId: payment.id } })
 
         expect(initiated.state).toBe('PROCESSING')
         expect(initiated.stripePayment).toMatchObject({
@@ -173,7 +171,7 @@ describe('creating payments', () => {
         expect(stripeMocks.createIntent).toHaveBeenCalledTimes(1)
         expect(stripeMocks.createIntent.mock.calls[0][0]).toMatchObject({ amount: DEPOSIT, currency: 'nok' })
 
-        await expect(paymentOperations.initiate({ params: { paymentId: payment.id }, bypassAuth: true }))
+        await expect(paymentOperations.internal.initiate.internalCall({ params: { paymentId: payment.id } }))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
         expect(stripeMocks.createIntent).toHaveBeenCalledTimes(1)
     })
@@ -184,11 +182,11 @@ describe('creating payments', () => {
             bypassAuth: true,
         })
         stripeMocks.createIntent.mockImplementationOnce(async () => {
-            await paymentOperations.cancel({ params: { paymentId: payment.id }, bypassAuth: true })
+            await paymentOperations.internal.cancel.internalCall({ params: { paymentId: payment.id } })
             return { id: 'pi_test_raced', client_secret: 'pi_test_raced_secret' } as never
         })
 
-        await expect(paymentOperations.initiate({ params: { paymentId: payment.id }, bypassAuth: true }))
+        await expect(paymentOperations.internal.initiate.internalCall({ params: { paymentId: payment.id } }))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
 
         expect(await prisma.payment.findUniqueOrThrow({ where: { id: payment.id }, include: { stripePayment: true } }))
@@ -204,7 +202,8 @@ describe('creating deposits', () => {
         stripeMocks.createIntent.mockRejectedValueOnce(new Error('Stripe is down'))
 
         await expect(ledgerMovementOperations.createDeposit({
-            params: { ledgerAccountId: account.id, provider: 'STRIPE', funds: DEPOSIT },
+            implementationParams: { ledgerAccountId: account.id, funds: DEPOSIT },
+            params: { provider: 'STRIPE' },
             bypassAuth: true,
         })).rejects.toThrow(new Smorekopp('UNKNOWN ERROR'))
 
@@ -212,6 +211,27 @@ describe('creating deposits', () => {
             where: { ledgerEntries: { some: { ledgerAccountId: account.id } } },
         })
         expect(transaction.state).toBe('CANCELED')
+    })
+})
+
+describe('creating payouts', () => {
+    test('a payout takes LEDGER_ADMIN, even from an account one owns', async () => {
+        const account = await createAccount('payoutowner')
+        await createSucceededDeposit(account.id, DEPOSIT)
+        const payOut = (permissions: Permission[]) => ledgerMovementOperations.createPayout({
+            params: { ledgerAccountId: account.id, funds: DEPOSIT, fees: 0 },
+            session: Session.fromJsObject({
+                user: { id: account.ownership.userId } as NonNullable<Parameters<typeof Session.fromJsObject>[0]['user']>,
+                permissions,
+                memberships: [],
+            }),
+        })
+
+        await expect(payOut(['LEDGER_USE'])).rejects.toThrow(Smorekopp)
+        expect(await balanceOf(account.id)).toMatchObject({ amount: DEPOSIT })
+
+        await expect(payOut(['LEDGER_USE', 'LEDGER_ADMIN'])).resolves.toMatchObject({ transaction: { state: 'SUCCEEDED' } })
+        expect(await balanceOf(account.id)).toMatchObject({ amount: 0 })
     })
 })
 
@@ -531,9 +551,8 @@ describe('reversing transactions', () => {
         await createSucceededDeposit(payer.id, DEPOSIT)
         const transaction = await createSucceededTransfer(payer.id, destination.id, DEPOSIT)
 
-        const reversalTransaction = await refundOperations.reverseTransaction({
+        const reversalTransaction = await refundOperations.reverseTransaction.internalCall({
             params: { originalTransactionId: transaction.id, reason: 'full reversal' },
-            bypassAuth: true,
         })
 
         expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
@@ -554,19 +573,17 @@ describe('reversing transactions', () => {
 
         // In a transaction like every real caller, so a duplicate's correction rolls back when
         // its Refund row fails.
-        await prisma.$transaction(tx => refundOperations.reverseTransaction({
+        await prisma.$transaction(tx => refundOperations.reverseTransaction.internalCall({
             params: { originalTransactionId: transaction.id, reason: 'first attempt' },
             prisma: tx,
-            bypassAuth: true,
         }))
 
         expect(await balanceOf(payer.id)).toEqual({ amount: DEPOSIT, fees: 0 })
         expect(await balanceOf(destination.id)).toEqual({ amount: DEPOSIT, fees: 0 })
 
-        await expect(prisma.$transaction(tx => refundOperations.reverseTransaction({
+        await expect(prisma.$transaction(tx => refundOperations.reverseTransaction.internalCall({
             params: { originalTransactionId: transaction.id, reason: 'second attempt' },
             prisma: tx,
-            bypassAuth: true,
         }))).rejects.toThrow(new Smorekopp('DUPLICATE'))
 
         expect(await prisma.refund.count({ where: { originalTransactionId: transaction.id } })).toBe(1)
@@ -592,9 +609,8 @@ describe('reversing transactions', () => {
         })
         expect(transaction.state).toBe('PENDING')
 
-        await expect(refundOperations.reverseTransaction({
+        await expect(refundOperations.reverseTransaction.internalCall({
             params: { originalTransactionId: transaction.id, reason: 'not succeeded yet' },
-            bypassAuth: true,
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
     })
 
@@ -605,9 +621,8 @@ describe('reversing transactions', () => {
         // ledger balance on its way in.
         const transaction = await createSucceededDeposit(committee.id, DEPOSIT)
 
-        await expect(refundOperations.reverseTransaction({
+        await expect(refundOperations.reverseTransaction.internalCall({
             params: { originalTransactionId: transaction.id, reason: 'no account named' },
-            bypassAuth: true,
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
     })
 
@@ -616,13 +631,12 @@ describe('reversing transactions', () => {
         const payer = await createAccount('reverseoneaccountpayer')
         const transaction = await createSucceededDeposit(committee.id, DEPOSIT)
 
-        await refundOperations.reverseTransaction({
+        await refundOperations.reverseTransaction.internalCall({
             params: {
                 originalTransactionId: transaction.id,
                 reason: 'paid entirely through Stripe',
                 refundTo: payer.id,
             },
-            bypassAuth: true,
         })
 
         expect(await balanceOf(committee.id)).toEqual({ amount: 0, fees: 0 })
@@ -651,13 +665,12 @@ describe('reversing transactions', () => {
             bypassAuth: true,
         })
 
-        await refundOperations.reverseTransaction({
+        await refundOperations.reverseTransaction.internalCall({
             params: {
                 originalTransactionId: transaction.id,
                 reason: 'double-booked after a mixed payment',
                 refundTo: payer.id,
             },
-            bypassAuth: true,
         })
 
         // The flipped 40 from the payer's own balance plus the 60 that came in from outside.
@@ -810,9 +823,8 @@ describe('reimbursing an unapplied payment', () => {
         const account = await createAccount('reimbursenothing')
         const transaction = await createSucceededDeposit(account.id, DEPOSIT)
 
-        await expect(refundOperations.reimburseUnappliedPayment({
+        await expect(refundOperations.reimburseUnappliedPayment.internalCall({
             params: { originalTransactionId: transaction.id, reason: 'nothing to reimburse' },
-            bypassAuth: true,
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
     })
 })
@@ -930,7 +942,7 @@ describe("advance()'s balance check sees debits regardless of transaction id ord
         const low = await transfer(DEPOSIT * 0.7)
         await transfer(DEPOSIT * 0.5)
 
-        const resolved = await ledgerTransactionOperations.advance({ params: { id: low.id }, bypassAuth: true })
+        const resolved = await ledgerTransactionOperations.internal.advance.internalCall({ params: { id: low.id } })
 
         // Combined, the two debits (0.7 + 0.5 of the deposit) exceed the account's balance - a
         // check blind to the higher-id one would see only its own 0.7 against the full deposit

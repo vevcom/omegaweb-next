@@ -120,7 +120,8 @@ async function createPayer(username: string) {
     })
     const account = await ledgerAccountOperations.read({ params: { userId: user.id }, bypassAuth: true })
     await ledgerMovementOperations.createDeposit({
-        params: { ledgerAccountId: account.id, provider: 'MANUAL', funds: STARTING_BALANCE, manualFees: 0 },
+        implementationParams: { ledgerAccountId: account.id, funds: STARTING_BALANCE },
+        params: { provider: 'MANUAL', manualFees: 0 },
         bypassAuth: true,
     })
     return user
@@ -149,7 +150,8 @@ describe('paying for an event', () => {
         })
 
         await expect(eventRegistrationOperations.createPayment({
-            params: { userId: payer.id, eventId, amountFromBalance: EVENT_PRICE_ORE },
+            implementationParams: { userId: payer.id, eventId },
+            params: { amountFromBalance: EVENT_PRICE_ORE },
             session: payerSessionOf(payer),
         })).rejects.toThrow(new Smorekopp('SERVER ERROR'))
     })
@@ -177,11 +179,35 @@ describe('paying for an event', () => {
         const committeeBalanceBefore = await balanceOf(committeeAccountId)
 
         const { payment } = await eventRegistrationOperations.createPayment({
-            params: { userId: payer.id, eventId, amountFromBalance: EVENT_PRICE_ORE },
+            implementationParams: { userId: payer.id, eventId },
+            params: { amountFromBalance: EVENT_PRICE_ORE },
             session: payerSessionOf(payer),
         })
 
         expect(payment).toBeNull()
         expect(await balanceOf(committeeAccountId)).toBe(committeeBalanceBefore + EVENT_PRICE_ORE)
+    })
+
+    test('a registration that is paid for is not paid for again', async () => {
+        const payer = await createPayer('eventpaytwice')
+        const eventId = await createPaidEvent({ ledgerAccountId: committeeAccountId })
+        await eventRegistrationOperations.create({
+            params: { userId: payer.id, eventId },
+            session: sessionOf(payer),
+        })
+        const pay = () => eventRegistrationOperations.createPayment({
+            implementationParams: { userId: payer.id, eventId },
+            params: { amountFromBalance: EVENT_PRICE_ORE },
+            session: payerSessionOf(payer),
+        })
+
+        await pay()
+        await expect(pay()).rejects.toMatchObject({
+            errorCode: 'BAD PARAMETERS',
+            errors: [{ message: expect.stringContaining('allerede betalt') }],
+        })
+
+        const payerAccount = await ledgerAccountOperations.read({ params: { userId: payer.id }, bypassAuth: true })
+        expect(await balanceOf(payerAccount.id)).toBe(STARTING_BALANCE - EVENT_PRICE_ORE)
     })
 })

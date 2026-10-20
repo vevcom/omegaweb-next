@@ -1,6 +1,5 @@
 import { dateLessThan, dateLessThanOrEqualTo } from '@/lib/dates/comparison'
 import { Zpn } from '@/lib/fields/zpn'
-import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -31,10 +30,6 @@ const paramsFieldSchemas = z.object({
         cabinProductId: z.number(),
         quantity: z.number().int().min(1),
     })),
-    provider: z.nativeEnum(PaymentProvider).optional(),
-    amountFromBalance: z.coerce.number().nonnegative().default(0),
-    manualFees: z.coerce.number().nonnegative().default(0),
-    description: z.string().optional(),
 })
 
 const startsBeforeEndAndNotInThePast = (data: { start: Date, end: Date }) =>
@@ -93,14 +88,7 @@ export const cabinBookingSchemas = {
         read: paramsFieldSchemas.pick({
             id: true,
         }),
-        createPayment: paramsFieldSchemas.pick({
-            bookingId: true,
-            secret: true,
-            provider: true,
-            amountFromBalance: true,
-            manualFees: true,
-            description: true,
-        }),
+        createPayment: bookingAccess,
         releaseReservation: bookingAccess,
     },
 }

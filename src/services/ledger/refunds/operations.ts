@@ -1,9 +1,8 @@
 import '@pn-server-only'
-import { refundAuth } from './auth'
-import { refundParamsSchemas } from './schemas'
+import { refundSchemas } from './schemas'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { ServiceError } from '@/services/error'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineSubOperation } from '@/services/serviceOperation'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { RefundType, Prisma } from '@/prisma-generated-pn-types'
@@ -13,10 +12,9 @@ export const refundOperations = {
      * Reverses a SUCCEEDED transaction in full by negating its entries. When part of the money came
      * through Stripe that doesn't balance, so `refundTo` names the account that gets the rest.
      */
-    reverseTransaction: defineOperation({
-        authorizer: () => refundAuth.reverseTransaction,
-        paramsSchema: refundParamsSchemas.reverseTransaction,
-        operation: async ({ prisma, params }) => {
+    reverseTransaction: defineSubOperation({
+        paramsSchema: () => refundSchemas.params.reverseTransaction,
+        operation: () => async ({ prisma, params }) => {
             const original = await prisma.ledgerTransaction.findUniqueOrThrow({
                 where: { id: params.originalTransactionId },
                 select: {
@@ -64,10 +62,9 @@ export const refundOperations = {
      * CANCELED. Reuses the original's Payment, so the correction balances without a new one.
      * advance() guarantees nothing else can claim that payment.
      */
-    reimburseUnappliedPayment: defineOperation({
-        authorizer: () => refundAuth.reimburseUnappliedPayment,
-        paramsSchema: refundParamsSchemas.reimburseUnappliedPayment,
-        operation: async ({ prisma, params }) => {
+    reimburseUnappliedPayment: defineSubOperation({
+        paramsSchema: () => refundSchemas.params.reimburseUnappliedPayment,
+        operation: () => async ({ prisma, params }) => {
             const original = await prisma.ledgerTransaction.findUniqueOrThrow({
                 where: { id: params.originalTransactionId },
                 select: {
@@ -130,7 +127,7 @@ async function createCorrection(
     },
     { prisma }: { prisma: Prisma.TransactionClient },
 ): Promise<ExpandedLedgerTransaction> {
-    const refundTransaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.create({
+    const refundTransaction = await ledgerTransactionOperations.internal.create.internalCall({
         params: {
             purpose: 'REFUND',
             ledgerEntries,
@@ -138,7 +135,6 @@ async function createCorrection(
             description: reason,
         },
         prisma,
-        bypassAuth: true,
     })
 
     try {

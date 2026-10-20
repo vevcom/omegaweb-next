@@ -23,9 +23,8 @@ async function flag(
     problem: ManualReviewProblem,
     error: unknown,
 ) {
-    await manualReviewOperations.create({
+    await manualReviewOperations.internal.create.internalCall({
         params: { ...subject, problem, error },
-        bypassAuth: true,
     })
 }
 
@@ -50,14 +49,13 @@ export async function cancelStaleLedgerTransactions() {
     let canceled = 0
     for (const { id } of stale) {
         try {
-            const advanced = await prisma.$transaction(tx => ledgerTransactionOperations.advance({
+            const advanced = await prisma.$transaction(tx => ledgerTransactionOperations.internal.advance.internalCall({
                 params: { id },
                 prisma: tx,
-                bypassAuth: true,
             }))
             if (advanced.state !== 'PENDING') continue
 
-            await ledgerTransactionOperations.cancel({ params: { id }, bypassAuth: true })
+            await ledgerTransactionOperations.internal.cancel.internalCall({ params: { id } })
             canceled++
         } catch (error) {
             // Failing because it settled in the meantime, e.g. a webhook arriving, is not a problem.
@@ -95,10 +93,9 @@ export async function reimburseUnclaimedPayments() {
             const original = payment.ledgerTransactions.at(0)
             if (!original) throw new Error('Betalingen hører ikke til noen transaksjon.')
 
-            await prisma.$transaction(tx => refundOperations.reimburseUnappliedPayment({
+            await prisma.$transaction(tx => refundOperations.reimburseUnappliedPayment.internalCall({
                 params: { originalTransactionId: original.id, reason: unclaimedPaymentReason },
                 prisma: tx,
-                bypassAuth: true,
             }))
             reimbursed++
         } catch (error) {
