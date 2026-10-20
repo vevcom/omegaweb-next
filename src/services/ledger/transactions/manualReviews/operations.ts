@@ -3,40 +3,43 @@ import { manualReviewAuth } from './auth'
 import { manualReviewSchemas } from './schemas'
 import { manualReviewProblemDescriptions } from './constants'
 import { Smorekopp } from '@/services/error'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
 
+/**
+ * Flags something for a human: logs "MANUAL ADMIN ACTION REQUIRED!" and records a
+ * ManualTransactionReview. The description defaults to the problem's own, so callers only pass
+ * one to add details, or to say what the review is about when it has no transaction or payment.
+ * Never throws, since every caller is a best-effort path.
+ */
+const create = defineSubOperation({
+    paramsSchema: () => manualReviewSchemas.params.create,
+    operation: () => async ({ prisma, params }) => {
+        const subject = `transaksjon ${params.transactionId ?? '-'}, betaling ${params.paymentId ?? '-'}`
+        const problemDescription = params.problemDescription ?? manualReviewProblemDescriptions[params.problem]
+        try {
+            logger.error(
+                `MANUAL ADMIN ACTION REQUIRED! ${problemDescription} (${subject})`,
+                params.error && { error: params.error }
+            )
+            await prisma.manualTransactionReview.create({
+                data: {
+                    transactionId: params.transactionId,
+                    paymentId: params.paymentId,
+                    problem: params.problem,
+                    problemDescription,
+                },
+            })
+        } catch (error) {
+            logger.error(`MANUAL ADMIN ACTION REQUIRED! Could not record a manual review (${subject}).`, { error })
+        }
+    },
+})
+
 export const manualReviewOperations = {
-    /**
-     * Flags something for a human: logs "MANUAL ADMIN ACTION REQUIRED!" and records a
-     * ManualTransactionReview. The description defaults to the problem's own, so callers only pass
-     * one to add details, or to say what the review is about when it has no transaction or payment.
-     * Never throws, since every caller is a best-effort path.
-     */
-    create: defineOperation({
-        authorizer: () => manualReviewAuth.create,
-        paramsSchema: manualReviewSchemas.params.create,
-        operation: async ({ prisma, params }) => {
-            const subject = `transaksjon ${params.transactionId ?? '-'}, betaling ${params.paymentId ?? '-'}`
-            const problemDescription = params.problemDescription ?? manualReviewProblemDescriptions[params.problem]
-            try {
-                logger.error(
-                    `MANUAL ADMIN ACTION REQUIRED! ${problemDescription} (${subject})`,
-                    params.error && { error: params.error }
-                )
-                await prisma.manualTransactionReview.create({
-                    data: {
-                        transactionId: params.transactionId,
-                        paymentId: params.paymentId,
-                        problem: params.problem,
-                        problemDescription,
-                    },
-                })
-            } catch (error) {
-                logger.error(`MANUAL ADMIN ACTION REQUIRED! Could not record a manual review (${subject}).`, { error })
-            }
-        },
-    }),
+    internal: {
+        create,
+    },
 
     /**
      * Lists the OPEN reviews, newest first, with the transaction and payment each one is about.

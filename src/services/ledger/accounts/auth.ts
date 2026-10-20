@@ -16,8 +16,6 @@ export const ledgerAccountAuth = {
 
     read: ownsEveryAccount,
 
-    readMany: ownsEveryAccount,
-
     // Lists rather than checks: a user gets its own accounts through the filter, LEDGER_ADMIN
     // every account, unfiltered.
     readAccessible: Require.permission('LEDGER_ADMIN').or().user().filter(({ session }) => ownedAccountsWhere(session)),
@@ -42,6 +40,5 @@ export const ledgerAccountAuth = {
         return changesGroupLinks ? Require.allOf(ownAccount, Require.permission('LEDGER_ADMIN')) : ownAccount
     },
 
-    calculateBalances: ownsEveryAccount,
     calculateBalance: ownsEveryAccount,
 } as const

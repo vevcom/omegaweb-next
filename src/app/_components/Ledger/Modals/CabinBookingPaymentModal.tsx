@@ -56,16 +56,17 @@ export default function CabinBookingPaymentModal({
             const reservation = reservationResult.data
             onReservationCreated?.(reservation)
 
-            return createCabinBookingPaymentAction({
-                params: {
-                    bookingId: reservation.bookingId,
-                    secret: reservation.secret,
-                    provider: paymentMethod,
-                    amountFromBalance,
-                    manualFees: manualFees ?? 0,
-                    description,
-                }
-            })
+            return createCabinBookingPaymentAction(
+                { implementationParams: { bookingId: reservation.bookingId, secret: reservation.secret } },
+                {
+                    params: {
+                        provider: paymentMethod,
+                        amountFromBalance,
+                        manualFees: manualFees ?? 0,
+                        description,
+                    },
+                },
+            )
         }}
     >
         {children}

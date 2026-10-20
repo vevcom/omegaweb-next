@@ -18,15 +18,14 @@ import { standardImageCollectionOperations } from '@/services/images/standard/op
 import { eventOperations } from '@/services/events/operations'
 import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
-import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { refundOperations } from '@/services/ledger/refunds/operations'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma } from '@/prisma-generated-pn-types'
-import type { ExpandedPayment } from '@/services/ledger/payments/types'
-import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
+import type { PaymentCharge } from '@/services/ledger/movements/types'
 import type {
     DotPunishment,
     EventAttendanceCounts,
@@ -313,29 +312,26 @@ export const eventRegistrationOperations = {
                     select: { id: true, state: true },
                 })
                 if (liveTransaction && registration.userId) {
-                    const payerAccount = await ledgerAccountOperations.read({
+                    const payerAccount = await ledgerAccountOperations.internal.read.internalCall({
                         params: { userId: registration.userId },
-                        bypassAuth: true,
                         prisma: tx,
                     })
 
                     if (liveTransaction.state === 'SUCCEEDED') {
-                        await refundOperations.reverseTransaction({
+                        await refundOperations.reverseTransaction.internalCall({
                             params: {
                                 originalTransactionId: liveTransaction.id,
                                 reason: 'Avregistrert fra betalt arrangement.',
                                 refundTo: payerAccount.id,
                             },
                             prisma: tx,
-                            bypassAuth: true,
                         })
                     } else {
                         // Canceled so a late webhook can't complete it. If the payment succeeds at that
                         // very moment, the cancel fails, and unregistering again reverses it instead.
-                        await ledgerTransactionOperations.cancel({
+                        await ledgerTransactionOperations.internal.cancel.internalCall({
                             params: { id: liveTransaction.id },
                             prisma: tx,
-                            bypassAuth: true,
                         })
                     }
                 }
@@ -504,140 +500,76 @@ export const eventRegistrationOperations = {
      * Pays for an existing registration: `amountFromBalance` from the payer's ledger balance, the
      * rest via `provider`, which is only required when the balance doesn't cover the price.
      */
-    createPayment: defineOperation({
-        paramsSchema: eventRegistrationSchemas.params.createPayment,
-        authorizer: ({ params }) => eventRegistrationAuth.createPayment.data({ userId: params.userId }),
-        opensTransaction: true,
-        operation: async ({ prisma, params, session }): Promise<{ payment: ExpandedPayment | null }> => {
-            const registration = await prisma.eventRegistration.findUnique({
-                where: {
-                    eventId_userId: {
-                        eventId: params.eventId,
-                        userId: params.userId,
-                    },
-                },
-                include: { event: true },
-            })
-
-            if (!registration) {
-                throw new Smorekopp('NOT FOUND', 'Fant ingen påmelding å betale for.')
-            }
-
-            const { event } = registration
-
-            if (!event.price) {
-                throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet krever ikke betaling.')
-            }
-
-            // Waiting-list membership is derived from queue position, as in readOfUser. Enforced
-            // here too, since the UI gate doesn't stop a direct call.
-            const position = await queuePosition(prisma, registration)
-            if (position >= event.places) {
-                throw new Smorekopp('BAD PARAMETERS', 'Du står på ventelisten og kan ikke betale før du får en plass.')
-            }
-
-            const now = new Date()
-            if (!event.paymentStart || !event.paymentEnd || now < event.paymentStart || now > event.paymentEnd) {
-                throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
-            }
-
-            const destinationAccountId = event.ledgerAccountId
-            if (!destinationAccountId) {
-                throw new Smorekopp('SERVER ERROR', 'Arrangementet er ikke knyttet til en konto å betale til.')
-            }
-
-            const funds = event.price
-            if (params.amountFromBalance > funds) {
-                throw new Smorekopp('BAD PARAMETERS', 'Beløpet fra kontosaldo kan ikke overstige prisen.')
-            }
-            const shortfall = funds - params.amountFromBalance
-
-            if (shortfall > 0 && !params.provider) {
-                throw new Smorekopp('BAD PARAMETERS', 'Betalingsmetode må oppgis.')
-            }
-
-            let payment: ExpandedPayment | undefined
-            const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
-                // Locks the registration row so concurrent payment attempts for it serialize
-                // instead of racing the existingAttempt check below.
-                await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${registration.id} FOR UPDATE`
-
-                const existingAttempt = await tx.ledgerTransaction.findFirst({
-                    where: {
-                        eventRegistrationId: registration.id,
-                        state: { in: ['PENDING', 'SUCCEEDED'] },
-                    },
-                })
-                if (existingAttempt?.state === 'SUCCEEDED') {
-                    throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
-                }
-                if (existingAttempt) {
-                    // The registrant may always replace a pending attempt, even one an admin
-                    // started for them. Anyone else has to wait until the ledger sweeper cancels it.
-                    if (session.user?.id !== params.userId) {
-                        throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.')
-                    }
-                    // Cancel it, so a late webhook can't complete it. Bypassed, since the outer
-                    // authorizer already allows this caller to pay for the registration.
-                    await ledgerTransactionOperations.cancel({
-                        params: { id: existingAttempt.id },
-                        bypassAuth: true,
-                        prisma: tx,
-                    })
-                }
-
-                if (shortfall > 0) {
-                    payment = await paymentOperations.create({
-                        params: {
-                            provider: params.provider!,
-                            funds: shortfall,
-                            manualFees: params.manualFees,
-                            descriptionLong: `Betaling for påmelding til ${event.name}`,
-                            descriptionShort: 'Arrangement',
-                        },
-                        prisma: tx,
-                    })
-                }
-
-                // Outer authorizer (eventRegistrationAuth.createPayment) already covers
-                // whether this caller may pay for params.userId's registration, which
-                // read's own ownership check would otherwise re-reject an admin for.
-                const payerAccount = params.amountFromBalance > 0
-                    ? await ledgerAccountOperations.read({
-                        params: { userId: params.userId },
-                        bypassAuth: true,
-                        prisma: tx,
-                    })
-                    : undefined
-
-                return await ledgerTransactionOperations.create({
-                    params: {
-                        purpose: 'EVENT_PAYMENT',
-                        ledgerEntries: [
-                            { ledgerAccountId: destinationAccountId, funds },
-                            ...(payerAccount
-                                ? [{ ledgerAccountId: payerAccount.id, funds: -params.amountFromBalance }]
-                                : []),
-                        ],
-                        paymentId: payment?.id,
-                        eventRegistrationId: registration.id,
-                        description: params.provider === 'MANUAL' ? params.description : undefined,
-                    },
-                    prisma: tx,
-                })
-            })
-
-            // Returns the live clientSecret. If starting the payment fails, initiate cancels the
-            // attempt so the registration can be paid for again.
-            return {
-                payment: await ledgerTransactionOperations.initiate({
-                    params: { id: transaction.id },
-                    bypassAuth: true,
-                }),
-            }
-        },
+    createPayment: ledgerMovementOperations.internal.createPayment.implement({
+        implementationParamsSchema: eventRegistrationSchemas.params.createPayment,
+        authorizer: ({ implementationParams }) => eventRegistrationAuth.createPayment.data({
+            userId: implementationParams.userId,
+        }),
+        ownershipCheck: () => true,
+        operationImplementationFields: ({ implementationParams }) => ({
+            purpose: 'EVENT_PAYMENT',
+            descriptionShort: 'Arrangement',
+            prepare: (tx, { session }) => prepareRegistrationPayment(tx, implementationParams, session),
+        }),
     }),
 } as const
+
+/**
+ * What paying for a registration charges. Its row is locked, so concurrent attempts to pay for it
+ * run one after the other. Only the registrant replaces a pending attempt, even one an admin
+ * started for them, and anyone else waits until the ledger sweeper cancels it.
+ */
+async function prepareRegistrationPayment(
+    tx: Prisma.TransactionClient,
+    { userId, eventId }: { userId: number, eventId: number },
+    session: SessionMaybeUser,
+): Promise<PaymentCharge> {
+    const registration = await tx.eventRegistration.findUnique({
+        where: {
+            eventId_userId: {
+                eventId,
+                userId,
+            },
+        },
+        include: { event: true },
+    })
+
+    if (!registration) {
+        throw new Smorekopp('NOT FOUND', 'Fant ingen påmelding å betale for.')
+    }
+
+    await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${registration.id} FOR UPDATE`
+
+    const { event } = registration
+
+    if (!event.price) {
+        throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet krever ikke betaling.')
+    }
+
+    // Waiting-list membership is derived from queue position, as in readOfUser. Enforced
+    // here too, since the UI gate doesn't stop a direct call.
+    if (await queuePosition(tx, registration) >= event.places) {
+        throw new Smorekopp('BAD PARAMETERS', 'Du står på ventelisten og kan ikke betale før du får en plass.')
+    }
+
+    const now = new Date()
+    if (!event.paymentStart || !event.paymentEnd || now < event.paymentStart || now > event.paymentEnd) {
+        throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
+    }
+
+    if (!event.ledgerAccountId) {
+        throw new Smorekopp('SERVER ERROR', 'Arrangementet er ikke knyttet til en konto å betale til.')
+    }
+
+    return {
+        funds: event.price,
+        destinationLedgerAccountId: event.ledgerAccountId,
+        payerUserId: userId,
+        descriptionLong: `Betaling for påmelding til ${event.name}`,
+        link: { eventRegistrationId: registration.id },
+        replacesPendingAttempt: session.user?.id === userId,
+    }
+}
 
 /**
  * The visibility levels of one event - the regular level is what it takes to register for it, the

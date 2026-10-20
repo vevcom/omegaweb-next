@@ -93,10 +93,9 @@ async function recordPaymentState(paymentIntentId: string, state: PaymentState, 
 
     // Authorized by Stripe's signature. Runs in a transaction so the account lock advance() takes is
     // held through its balance check.
-    await prisma.$transaction(tx => ledgerTransactionOperations.advance({
+    await prisma.$transaction(tx => ledgerTransactionOperations.internal.advance.internalCall({
         params: { id: pendingTransaction.id },
         prisma: tx,
-        bypassAuth: true,
     }))
 }
 
@@ -155,12 +154,11 @@ async function flagForManualReview(
         select: { id: true },
     }) : null
 
-    await manualReviewOperations.create({
+    await manualReviewOperations.internal.create.internalCall({
         params: {
             paymentId: payment?.id,
             problem,
             problemDescription: `${problemDescription} (payment intent ${paymentIntentId ?? 'ukjent'})`,
         },
-        bypassAuth: true,
     })
 }

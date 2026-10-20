@@ -430,14 +430,16 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
         // The admin parks an attempt on the registrant's behalf - this is exactly the shape that
         // used to block the registrant themselves for up to 30 minutes.
         const { payment: adminAttempt } = await eventRegistrationOperations.createPayment({
-            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            implementationParams: { userId: registrant.id, eventId },
+            params: { amountFromBalance: 0, provider: 'STRIPE' },
             session: eventAdminSessionOf(admin),
         })
 
         // The registrant themselves, calling right away (no 30-minute wait), replaces it instead
         // of being told a payment is already under way.
         await expect(eventRegistrationOperations.createPayment({
-            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            implementationParams: { userId: registrant.id, eventId },
+            params: { amountFromBalance: 0, provider: 'STRIPE' },
             session: payerSessionOf(registrant),
         })).resolves.toBeDefined()
 
@@ -456,14 +458,16 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
         await register(registrant, eventId)
 
         await eventRegistrationOperations.createPayment({
-            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            implementationParams: { userId: registrant.id, eventId },
+            params: { amountFromBalance: 0, provider: 'STRIPE' },
             session: payerSessionOf(registrant),
         })
 
         await expect(eventRegistrationOperations.createPayment({
-            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            implementationParams: { userId: registrant.id, eventId },
+            params: { amountFromBalance: 0, provider: 'STRIPE' },
             session: eventAdminSessionOf(admin),
-        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.'))
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS', 'Det er allerede en betaling under behandling.'))
     })
 })
 
@@ -493,7 +497,8 @@ describe('unregistering from a paid event', () => {
         const registration = await register(registrant, eventId)
 
         await eventRegistrationOperations.createPayment({
-            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'MANUAL', manualFees: 0 },
+            implementationParams: { userId: registrant.id, eventId },
+            params: { amountFromBalance: 0, provider: 'MANUAL', manualFees: 0 },
             session: manualPayerSessionOf(registrant),
         })
         const [paidTransaction] = await prisma.ledgerTransaction.findMany({
@@ -530,7 +535,8 @@ describe('unregistering from a paid event', () => {
         const registration = await register(registrant, eventId)
 
         await eventRegistrationOperations.createPayment({
-            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            implementationParams: { userId: registrant.id, eventId },
+            params: { amountFromBalance: 0, provider: 'STRIPE' },
             session: payerSessionOf(registrant),
         })
         const [pendingTransaction] = await prisma.ledgerTransaction.findMany({
@@ -559,7 +565,8 @@ describe('unregistering from a paid event', () => {
         ))
 
         await eventRegistrationOperations.createPayment({
-            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            implementationParams: { userId: registrant.id, eventId },
+            params: { amountFromBalance: 0, provider: 'STRIPE' },
             session: payerSessionOf(registrant),
         })
         const [pendingTransaction] = await prisma.ledgerTransaction.findMany({
@@ -594,7 +601,8 @@ describe('unregistering from a paid event', () => {
         ))
 
         await eventRegistrationOperations.createPayment({
-            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            implementationParams: { userId: registrant.id, eventId },
+            params: { amountFromBalance: 0, provider: 'STRIPE' },
             session: payerSessionOf(registrant),
         })
         const [pendingTransaction] = await prisma.ledgerTransaction.findMany({

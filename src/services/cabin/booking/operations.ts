@@ -16,18 +16,16 @@ import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
-import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import crypto from 'crypto'
 import type { z } from 'zod'
 import type { BookingFiltered } from './types'
 import type { BookingType, Prisma } from '@/prisma-generated-pn-types'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
-import type { ExpandedPayment } from '@/services/ledger/payments/types'
-import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
+import type { PaymentCharge } from '@/services/ledger/movements/types'
 
 const dayMs = 24 * 60 * 60 * 1000
 
@@ -146,6 +144,36 @@ async function readDestinationLedgerAccountId(prisma: Prisma.TransactionClient) 
         throw new ServiceError('SERVER ERROR', 'Hyttebooking har ingen tilknyttet konto konfigurert.')
     }
     return account.id
+}
+
+/**
+ * What paying for a booking charges. It holds the dates for as long as the attempt may stay open
+ * before the ledger sweeper cancels it, so they can't go to another booker while it can still succeed.
+ */
+async function prepareBookingPayment(tx: Prisma.TransactionClient, bookingId: number): Promise<PaymentCharge> {
+    const booking = await lockBooking(tx, bookingId)
+
+    if (booking.canceled !== null) {
+        throw new Smorekopp('BAD PARAMETERS', 'Reservasjonen er kansellert.')
+    }
+
+    if (booking.transactionTimeout !== null && booking.transactionTimeout < new Date()) {
+        throw new Smorekopp('BAD PARAMETERS', 'Reservasjonen er utløpt. Vennligst book på nytt.')
+    }
+
+    await tx.booking.update({
+        where: { id: booking.id },
+        data: { transactionTimeout: new Date(Date.now() + stalePendingTransactionMs) },
+    })
+
+    return {
+        funds: booking.totalPrice,
+        destinationLedgerAccountId: await readDestinationLedgerAccountId(tx),
+        payerUserId: booking.userId,
+        descriptionLong: 'Betaling for hyttebooking',
+        link: { bookingId: booking.id },
+        replacesPendingAttempt: false,
+    }
 }
 
 /**
@@ -360,123 +388,29 @@ export const cabinBookingOperations = {
      * Pays for a booking reserved separately via createCabinBooking* and createBedBooking* above.
      * Never creates a booking itself. `secret` authorizes guest (no-session) bookings. Supports
      * paying part of the price from the payer's own ledger balance (`amountFromBalance`) and the
-     * rest (`shortfall`) via `provider`; `provider` is only required when the balance doesn't
-     * cover the full price.
+     * rest via `provider`, which is only required when the balance doesn't cover the full price.
+     * Once the transaction has SUCCEEDED, the payment completion worker clears the reservation
+     * window and sends the confirmation, see cabinBookingPaymentCompletionHook.
      */
-    createPayment: defineOperation({
-        paramsSchema: cabinBookingSchemas.params.createPayment,
-        authorizer: async ({ params, prisma }) => {
+    createPayment: ledgerMovementOperations.internal.createPayment.implement({
+        implementationParamsSchema: cabinBookingSchemas.params.createPayment,
+        authorizer: async ({ implementationParams, prisma }) => {
             const booking = await prisma.booking.findUnique({
-                where: { id: params.bookingId },
+                where: { id: implementationParams.bookingId },
                 select: { userId: true, secret: true },
             })
 
             return cabinBookingAuth.createPayment.data({
                 booking: booking ?? { userId: null, secret: '' },
-                providedSecret: params.secret,
+                providedSecret: implementationParams.secret,
             })
         },
-        opensTransaction: true,
-        operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
-            let payment: ExpandedPayment | undefined
-            const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
-                const booking = await lockBooking(tx, params.bookingId)
-
-                if (booking.canceled !== null) {
-                    throw new Smorekopp('BAD PARAMETERS', 'Reservasjonen er kansellert.')
-                }
-
-                if (booking.transactionTimeout !== null && booking.transactionTimeout < new Date()) {
-                    throw new Smorekopp('BAD PARAMETERS', 'Reservasjonen er utløpt. Vennligst book på nytt.')
-                }
-
-                const existingAttempt = await tx.ledgerTransaction.findFirst({
-                    where: {
-                        bookingId: booking.id,
-                        state: { in: ['PENDING', 'SUCCEEDED'] },
-                    },
-                })
-                if (existingAttempt?.state === 'SUCCEEDED') {
-                    throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen er allerede betalt.')
-                }
-                if (existingAttempt) {
-                    throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen har allerede en betaling under behandling.')
-                }
-
-                const funds = booking.totalPrice
-                if (params.amountFromBalance > funds) {
-                    throw new Smorekopp('BAD PARAMETERS', 'Beløpet fra kontosaldo kan ikke overstige prisen.')
-                }
-                if (params.amountFromBalance > 0 && booking.userId === null) {
-                    throw new Smorekopp('BAD PARAMETERS', 'Bare innloggede brukere kan betale med kontosaldo.')
-                }
-                const shortfall = funds - params.amountFromBalance
-
-                if (shortfall > 0 && !params.provider) {
-                    throw new Smorekopp('BAD PARAMETERS', 'Betalingsmetode må oppgis.')
-                }
-
-                // Holds the dates for as long as the attempt may stay open before the ledger sweeper
-                // cancels it, so they can't go to another booker while it can still succeed.
-                await tx.booking.update({
-                    where: { id: booking.id },
-                    data: { transactionTimeout: new Date(Date.now() + stalePendingTransactionMs) },
-                })
-
-                if (shortfall > 0) {
-                    payment = await paymentOperations.create({
-                        params: {
-                            provider: params.provider!,
-                            funds: shortfall,
-                            manualFees: params.manualFees,
-                            descriptionLong: 'Betaling for hyttebooking',
-                            descriptionShort: 'Hytta',
-                        },
-                        prisma: tx,
-                    })
-                }
-
-                // Outer authorizer (cabinBookingAuth.createPayment) already covers whether this
-                // caller may pay for this booking, which read's own ownership check
-                // would otherwise re-reject an admin or a guest booking's owner for.
-                const payerAccount = params.amountFromBalance > 0
-                    ? await ledgerAccountOperations.read({
-                        params: { userId: booking.userId! },
-                        bypassAuth: true,
-                        prisma: tx,
-                    })
-                    : undefined
-                const destinationLedgerAccountId = await readDestinationLedgerAccountId(tx)
-
-                return await ledgerTransactionOperations.create({
-                    params: {
-                        purpose: 'CABIN_BOOKING',
-                        ledgerEntries: [
-                            { ledgerAccountId: destinationLedgerAccountId, funds },
-                            ...(payerAccount
-                                ? [{ ledgerAccountId: payerAccount.id, funds: -params.amountFromBalance }]
-                                : []),
-                        ],
-                        paymentId: payment?.id,
-                        bookingId: booking.id,
-                        description: params.provider === 'MANUAL' ? params.description : undefined,
-                    },
-                    prisma: tx,
-                })
-            })
-
-            // Once the transaction has SUCCEEDED, the payment completion worker clears the reservation
-            // window and sends the confirmation, see cabinBookingPaymentCompletionHook.
-
-            // Starts collecting the payment and returns its live clientSecret. If starting it fails,
-            // initiate cancels the attempt, so the booking can be paid for again.
-            return {
-                payment: await ledgerTransactionOperations.initiate({
-                    params: { id: transaction.id },
-                    bypassAuth: true,
-                }),
-            }
-        },
+        ownershipCheck: () => true,
+        operationImplementationFields: ({ implementationParams }) => ({
+            purpose: 'CABIN_BOOKING',
+            descriptionShort: 'Hytta',
+            prepare: tx => prepareBookingPayment(tx, implementationParams.bookingId),
+        }),
     }),
 
     /**
@@ -512,12 +446,9 @@ export const cabinBookingOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Denne reservasjonen er allerede betalt.')
             }
             if (attempt) {
-                // Bypassed: the authorizer above already established the caller holds this
-                // booking, which is the right bar for canceling a payment attempt on it.
-                await ledgerTransactionOperations.cancel({
+                await ledgerTransactionOperations.internal.cancel.internalCall({
                     params: { id: attempt.id },
                     prisma: tx,
-                    bypassAuth: true,
                 })
             }
 

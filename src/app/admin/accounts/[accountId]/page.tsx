@@ -30,7 +30,7 @@ const { page, generateMetadata } = serverPage({
         canChangeGroups: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesGroupLinks: true }),
         // Only MANUAL deposits are offered here, and those take the payment rule on top.
         canDeposit: Require.allOf(ledgerMovementAuth.createDeposit, paymentAuth.create({ provider: 'MANUAL' })),
-        canPayout: ledgerMovementAuth.createPayout.data({ accounts: [ledgerAccount.ownership] }),
+        canPayout: ledgerMovementAuth.createPayout,
         canFreeze: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership], changesGroupLinks: false }),
     }),
     render: ({ data: ledgerAccount, capabilities }) => (

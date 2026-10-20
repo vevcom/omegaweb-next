@@ -1,7 +1,6 @@
 import { REGISTRATION_READER_TYPE } from './constants'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Zpn } from '@/lib/fields/zpn'
-import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -17,10 +16,6 @@ const paramsFieldSchemas = z.object({
     registrationId: z.number().min(0),
     registeredById: z.number().min(0),
     type: z.nativeEnum(REGISTRATION_READER_TYPE),
-    provider: z.nativeEnum(PaymentProvider).optional(),
-    amountFromBalance: z.coerce.number().nonnegative().default(0),
-    manualFees: z.coerce.number().nonnegative().default(0),
-    description: z.string().optional(),
 })
 
 /**
@@ -87,13 +82,6 @@ export const eventRegistrationSchemas = {
         readNotAttended: eventId,
         createDot: eventId,
         createDotsForNonattendingUsers: eventId,
-        createPayment: paramsFieldSchemas.pick({
-            userId: true,
-            eventId: true,
-            provider: true,
-            amountFromBalance: true,
-            manualFees: true,
-            description: true,
-        }),
+        createPayment: userAndEvent,
     },
 }

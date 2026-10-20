@@ -27,15 +27,16 @@ export default function DepositModal({ ledgerAccountId, customerSessionClientSec
         availablePaymentMethods={availablePaymentMethods ?? ['STRIPE', 'MANUAL']}
         customerSessionClientSecret={customerSessionClientSecret}
         refreshOnSuccess
-        onSubmitAction={({ paymentMethod, manualFees, description }) => createDepositAction({
-            params: {
-                ledgerAccountId,
-                funds,
-                provider: paymentMethod!,
-                manualFees: manualFees ?? 0,
-                description,
-            }
-        })}
+        onSubmitAction={({ paymentMethod, manualFees, description }) => createDepositAction(
+            { implementationParams: { ledgerAccountId, funds } },
+            {
+                params: {
+                    provider: paymentMethod,
+                    manualFees: manualFees ?? 0,
+                    description,
+                },
+            },
+        )}
     >
         <NumberInput
             label="Beløp"

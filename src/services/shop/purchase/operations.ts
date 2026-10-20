@@ -66,9 +66,8 @@ const createPurchase = defineSubOperation({
 
         const totalPrice = productList.reduce((sum, product) => sum + product.price * product.quantity, 0)
 
-        const buyerAccount = await ledgerAccountOperations.read({
+        const buyerAccount = await ledgerAccountOperations.internal.read.internalCall({
             params: { userId: user.id },
-            bypassAuth: true,
         })
 
         await prisma.$transaction(async tx => {
@@ -90,13 +89,11 @@ const createPurchase = defineSubOperation({
 
             if (totalPrice === 0) return
 
-            // bypassAuth: who pays has already been decided by the authorizer of the implementation
-            // (`create`: the session user, buying for themselves in a shop they can see;
-            // `createOnBehalf`: the kiosk, charging a card whose owner may shop there). The generic
-            // ledger-ownership check would reject the kiosk outright, as its API-key session owns
-            // no account - the same precedent as ledgerTransactionOperations.advance's own bypass.
-            // Throws if the transaction fails, e.g. on insufficient funds, which rolls the purchase back.
-            await ledgerTransactionOperations.create({
+            // Internal, since who pays has already been decided by the authorizer of the
+            // implementation. The ledger's ownership check would reject the kiosk, whose API-key
+            // session owns no account. Throws if the transaction fails, e.g. on insufficient
+            // funds, which rolls the purchase back.
+            await ledgerTransactionOperations.internal.create.internalCall({
                 params: {
                     purpose: 'SHOP_PURCHASE',
                     ledgerEntries: [
@@ -106,13 +103,11 @@ const createPurchase = defineSubOperation({
                     purchaseId: purchase.id,
                 },
                 prisma: tx,
-                bypassAuth: true,
             })
         })
 
-        const remainingBalance = await ledgerAccountOperations.calculateBalance({
+        const remainingBalance = await ledgerAccountOperations.internal.calculateBalance.internalCall({
             params: { ledgerAccountId: buyerAccount.id },
-            bypassAuth: true,
         })
 
         return {

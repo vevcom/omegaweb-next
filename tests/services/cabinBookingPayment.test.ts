@@ -46,9 +46,13 @@ async function createReservation(start: Date) {
     })
 }
 
-function createPayment(booking: { id: number, secret: string }) {
+function createPayment(
+    booking: { id: number, secret: string },
+    params: { provider?: 'STRIPE', amountFromBalance?: number } = { provider: 'STRIPE' },
+) {
     return cabinBookingOperations.createPayment({
-        params: { bookingId: booking.id, secret: booking.secret, provider: 'STRIPE' },
+        implementationParams: { bookingId: booking.id, secret: booking.secret },
+        params,
         bypassAuth: true,
     })
 }
@@ -129,7 +133,7 @@ describe('cabin booking payment and release', () => {
     })
 
     test('a release that loses to a payment success leaves the booking', async () => {
-        const booking = await createReservation(new Date('2030-06-10'))
+        const booking = await createReservation(new Date('2030-09-10'))
         await createPayment(booking)
         // Stands in for advance() committing the success while the release cancels the attempt.
         jest.spyOn(stripe.paymentIntents, 'cancel').mockImplementation(async () => {
@@ -142,12 +146,38 @@ describe('cabin booking payment and release', () => {
         await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 1 })
     })
 
+    test('a payment is refused when more of it comes from the balance than the price', async () => {
+        const booking = await createReservation(new Date('2030-06-10'))
+
+        await expect(createPayment(booking, { provider: 'STRIPE', amountFromBalance: 200_00 }))
+            .rejects.toMatchObject(refusal('overstige prisen'))
+
+        await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 0 })
+    })
+
+    test('a guest can not pay from a balance, having none', async () => {
+        const booking = await createReservation(new Date('2030-07-10'))
+
+        await expect(createPayment(booking, { provider: 'STRIPE', amountFromBalance: 10_00 }))
+            .rejects.toMatchObject(refusal('innloggede'))
+
+        await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 0 })
+    })
+
+    test('a payment the balance does not cover needs a provider', async () => {
+        const booking = await createReservation(new Date('2030-08-10'))
+
+        await expect(createPayment(booking, {})).rejects.toMatchObject(refusal('Betalingsmetode'))
+
+        await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 0 })
+    })
+
     test('reading a transaction never exposes its booking\'s secret', async () => {
         const booking = await createReservation(new Date('2030-04-10'))
         await createPayment(booking)
 
         const transaction = await prisma.ledgerTransaction.findFirstOrThrow({ where: { bookingId: booking.id } })
-        const read = await ledgerTransactionOperations.read({ params: { id: transaction.id }, bypassAuth: true })
+        const read = await ledgerTransactionOperations.internal.read.internalCall({ params: { id: transaction.id } })
 
         expect(read.booking).not.toHaveProperty('secret')
         expect(read.booking).not.toHaveProperty('notes')

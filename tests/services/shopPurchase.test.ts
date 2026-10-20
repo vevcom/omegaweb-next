@@ -83,7 +83,8 @@ async function createBuyer(username: string, { mayShop = true } = {}) {
 
     const account = await ledgerAccountOperations.read({ params: { userId: user.id }, bypassAuth: true })
     await ledgerMovementOperations.createDeposit({
-        params: { ledgerAccountId: account.id, provider: 'MANUAL', funds: STARTING_BALANCE, manualFees: 0 },
+        implementationParams: { ledgerAccountId: account.id, funds: STARTING_BALANCE },
+        params: { provider: 'MANUAL', manualFees: 0 },
         bypassAuth: true,
     })
 

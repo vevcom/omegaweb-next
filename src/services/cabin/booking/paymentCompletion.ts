@@ -51,24 +51,22 @@ export async function cabinBookingPaymentCompletionHook(
         await prisma.booking.update({ where: { id: booking.id }, data: { canceled: new Date() } })
 
         if (booking.userId) {
-            const payerAccount = await ledgerAccountOperations.read({
+            const payerAccount = await ledgerAccountOperations.internal.read.internalCall({
                 params: { userId: booking.userId },
-                bypassAuth: true,
                 prisma,
             })
-            await refundOperations.reverseTransaction({
+            await refundOperations.reverseTransaction.internalCall({
                 params: {
                     originalTransactionId: transaction.id,
                     reason: 'Hytta ble dobbeltbooket av en annen reservasjon mens betalingen pågikk.',
                     refundTo: payerAccount.id,
                 },
                 prisma,
-                bypassAuth: true,
             })
         } else {
             // A guest has no ledger account, so a human must refund through Stripe. Uses the ambient
             // prisma, so the review rolls back with the booking cancellation.
-            await manualReviewOperations.create({
+            await manualReviewOperations.internal.create.internalCall({
                 params: {
                     transactionId: transaction.id,
                     problem: 'CABIN_DOUBLE_BOOKING',
@@ -76,7 +74,6 @@ export async function cabinBookingPaymentCompletionHook(
                         + `booking ${booking.id}, men gjesten har ingen konto å refundere til automatisk.`,
                 },
                 prisma,
-                bypassAuth: true,
             })
         }
         return

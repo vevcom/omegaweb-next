@@ -1,10 +1,11 @@
 import '@pn-server-only'
 import { manualReviewOperations } from './manualReviews/operations'
-import { expandedLedgerTransactionInclude } from './constants'
+import { expandedLedgerTransactionInclude, hasPaymentCompletionHook } from './constants'
 import { cabinBookingPaymentCompletionHook } from '@/services/cabin/booking/paymentCompletion'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { ExpandedLedgerTransaction } from './types'
-import type { LedgerTransactionPurpose, Prisma } from '@/prisma-generated-pn-types'
+import type { PaymentCompletionHookPurpose } from './constants'
+import type { Prisma } from '@/prisma-generated-pn-types'
 import type { Awaitable } from '@/lib/awaitable'
 
 /**
@@ -18,16 +19,11 @@ export type PaymentCompletionHook = (
 ) => Awaitable<void>
 
 /**
- * Hooks per LedgerTransactionPurpose. Most purposes have none. See
+ * The hook of every purpose in paymentCompletionHookPurposes. Most purposes have none. See
  * cabin/booking/paymentCompletion.ts for an example.
  */
-const paymentCompletionHooks: Partial<Record<LedgerTransactionPurpose, PaymentCompletionHook>> = {
+const paymentCompletionHooks: Record<PaymentCompletionHookPurpose, PaymentCompletionHook> = {
     CABIN_BOOKING: cabinBookingPaymentCompletionHook,
-}
-
-/** Whether a transaction of this purpose waits for the payment completion worker once it succeeds. */
-export function hasPaymentCompletionHook(purpose: LedgerTransactionPurpose) {
-    return paymentCompletionHooks[purpose] !== undefined
 }
 
 /**
@@ -52,7 +48,9 @@ export async function runNextPaymentCompletionHook(): Promise<boolean> {
                 where: { id: transaction.id, completionHookRanAt: null },
                 data: { completionHookRanAt: new Date() },
             })
-            if (count > 0) await paymentCompletionHooks[transaction.purpose]?.(transaction, { prisma: tx })
+            if (count > 0 && hasPaymentCompletionHook(transaction.purpose)) {
+                await paymentCompletionHooks[transaction.purpose](transaction, { prisma: tx })
+            }
         })
     } catch (error) {
         // Together, so a failed hook is never marked as run without also being flagged.
@@ -61,7 +59,7 @@ export async function runNextPaymentCompletionHook(): Promise<boolean> {
                 where: { id: transaction.id },
                 data: { completionHookRanAt: new Date() },
             })
-            await manualReviewOperations.create({
+            await manualReviewOperations.internal.create.internalCall({
                 params: {
                     transactionId: transaction.id,
                     problem: 'COMPLETION_HOOK_FAILED',
@@ -69,7 +67,6 @@ export async function runNextPaymentCompletionHook(): Promise<boolean> {
                     error,
                 },
                 prisma: tx,
-                bypassAuth: true,
             })
         })
     }

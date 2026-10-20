@@ -3,24 +3,30 @@ import { z } from 'zod'
 
 const paramsFieldSchemas = z.object({
     ledgerAccountId: z.number(),
-    provider: z.nativeEnum(PaymentProvider),
-    funds: z.coerce.number().nonnegative(),
+    // Only required when the balance doesn't cover the price, which createPayment checks.
+    provider: z.nativeEnum(PaymentProvider).optional(),
+    amountFromBalance: z.coerce.number().nonnegative().default(0),
     manualFees: z.coerce.number().nonnegative().default(0),
     fees: z.number().nonnegative().default(0),
-    // Only honored for MANUAL deposits, which already require LEDGER_ADMIN (see auth.ts).
-    // For every other provider the transaction's description is left unset so that it
-    // falls back to a translated purpose label instead (see LedgerTransactionRow).
+    // Only honored for MANUAL payments, which already require LEDGER_ADMIN. For every other
+    // provider the transaction's description is left unset so that it falls back to a translated
+    // purpose label instead (see LedgerTransactionRow).
     description: z.string().optional(),
 })
 
 export const ledgerMovementSchemas = {
     params: {
-        createDeposit: paramsFieldSchemas.pick({
-            ledgerAccountId: true,
+        createPayment: paramsFieldSchemas.pick({
             provider: true,
-            funds: true,
+            amountFromBalance: true,
             manualFees: true,
             description: true,
+        }),
+        createDeposit: paramsFieldSchemas.pick({
+            ledgerAccountId: true,
+        }).extend({
+            // Positive, so a deposit always has a payment to collect.
+            funds: z.coerce.number().positive(),
         }),
         createPayout: paramsFieldSchemas.pick({
             ledgerAccountId: true,

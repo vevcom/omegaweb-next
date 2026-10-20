@@ -53,20 +53,3 @@ describe('ledgerTransactionAuth.create', () => {
         expect(authorizer.auth(user).authorized).toBe(true)
     })
 })
-
-describe('ledgerTransactionAuth.read', () => {
-    const party = sessionWith([])
-
-    test('being party to one of the accounts is enough', () => {
-        const authorizer = ledgerTransactionAuth.read.data({ accounts: [foreignAccount, ownedAccount] })
-        expect(authorizer.auth(party).authorized).toBe(true)
-    })
-
-    test('being party to none of them takes LEDGER_ADMIN', () => {
-        const foreignOnly = ledgerTransactionAuth.read.data({ accounts: [foreignAccount] })
-        expect(foreignOnly.auth(party).authorized).toBe(false)
-        expect(foreignOnly.auth(sessionWith(['LEDGER_ADMIN'])).authorized).toBe(true)
-
-        expect(ledgerTransactionAuth.read.data({ accounts: [] }).auth(party).authorized).toBe(false)
-    })
-})

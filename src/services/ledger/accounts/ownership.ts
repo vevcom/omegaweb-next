@@ -13,24 +13,15 @@ const ownsOrIsMemberOf = (session: SessionMaybeUser, account: LedgerAccountOwner
     session.memberships.some(membership => membership.active && account.groupIds.includes(membership.groupId))
 
 /**
- * Authorized if the session holds `permission`, or passes the ownership check below. Needs
+ * Authorized if the session holds `permission`, or owns every account in `accounts`, so that for
+ * a transaction with several debited accounts all of them must be safe to debit. Needs
  * `{ accounts: LedgerAccountOwnership[] }` supplied via `.data()`.
- *
- * `mode: 'ALL'` (default) requires every account in `accounts` to individually pass ownership.
- * Use for a transaction with several debited accounts: all of them must be safe to debit.
- *
- * `mode: 'ANY'` requires only one account in `accounts` to pass. Use when being a party to a
- * single account is enough, e.g. reading a transaction you took part in.
  *
  * With no accounts at all there is nothing to own, and only `permission` passes.
  */
-export function ledgerAccountAccess(permission: Permission, opts?: { mode?: 'ALL' | 'ANY' }) {
+export function ledgerAccountAccess(permission: Permission) {
     return Require.permission(permission).or().ownership<{ accounts: LedgerAccountOwnership[] }>(
-        ({ session, accounts }) => (
-            opts?.mode === 'ANY'
-                ? accounts.some(account => ownsOrIsMemberOf(session, account))
-                : accounts.length > 0 && accounts.every(account => ownsOrIsMemberOf(session, account))
-        )
+        ({ session, accounts }) => accounts.length > 0 && accounts.every(account => ownsOrIsMemberOf(session, account))
     )
 }
 

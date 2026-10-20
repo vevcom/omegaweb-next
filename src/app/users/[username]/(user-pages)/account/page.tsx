@@ -19,7 +19,7 @@ const { page, generateMetadata } = serverPage({
     },
     capabilities: (data) => ({
         canDeposit: ledgerMovementAuth.createDeposit,
-        canPayout: ledgerMovementAuth.createPayout.data({ accounts: [data.ledgerAccount.ownership] }),
+        canPayout: ledgerMovementAuth.createPayout,
         canFreeze: ledgerAccountAuth.update({ accounts: [data.ledgerAccount.ownership], changesGroupLinks: false }),
     }),
     render: ({ data, capabilities }) => (
