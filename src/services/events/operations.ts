@@ -10,6 +10,7 @@ import { ServiceError } from '@/services/error'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
+import { formatVevenUri } from '@/lib/urlEncoding'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
@@ -361,7 +362,7 @@ export const eventOperations = {
             })
 
             if (promotedRegistrations.length) {
-                await notifyPromotedFromWaitingList(eventUpdate.name, promotedRegistrations)
+                await notifyPromotedFromWaitingList(eventUpdate, promotedRegistrations)
             }
 
             return eventUpdate
@@ -438,6 +439,7 @@ export const eventOperations = {
                     data: {
                         title: `Hva der hender: ${event.name}`,
                         message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
+                        url: `/events/${formatVevenUri(event.name, event.id)}`,
                         audience: { visibilityId: event.visibilityRegularId },
                     },
                 })

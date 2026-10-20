@@ -1,5 +1,6 @@
 import styles from './OmbulRow.module.scss'
 import Image from '@/components/Image/Image'
+import { formatVevenUri } from '@/lib/urlEncoding'
 import Link from 'next/link'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
@@ -14,7 +15,7 @@ type PropTypes = {
  */
 export default function OmbulRow({ ombul }: PropTypes) {
     return (
-        <Link href={`/ombul/${ombul.year}/${ombul.name}`} className={styles.OmbulRow}>
+        <Link href={`/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`} className={styles.OmbulRow}>
             <div className={styles.thumb}>
                 <Image
                     disableLinkingToLicense

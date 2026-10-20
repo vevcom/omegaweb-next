@@ -8,6 +8,7 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
+import { formatVevenUri } from '@/lib/urlEncoding'
 import type { ExpandedJobAd, SimpleJobAd } from './types'
 
 const read = defineOperation({
@@ -71,6 +72,7 @@ export const jobAdOperations = {
                 data: {
                     title: `Ny jobbannonse: ${articleName}`,
                     message: `${jobAd.company.name} har lagt ut en ny jobbannonse: ${articleName}`,
+                    url: `/career/job-ads/${formatVevenUri(articleName, jobAd.id)}`,
                     audience: { permission: 'JOBAD_USE' },
                 },
             })

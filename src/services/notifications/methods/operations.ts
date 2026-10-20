@@ -1,5 +1,7 @@
 import '@pn-server-only'
 import { sendNotificationEmails } from './dispatch'
+import { sendNotificationPushes } from './dispatchPush'
+import { pushRecipientIncluder } from './constants'
 import { sendWeeklyEmailDigest } from './dispatchWeekly'
 import { notificationDispatchIncluder, recipientsWhere } from './recipients'
 import { notificationMethodSchemas } from './schemas'
@@ -37,6 +39,44 @@ export const notificationMethodOperations = {
             })
 
             return { recipients: sent }
+        },
+    }),
+
+    /**
+     * Dispatches one notification through the push method, the way dispatchEmail does by email.
+     * Subscriptions that the push services report as gone are deleted.
+     */
+    dispatchPush: defineSubOperation({
+        paramsSchema: () => notificationMethodSchemas.params.dispatchPush,
+        operation: () => async ({ prisma, params }) => {
+            const notification = await prisma.notification.findUniqueOrThrow({
+                where: { id: params.notificationId },
+                include: notificationDispatchIncluder,
+            })
+
+            const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })
+            const recipients = await prisma.browserPushSubscription.findMany({
+                where: {
+                    user: recipientsWhere(notification, 'push', defaultPermissions),
+                },
+                include: pushRecipientIncluder,
+            })
+
+            const { pushed, goneSubscriptionIds } = await sendNotificationPushes(notification, recipients)
+
+            await prisma.browserPushSubscription.deleteMany({
+                where: {
+                    id: {
+                        in: goneSubscriptionIds,
+                    },
+                },
+            })
+            await prisma.notification.update({
+                where: { id: notification.id },
+                data: { pushDispatchedAt: new Date() },
+            })
+
+            return { pushed, gone: goneSubscriptionIds.length }
         },
     }),
 

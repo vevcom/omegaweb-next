@@ -1,5 +1,9 @@
 const CACHE_NAME = 'pn-cache-v1'
 
+// Development registers the worker with ?cache=off: cached dev chunks would make code changes look
+// like they did not apply, so there it only shows push notifications.
+const CACHING = new URL(self.location.href).searchParams.get('cache') !== 'off'
+
 // Only assets that are byte-identical for every visitor. Navigations are
 // deliberately absent: the root layout renders the signed-in user's name and
 // profile image into the HTML, so caching a page would serve one account's
@@ -7,16 +11,18 @@ const CACHE_NAME = 'pn-cache-v1'
 const PRECACHE_URLS = ['/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE_URLS))
-    )
+    if (CACHING) {
+        event.waitUntil(
+            caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE_URLS))
+        )
+    }
     self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then(keys => Promise.all(
-            keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+            keys.filter(key => !CACHING || key !== CACHE_NAME).map(key => caches.delete(key))
         ))
     )
     self.clients.claim()
@@ -47,7 +53,7 @@ function isCacheableAsset(request) {
 // Stale-while-revalidate over static assets: serve the cached copy immediately
 // when there is one, and refresh it in the background for the next visit.
 self.addEventListener('fetch', (event) => {
-    if (!isCacheableAsset(event.request)) {
+    if (!CACHING || !isCacheableAsset(event.request)) {
         return
     }
 
@@ -74,6 +80,47 @@ self.addEventListener('fetch', (event) => {
             // Nothing cached, so the network is the only option. A failure has to
             // resolve to a real Response - returning undefined here would throw.
             return revalidate.catch(() => Response.error())
+        })
+    )
+})
+
+// The notification worker pushes { title, body, url, tag } as JSON. Pushing the same tag again
+// replaces the notification instead of showing it twice.
+self.addEventListener('push', (event) => {
+    const payload = readPushPayload(event)
+    event.waitUntil(
+        self.registration.showNotification(payload.title ?? 'Sct. Omega', {
+            body: payload.body,
+            tag: payload.tag,
+            icon: '/icon-192.png',
+            data: { url: payload.url },
+        })
+    )
+})
+
+function readPushPayload(event) {
+    if (!event.data) {
+        return {}
+    }
+    try {
+        return event.data.json()
+    } catch {
+        return { body: event.data.text() }
+    }
+}
+
+// Focuses a window already showing the notification's page, or opens one. Only our own pages are
+// opened, whatever the push says.
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close()
+
+    const target = new URL(event.notification.data?.url ?? '/', self.location.origin)
+    const url = target.origin === self.location.origin ? target.href : `${self.location.origin}/`
+
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+            const open = windows.find(client => client.url === url)
+            return open ? open.focus() : self.clients.openWindow(url)
         })
     )
 })

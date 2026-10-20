@@ -6,6 +6,7 @@ import { updateOmbulAction } from '@/services/ombul/actions'
 import { ombulAuth } from '@/services/ombul/auth'
 import { configureAction } from '@/services/configureAction'
 import useEditMode from '@/hooks/useEditMode'
+import { formatVevenUri } from '@/lib/urlEncoding'
 import type { ReactNode } from 'react'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
@@ -28,7 +29,7 @@ export default function ChangeName({ children, ombulId }: PropTypes) {
         if (!name) return
         const url = window.location.pathname
         const urlParts = url.split('/')
-        urlParts[urlParts.length - 1] = name
+        urlParts[urlParts.length - 1] = formatVevenUri(name, ombulId)
         const newUrl = urlParts.join('/')
         window.history.pushState({ path: newUrl }, '', newUrl)
     }
