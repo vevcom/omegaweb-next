@@ -6,3 +6,4 @@ export const unlockReleaseCountdownAction = makeAction(releaseCountdownOperation
 export const enterReleaseCountdownAction = makeAction(releaseCountdownOperations.enter)
 export const updateReleaseCountdownSettingsAction = makeAction(releaseCountdownOperations.updateSettings)
 export const updateReleaseCountdownGitGraphAction = makeAction(releaseCountdownOperations.updateGitGraph)
+export const mockReleaseCountdownGitGraphAction = makeAction(releaseCountdownOperations.mockGitGraph)

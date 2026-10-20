@@ -14,12 +14,7 @@ type PropTypes = {
  * that removing it after release is a matter of unwrapping - see TEARDOWN.md in the service.
  */
 export default async function ReleaseCountdownGate({ children }: PropTypes) {
-    // Shown rather than hidden when the read fails: the countdown must not leak the site before
-    // release.
-    const releaseCountdown = await withPageSession(() => withFallback(
-        releaseCountdownOperations.read({}),
-        { active: true, releaseDate: DEFAULT_RELEASE_DATE, openToAll: false },
-    ))
+    const releaseCountdown = await readReleaseCountdown()
 
     if (!releaseCountdown.active) return children
 
@@ -29,4 +24,19 @@ export default async function ReleaseCountdownGate({ children }: PropTypes) {
             openToAll={releaseCountdown.openToAll}
         />
     )
+}
+
+/**
+ * When the read fails, the default release date decides, so the site is neither leaked before
+ * release nor hidden behind the countdown after it.
+ */
+function readReleaseCountdown() {
+    return withPageSession(() => withFallback(
+        releaseCountdownOperations.read({}),
+        {
+            active: Date.now() < DEFAULT_RELEASE_DATE.getTime(),
+            releaseDate: DEFAULT_RELEASE_DATE,
+            openToAll: false,
+        },
+    ))
 }

@@ -20,5 +20,6 @@ export const releaseCountdownSchemas = {
             openToAll: true,
         }),
         updateGitGraph: password,
+        mockGitGraph: password,
     },
 }
