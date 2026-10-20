@@ -33,6 +33,7 @@
 
     --font-primary: 'Inter', sans-serif;
     --font-secondary: 'PlayfairDisplay', serif;
+    --font-title: 'OldLondon', 'PlayfairDisplay', serif;
 
     --text-*: initial;
     --text-s: clamp(12px, 2vw, 14px);

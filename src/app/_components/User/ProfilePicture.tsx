@@ -1,4 +1,3 @@
-import styles from './ProfilePicture.module.scss'
 import Image from '@/components/Image/Image'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
@@ -13,14 +12,14 @@ type PropTypes = {
 export default function ProfilePicture({ profileImage, width, className, ringColor }: PropTypes) {
     const isStandardProfileImage = profileImage.standardImage === 'DEFAULT_PROFILE_IMAGE'
     const imageClassName = [
-        styles.image,
-        ringColor ? styles.ring : '',
-        isStandardProfileImage ? styles.standardImage : '',
+        'rounded-full bg-white aspect-square',
+        ringColor ? 'border-[3px] border-solid' : '',
+        isStandardProfileImage ? 'object-contain p-[12%]' : 'object-cover',
         className ?? '',
     ].join(' ')
 
     return (
-        <div className={styles.ProfilePicture}>
+        <div className="flex justify-center">
             <Image
                 className={imageClassName}
                 style={ringColor ? { borderColor: ringColor } : undefined}

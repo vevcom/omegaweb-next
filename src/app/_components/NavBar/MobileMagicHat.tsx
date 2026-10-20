@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './MobileNavBar.module.scss'
 import useActiveNavHref from '@/hooks/useActiveNavHref'
 import { useSession } from '@/auth/session/useSession'
 import type { ReactNode } from 'react'
@@ -15,5 +14,5 @@ export default function MobileMagicHat({ children }: { children: ReactNode }) {
         ...(user ? [`/users/${user.username}`] : []),
     ]) !== undefined
 
-    return <div className={`${styles.magicHat} ${active ? styles.active : ''}`}>{children}</div>
+    return <div className={`relative ${active ? '[--magic-hat-tint:var(--accent-blue)]' : ''}`}>{children}</div>
 }
