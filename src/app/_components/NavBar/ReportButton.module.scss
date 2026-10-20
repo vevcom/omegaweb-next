@@ -3,16 +3,24 @@
 .reportButton {
     cursor: pointer;
     margin: 0 ohma.$gap;
-    
-    .reportPicture {
-        width: 40px;
-        height: 40px;
-        padding: ohma.$gap;
-        border-radius: calc(#{ohma.$gap} * 2);
-        color: ohma.$colors-text;
+
+    // The hover box matches the side bar's nav buttons.
+    .reportLink {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: calc(#{ohma.$gap} * 6);
+        height: calc(#{ohma.$gap} * 6);
+        border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
         transition: ohma.$transitionTime;
-        &:hover{
+        &:hover {
             background-color: ohma.$colors-accent-red;
         }
+    }
+
+    .reportPicture {
+        width: 30px;
+        height: 30px;
+        color: ohma.$colors-text;
     }
 }

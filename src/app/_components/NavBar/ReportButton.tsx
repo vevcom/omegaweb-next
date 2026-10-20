@@ -13,7 +13,7 @@ export default function ReportButton() {
 
     return (
         <div className={styles.reportButton}>
-            <Link href="/report">
+            <Link href="/report" className={styles.reportLink}>
                 <FontAwesomeIcon className={styles.reportPicture} icon={faShieldHeart} />
             </Link>
         </div>

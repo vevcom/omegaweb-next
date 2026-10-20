@@ -1,21 +1,25 @@
 @use '@/styles/ohma';
 
+// The hover box matches the side bar's nav buttons.
 .searchButton {
     cursor: pointer;
     background: none;
     border: none;
     padding: 0;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(#{ohma.$gap} * 6);
+    height: calc(#{ohma.$gap} * 6);
+    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
+    transition: ohma.$transitionTime;
+    &:hover {
+        background-color: ohma.$colors-accent-blue;
+    }
 
     .searchPicture {
-        width: 40px;
-        height: 40px;
-        padding: ohma.$gap;
-        border-radius: calc(#{ohma.$gap} * 2);
+        width: 30px;
+        height: 30px;
         color: ohma.$colors-text;
-        transition: ohma.$transitionTime;
-        &:hover {
-            background-color: ohma.$colors-accent-blue;
-        }
     }
 }

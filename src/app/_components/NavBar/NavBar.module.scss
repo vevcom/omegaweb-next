@@ -23,7 +23,7 @@
     justify-content: center;
     height: 100%;
     position: relative;
-    background: ohma.$colors-surface-base;
+    background: ohma.$colors-accent-blue;
     border-radius: calc(#{ohma.$gap} * 2);
     padding: ohma.$gap;
 }
@@ -37,9 +37,6 @@
 .logoWrapper {
     width: 48px;
     height: 48px;
-    border-radius: #{ohma.$gap};
-    background: ohma.$colors-accent-blue;
-    padding: ohma.$gap;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -54,6 +51,7 @@
 }
 
 .pageTitle {
+    font-family: ohma.$fonts-secondary;
     font-size: ohma.$fonts-xxl;
     font-weight: ohma.$fonts-weight-m;
     color: ohma.$colors-text;
@@ -66,6 +64,8 @@
 }
 
 .pageSubtitle {
+    font-family: inherit;
+
     @include ohma.screenMobile {
         display: none;
     }

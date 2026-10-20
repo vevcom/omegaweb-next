@@ -30,9 +30,9 @@ export default async function NavBar({ isLoggedIn, profileImage, navItems }: Pro
                         <div className={styles.logoWrapper}>
                             <StandardImageServer
                                 standardImage="LOGO_SIMPLE"
-                                width={30}
+                                width={39}
                                 alt="omega logo"
-                                tint="var(--surface-base)"
+                                tint="white"
                             />
                         </div>
                     </HomeLogoLink>
