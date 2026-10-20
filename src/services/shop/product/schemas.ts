@@ -66,5 +66,6 @@ export const productSchemas = {
             shopId: true,
         }),
         update: product,
+        updateCmsImage: product,
     },
 }

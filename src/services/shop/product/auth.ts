@@ -21,4 +21,6 @@ export const productAuth = {
     // catalogue's. Needs `{ visibility }` via `.data()`: the admin level of the one shop selling
     // it, or EMPTY_VISIBILITY, which no one passes.
     update: shopAdminLevel,
+    // The photo is part of what the product is, so it is changed by the same people.
+    updateCmsImage: shopAdminLevel,
 } as const

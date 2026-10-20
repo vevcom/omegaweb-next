@@ -50,7 +50,7 @@ beforeAll(async () => {
     })).id
 
     const createProduct = async (name: string, price: number, active = true) => {
-        const product = await prisma.product.create({ data: { name } })
+        const product = await prisma.product.create({ data: { name, image: { create: {} } } })
         await prisma.shopProduct.create({ data: { shopId, productId: product.id, price, active } })
         return product.id
     }
