@@ -36,16 +36,13 @@ const { page, generateMetadata } = serverPage({
         <div className={styles.wrapper}>
             <div className={styles.flairContainer}>
                 <p>
-                    Flairen med lavest rank er den som vises først på brukerens profil, og
-                    den som bestemmer fargen på brukerprofilen.
+                    Den øverste tildelte flairen vises først på brukerens profil og
+                    bestemmer fargen på brukerprofilen.
                 </p>
                 <table className={styles.flairList}>
                     <thead>
                         <tr>
                             <th>Flair</th>
-                            <th>Navn</th>
-                            <th>Rank</th>
-                            <th>Farge</th>
                             <th>Handling</th>
                         </tr>
                     </thead>
@@ -53,12 +50,6 @@ const { page, generateMetadata } = serverPage({
                         {data.flairs.map((flair) => (
                             <tr key={flair.id}>
                                 <td><Flair flair={flair} width={100} /></td>
-                                <td>{flair.name}</td>
-                                <td>{flair.rank}</td>
-                                <td style={{
-                                    backgroundColor: `rgb(${flair.colorR}, ${flair.colorG}, ${flair.colorB})`
-                                }}>
-                                </td>
                                 <td>
                                     {(flair.assignedToUser
                                         ? capabilities.canUnAssign.authorized

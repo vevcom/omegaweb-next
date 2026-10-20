@@ -5,11 +5,14 @@ const paramsFieldSchemas = z.object({
     before: z.date(),
 })
 
+const dispatchedNotification = paramsFieldSchemas.pick({
+    notificationId: true,
+})
+
 export const notificationMethodSchemas = {
     params: {
-        dispatchEmail: paramsFieldSchemas.pick({
-            notificationId: true,
-        }),
+        dispatchEmail: dispatchedNotification,
+        dispatchPush: dispatchedNotification,
         materializeWeeklyOutbox: paramsFieldSchemas.pick({
             before: true,
         }),

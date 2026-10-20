@@ -1,5 +1,5 @@
-import { manualReviewOperations } from './manualReviews/operations'
 import { cabinBookingPaymentCompletionHook } from '@/services/cabin/booking/paymentCompletion'
+import logger from '@/lib/logger'
 import type { ExpandedLedgerTransaction } from './types'
 import type { LedgerTransactionPurpose, Prisma } from '@/prisma-generated-pn-types'
 
@@ -35,17 +35,14 @@ export async function runPaymentCompletionHook(
     try {
         await hook(transaction, context)
     } catch (error) {
-        // context.prisma, not the top-level client: the transaction row this review references
-        // was created by that same connection and isn't visible to any other one until it
-        // commits.
-        await manualReviewOperations.create({
-            params: {
-                transactionId: transaction.id,
-                problemDescription: `Fullføringshook for ${transaction.purpose} feilet etter vellykket betaling.`,
-                error,
-            },
-            prisma: context.prisma,
-            bypassAuth: true,
-        })
+        // TODO: Will be fixed by a ledger worker/sweeper (not yet built) - it'll run this hook
+        // standalone, after advance()'s own transaction instead of nested inside it, and record
+        // a proper ManualTransactionReview without this path's transactional complexity (a DB
+        // failure here can abort the connection and silently roll back the whole transaction).
+        logger.error(
+            `MANUAL ADMIN ACTION REQUIRED! Fullføringshook for ${transaction.purpose} feilet etter `
+            + `vellykket betaling (transaksjon ${transaction.id}).`,
+            { error }
+        )
     }
 }

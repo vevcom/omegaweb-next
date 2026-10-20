@@ -27,6 +27,7 @@ export const notificationOperations = {
                 data: {
                     title: data.title,
                     message: data.message,
+                    url: data.url,
                     channel: {
                         connect: {
                             id: data.channelId,
@@ -77,6 +78,7 @@ export const notificationOperations = {
                     channelId: channel.id,
                     title: data.title,
                     message: data.message,
+                    url: data.url,
                     audience: data.audience,
                 }
             })

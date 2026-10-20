@@ -45,7 +45,7 @@ async function createTestUser(username: string): Promise<UserFiltered> {
     })
 }
 
-async function subscribe(userId: number, channelId: number, methods: Record<NotificationMethods, boolean>) {
+async function subscribe(userId: number, channelId: number, methods: Partial<Record<NotificationMethods, boolean>>) {
     await prisma.notificationSubscription.create({
         data: {
             user: { connect: { id: userId } },

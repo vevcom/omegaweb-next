@@ -4,7 +4,7 @@ $mobileBreakpoint: 800px;
 
 $rounding: var(--rounding);
 $cardRounding: calc(3 * $rounding);
-$cardPadding: calc(3 * $rounding);
+$cardPadding: var(--card-padding);
 
 $transitionTime: 300ms;
 

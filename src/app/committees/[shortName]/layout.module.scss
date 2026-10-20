@@ -11,11 +11,13 @@
     min-height: 0;
     border-radius: ohma.$rounding;
     margin-bottom: ohma.$gap;
-    overflow-y: scroll;
+    overflow: hidden;
 }
 
-.pageWrapper {
+.main .pageWrapper {
     border-radius: ohma.$rounding;
+    height: auto;
+    overflow: visible;
 }
 .pensioned {
     padding: ohma.$gap calc(2 * #{ohma.$gap});

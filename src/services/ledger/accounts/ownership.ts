@@ -102,3 +102,46 @@ export async function resolveAccountsOwnership(
 
     return ownerships
 }
+
+/**
+ * Resolves the owners of a transaction's accounts, for authorizers. With `debitedOnly`, only the
+ * debited side, except a DEPOSIT, which falls back to every party. Other transactions with no
+ * debit entry (paid through Stripe) resolve to none, so only LEDGER_ADMIN can cancel them.
+ * Returns no ownerships if the transaction doesn't exist.
+ */
+export async function resolveTransactionAccounts(
+    prisma: Prisma.TransactionClient,
+    transactionId: number,
+    { debitedOnly = false }: { debitedOnly?: boolean } = {},
+): Promise<LedgerAccountOwnership[]> {
+    const transaction = await prisma.ledgerTransaction.findUnique({
+        where: { id: transactionId },
+        select: {
+            purpose: true,
+            ledgerEntries: {
+                select: {
+                    funds: true,
+                    fees: true,
+                    ledgerAccount: {
+                        select: { user: { select: { id: true } }, groups: { select: { groupId: true } } },
+                    },
+                },
+            },
+        },
+    })
+
+    const entries = transaction?.ledgerEntries ?? []
+    const debitEntries = entries.filter(entry => entry.funds < 0 || (entry.fees ?? 0) < 0)
+
+    let relevantEntries = entries
+    if (debitedOnly && debitEntries.length > 0) {
+        relevantEntries = debitEntries
+    } else if (debitedOnly && transaction?.purpose !== 'DEPOSIT') {
+        relevantEntries = []
+    }
+
+    return relevantEntries.map(entry => ({
+        userId: entry.ledgerAccount?.user?.id ?? null,
+        groupIds: entry.ledgerAccount?.groups.map(group => group.groupId) ?? [],
+    }))
+}

@@ -42,6 +42,11 @@ export default function NotificationForm({
 
             <TextInput name="title" label="Tittel" />
             <Textarea name="message" label="Melding" className={styles.textArea} />
+            <TextInput name="url" label="Lenke (valgfri)" />
+            <p>
+                Lenken er en sti på nettsiden, for eksempel /events. Push-varselet åpner den når man trykker på
+                det, og e-postene lenker til den.
+            </p>
 
             <p>
                 Dersom du ønsker å gjøre varselet mer personlig kan man bruke brukerinformasjon i varselet.

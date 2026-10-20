@@ -24,8 +24,6 @@ const dataFieldSchemas = z.object({
 const paramsFieldSchemas = z.object({
     id: z.number(),
     ombulId: z.number(),
-    name: z.string(),
-    year: z.number(),
 })
 
 const ombulId = paramsFieldSchemas.pick({
@@ -58,18 +56,7 @@ export const ombulSchemas = {
         updateCoverImage: imageSchemas.data.uploadImage,
     },
     params: {
-        read: z.union([
-            z.object({
-                id: paramsFieldSchemas.shape.id,
-                name: z.undefined().optional(),
-                year: z.undefined().optional()
-            }),
-            z.object({
-                id: z.undefined().optional(),
-                name: paramsFieldSchemas.shape.name,
-                year: paramsFieldSchemas.shape.year
-            })
-        ]),
+        read: ombulId,
         updateCoverImage: ombulImplementationId,
         destroy: ombulId,
         update: ombulId,

@@ -51,6 +51,7 @@ $imageHeight: calc(20 * 8px);
 
         > h2 {
             font-size: ohma.$fonts-xl;
+            overflow-wrap: anywhere;
             margin-bottom: calc(0.5 * #{ohma.$gap});
         }
 

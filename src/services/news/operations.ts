@@ -17,6 +17,7 @@ import {
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
+import { formatVevenUri } from '@/lib/urlEncoding'
 import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -215,6 +216,7 @@ export const newsOperations = {
                     data: {
                         title: `Ny nyhetsartikkel: ${news.article.name}`,
                         message: `${news.description ? `${news.description}\n` : ''}Les hele saken på Omegaveven.`,
+                        url: `/news/${formatVevenUri(news.articleName, news.id)}`,
                         audience: { visibilityId: news.visibilityRegularId },
                     },
                 })

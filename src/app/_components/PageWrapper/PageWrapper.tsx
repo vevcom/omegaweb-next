@@ -1,4 +1,5 @@
 import styles from './PageWrapper.module.scss'
+import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import React from 'react'
 
 export default function PageWrapper({
@@ -26,7 +27,7 @@ export default function PageWrapper({
     ].filter(Boolean).join(' ')
 
     return (
-        <div className={wrapperClass}>
+        <ScrollArea className={wrapperClass} scrollerClassName={styles.scroller}>
             {!hideTitle && (
                 <div className={styles.inlineHeader}>
                     <div>
@@ -38,6 +39,6 @@ export default function PageWrapper({
             <div className={styles.body}>
                 { children }
             </div>
-        </div>
+        </ScrollArea>
     )
 }

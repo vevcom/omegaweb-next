@@ -4,6 +4,7 @@ import { userOperations } from '@/services/users/operations'
 import { serverLayout, withFallback, withPageSession } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import UserNavBar from '@/app/users/[username]/UserNavBar'
+import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import { notFound } from 'next/navigation'
 import type { LayoutOperationArgs } from '@/app/ServerPage'
 import type { PropTypes } from '@/app/users/[username]/page'
@@ -54,9 +55,9 @@ export default serverLayout({
             <PageTitleSetter {...userPagesTitle(user, session)} />
             <div className={styles.userAdminLayout}>
                 <main className={styles.main}>
-                    <div className={styles.mainInner}>
+                    <ScrollArea className={styles.mainInner}>
                         {children}
-                    </div>
+                    </ScrollArea>
                 </main>
                 <UserNavBar username={username} userId={user.id} />
             </div>
