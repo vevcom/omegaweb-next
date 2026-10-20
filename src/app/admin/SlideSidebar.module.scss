@@ -84,10 +84,12 @@ $mobileToggleButtonSize: 44px;
         }
     }
 
+    // Styled like the side bar: no boxes, a separation line under each heading, and hovering
+    // colours the text.
     .sidebar {
         display: flex;
         flex-direction: column;
-        gap: ohma.$gap;
+        gap: calc(#{ohma.$gap} / 2);
         overflow-y: auto;
         height: 100%;
         color: ohma.$colors-text;
@@ -96,16 +98,20 @@ $mobileToggleButtonSize: 44px;
             display: flex;
             align-items: center;
             gap: ohma.$gap;
-            margin: calc(#{ohma.$gap} * 2) 0 0;
-            padding: calc(#{ohma.$gap} * 2);
-            border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
-            background: ohma.$colors-surface-raised;
+            margin: calc(#{ohma.$gap} * 2) 0 calc(#{ohma.$gap} / 2);
+            padding: ohma.$gap calc(#{ohma.$gap} * 1.5);
+            border-bottom: 1px solid ohma.$colors-surface-hover;
             font-size: ohma.$fonts-l;
             font-weight: ohma.$fonts-weight-l;
             color: ohma.$colors-ink-strong;
 
             &:first-child {
                 margin-top: 0;
+            }
+
+            // The global `*` colour rule would otherwise keep the icon at the text colour.
+            svg, path {
+                color: inherit;
             }
 
             svg {
@@ -118,11 +124,9 @@ $mobileToggleButtonSize: 44px;
             text-decoration: none;
             padding: calc(#{ohma.$gap} * 1.5) calc(#{ohma.$gap} * 2);
             margin-left: calc(#{ohma.$gap} * 3);
-            border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
-            background: ohma.$colors-surface-raised;
-            transition: background-color ohma.$transitionTime;
+            transition: color ohma.$transitionTime;
             &:hover, &.active {
-                background: ohma.$colors-surface-hover;
+                color: ohma.$colors-accent-blue;
             }
         }
     }

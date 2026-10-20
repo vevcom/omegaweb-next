@@ -5,6 +5,7 @@ import { adminNavItemHref } from './adminNavItemHref'
 import SideBarNavItem from './SideBarNavItem'
 import AdminNav from './AdminNav'
 import ScrollIndicator from '@/components/ScrollIndicator/ScrollIndicator'
+import useActiveNavHref from '@/hooks/useActiveNavHref'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
 import { useRef, useState } from 'react'
@@ -22,17 +23,24 @@ export default function DesktopSideBar({ navItems }: PropTypes) {
     // The admin item gets its own spot at the bottom rather than a place among the others.
     const showAdmin = navItems.some(item => item.href === adminNavItemHref)
     const sideBarItems = navItems.filter(item => item.href !== adminNavItemHref)
+    const activeHref = useActiveNavHref(navItems.map(item => item.href))
     return (
         <aside className={styles.DesktopSideBar} data-expanded={expanded}>
             <div className={styles.navIconsPanel}>
                 <nav ref={navIconsRef} className={styles.navIcons} aria-label="Desktop navigation">
                     {sideBarItems.map((item) => (
-                        <SideBarNavItem key={item.name} item={item} expanded={expanded} />
+                        <SideBarNavItem
+                            key={item.name}
+                            item={item}
+                            expanded={expanded}
+                            active={item.href === activeHref}
+                        />
                     ))}
                 </nav>
                 <ScrollIndicator scrollRef={navIconsRef} className={styles.navScrollIndicator} />
             </div>
-            <AdminNav showAdmin={showAdmin} expanded={expanded} />
+            <AdminNav showAdmin={showAdmin} expanded={expanded} active={activeHref === adminNavItemHref} />
+            <hr className={styles.divider} />
             <button
                 type="button"
                 className={styles.expandToggle}

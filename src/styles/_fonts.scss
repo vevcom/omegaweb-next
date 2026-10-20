@@ -26,8 +26,18 @@ $fonts: (
   }
 }
 
+// Old London by Dieter Steffmann, a freeware blackletter with one weight and no italic.
+@font-face {
+  font-family: 'OldLondon';
+  src: url('/fonts/OldLondon/OldLondon.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 $primary: 'Inter', sans-serif;
 $secondary: 'PlayfairDisplay', serif;
+$title: 'OldLondon', 'PlayfairDisplay', serif;
 
 $s: clamp(12px, 2vw, 14px);
 $m: clamp(14px, 2.5vw, 16px);

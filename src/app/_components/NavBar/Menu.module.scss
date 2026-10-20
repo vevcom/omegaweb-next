@@ -88,7 +88,7 @@
                 align-items: center;
                 font-size: ohma.$fonts-l;
                 font-weight: ohma.$fonts-weight-l;
-                &:hover {
+                &:hover, &.active {
                     color: ohma.$colors-accent-blue;
                     svg {
                         color: ohma.$colors-accent-blue;
@@ -97,6 +97,11 @@
                 svg {
                     margin-right: ohma.$gap;
                     color: ohma.$colors-text;
+
+                    // The global `*` colour rule would otherwise keep the path at the text colour.
+                    path {
+                        color: inherit;
+                    }
                 }
             }
         }

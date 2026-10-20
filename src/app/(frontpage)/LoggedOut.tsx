@@ -23,7 +23,7 @@ export default async function LoggedOutLandingPage() {
 
     return (
         <div className={styles.wrapper}>
-            <PageTitleSetter title={'Sct. Omega'} />
+            <PageTitleSetter title="Sct. Omega Broderskab" />
             <div className={`${styles.part} ${styles.frontImg}`}>
                 <div className={styles.frontInfo}>
                     <div>

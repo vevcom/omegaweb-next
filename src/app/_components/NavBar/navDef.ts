@@ -91,7 +91,7 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Ny student?',
-        href: '/articles',
+        href: '/new-student',
         icon: faGraduationCap,
         authorizers: () => [articleCategoryAuth.readAll],
         audience: 'loggedOut',

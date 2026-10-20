@@ -6,6 +6,7 @@ import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import useOnNavigation from '@/hooks/useOnNavigation'
 import { useGlobalSearch } from '@/contexts/GlobalSearch'
 import { useNavMenu } from '@/contexts/NavMenu'
+import useActiveNavHref from '@/hooks/useActiveNavHref'
 import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
@@ -21,6 +22,7 @@ type PropTypes = {
 export default function Menu({ items, openBtnVariant }: PropTypes) {
     const { isOpen, setIsOpen } = useNavMenu()
     const globalSearch = useGlobalSearch()
+    const activeHref = useActiveNavHref(items.map(item => item.href))
     function closeMenu(ref: React.RefObject<HTMLDivElement | null>) {
         ref?.current?.classList.add(styles.closeMenu)
         setTimeout(() => setIsOpen(false), 400)
@@ -50,7 +52,11 @@ export default function Menu({ items, openBtnVariant }: PropTypes) {
                                 </div>
                                 {items.map((item) => (
                                     <div key={item.name}>
-                                        <Link href={item.href}>
+                                        <Link
+                                            href={item.href}
+                                            className={item.href === activeHref ? styles.active : undefined}
+                                            aria-current={item.href === activeHref ? 'page' : undefined}
+                                        >
                                             <FontAwesomeIcon icon={item.icon}/>
                                             {item.name}
                                         </Link>

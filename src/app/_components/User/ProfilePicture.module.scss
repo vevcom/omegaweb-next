@@ -6,10 +6,14 @@
 
     .image {
         border-radius: 50%;
-        border: 3px solid ohma.$colors-white;
         background-color: ohma.$colors-white;
         aspect-ratio: 1;
         object-fit: cover;
+    }
+
+    // The colour comes from the ringColor prop.
+    .ring {
+        border: 3px solid;
     }
 
     .standardImage {

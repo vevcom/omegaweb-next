@@ -37,9 +37,6 @@
 .logoWrapper {
     width: 48px;
     height: 48px;
-    border-radius: #{ohma.$gap};
-    background: ohma.$colors-accent-blue;
-    padding: ohma.$gap;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -54,9 +51,9 @@
 }
 
 .pageTitle {
+    font-family: ohma.$fonts-title;
     font-size: ohma.$fonts-xxl;
     font-weight: ohma.$fonts-weight-m;
-    font-style: ohma.$fonts-secondary;
     color: ohma.$colors-text;
     white-space: nowrap;
     overflow: hidden;
@@ -67,6 +64,8 @@
 }
 
 .pageSubtitle {
+    font-family: inherit;
+
     @include ohma.screenMobile {
         display: none;
     }
@@ -85,23 +84,13 @@
     position: relative;
     @include ohma.btn(ohma.$colors-accent-blue);
     margin: 0;
+    width: 64px;
     height: 64px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: calc(#{ohma.$gap} * 2);
-    white-space: nowrap;
-
-    &.loggedOut {
-        width: auto;
-        padding: 0 calc(2 * #{ohma.$gap});
-        font-weight: ohma.$fonts-weight-m;
-    }
-
-    &.loggedIn {
-        width: 64px;
-        padding: 0;
-    }
 }
 
 .grower {
@@ -124,11 +113,20 @@
     display: none;
 }
 
+// Spaced like the side bar's nav buttons.
 .rightSide {
     display: flex;
     width: auto;
     margin-left: auto;
     align-items: center;
+    gap: calc(#{ohma.$gap} / 2);
+}
+
+// Matches the search and report buttons next to it.
+.editMode {
+    --edit-mode-icon-size: 30px;
+    width: calc(#{ohma.$gap} * 6);
+    height: calc(#{ohma.$gap} * 6);
 }
 
 .openMenu {

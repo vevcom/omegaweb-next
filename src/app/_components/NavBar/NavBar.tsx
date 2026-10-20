@@ -5,6 +5,7 @@ import ReportButton from './ReportButton'
 import SearchButton from './SearchButton'
 import NavBarTitle from './NavBarTitle'
 import HomeLogoLink from './HomeLogoLink'
+import EditModeNavIcon from './EditModeNavIcon'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import ProfilePicture from '@/components/User/ProfilePicture'
@@ -51,9 +52,10 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                     ))
                 }
                 <li className={styles.rightSide}>
+                    <EditModeNavIcon className={styles.editMode} />
                     <SearchButton/>
                     <ReportButton/>
-                    <div className={`${styles.magicHat} ${isLoggedIn ? styles.loggedIn : styles.loggedOut}`}>
+                    <div className={styles.magicHat}>
                         {
                             profileImage ? (
                                 <ProfilePicture
@@ -61,7 +63,12 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                                     width={48}
                                 />
                             ) : (
-                                <span>Logg inn</span>
+                                <StandardImageServer
+                                    standardImage="MAGISK_HATT"
+                                    width={39}
+                                    alt="Logg inn"
+                                    tint="white"
+                                />
                             )
                         }
                         <UserNavigation isLoggedIn={isLoggedIn} />

@@ -60,16 +60,13 @@ const { page, generateMetadata } = serverPage({
 
         const omegaMembership = profile.omegaMembership
 
-        const relationshipColour = {
+        // NOT_SPECIFIED has no colour, so its profile picture gets no ring.
+        const relationshipColour: Partial<Record<RelationshipStatus, string>> = {
             [RelationshipStatus.SINGLE]: 'green',
             [RelationshipStatus.ITS_COMPLICATED]: 'yellow',
             [RelationshipStatus.TAKEN]: 'red',
-            [RelationshipStatus.NOT_SPECIFIED]: 'white'
         }
 
-        const borderColour = {
-            '--border-colour': relationshipColour[profile.user.relationshipStatus]
-        } as React.CSSProperties
         const flairColour = {
             '--flairColor': flairs.length > 0
                 ? `rgb(${flairs[0].colorR}, ${flairs[0].colorG}, ${flairs[0].colorB})`
@@ -96,9 +93,13 @@ const { page, generateMetadata } = serverPage({
         return (
             <div className={styles.wrapper}>
                 <div className={styles.profile}>
-                    <div className={styles.profileContent} style={{ ...borderColour, ...flairColour }}>
+                    <div className={styles.profileContent} style={flairColour}>
                         <div className={styles.profileContentInner}>
-                            <ProfilePicture width={240} profileImage={profile.user.image} className={styles.profilePicture}/>
+                            <ProfilePicture
+                                width={240}
+                                profileImage={profile.user.image}
+                                ringColor={relationshipColour[profile.user.relationshipStatus]}
+                            />
                             <div className={styles.header}>
                                 <div className={styles.nameAndId}>
                                     <h1><UserDisplayName

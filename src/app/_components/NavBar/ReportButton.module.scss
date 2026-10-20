@@ -2,17 +2,29 @@
 
 .reportButton {
     cursor: pointer;
-    margin: 0 ohma.$gap;
-    
+
+    // Sized like the side bar's nav buttons. Hovering colours the icon, not the box.
+    .reportLink {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: calc(#{ohma.$gap} * 6);
+        height: calc(#{ohma.$gap} * 6);
+
+        &:hover .reportPicture {
+            color: ohma.$colors-accent-red;
+        }
+    }
+
     .reportPicture {
-        width: 40px;
-        height: 40px;
-        padding: ohma.$gap;
-        border-radius: calc(#{ohma.$gap} * 2);
+        width: 30px;
+        height: 30px;
         color: ohma.$colors-text;
-        transition: ohma.$transitionTime;
-        &:hover{
-            background-color: ohma.$colors-accent-red;
+        transition: color ohma.$transitionTime;
+
+        // The global `*` colour rule would otherwise keep the path at the text colour.
+        path {
+            color: inherit;
         }
     }
 }
