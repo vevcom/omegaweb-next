@@ -4,17 +4,16 @@
     cursor: pointer;
     margin: 0 ohma.$gap;
 
-    // The hover box matches the side bar's nav buttons.
+    // Sized like the side bar's nav buttons. Hovering colours the icon, not the box.
     .reportLink {
         display: flex;
         align-items: center;
         justify-content: center;
         width: calc(#{ohma.$gap} * 6);
         height: calc(#{ohma.$gap} * 6);
-        border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
-        transition: ohma.$transitionTime;
-        &:hover {
-            background-color: ohma.$colors-accent-red;
+
+        &:hover .reportPicture {
+            color: ohma.$colors-accent-red;
         }
     }
 
@@ -22,5 +21,11 @@
         width: 30px;
         height: 30px;
         color: ohma.$colors-text;
+        transition: color ohma.$transitionTime;
+
+        // The global `*` colour rule would otherwise keep the path at the text colour.
+        path {
+            color: inherit;
+        }
     }
 }

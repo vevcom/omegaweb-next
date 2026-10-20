@@ -1,6 +1,6 @@
 @use '@/styles/ohma';
 
-// The hover box matches the side bar's nav buttons.
+// Sized like the side bar's nav buttons. Hovering colours the icon, not the box.
 .searchButton {
     cursor: pointer;
     background: none;
@@ -11,15 +11,20 @@
     justify-content: center;
     width: calc(#{ohma.$gap} * 6);
     height: calc(#{ohma.$gap} * 6);
-    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
-    transition: ohma.$transitionTime;
-    &:hover {
-        background-color: ohma.$colors-accent-blue;
-    }
 
     .searchPicture {
         width: 30px;
         height: 30px;
         color: ohma.$colors-text;
+        transition: color ohma.$transitionTime;
+
+        // The global `*` colour rule would otherwise keep the path at the text colour.
+        path {
+            color: inherit;
+        }
+    }
+
+    &:hover .searchPicture {
+        color: ohma.$colors-accent-blue;
     }
 }

@@ -5,16 +5,25 @@ import type { ExpandedImage } from '@/services/images/subservice/types'
 type PropTypes = {
     profileImage: ExpandedImage,
     width: number,
-    className?: string
+    className?: string,
+    /** Draws a ring in this colour around the picture. Without it there is no ring. */
+    ringColor?: string,
 }
 
-export default function ProfilePicture({ profileImage, width, className }: PropTypes) {
+export default function ProfilePicture({ profileImage, width, className, ringColor }: PropTypes) {
     const isStandardProfileImage = profileImage.standardImage === 'DEFAULT_PROFILE_IMAGE'
+    const imageClassName = [
+        styles.image,
+        ringColor ? styles.ring : '',
+        isStandardProfileImage ? styles.standardImage : '',
+        className ?? '',
+    ].join(' ')
 
     return (
         <div className={styles.ProfilePicture}>
             <Image
-                className={`${styles.image} ${isStandardProfileImage ? styles.standardImage : ''} ${className ?? ''}`}
+                className={imageClassName}
+                style={ringColor ? { borderColor: ringColor } : undefined}
                 image={profileImage}
                 width={width}
             />

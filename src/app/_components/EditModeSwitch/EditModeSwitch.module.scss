@@ -22,11 +22,24 @@
             }
         }
 
+        // Hints at the "on" colour while still showing that edit mode is off.
+        @media (hover: hover) {
+            &:hover input:not(:checked) + .EditModeSwitchIcon {
+                color: color-mix(in srgb, ohma.$colors-accent-blue, ohma.$colors-text);
+            }
+        }
+
+        // A parent can resize the icon by setting --edit-mode-icon-size.
         .EditModeSwitchIcon {
-            width: 20px;
-            height: 20px;
+            width: var(--edit-mode-icon-size, 20px);
+            height: var(--edit-mode-icon-size, 20px);
             color: ohma.$colors-text;
             transition: 0.2s;
+
+            // The global `*` colour rule would otherwise keep the path at the text colour.
+            path {
+                color: inherit;
+            }
         }
     }
 }

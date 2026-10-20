@@ -1,5 +1,6 @@
 @use "@/styles/ohma";
 
+// One island, its sections separated by dividers.
 .DesktopSideBar {
     height: 100%;
     width: 100%;
@@ -8,13 +9,20 @@
     align-items: stretch;
     gap: ohma.$gap;
     min-height: 0;
+    padding: ohma.$gap;
+    border-radius: ohma.$rounding;
+    background: ohma.$colors-surface-base;
+}
+
+.divider {
+    flex-shrink: 0;
+    margin: 0;
+    border: none;
+    border-top: 1px solid ohma.$colors-surface-hover;
 }
 
 .navIconsPanel {
     position: relative;
-    border-radius: ohma.$rounding;
-    padding: ohma.$gap;
-    background: ohma.$colors-surface-base;
     width: 100%;
     flex: 1 1 auto;
     min-height: 0;
@@ -89,9 +97,6 @@
 }
 
 .adminNav {
-    border-radius: ohma.$rounding;
-    padding: ohma.$gap;
-    background: ohma.$colors-surface-base;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -107,8 +112,8 @@
     justify-content: center;
     flex-shrink: 0;
     border: none;
-    border-radius: ohma.$rounding;
-    background: ohma.$colors-surface-base;
+    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
+    background: transparent;
     color: ohma.$colors-text;
     cursor: pointer;
     transition: background ohma.$transitionTime ease, color ohma.$transitionTime ease;

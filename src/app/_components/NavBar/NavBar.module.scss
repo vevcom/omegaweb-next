@@ -130,6 +130,14 @@
     align-items: center;
 }
 
+// Matches the search and report buttons next to it.
+.editMode {
+    --edit-mode-icon-size: 30px;
+    width: calc(#{ohma.$gap} * 6);
+    height: calc(#{ohma.$gap} * 6);
+    margin-right: ohma.$gap;
+}
+
 .openMenu {
     font-weight: ohma.$fonts-weight-m;
     color: ohma.$colors-text;

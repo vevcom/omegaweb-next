@@ -277,14 +277,3 @@
     }
 }
 
-img.profilePicture {
-    // We have to use "!important" here to override the
-    // border color set in "ProfilePicture.module.scss".
-    // TODO: Find a better way to do this.
-
-
-    border-color: var(--border-colour) !important;
-
-
-}
-

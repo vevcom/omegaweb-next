@@ -33,6 +33,7 @@ export default function DesktopSideBar({ navItems }: PropTypes) {
                 <ScrollIndicator scrollRef={navIconsRef} className={styles.navScrollIndicator} />
             </div>
             <AdminNav showAdmin={showAdmin} expanded={expanded} />
+            <hr className={styles.divider} />
             <button
                 type="button"
                 className={styles.expandToggle}

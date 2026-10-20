@@ -5,6 +5,7 @@ import ReportButton from './ReportButton'
 import SearchButton from './SearchButton'
 import NavBarTitle from './NavBarTitle'
 import HomeLogoLink from './HomeLogoLink'
+import EditModeNavIcon from './EditModeNavIcon'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import ProfilePicture from '@/components/User/ProfilePicture'
@@ -51,6 +52,7 @@ export default async function NavBar({ isLoggedIn, profileImage, navItems }: Pro
                     ))
                 }
                 <li className={styles.rightSide}>
+                    <EditModeNavIcon className={styles.editMode} />
                     <SearchButton/>
                     <ReportButton/>
                     <div className={`${styles.magicHat} ${isLoggedIn ? styles.loggedIn : styles.loggedOut}`}>
