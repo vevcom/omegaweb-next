@@ -27,7 +27,10 @@ export async function feideLoginMayLinkByEmail(prisma: PrismaClient, {
     if (feideAccount || !email) return true
 
     const userByEmail = await prisma.user.findFirst({
-        where: { OR: [{ email }, { feideAccount: { email } }] },
+        where: {
+            OR: [{ email }, { feideAccount: { email } }],
+            archived: false,
+        },
         select: {
             credentials: { select: { userId: true } },
             feideAccount: { select: { id: true } },

@@ -63,7 +63,7 @@ export async function moveFeideAccountToUser(
         }
 
         const toUser = await transaction.user.findUniqueOrThrow({
-            where: { id: toUserId },
+            where: { id: toUserId, archived: false },
             select: {
                 credentials: { select: { userId: true } },
                 feideAccount: { select: { id: true } },

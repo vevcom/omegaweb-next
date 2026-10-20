@@ -23,7 +23,7 @@ SELECT DISTINCT mainquery."email" FROM
         INNER JOIN "MailingListUser" ON "MailingList"."id" = "MailingListUser"."mailingListId"
         INNER JOIN "User" ON "MailingListUser"."userId" = "User"."id"
         
-        WHERE "MailAlias"."address" = '%s'
+        WHERE "MailAlias"."address" = '%s' AND "User"."archived" = false
     
     -- Find the groups and the users inside the groups
     UNION SELECT "User"."email" FROM "MailAlias"
@@ -35,7 +35,7 @@ SELECT DISTINCT mainquery."email" FROM
         INNER JOIN "Membership" ON "Group"."id" = "Membership"."groupId"
         INNER JOIN "User" ON "Membership"."userId" = "User"."id"
         
-        WHERE "MailAlias"."address" = '%s' AND "Membership"."active" = true
+        WHERE "MailAlias"."address" = '%s' AND "Membership"."active" = true AND "User"."archived" = false
     
 ) as mainquery
 WHERE mainquery."email" IS NOT NULL;

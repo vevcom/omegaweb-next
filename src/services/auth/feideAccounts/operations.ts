@@ -21,7 +21,7 @@ export const feideAccountOperations = {
         paramsSchema: () => feideAccountSchemas.params.readUser,
         operation: () => async ({ prisma, params }) => {
             const feideAccount = await prisma.feideAccount.findUnique({
-                where: { id: params.feideAccountId },
+                where: { id: params.feideAccountId, user: { archived: false } },
                 select: { user: true },
             })
             return feideAccount?.user ?? null

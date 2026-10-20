@@ -46,6 +46,9 @@ export default function LogIn() {
                     ? 'Feide-kontoen kan ikke kobles automatisk til brukeren med samme e-postadresse. ' +
                     'Logg inn med brukernavn og passord, eller ta kontakt med en administrator.'
                     : ''}
+                {error === 'UserArchived'
+                    ? 'Brukeren er arkivert. Ta kontakt med en administrator dersom dette er feil.'
+                    : ''}
             </p>
         </form>
 

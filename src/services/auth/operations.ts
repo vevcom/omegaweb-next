@@ -86,9 +86,10 @@ export const authOperations = {
             const user = await prisma.user.findUniqueOrThrow({
                 where: {
                     id: userId,
+                    archived: false,
                 },
                 select: {
-                    credentials: true
+                    credentials: true,
                 }
             })
 
@@ -159,6 +160,7 @@ export const authOperations = {
                     OR: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
                     feideAccount: null,
                     credentials: null,
+                    archived: false,
                     NOT: { id: feideUser.id },
                 },
                 select: {
@@ -217,7 +219,7 @@ export const authOperations = {
             const claims = readLinkFeideAccountClaims(params.token)
 
             const targetUser = await prisma.user.findUniqueOrThrow({
-                where: { id: claims.targetUserId },
+                where: { id: claims.targetUserId, archived: false },
                 select: { username: true },
             })
 

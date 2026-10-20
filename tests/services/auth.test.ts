@@ -6,6 +6,8 @@ import { generateJWT } from '@/lib/jwt/jwt'
 import { JWT_ISSUER } from '@/lib/jwt/constants'
 import { emailValidationExpiration } from '@/lib/email/systemMail/constants'
 import { decryptAndComparePassword, hashAndEncryptPassword } from '@/auth/passwordHash'
+import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
+import { recordSentMail } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 import { sign } from 'jsonwebtoken'
 
@@ -197,5 +199,69 @@ describe('verify email', () => {
 
         const stored = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
         expect(stored.emailVerified).toBeNull()
+    })
+})
+
+describe('archived users', () => {
+    const archive = (userId: number) => prisma.user.update({ where: { id: userId }, data: { archived: true } })
+
+    test('an archived user gets no reset password mail', async () => {
+        const user = await createUserChangedAnHourAgo('archivedresetmail', { withPassword: true })
+        await archive(user.id)
+        const sentMail = recordSentMail()
+
+        await sendResetPasswordMail(user.email)
+
+        expect(sentMail).not.toHaveBeenCalled()
+    })
+
+    test('a reset token of an archived user is refused', async () => {
+        const user = await createUserChangedAnHourAgo('archivedresettoken', { withPassword: true })
+        const token = resetPasswordToken(user.id)
+        await archive(user.id)
+
+        await expect(resetPassword(token)).rejects.toThrow(new Smorekopp('NOT FOUND'))
+        expect(await passwordMatches(user.id, OLD_PASSWORD)).toBe(true)
+    })
+
+    test('an archived migrated user cannot be claimed by a Feide login', async () => {
+        const feideUser = await prisma.user.create({
+            data: {
+                username: 'archivedclaimer',
+                email: 'archivedclaimer@stud.ntnu.no',
+                createdByFeideLoginOnProjectNext: true,
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+                feideAccount: { create: {
+                    id: 'archived-claimer-sub',
+                    email: 'archivedclaimer@stud.ntnu.no',
+                    expiresAt: new Date(),
+                    issuedAt: new Date(),
+                } },
+            },
+        })
+        const createMigratedUser = (username: string, archived: boolean) => prisma.user.create({
+            data: {
+                username,
+                email: `${username}@omega.ntnu.no`,
+                archived,
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+            },
+        })
+        const archivedUser = await createMigratedUser('archivedmigrated', true)
+        const activeUser = await createMigratedUser('activemigrated', false)
+        const sentMail = recordSentMail()
+        const claim = (usernameOrEmail: string) => authOperations.sendLinkFeideAccountEmail({
+            params: { userId: feideUser.id },
+            data: { usernameOrEmail },
+            bypassAuth: true,
+        })
+
+        await claim(archivedUser.username)
+        expect(sentMail).not.toHaveBeenCalled()
+
+        await claim(activeUser.username)
+        expect(sentMail).toHaveBeenCalledWith(expect.objectContaining({ to: activeUser.email }))
     })
 })
