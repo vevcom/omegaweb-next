@@ -7,6 +7,7 @@ import {
     standardMembershipSelection,
     userBasicSelection,
     userCardSelection,
+    userPartitions,
     userPrivateSelection,
     userProfileSelection
 } from './constants'
@@ -31,7 +32,9 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import crypto from 'node:crypto'
-import type { UserPagingReturn } from './types'
+import type { UserPagingReturn, UserPartition } from './types'
+import type { Prisma } from '@/prisma-generated-pn-types'
+import type { z } from 'zod'
 
 export const userOperations = {
     /**
@@ -84,7 +87,8 @@ export const userOperations = {
         operation: async ({ prisma, params }) => await prisma.user.findUniqueOrThrow({
             where: {
                 id: params.id,
-                ...params
+                ...params,
+                ...userPartitions.unarchived,
             },
             select: userPrivateSelection
         })
@@ -96,7 +100,8 @@ export const userOperations = {
         operation: async ({ prisma, params }) => await prisma.user.findUniqueOrThrow({
             where: {
                 id: params.id,
-                ...params
+                ...params,
+                ...userPartitions.unarchived,
             },
             select: userBasicSelection
         })
@@ -108,7 +113,8 @@ export const userOperations = {
         operation: async ({ prisma, params }) => await prisma.user.findUnique({
             where: {
                 id: params.id, // This is a bit wierd, but now ts is satisfied.
-                ...params
+                ...params,
+                ...userPartitions.unarchived,
             },
             select: userPrivateSelection
         })
@@ -123,7 +129,7 @@ export const userOperations = {
         authorizer: ({ params }) => userAuth.readProfile.data({ userField: { username: params.username } }),
         operation: async ({ prisma, params }) => {
             const { id: userId } = await prisma.user.findUniqueOrThrow({
-                where: { username: params.username.toLowerCase() },
+                where: { username: params.username.toLowerCase(), ...userPartitions.unarchived },
                 select: { id: true },
             })
 
@@ -210,124 +216,31 @@ export const userOperations = {
     /**
      * A page of the user list, filtered by name and group memberships. The users carry their class,
      * study programme and omega membership, and their title and admin flag in the selected group.
+     * Covers the active omega students only, see userPartitions.
      */
     readPage: defineOperation({
         paramsSchema: userSchemas.params.readPage,
         authorizer: () => userAuth.readPage,
-        operation: async ({ prisma, params }): Promise<UserPagingReturn[]> => {
-            const { page, details } = params.paging
-            const words = details.partOfName.split(' ')
-            const sortDirection = details.sort?.direction ?? 'asc'
-            // The username is always included as the final tiebreaker so the
-            // ordering stays fully deterministic for cursor-based pagination.
-            const orderBy = details.sort?.field === 'username' ? [
-                { username: sortDirection },
-                { lastname: sortDirection },
-                { firstname: sortDirection },
-            ] : [
-                { lastname: sortDirection },
-                { firstname: sortDirection },
-                { username: sortDirection },
-            ]
+        operation: ({ prisma, params }) => readUserPage(prisma, params, 'activeOmegaStudents'),
+    }),
 
-            if (details.groups.length > maxNumberOfGroupsInFilter) {
-                throw new ServiceError('BAD PARAMETERS', 'Too many groups in filter')
-            }
-            const groupSelection = details.selectedGroup ? [
-                getMembershipFilter(details.selectedGroup.groupOrder, details.selectedGroup.groupId)
-            ] : []
+    /**
+     * A page of the user list as readPage, but covering everyone who is not archived, for admins
+     * and for server code.
+     */
+    readUnarchivedPage: defineOperation({
+        paramsSchema: userSchemas.params.readUnarchivedPage,
+        authorizer: () => userAuth.readUnarchivedPage,
+        operation: ({ prisma, params }) => readUserPage(prisma, params, 'unarchived'),
+    }),
 
-            const groups = [...details.groups, ...(details.selectedGroup ? [details.selectedGroup] : [])]
-
-            const users = await prisma.user.findMany({
-                ...cursorPagingSelection(page),
-                select: {
-                    ...userCardSelection,
-                    memberships: {
-                        select: {
-                            admin: true,
-                            title: true,
-                            groupId: true,
-                            group: {
-                                select: {
-                                    class: { select: { level: true } },
-                                    studyProgramme: { select: { code: true } },
-                                    omegaMembershipGroup: { select: { omegaMembershipLevel: true } }
-                                }
-                            }
-                        },
-                        where: {
-                            OR: [
-                                {
-                                    AND: [
-                                        {
-                                            OR: standardMembershipSelection,
-                                        },
-                                        getMembershipFilter('ACTIVE')
-                                    ]
-                                },
-                                {
-                                    OR: groupSelection
-                                }
-                            ]
-
-                        }
-                    },
-                },
-                where: {
-                    AND: [
-                        ...words.map((word, index) => {
-                            const condition = {
-                                [index === words.length - 1 ? 'contains' : 'equals']: word,
-                                mode: 'insensitive'
-                            } as const
-                            return {
-                                OR: [
-                                    { firstname: condition },
-                                    { lastname: condition },
-                                    { username: condition },
-                                ],
-                            }
-                        }),
-                        ...groups.map(group => ({
-                            memberships: {
-                                some: {
-                                    ...getMembershipFilter(group.groupOrder, group.groupId),
-                                }
-                            }
-                        }))
-                    ],
-                },
-                // We have to sort with at least one unique field to have a
-                // consistent order. Sorting rows by fieds that have the same
-                // value is undefined behaviour in postgresql.
-                orderBy
-            })
-            return users.map(user => {
-                const clas = user.memberships.find(
-                    membership => membership.group.class !== null)?.group.class?.level
-                const studyProgramme = user.memberships.find(
-                    membership => membership.group.studyProgramme !== null)?.group.studyProgramme?.code
-                const membershipType = user.memberships.find(
-                    membership =>
-                        membership.group.omegaMembershipGroup !== null
-                )?.group.omegaMembershipGroup?.omegaMembershipLevel
-                const title = user.memberships.find(
-                    membership => membership.groupId === details.selectedGroup?.groupId)?.title
-                const admin = user.memberships.find(
-                    membership => membership.groupId === details.selectedGroup?.groupId)?.admin
-                return {
-                    ...user,
-                    class: clas,
-                    studyProgramme,
-                    membershipType,
-                    selectedGroupInfo: {
-                        title,
-                        admin
-                    }
-                }
-            })
-        }
+    /**
+     * A page of the archived users, as readPage lists the active omega students.
+     */
+    readArchivedPage: defineOperation({
+        paramsSchema: userSchemas.params.readArchivedPage,
+        authorizer: () => userAuth.readArchivedPage,
+        operation: ({ prisma, params }) => readUserPage(prisma, params, 'archived'),
     }),
 
     /**
@@ -351,13 +264,13 @@ export const userOperations = {
                     image: { include: expandedImageIncluder },
                 },
                 where: {
-                    AND: words.map(word => ({
+                    AND: [userPartitions.activeOmegaStudents, ...words.map((word): Prisma.UserWhereInput => ({
                         OR: [
                             { firstname: { contains: word, mode: 'insensitive' } },
                             { lastname: { contains: word, mode: 'insensitive' } },
                             { username: { contains: word, mode: 'insensitive' } },
                         ],
-                    })),
+                    }))],
                 },
                 orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
             })
@@ -635,12 +548,17 @@ export const userOperations = {
 
     readUserWithBalance: defineOperation({
         authorizer: async ({ params, prisma }) => userAuth.readUserWithBalance.data({
-            userField: { id: (await prisma.user.findFirst({ where: params, select: { id: true } }))?.id },
+            userField: {
+                id: (await prisma.user.findFirst({
+                    where: { ...params, ...userPartitions.unarchived },
+                    select: { id: true },
+                }))?.id,
+            },
         }),
         paramsSchema: userSchemas.params.readUserWithBalance,
         operation: async ({ prisma, params }) => {
             const user = await prisma.user.findFirstOrThrow({
-                where: params,
+                where: { ...params, ...userPartitions.unarchived },
                 select: {
                     ...userBasicSelection,
                     image: { include: expandedImageIncluder },
@@ -737,3 +655,125 @@ export const userOperations = {
         }
     }),
 } as const
+
+type ReadUserPageParams = z.infer<typeof userSchemas.params.readPage>
+
+async function readUserPage(
+    prisma: Prisma.TransactionClient,
+    params: ReadUserPageParams,
+    partition: UserPartition,
+): Promise<UserPagingReturn[]> {
+    const { page, details } = params.paging
+    const words = details.partOfName.split(' ')
+    const sortDirection = details.sort?.direction ?? 'asc'
+    // The username is always included as the final tiebreaker so the
+    // ordering stays fully deterministic for cursor-based pagination.
+    const orderBy = details.sort?.field === 'username' ? [
+        { username: sortDirection },
+        { lastname: sortDirection },
+        { firstname: sortDirection },
+    ] : [
+        { lastname: sortDirection },
+        { firstname: sortDirection },
+        { username: sortDirection },
+    ]
+
+    if (details.groups.length > maxNumberOfGroupsInFilter) {
+        throw new ServiceError('BAD PARAMETERS', 'Too many groups in filter')
+    }
+    const groupSelection = details.selectedGroup ? [
+        getMembershipFilter(details.selectedGroup.groupOrder, details.selectedGroup.groupId)
+    ] : []
+
+    const groups = [...details.groups, ...(details.selectedGroup ? [details.selectedGroup] : [])]
+
+    const users = await prisma.user.findMany({
+        ...cursorPagingSelection(page),
+        select: {
+            ...userCardSelection,
+            memberships: {
+                select: {
+                    admin: true,
+                    title: true,
+                    groupId: true,
+                    group: {
+                        select: {
+                            class: { select: { level: true } },
+                            studyProgramme: { select: { code: true } },
+                            omegaMembershipGroup: { select: { omegaMembershipLevel: true } }
+                        }
+                    }
+                },
+                where: {
+                    OR: [
+                        {
+                            AND: [
+                                {
+                                    OR: standardMembershipSelection,
+                                },
+                                getMembershipFilter('ACTIVE')
+                            ]
+                        },
+                        {
+                            OR: groupSelection
+                        }
+                    ]
+
+                }
+            },
+        },
+        where: {
+            AND: [
+                userPartitions[partition],
+                ...words.map((word, index) => {
+                    const condition = {
+                        [index === words.length - 1 ? 'contains' : 'equals']: word,
+                        mode: 'insensitive'
+                    } as const
+                    return {
+                        OR: [
+                            { firstname: condition },
+                            { lastname: condition },
+                            { username: condition },
+                        ],
+                    }
+                }),
+                ...groups.map(group => ({
+                    memberships: {
+                        some: {
+                            ...getMembershipFilter(group.groupOrder, group.groupId),
+                        }
+                    }
+                }))
+            ],
+        },
+        // We have to sort with at least one unique field to have a
+        // consistent order. Sorting rows by fieds that have the same
+        // value is undefined behaviour in postgresql.
+        orderBy
+    })
+    return users.map(user => {
+        const clas = user.memberships.find(
+            membership => membership.group.class !== null)?.group.class?.level
+        const studyProgramme = user.memberships.find(
+            membership => membership.group.studyProgramme !== null)?.group.studyProgramme?.code
+        const membershipType = user.memberships.find(
+            membership =>
+                membership.group.omegaMembershipGroup !== null
+        )?.group.omegaMembershipGroup?.omegaMembershipLevel
+        const title = user.memberships.find(
+            membership => membership.groupId === details.selectedGroup?.groupId)?.title
+        const admin = user.memberships.find(
+            membership => membership.groupId === details.selectedGroup?.groupId)?.admin
+        return {
+            ...user,
+            class: clas,
+            studyProgramme,
+            membershipType,
+            selectedGroupInfo: {
+                title,
+                admin
+            }
+        }
+    })
+}

@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { userBasicSelection } from '@/services/users/constants'
+import { userBasicSelection, userPartitions } from '@/services/users/constants'
 import type { Prisma } from '@/prisma-generated-pn-client'
 import type { MailFlowObject, ViaArrayType, ViaType } from './types'
 
@@ -64,7 +64,7 @@ const includeRecipients = {
             group: {
                 include: {
                     memberships: {
-                        where: { active: true },
+                        where: { active: true, user: userPartitions.unarchived },
                         include: includeUser,
                     },
                 },
@@ -72,6 +72,7 @@ const includeRecipients = {
         },
     },
     users: {
+        where: { user: userPartitions.unarchived },
         include: includeUser,
     },
     mailAddressExternal: {

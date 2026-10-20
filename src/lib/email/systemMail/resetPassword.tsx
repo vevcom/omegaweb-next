@@ -4,8 +4,7 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'
 import { generateJWT } from '@/jwt/jwt'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { userBasicSelection } from '@/services/users/constants'
-import { prisma } from '@/prisma-pn-client-instance'
+import { userOperations } from '@/services/users/operations'
 import { z } from 'zod'
 
 // TODO: This function should not be in lib! It is highly coupled to the project.
@@ -13,12 +12,7 @@ import { z } from 'zod'
 export async function sendResetPasswordMail(email: string) {
     const emailParsed = z.string().email().parse(email)
 
-    // TODO: User operations should maybe be used here instead.
-    // Currently, it doesn't support filtering by archived, but that should be added.
-    const user = await prisma.user.findUnique({
-        where: { email: emailParsed, archived: false },
-        select: { ...userBasicSelection, email: true },
-    })
+    const user = await userOperations.readOrNull({ params: { email: emailParsed }, bypassAuth: true })
     if (!user) return email
 
     const jwt = generateJWT('resetpassword', {

@@ -1,9 +1,42 @@
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { Prisma, Sex } from '@/prisma-generated-pn-types'
+import type { UserPartition } from './types'
 
 export const maxNumberOfGroupsInFilter = 7
 
 export const defaultSearchResultLimit = 5
+
+/**
+ * The levels of who a read of users covers, as user filters. Reads that any member may run
+ * cover the active omega students: users who are in a class and admitted. Reads of everyone
+ * except the archived users are for admins and for server code resolving recipients and owners.
+ * Only reads that ask for archived users get them.
+ */
+export const userPartitions = {
+    activeOmegaStudents: {
+        archived: false,
+        memberships: {
+            some: {
+                active: true,
+                group: { class: { level: { in: ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE'] } } },
+            },
+        },
+        AND: {
+            memberships: {
+                some: {
+                    active: true,
+                    group: { omegaMembershipGroup: { omegaMembershipLevel: { in: ['SOELLE', 'SYSKEN'] } } },
+                },
+            },
+        },
+    },
+    unarchived: {
+        archived: false,
+    },
+    archived: {
+        archived: true,
+    },
+} as const satisfies Record<UserPartition, Prisma.UserWhereInput>
 
 export const userBasicSelection = {
     id: true,

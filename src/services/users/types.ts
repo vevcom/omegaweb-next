@@ -9,6 +9,11 @@ import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
 import type { ClassLevel, OmegaMembershipLevel } from '@/prisma-generated-pn-types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
+/**
+ * Who a read of users covers. See userPartitions.
+ */
+export type UserPartition = 'activeOmegaStudents' | 'unarchived' | 'archived'
+
 export type UserBasic = Prisma.UserGetPayload<{ select: typeof userBasicSelection }>
 export type UserCard = Prisma.UserGetPayload<{ select: typeof userCardSelection }>
 export type UserProfile = Prisma.UserGetPayload<{ select: typeof userProfileSelection }>
@@ -34,7 +39,12 @@ export type UserPagingReturn = UserCard & StandardMembeships & {
  * selectedGroup will also filter on that group, but will also return extra
  * info about that membership.
  */
-export type UserDetails = InferPagingDetails<typeof userSchemas.params.readPage>
+export type UserDetails = InferPagingDetails<typeof userSchemas.params.readPage> & {
+    /**
+     * Which page operation the list reads, chosen on the client. Defaults to the active omega students.
+     */
+    partition?: UserPartition,
+}
 
 export type RegisterNewEmailType = {
     verified: boolean,

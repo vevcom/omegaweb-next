@@ -80,6 +80,11 @@ export const adminNavDef: AdminNavGroup[] = [
                 path: 'users',
                 authorizers: () => [userAuth.create],
             },
+            {
+                title: 'Arkiverte brukere',
+                path: 'users/archived',
+                authorizers: () => [userAuth.readArchivedPage],
+            },
         ],
     },
     {

@@ -16,6 +16,8 @@ export const createUserAction = makeAction(userOperations.create)
  * @returns
  */
 export const readUserPageAction = makeAction(userOperations.readPage)
+export const readUnarchivedUserPageAction = makeAction(userOperations.readUnarchivedPage)
+export const readArchivedUserPageAction = makeAction(userOperations.readArchivedPage)
 
 /**
  * updateUserAction is meant for admin updates while

@@ -2,6 +2,9 @@
 import Dropdown from '@/components/UI/Dropdown'
 import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import TextInput from '@/components/UI/TextInput'
+import Checkbox from '@/components/UI/Checkbox'
+import useAuthorizer from '@/hooks/useAuthorizer'
+import { userAuth } from '@/services/users/auth'
 import { UserPagingContext } from '@/contexts/paging/UserPaging'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import UserRow from '@/components/User/UserList/UserRow'
@@ -110,6 +113,9 @@ export default function UserList({
     const router = useRouter()
 
     const groupSelected = !!userPaging?.details.selectedGroup
+    const partition = userPaging?.details.partition ?? 'activeOmegaStudents'
+    // The list covers the active omega students. An admin may widen it to everyone who is not archived.
+    const canWiden = useAuthorizer({ authorizer: userAuth.readUnarchivedPage }).authorized && partition !== 'archived'
 
     const groupsResult = useGroups()
     const groups = groupsResult.status === 'success' ? groupsResult.groups : null
@@ -163,6 +169,11 @@ export default function UserList({
 
     const handleChangeName = (e: ChangeEvent<HTMLInputElement>) => {
         userPaging.setDetails({ ...userPaging.details, partOfName: e.target.value })
+    }
+
+    const handleWiden = (event: ChangeEvent<HTMLInputElement>) => {
+        const widened = event.target.checked
+        userPaging.setDetails({ ...userPaging.details, partition: widened ? 'unarchived' : 'activeOmegaStudents' })
     }
 
     const handleSort = (field: SortField) => {
@@ -305,6 +316,16 @@ export default function UserList({
                                 />
                             }
                         </div>
+                    )
+                }
+                {
+                    canWiden && (
+                        <Checkbox
+                            name="widen"
+                            label="Vis også uteksaminerte og ikke opptatte"
+                            checked={partition === 'unarchived'}
+                            onChange={handleWiden}
+                        />
                     )
                 }
             </div>

@@ -13,6 +13,8 @@ export const userAuth = {
     readOrNull: userFieldOrUsersAdmin,
     readUserWithBalance: Require.permission('LEDGER_ADMIN').or().userField(),
     readPage: Require.permission('USERS_USE'),
+    readUnarchivedPage: Require.permission('USERS_ADMIN'),
+    readArchivedPage: Require.permission('USERS_ADMIN'),
     search: Require.permission('USERS_USE'),
     create: Require.permission('USERS_ADMIN'),
     // A card is connected by the user it belongs to, who scanned it themselves.
