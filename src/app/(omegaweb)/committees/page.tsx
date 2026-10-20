@@ -4,7 +4,7 @@ import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => committeeOperations.readAll({}),
-    metadata: () => ({ title: 'Komiteer' }),
+    metadata: () => ({ title: 'Komitéer' }),
     render: ({ data: committees }) => {
         // A pensioned committee is part of Omega's history rather than of it now, so it is listed
         // below the ones that still run rather than mixed in among them.
@@ -42,7 +42,7 @@ const { page, generateMetadata } = serverPage({
                         </>
                     ) : (
                         <i>
-                            Ingen komiteer å vise
+                            Ingen komitéer å vise
                         </i>
                     )
                 }

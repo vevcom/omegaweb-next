@@ -23,7 +23,7 @@ async function readCollectionOfImage(prisma: PrismaPossibleTransaction<false>, i
             },
         },
     })
-    if (!image) throw new ServiceError('NOT FOUND', `Image with id ${imageId} does not exist`)
+    if (!image) throw new ServiceError('NOT FOUND', `Fant ikke bildet med ID ${imageId}`)
 
     return {
         special: image.collection.special,
@@ -124,7 +124,7 @@ export const cmsImageOperations = {
                     id: params.cmsImageId
                 }
             })
-            if (cmsImage.special) throw new ServiceError('BAD PARAMETERS', 'Cannot delete special CMS image')
+            if (cmsImage.special) throw new ServiceError('BAD PARAMETERS', 'Kan ikke slette et spesielt CMS-bilde')
             await prisma.cmsImage.delete({
                 where: {
                     id: params.cmsImageId
@@ -149,7 +149,7 @@ export const cmsImageOperations = {
                     special: true,
                 }
             })
-            if (!image) throw new ServiceError('NOT FOUND', 'Cms image not found')
+            if (!image) throw new ServiceError('NOT FOUND', 'Fant ikke CMS-bildet')
             if (!image?.special) return false
             return params.special.includes(image.special)
         }

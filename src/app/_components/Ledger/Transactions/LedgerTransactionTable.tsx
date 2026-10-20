@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export const emptyTransactionsText = 'Her var det tomt! Hva med å ta seg en tur innom Kiogeskapet?'
+export const emptyTransactionsText = 'Her var det tomt! Hva med å ta seg en tur innom Kiogeskabet?'
 
 type Props = {
     children: ReactNode,

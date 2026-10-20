@@ -8,7 +8,7 @@ const memberOfReservingGroup = Require.custom<{ groupId: number | null }>(
     ({ session, groupId }) => groupId === null || session.memberships.some(
         membership => membership.groupId === groupId && membership.active
     ),
-    { errorMessage: 'Bruker må høre til gruppen de prøver å reservere for.' }
+    { errorMessage: 'Du må høre til gruppen du reserverer for.' }
 )
 
 /**

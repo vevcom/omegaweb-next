@@ -28,7 +28,7 @@ const { page, generateMetadata } = serverPage({
             .sort((orderOne, orderTwo) => parseInt(orderTwo, 10) - parseInt(orderOne, 10))
 
         return <div>
-            <h2>Historiske medlemsskap</h2>
+            <h2>Historiske medlemskap</h2>
 
             {ordersSorted.map((order) =>
                 <div key={order}>

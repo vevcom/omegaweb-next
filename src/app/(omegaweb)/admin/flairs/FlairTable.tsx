@@ -140,8 +140,8 @@ export default function FlairTable({ rows }: PropTypes) {
                 <span className={columnClass.colImage} role="columnheader">Bilde</span>
                 <span className={columnClass.colName} role="columnheader">Navn</span>
                 <span className={columnClass.colColor} role="columnheader">Farge</span>
-                <span className={columnClass.colRank} role="columnheader">Rank</span>
-                <span className={columnClass.colLink} role="columnheader">Link</span>
+                <span className={columnClass.colRank} role="columnheader">Rangering</span>
+                <span className={columnClass.colLink} role="columnheader">Lenke</span>
             </div>
             <Reorder.Group
                 as="div"

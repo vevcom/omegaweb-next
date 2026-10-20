@@ -21,7 +21,7 @@ export default function RegisterAdmissiontrial({
     const canSearchUsers = useAuthorizer({ authorizer: userAuth.readPage }).authorized
     const canCreateTrial = useAuthorizer({ authorizer: admissionAuth.createTrial }).authorized
     return <div>
-        <h4>Registrer med QR kode</h4>
+        <h4>Registrer med QR-kode</h4>
         {canCreateTrial && (
             <OmegaIdReader
                 publicKey={omegaIdPublicKey}

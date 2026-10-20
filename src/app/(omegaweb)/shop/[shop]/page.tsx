@@ -82,7 +82,7 @@ const { page, generateMetadata } = serverPage({
                                 <p>
                                     Konto: {shop.ledgerAccount
                                         ? (shop.ledgerAccount.name ?? `Konto ${shop.ledgerAccount.id}`)
-                                        : 'ingen. Kjøp feiler til butikken er knyttet til en konto.'}
+                                        : 'ingen. Kjøp fungerer ikke før butikken er knyttet til en konto.'}
                                 </p>
                                 <ConnectShopToLedgerForm
                                     shopId={shop.id}

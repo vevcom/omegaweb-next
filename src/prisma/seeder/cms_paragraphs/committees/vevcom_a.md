@@ -14,9 +14,9 @@ Komitéen skal bestå av tolv-seksten personer med mindre det oppstår en særli
 - **Oekonomen** er komitéens økonomiansvarlig, og har ansvar for komitéens økonomi og er pliktig til å føre budsjett og regnskap.  
 - **Sosialisereren** er komitéens sosialansvarlig, og har ansvar for at alle medlemmer har det bra i komitéen ved å gjennomføre sosiale arrangementer innad som passer for alle.  
 - **Kaldlagringsmeisteren** er komitéens kjøleskapsansvarlig, og har ansvar for at det tekniske rundt kjøleskapet fungerer og er veldokumentert.  
-- **Kundskabsoverfoereren** er komitéens opplæringssansvarlig, og har ansvar for opplæring av nye komitémedlemmer.  
+- **Kundskabsoverfoereren** er komitéens opplæringsansvarlig, og har ansvar for opplæring av nye komitémedlemmer.  
 - **Influenceren** er komitéens SoMe-ansvarlig, og har ansvar for komitéens sosiale medier og komitéens markedsføring innad i linjeforeningen.  
-- **Kakemeisteren** er komitéens kakeansvalig, og har ansvar for at det alltid er kake tilgjengelig på komitéens møter.
+- **Kakemeisteren** er komitéens kakeansvarlig, og har ansvar for at det alltid er kake tilgjengelig på komitéens møter.
 
 ## 3\. Oppgaver
 
@@ -28,7 +28,7 @@ Valg gjennomføres ved at kandidater stiller til valg, og alle i komitéen plikt
 
 ## 5\. Møter
 
-Det skal holdes minimum et møte annenhver uke utenom eksamensperioden. Dette kan avvike dersom det oppstår særlige grunner til å utsette møtet. Hvert møte skal ha en saksliste og referat som skal gjøres tilgjengelig for alle i komitéen.
+Det skal holdes minimum ett møte annenhver uke utenom eksamensperioden. Dette kan avvike dersom det oppstår særlige grunner til å utsette møtet. Hvert møte skal ha en saksliste og referat som skal gjøres tilgjengelig for alle i komitéen.
 
 ## 6\. Erfaringsskriv
 
@@ -40,7 +40,7 @@ Alle vervene i komitéen varer i to år. Pensjoniststatus oppnås etter å ha v�
 
 ### 7.1\. Treårige verv
 
-På våren, før semesterets siste møte, kan de aktive medlemmene som snart vil ha vært aktive medlemmer i to år søke om å fungere som aktivt medlem i ett år til. Søknaden skal behandles av alle aktive medlemmer i vevcom. Dersom søknaden godkjennes, vil personen det gjelder få fungere som aktivt medlem av komitéen i ett år til uten å fylle opp en plass i komitéen. Pensjoniststatus vil i dette tilfellet være oppnådd etter tre år som aktivt medlem i stedet for to
+På våren, før semesterets siste møte, kan de aktive medlemmene som snart vil ha vært aktive medlemmer i to år søke om å fungere som aktivt medlem i ett år til. Søknaden skal behandles av alle aktive medlemmer i vevcom. Dersom søknaden godkjennes, vil personen det gjelder få fungere som aktivt medlem av komitéen i ett år til uten å fylle opp en plass i komitéen. Pensjoniststatus vil i dette tilfellet være oppnådd etter tre år som aktivt medlem i stedet for to.
 
 ## 8\. Endring av vedtekter
 

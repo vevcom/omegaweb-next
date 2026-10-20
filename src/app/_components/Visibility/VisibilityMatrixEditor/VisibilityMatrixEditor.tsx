@@ -128,7 +128,7 @@ export default function VisibilityMatrixEditor({ requirements, onChange }: PropT
                                                     value={condition.type}
                                                     options={[
                                                         { value: 'ACTIVE', label: 'Aktivt medlem' },
-                                                        { value: 'ORDER', label: 'Spesifik orden' },
+                                                        { value: 'ORDER', label: 'Spesifikk orden' },
                                                     ]}
                                                     onChange={type => handleConditionTypeChange(
                                                         requirementIndex,

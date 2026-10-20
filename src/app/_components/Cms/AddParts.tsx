@@ -30,17 +30,17 @@ export default function AddParts({
         {
             shouldShow: showParagraphAdd,
             part: 'cmsParagraph',
-            text: 'paragraf'
+            text: 'Avsnitt'
         },
         {
             shouldShow: showImageAdd,
             part: 'cmsImage',
-            text: 'bilde'
+            text: 'Bilde'
         },
         {
             shouldShow: showLinkAdd,
             part: 'cmsLink',
-            text: 'link'
+            text: 'Lenke'
         }
     ]
 

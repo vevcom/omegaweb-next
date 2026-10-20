@@ -24,7 +24,7 @@ async function upsertTestImageCollection(
         update: {},
         create: {
             name: `dev_images_${index}`,
-            description: 'just a test',
+            description: 'Bare en test',
             visibilityAdmin: {
                 create: { requirements: { create: [{}] } }
             },

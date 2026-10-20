@@ -12,7 +12,7 @@ type SeedNewsConfig = Pick<Data<typeof newsOperations.create>, 'description'> & 
 
 export const seedNewsConfig = [
     {
-        description: 'ny vev',
+        description: 'Ny vev',
         article: {
             name: 'Velkommen til nye veven',
             coverImage: {

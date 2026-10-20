@@ -27,7 +27,7 @@ type SeedCompanyConfig = Data<typeof companyOperations.create> & {
 export const seedCompaniesConfig = [
     {
         name: 'Kongsberg Gruppen',
-        description: 'Internasjonal teknologikonsern innen forsvar, maritime systemer og romfart.',
+        description: 'Internasjonalt teknologikonsern innen forsvar, maritime systemer og romfart.',
         logo: { dynamicImageSeededForCmsName: 'kongsberg' },
         sponsor: { sponsorTier: 'SPONSOR', website: 'https://www.kongsberg.com' },
     },

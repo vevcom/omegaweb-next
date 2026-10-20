@@ -6,7 +6,7 @@ const dataFieldSchemas = z.object({
     startDate: Zpn.date({ label: 'Start' }),
     endDate: Zpn.date({ label: 'Siste frist for søknader' }),
     endPriorityDate: Zpn.date({ label: 'Siste frist for prioritering' }),
-    participatingCommitteeIds: Zpn.numberListCheckboxFriendly({ label: 'Deltakende komiteer' })
+    participatingCommitteeIds: Zpn.numberListCheckboxFriendly({ label: 'Deltakende komitéer' })
 })
 
 const paramsFieldSchemas = z.object({

@@ -135,7 +135,7 @@ export const userNavDef = {
             ],
         },
         {
-            name: 'Notifikasjoner',
+            name: 'Varslinger',
             icon: faPaperPlane,
             path: 'notifications',
             authorizers: ({ userId }) => [

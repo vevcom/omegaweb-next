@@ -297,7 +297,7 @@ export const eventRegistrationOperations = {
                 if (registration.event.registrationEnd < new Date() && !isAdmin) {
                     throw new Smorekopp(
                         'BAD PARAMETERS',
-                        'Kan ikke avregistrere etter påmeldingsfristen. Ta kontakt med de som arrangerer.'
+                        'Du kan ikke melde deg av etter påmeldingsfristen. Ta kontakt med arrangørene.'
                     )
                 }
 
@@ -726,7 +726,7 @@ async function validateDotPunishmentOfRegistration(
     if (startForUser > new Date()) {
         throw new Smorekopp(
             'BAD PARAMETERS',
-            `Du har prikker, og kan derfor først melde deg på ${displayDate(startForUser)}.`
+            `Du har prikker og kan derfor først melde deg på ${displayDate(startForUser)}.`
         )
     }
 }
@@ -756,19 +756,19 @@ async function lockEventOpenForRegistration(
     })
 
     if (!event.takesRegistration) {
-        throw new Smorekopp('BAD PARAMETERS', 'Cannot register for an event without registration')
+        throw new Smorekopp('BAD PARAMETERS', 'Arrangementet har ikke påmelding.')
     }
 
     if (event.registrationStart > new Date() && !isAdmin) {
-        throw new Smorekopp('BAD PARAMETERS', 'Cannot register for an event before the registration period.')
+        throw new Smorekopp('BAD PARAMETERS', 'Påmeldingen har ikke åpnet ennå.')
     }
 
     if (event.registrationEnd < new Date() && !isAdmin) {
-        throw new Smorekopp('BAD PARAMETERS', 'Cannot register for an event after the registration period.')
+        throw new Smorekopp('BAD PARAMETERS', 'Påmeldingen er stengt.')
     }
 
     if (event.places <= event._count.eventRegistrations && !event.waitingList) {
-        throw new Smorekopp('BAD PARAMETERS', 'The event is full.')
+        throw new Smorekopp('BAD PARAMETERS', 'Arrangementet er fullt.')
     }
 
     return event

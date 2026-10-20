@@ -16,7 +16,7 @@ const { page, generateMetadata } = serverPage({
     capabilities: () => ({
         canCreate: cabinProductAuth.create,
     }),
-    metadata: () => ({ title: 'Heutte produkter' }),
+    metadata: () => ({ title: 'Heutteprodukter' }),
     render: ({ data: products, capabilities }) => (
         <PageWrapper
             headerItem={capabilities.canCreate.authorized &&

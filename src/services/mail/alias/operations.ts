@@ -42,7 +42,7 @@ export const aliasOperations = {
             if (alias.notificationChannel.length) {
                 throw new ServiceError(
                     'BAD PARAMETERS',
-                    'Cannot delete a mailAlias that is connected to a notification channel.'
+                    'Kan ikke slette et e-postalias som er koblet til en varslingskanal.'
                 )
             }
 

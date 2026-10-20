@@ -11,7 +11,7 @@ export const groupTypesConfig = {
     OMEGA_MEMBERSHIP_GROUP: {
         name: 'Medlemsgruppe',
         namePlural: 'Medlemsgrupper',
-        description: 'Grupper som beskriver hvilken tilknytning en bruker har til sct. Omega Broderskab'
+        description: 'Grupper som beskriver hvilken tilknytning en bruker har til Sct. Omega Broderskab'
     },
     CLASS: {
         name: 'Klasse',
@@ -26,17 +26,17 @@ export const groupTypesConfig = {
     COMMITTEE: {
         name: 'Komité',
         namePlural: 'Komitéer',
-        description: 'Komitér i sct. Omega Broderskab'
+        description: 'Komitéer i Sct. Omega Broderskab'
     },
     INTEREST_GROUP: {
         name: 'Interessegruppe',
         namePlural: 'Interessegrupper',
-        description: 'Interessegrupper i sct. Omega Broderskab'
+        description: 'Interessegrupper i Sct. Omega Broderskab'
     },
     MANUAL_GROUP: {
         name: 'Andre grupper',
         namePlural: 'Andre grupper',
-        description: 'øvrige grupper'
+        description: 'Øvrige grupper'
     }
 } as const satisfies Record<GroupType, GroupTypeInfo>
 
@@ -54,11 +54,11 @@ export const CLASS_LEVEL_ORDERING = [
 ] as const satisfies readonly ClassLevel[]
 
 export const ClassLevelConfig = {
-    ONE: { name: '1. Klasse' },
-    TWO: { name: '2. Klasse' },
-    THREE: { name: '3. Klasse' },
-    FOUR: { name: '4. Klasse' },
-    FIVE: { name: '5. Klasse' },
+    ONE: { name: '1. klasse' },
+    TWO: { name: '2. klasse' },
+    THREE: { name: '3. klasse' },
+    FOUR: { name: '4. klasse' },
+    FIVE: { name: '5. klasse' },
     GRADUATED: { name: 'Uteksaminert' },
 } as const satisfies Record<ClassLevel, { name: string }>
 
@@ -69,11 +69,11 @@ export const OmegaMembershipLevelConfig = {
     },
     SYSKEN: {
         name: 'Medlem',
-        description: 'Broder udaf sct. Omega Broderskab'
+        description: 'Broder udaf Sct. Omega Broderskab'
     },
     DEN_GEMENE_HOB: {
         name: 'Eksterne',
-        description: 'Ekstern bruker ikke i omega'
+        description: 'Ekstern bruker som ikke er medlem av Omega'
     }
 } as const satisfies Record<OmegaMembershipLevel, {
         name: string,

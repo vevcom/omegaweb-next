@@ -20,15 +20,15 @@ const { page, generateMetadata } = serverPage({
         }
     },
     render: ({ data }) => {
-        if (data.committeePeriodes.length === 0) { return 'ingen søknadsperioder funnet' }
+        if (data.committeePeriodes.length === 0) { return 'Fant ingen søknadsperioder' }
 
         return (
             <table className="border-2 border-[hsla(0,0%,70%,0.507)] border-collapse text-center round">
                 <thead>
                     <tr>
-                        <th className={tableEntryClassName}>Start dato</th>
-                        <th className={tableEntryClassName}>Slutt dato</th>
-                        <th className={tableEntryClassName}>Omprioritering slutt dato</th>
+                        <th className={tableEntryClassName}>Startdato</th>
+                        <th className={tableEntryClassName}>Sluttdato</th>
+                        <th className={tableEntryClassName}>Frist for omprioritering</th>
                         <th className={tableEntryClassName}>Søknader</th>
                         <th className={tableEntryClassName}>Søknadstall</th>
                     </tr>

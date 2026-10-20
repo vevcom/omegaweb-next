@@ -135,7 +135,7 @@ export default function Terms() {
                         der det finnes felt for det.
                     </li>
                     <li>
-                        Administratorer - Vevcom, hovedstyret og de komiteene det gjelder - kan redigere eller fjerne
+                        Administratorer - Vevcom, hovedstyret og de komitéene det gjelder - kan redigere eller fjerne
                         innhold på Veven uten å varsle først, se punkt 8.
                     </li>
                 </ul>
@@ -163,7 +163,7 @@ export default function Terms() {
                         e-post og telefonnummer til gjester, må du ha deres samtykke til det.
                     </li>
                     <li>
-                        Avbestilling og refusjon avtales med den komiteen som er ansvarlig for kjøpet eller bookingen.
+                        Avbestilling og refusjon avtales med den komitéen som er ansvarlig for kjøpet eller bookingen.
                     </li>
                 </ul>
 
@@ -194,15 +194,15 @@ export default function Terms() {
                     </li>
                 </ul>
                 <p>
-                    Forbudet gjelder alle, også komiteer, interessegrupper og brukere som har fått utvidede
+                    Forbudet gjelder alle, også komitéer, interessegrupper og brukere som har fått utvidede
                     tillatelser eller en API-nøkkel. At du har tilgang til opplysninger, gir deg ikke rett til å
                     kopiere dem ut eller bruke dem til noe annet enn det tilgangen ble gitt for, jf.{' '}
-                    <LawLink href={gdprArticle(5)}>artikkel 5 (1) b om formålsbegrensning</LawLink>. Trenger komiteen
+                    <LawLink href={gdprArticle(5)}>artikkel 5 (1) b om formålsbegrensning</LawLink>. Trenger komitéen
                     din opplysninger fra Veven til noe nytt, spør Vevcom og hovedstyret før du henter dem ut.
                 </p>
                 <p>
                     Kopierer du personopplysninger ut av Veven og inn i et system Vevcom ikke drifter, blir du eller
-                    komiteen din selv behandlingsansvarlig for dem og trenger et eget rettslig grunnlag etter{' '}
+                    komitéen din selv behandlingsansvarlig for dem og trenger et eget rettslig grunnlag etter{' '}
                     <LawLink href={gdprArticle(6)}>artikkel 6</LawLink>. Et slikt uttrekk uten avtale er et brudd på
                     personopplysningssikkerheten: det følges opp etter punkt 8, kan måtte meldes til Datatilsynet, og
                     Vevcom kan kreve at opplysningene slettes og at slettingen dokumenteres.
@@ -276,13 +276,13 @@ export default function Terms() {
 
                     <dt>Medlemskap og verv</dt>
                     <dd>
-                        Medlemskap i komiteer, interessegrupper, klasser, kull og medlemsgrupper, med start- og
+                        Medlemskap i komitéer, interessegrupper, klasser, kull og medlemsgrupper, med start- og
                         sluttdato, tillatelsene du har i systemet, og studieprogrammene Feide har oppgitt for deg.
                     </dd>
 
                     <dt>Aktivitet</dt>
                     <dd>
-                        Påmeldinger til arrangementer, søknader til komiteer med søknadstekst, gjennomførte opptak
+                        Påmeldinger til arrangementer, søknader til komitéer med søknadstekst, gjennomførte opptak
                         (plikttjeneste og prøvelsen), prikker med begrunnelse, skapreservasjoner, hyttebookinger,
                         kjøp og transaksjoner på den interne kontoen din, varslingsabonnement og hvilke e-postlister
                         du står på, og innhold du har lagt ut som omegasitater og bullshit.
@@ -340,7 +340,7 @@ export default function Terms() {
                         siden. Står du oppført som forfatter eller arrangør, er navnet ditt synlig der.
                     </li>
                     <li>
-                        Innhold på Veven har et synlighetsnivå. Komiteinternt innhold er bare synlig for de gruppene
+                        Innhold på Veven har et synlighetsnivå. Komitéinternt innhold er bare synlig for de gruppene
                         det gjelder.
                     </li>
                     <li>
@@ -392,7 +392,7 @@ export default function Terms() {
                 <ul>
                     <li>Konto- og profilopplysninger lagres så lenge du har en bruker på Veven.</li>
                     <li>
-                        Søknadstekster slettes av komiteen etter at søknadsperioden er over og plassene fordelt.
+                        Søknadstekster slettes av komitéen etter at søknadsperioden er over og plassene fordelt.
                         Historikken om hvem som søkte på hva beholdes.
                     </li>
                     <li>

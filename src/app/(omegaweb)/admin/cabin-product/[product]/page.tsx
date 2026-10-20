@@ -41,16 +41,16 @@ const { page, generateMetadata } = serverPage({
                 <p>kanskje en måte å redigere på som en HeaderItem?</p>
 
                 <p>
-                    Her bruker vi en egen syntax til å skrive et tidsintervall en pris er gyldig i.
-                    Syntax er inspirert fra Cron, der vi kun inkluderer de siste tre delene for å holde oss til datoer.
-                    For å lese mer se her:  <Link href="https://crontab.guru/">crontab.guru</Link>.
-                    Siden vi har implemtert denne parsingen selv, er syntace litt begrenset.
-                    De tre feltene som vi har implementert er (<i>day of month</i>, <i>month</i>, <i>day of week</i>).
+                    Her bruker vi en egen syntaks for å skrive tidsintervallet en pris er gyldig i.
+                    Syntaksen er inspirert av Cron, men tar bare med de tre siste feltene, siden vi bare bruker datoer.
+                    Les mer her: <Link href="https://crontab.guru/">crontab.guru</Link>.
+                    Siden vi har laget tolkingen selv, er syntaksen litt begrenset.
+                    De tre feltene vi støtter, er <i>dag i måneden</i>, <i>måned</i> og <i>ukedag</i>.
                 </p>
 
                 <p>
                     Brukeren vil få den billigste prisen der brukeren oppfyller alle kravene under.
-                    Det vil si at dersom flere av reglene for priser matcher, får brukeren den billigste.
+                    Det vil si at dersom flere prisregler passer, får brukeren den billigste.
                 </p>
 
             </div>
@@ -59,9 +59,9 @@ const { page, generateMetadata } = serverPage({
                 header={[
                     'Beskrivelse',
                     'Pris',
-                    'gyldig fra',
+                    'Gyldig fra',
                     'Andel i Omega',
-                    'Cron intervall'
+                    'Cron-intervall'
                 ]}
                 body={data.product.CabinProductPrice.map(priceObj => [
                     priceObj.description,

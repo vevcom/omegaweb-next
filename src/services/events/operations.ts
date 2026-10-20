@@ -438,7 +438,7 @@ export const eventOperations = {
                         special: 'NEW_EVENT',
                     },
                     data: {
-                        title: `Hva der hender: ${event.name}`,
+                        title: `Hvad der hender: ${event.name}`,
                         message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
                         url: `/events/${formatVevenUri(event.name, event.id)}`,
                         audience: { visibilityId: event.visibilityRegularId },
@@ -594,19 +594,19 @@ type EventDates = {
  */
 function assertValidEventDates(dates: EventDates) {
     if (dates.eventStart > dates.eventEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Event må jo starte før den slutter')
+        throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
     }
     if (dates.registrationStart && dates.registrationEnd && dates.registrationStart > dates.registrationEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Påmelding må jo starte før den slutter')
+        throw new ServiceError('BAD PARAMETERS', 'Påmeldingen må jo starte før den slutter')
     }
     if (Boolean(dates.registrationStart) !== Boolean(dates.registrationEnd)) {
-        throw new ServiceError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
+        throw new ServiceError('BAD PARAMETERS', 'Enten må begge påmeldingsdatoene være satt, eller ingen av dem')
     }
     if (dates.paymentStart && dates.paymentEnd && dates.paymentStart > dates.paymentEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Betaling må jo starte før den slutter')
+        throw new ServiceError('BAD PARAMETERS', 'Betalingen må jo starte før den slutter')
     }
     if (Boolean(dates.paymentStart) !== Boolean(dates.paymentEnd)) {
-        throw new ServiceError('BAD PARAMETERS', 'Begge betalingsdatoer må være satt eller ingen')
+        throw new ServiceError('BAD PARAMETERS', 'Enten må begge betalingsdatoene være satt, eller ingen av dem')
     }
     if (dates.price && (!dates.paymentStart || !dates.paymentEnd)) {
         throw new ServiceError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet har en pris')

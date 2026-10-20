@@ -145,7 +145,7 @@ export const paymentOperations = {
             }
 
             // If we reach here, the payment provider is unknown.
-            throw new ServiceError('SERVER ERROR', 'Prøvde å forespørre betalingsleverandør som ikke er støttet.')
+            throw new ServiceError('SERVER ERROR', 'Prøvde å bruke en betalingsleverandør som ikke støttes.')
         },
     }),
 

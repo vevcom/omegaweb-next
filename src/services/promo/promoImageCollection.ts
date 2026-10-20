@@ -13,6 +13,6 @@ export const {
     imagePanelAuth: promoImagesImagePanelAuth,
     config: {
         name: 'Promobilder',
-        description: 'Bakgrunnsbilder brukt av promo-baren på forsiden. Hvert bilde tilhører nøyaktig én promo.',
+        description: 'Bakgrunnsbilder til promoene på forsiden. Hvert bilde tilhører nøyaktig én promo.',
     }
 })

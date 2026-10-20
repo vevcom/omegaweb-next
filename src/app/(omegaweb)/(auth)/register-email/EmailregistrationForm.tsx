@@ -54,12 +54,12 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
                 Velg dette hvis du aldri hadde bruker på gamle Omegaveven.
             </p>}
             <p>
-                Skriv inn e-posten du vil bruke. Du kan bruke ntnu-e-posten din,
-                men vær oppmerksom på at du mister tilgang til denne når du er ferdig å studere.
+                Skriv inn e-posten du vil bruke. Du kan bruke NTNU-e-posten din,
+                men vær oppmerksom på at du mister tilgangen til den når du er ferdig med å studere.
             </p>
             {feideLoginMatch && <p>
-                Feide-e-posten din ({feideLoginMatch.feideEmail}) er allerede bekreftet, så beholder du den
-                trenger du ikke bekrefte noe. Velger du en annen e-post, sender vi en bekreftelseslenke dit.
+                Feide-e-posten din ({feideLoginMatch.feideEmail}) er allerede bekreftet. Beholder du den,
+                trenger du ikke å bekrefte noe. Velger du en annen e-post, sender vi en bekreftelseslenke dit.
             </p>}
             <TextInput label="E-post" name="email" defaultValue={user.email} />
         </Form>

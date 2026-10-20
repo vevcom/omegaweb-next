@@ -6,7 +6,7 @@ export const standardImageConfig = {
     DEFAULT_IMAGE: {
         standardStoreFile: standardStoreFiles.defaultImage,
         name: 'default_image',
-        alt: 'standard bilde (ikke funnet)',
+        alt: 'Standardbilde (ikke funnet)',
     },
     DEFAULT_IMAGE_COLLECTION_COVER: {
         standardStoreFile: standardStoreFiles.album,
@@ -16,12 +16,12 @@ export const standardImageConfig = {
     DEFAULT_PROFILE_IMAGE: {
         standardStoreFile: standardStoreFiles.magiskHatt,
         name: 'default_profile_image',
-        alt: 'standard profilbilde (ikke funnet)',
+        alt: 'Standardprofilbilde (ikke funnet)',
     },
     DEFAULT_COMMITTEE_LOGO: {
         standardStoreFile: standardStoreFiles.logoSimple,
         name: 'default_committee_logo',
-        alt: 'komité logo',
+        alt: 'Komitélogo',
     },
     LOGO_SIMPLE: {
         standardStoreFile: standardStoreFiles.logoSimple,

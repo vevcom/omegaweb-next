@@ -118,8 +118,8 @@ export const jobAdPage = (basePath: string) => serverPage({
                                     <h3>Status</h3>
                                     <p>
                                         {jobAd.active
-                                            ? 'Denne jobbanonsen er aktiv'
-                                            : 'Denne jobbanonsen er arkivert'}
+                                            ? 'Denne jobbannonsen er aktiv'
+                                            : 'Denne jobbannonsen er arkivert'}
                                     </p>
                                 </li>
                                 <li>

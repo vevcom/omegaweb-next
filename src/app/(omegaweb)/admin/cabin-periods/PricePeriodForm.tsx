@@ -19,11 +19,11 @@ export default function PricePeriodForm({ period, closePopUpOnSuccess }: PropTyp
             ? configureAction(updatePricePeriodAction, { params: { id: period.id } })
             : createPricePeriodAction
         }
-        submitText={period ? 'Oppdater pris periode' : 'Lag ny pris periode'}
+        submitText={period ? 'Oppdater prisperiode' : 'Lag ny prisperiode'}
         refreshOnSuccess
         closePopUpOnSuccess={closePopUpOnSuccess}
     >
-        <DateInput name="validFrom" label="Start dato" defaultValue={period?.validFrom} />
-        {!period && <Checkbox name="copyPreviousPrices" label="Kopier tidligere priser." defaultChecked />}
+        <DateInput name="validFrom" label="Startdato" defaultValue={period?.validFrom} />
+        {!period && <Checkbox name="copyPreviousPrices" label="Kopier tidligere priser" defaultChecked />}
     </Form>
 }

@@ -18,12 +18,12 @@ export function ResetPasswordTemplate({
             <p>Hei {user.firstname},</p>
 
             <p>
-                Du får denne e-posten siden du har trykket på glemt passord.
-                Trykk på denne <a href={link}>lenken</a> for å null stille passordet.
+                Du får denne e-posten fordi du har trykket på «Glemt passord».
+                Trykk på denne <a href={link}>lenken</a> for å nullstille passordet.
                 Lenken blir ugyldig etter {resetPasswordExpiration / 60} minutter.
             </p>
 
-            <p>Hvis du ikke har trykket på glemt passord knappen kan du bare se bort i fra denne e-posten.</p>
+            <p>Hvis du ikke har trykket på «Glemt passord», kan du bare se bort fra denne e-posten.</p>
 
             <p>
                 Med vennlig hilsen<br/>

@@ -15,8 +15,8 @@ export default function ResetPassword() {
             action={sendResetPasswordEmailAction}
             successCallback={(email) => {
                 setFeedback(`
-                    Hvis e-posten finnes i databasen, er en e-post er sendt til ${email} med instruksjoner for
-                    å nullstille passordet. Det kan ta noen minutter før den kommer fram`)
+                    Hvis e-posten finnes i databasen, har vi sendt en e-post til ${email} med instruksjoner for
+                    å nullstille passordet. Det kan ta noen minutter før den kommer fram.`)
             }}
         >
             <TextInput label="E-post" name="email" />

@@ -52,7 +52,9 @@ export default function OmbulCover(props: PropTypes) {
         coverImage instanceof File && coverImage.size ? (
             <img src={URL.createObjectURL(coverImage)} />
         ) : (
-            <div className="border-[3px] border-surface-subtle aspect-[5/7] grid place-items-center">Cover ikke valgt</div>
+            <div className="border-[3px] border-surface-subtle aspect-[5/7] grid place-items-center">
+                Forsidebilde ikke valgt
+            </div>
         )
     )
 

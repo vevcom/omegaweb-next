@@ -351,7 +351,7 @@ export const ledgerTransactionOperations = {
                 entry => (balances[entry.ledgerAccountId]?.amount ?? 0) + entry.funds < 0
             )
             if (hasInsufficientBalance) {
-                throw new ServiceError('BAD PARAMETERS', 'Konto har for lav balanse for å utføre transaksjonen.')
+                throw new ServiceError('BAD PARAMETERS', 'Kontoen har for lav saldo til å utføre transaksjonen.')
             }
 
             // Calculate and set fees for the debit entries

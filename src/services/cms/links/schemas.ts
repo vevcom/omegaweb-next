@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
     name: z.string().optional(),
-    text: z.string().min(1, 'Linken må ha tekst på mer enn 1 bokstav').max(30, 'Max lengde er 30'),
+    text: z.string().min(1, 'Lenketeksten må ha minst 2 tegn').max(30, 'Maks lengde er 30 tegn'),
     url: z.string().trim().refine(url => !url || isSafeLink(url), safeLinkMessage),
 })
 

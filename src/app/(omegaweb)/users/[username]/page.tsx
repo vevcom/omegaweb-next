@@ -176,7 +176,7 @@ const { page, generateMetadata } = serverPage({
 
                                 {activeInterestGroups.length > 0 && (
                                     <section className={groupSectionClassName}>
-                                        <h2>Aktive Interessegruppemedlemskap:</h2>
+                                        <h2>Aktive interessegruppemedlemskap:</h2>
                                         {activeInterestGroups.map(membership =>
                                             <Link
                                                 key={`${membership.interestGroup.id}-${membership.order}`}

@@ -7,8 +7,8 @@ const dataFieldSchemas = z.object({
     companyId: z.coerce.number({
         errorMap: () => ({ message: 'Velg en bedrift' }),
     }).int().positive().int(),
-    articleName: z.string().max(50, 'max lengde 50').min(2, 'min lengde 2'),
-    description: z.string().max(200, 'max lengde 200').min(2, 'min lengde 2').or(z.literal('')),
+    articleName: z.string().max(50, 'Maks lengde er 50 tegn').min(2, 'Minimum lengde er 2 tegn'),
+    description: z.string().max(200, 'Maks lengde er 200 tegn').min(2, 'Minimum lengde er 2 tegn').or(z.literal('')),
     type: z.nativeEnum(JobType),
     applicationDeadline: Zpn.date({ label: 'Søknadsfrist' }),
     active: Zpn.checkboxOrBoolean({ label: 'Aktiv' }),
