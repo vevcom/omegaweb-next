@@ -1,6 +1,6 @@
 'use client'
 
-import { MINIMUM_PAYMENT_AMOUNT } from '@/services/ledger/payments/constants'
+import { STRIPE_MINIMUM_PAYMENT_AMOUNT } from '@/services/ledger/payments/constants'
 import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import type { ReactNode } from 'react'
@@ -25,7 +25,7 @@ export default function StripeProvider({ children, mode, amount, customerSession
         <Elements stripe={stripe} options={{
             mode,
             currency: 'nok',
-            amount: amount ? Math.max(MINIMUM_PAYMENT_AMOUNT, amount) : undefined,
+            amount: amount ? Math.max(STRIPE_MINIMUM_PAYMENT_AMOUNT, amount) : undefined,
             customerSessionClientSecret,
         }}>
             {children}
