@@ -7,6 +7,7 @@ import FileInput from '@/components/UI/FileInput'
 import Textarea from '@/components/UI/Textarea'
 import { createOmbulAction } from '@/services/ombul/actions'
 import Form from '@/components/Form/Form'
+import { formatVevenUri } from '@/lib/urlEncoding'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Ombul } from '@/prisma-generated-pn-types'
@@ -76,7 +77,7 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
     }
 
     const handleCreate = (ombul: Ombul | undefined) => {
-        if (ombul) push(`/ombul/${ombul.year}/${ombul.name}`)
+        if (ombul) push(`/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`)
         refresh()
     }
 

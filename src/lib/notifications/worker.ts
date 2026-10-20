@@ -5,7 +5,7 @@ import logger from '@/lib/logger'
 
 /**
  * Entrypoint for the notification worker container (`npm run notification-worker`). It dispatches all
- * notification sending: immediate emails and the weekly digest mails.
+ * notification sending: immediate emails, pushes and the weekly digest mails.
  */
 async function main() {
     (['SIGTERM', 'SIGINT'] as const).forEach(signal => {

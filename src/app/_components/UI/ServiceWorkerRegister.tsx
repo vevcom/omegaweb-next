@@ -4,18 +4,12 @@ import { useEffect } from 'react'
 
 export default function ServiceWorkerRegister() {
     useEffect(() => {
-        // Never in development: a root-scoped worker caching dev chunks makes code
-        // changes look like they did not apply, and it outlives `next dev` until
-        // someone unregisters it by hand.
-        if (process.env.NODE_ENV !== 'production') {
-            return undefined
-        }
-
         if (!('serviceWorker' in navigator)) {
             return undefined
         }
 
-        navigator.serviceWorker.register('/sw.js').catch(() => {
+        const scriptUrl = process.env.NODE_ENV === 'production' ? '/sw.js' : '/sw.js?cache=off'
+        navigator.serviceWorker.register(scriptUrl).catch(() => {
             // Ignore registration failures (e.g. unsupported browsers).
         })
 

@@ -37,6 +37,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             defaultMethods: {
                 email: false,
                 emailWeekly: true,
+                push: false,
             },
             availableMethods: allNotificationMethodsOn,
         },
@@ -61,6 +62,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             defaultMethods: {
                 email: false,
                 emailWeekly: true,
+                push: false,
             },
             availableMethods: allNotificationMethodsOn,
         },
@@ -78,10 +80,12 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             defaultMethods: {
                 email: true,
                 emailWeekly: false,
+                push: false,
             },
             availableMethods: {
                 email: true,
                 emailWeekly: false,
+                push: true,
             },
         },
         {
@@ -90,6 +94,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             defaultMethods: {
                 email: true,
                 emailWeekly: false,
+                push: false,
             },
             availableMethods: allNotificationMethodsOn,
             alias: 'hs',
@@ -100,6 +105,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             defaultMethods: {
                 email: true,
                 emailWeekly: false,
+                push: false,
             },
             availableMethods: allNotificationMethodsOn,
             alias: 'bleast',
@@ -110,6 +116,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             defaultMethods: {
                 email: true,
                 emailWeekly: false,
+                push: false,
             },
             availableMethods: allNotificationMethodsOn,
             alias: 'vevcom',
@@ -120,6 +127,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             defaultMethods: {
                 email: true,
                 emailWeekly: false,
+                push: false,
             },
             availableMethods: allNotificationMethodsOn,
             alias: 'contactor',
@@ -131,10 +139,12 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             defaultMethods: {
                 email: true,
                 emailWeekly: false,
+                push: false,
             },
             availableMethods: {
                 email: true,
                 emailWeekly: false,
+                push: true,
             },
         },
         {
@@ -143,6 +153,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             defaultMethods: {
                 email: true,
                 emailWeekly: false,
+                push: false,
             },
             availableMethods: allNotificationMethodsOn,
         },

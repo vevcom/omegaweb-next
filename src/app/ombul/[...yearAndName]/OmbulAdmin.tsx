@@ -17,6 +17,7 @@ import useEditMode from '@/hooks/useEditMode'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { ombulAuth } from '@/services/ombul/auth'
 import { configureAction } from '@/services/configureAction'
+import { formatVevenUri } from '@/lib/urlEncoding'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
 type PropTypes = {
@@ -53,7 +54,9 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
         { params: { id: ombul.id } }
     )
 
-    const ombulPath = (newOmbul?: ExpandedOmbul) => (newOmbul ? `/ombul/${newOmbul.year}/${newOmbul.name}` : null)
+    const ombulPath = (newOmbul?: ExpandedOmbul) => (
+        newOmbul ? `/ombul/${newOmbul.year}/${formatVevenUri(newOmbul.name, newOmbul.id)}` : null
+    )
 
     if (!canUpdate && !canUpdateFile && !canDestroy && !canUpdateCover) return null
 
