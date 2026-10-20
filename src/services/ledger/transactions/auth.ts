@@ -18,15 +18,8 @@ export const ledgerTransactionAuth = {
     // safety net for any other caller.
     advance: Require.permission('LEDGER_ADMIN'),
 
-    // Additionally requires ownership of every account the transaction debits. A transaction with
-    // no debit entries at all (e.g. a deposit, where the debit side is an external payment, not a
-    // ledger entry) has nothing to check ownership of, so LEDGER_USE alone is sufficient for it.
-    //
-    // "No debit entries" is read off the requested IDs, never off the resolved ownerships: an ID
-    // that resolves to no account leaves fewer ownerships than IDs, and a debit nobody can be shown
-    // to own takes LEDGER_ADMIN.
-    //
-    // A function since which rule applies depends on the transaction itself.
+    // Also requires owning every debited account; with no debit entries (e.g. a deposit) LEDGER_USE
+    // is enough. Read off the requested ids, so an id resolving to no account takes LEDGER_ADMIN.
     create: ({ debitLedgerAccountIds, debitAccounts }: {
         debitLedgerAccountIds: number[],
         debitAccounts: LedgerAccountOwnership[],
@@ -38,17 +31,10 @@ export const ledgerTransactionAuth = {
         return Require.permission('LEDGER_USE').allOf(ownsEveryAccount.data({ accounts: debitAccounts }))
     },
 
-    // Only the debited side (whose money is actually at stake) may cancel a stale attempt, not
-    // just any party to it - the credited side (e.g. the committee an event payment is going to)
-    // has no business canceling the payer's own attempt. Narrower than read: resolveTransactionAccounts
-    // is called with debitedOnly for this one.
+    // Only the debited side may cancel; resolveTransactionAccounts is called with debitedOnly.
     cancel: partyToAnyAccount,
 
-    // Not meant to be called directly by a user - real callers (createPayment/createDeposit)
-    // always pass bypassAuth; the outer operation they're part of already established whether
-    // this session may act on the resource being paid for, which can include an admin paying on
-    // someone else's behalf. LEDGER_USE here is a safety net for any other caller, matching
-    // paymentAuth.initiate's own bar - not an ownership check, which would wrongly reject that
-    // admin case.
+    // Real callers (createPayment/createDeposit) pass bypassAuth after authorizing the resource.
+    // LEDGER_USE is a safety net, not an ownership check, so admins can still pay for others.
     initiate: Require.permission('LEDGER_USE'),
 } as const

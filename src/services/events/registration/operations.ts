@@ -332,13 +332,8 @@ export const eventRegistrationOperations = {
                     if (liveTransaction.state === 'SUCCEEDED') {
                         await reverse()
                     } else {
-                        // Cancel first - it also cancels any Stripe payment intent, so a late
-                        // webhook can never complete it after the fact. cancel's own guard only
-                        // accepts a still-PENDING transaction, so if it fails, re-check the state:
-                        // a payment that went through in the moment between the read above and
-                        // this call needs reversing instead, but any other cancel failure (e.g. a
-                        // Stripe outage) must surface as itself, not get masked by reverse's own
-                        // "only a succeeded transaction" guard error.
+                        // Cancel first, so a late webhook can't complete it. If cancel fails, reverse
+                        // only if the payment succeeded in the meantime; otherwise rethrow cancel's error.
                         try {
                             await ledgerTransactionOperations.cancel({
                                 params: { id: liveTransaction.id },
@@ -374,11 +369,11 @@ export const eventRegistrationOperations = {
                         contact: true,
                     }
                 })
-                return nextInLine ? { eventName: registration.event.name, nextInLine } : null
+                return nextInLine ? { event: { id: registration.eventId, name: registration.event.name }, nextInLine } : null
             })
 
             if (promoted) {
-                await notifyPromotedFromWaitingList(promoted.eventName, [promoted.nextInLine])
+                await notifyPromotedFromWaitingList(promoted.event, [promoted.nextInLine])
             }
         }
     }),
@@ -517,10 +512,8 @@ export const eventRegistrationOperations = {
     }),
 
     /**
-     * Pays for a registration created separately via `create`/`createGuest`. Never creates a
-     * registration itself. Supports paying part of the price from the payer's own ledger
-     * balance (`amountFromBalance`) and the rest (`shortfall`) via `provider`; `provider` is
-     * only required when the balance doesn't cover the full price.
+     * Pays for an existing registration: `amountFromBalance` from the payer's ledger balance, the
+     * rest via `provider`, which is only required when the balance doesn't cover the price.
      */
     createPayment: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.createPayment,
@@ -547,10 +540,8 @@ export const eventRegistrationOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet krever ikke betaling.')
             }
 
-            // Waiting-list membership isn't a stored column. It's the registration's queue
-            // position relative to event.places, the same computation readOfUser uses to gate
-            // the "pay" button in the UI. Re-derive and enforce it here too, since the UI gate
-            // doesn't stop a direct call to this operation.
+            // Waiting-list membership is derived from queue position, as in readOfUser. Enforced
+            // here too, since the UI gate doesn't stop a direct call.
             const position = await queuePosition(prisma, registration)
             if (position >= event.places) {
                 throw new Smorekopp('BAD PARAMETERS', 'Du står på ventelisten og kan ikke betale før du får en plass.')
@@ -592,23 +583,15 @@ export const eventRegistrationOperations = {
                     throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
                 }
                 if (existingAttempt) {
-                    // The registrant acting on their own registration may always clear a stuck
-                    // attempt and retry immediately, whether they started it themselves or an
-                    // EVENT_ADMIN parked it on their behalf (createPayment's auth lets an admin
-                    // call this for someone else's userId too) - otherwise that admin-started
-                    // attempt would block the real registrant from paying for up to 30 minutes.
-                    // Anyone who isn't the registrant (i.e. an admin acting on someone else's
-                    // registration) still has to wait out the staleness window as before.
+                    // The registrant may always replace a pending attempt, even one an admin
+                    // started for them. Anyone else has to wait until it is stale.
                     const isRegistrant = session.user?.id === params.userId
                     const isStale = Date.now() - existingAttempt.createdAt.getTime() > stalePendingTransactionMs
                     if (!isRegistrant && !isStale) {
                         throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.')
                     }
-                    // Stale, or the registrant themselves clearing an attempt - cancel it (also
-                    // cancels any Stripe payment intent, so a late webhook for it can never
-                    // complete) and let this one proceed. Bypassed: the outer authorizer already
-                    // established this caller may pay for this registration, which is the right
-                    // bar for canceling an attempt on it too.
+                    // Cancel it, so a late webhook can't complete it. Bypassed, since the outer
+                    // authorizer already allows this caller to pay for the registration.
                     await ledgerTransactionOperations.cancel({
                         params: { id: existingAttempt.id },
                         bypassAuth: true,
@@ -657,9 +640,8 @@ export const eventRegistrationOperations = {
                 })
             })
 
-            // Starts collecting the payment and returns its live clientSecret - initiate cancels
-            // the attempt along with it if starting the payment fails, so the registration can
-            // be paid for again instead of sitting stuck.
+            // Returns the live clientSecret. If starting the payment fails, initiate cancels the
+            // attempt so the registration can be paid for again.
             return {
                 payment: await ledgerTransactionOperations.initiate({
                     params: { id: transaction.id },
@@ -727,9 +709,7 @@ async function registrationOwnerAndEventVisibility(
 }
 
 /**
- * Checks the dots of the user registering: dots either hold the user back until a while after the
- * ordinary registration start of the event, or ban them from registering at all.
- *
+ * Checks the dots of the user registering: they either delay registration or ban it.
  * @param registrationStart - The ordinary registration start of the event. A timeout counts from it.
  * @param userId - The user being registered.
  * @param isAdmin - Admins register on behalf of others, and are not held back by the dots of anyone.
@@ -765,11 +745,8 @@ async function validateDotPunishmentOfRegistration(
 }
 
 /**
- * Locks the event and checks it takes a registration now: it takes registrations at all, the
- * registration period is open (administrators may register outside it), and it has a place or a
- * waiting list left. Run it in the transaction that creates the registration, so two registrations
- * cannot both take the last place.
- *
+ * Locks the event and checks it takes a registration now. Run it in the registering transaction,
+ * so two registrations cannot both take the last place.
  * @returns The event, with how many registrations it had before this one.
  */
 async function lockEventOpenForRegistration(

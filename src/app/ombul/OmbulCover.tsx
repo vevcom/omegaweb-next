@@ -1,5 +1,6 @@
 import styles from './OmbulCover.module.scss'
 import Image from '@/components/Image/Image'
+import { formatVevenUri } from '@/lib/urlEncoding'
 import Link from 'next/link'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
@@ -55,7 +56,10 @@ export default function OmbulCover(props: PropTypes) {
     </>
 
     return props.ombul ? (
-        <Link className={styles.OmbulCover} href={`/ombul/${props.ombul.year}/${props.ombul.name}`}>
+        <Link
+            className={styles.OmbulCover}
+            href={`/ombul/${props.ombul.year}/${formatVevenUri(props.ombul.name, props.ombul.id)}`}
+        >
             { content }
         </Link>
     ) : (

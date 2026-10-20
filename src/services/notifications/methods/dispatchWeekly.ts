@@ -1,6 +1,6 @@
 import { sendMailSchemas } from '@/services/notifications/sendMail/schemas'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
-import { replaceSpecialSymbols } from './helpers'
+import { linkToNotificationPage, replaceSpecialSymbols } from './helpers'
 import { weeklyDigest } from './constants'
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
@@ -13,11 +13,15 @@ import type { UserBasicWithEmail } from '@/services/users/types'
  * text as markdown, so each notification becomes its own section.
  */
 export function buildWeeklyDigestText(user: UserBasicWithEmail, notifications: WeeklyDigestNotification[]) {
-    return notifications.map(notification => [
-        `## ${replaceSpecialSymbols(notification.title, user)}`,
-        `*${notification.channel.name}*`,
-        replaceSpecialSymbols(notification.message, user),
-    ].join('\n')).join('\n\n')
+    return notifications.map(notification => {
+        const section = [
+            `## ${replaceSpecialSymbols(notification.title, user)}`,
+            `*${notification.channel.name}*`,
+            replaceSpecialSymbols(notification.message, user),
+        ].join('\n')
+        const link = linkToNotificationPage(notification.url)
+        return link ? `${section}\n\n${link}` : section
+    }).join('\n\n')
 }
 
 /**

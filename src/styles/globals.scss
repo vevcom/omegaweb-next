@@ -14,6 +14,11 @@ html {
 
     --rounding: 1rem;
     --gap: 0.5rem;
+    --card-padding: calc(3 * var(--rounding));
+
+    @include ohma.screenMobile {
+        --card-padding: var(--rounding);
+    }
 
     --layer: hsl(210, 0%, 0%, 20%);
 

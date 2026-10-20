@@ -8,10 +8,8 @@ import { defineOperation } from '@/services/serviceOperation'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 
 /**
- * `ledgerTransactionOperations.create`'s return narrows `payment` (no live clientSecret, since
- * that type is read broadly by either party to the transaction, not just the payer). The callers
- * here already hold the full payment they just created themselves, and their own modal reads
- * `payment.stripePayment` straight off the response - swap the narrowed copy back out for it.
+ * `ledgerTransactionOperations.create` returns a payment without its clientSecret. The callers here
+ * created the payment themselves, so swap in the full one for their modal to read.
  */
 function withFullPayment<Transaction extends { payment: unknown }>(
     transaction: Transaction,
@@ -71,10 +69,8 @@ export const ledgerMovementOperations = {
                 return { transaction, payment }
             })
 
-            // Starts collecting the payment and returns its live clientSecret -
-            // LedgerTransactionModal reads payment.stripePayment.clientSecret off it. initiate
-            // cancels the deposit along with it if starting the payment fails, so it isn't left
-            // stuck.
+            // Returns the live clientSecret for LedgerTransactionModal. If starting the payment
+            // fails, initiate cancels the deposit.
             const resolvedPayment = await ledgerTransactionOperations.initiate({
                 params: { id: created.transaction.id },
                 bypassAuth: true,

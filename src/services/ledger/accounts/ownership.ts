@@ -104,19 +104,10 @@ export async function resolveAccountsOwnership(
 }
 
 /**
- * Resolves the owning users and groups of a transaction's ledger entries, for authorizers that
- * need to know whether the caller is a party to it (see ledgerTransactionAuth). By default
- * resolves every account the transaction touches, debited or credited (see read); with
- * `debitedOnly`, resolves only the debited side (see cancel) - being credited by a transaction
- * was never this caller's money to begin with, so that alone shouldn't let them cancel someone
- * else's attempt at it. A DEPOSIT has no debit side at all (its debit side is external to the
- * ledger - see ledgerTransactionAuth.create), so debitedOnly falls back to every party for one,
- * the same as read: being credited (the depositor's own account) is the only bar there is to be.
- * Every other purpose paid wholly through Stripe also has no debit entry, but there the credited
- * side is the destination account (e.g. the hosting committee), not the payer - falling back the
- * same way would let a member of that account cancel someone else's payment attempt, so
- * debitedOnly returns no accounts at all for those instead, leaving only LEDGER_ADMIN able to
- * cancel it. Returns no ownerships if the transaction doesn't exist.
+ * Resolves the owners of a transaction's accounts, for authorizers. With `debitedOnly`, only the
+ * debited side, except a DEPOSIT, which falls back to every party. Other transactions with no
+ * debit entry (paid through Stripe) resolve to none, so only LEDGER_ADMIN can cancel them.
+ * Returns no ownerships if the transaction doesn't exist.
  */
 export async function resolveTransactionAccounts(
     prisma: Prisma.TransactionClient,

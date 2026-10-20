@@ -397,9 +397,7 @@ const payerSessionOf = (user: UserFiltered) => Session.fromJsObject({
     user, permissions: ['LEDGER_USE'], memberships: sessionOf(user).memberships,
 })
 
-/** createPayment's own authorizer (userIdOrEventAdmin) takes the global EVENT_ADMIN permission,
- * not an event's own admin visibility level like organiserSessionOf grants - unlike unregistering
- * someone else, which does go through the event's own admin level. */
+/** createPayment's authorizer needs the global EVENT_ADMIN, not the event's own admin level. */
 const eventAdminSessionOf = (user: UserFiltered) => Session.fromJsObject({
     user, permissions: ['EVENT_ADMIN', 'LEDGER_USE'], memberships: [],
 })
@@ -554,9 +552,7 @@ describe('unregistering from a paid event', () => {
         const registrant = await createTestUser('paymentcancelfailsuser')
         const registration = await register(registrant, eventId)
 
-        // Distinct customer and payment-intent ids from the describe block's shared defaults -
-        // two STRIPE payments in this block would otherwise collide on StripeCustomer's and
-        // StripePayment's own unique constraints.
+        // Distinct ids, so the two STRIPE payments here don't collide on unique constraints.
         jest.spyOn(stripe.customers, 'create').mockResolvedValue({ id: 'cus_test_unregister_fails' } as never)
         jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => (
             { id: 'pi_test_unregister_fails', client_secret: 'pi_test_unregister_fails_secret' } as never

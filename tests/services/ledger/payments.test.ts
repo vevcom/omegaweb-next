@@ -25,11 +25,8 @@ async function* chargesWithStripeFee() {
 }
 
 /**
- * Replaces the Stripe calls the payment flows make, so no test ever reaches Stripe.
- *
- * The services hold on to the one Stripe client, which tests/setup.ts has already loaded through
- * the seeder by the time this file runs - so jest.mock cannot swap the module out. The methods are
- * replaced on the client itself instead.
+ * Replaces the Stripe calls the payment flows make. tests/setup.ts has already loaded the shared
+ * Stripe client, so its methods are replaced instead of using jest.mock.
  */
 function mockStripe() {
     const createIntent = jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(async () => {
@@ -101,9 +98,8 @@ const readTransaction = (id: number) => prisma.ledgerTransaction.findUniqueOrThr
 })
 
 /**
- * A SUCCEEDED transfer between two ledger accounts, no payment involved - the shape
- * reverseTransaction actually reverses in production (a purchase/booking/payment, destination
- * credited and payer debited). `fromAccountId` must already hold at least `funds`.
+ * A SUCCEEDED transfer with no payment, the shape reverseTransaction reverses in production.
+ * `fromAccountId` must already hold at least `funds`.
  */
 async function createSucceededTransfer(fromAccountId: number, toAccountId: number, funds: number) {
     return ledgerTransactionOperations.create({
@@ -547,11 +543,8 @@ describe('reversing transactions', () => {
         await createSucceededDeposit(destination.id, DEPOSIT)
         const transaction = await createSucceededTransfer(payer.id, destination.id, DEPOSIT)
 
-        // Wrapped in its own transaction, the same way every real caller does it -
-        // reverseTransaction posts its correction and its Refund row as two separate statements,
-        // so without this a duplicate attempt could commit the correction before failing on the
-        // Refund row's unique constraint, reversing the balance twice while still throwing
-        // DUPLICATE.
+        // In a transaction like every real caller, so a duplicate's correction rolls back when
+        // its Refund row fails.
         await prisma.$transaction(tx => refundOperations.reverseTransaction({
             params: { originalTransactionId: transaction.id, reason: 'first attempt' },
             prisma: tx,
@@ -901,10 +894,8 @@ describe("advance()'s balance check sees debits regardless of transaction id ord
         const sink = await createAccount('balanceorderingsink')
         await createSucceededDeposit(account.id, DEPOSIT)
 
-        // Both inserted directly as PENDING, bypassing create()'s own pre-check - simulating two
-        // concurrent requests that each read the account's balance before the other's row
-        // existed, exactly the race advance()'s own account lock exists to resolve correctly
-        // once it finally runs for each of them.
+        // Inserted as PENDING directly, skipping create()'s pre-check, to simulate two concurrent
+        // requests that advance()'s account lock must resolve.
         const transfer = (funds: number) => prisma.ledgerTransaction.create({
             data: {
                 purpose: 'CABIN_BOOKING',

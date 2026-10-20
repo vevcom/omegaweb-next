@@ -1,6 +1,6 @@
 import { sendMailSchemas } from '@/services/notifications/sendMail/schemas'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
-import { replaceSpecialSymbols } from './helpers'
+import { linkToNotificationPage, replaceSpecialSymbols } from './helpers'
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
@@ -29,7 +29,10 @@ export async function sendNotificationEmails(
             from: senderAlias,
             to: user.email,
             subject: replaceSpecialSymbols(notification.title, user),
-            text: replaceSpecialSymbols(notification.message, user),
+            text: [
+                replaceSpecialSymbols(notification.message, user),
+                linkToNotificationPage(notification.url),
+            ].filter(part => part !== null).join('\n\n'),
         })
         if (!parsed.success) {
             logger.warn(
