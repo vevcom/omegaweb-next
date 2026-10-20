@@ -35,3 +35,6 @@ export const registerUserAction = makeAction(userOperations.register)
 export const connectStudentCardAction = makeAction(userOperations.connectStudentCard)
 
 export const searchUsersAction = makeAction(userOperations.search)
+
+export const archiveUserAction = makeAction(userOperations.archive)
+export const unarchiveUserAction = makeAction(userOperations.unarchive)

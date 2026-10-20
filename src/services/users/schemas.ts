@@ -185,6 +185,8 @@ export const userSchemas = {
         registerNewEmail: id,
         register: id,
         destroy: id,
+        archive: id,
+        unarchive: id,
         updateProfileImage: username,
     },
 }

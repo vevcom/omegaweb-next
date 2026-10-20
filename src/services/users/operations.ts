@@ -613,6 +613,33 @@ export const userOperations = {
         }
     }),
 
+    /**
+     * Shuts the user out of the site: they can no longer log in, their sessions end on their next
+     * request, and no read of users covers them unless it asks for the archived ones. Their data
+     * stays, so an admin can let them back in with unarchive.
+     */
+    archive: defineOperation({
+        paramsSchema: userSchemas.params.archive,
+        authorizer: ({ params }) => userAuth.archive.data({ userId: params.id }),
+        operation: async ({ prisma, params }) => {
+            await prisma.user.update({
+                where: { id: params.id, ...userPartitions.unarchived },
+                data: { archived: true },
+            })
+        }
+    }),
+
+    unarchive: defineOperation({
+        paramsSchema: userSchemas.params.unarchive,
+        authorizer: () => userAuth.unarchive,
+        operation: async ({ prisma, params }) => {
+            await prisma.user.update({
+                where: { id: params.id, ...userPartitions.archived },
+                data: { archived: false },
+            })
+        }
+    }),
+
     updateProfileImage: defineOperation({
         authorizer: ({ params }) => userAuth.updateProfileImage.data({ userField: { username: params.username } }),
         paramsSchema: userSchemas.params.updateProfileImage,

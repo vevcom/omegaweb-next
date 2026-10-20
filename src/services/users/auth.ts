@@ -29,4 +29,7 @@ export const userAuth = {
     updateBioParagraphContent: userIdOrUsersAdmin,
     register: Require.userId(),
     destroy: Require.permission('USERS_ADMIN'),
+    // A user may leave on their own. Only an admin may let them back in.
+    archive: userIdOrUsersAdmin,
+    unarchive: Require.permission('USERS_ADMIN'),
 } as const

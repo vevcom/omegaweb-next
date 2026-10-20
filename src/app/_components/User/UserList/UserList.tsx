@@ -8,6 +8,7 @@ import { userAuth } from '@/services/users/auth'
 import { UserPagingContext } from '@/contexts/paging/UserPaging'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import UserRow from '@/components/User/UserList/UserRow'
+import UnarchiveUserForm from '@/components/User/UserList/UnarchiveUserForm'
 import { useGroups } from '@/contexts/ClientData'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { orderOptions } from '@/lib/groups/groupOptions'
@@ -165,6 +166,7 @@ export default function UserList({
     const columnCount = 4 +
         (usersSelection || userSelection ? 1 : 0) +
         (displayForUser ? 1 : 0) +
+        (partition === 'archived' ? 1 : 0) +
         (groupSelected ? 2 : 0)
 
     const handleChangeName = (e: ChangeEvent<HTMLInputElement>) => {
@@ -339,6 +341,7 @@ export default function UserList({
                         <tr className="sticky top-0 z-1">
                             {(usersSelection ?? userSelection) && <th></th>}
                             {displayForUser && <th></th>}
+                            {partition === 'archived' && <th></th>}
                             <th className={sortableClassName} aria-sort={ariaSort('name')}>
                                 <button type="button" className={sortButtonClassName} onClick={() => handleSort('name')}>
                                     Navn {sortIcon('name')}
@@ -403,6 +406,9 @@ export default function UserList({
                                 }
                                 {
                                     displayForUser && <td>{displayForUser(user)}</td>
+                                }
+                                {
+                                    partition === 'archived' && <td><UnarchiveUserForm userId={user.id} /></td>
                                 }
                                 <UserRow
                                     groupSelected={groupSelected}
