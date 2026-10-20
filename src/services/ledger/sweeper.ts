@@ -70,13 +70,15 @@ export async function cancelStaleLedgerTransactions() {
 }
 
 /**
- * Credits the payer back for payments that succeeded but that no transaction used, for example
- * a Stripe payment that went through after its transaction was canceled or failed. Ones that can't
- * be reimbursed automatically, such as a guest's payment, are flagged.
+ * Credits the payer back for Stripe payments that succeeded but that no transaction used, for
+ * example one that went through after its transaction was canceled or failed. Ones that can't be
+ * reimbursed automatically, such as a guest's payment, are flagged. MANUAL payments are skipped,
+ * since no money moved outside the ledger for them.
  */
 export async function reimburseUnclaimedPayments() {
     const unclaimed = await prisma.payment.findMany({
         where: {
+            provider: 'STRIPE',
             state: 'SUCCEEDED',
             claimedByTransactionId: null,
             ledgerTransactions: { every: { state: { not: 'PENDING' }, legacy: { is: null } } },

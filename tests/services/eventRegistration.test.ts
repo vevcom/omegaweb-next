@@ -581,6 +581,37 @@ describe('unregistering from a paid event', () => {
         await expect(prisma.ledgerTransaction.findUniqueOrThrow({ where: { id: pendingTransaction.id } }))
             .resolves.toMatchObject({ state: 'PENDING', eventRegistrationId: registration.id })
     })
+
+    test('unregistering is refused when the payment succeeds while it is being canceled', async () => {
+        const committee = await createCommittee('payment-cancel-race-committee')
+        const eventId = await createPaidEvent(committee)
+        const registrant = await createTestUser('paymentcanceluserrace')
+        const registration = await register(registrant, eventId)
+
+        jest.spyOn(stripe.customers, 'create').mockResolvedValue({ id: 'cus_test_unregister_race' } as never)
+        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => Promise.resolve(
+            { id: 'pi_test_unregister_race', client_secret: 'pi_test_unregister_race_secret' } as never
+        ))
+
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: payerSessionOf(registrant),
+        })
+        const [pendingTransaction] = await prisma.ledgerTransaction.findMany({
+            where: { eventRegistrationId: registration.id },
+        })
+
+        // Stands in for advance() committing the success while the unregistration cancels the attempt.
+        jest.spyOn(stripe.paymentIntents, 'cancel').mockImplementation(async () => {
+            await prisma.ledgerTransaction.update({ where: { id: pendingTransaction.id }, data: { state: 'SUCCEEDED' } })
+            return {} as never
+        })
+
+        await expect(unregister(registration.id, sessionOf(registrant)))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+
+        expect(await countRegistrations(eventId, registrant)).toBe(1)
+    })
 })
 
 describe('deleting an event', () => {

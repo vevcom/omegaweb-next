@@ -128,6 +128,20 @@ describe('cabin booking payment and release', () => {
         await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 1 })
     })
 
+    test('a release that loses to a payment success leaves the booking', async () => {
+        const booking = await createReservation(new Date('2030-06-10'))
+        await createPayment(booking)
+        // Stands in for advance() committing the success while the release cancels the attempt.
+        jest.spyOn(stripe.paymentIntents, 'cancel').mockImplementation(async () => {
+            await prisma.ledgerTransaction.updateMany({ where: { bookingId: booking.id }, data: { state: 'SUCCEEDED' } })
+            return {} as never
+        })
+
+        await expect(releaseReservation(booking)).rejects.toMatchObject(refusal('ventende'))
+
+        await expect(readBookingState(booking.id)).resolves.toEqual({ canceled: false, liveAttempts: 1 })
+    })
+
     test('reading a transaction never exposes its booking\'s secret', async () => {
         const booking = await createReservation(new Date('2030-04-10'))
         await createPayment(booking)

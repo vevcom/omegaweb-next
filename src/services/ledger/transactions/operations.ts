@@ -60,7 +60,10 @@ export const ledgerTransactionOperations = {
         }
     }),
 
-    /** Cancels a PENDING transaction and its payment, so a late webhook can't mark it SUCCEEDED. */
+    /**
+     * Cancels a PENDING transaction and its payment, so a late webhook can't mark it SUCCEEDED.
+     * Throws if the transaction has already resolved, even when that happens during the cancel.
+     */
     cancel: defineOperation({
         authorizer: () => ledgerTransactionAuth.cancel,
         paramsSchema: ledgerTransactionSchemas.params.cancel,
@@ -84,7 +87,7 @@ export const ledgerTransactionOperations = {
                 })
             }
 
-            await prisma.ledgerTransaction.updateMany({
+            const { count } = await prisma.ledgerTransaction.updateMany({
                 where: {
                     id: params.id,
                     state: 'PENDING', // Protect against canceling a transaction that just resolved.
@@ -94,6 +97,10 @@ export const ledgerTransactionOperations = {
                     reason: 'Kansellert.',
                 },
             })
+            // A concurrent advance() resolved it after the check above, so callers must not act as if it was canceled.
+            if (count === 0) {
+                throw new Smorekopp('BAD PARAMETERS', 'Bare en ventende transaksjon kan kanselleres.')
+            }
 
             const canceled: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
                 params: { id: params.id },

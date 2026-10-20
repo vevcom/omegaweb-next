@@ -185,6 +185,19 @@ describe('unclaimed payments', () => {
 
         expect(await flaggedProblems({ paymentId: payment.id })).toEqual(['UNCLAIMED_PAYMENT'])
     })
+
+    test('a manual payment is neither reimbursed nor flagged', async () => {
+        const account = await createAccount('sweepermanual')
+        const deposit = await createSucceededDeposit(account.id)
+        // Left this way by a manual transaction that failed, such as a payout without enough funds.
+        await prisma.ledgerTransaction.update({ where: { id: deposit.id }, data: { state: 'FAILED' } })
+        await prisma.payment.update({ where: { id: deposit.payment!.id }, data: { claimedByTransactionId: null } })
+
+        await reimburseUnclaimedPayments()
+
+        expect(await flaggedProblems({ paymentId: deposit.payment!.id })).toEqual([])
+        expect(await prisma.refund.count({ where: { originalTransactionId: deposit.id } })).toBe(0)
+    })
 })
 
 describe('unbalanced transactions', () => {
