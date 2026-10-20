@@ -55,6 +55,7 @@
 
     > .content {
         font-size: ohma.$fonts-m;
+        margin-top: calc(2 * #{ohma.$gap});
 
         &:not(.rows) {
             @include ohma.ImageCardListLayout;
@@ -62,7 +63,6 @@
 
         &.rows {
             @include ohma.RowListLayout;
-            margin: calc(2 * #{ohma.$gap}) 0 0;
             height: calc(38 * #{ohma.$gap});
         }
     }

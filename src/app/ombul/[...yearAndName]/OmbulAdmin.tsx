@@ -17,7 +17,6 @@ import useEditMode from '@/hooks/useEditMode'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { ombulAuth } from '@/services/ombul/auth'
 import { configureAction } from '@/services/configureAction'
-import { useRouter } from 'next/navigation'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
 type PropTypes = {
@@ -31,7 +30,6 @@ type PropTypes = {
  * @returns
  */
 export default function OmbulAdmin({ ombul }: PropTypes) {
-    const { push, refresh } = useRouter()
     const canUpdate = useEditMode({
         authorizer: ombulAuth.update
     })
@@ -55,16 +53,8 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
         { params: { id: ombul.id } }
     )
 
-    const handleChange = (newOmbul: ExpandedOmbul | undefined) => {
-        if (!newOmbul) return
-        push(`/ombul/${newOmbul.year}/${newOmbul.name}`)
-        refresh()
-    }
+    const ombulPath = (newOmbul?: ExpandedOmbul) => (newOmbul ? `/ombul/${newOmbul.year}/${newOmbul.name}` : null)
 
-    const handleDestroy = () => {
-        push('/ombul')
-        refresh()
-    }
     if (!canUpdate && !canUpdateFile && !canDestroy && !canUpdateCover) return null
 
     return (
@@ -75,7 +65,8 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
                     canUpdate && (
                         <Form
                             action={updateOmbulActionBind}
-                            successCallback={handleChange}
+                            refreshOnSuccess
+                            navigateOnSuccess={ombulPath}
                             submitText="Oppdater"
                         >
                             <NumberInput
@@ -100,7 +91,8 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
                     canUpdateFile && (
                         <Form
                             action={updateOmbulFileActionBind}
-                            successCallback={handleChange}
+                            refreshOnSuccess
+                            navigateOnSuccess={ombulPath}
                             submitText="Oppdater fil"
                         >
                             <FileInput name="ombulFile" label="Ombul fil" color="primary" />
@@ -114,7 +106,8 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
                                 destroyOmbulAction,
                                 { params: { id: ombul.id } }
                             )}
-                            successCallback={handleDestroy}
+                            refreshOnSuccess
+                            navigateOnSuccess="/ombul"
                             submitText="Slett"
                             submitColor="red"
                             confirmation={{

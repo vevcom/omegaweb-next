@@ -7,15 +7,17 @@ import PopUpProvider from '@/contexts/PopUp'
 import ClientDataProvider from '@/contexts/ClientData'
 import { PageTitleProvider } from '@/contexts/PageTitle'
 import GlobalSearchProvider from '@/contexts/GlobalSearch'
+import NavMenuProvider from '@/contexts/NavMenu'
 import { permissionOperations } from '@/services/permissions/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { userOperations } from '@/services/users/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
 import ReleaseCountdownGate from '@/components/ReleaseCountdown/ReleaseCountdownGate'
-import { Theme, themeCssVars, themes } from '@/lib/theme'
+import { Theme, lightThemes, themeCssVars, themes } from '@/lib/theme'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
 import GlobalSearch from '@/UI/GlobalSearch'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
+import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import { visibleNavItems } from '@/components/NavBar/navDef'
 import NavBar from '@/components/NavBar/NavBar'
 import { Inter } from 'next/font/google'
@@ -88,7 +90,7 @@ export default async function RootLayout({ children }: PropTypes) {
     const theme = serverSession.user?.theme ?? Theme.STANDARD
 
     return (
-        <html lang="nb" style={themeCssVars(theme)}>
+        <html lang="nb" style={themeCssVars(theme)} data-tone={lightThemes.has(theme) ? 'light' : 'dark'}>
             <body className={`${inter.className} ${styles.body}`}>
                 {/* Hoisted into the head by React. Keeps the browser chrome in step with the theme;
                     picking another one refreshes the page, which renders it anew. */}
@@ -106,27 +108,34 @@ export default async function RootLayout({ children }: PropTypes) {
                                 <PopUpProvider>
                                     <PageTitleProvider>
                                         <ReleaseCountdownGate>
-                                            <div className={styles.wrapper}>
-                                                <div className={styles.navBar}>
-                                                    <NavBar
-                                                        isLoggedIn={navUser !== null}
-                                                        profileImage={navUser?.image ?? null}
-                                                        navItems={navItems}
-                                                    />
+                                            <NavMenuProvider>
+                                                <div className={styles.wrapper}>
+                                                    <div className={styles.navBar}>
+                                                        <NavBar
+                                                            isLoggedIn={navUser !== null}
+                                                            profileImage={navUser?.image ?? null}
+                                                            navItems={navItems}
+                                                        />
+                                                    </div>
+                                                    <aside className={styles.sideBar}>
+                                                        <DesktopSideBar navItems={navItems} />
+                                                    </aside>
+                                                    <main className={styles.content}>
+                                                        <ScrollArea
+                                                            className={styles.contentScroll}
+                                                            scrollerClassName={styles.contentScroller}
+                                                        >
+                                                            {children}
+                                                        </ScrollArea>
+                                                    </main>
+                                                    <div className={styles.mobileNavBar}>
+                                                        <MobileNavBar
+                                                            isLoggedIn={navUser !== null}
+                                                            navItems={navItems}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <aside className={styles.sideBar}>
-                                                    <DesktopSideBar navItems={navItems} />
-                                                </aside>
-                                                <main className={styles.content}>
-                                                    {children}
-                                                </main>
-                                                <div className={styles.mobileNavBar}>
-                                                    <MobileNavBar
-                                                        isLoggedIn={navUser !== null}
-                                                        navItems={navItems}
-                                                    />
-                                                </div>
-                                            </div>
+                                            </NavMenuProvider>
                                         </ReleaseCountdownGate>
                                     </PageTitleProvider>
                                 </PopUpProvider>

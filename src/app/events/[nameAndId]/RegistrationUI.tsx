@@ -124,7 +124,9 @@ export default function RegistrationUI({
     const userId = session.data.user.id
 
     const register = async (
-        createAction: typeof createEventRegistrationAction
+        // Separate implementations of one sub-operation, which may diverge.
+        // eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
+        createAction: typeof createEventRegistrationAction | typeof createEventRegistrationAsAdminAction
     ) => {
         const result = await createAction({
             params: {

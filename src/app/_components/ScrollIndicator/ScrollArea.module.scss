@@ -1,0 +1,22 @@
+@use "@/styles/ohma";
+
+.ScrollArea {
+    position: relative;
+    min-height: 0;
+}
+
+.scroller {
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.indicator {
+    top: ohma.$rounding;
+    bottom: ohma.$rounding;
+    right: calc(#{ohma.$gap} / 2);
+}

@@ -43,7 +43,7 @@ $padding: ohma.$minimalPagePadding;
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: linear-gradient(to bottom, rgba(0,0,0, 0), ohma.$colors-surface-base);
+                background: linear-gradient(to bottom, transparent 50%, ohma.$colors-surface-base);
                 z-index: 1;
             }
 
@@ -69,7 +69,9 @@ $padding: ohma.$minimalPagePadding;
         >*:nth-child(2) {
             position: absolute;
             left: $padding;
+            right: $padding;
             bottom: 1em;
+            overflow-wrap: anywhere;
         }   
         
     }

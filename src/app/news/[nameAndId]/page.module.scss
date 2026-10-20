@@ -25,5 +25,13 @@
     min-height: 80px;
     > div {
         display: flex;
+        gap: ohma.$gap;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+
+        > * {
+            flex: 0 0 min(75%, 300px);
+            scroll-snap-align: start;
+        }
     }
 }

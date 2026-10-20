@@ -14,8 +14,7 @@ type PropTypes = {
 }
 
 export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
-    const itemsForNav = navItems.slice(0, 2)
-    const itemsForMenu = navItems.slice(2, navItems.length)
+    const itemsForNav = navItems.slice(0, 3)
 
     return (
         <nav className={styles.MobileNavBar}>
@@ -28,15 +27,6 @@ export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
                     </div>
                 ))
             }
-            <div>
-                <StandardImageServer
-                    standardImage="LOGO_SIMPLE"
-                    width={30}
-                    tint="var(--text)"
-                >
-                    <Link className={styles.imagelink} href="/"/>
-                </StandardImageServer>
-            </div>
             <div className={styles.magicHat}>
                 <StandardImageServer
                     standardImage="MAGISK_HATT"
@@ -48,7 +38,7 @@ export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
                 <UserNavigation isLoggedIn={isLoggedIn} />
             </div>
             <Menu
-                items={itemsForMenu}
+                items={navItems}
                 openBtnVariant={'mobile'}
             />
             <div className={styles.editMode}>

@@ -8,7 +8,7 @@ import type Mail from 'nodemailer/lib/mailer'
 const isProd = process.env.NODE_ENV === 'production'
 const isTest = process.env.NODE_ENV === 'test'
 
-type Transporter = MailTransporter<SMTPPoolSentMessageInfo >
+type Transporter = MailTransporter<SMTPPoolSentMessageInfo>
 
 class MailHandler {
     transporter: Transporter | null = null

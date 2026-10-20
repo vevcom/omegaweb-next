@@ -14,8 +14,7 @@
     min-height: 0;
 }
 
-.mainInner {
+.main > .mainInner {
     position: absolute;
     inset: 0;
-    overflow-y: auto;
 }

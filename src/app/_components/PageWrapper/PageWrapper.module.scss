@@ -1,11 +1,9 @@
 @use "@/styles/ohma";
 
 .wrapper {
-    padding: calc(2 * #{ohma.$gap});
     min-height: 100%;
     width: 100%;
     height: 100%;
-    overflow-y: auto;
     align-self: flex-start;
     background-color: ohma.$colors-surface-base;
     h1 {
@@ -19,6 +17,11 @@
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
+
+        &:has(> div > *) {
+            margin-bottom: calc(2 * #{ohma.$gap});
+        }
+
         > div {
             display: flex;
             flex-direction: row;
@@ -26,6 +29,10 @@
             flex: 1;
         }
     }
+}
+
+.scroller {
+    padding: calc(2 * #{ohma.$gap});
 }
 
 // For pages laid out as islands (see InterestGroups): each section paints its
@@ -36,10 +43,13 @@
 // inside a border the wrapper no longer draws.
 .transparent {
     background-color: transparent;
-    padding: 0;
 
-    > .inlineHeader {
-        padding: calc(2 * #{ohma.$gap}) calc(2 * #{ohma.$gap}) 0;
+    > .scroller {
+        padding: 0;
+
+        > .inlineHeader {
+            padding: calc(2 * #{ohma.$gap}) calc(2 * #{ohma.$gap}) 0;
+        }
     }
 }
 
@@ -53,19 +63,19 @@
 // base wrapper. Combine with .transparent (see above) for pages whose body
 // owns its own content-card background instead (e.g. a sticky bottom nav bar
 // floating over edge-to-edge content).
-.fillHeight {
+.fillHeight > .scroller {
     display: flex;
     flex-direction: column;
 
     > .inlineHeader {
         flex-shrink: 0;
     }
+
+    > .body {
+        flex: 1;
+    }
 }
 
 .body {
     min-height: 0;
-}
-
-.fillHeight > .body {
-    flex: 1;
 }

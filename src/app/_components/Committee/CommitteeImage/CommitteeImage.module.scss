@@ -8,7 +8,11 @@
   margin-bottom: ohma.$gap;
 
   @include ohma.screenMobile {
-    flex-direction: column;
+    position: relative;
+    height: 180px;
+    background-color: ohma.$colors-surface-base;
+    border-radius: ohma.$rounding;
+    overflow: hidden;
   }
 }
 
@@ -23,6 +27,19 @@
   background-color: ohma.$colors-surface-base;
   border-radius: ohma.$rounding;
   padding: calc(2 * #{ohma.$gap});
+
+  @include ohma.screenMobile {
+    position: relative;
+    z-index: 1;
+    margin: auto;
+    background-color: color-mix(in srgb, ohma.$colors-surface-base, transparent 30%);
+    padding: ohma.$gap;
+    pointer-events: none;
+
+    > * {
+      width: 120px !important;
+    }
+  }
 
   .gray {
     filter: grayscale(100%) brightness(0.5) contrast(1.5);
@@ -41,7 +58,10 @@
   overflow: hidden;
 
   @include ohma.screenMobile {
-    height: 150px;
+    position: absolute;
+    inset: 0;
+    height: auto;
+    border-radius: 0;
   }
 }
 
@@ -60,6 +80,11 @@
     inset: 0;
     width: 100% !important;
     height: 100% !important;
+
+    div {
+      width: 100% !important;
+      height: 100% !important;
+    }
 
     img {
       width: 100% !important;

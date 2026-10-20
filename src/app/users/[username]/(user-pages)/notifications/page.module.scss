@@ -3,5 +3,5 @@
 .wrapper {
     background-color: ohma.$colors-surface-base;
     border-radius: ohma.$rounding;
-    padding: calc(1.5 * #{ohma.$rounding});
+    padding: ohma.$cardPadding;
 }
