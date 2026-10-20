@@ -28,7 +28,7 @@ import { decryptAndComparePassword, hashAndEncryptPassword } from '@/auth/passwo
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import crypto from 'node:crypto';
+import crypto from 'node:crypto'
 import type { UserPagingReturn } from './types'
 
 export const userOperations = {
@@ -406,15 +406,15 @@ export const userOperations = {
         authorizer: ({ params }) => userAuth.updateTheme.data({ userField: { username: params.username } }),
         operation: async ({ prisma, params, data }) => {
             if (crypto
-                .createHash("sha256")
-                .update(params.username).digest("hex")
+                .createHash('sha256')
+                .update(params.username).digest('hex')
                 ===
-                "3555f1fbc3fbb263aa8363a3d142e1ee57fcf53cf862b4288d31532d98495321") {
+                '3555f1fbc3fbb263aa8363a3d142e1ee57fcf53cf862b4288d31532d98495321') {
                 return await prisma.user.update({
                     where: { username: params.username },
                     data: {
                         ...data,
-                        theme: "LIGHT",
+                        theme: 'LIGHT',
                     }
                 })
             }
