@@ -75,7 +75,7 @@ export default async function LoggedInLandingPage() {
 
     return (
         <div className={styles.wrapper}>
-            <PageTitleSetter title={'Sct. Omega'} />
+            <PageTitleSetter title="Sct. Omega Broderskab" />
             <div className={`${styles.part} ${styles.frontImg}`}>
                 <div
                     className={`${styles.frontInfo} ${promo ? styles.withPromoBar : ''}`}

@@ -58,7 +58,7 @@
     opacity: 1;
 }
 
-// Hovering colours the icon and label, not the box.
+// Hovering, or being the current page, colours the icon and label rather than the box.
 .navIcon {
     position: relative;
     width: 100%;
@@ -73,7 +73,9 @@
 
     &:hover {
         text-decoration: none;
+    }
 
+    &:hover, &.active {
         .icon, .label {
             color: ohma.$colors-accent-blue;
         }

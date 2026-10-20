@@ -21,6 +21,15 @@
             color: ohma.$colors-text;
             width: 25px;
             height: 25px;
+
+            // The global `*` colour rule would otherwise keep the path at the text colour.
+            path {
+                color: inherit;
+            }
+
+            &.active {
+                color: ohma.$colors-accent-blue;
+            }
         }
         &.magicHat {
             position: relative;

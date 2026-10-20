@@ -128,9 +128,6 @@ $mobileToggleButtonSize: 44px;
             &:hover, &.active {
                 color: ohma.$colors-accent-blue;
             }
-            &.active {
-                font-weight: ohma.$fonts-weight-m;
-            }
         }
     }
 }

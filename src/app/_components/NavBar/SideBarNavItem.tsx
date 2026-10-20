@@ -9,11 +9,18 @@ import type { NavLink } from './navDef'
 type PropTypes = {
     item: NavLink
     expanded: boolean
+    /** Whether the current page is this item's. */
+    active: boolean
 }
 
-export default function SideBarNavItem({ item, expanded }: PropTypes) {
+export default function SideBarNavItem({ item, expanded, active }: PropTypes) {
     const link = (
-        <Link href={item.href} className={styles.navIcon} aria-label={item.name}>
+        <Link
+            href={item.href}
+            className={`${styles.navIcon} ${active ? styles.active : ''}`}
+            aria-label={item.name}
+            aria-current={active ? 'page' : undefined}
+        >
             <FontAwesomeIcon icon={item.icon} className={styles.icon} />
             <span className={styles.label}>{item.name}</span>
         </Link>

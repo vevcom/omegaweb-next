@@ -1,10 +1,9 @@
 import styles from './MobileNavBar.module.scss'
 import Menu from './Menu'
 import UserNavigation from './UserNavigation'
+import MobileNavBarItems from './MobileNavBarItems'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
-import Link from 'next/link'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { NavLink } from './navDef'
 
 type PropTypes = {
@@ -14,19 +13,9 @@ type PropTypes = {
 }
 
 export default async function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
-    const itemsForNav = navItems.slice(0, 3)
-
     return (
         <nav className={styles.MobileNavBar}>
-            {
-                itemsForNav.map((item) => (
-                    <div key={item.name}>
-                        <Link href={item.href}>
-                            <FontAwesomeIcon className={styles.icon} icon={item.icon} width={25}/>
-                        </Link>
-                    </div>
-                ))
-            }
+            <MobileNavBarItems navItems={navItems} />
             <div className={styles.magicHat}>
                 <StandardImageServer
                     standardImage="MAGISK_HATT"
