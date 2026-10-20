@@ -6,6 +6,7 @@ import { generateJWT } from '@/jwt/jwt'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userOperations } from '@/services/users/operations'
 import { ServiceError } from '@/services/error'
+import { prisma } from '@/prisma-pn-client-instance'
 import { z } from 'zod'
 
 export async function sendResetPasswordMail(email: string) {
@@ -16,6 +17,9 @@ export async function sendResetPasswordMail(email: string) {
             params: { email: emailParsed },
             bypassAuth: true,
         })
+
+        const { archived } = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { archived: true } })
+        if (archived) return email
 
         const jwt = generateJWT('resetpassword', {
             sub: user.id,
