@@ -12,7 +12,7 @@ $taktlause: url("backgroundimages/taktlause.jpeg");
     top: ohma.$gap;
     right: ohma.$gap;
     z-index: 2;
-    @include ohma.btn(ohma.$colors-accent-blue);
+    @include ohma.secondaryBtn;
 }
 
 .wrapper {
