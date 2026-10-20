@@ -1,3 +1,11 @@
+-- AlterTable
+ALTER TABLE "Notification" ADD COLUMN     "pushDispatchStartedAt" TIMESTAMP(3),
+ADD COLUMN     "pushDispatchedAt" TIMESTAMP(3),
+ADD COLUMN     "url" TEXT;
+
+-- AlterTable
+ALTER TABLE "NotificationMethod" ADD COLUMN     "push" BOOLEAN NOT NULL DEFAULT false;
+
 -- CreateTable
 CREATE TABLE "BrowserPushSubscription" (
     "id" SERIAL NOT NULL,
@@ -20,3 +28,6 @@ CREATE INDEX "BrowserPushSubscription_userId_idx" ON "BrowserPushSubscription"("
 -- AddForeignKey
 ALTER TABLE "BrowserPushSubscription" ADD CONSTRAINT "BrowserPushSubscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- Offer push on every existing channel that offers immediate email.
+UPDATE "NotificationMethod" SET "push" = "email"
+WHERE "id" IN (SELECT "availableMethodsId" FROM "NotificationChannel");
