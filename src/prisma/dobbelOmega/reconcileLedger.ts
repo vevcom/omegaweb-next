@@ -87,7 +87,7 @@ export default async function reconcileLedger(
     const drainPnIds = toPnIds(drainAccountIdMap, 'drain accounts')
 
     const balances = await ledgerAccountOperations.calculateBalances({
-        params: { ledgerAccountIds: [...userPnIds.values(), ...drainPnIds.values()] },
+        params: { ledgerAccountIds: [...Array.from(userPnIds.values()), ...Array.from(drainPnIds.values())] },
         prisma: pnPrisma,
         bypassAuth: true,
     })

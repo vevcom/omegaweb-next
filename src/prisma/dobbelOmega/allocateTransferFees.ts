@@ -22,6 +22,7 @@ type DrainEvent =
 const eventTime = (event: DrainEvent) =>
     (event.kind === 'payment' ? event.payment.createdAt : event.transfer.createdAt).getTime()
 const eventId = (event: DrainEvent) => (event.kind === 'payment' ? event.payment.id : event.transfer.id)
+const kindOrder = (event: DrainEvent) => (event.kind === 'payment' ? 0 : 1)
 
 /**
  * OW transfers are net amounts, since OW subtracted repaid fees from a drain account's balance.
@@ -44,11 +45,11 @@ export function allocateTransferFees(payments: OwDrainPayment[], transfers: OwDr
 
     const feesByTransferId = new Map<number, number>(transfers.map(transfer => [transfer.id, 0]))
 
-    for (const events of eventsByAccount.values()) {
+    for (const events of Array.from(eventsByAccount.values())) {
         // Payments go before transfers at the same instant, so a transfer can draw on them.
         events.sort((first, second) =>
             eventTime(first) - eventTime(second)
-            || (first.kind === second.kind ? 0 : first.kind === 'payment' ? -1 : 1)
+            || kindOrder(first) - kindOrder(second)
             || eventId(first) - eventId(second)
         )
 
