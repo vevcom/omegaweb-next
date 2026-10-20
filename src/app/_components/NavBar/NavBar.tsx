@@ -55,7 +55,7 @@ export default async function NavBar({ isLoggedIn, profileImage, navItems }: Pro
                     <EditModeNavIcon className={styles.editMode} />
                     <SearchButton/>
                     <ReportButton/>
-                    <div className={`${styles.magicHat} ${isLoggedIn ? styles.loggedIn : styles.loggedOut}`}>
+                    <div className={styles.magicHat}>
                         {
                             profileImage ? (
                                 <ProfilePicture
@@ -63,7 +63,12 @@ export default async function NavBar({ isLoggedIn, profileImage, navItems }: Pro
                                     width={48}
                                 />
                             ) : (
-                                <span>Logg inn</span>
+                                <StandardImageServer
+                                    standardImage="MAGISK_HATT"
+                                    width={39}
+                                    alt="Logg inn"
+                                    tint="white"
+                                />
                             )
                         }
                         <UserNavigation isLoggedIn={isLoggedIn} />
