@@ -16,6 +16,7 @@ model CmsImage {
   articleSectionId     Int?             @unique
   coverImageforArticle Article?
   special              SpecialCmsImage? @unique
+  screenPage           ScreenPage?
   event                Event?
   company              Company?
 }
@@ -42,6 +43,7 @@ model CmsParagraph {
   articleSection      ArticleSection?      @relation(fields: [articleSectionId], references: [id], onDelete: Cascade)
   articleSectionId    Int?                 @unique
   special             SpecialCmsParagraph? @unique
+  screenPage          ScreenPage?
   Event               Event?
   Committee           Committee?           @relation(name: "committeeParagraph")
   Ombul               Ombul?

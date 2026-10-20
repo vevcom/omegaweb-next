@@ -12,6 +12,7 @@ export const permissionCategories = [
     'events',
     'notifikasjoner',
     'mail',
+    'skjermer',
     'shop',
     'cabin',
     'permission',
@@ -225,6 +226,19 @@ export const permissionConfig = {
         description: 'kan administrere API nøkler',
         category: 'diverse admin',
         canBeDefault: false,
+    },
+    SCREEN_ADMIN: {
+        name: 'Skjermadministrator',
+        description: 'kan opprette, endre og slette infoskjermer og sidene de viser',
+        category: 'skjermer',
+        canBeDefault: false,
+    },
+    SCREEN_USE: {
+        name: 'Se skjermer',
+        description: 'kan se infoskjermene og sidene deres',
+        category: 'skjermer',
+        // A display showing a screen is usually not logged in.
+        canBeDefault: true,
     },
     LOCKER_USE: {
         name: 'Bruke skap',

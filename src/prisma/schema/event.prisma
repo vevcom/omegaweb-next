@@ -40,6 +40,7 @@ model Event {
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  screenPages ScreenPage[]
   cabinEvent  Booking[]
 
   published Boolean @default(false)
@@ -91,6 +92,7 @@ model EventTag {
   colorB        Int
   special       SpecialEventTags? @unique
   EventTagEvent EventTagEvent[]
+  screenPages   ScreenPage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
