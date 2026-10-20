@@ -4,9 +4,9 @@ import type { CSSProperties } from 'react'
 export { Theme }
 
 export const themeLabels: Record<Theme, string> = {
-    [Theme.STANDARD]: 'Standard',
-    [Theme.LIGHT]: 'Light',
-    [Theme.SOLARIZED]: 'Solarized',
+    [Theme.STANDARD]: 'Mørk',
+    [Theme.LIGHT]: 'Lys',
+    [Theme.SOLARIZED]: 'Solarisert',
     [Theme.STJERNE_INNBYGGER]: 'Stjerneinnbygger',
     [Theme.HOT_DOG_STAND]: 'Pølsebod',
     [Theme.OW_BASIC]: 'Alt var bedre før',
