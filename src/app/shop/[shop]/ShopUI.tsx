@@ -120,7 +120,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                             {receipt.lines.map(line => (
                                 <li key={line.product.id} className="flex justify-between gap-2 text-s">
                                     <span>{line.quantity} × {line.product.name}</span>
-                                    <span className="tabular-nums">{displayAmount(line.quantity * line.product.price, false)}</span>
+                                    <span className="tabular-nums">{displayAmount(line.quantity * line.product.price)}</span>
                                 </li>
                             ))}
                         </ul>
@@ -146,14 +146,14 @@ export default function ShopUI({ shop, userId, capabilities }: {
                                 {cart.map(line => (
                                     <li key={line.product.id} className="flex justify-between gap-2 text-s">
                                         <span className="wrap-anywhere">{line.quantity} × {line.product.name}</span>
-                                        <span className="shrink-0 tabular-nums">{displayAmount(line.quantity * line.product.price, false)}</span>
+                                        <span className="shrink-0 tabular-nums">{displayAmount(line.quantity * line.product.price)}</span>
                                     </li>
                                 ))}
                             </ul>
                         )}
                         <div className="flex items-baseline justify-between border-t border-surface-hover pt-3">
                             <span className="font-medium">Totalt</span>
-                            <span className="text-xl font-bold tabular-nums">{displayAmount(total, false)}</span>
+                            <span className="text-xl font-bold tabular-nums">{displayAmount(total)}</span>
                         </div>
                         {capabilities.canPurchase.authorized && userId !== null ? (
                             <Button className="m-0! w-full" disabled={purchasing || cart.length === 0} onClick={() => purchase(userId)}>
