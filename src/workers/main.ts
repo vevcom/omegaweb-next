@@ -57,7 +57,7 @@ async function runWorkers(selected: Worker[]) {
 }
 
 function isWorkerName(name: string): name is WorkerName {
-    return name in workers
+    return Object.hasOwn(workers, name)
 }
 
 /**
