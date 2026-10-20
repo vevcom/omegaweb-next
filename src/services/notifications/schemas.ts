@@ -1,3 +1,4 @@
+import { internalPathMessage, isInternalPath } from '@/lib/fields/safeLink'
 import { Permission, SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
@@ -11,7 +12,10 @@ const dataFieldSchemas = z.object({
     channelId: z.coerce.number().min(1),
     title: z.string().min(2),
     message: z.string().min(10),
-    url: z.string().max(2048).regex(/^\/(?![/\\])/, 'Lenken må være en sti på nettsiden, som /events').optional(),
+    url: z.string().trim().max(2048)
+        .refine(url => !url || isInternalPath(url), internalPathMessage)
+        .transform(url => url || undefined)
+        .optional(),
     // Who the notification is for, on top of being subscribed to its channel. Each given part narrows it.
     audience: z.object({
         userIds: z.number().array().optional(),
