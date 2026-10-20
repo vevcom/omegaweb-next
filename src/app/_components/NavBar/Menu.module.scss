@@ -97,6 +97,11 @@
                 svg {
                     margin-right: ohma.$gap;
                     color: ohma.$colors-text;
+
+                    // The global `*` colour rule would otherwise keep the path at the text colour.
+                    path {
+                        color: inherit;
+                    }
                 }
             }
         }

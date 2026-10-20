@@ -2,10 +2,8 @@
 
 // sub page nav bar item
 
+// Hovering, or being the current page, colours the icon and text rather than the box.
 .container {
-    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
-    color: ohma.$colors-text;
-    transition: background 0.2s ease, color 0.2s ease;
     display: inline-flex;
     align-items: center;
     height: calc(#{ohma.$nav-height} - #{ohma.$gap} * 2);
@@ -14,13 +12,13 @@
     background: transparent;
     justify-content: center;
 
-    &:hover {
-        background: ohma.$colors-accent-blue;
-        color: ohma.$colors-text-inv;
+    // Every child is coloured directly, since the global `*` colour rule stops inheritance.
+    * {
+        transition: color 0.2s ease;
     }
 }
-.container:hover {
-    color: ohma.$colors-text;
+.container:hover *, .selected * {
+    color: ohma.$colors-accent-blue;
 }
 .linkContainer > a {
     text-decoration: none;
@@ -31,16 +29,6 @@
 }
 .linkContainer:last-child {
     margin-bottom: 0;
-}
-.selected {
-    color: ohma.$colors-accent-blue;
-}
-.selected * {
-    color: ohma.$colors-accent-blue;
-}
-
-.selected:hover * {
-    color: ohma.$colors-text;
 }
 .icon {
     width: 24px;

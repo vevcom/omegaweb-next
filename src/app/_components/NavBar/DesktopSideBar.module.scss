@@ -58,6 +58,7 @@
     opacity: 1;
 }
 
+// Hovering colours the icon and label, not the box.
 .navIcon {
     position: relative;
     width: 100%;
@@ -67,16 +68,15 @@
     align-items: center;
     justify-content: flex-start;
     padding: 0 calc(#{ohma.$gap} * 1.5);
-    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
-    color: ohma.$colors-text;
     background: transparent;
     text-decoration: none;
-    transition: background ohma.$transitionTime ease, color ohma.$transitionTime ease;
 
     &:hover {
-        background: ohma.$colors-accent-blue;
-        color: ohma.$colors-text-inv;
         text-decoration: none;
+
+        .icon, .label {
+            color: ohma.$colors-accent-blue;
+        }
     }
 }
 
@@ -85,6 +85,13 @@
     height: calc(#{ohma.$gap} * 2)!important;
     flex-shrink: 0;
     margin-left: calc(#{ohma.$gap} * 0.5);
+    color: ohma.$colors-text;
+    transition: color ohma.$transitionTime ease;
+
+    // The global `*` colour rule would otherwise keep the path at the text colour.
+    path {
+        color: inherit;
+    }
 }
 
 .label {
@@ -93,7 +100,12 @@
     opacity: 0;
     max-width: 0;
     margin-left: 0;
-    transition: opacity ohma.$transitionTime ease, max-width ohma.$transitionTime ease, margin-left ohma.$transitionTime ease;
+    color: ohma.$colors-text;
+    transition:
+        opacity ohma.$transitionTime ease,
+        max-width ohma.$transitionTime ease,
+        margin-left ohma.$transitionTime ease,
+        color ohma.$transitionTime ease;
 }
 
 .adminNav {
@@ -112,15 +124,20 @@
     justify-content: center;
     flex-shrink: 0;
     border: none;
-    border-radius: calc(#{ohma.$rounding} - #{ohma.$gap});
     background: transparent;
-    color: ohma.$colors-text;
     cursor: pointer;
-    transition: background ohma.$transitionTime ease, color ohma.$transitionTime ease;
 
-    &:hover {
-        background: ohma.$colors-accent-blue;
-        color: ohma.$colors-text-inv;
+    svg {
+        color: ohma.$colors-text;
+        transition: color ohma.$transitionTime ease;
+
+        path {
+            color: inherit;
+        }
+    }
+
+    &:hover svg {
+        color: ohma.$colors-accent-blue;
     }
 }
 
