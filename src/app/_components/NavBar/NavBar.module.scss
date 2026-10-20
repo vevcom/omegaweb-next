@@ -23,7 +23,7 @@
     justify-content: center;
     height: 100%;
     position: relative;
-    background: ohma.$colors-surface-base;
+    background: ohma.$colors-accent-blue;
     border-radius: calc(#{ohma.$gap} * 2);
     padding: ohma.$gap;
 }
@@ -56,6 +56,7 @@
 .pageTitle {
     font-size: ohma.$fonts-xxl;
     font-weight: ohma.$fonts-weight-m;
+    font-style: ohma.$fonts-secondary;
     color: ohma.$colors-text;
     white-space: nowrap;
     overflow: hidden;
