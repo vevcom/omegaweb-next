@@ -36,7 +36,7 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
     })
 
     return (
-        <article className={`group/card relative flex flex-col overflow-hidden rounded-round bg-surface-raised shadow-soft transition-[box-shadow,translate] duration-300 hover:shadow-soft-hover hover:-translate-y-0.5 ${product.active ? '' : 'opacity-60'}`}>
+        <article className={`group/card relative flex flex-col overflow-hidden rounded-round bg-surface-raised ${product.active ? '' : 'opacity-60'}`}>
             <div className="relative aspect-square overflow-hidden bg-surface-hover">
                 <CmsImage
                     cmsImage={product.image}
@@ -55,7 +55,7 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                     </span>
                 )}
                 {quantity > 0 && (
-                    <span className="absolute top-2 right-2 z-1 grid place-items-center min-w-8 h-8 px-2 rounded-full bg-accent-blue text-text-inv text-s font-bold shadow-soft">
+                    <span className="absolute top-2 right-2 z-1 grid place-items-center min-w-8 h-8 px-2 rounded-full bg-accent-blue text-text-inv text-s font-bold">
                         {quantity}
                     </span>
                 )}

@@ -24,7 +24,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: product, capabilities }) => (
         <PageWrapper>
             <div className="mb-6 flex flex-wrap items-start gap-6">
-                <div className="w-full max-w-[320px] aspect-square overflow-hidden rounded-round bg-surface-hover shadow-soft">
+                <div className="w-full max-w-[320px] aspect-square overflow-hidden rounded-round bg-surface-hover">
                     <CmsImage
                         cmsImage={product.image}
                         updateCmsImageAction={configureAction(

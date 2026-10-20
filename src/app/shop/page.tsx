@@ -42,7 +42,7 @@ const { page, generateMetadata } = serverPage({
                         <Link
                             key={shop.id}
                             href={`/shop/${shop.id}`}
-                            className="group flex flex-col gap-3 rounded-round bg-surface-raised p-5 text-text no-underline shadow-soft transition-[box-shadow,translate] duration-300 hover:-translate-y-0.5 hover:no-underline hover:shadow-soft-hover"
+                            className="group flex flex-col gap-3 rounded-round bg-surface-raised p-5 text-text no-underline transition-colors duration-300 hover:bg-surface-hover hover:no-underline"
                         >
                             <span className="grid size-12 place-items-center rounded-full bg-accent-blue text-text-inv [&_svg]:text-inherit [&_path]:text-inherit">
                                 <FontAwesomeIcon icon={faStore} className="size-5!" />
