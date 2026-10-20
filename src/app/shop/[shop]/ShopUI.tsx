@@ -1,33 +1,28 @@
 'use client'
 
-import { EditProductForShopForm } from './EditProductForShopForm'
-import PopUp from '@/components/PopUp/PopUp'
+import ProductCard from './ProductCard'
 import Button from '@/components/UI/Button'
 import { displayAmount } from '@/lib/currency/convert'
 import { createPurchaseAction } from '@/services/shop/purchase/actions'
 import { useState } from 'react'
-import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faBasketShopping, faCircleCheck } from '@fortawesome/free-solid-svg-icons'
 import type { ExtendedShop, ShopPageProduct } from '@/services/shop/shop/types'
-import type { Dispatch, SetStateAction } from 'react'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
-type ProductInCart = ShopPageProduct & { quantity: number }
-
-type ShoppingCart = {
-    products: Record<number, ProductInCart>,
+type CartLine = {
+    product: ShopPageProduct,
+    quantity: number,
 }
 
 type Receipt = {
-    products: ProductInCart[],
+    lines: CartLine[],
     remainingBalance: number,
 }
 
-type EditShoppingCart = Dispatch<SetStateAction<ShoppingCart>>
-
 /**
- * The shop's products as a cart to buy from. Those who administer the shop's products also see
- * the ones taken off sale, and get to edit each product in place.
+ * The shop's products as a shelf to buy from, with the cart beside it. Those who administer the
+ * shop's products also see the ones taken off sale, and get to edit each product in place.
  */
 export default function ShopUI({ shop, userId, capabilities }: {
     shop: ExtendedShop,
@@ -35,22 +30,24 @@ export default function ShopUI({ shop, userId, capabilities }: {
     userId: number | null,
     capabilities: CapabilitiesJsObject<'canPurchase' | 'canUpdateProduct'>,
 }) {
-    const [shoppingCart, editShoppingCart] = useState<ShoppingCart>({
-        products: Object.fromEntries(
-            shop.products
-                .filter(product => product.active || capabilities.canUpdateProduct.authorized)
-                .map(product => [
-                    product.id,
-                    {
-                        ...product,
-                        quantity: 0,
-                    },
-                ])
-        ),
-    })
-    const [receipt, editReceipt] = useState<Receipt | null>(null)
+    const products = shop.products
+        .filter(product => product.active || capabilities.canUpdateProduct.authorized)
+        .sort((first, second) => Number(second.active) - Number(first.active) || first.name.localeCompare(second.name))
+    const [quantities, setQuantities] = useState<Record<number, number>>({})
+    const [receipt, setReceipt] = useState<Receipt | null>(null)
     const [purchasing, setPurchasing] = useState(false)
     const [purchaseError, setPurchaseError] = useState<string | null>(null)
+
+    const cart: CartLine[] = products
+        .map(product => ({ product, quantity: quantities[product.id] ?? 0 }))
+        .filter(line => line.quantity > 0)
+    const itemCount = cart.reduce((count, line) => count + line.quantity, 0)
+    const total = cart.reduce((sum, line) => sum + line.quantity * line.product.price, 0)
+
+    const changeQuantity = (productId: number, change: number) => {
+        setReceipt(null)
+        setQuantities(current => ({ ...current, [productId]: Math.max(0, (current[productId] ?? 0) + change) }))
+    }
 
     const purchase = async (buyerId: number) => {
         setPurchasing(true)
@@ -58,25 +55,29 @@ export default function ShopUI({ shop, userId, capabilities }: {
         try {
             const purchaseResult = await createPurchaseAction(
                 { params: { userId: buyerId } },
-                { data: { shopId: shop.id, products: orderLines(shoppingCart) } },
+                {
+                    data: {
+                        shopId: shop.id,
+                        products: cart.map(line => ({ id: line.product.id, quantity: line.quantity })),
+                    },
+                },
             )
             if (!purchaseResult.success) {
                 setPurchaseError(purchaseResult.error?.map(({ message }) => message).join(' ') || 'Kjøpet feilet.')
                 return
             }
 
-            // The purchase returns each line as id, quantity and the unit price it was charged at;
-            // the cart still knows the product behind the id.
-            editReceipt({
-                products: purchaseResult.data.productList.map(line => ({
-                    ...shoppingCart.products[line.productId],
-                    quantity: line.quantity,
-                    price: line.price,
-                })),
+            // The purchase returns each line as id, quantity and the unit price it was charged at.
+            const productsById = new Map(products.map(product => [product.id, product]))
+            setReceipt({
+                lines: purchaseResult.data.productList.flatMap(line => {
+                    const product = productsById.get(line.productId)
+                    return product ? [{ product: { ...product, price: line.price }, quantity: line.quantity }] : []
+                }),
                 remainingBalance: purchaseResult.data.remainingBalance,
             })
             // Emptied, so a second click does not buy the same cart again.
-            editShoppingCart(emptied)
+            setQuantities({})
         } catch {
             // The request may have reached the server before it failed, so a retry could charge twice.
             setPurchaseError('Noe gikk galt. Sjekk saldoen din før du prøver igjen.')
@@ -85,145 +86,88 @@ export default function ShopUI({ shop, userId, capabilities }: {
         }
     }
 
-    return <>
-        <table className="ohma-table">
-            <thead>
-                <tr>
-                    {capabilities.canUpdateProduct.authorized && <th>Rediger</th>}
-                    <th>Produkt</th>
-                    <th>Beskrivelse</th>
-                    <th>Pris pr.stykk</th>
-                    <th>Antall</th>
-                    <th>Pris total</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {Object.values(shoppingCart.products).map(product =>
-                    <tr key={product.id} className={product.active ? '' : 'text-text-muted italic'}>
-                        {capabilities.canUpdateProduct.authorized && (
-                            <td className="
-                                text-center
-                                [&>button]:size-[30px] [&>button]:border-none [&>button]:bg-transparent
-                            ">
-                                <PopUp
-                                    showButtonContent={<FontAwesomeIcon icon={faPencil} />}
-                                    popUpKey={`editProductForShop-${product.id}`}
-                                >
-                                    <EditProductForShopForm
-                                        shop={shop}
-                                        product={product}
-                                        closePopUpOnSuccess={`editProductForShop-${product.id}`}
-                                    />
-                                </PopUp>
-                            </td>
+    return (
+        <div className="grid items-start gap-6 mobile:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+            {products.length === 0 ? (
+                <div className="grid place-items-center gap-2 rounded-round bg-surface-raised p-12 text-center text-text-muted">
+                    <FontAwesomeIcon icon={faBasketShopping} className="size-10! text-inherit [&_path]:text-inherit" />
+                    <p className="m-0">Butikken har ingen varer ennå.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+                    {products.map(product => (
+                        <ProductCard
+                            key={product.id}
+                            shop={shop}
+                            product={product}
+                            quantity={quantities[product.id] ?? 0}
+                            canUpdateProduct={capabilities.canUpdateProduct.authorized}
+                            onAdd={() => changeQuantity(product.id, 1)}
+                            onRemove={() => changeQuantity(product.id, -1)}
+                        />
+                    ))}
+                </div>
+            )}
+
+            <aside className="sticky z-2 flex flex-col gap-4 rounded-round bg-surface-raised p-5 shadow-soft mobile:top-0 max-mobile:bottom-0 max-mobile:max-h-[60dvh] max-mobile:overflow-y-auto">
+                {receipt ? (
+                    <>
+                        <div className="flex items-center gap-3 text-accent-green">
+                            <FontAwesomeIcon icon={faCircleCheck} className="size-7! text-inherit [&_path]:text-inherit" />
+                            <h2 className="m-0 text-l text-text">Takk for kjøpet!</h2>
+                        </div>
+                        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                            {receipt.lines.map(line => (
+                                <li key={line.product.id} className="flex justify-between gap-2 text-s">
+                                    <span>{line.quantity} × {line.product.name}</span>
+                                    <span className="tabular-nums">{displayAmount(line.quantity * line.product.price, false)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <p className="m-0 flex justify-between border-t border-surface-hover pt-3 text-s text-text-muted">
+                            <span>Gjenstående saldo</span>
+                            <span className="tabular-nums">{displayAmount(receipt.remainingBalance, false)}</span>
+                        </p>
+                        <Button color="secondary" className="m-0!" onClick={() => setReceipt(null)}>Handle mer</Button>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex items-center justify-between">
+                            <h2 className="m-0 flex items-center gap-2 text-l">
+                                <FontAwesomeIcon icon={faBasketShopping} className="size-5! text-inherit [&_path]:text-inherit" />
+                                Handlekurv
+                            </h2>
+                            {itemCount > 0 && <span className="text-s text-text-muted">{itemCount} {itemCount === 1 ? 'vare' : 'varer'}</span>}
+                        </div>
+                        {cart.length === 0 ? (
+                            <p className="m-0 text-s text-text-muted max-mobile:hidden">Legg til varer for å handle.</p>
+                        ) : (
+                            <ul className="m-0 flex list-none flex-col gap-2 p-0 max-mobile:hidden">
+                                {cart.map(line => (
+                                    <li key={line.product.id} className="flex justify-between gap-2 text-s">
+                                        <span className="wrap-anywhere">{line.quantity} × {line.product.name}</span>
+                                        <span className="shrink-0 tabular-nums">{displayAmount(line.quantity * line.product.price, false)}</span>
+                                    </li>
+                                ))}
+                            </ul>
                         )}
-                        <td>{product.name}</td>
-                        <td>{product.description}</td>
-                        <td>{displayAmount(product.price, false)}</td>
-                        <td>{product.quantity}</td>
-                        <td>{displayAmount(product.quantity * product.price, false)}</td>
-                        <td>
-                            {product.active && <>
-                                <Button
-                                    onClick={() => addProduct(product, shoppingCart, editShoppingCart)}
-                                >+</Button>
-                                {product.quantity > 0 && (
-                                    <Button
-                                        onClick={() => removeProduct(product, shoppingCart, editShoppingCart)}
-                                    >-</Button>
-                                )}
-                            </>}
-                        </td>
-                    </tr>
-                )}
-                <tr>
-                    {capabilities.canUpdateProduct.authorized && <td></td>}
-                    <td>SUM:</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>
-                        {displayAmount(Object.values(shoppingCart.products).reduce(
-                            (total, product) => total + product.quantity * product.price,
-                            0
-                        ), false)}
-                    </td>
-                    <td>
-                        {capabilities.canPurchase.authorized && userId !== null && (
-                            <Button disabled={purchasing} onClick={() => purchase(userId)}>
+                        <div className="flex items-baseline justify-between border-t border-surface-hover pt-3">
+                            <span className="font-medium">Totalt</span>
+                            <span className="text-xl font-bold tabular-nums">{displayAmount(total, false)}</span>
+                        </div>
+                        {capabilities.canPurchase.authorized && userId !== null ? (
+                            <Button className="m-0! w-full" disabled={purchasing || cart.length === 0} onClick={() => purchase(userId)}>
                                 {purchasing ? 'Kjøper...' : 'Kjøp'}
                             </Button>
+                        ) : (
+                            <p className="m-0 text-s text-text-muted">
+                                {userId === null ? 'Logg inn for å handle.' : 'Du har ikke tilgang til å handle her.'}
+                            </p>
                         )}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        {purchaseError && <p className="text-accent-red">{purchaseError}</p>}
-        {receipt && <div>
-            <h2>Kvittering</h2>
-            <table className="ohma-table">
-                <thead>
-                    <tr>
-                        <th>Produkt</th>
-                        <th>Beskrivelse</th>
-                        <th>Pris pr.stykk</th>
-                        <th>Antall</th>
-                        <th>Pris total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {receipt.products.map(product =>
-                        <tr key={product.id}>
-                            <td>{product.name}</td>
-                            <td>{product.description}</td>
-                            <td>{displayAmount(product.price, false)}</td>
-                            <td>{product.quantity}</td>
-                            <td>{displayAmount(product.quantity * product.price, false)}</td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
-            <p>Gjenstående saldo: {displayAmount(receipt.remainingBalance, false)}</p>
-        </div>}
-    </>
-}
-
-/** What the cart holds, as the lines of a purchase. */
-function orderLines(shoppingCart: ShoppingCart) {
-    return Object.values(shoppingCart.products)
-        .filter(product => product.quantity > 0)
-        .map(product => ({
-            id: product.id,
-            quantity: product.quantity,
-        }))
-}
-
-/** The cart with every quantity back at 0. */
-function emptied(shoppingCart: ShoppingCart): ShoppingCart {
-    return {
-        ...shoppingCart,
-        products: Object.fromEntries(
-            Object.entries(shoppingCart.products).map(([productId, product]) => [productId, { ...product, quantity: 0 }])
-        ),
-    }
-}
-
-function addProduct(product: ShopPageProduct, shoppingCart: ShoppingCart, editShoppingCart: EditShoppingCart) {
-    editShoppingCart(withQuantity(shoppingCart, product.id, shoppingCart.products[product.id].quantity + 1))
-}
-
-function removeProduct(product: ShopPageProduct, shoppingCart: ShoppingCart, editShoppingCart: EditShoppingCart) {
-    editShoppingCart(withQuantity(shoppingCart, product.id, Math.max(0, shoppingCart.products[product.id].quantity - 1)))
-}
-
-/** The cart with one product's quantity changed, as a new object so React re-renders. */
-function withQuantity(shoppingCart: ShoppingCart, productId: number, quantity: number): ShoppingCart {
-    return {
-        ...shoppingCart,
-        products: {
-            ...shoppingCart.products,
-            [productId]: { ...shoppingCart.products[productId], quantity },
-        },
-    }
+                        {purchaseError && <p className="m-0 text-s text-accent-red">{purchaseError}</p>}
+                    </>
+                )}
+            </aside>
+        </div>
+    )
 }
