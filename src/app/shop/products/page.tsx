@@ -6,6 +6,8 @@ import { displayAmount } from '@/lib/currency/convert'
 import { productOperations } from '@/services/shop/product/operations'
 import { productAuth } from '@/services/shop/product/auth'
 import { serverPage } from '@/app/ServerPage'
+import Image from '@/components/Image/Image'
+import StandardImageServer from '@/components/Image/StandardImageServer'
 import Link from 'next/link'
 
 /** The product catalogue across every shop. Which shops sell a product is on its own page. */
@@ -26,6 +28,7 @@ const { page, generateMetadata } = serverPage({
             <table className="ohma-table">
                 <thead>
                     <tr>
+                        <th></th>
                         <th>Produkt</th>
                         <th>Beskrivelse</th>
                         <th>Strekkode</th>
@@ -34,6 +37,13 @@ const { page, generateMetadata } = serverPage({
                 </thead>
                 <tbody>
                     {sortObjectsByName(products).map(product => <tr key={product.id}>
+                        <td className="w-14">
+                            <div className="size-12 overflow-hidden rounded-inner bg-surface-hover [&_div]:size-full [&_img]:size-full [&_img]:object-cover">
+                                {product.image.image
+                                    ? <Image image={product.image.image} width={60} alt={product.name} hideCredit />
+                                    : <StandardImageServer standardImage="DEFAULT_IMAGE" width={60} />}
+                            </div>
+                        </td>
                         <td>
                             <Link
                                 style={{ display: 'contents' }}

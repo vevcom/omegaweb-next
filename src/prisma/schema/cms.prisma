@@ -18,6 +18,7 @@ model CmsImage {
   special              SpecialCmsImage? @unique
   event                Event?
   company              Company?
+  product              Product?
 }
 
 enum SpecialCmsParagraph {

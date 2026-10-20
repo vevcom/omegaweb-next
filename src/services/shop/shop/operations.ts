@@ -4,6 +4,8 @@ import { shopAuth } from './auth'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
+import { cmsImageOperations } from '@/cms/images/operations'
+import { productImageIncluder } from '@/services/shop/product/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import {
     assertAdminLevelIsSubOfRegularLevel,
@@ -97,7 +99,10 @@ export const shopOperations = {
                     ShopProduct: {
                         include: {
                             product: {
-                                include: { _count: { select: { ShopProduct: true } } },
+                                include: {
+                                    ...productImageIncluder,
+                                    _count: { select: { ShopProduct: true } },
+                                },
                             },
                         },
                     },
@@ -176,14 +181,23 @@ export const shopOperations = {
         }),
         paramsSchema: shopSchemas.params.createProduct,
         dataSchema: shopSchemas.data.createProduct,
-        operation: async ({ prisma, params, data: { price, ...product } }) => prisma.product.create({
-            data: {
-                ...product,
-                suggestedPrice: price,
-                ShopProduct: {
-                    create: { price, shopId: params.shopId },
+        opensTransaction: true,
+        operation: async ({ prisma, params, data: { price, ...product } }) => prisma.$transaction(async tx => {
+            const image = await cmsImageOperations.create.internalCall({
+                data: {},
+                prisma: tx,
+                operationImplementationFields: { special: null },
+            })
+            return tx.product.create({
+                data: {
+                    ...product,
+                    suggestedPrice: price,
+                    image: { connect: { id: image.id } },
+                    ShopProduct: {
+                        create: { price, shopId: params.shopId },
+                    },
                 },
-            },
+            })
         }),
     }),
 
