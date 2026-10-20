@@ -109,7 +109,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                 </div>
             )}
 
-            <aside className="sticky z-2 flex flex-col gap-4 rounded-round bg-surface-raised p-5 shadow-soft mobile:top-0 max-mobile:bottom-0 max-mobile:max-h-[60dvh] max-mobile:overflow-y-auto">
+            <aside className="sticky z-2 flex flex-col gap-4 rounded-round bg-surface-raised p-5 mobile:top-0 max-mobile:bottom-0 max-mobile:max-h-[60dvh] max-mobile:overflow-y-auto">
                 {receipt ? (
                     <>
                         <div className="flex items-center gap-3 text-accent-green">
