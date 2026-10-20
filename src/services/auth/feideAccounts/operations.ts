@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { feideAccountSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
+import { userPartitions } from '@/services/users/constants'
 
 /**
  * This is an internal service meant to be called from other auth related services.
@@ -21,7 +22,7 @@ export const feideAccountOperations = {
         paramsSchema: () => feideAccountSchemas.params.readUser,
         operation: () => async ({ prisma, params }) => {
             const feideAccount = await prisma.feideAccount.findUnique({
-                where: { id: params.feideAccountId, user: { archived: false } },
+                where: { id: params.feideAccountId, user: userPartitions.unarchived },
                 select: { user: true },
             })
             return feideAccount?.user ?? null

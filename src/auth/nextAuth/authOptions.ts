@@ -16,6 +16,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { groupOperations } from '@/services/groups/operations'
 import { feideAccountOperations } from '@/services/auth/feideAccounts/operations'
 import { userOperations } from '@/services/users/operations'
+import { userPartitions } from '@/services/users/constants'
 import { permissionOperations } from '@/services/permissions/operations'
 import logger from '@/lib/logger'
 import CredentialsProvider from 'next-auth/providers/credentials'
@@ -39,9 +40,7 @@ export const authOptions: AuthOptions = {
                 const userCredentials = await prisma.credentials.findUnique({
                     where: {
                         username: credentials.username.toLowerCase(),
-                        user: {
-                            archived: false,
-                        },
+                        user: userPartitions.unarchived,
                     },
                     select: {
                         userId: true,
@@ -85,7 +84,7 @@ export const authOptions: AuthOptions = {
             const user = await prisma.user.findUnique({
                 where: {
                     id: token.user.id,
-                    archived: false,
+                    ...userPartitions.unarchived,
                 },
                 select: {
                     sessionEpoch: true,

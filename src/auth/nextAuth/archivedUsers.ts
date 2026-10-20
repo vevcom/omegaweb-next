@@ -1,4 +1,5 @@
 import '@pn-server-only'
+import { userPartitions } from '@/services/users/constants'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 /**
@@ -18,7 +19,7 @@ export async function loginReachesArchivedUser(prisma: PrismaClient, {
 }) {
     const archivedUser = await prisma.user.findFirst({
         where: {
-            archived: true,
+            ...userPartitions.archived,
             OR: [
                 ...(userId !== undefined ? [{ id: userId }] : []),
                 ...(feideAccountId ? [{ feideAccount: { id: feideAccountId } }] : []),

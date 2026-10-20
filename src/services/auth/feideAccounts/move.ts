@@ -1,5 +1,6 @@
 import '@pn-server-only'
 import { ServiceError } from '@/services/error'
+import { userPartitions } from '@/services/users/constants'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 /**
@@ -63,7 +64,7 @@ export async function moveFeideAccountToUser(
         }
 
         const toUser = await transaction.user.findUniqueOrThrow({
-            where: { id: toUserId, archived: false },
+            where: { id: toUserId, ...userPartitions.unarchived },
             select: {
                 credentials: { select: { userId: true } },
                 feideAccount: { select: { id: true } },
