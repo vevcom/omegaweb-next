@@ -4,38 +4,21 @@ import { determineTransactionState } from './determineTransactionState'
 import { hasPaymentCompletionHook } from './paymentCompletionHooks'
 import { ledgerTransactionAuth } from './auth'
 import { ledgerTransactionSchemas } from './schemas'
-import { expandedLedgerTransactionInclude } from './constants'
+import { expandedLedgerTransactionIncluder } from './constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
-import { resolveAccountOwnership, resolveAccountsOwnership } from '@/services/ledger/accounts/ownership'
+import { paymentIncluder } from '@/services/ledger/payments/constants'
+import {
+    resolveAccountOwnership,
+    resolveAccountsOwnership,
+    resolveTransactionAccounts,
+} from '@/services/ledger/accounts/ownership'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { Prisma as PrismaRuntime } from '@/prisma-generated-pn-client'
 import type { ExpandedLedgerTransaction } from './types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
-import type { Prisma } from '@/prisma-generated-pn-types'
-
-/** Resolves the owners of a transaction's accounts, for authorizers. */
-async function resolveTransactionAccounts(prisma: Prisma.TransactionClient, transactionId: number) {
-    const transaction = await prisma.ledgerTransaction.findUnique({
-        where: { id: transactionId },
-        select: {
-            ledgerEntries: {
-                select: {
-                    ledgerAccount: {
-                        select: { user: { select: { id: true } }, groups: { select: { groupId: true } } },
-                    },
-                },
-            },
-        },
-    })
-
-    return (transaction?.ledgerEntries ?? []).map(entry => ({
-        userId: entry.ledgerAccount.user?.id ?? null,
-        groupIds: entry.ledgerAccount.groups.map(group => group.groupId),
-    }))
-}
 
 // Nested calls to other operations are not bypassed unless noted: the checks involved are cheap,
 // so it is worth checking access again rather than assuming the outer check already covered it.
@@ -48,16 +31,12 @@ export const ledgerTransactionOperations = {
             accounts: await resolveTransactionAccounts(prisma, params.id),
         }),
         paramsSchema: ledgerTransactionSchemas.params.read,
-        operation: async ({ prisma, params }) => {
-            const transaction = await prisma.ledgerTransaction.findUniqueOrThrow({
-                where: {
-                    id: params.id,
-                },
-                include: expandedLedgerTransactionInclude,
-            })
-
-            return transaction
-        }
+        operation: async ({ prisma, params }) => await prisma.ledgerTransaction.findUniqueOrThrow({
+            where: {
+                id: params.id,
+            },
+            include: expandedLedgerTransactionIncluder,
+        }),
     }),
 
     /**
@@ -129,7 +108,7 @@ export const ledgerTransactionOperations = {
             if (transaction.payment.state !== 'PENDING') {
                 return await prisma.payment.findUniqueOrThrow({
                     where: { id: transaction.payment.id },
-                    include: { stripePayment: true, manualPayment: true },
+                    include: paymentIncluder,
                 })
             }
 
@@ -143,6 +122,27 @@ export const ledgerTransactionOperations = {
                 throw error
             }
         },
+    }),
+
+    /**
+     * Same as cancel, opening its own transaction around it - for the client-facing cancel
+     * button, the only caller that doesn't already run inside one (every other caller, e.g.
+     * createPayment, nests cancel in its own). cancel's two writes - its payment's, and the
+     * transaction's own - are otherwise only atomic together by accident of whichever
+     * transaction happens to already be ambient when it's called. Deliberately reuses cancel's
+     * own params schema and authorizer rather than declaring matching ones under this name: it's
+     * the exact same check and shape, not a different operation that happens to look similar.
+     */
+    cancelOwn: defineOperation({
+        authorizer: () => ledgerTransactionAuth.cancel,
+        paramsSchema: ledgerTransactionSchemas.params.cancel,
+        opensTransaction: true,
+        operation: async ({ prisma, params }): Promise<ExpandedLedgerTransaction> => prisma.$transaction(tx =>
+            ledgerTransactionOperations.cancel({
+                params,
+                prisma: tx,
+                bypassAuth: true,
+            })),
     }),
 
     /**
@@ -161,7 +161,7 @@ export const ledgerTransactionOperations = {
                     },
                 },
             },
-            include: expandedLedgerTransactionInclude,
+            include: expandedLedgerTransactionIncluder,
             orderBy: [
                 { createdAt: 'desc' },
                 { id: 'desc' },
@@ -359,8 +359,9 @@ export const ledgerTransactionOperations = {
                 bypassAuth: true,
             })
 
+            // Every transition to FAILED gives its reason (see determineTransactionState), which is the
+            // message the caller needs, so the fallback is only a safety net.
             if (transaction.state === 'FAILED') {
-                // TODO: Better error message.
                 throw new ServiceError('BAD PARAMETERS', transaction.reason ?? 'Transaksjonen feilet av ukjent årsak.')
             }
 

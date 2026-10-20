@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { manualReviewOperations } from './manualReviews/operations'
-import { expandedLedgerTransactionInclude } from './constants'
+import { expandedLedgerTransactionIncluder } from './constants'
 import { cabinBookingPaymentCompletionHook } from '@/services/cabin/booking/paymentCompletion'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { ExpandedLedgerTransaction } from './types'
@@ -40,7 +40,7 @@ export function hasPaymentCompletionHook(purpose: LedgerTransactionPurpose) {
 export async function runNextPaymentCompletionHook(): Promise<boolean> {
     const transaction = await prisma.ledgerTransaction.findFirst({
         where: { completionHookRequestedAt: { not: null }, completionHookRanAt: null },
-        include: expandedLedgerTransactionInclude,
+        include: expandedLedgerTransactionIncluder,
         orderBy: { completionHookRequestedAt: 'asc' },
     })
     if (!transaction) return false

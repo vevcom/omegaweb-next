@@ -11,19 +11,18 @@ export const validTransactionFilter = {
     refundOf: null,
 } satisfies Prisma.LedgerTransactionWhereInput
 
-// What a transaction is read with everywhere, see ExpandedLedgerTransaction. Both sides of a
-// transaction can read it, so it leaves out the payment's clientSecret and paymentIntentId, which
-// the payer gets from ExpandedPayment instead, and the booking's secret, notes, tenantNotes, userId
-// and guestUserId.
-export const expandedLedgerTransactionInclude = {
+export const expandedLedgerTransactionIncluder = {
     ledgerEntries: true,
     payment: {
         include: {
+            // Never clientSecret/paymentIntentId: both sides can read this. The payer gets
+            // the clientSecret from ExpandedPayment instead.
             stripePayment: { select: { createdAt: true, updatedAt: true } },
             manualPayment: true,
         },
     },
     booking: {
+        // Never secret, notes, tenantNotes, userId or guestUserId: both sides can read this.
         select: {
             start: true,
             end: true,
@@ -44,4 +43,4 @@ export const expandedLedgerTransactionInclude = {
             PurchaseProduct: { include: { product: { select: { name: true } } } },
         },
     },
-} satisfies Prisma.LedgerTransactionInclude
+} as const satisfies Prisma.LedgerTransactionInclude

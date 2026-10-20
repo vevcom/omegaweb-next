@@ -615,6 +615,17 @@ describe('unregistering from a paid event', () => {
 })
 
 describe('deleting an event', () => {
+    beforeEach(() => {
+        jest.spyOn(stripe.paymentIntents, 'create').mockImplementation(() => Promise.resolve(
+            { id: 'pi_test_destroy_event', client_secret: 'pi_test_destroy_event_secret' } as never
+        ))
+        jest.spyOn(stripe.customers, 'create').mockResolvedValue({ id: 'cus_test_destroy_event' } as never)
+    })
+
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
     test('an event with registrations can be deleted, taking its registrations with it', async () => {
         const eventId = await createEvent({ places: 5, waitingList: true })
         const user = await createTestUser('destroyeventregistered')
@@ -624,5 +635,33 @@ describe('deleting an event', () => {
 
         expect(await prisma.event.findUnique({ where: { id: eventId } })).toBeNull()
         expect(await countRegistrations(eventId)).toBe(0)
+    })
+
+    test('an event with a paid registration cannot be deleted', async () => {
+        const eventId = await createPaidEvent(await createCommittee('destroy-paid-committee'))
+        const registrant = await createTestUser('destroyeventpaid')
+        await register(registrant, eventId)
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'MANUAL', manualFees: 0 },
+            session: manualPayerSessionOf(registrant),
+        })
+
+        await expect(eventOperations.destroy({ params: { id: eventId }, bypassAuth: true }))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        expect(await countRegistrations(eventId, registrant)).toBe(1)
+    })
+
+    test('an event with a payment still processing cannot be deleted', async () => {
+        const eventId = await createPaidEvent(await createCommittee('destroy-pending-committee'))
+        const registrant = await createTestUser('destroyeventpending')
+        await register(registrant, eventId)
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: payerSessionOf(registrant),
+        })
+
+        await expect(eventOperations.destroy({ params: { id: eventId }, bypassAuth: true }))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        expect(await countRegistrations(eventId, registrant)).toBe(1)
     })
 })

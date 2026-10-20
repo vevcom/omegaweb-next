@@ -102,3 +102,30 @@ export async function resolveAccountsOwnership(
 
     return ownerships
 }
+
+/**
+ * Resolves the owners of a transaction's accounts, for authorizers. Returns no ownerships if the
+ * transaction doesn't exist.
+ */
+export async function resolveTransactionAccounts(
+    prisma: Prisma.TransactionClient,
+    transactionId: number,
+): Promise<LedgerAccountOwnership[]> {
+    const transaction = await prisma.ledgerTransaction.findUnique({
+        where: { id: transactionId },
+        select: {
+            ledgerEntries: {
+                select: {
+                    ledgerAccount: {
+                        select: { user: { select: { id: true } }, groups: { select: { groupId: true } } },
+                    },
+                },
+            },
+        },
+    })
+
+    return (transaction?.ledgerEntries ?? []).map(entry => ({
+        userId: entry.ledgerAccount.user?.id ?? null,
+        groupIds: entry.ledgerAccount.groups.map(group => group.groupId),
+    }))
+}
