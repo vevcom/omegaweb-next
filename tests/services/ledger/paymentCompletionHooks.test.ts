@@ -3,6 +3,7 @@ import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { runNextPaymentCompletionHook } from '@/services/ledger/transactions/paymentCompletionHooks'
+import { blocksCalendar } from '@/services/cabin/booking/operations'
 import { userOperations } from '@/services/users/operations'
 import { recordSentMail } from 'tests/utils'
 import { beforeEach, describe, expect, test } from '@jest/globals'
@@ -136,5 +137,58 @@ describe('payment completion', () => {
         // The payment itself still stands.
         expect(await prisma.ledgerTransaction.findUniqueOrThrow({ where: { id: transaction.id } }))
             .toMatchObject({ state: 'SUCCEEDED' })
+    })
+
+    test('a booking paid within its hold keeps its dates past the hold, until the worker confirms it', async () => {
+        const booking = await createReservation(new Date('2031-04-10'))
+        const transaction = await payForBooking(booking.id, 'completionslowworker')
+        // Paid two minutes ago, and the hold ran out a minute ago, with the worker down since.
+        await prisma.ledgerTransaction.update({
+            where: { id: transaction.id },
+            data: { completionHookRequestedAt: new Date(Date.now() - 2 * 60 * 1000) },
+        })
+        await prisma.booking.update({
+            where: { id: booking.id },
+            data: { transactionTimeout: new Date(Date.now() - 60 * 1000) },
+        })
+
+        expect(await prisma.booking.count({ where: { id: booking.id, ...blocksCalendar() } })).toBe(1)
+
+        expect(await runNextPaymentCompletionHook()).toBe(true)
+        expect(await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } }))
+            .toMatchObject({ transactionTimeout: null, canceled: null })
+        expect(sentMail).toHaveBeenCalledTimes(1)
+    })
+
+    test('a booking paid after its hold ran out loses to one that took its dates, whichever completes first', async () => {
+        const late = await createReservation(new Date('2031-05-10'))
+        const lateTransaction = await payForBooking(late.id, 'completionlatepayer')
+        const onTime = await createReservation(new Date('2031-05-11'))
+        const onTimeTransaction = await payForBooking(onTime.id, 'completionontimepayer')
+
+        // The late booking's hold ran out before its payment succeeded, and the other booking took
+        // the dates in between. The on-time payment is completed first.
+        await prisma.booking.update({
+            where: { id: late.id },
+            data: { transactionTimeout: new Date(Date.now() - 10 * 60 * 1000) },
+        })
+        await prisma.ledgerTransaction.update({
+            where: { id: onTimeTransaction.id },
+            data: { completionHookRequestedAt: new Date(Date.now() - 2 * 60 * 1000) },
+        })
+        await prisma.ledgerTransaction.update({
+            where: { id: lateTransaction.id },
+            data: { completionHookRequestedAt: new Date(Date.now() - 60 * 1000) },
+        })
+
+        expect(await runNextPaymentCompletionHook()).toBe(true)
+        expect(await runNextPaymentCompletionHook()).toBe(true)
+
+        expect(await prisma.booking.findUniqueOrThrow({ where: { id: onTime.id } }))
+            .toMatchObject({ transactionTimeout: null, canceled: null })
+        expect(await prisma.booking.findUniqueOrThrow({ where: { id: late.id } }))
+            .toMatchObject({ canceled: expect.any(Date) })
+        expect(await prisma.manualTransactionReview.findMany({ where: { transactionId: lateTransaction.id } }))
+            .toMatchObject([{ problem: 'CABIN_DOUBLE_BOOKING' }])
     })
 })

@@ -35,10 +35,17 @@ export async function cabinBookingPaymentCompletionHook(
 
     const booking = await prisma.booking.findUniqueOrThrow({ where: { id: transaction.bookingId } })
 
+    // A booking paid within its hold blocked the calendar the whole time, so nothing else can have
+    // taken its dates. Checking anyway would let a booking paid after its own hold ran out win.
+    const paidWithinHold = booking.transactionTimeout === null || (
+        transaction.completionHookRequestedAt !== null
+        && transaction.completionHookRequestedAt <= booking.transactionTimeout
+    )
+
     // Backstop: the hold is time-boxed, so a late Stripe webhook can arrive after another booking
     // took the same dates. The ledger sweeper cancels stale attempts, but not before the hold ends
     // or while the worker is down.
-    const conflicting = await prisma.booking.findFirst({
+    const conflicting = !paidWithinHold && await prisma.booking.findFirst({
         where: {
             id: { not: booking.id },
             start: { lt: booking.end },
