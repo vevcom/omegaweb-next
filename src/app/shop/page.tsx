@@ -7,7 +7,8 @@ import { shopOperations } from '@/services/shop/shop/operations'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { productAuth } from '@/services/shop/product/auth'
 import { serverPage } from '@/app/ServerPage'
-import { faBox } from '@fortawesome/free-solid-svg-icons'
+import { faArrowRight, faBox, faStore } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 
 const { page, generateMetadata } = serverPage({
@@ -33,26 +34,29 @@ const { page, generateMetadata } = serverPage({
                 </div>
             }
         >
-            <table className="ohma-table">
-                <thead>
-                    <tr>
-                        <th>Butikk</th>
-                        <th>Beskrivelse</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {sortObjectsByName(shops).map(shop =>
-                        <tr key={shop.id}>
-                            <td>
-                                <Link style={{ display: 'contents' }} href={`/shop/${shop.id}`} passHref>
-                                    {shop.name}
-                                </Link>
-                            </td>
-                            <td>{shop.description}</td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            {shops.length === 0 ? (
+                <p className="text-text-muted">Det finnes ingen butikker ennå.</p>
+            ) : (
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
+                    {sortObjectsByName(shops).map(shop => (
+                        <Link
+                            key={shop.id}
+                            href={`/shop/${shop.id}`}
+                            className="group flex flex-col gap-3 rounded-round bg-surface-raised p-5 text-text no-underline shadow-soft transition-[box-shadow,translate] duration-300 hover:-translate-y-0.5 hover:no-underline hover:shadow-soft-hover"
+                        >
+                            <span className="grid size-12 place-items-center rounded-full bg-accent-blue text-text-inv [&_svg]:text-inherit [&_path]:text-inherit">
+                                <FontAwesomeIcon icon={faStore} className="size-5!" />
+                            </span>
+                            <h2 className="m-0 text-l">{shop.name}</h2>
+                            {shop.description && <p className="m-0 text-s text-text-muted line-clamp-3">{shop.description}</p>}
+                            <span className="mt-auto flex items-center gap-2 pt-2 text-s font-medium text-accent-blue [&_svg]:text-inherit [&_path]:text-inherit">
+                                Gå til butikken
+                                <FontAwesomeIcon icon={faArrowRight} className="size-3! transition-transform duration-300 group-hover:translate-x-1" />
+                            </span>
+                        </Link>
+                    ))}
+                </div>
+            )}
         </PageWrapper>
     ),
 })
