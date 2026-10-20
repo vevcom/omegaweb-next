@@ -4,6 +4,7 @@ import useScroll from '@/hooks/useScroll'
 import useOnNavigation from '@/hooks/useOnNavigation'
 import useViewPort from '@/hooks/useViewPort'
 import useAuthorizer from '@/hooks/useAuthorizer'
+import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import { removeArticleFromCategoryAction } from '@/services/articleCategories/actions'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { formatVevenUri } from '@/lib/urlEncoding'
@@ -45,7 +46,7 @@ export default function SideBar({ category, children }: PropTypes) {
     useViewPort(() => handleHeight(window.screenX, window.scrollY))
 
     return (
-        <div className="flex relative mobile:h-full mobile:gap-2">
+        <div className="flex relative h-full mobile:gap-2">
             <aside className="mobile:bg-surface-base mobile:rounded-round mobile:w-[300px] mobile:left-0 mobile:z-2">
                 <div ref={measure} className="mobile:h-[calc(100%-2em)]">
                     <div ref={ref} className="max-mobile:hidden opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out] overflow-auto text-text m-[1em_0em_1em_1em] p-[calc(3*var(--rounding))] [&_h2]:text-l">
@@ -55,8 +56,10 @@ export default function SideBar({ category, children }: PropTypes) {
                 </div>
             </aside>
 
-            <main className="mobile:bg-surface-base mobile:rounded-round mobile:z-1 mobile:overflow-hidden mobile:w-[calc(100%-300px-var(--gap))] max-mobile:min-h-screen max-mobile:w-full">
-                {children}
+            <main className="mobile:bg-surface-base mobile:rounded-round mobile:z-1 mobile:overflow-hidden mobile:w-[calc(100%-300px-var(--gap))] max-mobile:w-full">
+                <ScrollArea className="h-full" scrollerClassName="max-mobile:pb-[110px]">
+                    {children}
+                </ScrollArea>
             </main>
 
             <span className={[
