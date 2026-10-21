@@ -70,18 +70,22 @@ export async function findAvailabilityConflict(
         return overlapping.length > 0 ? 'Hytta er ikke tilgjengelig i den perioden.' : null
     }
 
-    for (let night = booking.start.getTime(); night < booking.end.getTime(); night += dayMs) {
+    const nights = Array.from(
+        { length: Math.ceil((booking.end.getTime() - booking.start.getTime()) / dayMs) },
+        (_, index) => booking.start.getTime() + index * dayMs,
+    )
+    const overbooked = nights.some(night => {
         const bookedThatNight = overlapping
             .filter(other => other.start.getTime() <= night && night < other.end.getTime())
             .flatMap(other => other.BookingProduct)
-        for (const product of booking.products) {
+        return booking.products.some(product => {
             const taken = bookedThatNight
                 .filter(bookedProduct => bookedProduct.cabinProductId === product.cabinProductId)
                 .reduce((sum, bookedProduct) => sum + bookedProduct.quantity, 0)
-            if (taken + product.quantity > product.amount) return 'Det er ikke nok ledige senger i den perioden.'
-        }
-    }
-    return null
+            return taken + product.quantity > product.amount
+        })
+    })
+    return overbooked ? 'Det er ikke nok ledige senger i den perioden.' : null
 }
 
 type BookingProductParams = z.infer<typeof cabinBookingSchemas.params.createCabinBookingNoUser>['bookingProducts']
