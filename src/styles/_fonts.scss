@@ -33,11 +33,23 @@ $fonts: (
   font-weight: normal;
   font-style: normal;
   font-display: swap;
+  ascent-override: 85%;
+  descent-override: 15%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Lincoln';
+  src: url('/fonts/Lincoln/Lincoln.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+  ascent-override: 85%;
 }
 
 $primary: 'Inter', sans-serif;
 $secondary: 'PlayfairDisplay', serif;
-$title: 'OldLondon', 'PlayfairDisplay', serif;
+$title: 'Lincoln', 'OldLondon', 'PlayfairDisplay', serif;
 
 $s: clamp(12px, 2vw, 14px);
 $m: clamp(14px, 2.5vw, 16px);
