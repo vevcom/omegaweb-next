@@ -12,8 +12,8 @@ const REWIND_START_SPEED = 10
 // The rush plays fraction^RUSH_ACCELERATION of the history as that fraction of it passes, so it
 // starts slowly and ends at full speed.
 const RUSH_ACCELERATION = 4
-// The graph fades out this long before the rush, and fades in again at the first commit as it begins.
-const DARK_BEFORE_RUSH_MS = 10000
+// The graph fades out as the screen goes dark before the rush, and fades in again at the first commit
+// as the rush begins.
 const FADE_OUT_MS = 1500
 const FADE_IN_MS = 2000
 // How many commits one row's worth of scrolling moves the graph.
@@ -132,12 +132,12 @@ type DrawSpotlightArgs = {
 }
 
 /**
- * How visible the graph is, given the milliseconds since the rush began, negative before it.
+ * How visible the graph is at the given time.
  */
-function opacityAt(sinceRush: number) {
-    const opacity = sinceRush < 0
-        ? (FADE_OUT_MS - DARK_BEFORE_RUSH_MS - sinceRush) / FADE_OUT_MS
-        : sinceRush / FADE_IN_MS
+function opacityAt(now: number, darkStartsAt: number, rushStartsAt: number) {
+    const opacity = now < rushStartsAt
+        ? 1 - (now - darkStartsAt) / FADE_OUT_MS
+        : (now - rushStartsAt) / FADE_IN_MS
     return Math.min(1, Math.max(0, opacity))
 }
 
@@ -309,6 +309,8 @@ function drawGraph({
 }
 
 type PropTypes = {
+    // When the screen goes dark before the rush, as a timestamp.
+    darkStartsAt: number,
     // When the rush through the whole history begins, as a timestamp, and how long it lasts.
     rushStartsAt: number,
     rushDuration: number,
@@ -318,10 +320,10 @@ type PropTypes = {
  * Plays the project's git history as a growing git graph, like `git log --graph` scrolling by,
  * with the newest commit on top. The graph is tilted back so it lies a little flat.
  * The graph is the one fetched from GitHub into the store (updated from the admin panel); until
- * there is one, nothing plays. Before rushStartsAt it fades out, and at rushStartsAt it fades in
- * again and plays the whole history from the first commit, faster and faster.
+ * there is one, nothing plays. At darkStartsAt it fades out, and at rushStartsAt it fades in again
+ * and plays the whole history from the first commit, faster and faster.
  */
-export default function GitGraphPlayer({ rushStartsAt, rushDuration }: PropTypes) {
+export default function GitGraphPlayer({ darkStartsAt, rushStartsAt, rushDuration }: PropTypes) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [graph, setGraph] = useState<GitGraph | null>(null)
 
@@ -430,13 +432,13 @@ export default function GitGraphPlayer({ rushStartsAt, rushDuration }: PropTypes
             const endProgress = endProgressFor(graph, height, layout)
 
             progress ??= endProgress
-            const sinceRush = Date.now() - rushStartsAt
-            canvas.style.opacity = String(opacityAt(sinceRush))
-            if (sinceRush >= FADE_OUT_MS - DARK_BEFORE_RUSH_MS) {
+            const now = Date.now()
+            canvas.style.opacity = String(opacityAt(now, darkStartsAt, rushStartsAt))
+            if (now >= darkStartsAt + FADE_OUT_MS) {
                 // Dark and waiting at the first commit, or rushing from it. Scrolling is ignored.
                 rewinding = false
                 pendingScroll = 0
-                const rushFraction = reducedMotion ? 0 : Math.min(1, Math.max(0, sinceRush / rushDuration))
+                const rushFraction = reducedMotion ? 0 : Math.min(1, Math.max(0, (now - rushStartsAt) / rushDuration))
                 progress = 1 + (lastProgress - 1) * rushFraction ** RUSH_ACCELERATION
             } else if (rewinding) {
                 // Scrolling is ignored during the rewind.
@@ -479,7 +481,7 @@ export default function GitGraphPlayer({ rushStartsAt, rushDuration }: PropTypes
             window.removeEventListener('touchstart', onTouchStart)
             window.removeEventListener('touchmove', onTouchMove)
         }
-    }, [graph, rushStartsAt, rushDuration])
+    }, [graph, darkStartsAt, rushStartsAt, rushDuration])
 
     // Covers the screen behind the countdown, tilted back and fading into the distance at the top.
     return (
