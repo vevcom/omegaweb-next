@@ -27,11 +27,13 @@ export default async function UserSettingsNav({ username, userId }: UserNavSubje
                 [&::-webkit-details-marker]:hidden
             ">
                 <FontAwesomeIcon icon={faCog} />
-                <p className="w-[6.25em]">Innstillinger</p>
-                <FontAwesomeIcon icon={faChevronDown} className="
-                    transition-transform duration-300
-                    group-open:rotate-180
-                " />
+                <p className="w-[8em] flex items-center justify-center gap-[0.5em]">
+                    Innstillinger
+                    <FontAwesomeIcon icon={faChevronDown} className="
+                        transition-transform duration-300
+                        group-open:rotate-180
+                    " />
+                </p>
             </summary>
             <div className="flex flex-col items-center gap-2">
                 {items.map(item => (
