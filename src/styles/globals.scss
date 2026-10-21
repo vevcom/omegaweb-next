@@ -117,4 +117,12 @@
         font-size: ohma.$fonts-s;
         font-weight: ohma.$fonts-weight-s;
     }
+
+    ul {
+        list-style: disc;
+    }
+
+    ol {
+        list-style: decimal;
+    }
 }
