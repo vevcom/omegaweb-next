@@ -39,12 +39,15 @@ export default function ShopUI({ shop, userId, capabilities }: {
     const [purchaseError, setPurchaseError] = useState<string | null>(null)
 
     const cart: CartLine[] = products
+        .filter(product => product.active)
         .map(product => ({ product, quantity: quantities[product.id] ?? 0 }))
         .filter(line => line.quantity > 0)
     const itemCount = cart.reduce((count, line) => count + line.quantity, 0)
     const total = cart.reduce((sum, line) => sum + line.quantity * line.product.price, 0)
 
     const changeQuantity = (productId: number, change: number) => {
+        // A successful purchase empties the cart, which would drop anything added while it ran.
+        if (purchasing) return
         setReceipt(null)
         setQuantities(current => ({ ...current, [productId]: Math.max(0, (current[productId] ?? 0) + change) }))
     }

@@ -5,19 +5,25 @@ import { sortObjectsByName } from '@/lib/sortObjects'
 import { displayAmount } from '@/lib/currency/convert'
 import { productOperations } from '@/services/shop/product/operations'
 import { productAuth } from '@/services/shop/product/auth'
-import { serverPage } from '@/app/ServerPage'
+import { standardImageCollectionOperations } from '@/services/images/standard/operations'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import Image from '@/components/Image/Image'
-import StandardImageServer from '@/components/Image/StandardImageServer'
 import Link from 'next/link'
 
 /** The product catalogue across every shop. Which shops sell a product is on its own page. */
 const { page, generateMetadata } = serverPage({
-    operation: () => productOperations.readMany({}),
+    operation: async () => ({
+        products: await productOperations.readMany({}),
+        defaultImage: await withFallback(
+            standardImageCollectionOperations.readStandardImage({ params: { standardImage: 'DEFAULT_IMAGE' } }),
+            null,
+        ),
+    }),
     capabilities: () => ({
         canCreateProduct: productAuth.create,
     }),
     metadata: () => ({ title: 'Produkter' }),
-    render: ({ data: products, capabilities }) => (
+    render: ({ data: { products, defaultImage }, capabilities }) => (
         <PageWrapper
             headerItem={capabilities.canCreateProduct.authorized &&
                 <AddHeaderItemPopUp popUpKey="createProduct">
@@ -41,7 +47,9 @@ const { page, generateMetadata } = serverPage({
                             <div className="size-12 overflow-hidden rounded-inner bg-surface-hover [&_div]:size-full [&_img]:size-full [&_img]:object-cover">
                                 {product.image.image
                                     ? <Image image={product.image.image} width={60} alt={product.name} hideCredit />
-                                    : <StandardImageServer standardImage="DEFAULT_IMAGE" width={60} />}
+                                    : defaultImage && (
+                                        <Image image={defaultImage} width={60} alt={product.name} hideCredit />
+                                    )}
                             </div>
                         </td>
                         <td>
