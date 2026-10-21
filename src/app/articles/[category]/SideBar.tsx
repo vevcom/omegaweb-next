@@ -76,7 +76,10 @@ export default function SideBar({ category, children }: PropTypes) {
                 max-mobile:block
                 fixed bottom-0 left-0 w-screen z-8 layer transition-[padding-bottom,height] duration-300
                 [&_ul>li]:ml-[calc(50px+var(--gap))]
-                ${openMobile ? 'pb-[60px] [&_svg]:[transform:rotateX(180deg)]' : 'h-[110px]'}
+                ${openMobile ? `
+                    pb-[60px]
+                    [&_svg]:[transform:rotateX(180deg)]
+                ` : 'h-[110px]'}
             `}>
                 <button
                     className="flex items-center w-full h-[40px] bg-transparent border-none my-2 mx-0"

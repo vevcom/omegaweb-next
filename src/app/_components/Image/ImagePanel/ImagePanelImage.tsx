@@ -47,7 +47,10 @@ export default function ImagePanelImage({ image, selected, onOpenDisplay, onTogg
                         hover:cursor-pointer
                         [&>svg]:absolute [&>svg]:top-1/2 [&>svg]:left-1/2 [&>svg]:-translate-1/2 [&>svg]:w-[80%]!
                         [&>svg]:h-[80%]!
-                        ${selected ? 'bg-accent-blue' : 'bg-surface-subtle hover:bg-surface-hover'}
+                        ${selected ? 'bg-accent-blue' : `
+                            bg-surface-subtle
+                            hover:bg-surface-hover
+                        `}
                     `}
                 >
                     <FontAwesomeIcon icon={faCheck} />

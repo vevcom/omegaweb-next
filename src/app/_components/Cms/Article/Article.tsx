@@ -99,7 +99,10 @@ export default function Article({
                     [grid-area:article] isolate
                     [&>*]:isolate [&>*]:relative
                     ${styles.article}
-                    ${noMargin ? '[&>*]:m-0' : '[&>*]:my-[2em] [&>*]:mx-[min(4rem,4vw)] [&>*:last-child]:mb-[1em]'}
+                    ${noMargin ? '[&>*]:m-0' : `
+                        [&>*]:my-[2em] [&>*]:mx-[min(4rem,4vw)]
+                        [&>*:last-child]:mb-[1em]
+                    `}
                     ${articleClassName ?? ''}
                 `}
             >

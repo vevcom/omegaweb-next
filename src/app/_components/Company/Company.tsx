@@ -77,7 +77,11 @@ export default function Company({
                     className={`
                         overflow-hidden flex items-center bg-surface-base rounded-inner
                         tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180
-                        ${squareLogo ? 'aspect-square [&_div]:size-full [&_img]:size-full [&_img]:object-contain' : ''}
+                        ${squareLogo ? `
+                            aspect-square
+                            [&_div]:size-full
+                            [&_img]:size-full [&_img]:object-contain
+                        ` : ''}
                     `}
                     cmsImage={company.logo}
                     width={logoWidth}

@@ -294,7 +294,10 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                                                         no-underline transition-colors duration-300
                                                         ${index === safeActiveIndex
                                                 ? 'bg-accent-blue text-text-inv'
-                                                : 'text-text hover:bg-surface-hover'}
+                                                : `
+                                                    text-text
+                                                    hover:bg-surface-hover
+                                                `}
                                                     `}
                                                     onMouseEnter={() => setActiveIndex(index)}
                                                     onClick={close}
