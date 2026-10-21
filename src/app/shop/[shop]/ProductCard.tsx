@@ -36,7 +36,10 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
     })
 
     return (
-        <article className={`group/card relative flex flex-col overflow-hidden rounded-round bg-surface-raised ${product.active ? '' : 'opacity-60'}`}>
+        <article className={`
+            group/card relative flex flex-col overflow-hidden rounded-round bg-surface-raised
+            ${product.active ? '' : 'opacity-60'}
+        `}>
             <div className="relative aspect-square overflow-hidden bg-surface-hover">
                 <CmsImage
                     cmsImage={product.image}
@@ -47,15 +50,25 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                     capabilities={{ canEdit: canEditImage }}
                     width={400}
                     alt={product.name}
-                    className="block! size-full [&_div]:size-full [&_img]:size-full [&_img]:object-cover [&_img]:transition-[scale] [&_img]:duration-500 group-hover/card:[&_img]:scale-105"
+                    className="
+                        block! size-full
+                        [&_div]:size-full
+                        [&_img]:size-full [&_img]:object-cover [&_img]:transition-[scale] [&_img]:duration-500
+                        group-hover/card:[&_img]:scale-105
+                    "
                 />
                 {!product.active && (
-                    <span className="absolute top-2 left-2 z-1 rounded-full bg-surface-base/90 px-3 py-1 text-s font-medium">
+                    <span className="
+                        absolute top-2 left-2 z-1 rounded-full bg-surface-base/90 px-3 py-1 text-s font-medium
+                    ">
                         Ikke i salg
                     </span>
                 )}
                 {quantity > 0 && (
-                    <span className="absolute top-2 right-2 z-1 grid place-items-center min-w-8 h-8 px-2 rounded-full bg-accent-blue text-text-inv text-s font-bold">
+                    <span className="
+                        absolute top-2 right-2 z-1 grid place-items-center min-w-8 h-8 px-2 rounded-full bg-accent-blue
+                        text-text-inv text-s font-bold
+                    ">
                         {quantity}
                     </span>
                 )}
@@ -68,7 +81,13 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                         <PopUp
                             popUpKey={`editProductForShop-${product.id}`}
                             showButtonContent={<FontAwesomeIcon icon={faPencil} />}
-                            showButtonClass="shrink-0 grid place-items-center size-8 p-2 rounded-full border-none bg-transparent cursor-pointer text-text-muted hover:text-accent-blue [&_svg]:text-inherit [&_path]:text-inherit"
+                            showButtonClass="
+                                shrink-0 grid place-items-center size-8 p-2 rounded-full border-none bg-transparent
+                                cursor-pointer text-text-muted
+                                hover:text-accent-blue
+                                [&_svg]:text-inherit
+                                [&_path]:text-inherit
+                            "
                         >
                             <EditProductForShopForm
                                 shop={shop}
@@ -88,7 +107,12 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                         quantity === 0 ? (
                             <button
                                 type="button"
-                                className="btn m-0! flex w-full items-center justify-center gap-2 h-9 py-0! px-4! rounded-full! text-s! [&_svg]:text-inherit [&_path]:text-inherit"
+                                className="
+                                    btn m-0! flex w-full items-center justify-center gap-2 h-9 py-0! px-4! rounded-full!
+                                    text-s!
+                                    [&_svg]:text-inherit
+                                    [&_path]:text-inherit
+                                "
                                 onClick={onAdd}
                             >
                                 <FontAwesomeIcon icon={faPlus} />
@@ -96,11 +120,21 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                             </button>
                         ) : (
                             <div className="flex items-center justify-between">
-                                <button type="button" className={stepButtonClassName} onClick={onRemove} aria-label={`Fjern én ${product.name}`}>
+                                <button
+                                    type="button"
+                                    className={stepButtonClassName}
+                                    onClick={onRemove}
+                                    aria-label={`Fjern én ${product.name}`}
+                                >
                                     <FontAwesomeIcon icon={faMinus} />
                                 </button>
                                 <span className="min-w-6 text-center font-bold tabular-nums">{quantity}</span>
-                                <button type="button" className={stepButtonClassName} onClick={onAdd} aria-label={`Legg til én ${product.name}`}>
+                                <button
+                                    type="button"
+                                    className={stepButtonClassName}
+                                    onClick={onAdd}
+                                    aria-label={`Legg til én ${product.name}`}
+                                >
                                     <FontAwesomeIcon icon={faPlus} />
                                 </button>
                             </div>

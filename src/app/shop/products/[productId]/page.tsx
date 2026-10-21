@@ -34,7 +34,11 @@ const { page, generateMetadata } = serverPage({
                         capabilities={{ canEdit: capabilities.canEditImage }}
                         width={400}
                         alt={product.name}
-                        className="block! size-full [&_div]:size-full [&_img]:size-full [&_img]:object-cover"
+                        className="
+                            block! size-full
+                            [&_div]:size-full
+                            [&_img]:size-full [&_img]:object-cover
+                        "
                     />
                 </div>
                 <div className="min-w-[260px] flex-1">

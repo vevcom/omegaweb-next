@@ -42,16 +42,33 @@ const { page, generateMetadata } = serverPage({
                         <Link
                             key={shop.id}
                             href={`/shop/${shop.id}`}
-                            className="group flex flex-col gap-3 rounded-round bg-surface-raised p-5 text-text no-underline transition-colors duration-300 hover:bg-surface-hover hover:no-underline"
+                            className="
+                                group flex flex-col gap-3 rounded-round bg-surface-raised p-5 text-text no-underline
+                                transition-colors duration-300
+                                hover:bg-surface-hover hover:no-underline
+                            "
                         >
-                            <span className="grid size-12 place-items-center rounded-full bg-accent-blue text-text-inv [&_svg]:text-inherit [&_path]:text-inherit">
+                            <span className="
+                                grid size-12 place-items-center rounded-full bg-accent-blue text-text-inv
+                                [&_svg]:text-inherit
+                                [&_path]:text-inherit
+                            ">
                                 <FontAwesomeIcon icon={faStore} className="size-5!" />
                             </span>
                             <h2 className="m-0 text-l">{shop.name}</h2>
-                            {shop.description && <p className="m-0 text-s text-text-muted line-clamp-3">{shop.description}</p>}
-                            <span className="mt-auto flex items-center gap-2 pt-2 text-s font-medium text-accent-blue [&_svg]:text-inherit [&_path]:text-inherit">
+                            {shop.description && (
+                                <p className="m-0 text-s text-text-muted line-clamp-3">{shop.description}</p>
+                            )}
+                            <span className="
+                                mt-auto flex items-center gap-2 pt-2 text-s font-medium text-accent-blue
+                                [&_svg]:text-inherit
+                                [&_path]:text-inherit
+                            ">
                                 Gå til butikken
-                                <FontAwesomeIcon icon={faArrowRight} className="size-3! transition-transform duration-300 group-hover:translate-x-1" />
+                                <FontAwesomeIcon icon={faArrowRight} className="
+                                    size-3! transition-transform duration-300
+                                    group-hover:translate-x-1
+                                " />
                             </span>
                         </Link>
                     ))}

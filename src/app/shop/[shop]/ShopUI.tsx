@@ -90,10 +90,18 @@ export default function ShopUI({ shop, userId, capabilities }: {
     }
 
     return (
-        <div className="grid items-start gap-6 mobile:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+        <div className="
+            grid items-start gap-6
+            mobile:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]
+        ">
             {products.length === 0 ? (
-                <div className="grid place-items-center gap-2 rounded-round bg-surface-raised p-12 text-center text-text-muted">
-                    <FontAwesomeIcon icon={faBasketShopping} className="size-10! text-inherit [&_path]:text-inherit" />
+                <div className="
+                    grid place-items-center gap-2 rounded-round bg-surface-raised p-12 text-center text-text-muted
+                ">
+                    <FontAwesomeIcon icon={faBasketShopping} className="
+                        size-10! text-inherit
+                        [&_path]:text-inherit
+                    " />
                     <p className="m-0">Butikken har ingen varer ennå.</p>
                 </div>
             ) : (
@@ -112,11 +120,18 @@ export default function ShopUI({ shop, userId, capabilities }: {
                 </div>
             )}
 
-            <aside className="sticky z-2 flex flex-col gap-4 rounded-round bg-surface-raised p-5 mobile:top-0 max-mobile:bottom-0 max-mobile:max-h-[60dvh] max-mobile:overflow-y-auto">
+            <aside className="
+                sticky z-2 flex flex-col gap-4 rounded-round bg-surface-raised p-5
+                mobile:top-0
+                max-mobile:bottom-0 max-mobile:max-h-[60dvh] max-mobile:overflow-y-auto
+            ">
                 {receipt ? (
                     <>
                         <div className="flex items-center gap-3 text-accent-green">
-                            <FontAwesomeIcon icon={faCircleCheck} className="size-7! text-inherit [&_path]:text-inherit" />
+                            <FontAwesomeIcon icon={faCircleCheck} className="
+                                size-7! text-inherit
+                                [&_path]:text-inherit
+                            " />
                             <h2 className="m-0 text-l text-text">Takk for kjøpet!</h2>
                         </div>
                         <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -137,19 +152,34 @@ export default function ShopUI({ shop, userId, capabilities }: {
                     <>
                         <div className="flex items-center justify-between">
                             <h2 className="m-0 flex items-center gap-2 text-l">
-                                <FontAwesomeIcon icon={faBasketShopping} className="size-5! text-inherit [&_path]:text-inherit" />
+                                <FontAwesomeIcon icon={faBasketShopping} className="
+                                    size-5! text-inherit
+                                    [&_path]:text-inherit
+                                " />
                                 Handlekurv
                             </h2>
-                            {itemCount > 0 && <span className="text-s text-text-muted">{itemCount} {itemCount === 1 ? 'vare' : 'varer'}</span>}
+                            {itemCount > 0 && (
+                                <span className="text-s text-text-muted">
+                                    {itemCount} {itemCount === 1 ? 'vare' : 'varer'}
+                                </span>
+                            )}
                         </div>
                         {cart.length === 0 ? (
-                            <p className="m-0 text-s text-text-muted max-mobile:hidden">Legg til varer for å handle.</p>
+                            <p className="
+                                m-0 text-s text-text-muted
+                                max-mobile:hidden
+                            ">Legg til varer for å handle.</p>
                         ) : (
-                            <ul className="m-0 flex list-none flex-col gap-2 p-0 max-mobile:hidden">
+                            <ul className="
+                                m-0 flex list-none flex-col gap-2 p-0
+                                max-mobile:hidden
+                            ">
                                 {cart.map(line => (
                                     <li key={line.product.id} className="flex justify-between gap-2 text-s">
                                         <span className="wrap-anywhere">{line.quantity} × {line.product.name}</span>
-                                        <span className="shrink-0 tabular-nums">{displayAmount(line.quantity * line.product.price)}</span>
+                                        <span className="shrink-0 tabular-nums">
+                                            {displayAmount(line.quantity * line.product.price)}
+                                        </span>
                                     </li>
                                 ))}
                             </ul>
@@ -159,7 +189,11 @@ export default function ShopUI({ shop, userId, capabilities }: {
                             <span className="text-xl font-bold tabular-nums">{displayAmount(total)}</span>
                         </div>
                         {capabilities.canPurchase.authorized && userId !== null ? (
-                            <Button className="m-0! w-full" disabled={purchasing || cart.length === 0} onClick={() => purchase(userId)}>
+                            <Button
+                                className="m-0! w-full"
+                                disabled={purchasing || cart.length === 0}
+                                onClick={() => purchase(userId)}
+                            >
                                 {purchasing ? 'Kjøper...' : 'Kjøp'}
                             </Button>
                         ) : (

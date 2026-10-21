@@ -44,7 +44,11 @@ const { page, generateMetadata } = serverPage({
                 <tbody>
                     {sortObjectsByName(products).map(product => <tr key={product.id}>
                         <td className="w-14">
-                            <div className="size-12 overflow-hidden rounded-inner bg-surface-hover [&_div]:size-full [&_img]:size-full [&_img]:object-cover">
+                            <div className="
+                                size-12 overflow-hidden rounded-inner bg-surface-hover
+                                [&_div]:size-full
+                                [&_img]:size-full [&_img]:object-cover
+                            ">
                                 {product.image.image
                                     ? <Image image={product.image.image} width={60} alt={product.name} hideCredit />
                                     : defaultImage && (
