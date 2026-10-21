@@ -4,13 +4,14 @@ import { describe, expect, test } from '@jest/globals'
 
 let userCounter = 0
 
-async function createUser({ withPassword = false }: { withPassword?: boolean } = {}) {
+async function createUser({ withPassword = false, archived = false }: { withPassword?: boolean, archived?: boolean } = {}) {
     const username = `feide-link-${++userCounter}`
     const email = `${username}@stud.ntnu.no`
     const user = await prisma.user.create({
         data: {
             username,
             email,
+            archived,
             bioParagraph: { create: {} },
             ledgerAccount: { create: { type: 'USER' } },
         },
@@ -79,5 +80,10 @@ describe('linking a Feide login to an existing user by email', () => {
             userId: user.id,
         } })
         expect(await feideLoginMayLinkByEmail(prisma, login)).toBe(true)
+    })
+
+    test('treats an archived user with the email as if it did not exist', async () => {
+        const user = await createUser({ archived: true })
+        expect(await feideLoginMayLinkByEmail(prisma, loginOf(user.email))).toBe(true)
     })
 })

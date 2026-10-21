@@ -1,8 +1,7 @@
 import '@pn-server-only'
 import { readJWTPayload } from '@/jwt/jwtReadUnsecure'
 import { feideAccountOperations } from '@/services/auth/feideAccounts/operations'
-import { userOperations } from '@/services/users/operations'
-import { userBasicSelection } from '@/services/users/constants'
+import { userBasicSelection, userPartitions } from '@/services/users/constants'
 import logger from '@/lib/logger'
 import type { UserBasic, UserFiltered } from '@/services/users/types'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
@@ -117,18 +116,18 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
         },
 
         async getUser(id) {
-            const user = await userOperations.readOrNull({
-                params: { id: Number(id) },
-                bypassAuth: true,
+            const user = await prisma.user.findUnique({
+                where: { id: Number(id), ...userPartitions.unarchived },
+                select: adapterUserSelection,
             })
 
             return user && convertToAdapterUser(user)
         },
 
         async getUserByEmail(email) {
-            const user = await userOperations.readOrNull({
-                params: { email },
-                bypassAuth: true,
+            const user = await prisma.user.findUnique({
+                where: { email, ...userPartitions.unarchived },
+                select: adapterUserSelection,
             })
 
             if (user) {
@@ -138,6 +137,7 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
             const account = await prisma.feideAccount.findUnique({
                 where: {
                     email,
+                    user: userPartitions.unarchived,
                 },
                 include: {
                     user: {

@@ -4,6 +4,7 @@ import ChangeEmailForm from './ChangeEmailForm'
 import AdminUserSettingsForm from './AdminUserSettingsForm'
 import ChangeClassForm from './ChangeClassForm'
 import ManageUserStudyProgrammes from './ManageUserStudyProgrammes'
+import ArchiveUserForm from './ArchiveUserForm'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import Image from '@/components/Image/Image'
 import CmsParagraphEditorForm from '@/components/Cms/CmsParagraph/CmsParagraphEditorForm'
@@ -36,7 +37,7 @@ const { page, generateMetadata } = serverPage({
             ? await userOperations.read({ params: { id: profile.user.id } })
             : null
 
-        return { profile, studyProgrammes, privateUser }
+        return { profile, studyProgrammes, privateUser, ownAccount: session.user?.id === profile.user.id }
     },
     capabilities: ({ profile }) => ({
         canUpdateProfile: userAuth.updateProfile.data({
@@ -50,9 +51,10 @@ const { page, generateMetadata } = serverPage({
         canUpdateUser: userAuth.update,
         canChangeClass: classAuth.changeClassOfUser,
         canManageStudyProgrammes: studyProgrammeAuth.update,
+        canArchive: userAuth.archive.data({ userId: profile.user.id }),
     }),
     render: ({ data, capabilities }) => {
-        const { profile, studyProgrammes, privateUser } = data
+        const { profile, studyProgrammes, privateUser, ownAccount } = data
 
         return (
             <div className="flex flex-col gap-2">
@@ -117,6 +119,11 @@ const { page, generateMetadata } = serverPage({
                                 order,
                             }))}
                         />
+                    </UserProfileSettingsCard>
+                )}
+                {capabilities.canArchive.authorized && (
+                    <UserProfileSettingsCard>
+                        <ArchiveUserForm userId={profile.user.id} ownAccount={ownAccount} />
                     </UserProfileSettingsCard>
                 )}
             </div>

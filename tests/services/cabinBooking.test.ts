@@ -80,6 +80,14 @@ describe('reserving the cabin', () => {
         await expect(reserveAsGuest(email, 30, 31)).rejects.toThrow(Smorekopp)
     })
 
+    test('the number of members and non-members must be whole numbers', async () => {
+        await expect(cabinBookingOperations.createCabinBookingUserAttached({
+            params: { userId: user.id, bookingProducts: [{ cabinProductId, quantity: 1 }] },
+            data: { start: date(36), end: date(37), acceptedTerms: true, numberOfMembers: 0.5, numberOfNonMembers: 1 },
+            session: Session.fromJsObject({ memberships: [], permissions: ['CABIN_USE'], user }),
+        })).rejects.toThrow(Smorekopp)
+    })
+
     test('a stay is capped, and a cabin booking is exactly one cabin', async () => {
         await expect(reserveAsGuest('long@example.com', 32, 33 + maxCabinBookingNights)).rejects.toThrow(Smorekopp)
         await expect(reserveAsGuest('double@example.com', 34, 35, 2)).rejects.toThrow(Smorekopp)

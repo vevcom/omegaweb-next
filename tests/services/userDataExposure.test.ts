@@ -41,6 +41,18 @@ beforeAll(async () => {
         },
         select: userPrivateSelection,
     })
+    // The reads for everyone only list the active omega students: users in a class and admitted.
+    const { order } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+    const memberGroups = await Promise.all([
+        prisma.class.findUniqueOrThrow({ where: { level: 'ONE' }, select: { groupId: true } }),
+        prisma.omegaMembershipGroup.findUniqueOrThrow({
+            where: { omegaMembershipLevel: 'SYSKEN' },
+            select: { groupId: true },
+        }),
+    ])
+    await prisma.membership.createMany({
+        data: memberGroups.map(({ groupId }) => ({ userId: target.id, groupId, order, active: true, admin: false })),
+    })
     viewer = await prisma.user.create({
         data: {
             username: 'exposure-viewer',

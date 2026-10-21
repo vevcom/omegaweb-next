@@ -1,4 +1,5 @@
 import { visibilityIncluder } from '@/services/visibility/implement'
+import { userPartitions } from '@/services/users/constants'
 import type { NotificationMethods } from '@/services/notifications/types'
 import type { Permission, Prisma } from '@/prisma-generated-pn-types'
 
@@ -34,6 +35,7 @@ export type DispatchableNotification = Prisma.NotificationGetPayload<{
  *    (src/auth/visibility/checkVisibility.ts): every requirement needs some condition met, and
  * 4. hold the notification's permission, when it has one: as a default permission or through an
  *    active membership of a group holding it, as readPermissionsOfUser resolves permissions.
+ * Archived users receive nothing.
  */
 export function recipientsWhere(
     notification: DispatchableNotification,
@@ -42,6 +44,7 @@ export function recipientsWhere(
 ): Prisma.UserWhereInput {
     const { permission } = notification
     return {
+        ...userPartitions.unarchived,
         notificationSubscriptions: {
             some: {
                 channelId: notification.channelId,

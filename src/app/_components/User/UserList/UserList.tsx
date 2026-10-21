@@ -2,9 +2,13 @@
 import Dropdown from '@/components/UI/Dropdown'
 import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import TextInput from '@/components/UI/TextInput'
+import Checkbox from '@/components/UI/Checkbox'
+import useAuthorizer from '@/hooks/useAuthorizer'
+import { userAuth } from '@/services/users/auth'
 import { UserPagingContext } from '@/contexts/paging/UserPaging'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import UserRow from '@/components/User/UserList/UserRow'
+import UnarchiveUserForm from '@/components/User/UserList/UnarchiveUserForm'
 import { useGroups } from '@/contexts/ClientData'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { orderOptions } from '@/lib/groups/groupOptions'
@@ -110,6 +114,9 @@ export default function UserList({
     const router = useRouter()
 
     const groupSelected = !!userPaging?.details.selectedGroup
+    const partition = userPaging?.details.partition ?? 'activeOmegaStudents'
+    // The list covers the active omega students. An admin may widen it to everyone who is not archived.
+    const canWiden = useAuthorizer({ authorizer: userAuth.readUnarchivedPage }).authorized && partition !== 'archived'
 
     const groupsResult = useGroups()
     const groups = groupsResult.status === 'success' ? groupsResult.groups : null
@@ -159,10 +166,16 @@ export default function UserList({
     const columnCount = 4 +
         (usersSelection || userSelection ? 1 : 0) +
         (displayForUser ? 1 : 0) +
+        (partition === 'archived' ? 1 : 0) +
         (groupSelected ? 2 : 0)
 
     const handleChangeName = (e: ChangeEvent<HTMLInputElement>) => {
         userPaging.setDetails({ ...userPaging.details, partOfName: e.target.value })
+    }
+
+    const handleWiden = (event: ChangeEvent<HTMLInputElement>) => {
+        const widened = event.target.checked
+        userPaging.setDetails({ ...userPaging.details, partition: widened ? 'unarchived' : 'activeOmegaStudents' })
     }
 
     const handleSort = (field: SortField) => {
@@ -307,6 +320,16 @@ export default function UserList({
                         </div>
                     )
                 }
+                {
+                    canWiden && (
+                        <Checkbox
+                            name="widen"
+                            label="Vis også uteksaminerte og ikke opptatte"
+                            checked={partition === 'unarchived'}
+                            onChange={handleWiden}
+                        />
+                    )
+                }
             </div>
             <div className="flex-auto overflow-y-auto">
                 <table className="
@@ -318,6 +341,7 @@ export default function UserList({
                         <tr className="sticky top-0 z-1">
                             {(usersSelection ?? userSelection) && <th></th>}
                             {displayForUser && <th></th>}
+                            {partition === 'archived' && <th></th>}
                             <th className={sortableClassName} aria-sort={ariaSort('name')}>
                                 <button type="button" className={sortButtonClassName} onClick={() => handleSort('name')}>
                                     Navn {sortIcon('name')}
@@ -382,6 +406,9 @@ export default function UserList({
                                 }
                                 {
                                     displayForUser && <td>{displayForUser(user)}</td>
+                                }
+                                {
+                                    partition === 'archived' && <td><UnarchiveUserForm userId={user.id} /></td>
                                 }
                                 <UserRow
                                     groupSelected={groupSelected}

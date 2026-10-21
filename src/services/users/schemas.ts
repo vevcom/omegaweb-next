@@ -79,6 +79,16 @@ const userLookup = paramsFieldSchemas.pick({
 // The reads take the id out of a query string too, so it is coerced there.
 const coercedId = z.coerce.number().optional()
 
+const readPage = readPageInputSchemaObject(
+    id,
+    paramsFieldSchemas.pick({
+        partOfName: true,
+        groups: true,
+        selectedGroup: true,
+        sort: true,
+    })
+)
+
 export const userSchemas = {
     data: {
         create: userDataFieldSchemas.pick({
@@ -155,15 +165,9 @@ export const userSchemas = {
         readProfile: username,
         readUserWithBalance: userLookup,
 
-        readPage: readPageInputSchemaObject(
-            id,
-            paramsFieldSchemas.pick({
-                partOfName: true,
-                groups: true,
-                selectedGroup: true,
-                sort: true,
-            })
-        ),
+        readPage,
+        readUnarchivedPage: readPage,
+        readArchivedPage: readPage,
 
         search: paramsFieldSchemas.pick({
             query: true,
@@ -181,6 +185,8 @@ export const userSchemas = {
         registerNewEmail: id,
         register: id,
         destroy: id,
+        archive: id,
+        unarchive: id,
         updateProfileImage: username,
     },
 }

@@ -1,5 +1,6 @@
 import '@pn-server-only'
 import { feideRealmsLinkableByEmail } from '@/lib/feide/constants'
+import { userPartitions } from '@/services/users/constants'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { Awaitable } from '@/lib/awaitable'
 
@@ -27,7 +28,10 @@ export async function feideLoginMayLinkByEmail(prisma: PrismaClient, {
     if (feideAccount || !email) return true
 
     const userByEmail = await prisma.user.findFirst({
-        where: { OR: [{ email }, { feideAccount: { email } }] },
+        where: {
+            OR: [{ email }, { feideAccount: { email } }],
+            ...userPartitions.unarchived,
+        },
         select: {
             credentials: { select: { userId: true } },
             feideAccount: { select: { id: true } },

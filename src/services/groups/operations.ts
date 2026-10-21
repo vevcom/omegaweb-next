@@ -10,6 +10,7 @@ import {
     readGroupsOfUserIncluder,
 } from './constants'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
+import { userPartitions } from '@/services/users/constants'
 import { MigratedStraightAwayOnIncrement } from '@/services/omegaOrder/constants'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
@@ -85,6 +86,7 @@ export const groupOperations = {
                 where: {
                     groupId: params.groupId,
                     active: params.active,
+                    user: userPartitions.unarchived,
                 },
                 include: groupMembershipIncluder,
             })
@@ -437,6 +439,7 @@ export const groupOperations = {
             const memberships = await prisma.membership.findMany({
                 where: {
                     active: true,
+                    user: userPartitions.unarchived,
                     OR: params.groups.map(({ admin, groupId }) => ({
                         admin: admin !== true ? undefined : true,
                         groupId,

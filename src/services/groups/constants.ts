@@ -1,5 +1,5 @@
 import { createSelection } from '@/services/createSelection'
-import { userCardSelection } from '@/services/users/constants'
+import { userCardSelection, userPartitions } from '@/services/users/constants'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { ClassLevel, GroupType, Membership, OmegaMembershipLevel, Prisma } from '@/prisma-generated-pn-types'
 import type { GroupTypeInfo } from './types'
@@ -108,7 +108,7 @@ export const groupsExpandedIncluder = {
     },
     _count: {
         select: {
-            memberships: { where: { active: true } },
+            memberships: { where: { active: true, user: userPartitions.unarchived } },
         },
     },
 } as const satisfies Prisma.GroupInclude

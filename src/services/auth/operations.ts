@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { authAuth } from './auth'
 import { authSchemas, linkFeideAccountClaimsSchema } from './schemas'
 import { moveFeideAccountToUser } from './feideAccounts/move'
-import { userBasicSelection } from '@/services/users/constants'
+import { userBasicSelection, userPartitions } from '@/services/users/constants'
 import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
 import { sendLinkFeideAccountMail } from '@/lib/email/systemMail/linkFeideAccount'
 import { sendEmailChangedMail } from '@/lib/email/systemMail/emailChanged'
@@ -86,9 +86,10 @@ export const authOperations = {
             const user = await prisma.user.findUniqueOrThrow({
                 where: {
                     id: userId,
+                    ...userPartitions.unarchived,
                 },
                 select: {
-                    credentials: true
+                    credentials: true,
                 }
             })
 
@@ -159,6 +160,7 @@ export const authOperations = {
                     OR: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
                     feideAccount: null,
                     credentials: null,
+                    ...userPartitions.unarchived,
                     NOT: { id: feideUser.id },
                 },
                 select: {
@@ -217,7 +219,7 @@ export const authOperations = {
             const claims = readLinkFeideAccountClaims(params.token)
 
             const targetUser = await prisma.user.findUniqueOrThrow({
-                where: { id: claims.targetUserId },
+                where: { id: claims.targetUserId, ...userPartitions.unarchived },
                 select: { username: true },
             })
 

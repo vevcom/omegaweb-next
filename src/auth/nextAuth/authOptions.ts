@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import VevenAdapter from './VevenAdapter'
 import { feideLoginMayLinkByEmail } from './feideEmailLinking'
+import { loginReachesArchivedUser } from './archivedUsers'
 import { compressJwt, decompressJwt } from './jwtCompression'
 import { permissionsMaxAge } from './constants'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
@@ -15,6 +16,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { groupOperations } from '@/services/groups/operations'
 import { feideAccountOperations } from '@/services/auth/feideAccounts/operations'
 import { userOperations } from '@/services/users/operations'
+import { userPartitions } from '@/services/users/constants'
 import { permissionOperations } from '@/services/permissions/operations'
 import logger from '@/lib/logger'
 import CredentialsProvider from 'next-auth/providers/credentials'
@@ -38,6 +40,7 @@ export const authOptions: AuthOptions = {
                 const userCredentials = await prisma.credentials.findUnique({
                     where: {
                         username: credentials.username.toLowerCase(),
+                        user: userPartitions.unarchived,
                     },
                     select: {
                         userId: true,
@@ -79,7 +82,10 @@ export const authOptions: AuthOptions = {
             if (!token?.iat) return null
 
             const user = await prisma.user.findUnique({
-                where: { id: token.user.id },
+                where: {
+                    id: token.user.id,
+                    ...userPartitions.unarchived,
+                },
                 select: {
                     sessionEpoch: true,
                     credentials: { select: { userId: true } },
@@ -108,8 +114,14 @@ export const authOptions: AuthOptions = {
         },
     },
     callbacks: {
-        async signIn({ account, profile }) {
-            if (account?.provider !== 'feide') return true
+        async signIn({ user, account, profile }) {
+            const isFeide = account?.provider === 'feide'
+            const reachesArchivedUser = await loginReachesArchivedUser(prisma, isFeide
+                ? { feideAccountId: account.providerAccountId, email: profile?.email }
+                : { userId: Number(user.id) })
+            if (reachesArchivedUser) return '/login?error=UserArchived'
+
+            if (!isFeide) return true
             const accessToken = account.access_token
             const mayLink = await feideLoginMayLinkByEmail(prisma, {
                 providerAccountId: account.providerAccountId,
