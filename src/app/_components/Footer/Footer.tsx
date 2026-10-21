@@ -1,6 +1,7 @@
 import FooterSponsors from './FooterSponsors'
 import SocialIcons from '@/components/SocialIcons/SocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
+import Link from 'next/link'
 
 // On mobile every column of the footer stacks and centres.
 const mobileColumnClassName = `
@@ -48,6 +49,9 @@ function Footer() {
                 Robotikk (MTTK) ved Norges Tekniske-Naturvitenskapelige Universitet (NTNU)
                 </p>
                 <p>Org. Nr. 890 384 692</p>
+                <p className={styles.legalLink}>
+                    <Link href="/terms">Vilkår og personvern</Link>
+                </p>
                 <div>
                     <div className="
                         flex justify-start

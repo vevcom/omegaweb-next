@@ -8,6 +8,7 @@ import TextInput from '@/components/UI/TextInput'
 import { sexConfig } from '@/services/users/constants'
 import { Sex, type User } from '@/prisma-generated-pn-types'
 import { signIn } from 'next-auth/react'
+import Link from 'next/link'
 import { useState } from 'react'
 
 export default function RegistrationForm({
@@ -46,6 +47,20 @@ export default function RegistrationForm({
             value={sexValue}
             onChange={(e) => setSexValue(e as Sex)} />
         <Checkbox label="Jeg samtykker til å bli tatt bilde av" name="imageConsent" />
-        <Checkbox label="Jeg godtar vilkårene" name="acceptedTerms" />
+        <Checkbox name="acceptedTerms">
+            <span>
+                Jeg godtar&nbsp;
+                {/*
+                    The link sits inside the checkbox's own label, so a click on it would toggle the
+                    checkbox as well - hence the stopPropagation. It opens in a new tab to leave the
+                    half-filled form standing.
+                */}
+                <Link
+                    href="/terms"
+                    target="_blank"
+                    onClick={event => event.stopPropagation()}
+                >vilkårene og personvernerklæringen</Link>
+            </span>
+        </Checkbox>
     </Form>
 }
