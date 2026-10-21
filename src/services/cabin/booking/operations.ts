@@ -45,6 +45,49 @@ export const blocksCalendar = (): Prisma.BookingWhereInput => ({
     ],
 })
 
+type RequestedProduct = { cabinProductId: number, quantity: number, amount: number }
+
+export async function findAvailabilityConflict(
+    prisma: Prisma.TransactionClient,
+    booking: { id?: number, type: BookingType, start: Date, end: Date, products: RequestedProduct[] },
+): Promise<string | null> {
+    const overlapping = await prisma.booking.findMany({
+        where: {
+            ...(booking.id === undefined ? {} : { id: { not: booking.id } }),
+            start: { lt: booking.end },
+            end: { gt: booking.start },
+            ...blocksCalendar(),
+        },
+        select: {
+            type: true,
+            start: true,
+            end: true,
+            BookingProduct: { select: { cabinProductId: true, quantity: true } },
+        },
+    })
+
+    if (booking.type !== 'BED' || overlapping.some(other => other.type !== 'BED')) {
+        return overlapping.length > 0 ? 'Hytta er ikke tilgjengelig i den perioden.' : null
+    }
+
+    const nights = Array.from(
+        { length: Math.ceil((booking.end.getTime() - booking.start.getTime()) / dayMs) },
+        (_, index) => booking.start.getTime() + index * dayMs,
+    )
+    const overbooked = nights.some(night => {
+        const bookedThatNight = overlapping
+            .filter(other => other.start.getTime() <= night && night < other.end.getTime())
+            .flatMap(other => other.BookingProduct)
+        return booking.products.some(product => {
+            const taken = bookedThatNight
+                .filter(bookedProduct => bookedProduct.cabinProductId === product.cabinProductId)
+                .reduce((sum, bookedProduct) => sum + bookedProduct.quantity, 0)
+            return taken + product.quantity > product.amount
+        })
+    })
+    return overbooked ? 'Det er ikke nok ledige senger i den perioden.' : null
+}
+
 type BookingProductParams = z.infer<typeof cabinBookingSchemas.params.createCabinBookingNoUser>['bookingProducts']
 
 type Booker = { userId: number } | {
@@ -177,12 +220,18 @@ async function reserve(prisma: PrismaClient, { bookingType, bookingProducts, boo
             throw new ServiceError('BAD PARAMETERS', `Hytta kan bookes for maks ${maxCabinBookingNights} netter om gangen.`)
         }
 
-        const overlapping = await tx.booking.count({
-            where: { start: { lt: booking.end }, end: { gt: booking.start }, ...blocksCalendar() },
+        const products = await readBookingProducts(tx, bookingType, bookingProducts)
+        const conflict = await findAvailabilityConflict(tx, {
+            type: bookingType,
+            start: booking.start,
+            end: booking.end,
+            products: products.map(({ product, quantity }) => ({
+                cabinProductId: product.id,
+                quantity,
+                amount: product.amount,
+            })),
         })
-        if (overlapping > 0) {
-            throw new ServiceError('BAD PARAMETERS', 'Hytta er ikke tilgjengelig i den perioden.')
-        }
+        if (conflict) throw new ServiceError('BAD PARAMETERS', conflict)
 
         const unpaidHolds = await tx.booking.count({
             where: {
@@ -199,7 +248,6 @@ async function reserve(prisma: PrismaClient, { bookingType, bookingProducts, boo
             )
         }
 
-        const products = await readBookingProducts(tx, bookingType, bookingProducts)
         const pricePeriods = await cabinPricePeriodOperations.readMany({ bypassAuth: true, prisma: tx })
         const totalPrice = calculateTotalCabinBookingPrice(calculateCabinBookingPrice({
             pricePeriods,
@@ -276,7 +324,7 @@ export const cabinBookingOperations = {
             // gives away that the cabin is taken but not where one booking ends and the next begins.
             return bookings.reduce<BookingFiltered[]>((spans, booking) => {
                 const last = spans[spans.length - 1]
-                return last && last.end.getTime() === booking.start.getTime()
+                return last && last.type === booking.type && last.end.getTime() === booking.start.getTime()
                     ? [...spans.slice(0, -1), { ...last, end: booking.end }]
                     : [...spans, booking]
             }, [])
