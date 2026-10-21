@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import Link from 'next/link'
@@ -6,6 +5,11 @@ import type { ReactNode } from 'react'
 import type { Metadata } from 'next'
 
 const LAST_UPDATED = '21. oktober 2026'
+
+const boxClassName = `
+    bg-surface-raised rounded-round py-4 px-6 mb-8
+    [&>h2]:mt-0 [&>h2]:mb-4 [&>h2]:font-secondary [&>h2]:text-l
+`
 
 /**
  * Lovdata publishes personvernforordningen (GDPR) as part of personopplysningsloven with one page
@@ -31,16 +35,25 @@ export default function Terms() {
     const emailDomain = process.env.EMAIL_DOMAIN
 
     return (
-        <PageWrapper className={styles.terms}>
+        <PageWrapper>
             <PageTitleSetter title="Vilkår og personvern" />
 
-            <article className={styles.document}>
+            <article className="
+                mx-auto max-w-[80ch] pb-16 text-m leading-[1.7em]
+                [&>h2]:mt-16 [&>h2]:mb-4 [&>h2]:font-secondary [&>h2]:text-xl [&>h2]:scroll-mt-[64px]
+                [&_h3]:mt-10 [&_h3]:mb-2 [&_h3]:text-l [&_h3]:font-medium
+                [&_p]:mb-4
+                [&_:is(ul,ol)]:pl-8 [&_:is(ul,ol)]:mb-4
+                [&_li]:mb-2
+                [&_a]:text-accent-blue [&_a]:no-underline
+                [&_a:hover]:underline
+            ">
                 <header>
-                    <h1>Vilkår og personvern</h1>
-                    <p className={styles.updated}>Sist oppdatert {LAST_UPDATED}</p>
+                    <h1 className="mb-2 normal-case!">Vilkår og personvern</h1>
+                    <p className="text-text-muted">Sist oppdatert {LAST_UPDATED}</p>
                 </header>
 
-                <section className={styles.summary}>
+                <section className={boxClassName}>
                     <h2>Kort oppsummert</h2>
                     <ul>
                         <li>
@@ -65,9 +78,9 @@ export default function Terms() {
                     </ul>
                 </section>
 
-                <nav className={styles.toc} aria-label="Innhold">
+                <nav className={boxClassName} aria-label="Innhold">
                     <h2>Innhold</h2>
-                    <ol>
+                    <ol className="mb-0!">
                         <li><a href="#vilkar">Del 1 - Vilkår for bruk</a></li>
                         <li><a href="#personvern">Del 2 - Personvernerklæring</a></li>
                     </ol>
@@ -240,7 +253,11 @@ export default function Terms() {
                 </p>
 
                 <h3>Hvilke opplysninger vi behandler</h3>
-                <dl className={styles.dataList}>
+                <dl className="
+                    mb-4
+                    [&>dt]:mt-4 [&>dt]:font-medium [&>dt]:text-ink-strong
+                    [&>dd]:mb-2 [&>dd]:border-l [&>dd]:border-surface-subtle [&>dd]:pl-4
+                ">
                     <dt>Konto og profil</dt>
                     <dd>
                         Brukernavn, e-postadresse, fornavn og etternavn, telefonnummer, profilbilde, profiltekst,
