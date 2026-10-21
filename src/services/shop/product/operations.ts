@@ -1,9 +1,11 @@
 import '@pn-server-only'
 import { productAuth } from './auth'
 import { productSchemas } from './schemas'
+import { productImageIncluder } from './constants'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { shopOperations } from '@/services/shop/shop/operations'
+import { cmsImageOperations } from '@/cms/images/operations'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import type { ExtendedProduct } from './types'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -14,12 +16,28 @@ export const productOperations = {
     create: defineOperation({
         authorizer: () => productAuth.create,
         dataSchema: productSchemas.data.create,
-        operation: async ({ prisma, data }) => prisma.product.create({ data }),
+        opensTransaction: true,
+        operation: async ({ prisma, data }) => prisma.$transaction(async tx => {
+            const image = await cmsImageOperations.create.internalCall({
+                data: {},
+                prisma: tx,
+                operationImplementationFields: { special: null },
+            })
+            return tx.product.create({
+                data: {
+                    ...data,
+                    image: { connect: { id: image.id } },
+                },
+            })
+        }),
     }),
 
     readMany: defineOperation({
         authorizer: () => productAuth.readMany,
-        operation: async ({ prisma }) => prisma.product.findMany({ orderBy: { name: 'asc' } }),
+        operation: async ({ prisma }) => prisma.product.findMany({
+            orderBy: { name: 'asc' },
+            include: productImageIncluder,
+        }),
     }),
 
     read: defineOperation({
@@ -30,6 +48,7 @@ export const productOperations = {
                 id: params.productId,
             },
             include: {
+                ...productImageIncluder,
                 ShopProduct: {
                     include: {
                         shop: true,
@@ -91,6 +110,19 @@ export const productOperations = {
             },
             data,
         }),
+    }),
+
+    /** Changes the product's photo, for those who may change the product. */
+    updateCmsImage: cmsImageOperations.update.implement({
+        implementationParamsSchema: productSchemas.params.updateCmsImage,
+        authorizer: async ({ implementationParams, prisma }) => productAuth.updateCmsImage.data({
+            visibility: await soleShopVisibility(prisma, implementationParams.productId),
+        }),
+        ownershipCheck: async ({ implementationParams, params, prisma }) =>
+            (await prisma.product.findUniqueOrThrow({
+                where: { id: implementationParams.productId },
+                select: { imageId: true },
+            })).imageId === params.cmsImageId,
     }),
 } as const
 

@@ -43,6 +43,7 @@ export function EditProductForShopForm({
             <TextInput name="description" label="Beskrivelse" />
             <TextInput name="barcode" label="Strekkode" />
             <NumberInput name="price" label="Pris" step={0.01} min={1} />
+            <p className="text-s text-text-muted">Bilde legges til på produktkortet når produktet er laget.</p>
         </Form>
     }
 
