@@ -6,7 +6,7 @@ import ReleaseAdmin from './ReleaseAdmin'
 import Button from '@/components/UI/Button'
 import useKeyPress from '@/hooks/useKeyPress'
 import { enterReleaseCountdownAction } from '@/services/releaseCountdown/actions'
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 
 const releaseDateFormat = new Intl.DateTimeFormat('nb-NO', {
@@ -20,13 +20,23 @@ const MINUTE = 60 * SECOND
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 
-// The last minute is counted down in big numbers. Before it, the git graph rushes through the
-// whole history towards a white sun, which leaves the screen white as the last minute begins.
+// The last minute is counted down in big numbers. Before it, the screen goes dark, "Project Next
+// loading" fades in and out of the dark, and the git graph rushes through the whole history towards
+// a white sun, which leaves the screen white as the last minute begins.
 const FINAL_COUNTDOWN_DURATION = MINUTE
-const RUSH_DURATION = 10 * SECOND
+const RUSH_DURATION = 25 * SECOND
+const LOADING_DURATION = 8 * SECOND
+const DARK_DURATION = 5 * SECOND
+// How long the loading text takes to fade in, and to fade out again before the rush.
+const LOADING_FADE_DURATION = 2 * SECOND
+// At zero the new name is revealed, and the website loads once it has been shown.
+const REVEAL_DURATION = 7 * SECOND
 
 function phaseOf(remaining: number | null) {
-    if (remaining === null || remaining > FINAL_COUNTDOWN_DURATION + RUSH_DURATION) return 'countdown'
+    if (remaining === null) return 'countdown'
+    if (remaining > FINAL_COUNTDOWN_DURATION + RUSH_DURATION + LOADING_DURATION + DARK_DURATION) return 'countdown'
+    if (remaining > FINAL_COUNTDOWN_DURATION + RUSH_DURATION + LOADING_DURATION) return 'dark'
+    if (remaining > FINAL_COUNTDOWN_DURATION + RUSH_DURATION) return 'loading'
     if (remaining > FINAL_COUNTDOWN_DURATION) return 'rush'
     return 'final'
 }
@@ -58,18 +68,19 @@ export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) 
     // Bumped when the graph is updated from the admin panel, so the player loads it anew.
     const [graphVersion, setGraphVersion] = useState(0)
     const [enterError, setEnterError] = useState<string | null>(null)
-    const hasRefreshed = useRef(false)
     const { refresh } = useRouter()
 
     const remaining = now === null ? null : Math.max(0, releaseDate - now)
     const phase = phaseOf(remaining)
+    const showLoading = phase === 'loading' && remaining !== null
+        && remaining > FINAL_COUNTDOWN_DURATION + RUSH_DURATION + LOADING_FADE_DURATION
 
     useEffect(() => {
-        if (remaining !== 0 || hasRefreshed.current) return
+        if (remaining !== 0) return undefined
         // The server stops showing the countdown once the release date has passed.
-        hasRefreshed.current = true
-        refresh()
-    }, [remaining, refresh])
+        const timeout = setTimeout(refresh, Math.max(0, releaseDate + REVEAL_DURATION - Date.now()))
+        return () => clearTimeout(timeout)
+    }, [remaining, releaseDate, refresh])
 
     useKeyPress(' ', useCallback((event: KeyboardEvent) => {
         if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
@@ -109,7 +120,7 @@ export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) 
                         relative z-1 flex flex-col items-center gap-4 pt-8 px-2 pb-4 text-center
                         [&_h1]:font-secondary [&_h1]:text-xxl [&_h1]:m-0
                         transition-[opacity,translate] duration-[1.5s] ease-in
-                        ${phase === 'rush' ? 'opacity-0 -translate-y-4 pointer-events-none' : ''}
+                        ${phase === 'countdown' ? '' : 'opacity-0 -translate-y-4 pointer-events-none'}
                     `}>
                         <h1>Project Next</h1>
                         <div className="
@@ -143,8 +154,24 @@ export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) 
                             {enterError && <p className="m-0 text-accent-red text-s">{enterError}</p>}
                         </div>
                     </div>
+                    {(phase === 'dark' || phase === 'loading') && (
+                        <p
+                            className={`
+                                absolute inset-0 z-1 flex items-center justify-center m-0 font-secondary text-xxl
+                                transition-opacity
+                                starting:opacity-0
+                                ${showLoading ? '' : 'opacity-0'}
+                            `}
+                            style={{ transitionDuration: `${LOADING_FADE_DURATION}ms` }}
+                        >
+                            Project Next loading
+                        </p>
+                    )}
                     <GitGraphPlayer
                         key={graphVersion}
+                        darkStartsAt={
+                            releaseDate - FINAL_COUNTDOWN_DURATION - RUSH_DURATION - LOADING_DURATION - DARK_DURATION
+                        }
                         rushStartsAt={releaseDate - FINAL_COUNTDOWN_DURATION - RUSH_DURATION}
                         rushDuration={RUSH_DURATION}
                     />

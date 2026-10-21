@@ -1,4 +1,5 @@
 import '@pn-server-only'
+import { releaseCountdownHoldsBack } from '@/services/releaseCountdown/access'
 import { createReadStream, existsSync, statSync } from 'fs'
 import { extname, relative, resolve, sep } from 'path'
 import { Readable } from 'stream'
@@ -46,8 +47,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pat
     // Looked up by the resolved path, not the segments: `images/..%2Fother%2Ffile.json` starts with
     // `images`, but is not in it.
     const storePath = relative(STORE_ROOT, filePath).split(sep)
-    const served = SERVED_FILES.get(storePath.join('/')) ??
-        (storePath.length > 1 ? SERVED_DIRECTORIES.get(storePath[0]) : undefined)
+    // A visitor the release countdown holds back gets its own file and nothing else of the store.
+    const served = SERVED_FILES.get(storePath.join('/')) ?? (
+        storePath.length > 1 && !await releaseCountdownHoldsBack() ? SERVED_DIRECTORIES.get(storePath[0]) : undefined
+    )
     if (!served) {
         return new Response('Not found', { status: 404 })
     }

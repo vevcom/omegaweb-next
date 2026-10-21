@@ -1,14 +1,18 @@
 import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagraph'
 import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
+import CmsLink from '@/components/Cms/CmsLink/CmsLink'
 import {
     readSpecialCmsImageFrontpageAction,
     readSpecialCmsParagraphFrontpageSectionAction,
     updateSpecialCmsImageFrontpageAction,
+    updateSpecialCmsLinkFrontpageAction,
     updateSpecialCmsParagraphFrontpageSectionAction
 } from '@/services/frontpage/actions'
-import Link from 'next/link'
+import { frontpageOperations } from '@/services/frontpage/operations'
+import { withFallback, withPageSession } from '@/app/ServerPage'
 import type {
     SpecialCmsImage as SpecialCmsImageT,
+    SpecialCmsLink as SpecialCmsLinkT,
     SpecialCmsParagraph as SpecialCmsParagraphT
 } from '@/prisma-generated-pn-types'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
@@ -17,24 +21,29 @@ import type { ReactNode } from 'react'
 type PropTypes = {
     specialCmsImage: SpecialCmsImageT,
     specialCmsParagraph: SpecialCmsParagraphT,
-    capabilities: Capabilities<'canEditSpecialCmsImage' | 'canEditSpecialCmsParagraph'>,
-    readMore: string,
+    specialCmsLink: SpecialCmsLinkT,
+    capabilities: Capabilities<'canEditSpecialCmsImage' | 'canEditSpecialCmsParagraph' | 'canEditSpecialCmsLink'>,
     position: 'left' | 'right',
     imgWidth: number,
     id?: string,
     children?: ReactNode,
 }
 
-function Section({
+async function Section({
     specialCmsImage,
     specialCmsParagraph,
+    specialCmsLink,
     capabilities,
-    readMore,
     position,
     imgWidth,
     id,
     children
 }: PropTypes) {
+    const cmsLink = await withPageSession(() => withFallback(
+        frontpageOperations.readSpecialCmsLink({ params: { special: specialCmsLink } }),
+        null,
+    ))
+
     // CmsImage's wrapper divs size themselves off the image's intrinsic width rather than off this
     // container, so every wrapper div (at whatever depth) is forced to fill it. They stay absolute
     // rather than height: 100% because this box's height comes from the grid row stretching to the
@@ -72,7 +81,6 @@ function Section({
                 max-mobile:p-20 max-mobile:w-screen
                 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-2
                 [&_p]:text-m [&_p]:leading-[1.7em] [&_p]:mb-2
-                [&>a]:w-[120px] [&>a]:m-0
             ">
                 <SpecialCmsParagraph
                     capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
@@ -81,7 +89,14 @@ function Section({
                     readSpecialCmsParagraphAction={readSpecialCmsParagraphFrontpageSectionAction}
                     updateCmsParagraphAction={updateSpecialCmsParagraphFrontpageSectionAction}
                 />
-                <Link className="secondary-btn" href={readMore}>Les mer</Link>
+                {cmsLink && (
+                    <CmsLink
+                        capabilities={{ canEdit: capabilities.canEditSpecialCmsLink }}
+                        className="w-30 h-14!"
+                        cmsLink={cmsLink}
+                        updateCmsLinkAction={updateSpecialCmsLinkFrontpageAction}
+                    />
+                )}
                 {children}
             </div>
             {position === 'right' && imgContainer}

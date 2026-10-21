@@ -5,29 +5,11 @@ import { RELEASE_COUNTDOWN_COOKIE_NAME, RELEASE_COUNTDOWN_PASSWORD } from './con
 import { readSettings, writeGitGraph, writeSettings } from './storage'
 import { fetchGitGraph } from './gitGraph/fetch'
 import { buildMockGitGraph } from './gitGraph/mock'
+import { isUnlocked, safeEquals, unlockToken } from './access'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { cookies } from 'next/headers'
-import { createHash, timingSafeEqual } from 'crypto'
 import type { ReleaseCountdownSettings } from './types'
-
-/**
- * The cookie stores a hash rather than a plain flag, so it cannot be forged without knowing the
- * password, and changing the password invalidates all existing cookies. There is one token for
- * those who gave the password, and one for those who were let in because the countdown was open
- * to all - so that closing it again shuts the latter out, and only them.
- */
-function unlockToken(kind: 'admin' | 'public') {
-    return createHash('sha256')
-        .update(`${RELEASE_COUNTDOWN_COOKIE_NAME}:${kind}:${RELEASE_COUNTDOWN_PASSWORD ?? ''}`)
-        .digest('hex')
-}
-
-function safeEquals(first: string, second: string) {
-    const firstBuffer = Buffer.from(first)
-    const secondBuffer = Buffer.from(second)
-    return firstBuffer.length === secondBuffer.length && timingSafeEqual(firstBuffer, secondBuffer)
-}
 
 function assertPassword(password: string) {
     if (!RELEASE_COUNTDOWN_PASSWORD) {
@@ -52,13 +34,6 @@ async function setUnlockCookie(kind: 'admin' | 'public', settings: ReleaseCountd
         path: '/',
         ...(kind === 'admin' ? { expires: settings.releaseDate } : {}),
     })
-}
-
-async function isUnlocked(settings: ReleaseCountdownSettings) {
-    const cookie = (await cookies()).get(RELEASE_COUNTDOWN_COOKIE_NAME)
-    if (!cookie) return false
-    if (RELEASE_COUNTDOWN_PASSWORD && safeEquals(cookie.value, unlockToken('admin'))) return true
-    return settings.openToAll && safeEquals(cookie.value, unlockToken('public'))
 }
 
 export const releaseCountdownOperations = {
