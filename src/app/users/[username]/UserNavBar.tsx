@@ -1,5 +1,5 @@
 import { SubPageNavBar, SubPageNavBarItem } from '@/components/NavBar/SubPageNavBar/SubPageNavBar'
-import { visibleUserNavItems } from '@/app/users/[username]/userNavDef'
+import { userNavHref, visibleUserNavItems } from '@/app/users/[username]/userNavDef'
 import { ServerSession } from '@/auth/session/ServerSession'
 import type { UserNavSubject } from '@/app/users/[username]/userNavDef'
 
@@ -11,6 +11,7 @@ import type { UserNavSubject } from '@/app/users/[username]/userNavDef'
 export default async function UserNavBar({ username, userId }: UserNavSubject) {
     const session = await ServerSession.fromNextAuth()
     const items = visibleUserNavItems(
+        'membership',
         { username, userId },
         authorizer => authorizer.auth(session).authorized,
     )
@@ -24,7 +25,7 @@ export default async function UserNavBar({ username, userId }: UserNavSubject) {
                 <SubPageNavBarItem
                     key={item.name}
                     icon={item.icon}
-                    href={`/users/${username}${item.path ? `/${item.path}` : ''}`}
+                    href={userNavHref(username, item)}
                 >
                     {item.name}
                 </SubPageNavBarItem>
