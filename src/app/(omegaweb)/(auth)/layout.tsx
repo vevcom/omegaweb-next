@@ -11,8 +11,8 @@ const heroImage = frontpageStyles.frontImg
 export default function AuthLayout({ children }: PropTypes) {
     return (
         <div className="
-            flex items-stretch justify-center min-h-[calc(100dvh-64px-3*var(--gap))]
-            max-mobile:min-h-[calc(100dvh-128px-4*var(--gap))]
+            flex items-stretch justify-center min-h-[calc(100dvh-56px-3*var(--gap))]
+            max-mobile:min-h-[calc(100dvh-120px-4*var(--gap))]
         ">
             <div className="
                 flex items-stretch gap-2 w-full
