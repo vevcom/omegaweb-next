@@ -14,6 +14,11 @@
     );
 }
 
+// The sun's glare over the graph, which only shows towards the end of the rush.
+.glare {
+    animation: glare var(--rush-duration) linear var(--rush-delay) both;
+}
+
 .spin {
     animation: spin 40s linear infinite;
 }
@@ -57,6 +62,17 @@
     100% {
         opacity: 1;
         transform: scale(14);
+    }
+}
+
+@keyframes glare {
+    0%,
+    55% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
     }
 }
 

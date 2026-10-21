@@ -6,16 +6,16 @@ import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
 import { paymentAuth } from '@/services/ledger/payments/auth'
 import { Require } from '@/auth/authorizer/Require'
+import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ session }: PageOperationArgs) => {
-        const { user } = Require.user()
-            .auth(session).requireAuthorized().session
+    operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
+        const { profile } = await getProfileForUserPage(params, 'account', session)
 
-        const ledgerAccount = await ledgerAccountOperations.read({ params: { userId: user.id } })
-        return { ledgerAccount, userId: user.id }
+        const ledgerAccount = await ledgerAccountOperations.read({ params: { userId: profile.user.id } })
+        return { ledgerAccount, userId: profile.user.id }
     },
     capabilities: (data) => ({
         canDeposit: ledgerMovementAuth.createDeposit.data({ accounts: [data.ledgerAccount.ownership] }),

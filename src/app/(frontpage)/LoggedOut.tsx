@@ -30,6 +30,7 @@ export default async function LoggedOutLandingPage() {
     const capabilities = runCapabilities(session, {
         canEditSpecialCmsImage: frontpageAuth.updateSpecialCmsImage,
         canEditSpecialCmsParagraph: frontpageAuth.updateSpecialCmsParagraphContentSection,
+        canEditSpecialCmsLink: frontpageAuth.updateSpecialCmsLink,
     })
 
     return (
@@ -72,7 +73,7 @@ export default async function LoggedOutLandingPage() {
                     position="left"
                     specialCmsImage="FRONTPAGE_1"
                     specialCmsParagraph="FRONTPAGE_1"
-                    readMore="/articles"
+                    specialCmsLink="FRONTPAGE_1"
                     imgWidth={450}
                     id="firstSection"
                 >
@@ -91,7 +92,7 @@ export default async function LoggedOutLandingPage() {
                     position="right"
                     specialCmsImage="FRONTPAGE_2"
                     specialCmsParagraph="FRONTPAGE_2"
-                    readMore="/articles"
+                    specialCmsLink="FRONTPAGE_2"
                     imgWidth={450}
                 />
 
@@ -102,7 +103,7 @@ export default async function LoggedOutLandingPage() {
                     position="left"
                     specialCmsImage="FRONTPAGE_3"
                     specialCmsParagraph="FRONTPAGE_3"
-                    readMore="/career"
+                    specialCmsLink="FRONTPAGE_3"
                     imgWidth={760}
                 />
                 <Section
@@ -110,7 +111,7 @@ export default async function LoggedOutLandingPage() {
                     position="right"
                     specialCmsImage="FRONTPAGE_4"
                     specialCmsParagraph="FRONTPAGE_4"
-                    readMore="infopages/loccom"
+                    specialCmsLink="FRONTPAGE_4"
                     imgWidth={1000}
                 />
 

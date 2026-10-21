@@ -12,12 +12,9 @@ import { flairOperations } from '@/services/flairs/operations'
 import { serverPage } from '@/app/ServerPage'
 import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import UserNavBar from '@/app/users/[username]/UserNavBar'
+import UserSettingsNav from '@/app/users/[username]/UserSettingsNav'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-    faMoneyBill,
-    faQrcode,
-    faSignOut,
-} from '@fortawesome/free-solid-svg-icons'
+import { faSignOut } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import React from 'react'
@@ -212,27 +209,14 @@ const { page, generateMetadata } = serverPage({
                             <div className="flex flex-col items-center">
                                 <div className="flex flex-col items-center gap-2">
                                     {isOwnProfile && (
-                                        <>
-                                            <Link href="/users/me/omegaid">
-                                                <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
-                                                    <FontAwesomeIcon icon={faQrcode} />
-                                                    <p className="w-[8em]">Omega-ID</p>
-                                                </Button>
-                                            </Link>
-                                            <Link href="/users/me/account">
-                                                <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
-                                                    <FontAwesomeIcon icon={faMoneyBill} />
-                                                    <p className="w-[8em]">Konto</p>
-                                                </Button>
-                                            </Link>
-                                            <Link href="/logout">
-                                                <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
-                                                    <FontAwesomeIcon icon={faSignOut} />
-                                                    <p className="w-[8em]">Logg ut</p>
-                                                </Button>
-                                            </Link>
-                                        </>
+                                        <Link href="/logout">
+                                            <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
+                                                <FontAwesomeIcon icon={faSignOut} />
+                                                <p className="w-[8em]">Logg ut</p>
+                                            </Button>
+                                        </Link>
                                     )}
+                                    <UserSettingsNav username={profile.user.username} userId={profile.user.id} />
                                 </div>
 
                             </div>

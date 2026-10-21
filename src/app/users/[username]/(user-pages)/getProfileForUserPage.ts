@@ -3,6 +3,7 @@ import { userNavDef } from '@/app/users/[username]/userNavDef'
 import { notFound, redirect } from 'next/navigation'
 import type { ServerPageSession } from '@/app/ServerPage'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
+import type { UserNavItem, UserNavPath } from '@/app/users/[username]/userNavDef'
 
 type Params = {
     username: string
@@ -26,7 +27,7 @@ type Params = {
  * @param session - The session of the request, as the serverPage operation receives it.
  * @returns The profile being seen.
 */
-export async function getProfileForUserPage({ username }: Params, path: string, session: ServerPageSession) {
+export async function getProfileForUserPage({ username }: Params, path: UserNavPath, session: ServerPageSession) {
     if (username === 'me') {
         if (!session.user) return notFound()
         redirect(`/users/${session.user.username}/${path}`) //This throws.
@@ -34,7 +35,8 @@ export async function getProfileForUserPage({ username }: Params, path: string, 
 
     const profile = await userOperations.readProfile({ params: { username } })
 
-    const navItem = userNavDef.find(item => item.path === path)
+    const navItems: readonly UserNavItem[] = Object.values(userNavDef).flat()
+    const navItem = navItems.find(item => item.path === path)
     if (!navItem) {
         throw new Error(`The user page '${path}' has no entry in userNavDef to be authorized with.`)
     }

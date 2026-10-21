@@ -55,6 +55,22 @@ const seedSpecialCmsLinkConfig: Record<SpecialCmsLink, SeedCmsLinkConfig> = {
         url: 'mailto:naeringsliv@omega.ntnu.no',
         text: 'Kontakt oss'
     },
+    FRONTPAGE_1: {
+        url: '/articles',
+        text: 'Les mer'
+    },
+    FRONTPAGE_2: {
+        url: '/articles',
+        text: 'Les mer'
+    },
+    FRONTPAGE_3: {
+        url: '/career',
+        text: 'Les mer'
+    },
+    FRONTPAGE_4: {
+        url: '/infopages/loccom',
+        text: 'Les mer'
+    },
 }
 
 /**
