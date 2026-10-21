@@ -17,3 +17,7 @@ export const readSpecialCmsImageFrontpageAction = makeAction(
 export const updateSpecialCmsImageFrontpageAction = makeAction(
     frontpageOperations.updateSpecialCmsImage
 )
+
+export const updateSpecialCmsLinkFrontpageAction = makeAction(
+    frontpageOperations.updateSpecialCmsLink
+)

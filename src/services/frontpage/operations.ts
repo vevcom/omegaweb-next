@@ -2,7 +2,8 @@ import '@pn-server-only'
 import { frontpageAuth } from './auth'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { cmsImageOperations } from '@/cms/images/operations'
-import type { SpecialCmsImage, SpecialCmsParagraph } from '@/prisma-generated-pn-types'
+import { cmsLinkOperations } from '@/cms/links/operations'
+import type { SpecialCmsImage, SpecialCmsLink, SpecialCmsParagraph } from '@/prisma-generated-pn-types'
 
 const ownedCmsParagraphs: readonly SpecialCmsParagraph[] = [
     'FRONTPAGE_1',
@@ -12,6 +13,13 @@ const ownedCmsParagraphs: readonly SpecialCmsParagraph[] = [
 ]
 
 const ownedCmsImages: readonly SpecialCmsImage[] = [
+    'FRONTPAGE_1',
+    'FRONTPAGE_2',
+    'FRONTPAGE_3',
+    'FRONTPAGE_4',
+]
+
+const ownedCmsLinks: readonly SpecialCmsLink[] = [
     'FRONTPAGE_1',
     'FRONTPAGE_2',
     'FRONTPAGE_3',
@@ -47,6 +55,22 @@ export const frontpageOperations = {
                 params: {
                     cmsImageId: params.cmsImageId,
                     special: [...ownedCmsImages],
+                },
+            })
+    }),
+
+    readSpecialCmsLink: cmsLinkOperations.readSpecial.implement({
+        authorizer: () => frontpageAuth.readSpecialCmsLink,
+        ownershipCheck: ({ params }) => ownedCmsLinks.includes(params.special)
+    }),
+
+    updateSpecialCmsLink: cmsLinkOperations.update.implement({
+        authorizer: () => frontpageAuth.updateSpecialCmsLink,
+        ownershipCheck: async ({ params }) =>
+            await cmsLinkOperations.isSpecial.internalCall({
+                params: {
+                    linkId: params.linkId,
+                    special: [...ownedCmsLinks],
                 },
             })
     }),

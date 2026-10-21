@@ -53,6 +53,11 @@ model CmsParagraph {
 
 enum SpecialCmsLink {
   CAREER_LINK_TO_CONTACTOR
+
+  FRONTPAGE_1
+  FRONTPAGE_2
+  FRONTPAGE_3
+  FRONTPAGE_4
 }
 
 model CmsLink {
