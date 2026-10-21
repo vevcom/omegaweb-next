@@ -377,8 +377,14 @@ export default function Terms() {
                 <p>
                     Veven bruker informasjonskapsler bare til innlogging. De holder deg innlogget og beskytter selve
                     innloggingen, er nødvendige for at Veven skal virke, og blir ugyldige når du logger ut eller
-                    bytter passord. Vi lagrer ingenting annet i nettleseren din - innstillingene dine, som
-                    fargetema, lagres på brukeren din på serveren.
+                    bytter passord. Innstillingene dine, som fargetema, lagres på brukeren din på serveren.
+                </p>
+                <p>
+                    Ellers lagrer Veven to ting i nettleseren din. Under hyttebestilling ligger bestillingen du
+                    holder på med (ID, en hemmelig nøkkel, pris og utløpstid) i nettleserens øktlagring, slik at
+                    en påbegynt betaling ikke går tapt om du laster siden på nytt. Den forsvinner når du lukker
+                    fanen. I tillegg lagrer Veven en kopi av statiske filer som skript, ikoner og stilark, slik at
+                    siden laster raskere. Disse er like for alle og inneholder ingenting om deg.
                 </p>
                 <p>Vi bruker ingen kapsler til analyse eller markedsføring, og derfor heller ingen cookie-banner.</p>
 
@@ -438,8 +444,9 @@ export default function Terms() {
                     transaksjoner.
                 </p>
                 <p>
-                    Mener du vi behandler opplysningene dine i strid med regelverket,
-                    burde du ta kontakt med Vevcom snarest, slik vi kan få rettet opp i det. Du kan uansett{' '}
+                    Mener du vi behandler opplysningene dine i strid med regelverket, ta kontakt
+                    på <a href={`mailto:hs@${emailDomain}`}>hs@{emailDomain}</a> snarest, slik at vi kan få
+                    rettet opp i det. Du kan uansett{' '}
                     <LawLink href={DATATILSYNET_KLAGE}>klage til Datatilsynet</LawLink>.{' '}
                     <LawLink href={gdprArticle(77)}>Artikkel 77</LawLink>.
                 </p>
