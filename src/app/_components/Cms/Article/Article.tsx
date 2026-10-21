@@ -72,7 +72,7 @@ export default function Article({
                             after:absolute after:top-0 after:left-0 after:w-full after:h-full after:z-1
                             after:bg-[linear-gradient(to_bottom,transparent_50%,var(--surface-base))]
                             [&_div]:w-full [&_div]:h-full
-                            [&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:w-full [&_img]:h-[min(300px,40vh)]
+                            [&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:w-full [&_img]:h-[min(300px,40vh)]!
                             [&_img]:object-cover
                         "
                         width={500}
