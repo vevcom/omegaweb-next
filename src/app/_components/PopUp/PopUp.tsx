@@ -2,7 +2,7 @@
 
 import { popUpClassNames } from './popUpClassNames'
 import useKeyPress from '@/hooks/useKeyPress'
-import { PopUpContext } from '@/contexts/PopUp'
+import { InsidePopUpContext, PopUpContext } from '@/contexts/PopUp'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -42,7 +42,9 @@ function PopUpDialog({ children, mainRef, triggerRef, close }: DialogPropTypes) 
                         <FontAwesomeIcon icon={faXmark} />
                     </button>
                     <div>
-                        { children }
+                        <InsidePopUpContext.Provider value={true}>
+                            { children }
+                        </InsidePopUpContext.Provider>
                     </div>
                 </div>
             </div>
@@ -95,6 +97,10 @@ export default function PopUp({
     useEffect(() => {
         handleTeleportOrRemove()
     }, [isOpen, popUpKey])
+
+    // The dialog lives in the PopUpProvider, so it would outlast this pop-up when the pop-up goes
+    // away while open, for example along with the thing it was deleting.
+    useEffect(() => () => remove(popUpKey), [remove, popUpKey])
 
     const handleCloseIfNotCurrent = useEffectEvent(() => {
         if (popUpContext.keyOfCurrentNode !== popUpKey) {

@@ -1,7 +1,7 @@
 import styles from './SubmitButton.module.scss'
 import { popUpClassNames } from '@/components/PopUp/popUpClassNames'
 import Button from '@/components/UI/Button'
-import { PopUpContext } from '@/contexts/PopUp'
+import { InsidePopUpContext, PopUpContext } from '@/contexts/PopUp'
 import React, { useContext, useEffect, useId, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck, faX } from '@fortawesome/free-solid-svg-icons'
@@ -51,6 +51,9 @@ export default function SubmitButton({
     const [confirmedOpen, setConfirmedOpen] = useState(false)
     const popUpKey = useId()
     const popUpContext = useContext(PopUpContext)
+    // Teleporting the confirmation out of a pop-up would replace the pop-up, and with it the form the
+    // confirmation is about to submit, so inside one it is asked in place instead.
+    const insidePopUp = useContext(InsidePopUpContext)
     // The real submit button must stay inside the <form>'s DOM tree. The popup
     // itself is teleported out to the app-wide PopUpProvider (a sibling of the
     // form, not a descendant), so a submit button rendered there has nothing
@@ -77,7 +80,7 @@ export default function SubmitButton({
         }
         return label
     }
-    const button = (
+    const submitButton = (label: ReactNode) => (
         <Button
             className={`
                 ${submitButtonClassName}
@@ -89,7 +92,37 @@ export default function SubmitButton({
             onClick={onClick}
             disabled={disabled}
         >
-            {renderButtonContent(children)}
+            {renderButtonContent(label)}
+        </Button>
+    )
+
+    const confirmationQuestion = (confirmButton: ReactNode) => (
+        <div>
+            <p>{confirmation?.text || 'Er du sikker?'}</p>
+            <div className="flex justify-center gap-2 mt-4">
+                <Button
+                    type="button"
+                    color="secondary"
+                    onClick={() => setConfirmedOpen(false)}
+                >
+                    Nei
+                </Button>
+                {confirmButton}
+            </div>
+        </div>
+    )
+
+    const confirmationTrigger = (
+        <Button
+            className={`
+                ${submitButtonClassName}
+                ${className ?? ''}
+            `}
+            color={color}
+            type="button"
+            onClick={() => setConfirmedOpen(true)}
+        >
+            {children}
         </Button>
     )
 
@@ -105,10 +138,9 @@ export default function SubmitButton({
     // The dialog is teleported into the app-wide PopUpProvider, so it outlives this button unless it
     // is taken down explicitly. A successful submit often removes the form from the page - a
     // migrated group stops offering migration, a removed member stops offering removal - and the
-    // dialog would then be left on screen with nothing able to close it. The cleanup runs with the
-    // context of the last render, which is the one that knows this dialog is the open one.
+    // dialog would then be left on screen with nothing able to close it.
     useEffect(() => {
-        if (!popUpContext) return undefined
+        if (!popUpContext || insidePopUp) return undefined
         if (!confirmedOpen) {
             popUpContext.remove(popUpKey)
             return undefined
@@ -120,69 +152,51 @@ export default function SubmitButton({
                         <button className={popUpClassNames.closeBtn} onClick={() => setConfirmedOpen(false)}>
                             <FontAwesomeIcon icon={faX} />
                         </button>
-                        <div>
-                            <p>{confirmation?.text || 'Er du sikker?'}</p>
-                            <div className="flex justify-center gap-2 mt-4">
-                                <Button
-                                    type="button"
-                                    color="secondary"
-                                    onClick={() => setConfirmedOpen(false)}
-                                >
-                                    Nei
-                                </Button>
-                                <Button
-                                    className={`
-                                        ${submitButtonClassName}
-                                        ${className ?? ''}
-                                    `}
-                                    aria-disabled={pending || success}
-                                    color={success ? 'green' : color}
-                                    type="button"
-                                    disabled={disabled || pending || success}
-                                    onClick={() => realSubmitRef.current?.click()}
-                                >
-                                    {renderButtonContent('Ja')}
-                                </Button>
-                            </div>
-                        </div>
+                        {confirmationQuestion(
+                            <Button
+                                className={`
+                                    ${submitButtonClassName}
+                                    ${className ?? ''}
+                                `}
+                                aria-disabled={pending || success}
+                                color={success ? 'green' : color}
+                                type="button"
+                                disabled={disabled || pending || success}
+                                onClick={() => realSubmitRef.current?.click()}
+                            >
+                                {renderButtonContent('Ja')}
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>,
             popUpKey
         )
         return () => popUpContext.remove(popUpKey)
-    }, [confirmedOpen, pending, success, popUpKey])
+    }, [confirmedOpen, pending, success, popUpKey, insidePopUp])
+
+    const renderButtons = () => {
+        if (!confirmation?.confirm) return submitButton(children)
+        if (insidePopUp) return confirmedOpen ? confirmationQuestion(submitButton('Ja')) : confirmationTrigger
+        return (
+            <>
+                {confirmationTrigger}
+                <button
+                    ref={realSubmitRef}
+                    type="submit"
+                    onClick={onClick}
+                    disabled={disabled}
+                    aria-hidden="true"
+                    tabIndex={-1}
+                    className="w-[0.1px] max-w-[0.1px] h-[0.1px] opacity-0 overflow-hidden absolute -z-1"
+                />
+            </>
+        )
+    }
 
     return (
         <div>
-            {
-                (confirmation?.confirm) ? (
-                    <>
-                        <Button
-                            className={`
-                                ${submitButtonClassName}
-                                ${className ?? ''}
-                            `}
-                            color={color}
-                            type="button"
-                            onClick={() => setConfirmedOpen(true)}
-                        >
-                            {children}
-                        </Button>
-                        <button
-                            ref={realSubmitRef}
-                            type="submit"
-                            onClick={onClick}
-                            disabled={disabled}
-                            aria-hidden="true"
-                            tabIndex={-1}
-                            className="w-[0.1px] max-w-[0.1px] h-[0.1px] opacity-0 overflow-hidden absolute -z-1"
-                        />
-                    </>
-                ) : (
-                    button
-                )
-            }
+            {renderButtons()}
 
             <p className={`
                 flex flex-col min-h-[1.15em] mb-[3px] text-accent-red
