@@ -26,7 +26,11 @@ type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name' | '
     setFiles: React.Dispatch<React.SetStateAction<FileWithStatus[]>>
 }
 
-const trashClassName = 'bg-transparent border-none hover:cursor-pointer [&>svg]:size-[20px] [&>svg]:text-accent-red'
+const trashClassName = `
+    bg-transparent border-none
+    hover:cursor-pointer
+    [&>svg]:size-[20px] [&>svg]:text-accent-red
+`
 
 const byteToUnderstandable = (bytes: number): string => {
     if (bytes < 1024) {
@@ -106,10 +110,10 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
-                className={[
-                    'w-full relative border-2 border-dashed border-accent-blue p-6 flex justify-center items-center',
-                    styles.uploader,
-                ].join(' ')}
+                className={`
+                    w-full relative border-2 border-dashed border-accent-blue p-6 flex justify-center items-center
+                    ${styles.uploader}
+                `}
             >
                 <input
                     ref={input}
@@ -119,17 +123,33 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
                     multiple
                     aria-label={label}
                     {...props}
-                    className={`peer absolute inset-0 w-full h-full opacity-0 hover:cursor-pointer ${props.className ?? ''}`}
+                    className={`
+                        peer absolute inset-0 w-full h-full opacity-0
+                        hover:cursor-pointer
+                        ${props.className ?? ''}
+                    `}
                 />
-                <p className="-z-1 transition-[scale] duration-300 peer-hover:scale-105">{label}</p>
+                <p className="
+                    -z-1 transition-[scale] duration-300
+                    peer-hover:scale-105
+                ">{label}</p>
                 <FontAwesomeIcon
                     icon={faUpload}
-                    className="-z-1 transition-[scale] duration-300 peer-hover:scale-105 w-[30px] h-[30px] m-4"
+                    className="
+                        -z-1 transition-[scale] duration-300
+                        peer-hover:scale-105
+                        w-[30px] h-[30px] m-4
+                    "
                 />
             </div>
             <span className="mt-4 p-[.5em] bg-[color-mix(in_srgb,var(--accent-blue),white_15%)]">
                 <div
-                    className="flex justify-between content-center p-[.5em] [&>p]:w-full [&>p]:text-center [&>p:first-child]:text-left [&>p:last-child]:text-right"
+                    className="
+                        flex justify-between content-center p-[.5em]
+                        [&>p]:w-full [&>p]:text-center
+                        [&>p:first-child]:text-left
+                        [&>p:last-child]:text-right
+                    "
                 >
                     <p>Til opplastning: {files.length} {files.length === 1 ? 'fil' : 'filer'}</p>
                     <p>Total størrelse: {byteToUnderstandable(files.reduce((acc, file) => acc + file.file.size, 0))}</p>
@@ -144,7 +164,10 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
                         <li
                             id={`fileInfo${index}`}
                             key={`fileInfo${index}`}
-                            className="flex justify-between rounded-round p-[.5em] my-[.3em] bg-[color-mix(in_srgb,var(--accent-blue),white_40%)]"
+                            className="
+                                flex justify-between rounded-round p-[.5em] my-[.3em]
+                                bg-[color-mix(in_srgb,var(--accent-blue),white_40%)]
+                            "
                         >
                             <img
                                 src={URL.createObjectURL(file.file)}

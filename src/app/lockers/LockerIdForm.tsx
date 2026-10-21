@@ -18,7 +18,11 @@ export default function LockerIdForm() {
     }
 
     return (
-        <form className="flex items-end gap-2 [&>div]:m-0 [&>button]:m-0 [&>button]:whitespace-nowrap" onSubmit={goToLocker}>
+        <form className="
+            flex items-end gap-2
+            [&>div]:m-0
+            [&>button]:m-0 [&>button]:whitespace-nowrap
+        " onSubmit={goToLocker}>
             <NumberInput
                 name="lockerId"
                 label="Skapnummer"

@@ -12,7 +12,10 @@ export default function LockerScanner() {
 
     return (
         <ScanHeaderItemPopUp popUpKey="scan_locker_qr_code">
-            <div className="flex flex-col gap-2 min-w-[min(360px,80vw)] [&>h2]:text-center">
+            <div className="
+                flex flex-col gap-2 min-w-[min(360px,80vw)]
+                [&>h2]:text-center
+            ">
                 <h2>Skann QR-koden på skapet</h2>
                 <QrCodeReader
                     singleRead

@@ -88,7 +88,11 @@ export default function CollectionAdminUpload({ collectionId, refreshImages }: P
 
     return (
         <Form
-            className="w-full [&_button[type=submit]]:w-[calc(19*var(--gap))] [&_button[type=submit]]:ml-0 [&_label]:block [&_label]:w-full"
+            className="
+                w-full
+                [&_button[type=submit]]:w-[calc(19*var(--gap))] [&_button[type=submit]]:ml-0
+                [&_label]:block [&_label]:w-full
+            "
             successCallback={refreshImages}
             closePopUpOnSuccess="UploadImages"
             title="Last opp bilder"

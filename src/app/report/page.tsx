@@ -18,7 +18,10 @@ import { serverPage } from '@/app/ServerPage'
 
 // The article's own hero heading. The doubled class (&&) out-ranks PageWrapper's [&_h1] rules on the
 // same element instead of tying with them and leaving the winner to stylesheet order.
-const reportPage = '[&&_h1]:text-center [&&_h1]:text-[clamp(2.5em,12vw,6em)] [&&_h1]:font-secondary [&&_h1]:normal-case [&&_h1]:my-[0.2em] [&&_h1]:mx-0 [&&_h1]:hyphens-auto'
+const reportPageClassName = `
+    [&&_h1]:text-center [&&_h1]:text-[clamp(2.5em,12vw,6em)] [&&_h1]:font-secondary [&&_h1]:normal-case [&&_h1]:my-[0.2em]
+    [&&_h1]:mx-0 [&&_h1]:hyphens-auto
+`
 
 const { page, generateMetadata } = serverPage({
     operation: async () => reportOperations.read({}),
@@ -27,7 +30,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Varsling' }),
     render: ({ data: article, capabilities }) => (
-        <PageWrapper className={reportPage}>
+        <PageWrapper className={reportPageClassName}>
             <SpecialArticle
                 article={article}
                 capabilities={capabilities}

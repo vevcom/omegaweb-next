@@ -11,9 +11,22 @@ export type PropTypesPreview = {
     pDescription: string
 }
 
-const coverImgClassName = 'w-full mb-2 [&>*]:rounded-round [&>*]:overflow-hidden [&>*]:w-full [&>*]:h-full [&>*>*]:rounded-round [&>*>*]:overflow-hidden [&>*>*]:w-full [&>*>*]:h-full [&_img]:transition-[scale] [&_img]:duration-300 [&_img]:w-full [&_img]:h-full [&_img]:object-cover [&_img]:min-h-[50px]'
+const coverImgClassName = `
+    w-full mb-2
+    [&>*]:rounded-round [&>*]:overflow-hidden [&>*]:w-full [&>*]:h-full
+    [&>*>*]:rounded-round [&>*>*]:overflow-hidden [&>*>*]:w-full [&>*>*]:h-full
+    [&_img]:transition-[scale] [&_img]:duration-300 [&_img]:w-full [&_img]:h-full [&_img]:object-cover
+    [&_img]:min-h-[50px]
+`
 
-const ombulCoverClassName = "flex flex-col items-center relative text-text no-underline [&>*]:text-center [&>*]:w-full [&>p]:font-light [&>h2]:after:content-[''] [&>h2]:after:block [&>h2]:after:w-full [&>h2]:after:h-[2px] [&>h2]:after:bg-surface-subtle [&>h2]:after:mb-2 max-mobile:[&>h2]:text-xl"
+const ombulCoverClassName = `
+    flex flex-col items-center relative text-text no-underline
+    [&>*]:text-center [&>*]:w-full
+    [&>p]:font-light
+    [&>h2]:after:content-[''] [&>h2]:after:block [&>h2]:after:w-full [&>h2]:after:h-[2px] [&>h2]:after:bg-surface-subtle
+    [&>h2]:after:mb-2
+    max-mobile:[&>h2]:text-xl
+`
 
 type PropTypes = {
     ombul: ExpandedOmbul
@@ -60,7 +73,10 @@ export default function OmbulCover(props: PropTypes) {
 
     return props.ombul ? (
         <Link
-            className={`${ombulCoverClassName} hover:[&_img]:scale-110`}
+            className={`
+                ${ombulCoverClassName}
+                hover:[&_img]:scale-110
+            `}
             href={`/ombul/${props.ombul.year}/${formatVevenUri(props.ombul.name, props.ombul.id)}`}
         >
             { content }

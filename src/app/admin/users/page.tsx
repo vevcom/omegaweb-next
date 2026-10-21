@@ -13,7 +13,10 @@ const { page, generateMetadata } = serverPage({
         canLinkFeideAccount: authAuth.adminLinkFeideAccount,
     }),
     render: ({ capabilities }) => (
-        <div className="w-full [&>*]:w-1/2">
+        <div className="
+            w-full
+            [&>*]:w-1/2
+        ">
             {capabilities.canCreateUser.authorized && <CreateUserForm />}
             {capabilities.canLinkFeideAccount.authorized && <LinkFeideAccountForm />}
         </div>

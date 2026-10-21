@@ -23,7 +23,10 @@ export default function StandardImageClient({ standardImage, children, className
     }
 
     return (
-        <div className={`[:where(&)]:relative [:where(&)]:isolate [:where(&)]:table ${className}`}>
+        <div className={`
+            [:where(&)]:relative [:where(&)]:isolate [:where(&)]:table
+            ${className}
+        `}>
             {renderImage()}
             {children && <div className="absolute top-0 left-0 w-full h-full flex">{children}</div>}
         </div>

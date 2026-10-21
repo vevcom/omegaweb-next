@@ -32,7 +32,10 @@ export default function CreateOmegaquoteForm() {
                     placeholder="Omegaquote"
                     className="h-[100px] max-h-[300px]"
                 />
-                <TextInput label="Sagt av" name="author" className="w-full max-w-full [&_input]:w-full"/>
+                <TextInput label="Sagt av" name="author" className="
+                    w-full max-w-full
+                    [&_input]:w-full
+                "/>
             </Form>
         </AddHeaderItemPopUp>
     )

@@ -23,16 +23,21 @@ export default function HorizontalSelector<ValueType extends string | number>({
     options,
     className,
 }: PropTypes<ValueType>) {
-    return <div className={`inline-flex rounded-round overflow-hidden [&_input[type=radio]]:hidden ${className ?? ''}`}>
+    return <div className={`
+        inline-flex rounded-round overflow-hidden
+        [&_input[type=radio]]:hidden
+        ${className ?? ''}
+    `}>
         {options.map(option => {
             const id = `${name}-${option.value}`
             return <label
                 key={option.value}
                 htmlFor={id}
-                className={[
-                    value === option.value ? 'btn' : 'secondary-btn',
-                    'flex items-center justify-center flex-1 m-0 rounded-none cursor-pointer font-normal leading-normal not-last:border-r not-last:border-surface-subtle',
-                ].join(' ')}
+                className={`
+                    ${value === option.value ? 'btn' : 'secondary-btn'}
+                    flex items-center justify-center flex-1 m-0 rounded-none cursor-pointer font-normal leading-normal
+                    not-last:border-r not-last:border-surface-subtle
+                `}
             >
                 <input
                     type="radio"

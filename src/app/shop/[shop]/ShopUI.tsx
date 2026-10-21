@@ -102,7 +102,10 @@ export default function ShopUI({ shop, userId, capabilities }: {
                 {Object.values(shoppingCart.products).map(product =>
                     <tr key={product.id} className={product.active ? '' : 'text-text-muted italic'}>
                         {capabilities.canUpdateProduct.authorized && (
-                            <td className="text-center [&>button]:size-[30px] [&>button]:border-none [&>button]:bg-transparent">
+                            <td className="
+                                text-center
+                                [&>button]:size-[30px] [&>button]:border-none [&>button]:bg-transparent
+                            ">
                                 <PopUp
                                     showButtonContent={<FontAwesomeIcon icon={faPencil} />}
                                     popUpKey={`editProductForShop-${product.id}`}

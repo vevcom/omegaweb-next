@@ -6,7 +6,12 @@ import { DynamicImageCollectionPagingContext } from '@/contexts/paging/DynamicIm
 import { useSpecialCollections } from '@/contexts/ClientData'
 import { useState, type ReactNode } from 'react'
 
-const gridClassName = 'w-full flex flex-wrap justify-start gap-2 [&>*:not(.loading-control)]:size-[250px] [&>*:not(.loading-control)]:overflow-hidden [&>*:not(.loading-control)]:rounded-round [&>*:not(.loading-control)]:relative max-[540px]:[&>*:not(.loading-control)]:size-[min(90vw,350px)]'
+const gridClassName = `
+    w-full flex flex-wrap justify-start gap-2
+    [&>*:not(.loading-control)]:size-[250px] [&>*:not(.loading-control)]:overflow-hidden
+    [&>*:not(.loading-control)]:rounded-round [&>*:not(.loading-control)]:relative
+    max-[540px]:[&>*:not(.loading-control)]:size-[min(90vw,350px)]
+`
 
 type PropTypes = {
     serverRendered: ReactNode,
@@ -42,7 +47,10 @@ export default function ImageCollectionList({ serverRendered, toggle }: PropType
                         { value: 'special', label: 'Spesialsamlinger' },
                     ]}
                 />
-                {toggle && <div className="ml-auto max-mobile:ml-0">{toggle}</div>}
+                {toggle && <div className="
+                    ml-auto
+                    max-mobile:ml-0
+                ">{toggle}</div>}
             </div>
             {mode === 'dynamic' ? (
                 <div className={gridClassName}>

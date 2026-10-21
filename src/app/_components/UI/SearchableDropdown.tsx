@@ -31,8 +31,16 @@ const focusBorderClassNames = {
 } as const
 
 const backgroundClassNames = {
-    base: 'bg-surface-raised hover:bg-surface-hover focus:bg-surface-hover',
-    raised: 'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)] focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
+    base: `
+        bg-surface-raised
+        hover:bg-surface-hover
+        focus:bg-surface-hover
+    `,
+    raised: `
+        bg-surface-hover
+        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+    `,
 } as const
 
 /**
@@ -85,23 +93,23 @@ export default function SearchableDropdown<ValueType extends string | number>({
         <div
             ref={ref}
             className={
-                `relative mt-2 w-full max-w-[320px] ${className ?? ''}`
+                `
+                    relative mt-2 w-full max-w-[320px]
+                    ${className ?? ''}
+                `
             }
         >
             <input
                 id={domId}
                 type="text"
-                className={[
-                    [
-                        'w-full border-2 border-transparent rounded-inner outline-0 text-m',
-                        'leading-[calc(var(--text-m)*1.25)]',
-                        'pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300',
-                        'disabled:cursor-not-allowed disabled:opacity-60',
-                    ].join(' '),
-                    dropdownColorClassNames[color],
-                    focusBorderClassNames[color],
-                    backgroundClassNames[background],
-                ].join(' ')}
+                className={`
+                    w-full border-2 border-transparent rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)]
+                    pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300
+                    disabled:cursor-not-allowed disabled:opacity-60
+                    ${dropdownColorClassNames[color]}
+                    ${focusBorderClassNames[color]}
+                    ${backgroundClassNames[background]}
+                `}
                 autoComplete="off"
                 disabled={disabled}
                 value={displayValue}
@@ -116,7 +124,10 @@ export default function SearchableDropdown<ValueType extends string | number>({
             <label htmlFor={domId} className={dropdownLabelClassName(Boolean(open || selectedOption))}>
                 {label}
             </label>
-            <FontAwesomeIcon icon={faChevronDown} className={`${dropdownChevronClassName(open)} pointer-events-none`} />
+            <FontAwesomeIcon icon={faChevronDown} className={`
+                ${dropdownChevronClassName(open)}
+                pointer-events-none
+            `} />
             {
                 open && (
                     <DropdownPanel

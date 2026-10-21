@@ -21,11 +21,24 @@ export type FlairRow = {
 
 const columnClass = {
     colHandle: 'flex-[0_0_calc(4*var(--gap))]',
-    colImage: 'flex-[0_0_100px] max-mobile:basis-[72px] max-mobile:min-w-0 max-mobile:[&>:first-child]:[zoom:0.72]',
+    colImage: `
+        flex-[0_0_100px]
+        max-mobile:basis-[72px] max-mobile:min-w-0
+        max-mobile:[&>:first-child]:[zoom:0.72]
+    `,
     colName: 'flex-[1_1_auto] min-w-0 wrap-anywhere',
-    colColor: 'flex-[0_0_100px] self-stretch max-mobile:basis-4',
-    colRank: 'flex-[0_0_calc(6*var(--gap))] max-mobile:basis-6',
-    colLink: 'flex-[0_0_140px] max-mobile:basis-6',
+    colColor: `
+        flex-[0_0_100px] self-stretch
+        max-mobile:basis-4
+    `,
+    colRank: `
+        flex-[0_0_calc(6*var(--gap))]
+        max-mobile:basis-6
+    `,
+    colLink: `
+        flex-[0_0_140px]
+        max-mobile:basis-6
+    `,
 }
 
 type RowPropTypes = {
@@ -49,12 +62,21 @@ function FlairTableRow({ row, index, canReorder, onDragEnd }: RowPropTypes) {
             dragControls={dragControls}
             onDragEnd={() => onDragEnd(row.id)}
             whileDrag={{ scale: 1.01, boxShadow: '0 8px 20px rgba(0, 0, 0, 0.35)' }}
-            className="relative flex items-center gap-2 bg-surface-raised py-3 px-4 transition-[background-color] duration-300 even:bg-[color-mix(in_srgb,var(--surface-raised),white_3%)] hover:bg-surface-hover"
+            className="
+                relative flex items-center gap-2 bg-surface-raised py-3 px-4 transition-[background-color] duration-300
+                even:bg-[color-mix(in_srgb,var(--surface-raised),white_3%)]
+                hover:bg-surface-hover
+            "
         >
             <span className={columnClass.colHandle} role="cell">
                 {canReorder &&
                 <span
-                    className="flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab touch-none select-none transition-colors duration-300 hover:bg-surface-hover hover:text-ink-strong active:cursor-grabbing"
+                    className="
+                        flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab
+                        touch-none select-none transition-colors duration-300
+                        hover:bg-surface-hover hover:text-ink-strong
+                        active:cursor-grabbing
+                    "
                     onPointerDown={startDrag}
                 >
                     <FontAwesomeIcon icon={faGripVertical} />
@@ -104,7 +126,11 @@ export default function FlairTable({ rows }: PropTypes) {
 
     return (
         <div
-            className="w-full my-4 rounded-round overflow-hidden shadow-[var(--boxShadow)_0_1px_3px,var(--boxShadow)_0_1px_2px] text-m [&_a_svg]:mr-[0.5rem]"
+            className="
+                w-full my-4 rounded-round overflow-hidden shadow-[var(--boxShadow)_0_1px_3px,var(--boxShadow)_0_1px_2px]
+                text-m
+                [&_a_svg]:mr-[0.5rem]
+            "
             role="table"
         >
             <div className="flex items-center gap-2 bg-surface-raised text-ink-strong font-medium py-3 px-4" role="row">

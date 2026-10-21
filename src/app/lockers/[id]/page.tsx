@@ -21,7 +21,10 @@ import { serverPage, withFallback } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const lockerClassName = 'flex flex-wrap items-start gap-4 my-4'
-const cardClassName = 'flex-[1_1_320px] max-w-[480px] py-4 px-6 rounded-round bg-surface-raised shadow-soft [&>h2]:mb-0'
+const cardClassName = `
+    flex-[1_1_320px] max-w-[480px] py-4 px-6 rounded-round bg-surface-raised shadow-soft
+    [&>h2]:mb-0
+`
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ id: string }>) => {
@@ -99,7 +102,11 @@ const { page, generateMetadata } = serverPage({
                         <h2>Skap {lockerId}</h2>
                         <p className="text-text-muted mb-4">{locker.building}, {locker.floor}. etasje</p>
                         {reservation ? (
-                            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 [&>dt]:text-text-muted [&>dd]:m-0">
+                            <dl className="
+                                grid grid-cols-[auto_1fr] gap-x-4 gap-y-2
+                                [&>dt]:text-text-muted
+                                [&>dd]:m-0
+                            ">
                                 <dt>Reservert av</dt>
                                 <dd>{reservation.user.firstname} {reservation.user.lastname}</dd>
                                 {groupName && <>

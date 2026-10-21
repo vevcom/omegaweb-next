@@ -24,9 +24,19 @@ type PropTypes = {
  * This component is used to control the image in the article section
  * i.e move it left or right and size it
  */
-const moveButtonClassName = 'absolute -translate-y-1/2 w-[30%] h-full -top-1/2 bg-surface-raised flex justify-center items-center border-none [&_svg]:text-white [&_svg]:w-[40%] [&_svg]:h-[40%] [&_path]:[translate:10px_0] hover:bg-surface-hover hover:cursor-pointer hover:[&_svg]:text-accent-blue'
+const moveButtonClassName = `
+    absolute -translate-y-1/2 w-[30%] h-full -top-1/2 bg-surface-raised flex justify-center items-center border-none
+    [&_svg]:text-white [&_svg]:w-[40%] [&_svg]:h-[40%]
+    [&_path]:[translate:10px_0]
+    hover:bg-surface-hover hover:cursor-pointer
+    hover:[&_svg]:text-accent-blue
+`
 
-const sizeButtonClassName = 'bg-transparent border-none w-[25px] h-[25px] first:mr-4 [&_svg]:w-full [&_svg]:h-full [&_svg]:text-white'
+const sizeButtonClassName = `
+    bg-transparent border-none w-[25px] h-[25px]
+    first:mr-4
+    [&_svg]:w-full [&_svg]:h-full [&_svg]:text-white
+`
 
 const sizeButtonStateClassName = (disabled: boolean) => (
     disabled ? 'opacity-50' : 'hover:cursor-pointer hover:[&_svg]:text-accent-blue'
@@ -73,11 +83,17 @@ export default function ImageControls({ articleSection, className, updateArticle
         <div className={className}>
             {
                 articleSection.imagePosition === 'LEFT' ? (
-                    <button onClick={moveRight} className={`${moveButtonClassName} rounded-r-round right-0`}>
+                    <button onClick={moveRight} className={`
+                        ${moveButtonClassName}
+                        rounded-r-round right-0
+                    `}>
                         <FontAwesomeIcon icon={faChevronRight} />
                     </button>
                 ) : (
-                    <button onClick={moveLeft} className={`${moveButtonClassName} rounded-l-round left-0`}>
+                    <button onClick={moveLeft} className={`
+                        ${moveButtonClassName}
+                        rounded-l-round left-0
+                    `}>
                         <FontAwesomeIcon icon={faChevronLeft} />
                     </button>
                 )
@@ -90,14 +106,20 @@ export default function ImageControls({ articleSection, className, updateArticle
                         'absolute -top-full bg-surface-raised p-[.5em] right-0 rounded-tr-round pt-[1.2em] pr-[1.2em]'
                 }
             >
-                <button onClick={increaseSize} className={`${sizeButtonClassName} ${sizeButtonStateClassName(
-                    articleSection.imageSize + imageSizeIncrement > maxImageSize
-                )}`}>
+                <button onClick={increaseSize} className={`
+                    ${sizeButtonClassName}
+                    ${sizeButtonStateClassName(
+            articleSection.imageSize + imageSizeIncrement > maxImageSize
+        )}
+                `}>
                     <FontAwesomeIcon icon={faMaximize} />
                 </button>
-                <button onClick={decreaseSize} className={`${sizeButtonClassName} ${sizeButtonStateClassName(
-                    articleSection.imageSize - imageSizeIncrement < minImageSize
-                )}`}>
+                <button onClick={decreaseSize} className={`
+                    ${sizeButtonClassName}
+                    ${sizeButtonStateClassName(
+            articleSection.imageSize - imageSizeIncrement < minImageSize
+        )}
+                `}>
                     <FontAwesomeIcon icon={faMinimize} />
                 </button>
             </div>

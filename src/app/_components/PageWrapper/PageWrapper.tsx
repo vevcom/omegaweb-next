@@ -18,18 +18,23 @@ export default function PageWrapper({
     /** Extra class for page-specific tweaks (e.g. rounding, spacing) without touching the shared default. */
     className?: string,
 }) {
-    const wrapperClass = [
-        'min-h-full size-full self-start [&_h1]:font-secondary [&_h1]:text-xxl [&_h1]:capitalize',
-        // Island pages paint their own panels and own their spacing, so the wrapper drops both.
-        transparent ? 'bg-transparent' : 'bg-surface-base',
-        className,
-    ].filter(Boolean).join(' ')
-    const scrollerClass = [transparent ? 'p-0' : 'p-4', fillHeight && 'flex flex-col'].filter(Boolean).join(' ')
-    const headerClass = [
-        'flex flex-row justify-between items-center [&>div]:flex [&>div]:flex-row [&>div]:items-center [&>div]:flex-1 has-[>div>*]:mb-4',
-        transparent && 'pt-4 px-4',
-        fillHeight && 'shrink-0',
-    ].filter(Boolean).join(' ')
+    const wrapperClass = `
+        min-h-full size-full self-start
+        [&_h1]:font-secondary [&_h1]:text-xxl [&_h1]:capitalize
+        ${transparent ? 'bg-transparent' : 'bg-surface-base'}
+        ${className}
+    `
+    const scrollerClass = `
+        ${transparent ? 'p-0' : 'p-4'}
+        ${fillHeight ? 'flex flex-col' : ''}
+    `
+    const headerClass = `
+        flex flex-row justify-between items-center
+        [&>div]:flex [&>div]:flex-row [&>div]:items-center [&>div]:flex-1
+        has-[>div>*]:mb-4
+        ${transparent ? 'pt-4 px-4' : ''}
+        ${fillHeight ? 'shrink-0' : ''}
+    `
 
     return (
         <ScrollArea className={wrapperClass} scrollerClassName={scrollerClass}>
@@ -41,7 +46,10 @@ export default function PageWrapper({
                 </div>
             )}
 
-            <div className={`min-h-0 ${fillHeight ? 'flex-1' : ''}`}>
+            <div className={`
+                min-h-0
+                ${fillHeight ? 'flex-1' : ''}
+            `}>
                 { children }
             </div>
         </ScrollArea>

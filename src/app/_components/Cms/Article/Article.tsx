@@ -53,14 +53,28 @@ export default function Article({
     const clientCapabilities = capabilitiesToJsObject(capabilities)
 
     return (
-        <span className="h-full grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr_auto] [grid-template-areas:'coverImage_coverImage'_'article_sideBar'_'addSection_sideBar'] max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:grid-rows-[auto_1fr_auto_auto] max-mobile:[grid-template-areas:'coverImage'_'article'_'addSection'_'sideBar']">
+        <span className="
+            h-full grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr_auto]
+            [grid-template-areas:'coverImage_coverImage'_'article_sideBar'_'addSection_sideBar']
+            max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:grid-rows-[auto_1fr_auto_auto]
+            max-mobile:[grid-template-areas:'coverImage'_'article'_'addSection'_'sideBar']
+        ">
             {hideCoverImage ? <></> : (
-                <span className={[
-                    coverImageClass,
-                    'rounded-round [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)] relative [&>*:nth-child(2)]:absolute [&>*:nth-child(2)]:left-[min(4rem,4vw)] [&>*:nth-child(2)]:bottom-[1em] [&>*:nth-child(2)]:right-[min(4rem,4vw)] [&>*:nth-child(2)]:wrap-anywhere',
-                ].join(' ')}>
+                <span className={`
+                    ${coverImageClass}
+                    rounded-round [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)] relative
+                    [&>*:nth-child(2)]:absolute [&>*:nth-child(2)]:left-[min(4rem,4vw)] [&>*:nth-child(2)]:bottom-[1em]
+                    [&>*:nth-child(2)]:right-[min(4rem,4vw)] [&>*:nth-child(2)]:wrap-anywhere
+                `}>
                     <CmsImage
-                        className="relative w-full h-full after:absolute after:top-0 after:left-0 after:w-full after:h-full after:z-1 after:bg-[linear-gradient(to_bottom,transparent_50%,var(--surface-base))] [&_div]:w-full [&_div]:h-full [&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:w-full [&_img]:h-[min(300px,40vh)] [&_img]:object-cover"
+                        className="
+                            relative w-full h-full
+                            after:absolute after:top-0 after:left-0 after:w-full after:h-full after:z-1
+                            after:bg-[linear-gradient(to_bottom,transparent_50%,var(--surface-base))]
+                            [&_div]:w-full [&_div]:h-full
+                            [&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:w-full [&_img]:h-[min(300px,40vh)]
+                            [&_img]:object-cover
+                        "
                         width={500}
                         cmsImage={article.coverImage}
                         updateCmsImageAction={actions.updateCoverImageAction}
@@ -81,11 +95,13 @@ export default function Article({
                 </span>
             )}
             <article
-                className={[
-                    '[grid-area:article] isolate [&>*]:isolate [&>*]:relative', styles.article,
-                    noMargin ? '[&>*]:m-0' : '[&>*]:my-[2em] [&>*]:mx-[min(4rem,4vw)] [&>*:last-child]:mb-[1em]',
-                    articleClassName ?? '',
-                ].join(' ')}
+                className={`
+                    [grid-area:article] isolate
+                    [&>*]:isolate [&>*]:relative
+                    ${styles.article}
+                    ${noMargin ? '[&>*]:m-0' : '[&>*]:my-[2em] [&>*]:mx-[min(4rem,4vw)] [&>*:last-child]:mb-[1em]'}
+                    ${articleClassName ?? ''}
+                `}
             >
                 {
                     article.articleSections.length ? (
@@ -123,11 +139,17 @@ export default function Article({
                 }
             </article>
             {sideBarContent && (
-                <aside className={`[grid-area:sideBar] ${sideBarClassName}`}>
+                <aside className={`
+                    [grid-area:sideBar]
+                    ${sideBarClassName}
+                `}>
                     {sideBarContent}
                 </aside>
             )}
-            <div className={`[grid-area:addSection] my-0 mx-[min(4rem,4vw)] ${addSectionClassName ?? ''}`}>
+            <div className={`
+                [grid-area:addSection] my-0 mx-[min(4rem,4vw)]
+                ${addSectionClassName ?? ''}
+            `}>
                 <AddSection
                     capabilities={clientCapabilities}
                     currentNumberSections={article.articleSections.length}

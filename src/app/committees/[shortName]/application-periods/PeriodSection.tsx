@@ -9,7 +9,10 @@ export type CommitteeParticipationPeriodType =
 
 export function PeriodSection({ period, shortName }: { period: CommitteeParticipationPeriodType, shortName: string }) {
     const currentPeriodClassName = period.isOpen ? 'font-bold bg-[hsla(120,100%,70%,0.288)]' : ''
-    const entriesClassName = `border-2 border-[hsla(0,0%,70%,0.507)] p-[1em] ${currentPeriodClassName}`
+    const entriesClassName = `
+        border-2 border-[hsla(0,0%,70%,0.507)] p-[1em]
+        ${currentPeriodClassName}
+    `
     return (
         <tr>
             <td className={entriesClassName} >

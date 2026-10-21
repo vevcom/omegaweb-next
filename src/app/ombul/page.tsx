@@ -46,7 +46,10 @@ const { page, generateMetadata } = serverPage({
                         yearsWithOmbul.map(([year, ombulsInYear]) => (
                             <div key={year}>
                                 <h1>{year}</h1>
-                                <div className="w-full image-card-list [&>*]:w-full">
+                                <div className="
+                                    w-full image-card-list
+                                    [&>*]:w-full
+                                ">
                                     {
                                         ombulsInYear.map(ombul => (
                                             <OmbulCover key={ombul.id} ombul={ombul} />

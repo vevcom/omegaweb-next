@@ -27,7 +27,10 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'Nyhetsarkiv' }),
     render: ({ data: serverRendered }) => (
         <PageWrapper headerItem={
-            <Link href="/news" className="text-text [&_svg]:size-[30px]!">
+            <Link href="/news" className="
+                text-text
+                [&_svg]:size-[30px]!
+            ">
                 <FontAwesomeIcon icon={faArrowLeft} />
             </Link>
         }>

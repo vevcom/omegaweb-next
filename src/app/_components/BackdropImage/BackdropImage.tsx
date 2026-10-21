@@ -31,10 +31,12 @@ export default function BackdropImage({ children, image, grayScale = true, image
             <div className="z-1 h-full">
                 {children}
             </div>
-            <div className={[
-                'absolute right-0 bottom-0 -z-1 w-[calc(0.6*var(--backdrop-image-size))] opacity-0 flex items-end',
-                `overflow-hidden [&_*]:size-(--backdrop-image-size) ${animation.fadeIn}`,
-            ].join(' ')}>
+            <div className={`
+                absolute right-0 bottom-0 -z-1 w-[calc(0.6*var(--backdrop-image-size))] opacity-0 flex items-end
+                overflow-hidden
+                [&_*]:size-(--backdrop-image-size)
+                ${animation.fadeIn}
+            `}>
                 <Image
                     className={grayScale ? 'grayscale brightness-50 contrast-150' : ''}
                     image={image}

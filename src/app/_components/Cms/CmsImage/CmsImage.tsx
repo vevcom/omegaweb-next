@@ -37,7 +37,10 @@ export default function CmsImage({
     ...props
 }: PropTypes) {
     return (
-        <div className={`relative isolate table ${className}`}>
+        <div className={`
+            relative isolate table
+            ${className}
+        `}>
             {!disableEditor && <CmsImageEditor
                 cmsImage={cmsImage}
                 updateCmsImageAction={updateCmsImageAction}

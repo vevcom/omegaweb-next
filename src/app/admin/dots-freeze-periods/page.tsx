@@ -19,9 +19,18 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 const statusBadge = 'py-[0.2em] px-[0.6em] rounded-[0.4em] whitespace-nowrap'
 
 const statusClass: Record<FreezePeriodStatus['style'], string> = {
-    upcoming: `${statusBadge} bg-[color-mix(in_srgb,var(--accent-blue),white_50%)] text-accent-blue`,
-    active: `${statusBadge} bg-[color-mix(in_srgb,var(--accent-green),white_50%)] text-accent-green`,
-    finished: `${statusBadge} bg-surface-subtle text-text-muted`,
+    upcoming: `
+        ${statusBadge}
+        bg-[color-mix(in_srgb,var(--accent-blue),white_50%)] text-accent-blue
+    `,
+    active: `
+        ${statusBadge}
+        bg-[color-mix(in_srgb,var(--accent-green),white_50%)] text-accent-green
+    `,
+    finished: `
+        ${statusBadge}
+        bg-surface-subtle text-text-muted
+    `,
 }
 
 const createPopUpKey = 'createDotFreezePeriod'

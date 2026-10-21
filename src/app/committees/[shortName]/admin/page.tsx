@@ -21,7 +21,10 @@ import { committeeAuth } from '@/services/groups/committees/auth'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
-const sectionClassName = 'flex flex-col gap-4 p-4 rounded-round layer [&>h3]:m-0 [&>h3]:pb-2 [&>h3]:border-b [&>h3]:border-surface-hover [&>h3]:text-l [&>h3]:font-bold'
+const sectionClassName = `
+    flex flex-col gap-4 p-4 rounded-round layer
+    [&>h3]:m-0 [&>h3]:pb-2 [&>h3]:border-b [&>h3]:border-surface-hover [&>h3]:text-l [&>h3]:font-bold
+`
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ shortName: string }>) => {
@@ -59,7 +62,10 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <div className="flex flex-col gap-6 min-h-[500px]">
-                <header className="flex flex-col gap-2 [&_h2]:m-0">
+                <header className="
+                    flex flex-col gap-2
+                    [&_h2]:m-0
+                ">
                     <h2>Administrer {committee.name}</h2>
                     <div className="flex flex-wrap gap-6 text-text-muted text-s">
                         <span>Kortnavn: {committee.shortName}</span>
@@ -70,7 +76,10 @@ const { page, generateMetadata } = serverPage({
 
                 {!committee.group.pensioned && <section className={sectionClassName}>
                     <h3>Logo</h3>
-                    <div className="grid grid-cols-[auto_minmax(16rem,24rem)] items-start gap-6 max-mobile:grid-cols-1">
+                    <div className="
+                        grid grid-cols-[auto_minmax(16rem,24rem)] items-start gap-6
+                        max-mobile:grid-cols-1
+                    ">
                         <Image image={committee.logoImage} width={300} />
                         {
                             capabilities.canEditLogo.authorized && (

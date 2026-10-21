@@ -36,7 +36,10 @@ export default function ChannelSettings({
     return <PageWrapper
     >
         <PageTitleSetter title={currentChannelState.name} />
-        <div className="w-full [&>p]:[font-weight:lighter] [&>p]:mb-[1rem]">
+        <div className="
+            w-full
+            [&>p]:[font-weight:lighter] [&>p]:mb-[1rem]
+        ">
             {currentChannelState.special ? <p>Spesiell: {currentChannelState.special}</p> : null}
             {capabilities.canUpdate.authorized &&
             <Form

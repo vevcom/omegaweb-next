@@ -26,7 +26,11 @@ export default function LedgerTransactionRow({ transaction, accountId }: Props) 
 
     const fundsChange = transaction.ledgerEntries.find(entry => entry.ledgerAccountId === accountId)?.funds ?? null
 
-    const rowClassName = ['cursor-pointer hover:bg-surface-hover', stateStyle(transaction.state)].filter(Boolean).join(' ')
+    const rowClassName = `
+        cursor-pointer
+        hover:bg-surface-hover
+        ${stateStyle(transaction.state)}
+    `
 
     return <PopUp
         popUpKey={`LedgerTransactionDetails${transaction.id}`}

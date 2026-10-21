@@ -25,7 +25,9 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
     return (
         <nav className="text-text text-m w-full h-[64px]">
             <ul className="w-full h-full flex flex-row justify-start items-center list-none">
-                <li className="flex items-center justify-center h-full relative bg-accent-blue rounded-[calc(2*var(--gap))] p-2">
+                <li className="
+                    flex items-center justify-center h-full relative bg-accent-blue rounded-[calc(2*var(--gap))] p-2
+                ">
                     <HomeLogoLink className="flex items-center justify-center">
                         <div className="size-[48px] flex items-center justify-center">
                             <StandardImageServer
@@ -40,7 +42,10 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
 
                 <PageTitleSetter title="" />
                 <li
-                    className="min-w-0 ml-2 flex items-center max-mobile:[body:has([data-slide-sidebar-toggle])_&]:pr-[calc(44px+2*var(--gap))]"
+                    className="
+                        min-w-0 ml-2 flex items-center
+                        max-mobile:[body:has([data-slide-sidebar-toggle])_&]:pr-[calc(44px+2*var(--gap))]
+                    "
                     data-nav-title
                 >
                     <NavBarTitle />
@@ -53,11 +58,16 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                         </li>
                     ))
                 }
-                <li className="flex w-auto ml-auto items-center gap-1 max-mobile:hidden">
+                <li className="
+                    flex w-auto ml-auto items-center gap-1
+                    max-mobile:hidden
+                ">
                     <EditModeNavIcon className="[--edit-mode-icon-size:30px] size-12" />
                     <SearchButton/>
                     <ReportButton/>
-                    <div className="btn relative m-0! size-[64px] p-0! flex items-center justify-center rounded-[calc(2*var(--gap))]!">
+                    <div className="
+                        btn relative m-0! size-[64px] p-0! flex items-center justify-center rounded-[calc(2*var(--gap))]!
+                    ">
                         {
                             profileImage ? (
                                 <ProfilePicture

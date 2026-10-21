@@ -10,7 +10,10 @@ export default function UserDisplayName({
     user: Pick<UserFiltered, 'firstname' | 'lastname' | 'flairs'>,
     width: number,
 }) {
-    return <div className="flex flex-row items-center [&>span]:mr-[0.3rem]">
+    return <div className="
+        flex flex-row items-center
+        [&>span]:mr-[0.3rem]
+    ">
         <span>{user.firstname} {user.lastname}</span>
 
         {user.flairs.map((flair, index) => (

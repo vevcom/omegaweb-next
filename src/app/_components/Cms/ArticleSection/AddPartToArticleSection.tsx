@@ -18,7 +18,10 @@ type PropTypes = Omit<AddPartsPropTypes, 'onClick'> & {
     capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
-const wrapperClassName = 'relative border-3 border-surface-base rounded-round min-h-[100px] p-4 [&>*:last-child]:absolute [&>*:last-child]:bottom-[3px] [&>*:last-child]:right-[3px]'
+const wrapperClassName = `
+    relative border-3 border-surface-base rounded-round min-h-[100px] p-4
+    [&>*:last-child]:absolute [&>*:last-child]:bottom-[3px] [&>*:last-child]:right-[3px]
+`
 
 export default function AddPartToArticleSection({
     children,
@@ -39,7 +42,10 @@ export default function AddPartToArticleSection({
         <div className="p-2 max-w-full">
             <div className={
                 props.showImageAdd || props.showLinkAdd || props.showParagraphAdd ?
-                    `${wrapperClassName} pb-[60px]`
+                    `
+                        ${wrapperClassName}
+                        pb-[60px]
+                    `
                     :
                     wrapperClassName
             }>

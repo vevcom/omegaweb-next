@@ -18,10 +18,11 @@ export default function MobileNavBarItems({ navItems }: PropTypes) {
         <div key={item.name}>
             <Link href={item.href} aria-label={item.name} aria-current={item.href === activeHref ? 'page' : undefined}>
                 <FontAwesomeIcon
-                    className={[
-                        'size-[25px]! [&_path]:text-inherit',
-                        item.href === activeHref ? 'text-accent-blue' : 'text-text',
-                    ].join(' ')}
+                    className={`
+                        size-[25px]!
+                        [&_path]:text-inherit
+                        ${item.href === activeHref ? 'text-accent-blue' : 'text-text'}
+                    `}
                     icon={item.icon}
                     width={25}
                 />

@@ -20,14 +20,20 @@ type PropTypes = {
     capabilities: Capabilities<'canEditArticleSection' | 'canAdministrate'>
 }
 
-const administrate = 'text-accent-blue p-2 size-[30px] ml-auto hover:text-[color-mix(in_srgb,var(--accent-blue),black_10%)] hover:cursor-pointer'
+const administrateClassName = `
+    text-accent-blue p-2 size-[30px] ml-auto
+    hover:text-[color-mix(in_srgb,var(--accent-blue),black_10%)] hover:cursor-pointer
+`
 
 export default function InterestGroup({ interestGroup, capabilities }: PropTypes) {
     const cmsArticleActionConfig = { implementationParams: { interestGroupId: interestGroup.id } }
 
     return (
         <div className="bg-surface-base rounded-round p-4">
-            <div className="flex justify-between items-center gap-4 [&_h2]:text-xl">
+            <div className="
+                flex justify-between items-center gap-4
+                [&_h2]:text-xl
+            ">
                 <h2>{interestGroup.name}</h2>
                 {interestGroup.group.pensioned && (
                     <span className="px-2 rounded-round border border-text-muted text-text-muted text-s whitespace-nowrap">
@@ -36,7 +42,7 @@ export default function InterestGroup({ interestGroup, capabilities }: PropTypes
                 )}
                 {capabilities.canAdministrate.authorized && (
                     <Link
-                        className={administrate}
+                        className={administrateClassName}
                         href={`/interest-groups/${interestGroup.id}`}
                         aria-label={`Administrer ${interestGroup.name}`}
                     >

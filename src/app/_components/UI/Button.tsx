@@ -16,11 +16,14 @@ const colorClassNames = {
 
 export default function Button({ color = 'primary', children, className, ...props }: PropTypes) {
     return (
-        <button className={[
-            colorClassNames[color],
-            className ?? '',
-            'disabled:bg-surface-hover disabled:text-text-muted',
-        ].join(' ')} {...props}>
+        <button
+            className={`
+                ${colorClassNames[color]}
+                ${className ?? ''}
+                disabled:bg-surface-hover disabled:text-text-muted
+            `}
+            {...props}
+        >
             { children }
         </button>
     )

@@ -81,23 +81,35 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
     )
 
     const isCollectionActive = (collection: { id: number }) => (
-        collection.id === currentCollectionId ? 'scale-110 z-3 border-5 border-accent-blue rounded-[1.25em] [&_img]:scale-120' : ''
+        collection.id === currentCollectionId
+            ? 'scale-110 z-3 border-5 border-accent-blue rounded-[1.25em] [&_img]:scale-120'
+            : ''
     )
 
     const renderCollection = (collection: ExpandedImageCollection) => (
         <div
             key={collection.id}
             data-collection
-            className={`relative shrink-0 mx-[.2em] size-[calc(14vmin+70px)] [&>*:last-child]:m-0 [&>*:last-child]:z-1 ${
-                isCollectionActive(collection)
-            }`}
+            className={`
+                relative shrink-0 mx-[.2em] size-[calc(14vmin+70px)]
+                [&>*:last-child]:m-0 [&>*:last-child]:z-1
+                ${
+        isCollectionActive(collection)
+        }
+            `}
         >
             <button
                 onClick={() => setCurrentCollectionId(collection.id)}
-                className="peer w-full h-full z-2 absolute bg-transparent text-transparent border-none hover:cursor-pointer"
+                className="
+                    peer w-full h-full z-2 absolute bg-transparent text-transparent border-none
+                    hover:cursor-pointer
+                "
             />
             <CollectionCard
-                className="[&_img]:-z-1 peer-hover:[&_img]:scale-120"
+                className="
+                    [&_img]:-z-1
+                    peer-hover:[&_img]:scale-120
+                "
                 collection={collection}
             />
         </div>
@@ -119,8 +131,17 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
             showButtonClass="w-full h-full absolute top-0 left-0 border-none bg-transparent"
         >
             <PopUpProvider>
-                <div className="grid mobile:w-[calc(97vw-140px)] mobile:h-[calc(97vh-140px)] mobile:grid-cols-[auto_1fr] mobile:grid-rows-[1fr_auto] mobile:gap-[1em] max-mobile:w-full max-mobile:grid-cols-1 max-mobile:grid-rows-[1fr_auto_auto] max-mobile:h-[75svh] max-mobile:overflow-y-hidden">
-                    <div className="layer rounded-round p-2 col-[1/2] row-[1/2] max-mobile:hidden">
+                <div className="
+                    grid
+                    mobile:w-[calc(97vw-140px)] mobile:h-[calc(97vh-140px)] mobile:grid-cols-[auto_1fr]
+                    mobile:grid-rows-[1fr_auto] mobile:gap-[1em]
+                    max-mobile:w-full max-mobile:grid-cols-1 max-mobile:grid-rows-[1fr_auto_auto] max-mobile:h-[75svh]
+                    max-mobile:overflow-y-hidden
+                ">
+                    <div className="
+                        layer rounded-round p-2 col-[1/2] row-[1/2]
+                        max-mobile:hidden
+                    ">
                         <div className="max-w-[150px] overflow-hidden">
                             <h2>Edit image link</h2>
                             <div>
@@ -137,13 +158,20 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                     </div>
                     {hasNewSelection && selectedImage && (
                         <ChangeImageForm
-                            className="row-[3/4] mobile:hidden"
+                            className="
+                                row-[3/4]
+                                mobile:hidden
+                            "
                             cmsImageId={cmsImage.id}
                             selectedImage={selectedImage}
                             updateCmsImageAction={updateCmsImageAction}
                         />
                     )}
-                    <div className="col-[2/3] row-[1/2] bg-surface-base overflow-scroll max-w-full w-full round [&>*]:isolate max-mobile:col-[1/2] max-mobile:my-[1em] max-mobile:mx-0">
+                    <div className="
+                        col-[2/3] row-[1/2] bg-surface-base overflow-scroll max-w-full w-full round
+                        [&>*]:isolate
+                        max-mobile:col-[1/2] max-mobile:my-[1em] max-mobile:mx-0
+                    ">
                         {readPageOfImagesInCollectionAction ? (
                             <ImagePanel
                                 readPageOfImagesInCollectionAction={readPageOfImagesInCollectionAction}
@@ -157,7 +185,10 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                         )}
                     </div>
                     <div className="col-[1/3] row-[2/3] layer flex flex-col max-w-full p-4 rounded-round">
-                        <p className="flex items-start gap-2 mb-2 max-w-[90ch] text-s text-text-muted [&>svg]:mt-[0.25em] [&>svg]:shrink-0">
+                        <p className="
+                            flex items-start gap-2 mb-2 max-w-[90ch] text-s text-text-muted
+                            [&>svg]:mt-[0.25em] [&>svg]:shrink-0
+                        ">
                             <FontAwesomeIcon icon={faInfo} />
                             <span>
                                 Du ser bare bildesamlingene du administrerer. Merk at bildet du
@@ -165,7 +196,15 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                                 for de som ikke har tilgang til samlingen bildet ligger i.
                             </span>
                         </p>
-                        <div className="flex max-w-full overflow-x-scroll min-h-[calc(14vmin+70px+5vmin)] items-center [&>*:last-child:not([data-collection])]:min-w-[calc(14vmin+70px)] [&>*:last-child:not([data-collection])]:h-[calc(14vmin+70px)] [&>*:last-child:not([data-collection])]:border [&>*:last-child:not([data-collection])]:border-surface-subtle [&>*:last-child:not([data-collection])]:flex [&>*:last-child:not([data-collection])]:relative [&>*:last-child:not([data-collection])]:round">
+                        <div className="
+                            flex max-w-full overflow-x-scroll min-h-[calc(14vmin+70px+5vmin)] items-center
+                            [&>*:last-child:not([data-collection])]:min-w-[calc(14vmin+70px)]
+                            [&>*:last-child:not([data-collection])]:h-[calc(14vmin+70px)]
+                            [&>*:last-child:not([data-collection])]:border
+                            [&>*:last-child:not([data-collection])]:border-surface-subtle
+                            [&>*:last-child:not([data-collection])]:flex [&>*:last-child:not([data-collection])]:relative
+                            [&>*:last-child:not([data-collection])]:round
+                        ">
                             {renderSpecialCollections()}
                             <DynamicImageCollectionPagingProvider
                                 startPage={{
@@ -183,7 +222,11 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                         </div>
                     </div>
                     <Link
-                        className="absolute w-[10em] btn mobile:-top-[2%] mobile:-right-[2%] max-mobile:top-[2%] max-mobile:left-[2%]"
+                        className="
+                            absolute w-[10em] btn
+                            mobile:-top-[2%] mobile:-right-[2%]
+                            max-mobile:top-[2%] max-mobile:left-[2%]
+                        "
                         href="/image-collections/"
                     >
                         Gå til bilder

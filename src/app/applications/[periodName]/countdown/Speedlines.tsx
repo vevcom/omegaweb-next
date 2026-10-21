@@ -17,10 +17,10 @@ export default function Speedlines() {
                 (
                     <svg
                         key={index}
-                        className={[
-                            styles.speedline,
-                            'absolute w-full h-full stroke-surface-base stroke-[0.25] [stroke-dasharray:20_80] scale-200',
-                        ].join(' ')}
+                        className={`
+                            ${styles.speedline}
+                            absolute w-full h-full stroke-surface-base stroke-[0.25] [stroke-dasharray:20_80] scale-200
+                        `}
                         viewBox="0 0 100 100"
                         style={{
                             '--rotate': `${randomRotate}deg`,

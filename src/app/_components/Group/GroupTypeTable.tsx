@@ -45,7 +45,11 @@ export default function GroupTypeTable({
     )
 
     return (
-        <table className="ohma-table [&_a]:text-accent-blue [&_a]:no-underline [&_a:hover]:underline">
+        <table className="
+            ohma-table
+            [&_a]:text-accent-blue [&_a]:no-underline
+            [&_a:hover]:underline
+        ">
             <thead>
                 <tr>
                     <th>{nameHeading}</th>

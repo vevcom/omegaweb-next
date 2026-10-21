@@ -22,7 +22,11 @@ export type PropTypes = Omit<ImageProps, 'src' | 'alt'> & {
     tintAspectRatio?: number,
 }
 
-const imageClassName = '[:where(&)]:relative [:where(&)]:m-0 [:where(&)]:box-border [:where(&)]:flex [:where(&)]:flex-col [:where(&)]:w-(--image-width) [&>img]:m-0 [&>img]:w-full [&>img]:h-full'
+const imageClassName = `
+    [:where(&)]:relative [:where(&)]:m-0 [:where(&)]:box-border [:where(&)]:flex [:where(&)]:flex-col
+    [:where(&)]:w-(--image-width)
+    [&>img]:m-0 [&>img]:w-full [&>img]:h-full
+`
 
 const creditPlacementClassName = {
     top: 'top-0 left-0',
@@ -65,12 +69,18 @@ export default function Image({
     const imageWidthStyle = { '--image-width': `${width}px` } as CSSProperties
 
     return (
-        <div style={imageWidthStyle} className={`${imageClassName} ${imageContainerClassName}`}>
+        <div style={imageWidthStyle} className={`
+            ${imageClassName}
+            ${imageContainerClassName}
+        `}>
             {tint && image.type === 'SVG' ? (
                 // A mask has no intrinsic size, so aspect-ratio is set inline; `contain` letterboxes
                 // a mismatched ratio rather than stretching.
                 <div
-                    className="w-full [mask-image:var(--image-tint-mask)] mask-contain mask-no-repeat mask-center bg-(--image-tint-color)"
+                    className="
+                        w-full [mask-image:var(--image-tint-mask)] mask-contain mask-no-repeat mask-center
+                        bg-(--image-tint-color)
+                    "
                     style={{
                         '--image-tint-mask': `url('${url}')`,
                         '--image-tint-color': tint,
@@ -89,20 +99,34 @@ export default function Image({
                 />
             )}
             {image.credit && !hideCredit && (
-                <p className={`absolute bg-surface-base opacity-50 p-[.5em] ${creditPlacementClassName[creditPlacement]}`}>
+                <p className={`
+                    absolute bg-surface-base opacity-50 p-[.5em]
+                    ${creditPlacementClassName[creditPlacement]}
+                `}>
                     {image.credit}
                 </p>
             )}
             {!hideCopyRight && image.licenseLink && (
-                <div className="group absolute right-0 top-0 z-2 flex flex-row items-center justify-around no-underline text-text hover:bg-surface-base hover:opacity-80">
+                <div className="
+                    group absolute right-0 top-0 z-2 flex flex-row items-center justify-around no-underline text-text
+                    hover:bg-surface-base hover:opacity-80
+                ">
                     {disableLinkingToLicense ? (
-                        <p className="hidden group-hover:inline text-s ml-[.5em]">{image.licenseName}</p>
+                        <p className="
+                            hidden
+                            group-hover:inline
+                            text-s ml-[.5em]
+                        ">{image.licenseName}</p>
                     ) : (
                         <Link
                             href={image.licenseLink}
                             target="_blank"
                             referrerPolicy="no-referrer"
-                            className="hidden group-hover:inline text-s ml-[.5em]"
+                            className="
+                                hidden
+                                group-hover:inline
+                                text-s ml-[.5em]
+                            "
                         >
                             {image.licenseName}
                         </Link>

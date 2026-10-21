@@ -45,7 +45,12 @@ export default function EventTagsAdmin({
             <h1>Tagger</h1>
             {
                 capabilities.canCreateTags.authorized && (
-                    <span className="flex items-center [&_form]:flex max-mobile:[&_form]:flex-col mobile:[&_form]:items-center mobile:[&_form]:justify-center mobile:[&_form]:gap-[1em]">
+                    <span className="
+                        flex items-center
+                        [&_form]:flex
+                        max-mobile:[&_form]:flex-col
+                        mobile:[&_form]:items-center mobile:[&_form]:justify-center mobile:[&_form]:gap-[1em]
+                    ">
                         <Form refreshOnSuccess action={createEventTagAction} submitText="Lag">
                             <TextInput name="name" label="Navn" />
                             <Textarea name="description" label="Beskrivelse" />
@@ -54,13 +59,23 @@ export default function EventTagsAdmin({
                     </span>
                 )
             }
-            <ul className="mt-[1em] flex flex-row flex-wrap gap-[2em] overflow-y-auto overflow-x-visible list-none isolate pb-[5em] [&_a]:no-underline [&_li]:flex [&_li]:items-center [&_li]:z-1 [&_li:hover]:z-2">
+            <ul className="
+                mt-[1em] flex flex-row flex-wrap gap-[2em] overflow-y-auto overflow-x-visible list-none isolate pb-[5em]
+                [&_a]:no-underline
+                [&_li]:flex [&_li]:items-center [&_li]:z-1
+                [&_li:hover]:z-2
+            ">
                 {
                     eventTags.map((tag, index) => (
                         <li key={index} >
                             <Link
                                 className={
-                                    selectedTags.map(tagItem => tagItem.name).includes(tag.name) ? "relative hover:after:content-['✖'] hover:after:text-[length:4em] hover:after:text-text hover:after:absolute hover:after:left-1/2 hover:after:top-1/2 hover:after:-translate-x-1/2 hover:after:-translate-y-1/2" : ''
+                                    selectedTags.map(tagItem => tagItem.name).includes(tag.name) ? `
+                                        relative
+                                        hover:after:content-['✖'] hover:after:text-[length:4em] hover:after:text-text
+                                        hover:after:absolute hover:after:left-1/2 hover:after:top-1/2
+                                        hover:after:-translate-x-1/2 hover:after:-translate-y-1/2
+                                    ` : ''
                                 }
                                 href={
                                     selectedTags.map(tagItem => tagItem.name).includes(tag.name) ?

@@ -8,7 +8,12 @@ type PropTypes = {
 
 export default function SmallEventTag({ eventTag }: PropTypes) {
     return (
-        <div className="relative [&_svg]:size-[1.5em] [&_p]:absolute [&_p]:left-6 [&_p]:top-0 [&_p]:hidden hover:[&_p]:block" style={{
+        <div className="
+            relative
+            [&_svg]:size-[1.5em]
+            [&_p]:absolute [&_p]:left-6 [&_p]:top-0 [&_p]:hidden
+            hover:[&_p]:block
+        " style={{
             color: `rgb(${eventTag.colorR}, ${eventTag.colorG}, ${eventTag.colorB})`
         }}>
             <FontAwesomeIcon icon={faTag} />

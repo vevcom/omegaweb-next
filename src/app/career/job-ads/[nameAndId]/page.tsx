@@ -47,7 +47,10 @@ const { page, generateMetadata } = serverPage({
                     capabilities={capabilities}
                     article={jobAd.article}
                     coverImageClass="rounded-round overflow-hidden mb-2"
-                    sideBarClassName="p-2 rounded-round ml-2 bg-surface-base max-mobile:ml-0 max-mobile:mt-2"
+                    sideBarClassName="
+                        p-2 rounded-round ml-2 bg-surface-base
+                        max-mobile:ml-0 max-mobile:mt-2
+                    "
                     articleClassName="bg-surface-base rounded-round"
                     addSectionClassName="mt-2 mx-4 mb-0"
                     actions={{
@@ -97,7 +100,12 @@ const { page, generateMetadata } = serverPage({
                     sideBarContent={
                         <>
                             <ul
-                                className="flex flex-col gap-[1em] [&>li]:grid [&>li]:grid-cols-[40px_1fr] [&>li]:grid-rows-[auto_auto] [&>li_svg]:size-[20px]! [&>li_svg]:row-[1/3] [&>li_svg]:col-[1/2] [&>li_svg]:my-auto [&>li_svg]:ml-auto [&>li_svg]:mr-2"
+                                className="
+                                    flex flex-col gap-[1em]
+                                    [&>li]:grid [&>li]:grid-cols-[40px_1fr] [&>li]:grid-rows-[auto_auto]
+                                    [&>li_svg]:size-[20px]! [&>li_svg]:row-[1/3] [&>li_svg]:col-[1/2] [&>li_svg]:my-auto
+                                    [&>li_svg]:ml-auto [&>li_svg]:mr-2
+                                "
                             >
                                 <li>
                                     <FontAwesomeIcon icon={faSuitcase} />
@@ -136,7 +144,10 @@ const { page, generateMetadata } = serverPage({
                                     <p>{jobAd.location}</p>
                                 </li>
                             </ul>
-                            <div className="mt-[2em] [&>h2]:text-xl [&>h2]:mb-[1em]">
+                            <div className="
+                                mt-[2em]
+                                [&>h2]:text-xl [&>h2]:mb-[1em]
+                            ">
                                 <h2>Arbeidsgiver</h2>
                                 <Company
                                     disableEdit

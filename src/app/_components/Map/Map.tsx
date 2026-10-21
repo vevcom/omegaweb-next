@@ -24,7 +24,10 @@ export default function Map({ height, src, href, title, invertColors = false }: 
 
     return <div className="flex flex-col items-center gap-2" onPointerLeave={() => setActive(false)}>
         <div
-            className={`relative w-4/5 rounded-round overflow-hidden ${invertColors ? 'invert hue-rotate-180' : ''}`}
+            className={`
+                relative w-4/5 rounded-round overflow-hidden
+                ${invertColors ? 'invert hue-rotate-180' : ''}
+            `}
             style={{ height }}
         >
             <iframe

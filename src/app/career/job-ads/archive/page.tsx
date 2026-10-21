@@ -9,7 +9,10 @@ import Link from 'next/link'
 export default function JobAdsArchive() {
     return (
         <PageWrapper headerItem={
-            <Link href="/career/job-ads" className="text-text [&_svg]:size-[30px]!">
+            <Link href="/career/job-ads" className="
+                text-text
+                [&_svg]:size-[30px]!
+            ">
                 <FontAwesomeIcon icon={faArrowLeft} />
             </Link>
         }>

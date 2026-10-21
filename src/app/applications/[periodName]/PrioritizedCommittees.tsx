@@ -36,14 +36,24 @@ function PrioritizedCommittee({ item, priority, canReorder, onDragEnd }: ItemPro
             dragControls={dragControls}
             onDragEnd={() => onDragEnd(item.committeeParticipationId)}
             whileDrag={{ scale: 1.01, boxShadow: '0 8px 20px rgba(0, 0, 0, 0.35)' }}
-            className={`${committeeCardClassName} relative`}
+            className={`
+                ${committeeCardClassName}
+                relative
+            `}
         >
             <div className="flex-[0_0_auto] w-[3em] flex flex-col items-center gap-[0.5em]">
                 {/* The priority comes from the position in the list rather than from the server
                     so that the numbers follow along while the card is being dragged. */}
-                <span className="shrink-0 rounded-full bg-accent-blue text-text-inv size-[3em] grid place-items-center font-bold">{priority}</span>
+                <span className="
+                    shrink-0 rounded-full bg-accent-blue text-text-inv size-[3em] grid place-items-center font-bold
+                ">{priority}</span>
                 {canReorder && (
-                    <span className="flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab touch-none select-none transition-colors duration-300 hover:bg-surface-hover hover:text-ink-strong active:cursor-grabbing" onPointerDown={startDrag}>
+                    <span className="
+                        flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab
+                        touch-none select-none transition-colors duration-300
+                        hover:bg-surface-hover hover:text-ink-strong
+                        active:cursor-grabbing
+                    " onPointerDown={startDrag}>
                         <FontAwesomeIcon icon={faGripVertical} />
                     </span>
                 )}

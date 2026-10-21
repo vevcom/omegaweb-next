@@ -29,7 +29,11 @@ export default function AddUserToMailingList({ mailingListId }: { mailingListId:
         refresh()
     })
 
-    return <div className="flex-[1_1_100%] [&_h3]:m-0 [&_p]:text-text-muted [&_p]:mt-1 [&_p]:mx-0 [&_p]:mb-2">
+    return <div className="
+        flex-[1_1_100%]
+        [&_h3]:m-0
+        [&_p]:text-text-muted [&_p]:mt-1 [&_p]:mx-0 [&_p]:mb-2
+    ">
         <h3>Legg til bruker</h3>
         <p>Trykk på en bruker for å legge dem til e-postlisten.</p>
         {error && <p className="text-accent-red">{error}</p>}

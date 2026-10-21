@@ -41,10 +41,11 @@ export default function SlideInOnView({ children, direction = 'bottom' }: PropTy
     }, [])
 
     return (
-        <div ref={ref} className={[
-            'opacity-0 [transition:opacity_1s,translate_0.6s] [&.visible]:opacity-100 [&.visible]:translate-none',
-            directionClassNames[direction],
-        ].join(' ')}>
+        <div ref={ref} className={`
+            opacity-0 [transition:opacity_1s,translate_0.6s]
+            [&.visible]:opacity-100 [&.visible]:translate-none
+            ${directionClassNames[direction]}
+        `}>
             {children}
         </div>
     )

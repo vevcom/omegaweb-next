@@ -13,7 +13,10 @@ export default function CreateUserForm({ className }: PropTypes) {
     const { refresh } = useRouter()
 
     return (
-        <div className={`${'w-full'} ${className}`}>
+        <div className={`
+            ${'w-full'}
+            ${className}
+        `}>
             <Form
                 title="Lag en bruker"
                 submitText="Lag bruker"

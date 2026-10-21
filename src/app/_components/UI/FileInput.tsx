@@ -21,18 +21,32 @@ const valueColorClassNames = {
 
 const focusClassNames = {
     blue: {
-        trigger: 'peer-focus:border-accent-blue peer-focus:[&_svg]:text-accent-blue',
+        trigger: `
+            peer-focus:border-accent-blue
+            peer-focus:[&_svg]:text-accent-blue
+        `,
         label: 'peer-focus:text-accent-blue',
     },
     red: {
-        trigger: 'peer-focus:border-accent-red peer-focus:[&_svg]:text-accent-red',
+        trigger: `
+            peer-focus:border-accent-red
+            peer-focus:[&_svg]:text-accent-red
+        `,
         label: 'peer-focus:text-accent-red',
     },
 } as const
 
 const backgroundClassNames = {
-    base: 'bg-surface-raised hover:bg-surface-hover peer-focus:bg-surface-hover',
-    raised: 'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)] peer-focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
+    base: `
+        bg-surface-raised
+        hover:bg-surface-hover
+        peer-focus:bg-surface-hover
+    `,
+    raised: `
+        bg-surface-hover
+        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        peer-focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+    `,
 } as const
 
 /**
@@ -68,7 +82,10 @@ export default function FileInput({
     const focus = focusClassNames[color === 'red' ? 'red' : 'blue']
 
     return (
-        <div className={`relative w-full max-w-[320px] mt-2 ${className ?? ''}`}>
+        <div className={`
+            relative w-full max-w-[320px] mt-2
+            ${className ?? ''}
+        `}>
             <input
                 {...props}
                 id={inputId}
@@ -79,17 +96,20 @@ export default function FileInput({
             />
             <label
                 htmlFor={inputId}
-                className={[
-                    'relative w-full flex items-center border-2 border-transparent rounded-inner outline-0 text-m text-left text-ink-strong pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300 cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-60',
-                    backgroundClassNames[background],
-                    focus.trigger,
-                ].join(' ')}
+                className={`
+                    relative w-full flex items-center border-2 border-transparent rounded-inner outline-0 text-m text-left
+                    text-ink-strong pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300
+                    cursor-pointer
+                    peer-disabled:cursor-not-allowed peer-disabled:opacity-60
+                    ${backgroundClassNames[background]}
+                    ${focus.trigger}
+                `}
             >
                 <span
-                    className={[
-                        'overflow-hidden text-ellipsis whitespace-nowrap min-h-[calc(var(--text-m)*1.25)]',
-                        valueColorClassNames[color],
-                    ].join(' ')}
+                    className={`
+                        overflow-hidden text-ellipsis whitespace-nowrap min-h-[calc(var(--text-m)*1.25)]
+                        ${valueColorClassNames[color]}
+                    `}
                     title={value}
                 >
                     {value}
@@ -101,11 +121,12 @@ export default function FileInput({
             </label>
             <label
                 htmlFor={inputId}
-                className={[
-                    'absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1',
-                    value ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-6 text-m',
-                    `peer-focus:top-2 peer-focus:text-[length:calc(var(--text-s)*0.85)] ${focus.label}`,
-                ].join(' ')}
+                className={`
+                    absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1
+                    ${value ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-6 text-m'}
+                    peer-focus:top-2 peer-focus:text-[length:calc(var(--text-s)*0.85)]
+                    ${focus.label}
+                `}
             >
                 {label}
             </label>

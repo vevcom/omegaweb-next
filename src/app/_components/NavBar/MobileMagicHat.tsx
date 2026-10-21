@@ -14,5 +14,8 @@ export default function MobileMagicHat({ children }: { children: ReactNode }) {
         ...(user ? [`/users/${user.username}`] : []),
     ]) !== undefined
 
-    return <div className={`relative ${active ? '[--magic-hat-tint:var(--accent-blue)]' : ''}`}>{children}</div>
+    return <div className={`
+        relative
+        ${active ? '[--magic-hat-tint:var(--accent-blue)]' : ''}
+    `}>{children}</div>
 }

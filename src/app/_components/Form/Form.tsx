@@ -40,7 +40,10 @@ function Input({ input, errors }: InputType) {
             <div>
                 {input}
             </div>
-            <p className={`text-accent-red flex flex-col min-h-[1.15em] mb-[3px] ${pending ? 'invisible' : ''}`}>
+            <p className={`
+                text-accent-red flex flex-col min-h-[1.15em] mb-[3px]
+                ${pending ? 'invisible' : ''}
+            `}>
                 {
                     errors?.[0]?.message
                 }
@@ -168,7 +171,11 @@ export default function Form<GiveActionReturn>({
     }
 
     return (
-        <form className={`relative w-full [&>h2]:mb-2 ${className}`} {...props} onSubmit={handleSubmit}>
+        <form className={`
+            relative w-full
+            [&>h2]:mb-2
+            ${className}
+        `} {...props} onSubmit={handleSubmit}>
             {title && <h2>{title}</h2>}
             {
                 inputs.map(({ input, errors }, i) => (
@@ -180,7 +187,10 @@ export default function Form<GiveActionReturn>({
                 success={success}
                 generalErrors={generalErrors}
                 confirmation={confirmation}
-                className={`${buttonClassName} m-0`}
+                className={`
+                    ${buttonClassName}
+                    m-0
+                `}
                 disabled={disabled}
             >
                 {submitText}

@@ -28,7 +28,10 @@ export default async function StandardImageServer({ standardImage, children, cla
     ))
 
     return (
-        <div className={`[:where(&)]:relative [:where(&)]:isolate [:where(&)]:table ${className}`}>
+        <div className={`
+            [:where(&)]:relative [:where(&)]:isolate [:where(&)]:table
+            ${className}
+        `}>
             {image ? (
                 <Image image={image} {...props} />
             ) : (

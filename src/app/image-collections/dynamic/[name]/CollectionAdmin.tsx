@@ -69,7 +69,10 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
             {
                 canUpload && (
                     <UploadHeaderItemPopUp popUpKey="UploadImages">
-                        <div className="flex flex-col gap-4 w-[min(50vw,560px)] max-w-full max-mobile:w-full">
+                        <div className="
+                            flex flex-col gap-4 w-[min(50vw,560px)] max-w-full
+                            max-mobile:w-full
+                        ">
                             {
                                 uploadOption === 'MANY' ? canUploadMany && (
                                     <CollectionAdminUpload

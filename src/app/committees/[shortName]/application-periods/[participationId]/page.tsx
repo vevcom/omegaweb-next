@@ -19,7 +19,10 @@ const { page, generateMetadata } = serverPage({
             <div>
                 {sortedApplications.map((application, index) => (
                     <div className="mt-[1em] flex flex-col border-2 border-[hsla(0,0%,70%,0.507)] round" key={index}>
-                        <div className="flex items-center [&_*]:inline-block [&_*]:mx-[0.1em]">
+                        <div className="
+                            flex items-center
+                            [&_*]:inline-block [&_*]:mx-[0.1em]
+                        ">
                             <h3>{application.priority}.</h3>
                             <ProfilePicture
                                 width={50}

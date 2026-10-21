@@ -21,7 +21,10 @@ export default function CreateBulshitForm({ bulshitPosterId }: PropTypes) {
                 submitText="Legg til"
                 action={configureAction(createBulshitAction, { params: { bulshitPosterId } })}
                 successCallback={refresh}
-                className="w-[400px] [&_input]:w-full"
+                className="
+                    w-[400px]
+                    [&_input]:w-full
+                "
             >
                 <Textarea
                     name="quote"

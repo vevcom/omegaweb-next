@@ -17,7 +17,10 @@ const { page, generateMetadata } = serverPage({
     },
     metadata: () => ({ title: 'OmegaId' }),
     render: () => (
-        <div className="bg-surface-base h-full w-full flex justify-center items-center m-auto p-[1rem] [&>div]:max-w-[20rem]! [&>div]:w-[calc(100vw-2rem)]!">
+        <div className="
+            bg-surface-base h-full w-full flex justify-center items-center m-auto p-[1rem]
+            [&>div]:max-w-[20rem]! [&>div]:w-[calc(100vw-2rem)]!
+        ">
             <OmegaId />
         </div>
     ),

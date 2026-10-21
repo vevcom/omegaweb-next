@@ -71,8 +71,14 @@ function getOrdereOptions(group: ExpandedGroup): { value: number | 'NULL', label
     ]
 }
 
-const sortableClassName = 'p-0! select-none whitespace-nowrap hover:text-accent-blue'
-const sortButtonClassName = 'w-full h-auto block py-3 px-4 [font:inherit] text-inherit [text-align:inherit] border-none bg-transparent rounded-round cursor-pointer'
+const sortableClassName = `
+    p-0! select-none whitespace-nowrap
+    hover:text-accent-blue
+`
+const sortButtonClassName = `
+    w-full h-auto block py-3 px-4 [font:inherit] text-inherit [text-align:inherit] border-none bg-transparent
+    rounded-round cursor-pointer
+`
 
 /**
  * Display users in UserPagingContext with filters for groups and a search bar.
@@ -206,7 +212,10 @@ export default function UserList({
     }
 
     return (
-        <div className={`${'h-full flex flex-col'} ${className}`}>
+        <div className={`
+            ${'h-full flex flex-col'}
+            ${className}
+        `}>
             <div className="w-full flex flex-row flex-wrap items-end mb-2 gap-4">
                 {
                     !disableFilters.name && (
@@ -300,7 +309,11 @@ export default function UserList({
                 }
             </div>
             <div className="flex-auto overflow-y-auto">
-                <table className="ohma-table m-0! [&_td_button]:border-none [&_td_button]:bg-transparent [&_td_button]:size-[25px] [&_td_button]:grid [&_td_button]:place-items-center [&_td_button]:rounded-round [&_td_button]:cursor-pointer">
+                <table className="
+                    ohma-table m-0!
+                    [&_td_button]:border-none [&_td_button]:bg-transparent [&_td_button]:size-[25px] [&_td_button]:grid
+                    [&_td_button]:place-items-center [&_td_button]:rounded-round [&_td_button]:cursor-pointer
+                ">
                     <thead>
                         <tr className="sticky top-0 z-1">
                             {(usersSelection ?? userSelection) && <th></th>}

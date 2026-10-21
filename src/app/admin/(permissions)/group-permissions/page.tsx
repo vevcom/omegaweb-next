@@ -18,14 +18,20 @@ const { page, generateMetadata } = serverPage({
         return <div className="overflow-auto h-[calc(100vh-5rem)] w-full">
             <table className="block border-spacing-0">
                 <thead
-                    className="align-bottom [&_th]:whitespace-nowrap [&_th]:px-[0.2rem] [&_th]:pb-[0.3rem] [&_th]:sticky [&_th]:top-0 [&_th]:z-2 [&_th]:bg-surface-base [&_th]:border-b-2 [&_th]:border-black"
+                    className="
+                        align-bottom
+                        [&_th]:whitespace-nowrap [&_th]:px-[0.2rem] [&_th]:pb-[0.3rem] [&_th]:sticky [&_th]:top-0
+                        [&_th]:z-2 [&_th]:bg-surface-base [&_th]:border-b-2 [&_th]:border-black
+                    "
                 >
                     <tr>
                         <th>Gruppe</th>
                         {permissionList.map((permission, i) =>
                             <th
                                 key={i}
-                                className="[&>span]:[writing-mode:vertical-rl] [&>span]:rotate-180 [&>span]:whitespace-nowrap"
+                                className="
+                                    [&>span]:[writing-mode:vertical-rl] [&>span]:rotate-180 [&>span]:whitespace-nowrap
+                                "
                                 title={permissionConfig[permission as Permission].description}
                             >
                                 <span>{permissionConfig[permission as Permission].name}</span>
@@ -38,7 +44,10 @@ const { page, generateMetadata } = serverPage({
                     {permissionMatrix.map((group, i) => (
                         <tr key={i}>
                             <td
-                                className="text-nowrap text-right sticky pr-[0.3rem] left-0 z-1 bg-surface-base border-r-2 border-black"
+                                className="
+                                    text-nowrap text-right sticky pr-[0.3rem] left-0 z-1 bg-surface-base border-r-2
+                                    border-black
+                                "
                             >
                                 {group.name}
                             </td>

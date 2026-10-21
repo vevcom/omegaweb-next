@@ -90,10 +90,10 @@ export default async function RootLayout({ children }: PropTypes) {
 
     return (
         <html lang="nb" style={themeCssVars(theme)} data-tone={lightThemes.has(theme) ? 'light' : 'dark'}>
-            <body className={[
-                inter.className,
-                'text-text bg-surface-raised bg-linear-125/srgb from-accent-blue/30 from-0% to-surface-base/20 to-70%',
-            ].join(' ')}>
+            <body className={`
+                ${inter.className}
+                text-text bg-surface-raised bg-linear-125/srgb from-accent-blue/30 from-0% to-surface-base/20 to-70%
+            `}>
                 {/* Hoisted into the head by React. Keeps the browser chrome in step with the theme;
                     picking another one refreshes the page, which renders it anew. */}
                 <meta name="theme-color" content={themes[theme]['surface-base']} />
@@ -111,23 +111,45 @@ export default async function RootLayout({ children }: PropTypes) {
                                     <PageTitleProvider>
                                         <ReleaseCountdownGate>
                                             <NavMenuProvider>
-                                                <div className="grid grid-cols-[64px_minmax(0,1fr)] grid-rows-[64px_1fr_64px] gap-2 h-dvh max-w-[2560px] mx-auto [grid-template-areas:'navBar_navBar'_'sideBar_content'_'sideBar_content'] pt-[calc(var(--gap)+env(safe-area-inset-top))] pr-[calc(var(--gap)+env(safe-area-inset-right))] pb-[calc(var(--gap)+env(safe-area-inset-bottom))] pl-[calc(var(--gap)+env(safe-area-inset-left))] transition-[grid-template-columns] duration-300 ease-[ease] mobile:has-[>aside_[data-expanded=true]]:grid-cols-[220px_minmax(0,1fr)] max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:[grid-template-areas:'navBar'_'content'_'mobileNavBar']">
-                                                    <div className="[grid-area:navBar] col-span-full h-[64px] z-3 rounded-round">
+                                                <div className="
+                                                    grid grid-cols-[64px_minmax(0,1fr)] grid-rows-[64px_1fr_64px] gap-2
+                                                    h-dvh max-w-[2560px] mx-auto
+                                                    [grid-template-areas:'navBar_navBar'_'sideBar_content'_'sideBar_content']
+                                                    pt-[calc(var(--gap)+env(safe-area-inset-top))]
+                                                    pr-[calc(var(--gap)+env(safe-area-inset-right))]
+                                                    pb-[calc(var(--gap)+env(safe-area-inset-bottom))]
+                                                    pl-[calc(var(--gap)+env(safe-area-inset-left))]
+                                                    transition-[grid-template-columns] duration-300 ease-[ease]
+                                                    mobile:has-[>aside_[data-expanded=true]]:grid-cols-[220px_minmax(0,1fr)]
+                                                    max-mobile:grid-cols-[minmax(0,1fr)]
+                                                    max-mobile:[grid-template-areas:'navBar'_'content'_'mobileNavBar']
+                                                ">
+                                                    <div className="
+                                                        [grid-area:navBar] col-span-full h-[64px] z-3 rounded-round
+                                                    ">
                                                         <NavBar
                                                             isLoggedIn={navUser !== null}
                                                             profileImage={navUser?.image ?? null}
                                                             navItems={navItems}
                                                         />
                                                     </div>
-                                                    <aside className="[grid-area:sideBar] h-full w-full z-3 max-mobile:hidden">
+                                                    <aside className="
+                                                        [grid-area:sideBar] h-full w-full z-3
+                                                        max-mobile:hidden
+                                                    ">
                                                         <DesktopSideBar navItems={navItems} />
                                                     </aside>
-                                                    <main className="[grid-area:content] min-h-0 overflow-hidden rounded-round">
+                                                    <main className="
+                                                        [grid-area:content] min-h-0 overflow-hidden rounded-round
+                                                    ">
                                                         <ScrollArea className="h-full" scrollerClassName="flex flex-col">
                                                             {children}
                                                         </ScrollArea>
                                                     </main>
-                                                    <div className="hidden z-3 rounded-round overflow-hidden [grid-area:mobileNavBar] max-mobile:block max-mobile:h-[64px] max-mobile:w-full">
+                                                    <div className="
+                                                        hidden z-3 rounded-round overflow-hidden [grid-area:mobileNavBar]
+                                                        max-mobile:block max-mobile:h-[64px] max-mobile:w-full
+                                                    ">
                                                         <MobileNavBar
                                                             isLoggedIn={navUser !== null}
                                                             navItems={navItems}

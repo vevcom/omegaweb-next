@@ -49,7 +49,11 @@ const { page, generateMetadata } = serverPage({
             {ledgerAccount.type === 'GROUP' && capabilities.canUpdate.authorized && (
                 <PopUp
                     popUpKey="editLedgerAccountDetails"
-                    showButtonClass="self-end size-[20px] bg-white border-none rounded-full cursor-pointer transition-[background] duration-500 flex justify-center items-center hover:bg-[color-mix(in_srgb,white,black_10%)]"
+                    showButtonClass="
+                        self-end size-[20px] bg-white border-none rounded-full cursor-pointer transition-[background]
+                        duration-500 flex justify-center items-center
+                        hover:bg-[color-mix(in_srgb,white,black_10%)]
+                    "
                     showButtonContent={<FontAwesomeIcon icon={faPencil} />}
                 >
                     <EditLedgerAccountDetailsForm

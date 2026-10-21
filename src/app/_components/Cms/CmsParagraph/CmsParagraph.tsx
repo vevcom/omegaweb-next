@@ -16,10 +16,26 @@ export type PropTypes = {
 export default function CmsParagraph({ cmsParagraph, className, updateCmsParagraphAction, capabilities }: PropTypes) {
     return (
         <>
-            <div className={`w-full relative mb-4 ${className}`}>
+            <div className={`
+                w-full relative mb-4
+                ${className}
+            `}>
                 {cmsParagraph.contentHtml ? (
                     <div
-                        className="w-full [&_*]:break-words [&_*]:text-text-muted [&_ul_ul]:pl-[20px] [&_ol_ol]:pl-[20px] [&_li]:list-inside [&_a]:no-underline [&_a]:text-accent-blue [&_a]:font-bold [&_a:hover]:underline [&_h1]:mb-[.5em] [&_h2]:mb-[.5em] [&_h1]:text-text [&_h2]:text-text [&_p]:leading-[1.5]"
+                        className="
+                            w-full
+                            [&_*]:break-words [&_*]:text-text-muted
+                            [&_ul_ul]:pl-[20px]
+                            [&_ol_ol]:pl-[20px]
+                            [&_li]:list-inside
+                            [&_a]:no-underline [&_a]:text-accent-blue [&_a]:font-bold
+                            [&_a:hover]:underline
+                            [&_h1]:mb-[.5em]
+                            [&_h2]:mb-[.5em]
+                            [&_h1]:text-text
+                            [&_h2]:text-text
+                            [&_p]:leading-[1.5]
+                        "
                         // Sanitized again on the way out, not only when written: rows written before
                         // html imported by DobbelOmega, never passed through it.
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(cmsParagraph.contentHtml) }}

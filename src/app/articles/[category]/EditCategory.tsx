@@ -80,7 +80,12 @@ export default function EditCategory({ category }: PropTypes) {
                 (canUpdate || canUpdateRegularLevel || canUpdateAdminLevel) && (
                     <PopUp
                         popUpKey="editCategory"
-                        showButtonClass="w-[30px] h-[30px] absolute top-[2em] right-[1em] max-mobile:top-[1em] bg-transparent border-none text-text transition-colors duration-300 ease-in-out hover:cursor-pointer hover:text-accent-blue"
+                        showButtonClass="
+                            w-[30px] h-[30px] absolute top-[2em] right-[1em]
+                            max-mobile:top-[1em]
+                            bg-transparent border-none text-text transition-colors duration-300 ease-in-out
+                            hover:cursor-pointer hover:text-accent-blue
+                        "
                         showButtonContent={
                             <FontAwesomeIcon icon={faCog} />
                         }

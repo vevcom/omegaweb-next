@@ -32,21 +32,28 @@ export const dropdownColorClassNames = {
     white: 'text-white',
 } as const
 
-export const dropdownLabelClassName = (floated: boolean) => [
-    'absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1',
-    floated ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-6 text-m',
-].join(' ')
+export const dropdownLabelClassName = (floated: boolean) => `
+    absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1
+    ${floated ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-6 text-m'}`
 
-export const dropdownChevronClassName = (open: boolean) => [
-    'absolute right-4 top-1/2 -translate-y-1/2 transition-[translate,rotate,color] duration-300',
-    open ? 'rotate-180 text-accent-blue' : 'text-text-muted',
-].join(' ')
+export const dropdownChevronClassName = (open: boolean) => `
+    absolute right-4 top-1/2 -translate-y-1/2 transition-[translate,rotate,color] duration-300
+    ${open ? 'rotate-180 text-accent-blue' : 'text-text-muted'}`
 
 const triggerBackgroundClassNames = {
-    base: { closed: 'bg-surface-raised hover:bg-surface-hover', open: 'bg-surface-hover' },
+    base: { closed: `
+        bg-surface-raised
+        hover:bg-surface-hover
+    `, open: 'bg-surface-hover' },
     raised: {
-        closed: 'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
-        open: 'bg-surface-hover hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
+        closed: `
+            bg-surface-hover
+            hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        `,
+        open: `
+            bg-surface-hover
+            hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        `,
     },
 } as const
 
@@ -147,7 +154,10 @@ export function DropdownPanel<ValueType extends string | number>({
     }, [activeIndex])
 
     return (
-        <ul id={id} className="absolute top-[calc(100%+var(--gap))] left-0 right-0 z-5 list-none m-0 p-2 max-h-[260px] overflow-y-auto rounded-inner bg-surface-hover shadow-soft-hover" role="listbox" ref={panelRef}>
+        <ul id={id} className="
+            absolute top-[calc(100%+var(--gap))] left-0 right-0 z-5 list-none m-0 p-2 max-h-[260px] overflow-y-auto
+            rounded-inner bg-surface-hover shadow-soft-hover
+        " role="listbox" ref={panelRef}>
             {
                 options.length === 0 && emptyText ? (
                     <li className="py-2 px-4 text-text-muted text-s">{emptyText}</li>
@@ -158,11 +168,14 @@ export function DropdownPanel<ValueType extends string | number>({
                             role="option"
                             aria-selected={option.value === value}
                             className={
-                                `${[
-                                    'w-full flex items-center justify-between gap-2 border-none bg-transparent text-left text-m py-2 px-4 rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer transition-colors duration-300 hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]',
-                                    option.value === value ? 'text-accent-blue' : 'text-text',
-                                ].join(' ')
-                                }${index === activeIndex ? 'bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]' : ''}`
+                                `
+                                    w-full flex items-center justify-between gap-2 border-none bg-transparent text-left
+                                    text-m py-2 px-4 rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer
+                                    transition-colors duration-300
+                                    hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+                                    ${option.value === value ? 'text-accent-blue' : 'text-text'}
+                                    ${index === activeIndex ? 'bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]' : ''}
+                                `
                             }
                             onClick={() => onSelect(option)}
                             onMouseEnter={() => onActivate(index)}
@@ -216,23 +229,23 @@ export default function Dropdown<ValueType extends string | number>({
         <div
             ref={ref}
             className={
-                `relative mt-2 w-full max-w-[320px] ${className ?? ''}`
+                `
+                    relative mt-2 w-full max-w-[320px]
+                    ${className ?? ''}
+                `
             }
         >
             <button
                 type="button"
                 id={domId}
-                className={[
-                    [
-                        'relative w-full flex items-center border-2 rounded-inner outline-0 text-m text-left pt-6 pr-10',
-                        'pb-2 pl-4',
-                        'transition-[border-color,background-color] duration-300 cursor-pointer disabled:cursor-not-allowed',
-                        'disabled:opacity-60',
-                    ].join(' '),
-                    dropdownColorClassNames[color],
-                    open ? 'border-accent-blue' : 'border-transparent',
-                    triggerBackgroundClassNames[background][open ? 'open' : 'closed'],
-                ].join(' ')}
+                className={`
+                    relative w-full flex items-center border-2 rounded-inner outline-0 text-m text-left pt-6 pr-10 pb-2
+                    pl-4 transition-[border-color,background-color] duration-300 cursor-pointer
+                    disabled:cursor-not-allowed disabled:opacity-60
+                    ${dropdownColorClassNames[color]}
+                    ${open ? 'border-accent-blue' : 'border-transparent'}
+                    ${triggerBackgroundClassNames[background][open ? 'open' : 'closed']}
+                `}
                 disabled={disabled}
                 aria-haspopup="listbox"
                 aria-expanded={open}
@@ -241,10 +254,10 @@ export default function Dropdown<ValueType extends string | number>({
                 onKeyDown={handleKeyDown}
             >
                 <span
-                    className={[
-                        'overflow-hidden text-ellipsis whitespace-nowrap min-h-[calc(var(--text-m)*1.25)]',
-                        dropdownColorClassNames[color],
-                    ].join(' ')}
+                    className={`
+                        overflow-hidden text-ellipsis whitespace-nowrap min-h-[calc(var(--text-m)*1.25)]
+                        ${dropdownColorClassNames[color]}
+                    `}
                 >
                     {selectedOption?.label ?? selectedOption?.value ?? ''}
                 </span>

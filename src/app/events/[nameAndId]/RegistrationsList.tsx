@@ -46,7 +46,10 @@ function DetailedTable({
         }}
     >
         <div className="block overflow-x-auto overflow-y-visible">
-            <table className="ohma-table [&_a]:no-underline [&_a]:text-inherit">
+            <table className="
+                ohma-table
+                [&_a]:no-underline [&_a]:text-inherit
+            ">
                 <thead>
                     <tr>
                         <th>Navn</th>
@@ -141,7 +144,10 @@ function DefaultList({
             type,
         }}
     >
-        <div className="w-full grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-2 [&>:last-child]:col-span-full">
+        <div className="
+            w-full grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-2
+            [&>:last-child]:col-span-full
+        ">
             <EndlessScroll
                 pagingContext={EventRegistrationPagingContext}
                 renderer={row => {

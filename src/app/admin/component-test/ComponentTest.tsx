@@ -31,11 +31,17 @@ const yearOptions = [2020, 2021, 2022, 2023].map(year => ({ value: year, key: St
 
 export default function ComponentTest() {
     return (
-        <div className="p-4 flex flex-col gap-4 [&>p]:text-text-muted">
+        <div className="
+            p-4 flex flex-col gap-4
+            [&>p]:text-text-muted
+        ">
             <h1>Komponenter</h1>
             <p>Et lite utvalg av komponenter som finnes på veven.</p>
 
-            <section className="flex flex-col gap-2 pb-4 border-b border-surface-subtle last:border-b-0">
+            <section className="
+                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                last:border-b-0
+            ">
                 <h2>Buttons</h2>
                 <div className="flex flex-wrap items-start gap-4">
                     <Button color="primary">Primary</Button>
@@ -50,7 +56,10 @@ export default function ComponentTest() {
                 </form>
             </section>
 
-            <section className="flex flex-col gap-2 pb-4 border-b border-surface-subtle last:border-b-0">
+            <section className="
+                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                last:border-b-0
+            ">
                 <h2>Text inputs</h2>
                 <div className="flex flex-wrap items-start gap-4">
                     {textInputColors.map(color => (
@@ -66,7 +75,10 @@ export default function ComponentTest() {
                 </div>
             </section>
 
-            <section className="flex flex-col gap-2 pb-4 border-b border-surface-subtle last:border-b-0">
+            <section className="
+                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                last:border-b-0
+            ">
                 <h2>Checkbox and sliders</h2>
                 <div className="flex flex-wrap items-start gap-4">
                     <Checkbox name="checkbox_demo_1" label="Unchecked" />
@@ -80,7 +92,10 @@ export default function ComponentTest() {
                 </div>
             </section>
 
-            <section className="flex flex-col gap-2 pb-4 border-b border-surface-subtle last:border-b-0">
+            <section className="
+                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                last:border-b-0
+            ">
                 <h2>File input</h2>
                 <div className="flex flex-wrap items-start gap-4">
                     {fileInputColors.map(color => (
@@ -89,7 +104,10 @@ export default function ComponentTest() {
                 </div>
             </section>
 
-            <section className="flex flex-col gap-2 pb-4 border-b border-surface-subtle last:border-b-0">
+            <section className="
+                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                last:border-b-0
+            ">
                 <h2>Color input</h2>
                 <div className="flex flex-wrap items-start gap-4">
                     <ColorInput name="color_demo" label="Farge" defaultValue="#037FFC" />
@@ -102,7 +120,10 @@ export default function ComponentTest() {
                 </div>
             </section>
 
-            <section className="flex flex-col gap-2 pb-4 border-b border-surface-subtle last:border-b-0">
+            <section className="
+                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                last:border-b-0
+            ">
                 <h2>Dropdowns</h2>
                 <div className="flex flex-wrap items-start gap-4">
                     <Dropdown name="dropdown_demo" label="Dropdown" options={dropdownOptions} />
@@ -114,7 +135,10 @@ export default function ComponentTest() {
                 </div>
             </section>
 
-            <section className="flex flex-col gap-2 pb-4 border-b border-surface-subtle last:border-b-0">
+            <section className="
+                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                last:border-b-0
+            ">
                 <h2>Selects</h2>
                 <div className="flex flex-wrap items-start gap-4">
                     {selectColors.map(color => (
@@ -138,7 +162,10 @@ export default function ComponentTest() {
                 </div>
             </section>
 
-            <section className="flex flex-col gap-2 pb-4 border-b border-surface-subtle last:border-b-0">
+            <section className="
+                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                last:border-b-0
+            ">
                 <h2>Progress bar</h2>
                 <div className="flex flex-col gap-2 max-w-120">
                     <ProgressBar progress={0.25} />

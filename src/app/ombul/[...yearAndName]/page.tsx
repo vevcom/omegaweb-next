@@ -57,11 +57,19 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-[calc(33*var(--gap))_1fr] items-start gap-6 max-mobile:grid-cols-1">
+                <div className="
+                    grid grid-cols-[calc(33*var(--gap))_1fr] items-start gap-6
+                    max-mobile:grid-cols-1
+                ">
                     {/* The cover itself rather than an OmbulCover card: on this page that card linked
                         back to the page you are already on and repeated the name and issue printed
                         right above it. */}
-                    <div className="relative w-full max-w-[calc(33*var(--gap))] aspect-[5/7] rounded-round overflow-hidden bg-surface-raised [&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full [&_img]:w-full [&_img]:h-full [&_img]:object-cover">
+                    <div className="
+                        relative w-full max-w-[calc(33*var(--gap))] aspect-[5/7] rounded-round overflow-hidden
+                        bg-surface-raised
+                        [&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full
+                        [&_img]:w-full [&_img]:h-full [&_img]:object-cover
+                    ">
                         <Image image={ombul.coverImage} width={260} />
                     </div>
                     <CmsParagraph

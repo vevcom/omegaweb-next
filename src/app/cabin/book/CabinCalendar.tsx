@@ -30,8 +30,12 @@ const weekClassName = 'w-full flex flex-row flex-nowrap'
 const dayClassName = 'relative min-h-[2.3rem]'
 
 const selectionClassNames: Record<Selection, string> = {
-    [Selection.START]: 'before:absolute before:top-0 before:right-0 before:size-full before:bg-accent-blue before:rounded-l-[10px]',
-    [Selection.END]: 'before:absolute before:top-0 before:left-0 before:size-full before:bg-accent-blue before:rounded-r-[10px]',
+    [Selection.START]: `
+        before:absolute before:top-0 before:right-0 before:size-full before:bg-accent-blue before:rounded-l-[10px]
+    `,
+    [Selection.END]: `
+        before:absolute before:top-0 before:left-0 before:size-full before:bg-accent-blue before:rounded-r-[10px]
+    `,
     [Selection.INRANGE]: 'bg-[color-mix(in_srgb,var(--accent-blue),white_30%)]',
 }
 
@@ -297,9 +301,15 @@ export default function CabinCalendar({
     }
 
     return <div
-        className="w-full max-w-[30rem] max-h-[30rem] overflow-y-auto mt-[1rem] px-[5px] border-2 border-surface-subtle rounded-round"
+        className="
+            w-full max-w-[30rem] max-h-[30rem] overflow-y-auto mt-[1rem] px-[5px] border-2 border-surface-subtle
+            rounded-round
+        "
     >
-        <div className={`${weekClassName} bg-surface-base sticky top-0 z-2 py-[0.2rem]`}>
+        <div className={`
+            ${weekClassName}
+            bg-surface-base sticky top-0 z-2 py-[0.2rem]
+        `}>
             <div className="w-[2.5rem]">Uke</div>
             <div className="grid grid-cols-7 flex-1 text-center">
                 {WEEKDAYS.map(day => <div key={day}>{day}</div>)}
@@ -348,21 +358,23 @@ function CalendarDay({
     day: Day,
     callback: (sourceDay: Day) => void
 }) {
-    const classList: string[] = ['absolute size-full z-1']
-
-    if (day.selection !== undefined) classList.push(selectionClassNames[day.selection])
-
-    return <div className={`${dayClassName} hover:bg-surface-hover`}>
+    return <div className={`
+        ${dayClassName}
+        hover:bg-surface-hover
+    `}>
         <div
-            className={classList.join(' ')}
+            className={`
+                absolute size-full z-1
+                ${day.selection !== undefined ? selectionClassNames[day.selection] : ''}
+            `}
             onMouseDown={() => callback(day)}
         >
             <div className="relative p-[4px] text-[1.3rem]">{day.date.getDate()}</div>
         </div>
-        <div className={[
-            'absolute size-full z-0 bg-accent-green',
-            day.bookingSelection === undefined ? '' : bookingSelectionClassNames[day.bookingSelection],
-        ].join(' ')}>
+        <div className={`
+            absolute size-full z-0 bg-accent-green
+            ${day.bookingSelection === undefined ? '' : bookingSelectionClassNames[day.bookingSelection]}
+        `}>
             <div className="w-1/2 h-full float-left" />
             <div className="w-1/2 h-full float-right" />
         </div>

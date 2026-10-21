@@ -119,7 +119,11 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
             </div>
             {
                 doubleLevelVisibility && (
-                    <div className="flex-1 flex flex-wrap gap-[1em] [&_h3]:mb-[.5em] [&_button[type=submit]]:w-[200px]">
+                    <div className="
+                        flex-1 flex flex-wrap gap-[1em]
+                        [&_h3]:mb-[.5em]
+                        [&_button[type=submit]]:w-[200px]
+                    ">
                         {
                             canUpdateRegularVisibility && (
                                 <div>
@@ -154,7 +158,10 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                 )
             }
 
-            <div className="max-w-[200px] [&_p]:mb-[.5em] [&_p]:italic">
+            <div className="
+                max-w-[200px]
+                [&_p]:mb-[.5em] [&_p]:italic
+            ">
                 <p>{news.published ? 'Publisert' : 'Ikke publisert'}</p>
                 {
                     canSetPublished && (

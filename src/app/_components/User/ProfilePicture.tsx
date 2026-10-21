@@ -11,12 +11,12 @@ type PropTypes = {
 
 export default function ProfilePicture({ profileImage, width, className, ringColor }: PropTypes) {
     const isStandardProfileImage = profileImage.standardImage === 'DEFAULT_PROFILE_IMAGE'
-    const imageClassName = [
-        'rounded-full bg-white aspect-square',
-        ringColor ? 'border-[3px] border-solid' : '',
-        isStandardProfileImage ? 'object-contain p-[12%]' : 'object-cover',
-        className ?? '',
-    ].join(' ')
+    const imageClassName = `
+        rounded-full bg-white aspect-square
+        ${ringColor ? 'border-[3px] border-solid' : ''}
+        ${isStandardProfileImage ? 'object-contain p-[12%]' : 'object-cover'}
+        ${className ?? ''}
+    `
 
     return (
         <div className="flex justify-center">

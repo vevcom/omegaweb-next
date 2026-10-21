@@ -4,7 +4,12 @@ import TextInput from '@/components/UI/TextInput'
 
 export default function CreateInterestGroupForm() {
     return (
-        <div className="min-w-[50vw] min-h-[50vh] grid place-items-center [&_form]:grid [&_form]:place-items-center [&_form>*]:w-[200px] [&_form>*]:m-0 [&_form_button[type=submit]]:w-[220px]">
+        <div className="
+            min-w-[50vw] min-h-[50vh] grid place-items-center
+            [&_form]:grid [&_form]:place-items-center
+            [&_form>*]:w-[200px] [&_form>*]:m-0
+            [&_form_button[type=submit]]:w-[220px]
+        ">
             <h2>Lag interessegruppe</h2>
             <Form
                 refreshOnSuccess

@@ -60,7 +60,10 @@ export default function SubmitButton({
     const renderButtonContent = (label: ReactNode) => {
         if (pending) {
             return (
-                <div className={`flex justify-between px-[20px] py-px ${styles.loader}`}>
+                <div className={`
+                    flex justify-between px-[20px] py-px
+                    ${styles.loader}
+                `}>
                     <div></div>
                     <div></div>
                     <div></div>
@@ -76,7 +79,10 @@ export default function SubmitButton({
     }
     const button = (
         <Button
-            className={`${submitButtonClassName} ${className ?? ''}`}
+            className={`
+                ${submitButtonClassName}
+                ${className ?? ''}
+            `}
             aria-disabled={pending || success}
             color={success ? 'green' : color}
             type="submit"
@@ -125,7 +131,10 @@ export default function SubmitButton({
                                     Nei
                                 </Button>
                                 <Button
-                                    className={`${submitButtonClassName} ${className ?? ''}`}
+                                    className={`
+                                        ${submitButtonClassName}
+                                        ${className ?? ''}
+                                    `}
                                     aria-disabled={pending || success}
                                     color={success ? 'green' : color}
                                     type="button"
@@ -150,7 +159,10 @@ export default function SubmitButton({
                 (confirmation?.confirm) ? (
                     <>
                         <Button
-                            className={`${submitButtonClassName} ${className ?? ''}`}
+                            className={`
+                                ${submitButtonClassName}
+                                ${className ?? ''}
+                            `}
                             color={color}
                             type="button"
                             onClick={() => setConfirmedOpen(true)}
@@ -172,7 +184,10 @@ export default function SubmitButton({
                 )
             }
 
-            <p className={`flex flex-col min-h-[1.15em] mb-[3px] text-accent-red ${pending ? 'invisible' : ''}`}>
+            <p className={`
+                flex flex-col min-h-[1.15em] mb-[3px] text-accent-red
+                ${pending ? 'invisible' : ''}
+            `}>
                 {
                     generalErrors?.[0]?.message
                 }

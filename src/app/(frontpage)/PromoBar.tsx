@@ -8,9 +8,17 @@ export default function PromoBar({ promo }: { promo: PromoWithImage }) {
     return (
         <Link
             href={promo.link}
-            className="relative block w-full h-28 rounded-round overflow-hidden [color:unset] no-underline hover:no-underline"
+            className="
+                relative block w-full h-28 rounded-round overflow-hidden [color:unset] no-underline
+                hover:no-underline
+            "
         >
-            <div className="absolute inset-0 rounded-[inherit] overflow-hidden [&_div]:size-full [&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:size-full [&_img]:object-cover after:absolute after:inset-0 after:bg-linear-90/srgb after:from-black/85 after:to-transparent after:to-65%">
+            <div className="
+                absolute inset-0 rounded-[inherit] overflow-hidden
+                [&_div]:size-full
+                [&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:size-full [&_img]:object-cover
+                after:absolute after:inset-0 after:bg-linear-90/srgb after:from-black/85 after:to-transparent after:to-65%
+            ">
                 <Image width={1200} image={promo.image} hideCredit hideCopyRight />
             </div>
             <div className="relative h-full flex flex-col justify-center gap-1 py-4 px-6 max-w-[70%]">

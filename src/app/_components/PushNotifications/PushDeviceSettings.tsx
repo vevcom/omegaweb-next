@@ -84,7 +84,12 @@ export default function PushDeviceSettings({ userId, vapidPublicKey }: {
         }
     }
 
-    return <section className="mb-4 py-2 px-3 rounded-round bg-surface-raised [&_h3]:mt-0 [&_p]:max-w-[60ch] [&_ol]:max-w-[60ch] [&_ol]:pl-[1.5em]">
+    return <section className="
+        mb-4 py-2 px-3 rounded-round bg-surface-raised
+        [&_h3]:mt-0
+        [&_p]:max-w-[60ch]
+        [&_ol]:max-w-[60ch] [&_ol]:pl-[1.5em]
+    ">
         <h3>Push-varsler på denne enheten</h3>
 
         {status === 'unsupported' && <p>

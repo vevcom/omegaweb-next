@@ -31,14 +31,31 @@ export default function LoggedInSection({
     // The rows height is fixed so the half islands line up; the empty placeholder matches it.
     const layoutClass = layout === 'rows' ? 'row-list mb-0! h-76' : 'image-card-list'
 
-    return <section className={`min-w-0 bg-surface-base rounded-round p-6 max-mobile:p-4 ${spanClass}`}>
-        <div className="w-full flex justify-between items-center gap-4 [&>h4]:text-xl [&>h4]:font-bold [&>h4]:font-secondary">
+    return <section className={`
+        min-w-0 bg-surface-base rounded-round p-6
+        max-mobile:p-4
+        ${spanClass}
+    `}>
+        <div className="
+            w-full flex justify-between items-center gap-4
+            [&>h4]:text-xl [&>h4]:font-bold [&>h4]:font-secondary
+        ">
             <h4>{title}</h4>
-            <Link href={link} className="shrink-0 flex items-center h-10 px-4 rounded-inner bg-surface-hover text-ink-strong text-m font-medium whitespace-nowrap no-underline transition-colors duration-300 hover:bg-surface-subtle hover:text-ink-strong hover:no-underline">Se flere</Link>
+            <Link href={link} className="
+                shrink-0 flex items-center h-10 px-4 rounded-inner bg-surface-hover text-ink-strong text-m font-medium
+                whitespace-nowrap no-underline transition-colors duration-300
+                hover:bg-surface-subtle hover:text-ink-strong hover:no-underline
+            ">Se flere</Link>
         </div>
-        <div className={`text-m mt-4 ${layoutClass}`}>
+        <div className={`
+            text-m mt-4
+            ${layoutClass}
+        `}>
             {isEmpty
-                ? <div className="h-76 flex flex-col items-center justify-center gap-2 text-ink-hover text-center [&>svg]:[font-size:calc(6*var(--gap))] [&>svg]:opacity-50">
+                ? <div className="
+                    h-76 flex flex-col items-center justify-center gap-2 text-ink-hover text-center
+                    [&>svg]:[font-size:calc(6*var(--gap))] [&>svg]:opacity-50
+                ">
                     <FontAwesomeIcon icon={faInbox} />
                     <p>{emptyMessage}</p>
                 </div>

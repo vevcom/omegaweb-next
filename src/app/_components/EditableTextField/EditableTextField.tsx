@@ -66,7 +66,10 @@ export default function EditableTextField<ReturnType>({
     return (
         <div className="relative">
             <div
-                className="relative p-[0.8rem] border border-solid border-accent-blue rounded-round focus:outline-2 focus:outline-accent-blue"
+                className="
+                    relative p-[0.8rem] border border-solid border-accent-blue rounded-round
+                    focus:outline-2 focus:outline-accent-blue
+                "
                 contentEditable={true}
                 onInput={handleInput}
                 {...props}
@@ -79,9 +82,14 @@ export default function EditableTextField<ReturnType>({
                 {...formProps}
                 className={
                     noChange ? (
-                        `hidden ${submitButton.className}`
+                        `
+                            hidden
+                            ${submitButton.className}
+                        `
                     ) : (
-                        `${submitButton.className}`
+                        `
+                            ${submitButton.className}
+                        `
                     )}
                 submitText={submitButton.text}
                 successCallback={(data: ReturnType | undefined) => {

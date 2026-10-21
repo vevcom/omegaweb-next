@@ -16,7 +16,11 @@ export default function ServiceErrorView({ error }: { error: Smorekopp }) {
     return (
         <div className="bg-surface-base px-4 flex-1 flex flex-col justify-center items-center min-h-[50vh]">
             <PageTitleSetter title="Feil" />
-            <div className="flex justify-center items-center max-mobile:min-h-[50vh] [&_h3]:text-text">
+            <div className="
+                flex justify-center items-center
+                max-mobile:min-h-[50vh]
+                [&_h3]:text-text
+            ">
                 <div className="border-r-2 border-solid border-surface-base pr-[20px] mr-[20px]">
                     <StandardImageServer
                         width={70}

@@ -45,10 +45,11 @@ export default function ThemeForm({ username, activeTheme }: PropTypes) {
                 return (
                     <Form
                         key={theme}
-                        className={[
-                            'w-full bg-surface-base rounded-round border-2 p-4 transition-[border-color,box-shadow] duration-300 ease-[ease] overflow-hidden flex flex-col gap-4',
-                            theme === activeTheme ? 'border-accent-blue' : 'border-transparent',
-                        ].join(' ')}
+                        className={`
+                            w-full bg-surface-base rounded-round border-2 p-4 transition-[border-color,box-shadow]
+                            duration-300 ease-[ease] overflow-hidden flex flex-col gap-4
+                            ${theme === activeTheme ? 'border-accent-blue' : 'border-transparent'}
+                        `}
                         action={action}
                         refreshOnSuccess
                         submitText="Velg tema"

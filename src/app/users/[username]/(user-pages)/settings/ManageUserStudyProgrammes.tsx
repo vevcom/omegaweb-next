@@ -42,7 +42,11 @@ function RemoveStudyProgrammeMembershipForm({ userId, programme }: {
 
     return (
         <Form
-            className="w-auto! [&_p:empty]:min-h-0! [&_p:empty]:m-0! [&>*:last-child]:mt-0!"
+            className="
+                w-auto!
+                [&_p:empty]:min-h-0! [&_p:empty]:m-0!
+                [&>*:last-child]:mt-0!
+            "
             submitText="Fjern"
             submitColor="red"
             action={() => configureAction(

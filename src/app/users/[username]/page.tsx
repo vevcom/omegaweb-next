@@ -29,7 +29,10 @@ export type PropTypes = {
     }>,
 }
 
-const groupSectionClassName = 'mt-[1em] [&_h2]:text-[1.1em] [&_h2]:text-ink-strong'
+const groupSectionClassName = `
+    mt-[1em]
+    [&_h2]:text-[1.1em] [&_h2]:text-ink-strong
+`
 const labelClassName = 'w-[10em] inline-block font-medium text-accent-blue'
 
 const { page, generateMetadata } = serverPage({
@@ -95,17 +98,32 @@ const { page, generateMetadata } = serverPage({
         return (
             <div className="h-full">
                 <div className="grid grid-rows-[1fr_auto] gap-2 h-full">
-                    <div className="relative h-full min-h-0 bg-surface-base rounded-round before:content-[''] before:absolute before:inset-[calc(0.25rem*1.5)] before:rounded-[calc(var(--rounding)-0.375rem)] before:border-4 before:border-[color:var(--flairColor,transparent)] before:pointer-events-none" style={flairColour}>
-                        <div className="absolute inset-[calc(0.25rem*1.5+4px)] overflow-y-auto p-8 grid grid-cols-[250px_1fr] grid-rows-[auto] items-start content-start gap-[0.5em] max-mobile:block">
+                    <div className="
+                        relative h-full min-h-0 bg-surface-base rounded-round
+                        before:content-[''] before:absolute before:inset-[calc(0.25rem*1.5)]
+                        before:rounded-[calc(var(--rounding)-0.375rem)] before:border-4
+                        before:border-[color:var(--flairColor,transparent)] before:pointer-events-none
+                    " style={flairColour}>
+                        <div className="
+                            absolute inset-[calc(0.25rem*1.5+4px)] overflow-y-auto p-8 grid grid-cols-[250px_1fr]
+                            grid-rows-[auto] items-start content-start gap-[0.5em]
+                            max-mobile:block
+                        ">
                             <ProfilePicture
                                 width={240}
                                 profileImage={profile.user.image}
                                 ringColor={relationshipColour[profile.user.relationshipStatus]}
                             />
                             <div
-                                className="flex flex-col justify-center max-mobile:text-center max-mobile:items-center max-mobile:my-[1em] max-mobile:mx-[2em]"
+                                className="
+                                    flex flex-col justify-center
+                                    max-mobile:text-center max-mobile:items-center max-mobile:my-[1em] max-mobile:mx-[2em]
+                                "
                             >
-                                <div className="flex flex-row flex-wrap items-center max-mobile:justify-center">
+                                <div className="
+                                    flex flex-row flex-wrap items-center
+                                    max-mobile:justify-center
+                                ">
                                     <h1 className="mr-[.2em] text-[3em]"><UserDisplayName
                                         user={profile.user}
                                         width={40}
@@ -122,7 +140,10 @@ const { page, generateMetadata } = serverPage({
                                             key={`${membership.committee.shortName}-${membership.order}`}
                                         >
                                             <Link href={`/committees/${membership.committee.shortName}`}>
-                                                <p className="rounded-[0.3em] p-[0.5em] bg-accent-blue text-surface-base inline-block">
+                                                <p className="
+                                                    rounded-[0.3em] p-[0.5em] bg-accent-blue text-surface-base
+                                                    inline-block
+                                                ">
                                                     {membership.title} i {membership.committee.name}
                                                 </p>
                                             </Link>
@@ -130,7 +151,10 @@ const { page, generateMetadata } = serverPage({
                                     )}
                                 </div>
 
-                                <hr className="border-none h-px my-[0.5em] mr-[4em] ml-0 bg-surface-subtle max-mobile:w-4/5 max-mobile:mx-auto" />
+                                <hr className="
+                                    border-none h-px my-[0.5em] mr-[4em] ml-0 bg-surface-subtle
+                                    max-mobile:w-4/5 max-mobile:mx-auto
+                                " />
 
                                 {committeeMembershipsByOrder.length > 0 && (
                                     <section className={groupSectionClassName}>
@@ -141,7 +165,10 @@ const { page, generateMetadata } = serverPage({
                                                 href={`/committees/${membership.committee.shortName}`}
                                                 className="no-underline group"
                                             >
-                                                <p className="text-accent-blue group-hover:underline">
+                                                <p className="
+                                                    text-accent-blue
+                                                    group-hover:underline
+                                                ">
                                                     {membership.title} udaf {membership.order}´dis orden i{' '}
                                                     {membership.committee.name}
                                                 </p>
@@ -159,7 +186,10 @@ const { page, generateMetadata } = serverPage({
                                                 href={`/interest-groups/${membership.interestGroup.id}`}
                                                 className="no-underline group"
                                             >
-                                                <p className="text-accent-blue group-hover:underline">
+                                                <p className="
+                                                    text-accent-blue
+                                                    group-hover:underline
+                                                ">
                                                     {membership.title} udaf {membership.order}´dis orden i{' '}
                                                     {membership.interestGroup.name}
                                                 </p>
@@ -207,13 +237,19 @@ const { page, generateMetadata } = serverPage({
 
                             </div>
                             <div
-                                className="max-mobile:my-[1em] max-mobile:mx-[2em] [&_p]:font-light! [&_p]:mb-[0.5em]! [&_p]:text-text!"
+                                className="
+                                    max-mobile:my-[1em] max-mobile:mx-[2em]
+                                    [&_p]:font-light! [&_p]:mb-[0.5em]! [&_p]:text-text!
+                                "
                             >
 
 
                                 {/* An empty bio is only worth showing to someone who can write it, in edit mode. */}
                                 {(profile.user.bioParagraph.contentHtml !== '' || capabilities.canUpdateBio.authorized) &&
-                                    <div className="mb-[2em] p-[1em] border-l-[3px] border-accent-blue text-ink-hover bg-surface-raised">
+                                    <div className="
+                                        mb-[2em] p-[1em] border-l-[3px] border-accent-blue text-ink-hover
+                                        bg-surface-raised
+                                    ">
                                         <h2>Bio:</h2>
                                         <CmsParagraph
                                             cmsParagraph={profile.user.bioParagraph}

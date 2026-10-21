@@ -15,7 +15,11 @@ export default function SearchButton() {
             onClick={() => setIsOpen(true)}
         >
             <FontAwesomeIcon
-                className="size-[30px]! text-text transition-colors duration-300 [&_path]:text-inherit group-hover:text-accent-blue"
+                className="
+                    size-[30px]! text-text transition-colors duration-300
+                    [&_path]:text-inherit
+                    group-hover:text-accent-blue
+                "
                 icon={faMagnifyingGlass}
             />
         </button>

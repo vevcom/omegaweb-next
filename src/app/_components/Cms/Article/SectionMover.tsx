@@ -35,7 +35,10 @@ export default function SectionMover({
 
     if (!editable) return null
     return (
-        <div className={`flex w-full justify-center ${className}`}>
+        <div className={`
+            flex w-full justify-center
+            ${className}
+        `}>
             {
                 showUp && <button className={moveButtonClassName} onClick={() => handleMove('UP')}>
                     <FontAwesomeIcon icon={faArrowUp} />

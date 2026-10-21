@@ -11,7 +11,11 @@ import DateInput from '@/components/UI/DateInput'
 export default function CreateJobAdForm() {
     return (
         <div
-            className="mobile:grid mobile:grid-cols-[minmax(240px,320px)_1fr] mobile:gap-8 mobile:min-w-[80vw] mobile:max-h-[80vh] mobile:items-start max-mobile:flex max-mobile:flex-col max-mobile:gap-6"
+            className="
+                mobile:grid mobile:grid-cols-[minmax(240px,320px)_1fr] mobile:gap-8 mobile:min-w-[80vw]
+                mobile:max-h-[80vh] mobile:items-start
+                max-mobile:flex max-mobile:flex-col max-mobile:gap-6
+            "
         >
             <Form
                 title="Lag en ny stillingsannonse"
@@ -26,7 +30,10 @@ export default function CreateJobAdForm() {
                 <SelectString options={jobAdOptions} label="Type" name="type"/>
                 <DateInput includeTime label="Søknadsfrist" name="applicationDeadline"/>
             </Form>
-            <CompanyChooser className="mobile:min-h-0 mobile:h-[80vh] max-mobile:max-h-[50vh]" />
+            <CompanyChooser className="
+                mobile:min-h-0 mobile:h-[80vh]
+                max-mobile:max-h-[50vh]
+            " />
         </div>
     )
 }

@@ -169,7 +169,11 @@ export default function PopUp({
         ) : (
             <button
                 ref={triggerRef}
-                className={`hover:cursor-pointer [&>svg]:size-full ${showButtonClass}`}
+                className={`
+                    hover:cursor-pointer
+                    [&>svg]:size-full
+                    ${showButtonClass}
+                `}
                 style={showButtonStyle}
                 onClick={handleOpening}
             >

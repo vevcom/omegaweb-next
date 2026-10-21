@@ -23,7 +23,10 @@ export default function UserRow({ user, groupSelected = false, href }: PropTypes
                         <Link
                             href={href}
                             prefetch={false}
-                            className="block text-inherit hover:no-underline"
+                            className="
+                                block text-inherit
+                                hover:no-underline
+                            "
                             onClick={event => event.stopPropagation()}
                         >
                             {displayName}

@@ -8,7 +8,11 @@ import Link from 'next/link'
 import type { FormEvent } from 'react'
 
 // A rule on each side of the text.
-const divider = 'flex justify-center my-4 before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted'
+const dividerClassName = `
+    flex justify-center my-4
+    before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted
+    after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted
+`
 
 export default function LogIn() {
     const searchParams = useSearchParams()
@@ -45,7 +49,7 @@ export default function LogIn() {
             </p>
         </form>
 
-        <div className={divider}>
+        <div className={dividerClassName}>
             <span>eller</span>
         </div>
 
@@ -58,7 +62,11 @@ export default function LogIn() {
 
         <Link
             href="/send-reset-password-email"
-            className="self-start [&>p]:my-4 [&>p]:text-accent-blue [&>p]:text-s [&:hover>p]:underline"
+            className="
+                self-start
+                [&>p]:my-4 [&>p]:text-accent-blue [&>p]:text-s
+                [&:hover>p]:underline
+            "
         >
             <p>
                 Glemt passord?

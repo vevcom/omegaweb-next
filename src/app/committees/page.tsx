@@ -12,7 +12,10 @@ const { page, generateMetadata } = serverPage({
         const pensioned = committees.filter(committee => committee.group.pensioned)
 
         const committeeCards = (toShow: typeof committees) => (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-2 overflow-visible max-mobile:grid-cols-1">
+            <div className="
+                grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-2 overflow-visible
+                max-mobile:grid-cols-1
+            ">
                 {toShow.map(committee => (
                     <CommitteeCard
                         key={committee.id}

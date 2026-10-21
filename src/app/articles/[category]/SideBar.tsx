@@ -45,24 +45,39 @@ export default function SideBar({ category, children }: PropTypes) {
     useViewPort(() => handleHeight(window.screenX, window.scrollY))
 
     return (
-        <div className="flex relative mobile:h-full mobile:gap-2">
+        <div className="
+            flex relative
+            mobile:h-full mobile:gap-2
+        ">
             <aside className="mobile:bg-surface-base mobile:rounded-round mobile:w-[300px] mobile:left-0 mobile:z-2">
                 <div ref={measure} className="mobile:h-[calc(100%-2em)]">
-                    <div ref={ref} className="max-mobile:hidden opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out] overflow-auto text-text m-[1em_0em_1em_1em] p-[calc(3*var(--rounding))] [&_h2]:text-l">
+                    <div ref={ref} className="
+                        max-mobile:hidden
+                        opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out] overflow-auto text-text
+                        m-[1em_0em_1em_1em] p-[calc(3*var(--rounding))]
+                        [&_h2]:text-l
+                    ">
                         <h2>{category.name.toUpperCase()}</h2>
                         <MainListContent category={category} />
                     </div>
                 </div>
             </aside>
 
-            <main className="mobile:bg-surface-base mobile:rounded-round mobile:z-1 mobile:overflow-hidden mobile:w-[calc(100%-300px-var(--gap))] max-mobile:min-h-screen max-mobile:w-full">
+            <main className="
+                mobile:bg-surface-base mobile:rounded-round mobile:z-1 mobile:overflow-hidden
+                mobile:w-[calc(100%-300px-var(--gap))]
+                max-mobile:min-h-screen max-mobile:w-full
+            ">
                 {children}
             </main>
 
-            <span className={[
-                'hidden max-mobile:block fixed bottom-0 left-0 w-screen z-8 layer transition-[padding-bottom,height] duration-300 [&_ul>li]:ml-[calc(50px+var(--gap))]',
-                openMobile ? 'pb-[60px] [&_svg]:[transform:rotateX(180deg)]' : 'h-[110px]',
-            ].join(' ')}>
+            <span className={`
+                hidden
+                max-mobile:block
+                fixed bottom-0 left-0 w-screen z-8 layer transition-[padding-bottom,height] duration-300
+                [&_ul>li]:ml-[calc(50px+var(--gap))]
+                ${openMobile ? 'pb-[60px] [&_svg]:[transform:rotateX(180deg)]' : 'h-[110px]'}
+            `}>
                 <button
                     className="flex items-center w-full h-[40px] bg-transparent border-none my-2 mx-0"
                     onClick={() => setOpenMobile(x => !x)}
@@ -97,7 +112,12 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
     }
 
     return (
-        <ul className="list-none p-0 [&_li]:my-[1em] [&_li]:flex [&_li]:justify-between [&_li_a]:text-text [&_li_a]:no-underline [&_li_a:hover]:underline">
+        <ul className="
+            list-none p-0
+            [&_li]:my-[1em] [&_li]:flex [&_li]:justify-between
+            [&_li_a]:text-text [&_li_a]:no-underline
+            [&_li_a:hover]:underline
+        ">
             {
                 category.articles.map(article => (
                     <li key={article.id}>
@@ -107,7 +127,11 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
                         {
                             canRemoveArticle && (
                                 <button
-                                    className="w-[20px] h-[20px] bg-accent-red border-none rounded-full cursor-pointer transition-[background] duration-500 flex justify-center items-center hover:bg-[color-mix(in_srgb,var(--accent-red),black_10%)]"
+                                    className="
+                                        w-[20px] h-[20px] bg-accent-red border-none rounded-full cursor-pointer
+                                        transition-[background] duration-500 flex justify-center items-center
+                                        hover:bg-[color-mix(in_srgb,var(--accent-red),black_10%)]
+                                    "
                                     onClick={() => handleDestroy(article.id)}
                                 >
                                     <FontAwesomeIcon icon={faX} />

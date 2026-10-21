@@ -100,7 +100,10 @@ export default function VisibilityMatrixEditor({ requirements, onChange }: PropT
                     <div className="flex flex-col gap-[0.75em]">
                         {
                             requirements.map((requirement, requirementIndex) => (
-                                <div className="flex flex-col gap-[0.5em] p-[0.5em] border border-current" key={requirementIndex}>
+                                <div
+                                    className="flex flex-col gap-[0.5em] p-[0.5em] border border-current"
+                                    key={requirementIndex}
+                                >
                                     <div className="flex justify-between items-center">
                                         <span>Krav {requirementIndex + 1} (ett av følgende):</span>
                                         <button type="button" onClick={() => removeRequirement(requirementIndex)}>

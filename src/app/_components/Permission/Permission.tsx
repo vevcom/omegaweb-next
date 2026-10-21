@@ -20,10 +20,17 @@ export default function Permission({ permission, children, displayCategory = tru
     const permissionInfo = permissionConfig[permission]
 
     return (
-        <div className={`bg-surface-raised flex round items-center gap-[1em] ${className}`}>
+        <div className={`
+            bg-surface-raised flex round items-center gap-[1em]
+            ${className}
+        `}>
             {children}
             <div className="flex flex-col min-w-0">
-                <div className="flex flex-wrap items-center gap-[.4em] [&>h3]:text-l [&>i]:text-s [&>i]:wrap-anywhere">
+                <div className="
+                    flex flex-wrap items-center gap-[.4em]
+                    [&>h3]:text-l
+                    [&>i]:text-s [&>i]:wrap-anywhere
+                ">
                     <h3>{permissionInfo.name}</h3> <i>({permission})</i>
                 </div>
                 <div className="flex items-center gap-[.3em]">

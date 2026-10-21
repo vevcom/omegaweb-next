@@ -38,7 +38,10 @@ export default async function LoggedOutLandingPage() {
             <div className={frontImgPartClassName}>
                 <div className={frontInfoClassName(false)}>
                     <div className={frontInfoInnerClassName}>
-                        <div className="grid place-items-center p-8 rounded-full bg-radial-[circle] from-black/80 from-0% to-transparent to-70%">
+                        <div className="
+                            grid place-items-center p-8 rounded-full bg-radial-[circle] from-black/80 from-0%
+                            to-transparent to-70%
+                        ">
                             <StandardImageServer
                                 standardImage="LOGO_WHITE"
                                 width={300}
@@ -46,9 +49,18 @@ export default async function LoggedOutLandingPage() {
                             />
                         </div>
 
-                        <Link className={`secondary-btn font-medium ${ctaLayout}`} href="login">Logg inn</Link>
-                        <Link className={`btn font-bold ${ctaLayout}`} href="/new-student">Ny student</Link>
-                        <Link className={`secondary-btn font-medium ${ctaLayout}`} href="/career">For bedrifter</Link>
+                        <Link className={`
+                            secondary-btn font-medium
+                            ${ctaLayout}
+                        `} href="login">Logg inn</Link>
+                        <Link className={`
+                            btn font-bold
+                            ${ctaLayout}
+                        `} href="/new-student">Ny student</Link>
+                        <Link className={`
+                            secondary-btn font-medium
+                            ${ctaLayout}
+                        `} href="/career">For bedrifter</Link>
 
                         <Link className={scrollDownClassName} href="#firstSection">
                             <FontAwesomeIcon icon={faAngleDown} />
@@ -64,7 +76,11 @@ export default async function LoggedOutLandingPage() {
                     imgWidth={450}
                     id="firstSection"
                 >
-                    <div className="mt-4 [&>a]:mr-2 [&>a]:text-text [&>a]:transition-colors [&>a]:duration-300 [&>a:hover]:text-accent-blue">
+                    <div className="
+                        mt-4
+                        [&>a]:mr-2 [&>a]:text-text [&>a]:transition-colors [&>a]:duration-300
+                        [&>a:hover]:text-accent-blue
+                    ">
                         <SocialIcons />
                     </div>
                 </Section>

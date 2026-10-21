@@ -20,17 +20,22 @@ export default function ModeSwitch<ValueType extends string>({ options, value, o
     const layoutId = useId()
 
     return (
-        <div className="inline-flex items-center gap-1 p-1 bg-surface-hover rounded-(--gap) h-14 mt-2 max-mobile:w-full">
+        <div className="
+            inline-flex items-center gap-1 p-1 bg-surface-hover rounded-(--gap) h-14 mt-2
+            max-mobile:w-full
+        ">
             {options.map(option => {
                 const active = option.value === value
                 return (
                     <button
                         key={option.value}
                         type="button"
-                        className={[
-                            'h-full relative border-none bg-transparent m-0 py-2 px-4 text-m cursor-pointer transition-colors duration-300 max-mobile:flex-1',
-                            active ? 'text-text-inv' : 'text-text hover:text-ink-hover',
-                        ].join(' ')}
+                        className={`
+                            h-full relative border-none bg-transparent m-0 py-2 px-4 text-m cursor-pointer
+                            transition-colors duration-300
+                            max-mobile:flex-1
+                            ${active ? 'text-text-inv' : 'text-text hover:text-ink-hover'}
+                        `}
                         aria-pressed={active}
                         onClick={() => onChange(option.value)}
                     >

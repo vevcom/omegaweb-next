@@ -6,7 +6,10 @@ import { LockerPagingContext } from '@/contexts/paging/LockerPaging'
 export default function LockerList() {
     return (
         <div className="w-full my-4 rounded-round overflow-hidden shadow-soft text-m" role="table">
-            <div className={`${lockerRowClassName} text-ink-strong font-medium`} role="row">
+            <div className={`
+                ${lockerRowClassName}
+                text-ink-strong font-medium
+            `} role="row">
                 <span className={lockerColumnClassName.id} role="columnheader">Skap</span>
                 <span className={lockerColumnClassName.location} role="columnheader">Sted</span>
                 <span className={lockerColumnClassName.user} role="columnheader">Reservert av</span>

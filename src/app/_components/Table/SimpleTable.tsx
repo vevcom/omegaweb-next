@@ -11,7 +11,10 @@ export default function SimpleTable<T extends string[]>({
     body: { [K in keyof T]: ReactNode }[],
     links?: T,
 }) {
-    return <table className="ohma-table [&_a]:contents [&_a]:no-underline [&_a]:text-inherit">
+    return <table className="
+        ohma-table
+        [&_a]:contents [&_a]:no-underline [&_a]:text-inherit
+    ">
         <thead>
             <tr>
                 {header.map((item, i) => <th key={i}>{item}</th>)}

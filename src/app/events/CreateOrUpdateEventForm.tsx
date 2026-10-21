@@ -69,7 +69,13 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                 <DateInput label="Start" name="eventStart" includeTime defaultValue={event?.eventStart} />
                 <DateInput label="Slutt" name="eventEnd" includeTime defaultValue={event?.eventEnd} />
                 <ul
-                    className="mt-[1em] flex flex-row flex-wrap gap-x-[2em] overflow-visible list-none [&_h2]:flex-[1_1_100%] [&_li]:flex [&_li]:items-center [&_li]:z-1 [&_li:hover]:z-2 [&_li_input[type=checkbox]]:align-top [&_li_input[type=checkbox]]:mr-[4px]"
+                    className="
+                        mt-[1em] flex flex-row flex-wrap gap-x-[2em] overflow-visible list-none
+                        [&_h2]:flex-[1_1_100%]
+                        [&_li]:flex [&_li]:items-center [&_li]:z-1
+                        [&_li:hover]:z-2
+                        [&_li_input[type=checkbox]]:align-top [&_li_input[type=checkbox]]:mr-[4px]
+                    "
                 >
                     <h2>Tags</h2>
                     {

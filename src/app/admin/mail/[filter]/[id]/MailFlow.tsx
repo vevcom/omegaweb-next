@@ -161,16 +161,19 @@ export default function MailFlow({
 
         return <li
             key={`${chip.type}-${chip.id}`}
-            className={[
-                'flex items-center gap-2 py-2 px-3 rounded-round bg-surface-subtle min-w-0',
-                focused ? 'outline-2 outline-accent-green font-bold' : '',
-            ].join(' ')}
+            className={`
+                flex items-center gap-2 py-2 px-3 rounded-round bg-surface-subtle min-w-0
+                ${focused ? 'outline-2 outline-accent-green font-bold' : ''}
+            `}
         >
             <FontAwesomeIcon icon={typeIcons[chip.type]} className="text-text-muted flex-none" />
             {focused
                 ? <span className="text-text no-underline wrap-anywhere">{chip.label}</span>
                 : <Link
-                    className="text-text no-underline wrap-anywhere hover:underline"
+                    className="
+                        text-text no-underline wrap-anywhere
+                        hover:underline
+                    "
                     href={`/admin/mail/${chip.type}/${chip.id}`}
                 >
                     {chip.label}
@@ -181,7 +184,10 @@ export default function MailFlow({
             </span>}
             {removable && <button
                 type="button"
-                className="ml-auto bg-transparent border-none cursor-pointer text-text-muted p-1 leading-none flex-none hover:text-accent-red"
+                className="
+                    ml-auto bg-transparent border-none cursor-pointer text-text-muted p-1 leading-none flex-none
+                    hover:text-accent-red
+                "
                 aria-label={`Fjern ${chip.label}`}
                 onClick={() => removeRelation(chip)}
             >
@@ -212,16 +218,25 @@ export default function MailFlow({
     }
 
     return <div className="bg-surface-raised rounded-[calc(3*var(--rounding))] p-(--card-padding)">
-        <div className="flex flex-row items-stretch gap-4 max-mobile:flex-col">
+        <div className="
+            flex flex-row items-stretch gap-4
+            max-mobile:flex-col
+        ">
             {renderStage('Alias', [{ chips: aliasChips }])}
             <FontAwesomeIcon
                 icon={faArrowRightLong}
-                className="self-center text-text-muted text-[1.5rem] flex-none max-mobile:rotate-90"
+                className="
+                    self-center text-text-muted text-[1.5rem] flex-none
+                    max-mobile:rotate-90
+                "
             />
             {renderStage('E-postlister', [{ chips: mailingListChips }])}
             <FontAwesomeIcon
                 icon={faArrowRightLong}
-                className="self-center text-text-muted text-[1.5rem] flex-none max-mobile:rotate-90"
+                className="
+                    self-center text-text-muted text-[1.5rem] flex-none
+                    max-mobile:rotate-90
+                "
             />
             {renderStage('Mottakere', [
                 { label: 'Grupper', chips: groupChips },

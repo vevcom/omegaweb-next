@@ -483,10 +483,20 @@ export default function GitGraphPlayer({ rushStartsAt, rushDuration }: PropTypes
 
     // Covers the screen behind the countdown, tilted back and fading into the distance at the top.
     return (
-        <div className="absolute inset-0 overflow-hidden perspective-[1000px] perspective-origin-[50%_30%] [mask-image:linear-gradient(to_bottom,rgb(0_0_0/25%)_0%,black_40%)]">
-            <canvas ref={canvasRef} className="absolute bottom-0 left-[-30%] block w-[160%] h-[200%] [transform:rotateX(32deg)] origin-[50%_100%]" aria-hidden />
+        <div className="
+            absolute inset-0 overflow-hidden perspective-[1000px] perspective-origin-[50%_30%]
+            [mask-image:linear-gradient(to_bottom,rgb(0_0_0/25%)_0%,black_40%)]
+        ">
+            <canvas ref={canvasRef} className="
+                absolute bottom-0 left-[-30%] block w-[160%] h-[200%] [transform:rotateX(32deg)] origin-[50%_100%]
+            " aria-hidden />
             {graph && (
-                <a className="absolute right-2 bottom-2 text-s text-[#808080]" href={graph.repository} target="_blank" rel="noreferrer">
+                <a
+                    className="absolute right-2 bottom-2 text-s text-[#808080]"
+                    href={graph.repository}
+                    target="_blank"
+                    rel="noreferrer"
+                >
                     vevcom/project-next · {graph.commits.length} commits
                 </a>
             )}

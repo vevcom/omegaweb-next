@@ -26,13 +26,20 @@ export default function CmsParagraphEditor({
     return (
         <PopUp
             popUpKey={`EditCmsParagraph${cmsParagraph.id}`}
-            showButtonClass="border-none bg-transparent overflow-hidden [&>*]:rounded-round"
+            showButtonClass="
+                border-none bg-transparent overflow-hidden
+                [&>*]:rounded-round
+            "
             showButtonContent={
                 <EditOverlay />
             }>
             <CmsParagraphEditorForm
                 // In the pop-up the editor (or its loader, whichever is the first child) takes up most of the screen.
-                className={`w-[70vw] [&>:first-child]:h-[70vh] ${editorClassName ?? ''}`}
+                className={`
+                    w-[70vw]
+                    [&>:first-child]:h-[70vh]
+                    ${editorClassName ?? ''}
+                `}
                 cmsParagraph={cmsParagraph}
                 updateCmsParagraphAction={updateCmsParagraphAction}
             />

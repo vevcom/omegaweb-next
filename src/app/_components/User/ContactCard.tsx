@@ -12,10 +12,13 @@ export default function ContactCard({
     className?: string,
 }) {
     return <Link
-        className={[
-            'flex items-center gap-2 p-2 mx-2 mt-2 mb-0 box-border rounded-round no-underline text-text bg-surface-raised border-4 border-solid border-[var(--flairColor,var(--surface-raised))] [&>div>h6]:text-m [&>div>p]:text-s',
-            className ? className : '',
-        ].join(' ')}
+        className={`
+            flex items-center gap-2 p-2 mx-2 mt-2 mb-0 box-border rounded-round no-underline text-text bg-surface-raised
+            border-4 border-solid border-[var(--flairColor,var(--surface-raised))]
+            [&>div>h6]:text-m
+            [&>div>p]:text-s
+            ${className ? className : ''}
+        `}
         href="#"
     >
         <ProfilePicture profileImage={image} width={60} />
