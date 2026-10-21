@@ -1,5 +1,4 @@
 'use client'
-import styles from './SelectCompany.module.scss'
 import { CompanySelectionContext } from '@/contexts/CompanySelection'
 import { faCheck } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -20,14 +19,17 @@ export default function SelectCompany({ company }: PropTypes) {
     const isSelected = companyCtx.selectedCompany && companyCtx.selectedCompany.id === company.id
     return (
         <>
-            <button className={styles.button} onClick={() => {
+            <button className="opacity-0 size-full absolute top-0 left-0" onClick={() => {
                 if (isSelected) {
                     companyCtx.setSelectedCompany(null)
                     return
                 }
                 companyCtx.setSelectedCompany(company)
             }} />
-            <div className={isSelected ? `${styles.selected} ${styles.check}` : styles.check}>
+            <div className={`
+                absolute top-0 right-0 size-[1.5em] text-text-inv rounded-full flex justify-center items-center
+                ${isSelected ? 'bg-accent-blue' : 'bg-surface-raised'}
+            `}>
                 <FontAwesomeIcon icon={faCheck} />
             </div>
         </>

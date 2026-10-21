@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './CreateOmegaquoteFrom.module.scss'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import Form from '@/components/Form/Form'
 import { createQuoteAction } from '@/services/omegaquotes/actions'
@@ -25,15 +24,18 @@ export default function CreateOmegaquoteForm() {
                     { params: { userPosterId: session.session.user?.id } }
                 )}
                 successCallback={refresh}
-                className={styles.popupForm}
+                className="w-[400px]"
             >
                 <Textarea
                     name="quote"
                     label="Omegaquote"
                     placeholder="Omegaquote"
-                    className={styles.textarea}
+                    className="h-[100px] max-h-[300px]"
                 />
-                <TextInput label="Sagt av" name="author" className={styles.author}/>
+                <TextInput label="Sagt av" name="author" className="
+                    w-full max-w-full
+                    [&_input]:w-full
+                "/>
             </Form>
         </AddHeaderItemPopUp>
     )

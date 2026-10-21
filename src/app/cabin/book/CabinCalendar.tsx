@@ -1,5 +1,4 @@
 'use client'
-import styles from './CabinCalendar.module.scss'
 import { dateInInterval, dateLessThan, datesEqual, getWeekNumber } from '@/lib/dates/comparison'
 import React, { useState } from 'react'
 import type { BookingFiltered } from '@/services/cabin/booking/types'
@@ -25,6 +24,25 @@ enum Selection {
     'START',
     'END',
     'INRANGE'
+}
+
+const weekClassName = 'w-full flex flex-row flex-nowrap'
+const dayClassName = 'relative min-h-[2.3rem]'
+
+const selectionClassNames: Record<Selection, string> = {
+    [Selection.START]: `
+        before:absolute before:top-0 before:right-0 before:size-full before:bg-accent-blue before:rounded-l-[10px]
+    `,
+    [Selection.END]: `
+        before:absolute before:top-0 before:left-0 before:size-full before:bg-accent-blue before:rounded-r-[10px]
+    `,
+    [Selection.INRANGE]: 'bg-[color-mix(in_srgb,var(--accent-blue),white_30%)]',
+}
+
+const bookingSelectionClassNames: Record<Selection, string> = {
+    [Selection.START]: '[&>:last-child]:bg-accent-red',
+    [Selection.END]: '[&>:first-child]:bg-accent-red',
+    [Selection.INRANGE]: '[&>*]:bg-accent-red',
 }
 
 type Day = {
@@ -283,11 +301,17 @@ export default function CabinCalendar({
     }
 
     return <div
-        className={styles.calendar}
+        className="
+            w-full max-w-[30rem] max-h-[30rem] overflow-y-auto mt-[1rem] px-[5px] border-2 border-surface-subtle
+            rounded-round
+        "
     >
-        <div className={`${styles.week} ${styles.weekHeader}`}>
-            <div className={styles.weekNumber}>Uke</div>
-            <div className={styles.weekDays}>
+        <div className={`
+            ${weekClassName}
+            bg-surface-base sticky top-0 z-2 py-[0.2rem]
+        `}>
+            <div className="w-[2.5rem]">Uke</div>
+            <div className="grid grid-cols-7 flex-1 text-center">
                 {WEEKDAYS.map(day => <div key={day}>{day}</div>)}
             </div>
         </div>
@@ -306,7 +330,7 @@ function MonthHeader({
 }: {
     children: ReactNode
 }) {
-    return <h2 className={styles.monthHeader}>{children}</h2>
+    return <h2 className="relative z-1 text-center">{children}</h2>
 }
 
 function CalendarWeek({
@@ -316,12 +340,12 @@ function CalendarWeek({
     week: Week,
     callback: (day: Day) => void
 }) {
-    return <div className={styles.week} >
-        <div className={styles.weekNumber}>{week.number}</div>
-        <div className={styles.weekDays}>
+    return <div className={weekClassName} >
+        <div className="w-[2.5rem]">{week.number}</div>
+        <div className="grid grid-cols-7 flex-1 text-center">
             {week.days.map((day, weekdayIndex) => {
                 if (day) return <CalendarDay day={day} key={weekdayIndex} callback={callback} />
-                return <div key={weekdayIndex} className={styles.day}></div>
+                return <div key={weekdayIndex} className={dayClassName}></div>
             })}
         </div>
     </div>
@@ -334,31 +358,25 @@ function CalendarDay({
     day: Day,
     callback: (sourceDay: Day) => void
 }) {
-    const classList: string[] = [styles.front]
-
-    const selectionMap: Record<Selection, string> = {
-        [Selection.START]: styles.start,
-        [Selection.END]: styles.end,
-        [Selection.INRANGE]: styles.inRange
-    }
-
-    function getSelectionStyle(sel?: Selection): string {
-        if (sel === undefined) return ''
-        return selectionMap[sel]
-    }
-
-    classList.push(getSelectionStyle(day.selection))
-
-    return <div className={`${styles.day} ${styles.exists}`}>
+    return <div className={`
+        ${dayClassName}
+        hover:bg-surface-hover
+    `}>
         <div
-            className={classList.join(' ')}
+            className={`
+                absolute size-full z-1
+                ${day.selection !== undefined ? selectionClassNames[day.selection] : ''}
+            `}
             onMouseDown={() => callback(day)}
         >
-            <div className={styles.dateNumber}>{day.date.getDate()}</div>
+            <div className="relative p-[4px] text-[1.3rem]">{day.date.getDate()}</div>
         </div>
-        <div className={`${styles.behind} ${getSelectionStyle(day.bookingSelection)}`}>
-            <div className={styles.left} />
-            <div className={styles.right} />
+        <div className={`
+            absolute size-full z-0 bg-accent-green
+            ${day.bookingSelection === undefined ? '' : bookingSelectionClassNames[day.bookingSelection]}
+        `}>
+            <div className="w-1/2 h-full float-left" />
+            <div className="w-1/2 h-full float-right" />
         </div>
     </div>
 }

@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './PaymentMethodList.module.scss'
 import { deleteSavedPaymentMethodAction } from '@/services/stripeCustomers/actions'
 import { stripeCustomerAuth } from '@/services/stripeCustomers/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
@@ -23,13 +22,13 @@ export default function PaymentMethodList({ userId, paymentMethods }: Params) {
     const displayPaymentMethod = ({ type, card }: FilteredPaymentMethod) => {
         switch (type) {
             case 'card':
-                return <span className={styles.label}>
+                return <span className="flex flex-wrap gap-2">
                     <span>{card?.brand?.toUpperCase()}</span>
                     <span>**** **** **** {card?.last4}</span>
                     <span>(utløper {card?.exp_month}/{card?.exp_year})</span>
                 </span>
             default:
-                return <span className={styles.label}>{type.toUpperCase()}</span>
+                return <span className="flex flex-wrap gap-2">{type.toUpperCase()}</span>
         }
     }
 
@@ -41,10 +40,17 @@ export default function PaymentMethodList({ userId, paymentMethods }: Params) {
     return (
         <ul>
             {paymentMethods.length > 0 ? paymentMethods.map((method) => (
-                <li key={method.id} className={styles.paymentMethodElement}>
+                <li key={method.id} className="
+                    flex items-center justify-between gap-4 rounded-round border-2 border-solid border-surface-subtle my-2
+                    p-4 text-l
+                ">
                     {displayPaymentMethod(method)}
                     {canDeletePaymentMethod &&
-                        <button onClick={() => removePaymentMethod(method.id)} className={styles.deletePaymentMethodButton}>
+                        <button onClick={() => removePaymentMethod(method.id)} className="
+                            text-l text-text-muted justify-self-end size-[20px] bg-white border-none rounded-full
+                            cursor-pointer transition-[background] duration-500 flex justify-center items-center
+                            hover:bg-[color-mix(in_srgb,white,black_10%)]
+                        ">
                             <FontAwesomeIcon icon={faXmark}/>
                         </button>
                     }

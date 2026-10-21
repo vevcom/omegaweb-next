@@ -1,5 +1,4 @@
 import FlairTable from './FlairTable'
-import styles from './page.module.scss'
 import { createFlairAction, updateFlairImageAction } from '@/services/flairs/actions'
 import { flairOperations } from '@/services/flairs/operations'
 import { flairAuth } from '@/services/flairs/auth'
@@ -38,7 +37,10 @@ const { page, generateMetadata } = serverPage({
                 <PopUp
                     popUpKey={`EditFlairImage${flair.id}`}
                     showButtonContent="Endre bilde"
-                    showButtonClass={styles.changeImageBtn}
+                    showButtonClass="
+                        secondary-btn block mt-[0.5em]! py-[0.25em]! px-[0.5em]! text-s! whitespace-nowrap
+                        max-mobile:whitespace-normal
+                    "
                 >
                     <ImageUploader
                         title={`Endre bilde for ${flair.name}`}

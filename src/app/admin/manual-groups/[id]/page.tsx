@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import {
     addManualGroupMembersAction,
     migrateManualGroupAction,
@@ -63,15 +62,15 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper>
-                <div className={styles.wrapper}>
-                    <div className={styles.facts}>
+                <div className="flex flex-col gap-6">
+                    <div className="flex gap-6 text-text-muted">
                         <span>Kortnavn: {manualGroup.shortName}</span>
                         <span>Orden: {expanded.order}</span>
                         <span>Aktive medlemmer: {expanded.members}</span>
                     </div>
 
                     {capabilities.canPension.authorized && (
-                        <div className={styles.section}>
+                        <div className="[&_h2]:mb-2">
                             <h2>Pensjonering</h2>
                             <PensionGroup
                                 groupId={manualGroup.groupId}
@@ -85,7 +84,7 @@ const { page, generateMetadata } = serverPage({
 
                     {!manualGroup.group.pensioned
                         && (capabilities.canAddMembers.authorized || capabilities.canRemoveMembers.authorized) && (
-                        <div className={styles.section}>
+                        <div className="[&_h2]:mb-2">
                             <h2>Medlemmer</h2>
                             <ManageGroupMembers
                                 groupId={manualGroup.groupId}
@@ -108,7 +107,7 @@ const { page, generateMetadata } = serverPage({
                     )}
 
                     {!manualGroup.group.pensioned && capabilities.canMigrate.authorized && (
-                        <div className={styles.section}>
+                        <div className="[&_h2]:mb-2">
                             <h2>Migrering</h2>
                             <MigrateGroup
                                 groupId={manualGroup.groupId}

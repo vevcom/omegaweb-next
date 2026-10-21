@@ -1,11 +1,17 @@
 'use client'
-import styles from './ImageCollectionList.module.scss'
 import CollectionCardLink from '@/components/Image/Collection/CollectionCardLink'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import ModeSwitch from '@/UI/ModeSwitch'
 import { DynamicImageCollectionPagingContext } from '@/contexts/paging/DynamicImageCollectionPaging'
 import { useSpecialCollections } from '@/contexts/ClientData'
 import { useState, type ReactNode } from 'react'
+
+const gridClassName = `
+    w-full flex flex-wrap justify-start gap-2
+    [&>*:not(.loading-control)]:size-[250px] [&>*:not(.loading-control)]:overflow-hidden
+    [&>*:not(.loading-control)]:rounded-round [&>*:not(.loading-control)]:relative
+    max-[540px]:[&>*:not(.loading-control)]:size-[min(90vw,350px)]
+`
 
 type PropTypes = {
     serverRendered: ReactNode,
@@ -31,8 +37,8 @@ export default function ImageCollectionList({ serverRendered, toggle }: PropType
     }
 
     return (
-        <div className={styles.ImageCollectionList}>
-            <div className={styles.modeSwitch}>
+        <div className="w-full">
+            <div className="w-full flex flex-wrap items-center gap-2 mb-2">
                 <ModeSwitch
                     value={mode}
                     onChange={setMode}
@@ -41,14 +47,17 @@ export default function ImageCollectionList({ serverRendered, toggle }: PropType
                         { value: 'special', label: 'Spesialsamlinger' },
                     ]}
                 />
-                {toggle && <div className={styles.toggle}>{toggle}</div>}
+                {toggle && <div className="
+                    ml-auto
+                    max-mobile:ml-0
+                ">{toggle}</div>}
             </div>
             {mode === 'dynamic' ? (
-                <div className={styles.grid}>
+                <div className={gridClassName}>
                     {serverRendered} {/* Rendered on server (page.tsx) hopefully in the right way*/}
                     <EndlessScroll
                         pagingContext={DynamicImageCollectionPagingContext}
-                        loadingInfoClassName={styles.loadingControl}
+                        loadingInfoClassName="loading-control"
                         renderer={
                             (collection, i) => (
                                 <CollectionCardLink key={i} collection={collection} />
@@ -57,7 +66,7 @@ export default function ImageCollectionList({ serverRendered, toggle }: PropType
                     />
                 </div>
             ) : (
-                <div className={styles.grid}>
+                <div className={gridClassName}>
                     {renderSpecialCollections()}
                 </div>
             )}

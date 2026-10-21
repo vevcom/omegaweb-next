@@ -1,5 +1,4 @@
 'use client'
-import styles from './ReleaseCountdown.module.scss'
 import GitGraphPlayer from './GitGraphPlayer'
 import WhiteSun from './WhiteSun'
 import FinalCountdown from './FinalCountdown'
@@ -98,25 +97,50 @@ export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) 
     }))
 
     return (
-        <div className={styles.ReleaseCountdown}>
+        <div className="
+            [--text:hsl(0,0%,90%)] [--text-muted:hsl(0,0%,55%)] [--surface-base:hsl(0,0%,6%)]
+            [--surface-raised:hsl(0,0%,10%)] fixed inset-0 overflow-hidden bg-black text-text
+        ">
             {phase === 'final' && remaining !== null ? (
                 <FinalCountdown remaining={remaining} duration={FINAL_COUNTDOWN_DURATION} />
             ) : (
                 <>
-                    <div className={`${styles.countdown} ${phase === 'rush' ? styles.leaving : ''}`}>
+                    <div className={`
+                        relative z-1 flex flex-col items-center gap-4 pt-8 px-2 pb-4 text-center
+                        [&_h1]:font-secondary [&_h1]:text-xxl [&_h1]:m-0
+                        transition-[opacity,translate] duration-[1.5s] ease-in
+                        ${phase === 'rush' ? 'opacity-0 -translate-y-4 pointer-events-none' : ''}
+                    `}>
                         <h1>Project Next</h1>
-                        <div className={styles.units}>
+                        <div className="
+                            flex justify-center gap-4
+                            max-mobile:w-full max-mobile:max-w-[30rem] max-mobile:gap-2
+                        ">
                             {units.map(unit => (
-                                <div key={unit.label} className={styles.unit}>
-                                    <span className={styles.value}>{unit.value}</span>
-                                    <span className={styles.label}>{unit.label}</span>
+                                <div key={unit.label} className="
+                                    flex flex-col items-center min-w-[6rem] p-4 border border-[hsl(0,0%,20%)]
+                                    rounded-[calc(3*var(--rounding))] bg-[rgb(0_0_0/60%)] backdrop-blur-[4px]
+                                    max-mobile:flex-[1_1_0] max-mobile:min-w-0 max-mobile:py-2 max-mobile:px-1
+                                ">
+                                    <span className="
+                                        text-[length:clamp(2.5rem,8vw,5rem)] font-bold tabular-nums leading-none
+                                        text-accent-blue
+                                        max-mobile:text-[length:clamp(1.75rem,10vw,3rem)]
+                                    ">{unit.value}</span>
+                                    <span className="
+                                        text-s text-text-muted uppercase tracking-[0.1em]
+                                        max-mobile:text-[length:clamp(8px,2.5vw,12px)] max-mobile:tracking-[0.05em]
+                                    ">{unit.label}</span>
                                 </div>
                             ))}
                         </div>
-                        <p className={styles.releaseDate}>{releaseDateFormat.format(new Date(releaseDate))}</p>
-                        <div className={styles.enter}>
+                        <p className="m-0 text-text-muted text-m">{releaseDateFormat.format(new Date(releaseDate))}</p>
+                        <div className="
+                            flex flex-col items-center gap-2 transition-[opacity,translate] duration-[1.5s] ease-out
+                            starting:opacity-0 starting:translate-y-[0.5rem]
+                        ">
                             <Button onClick={enter}>Se nye veven</Button>
-                            {enterError && <p className={styles.enterError}>{enterError}</p>}
+                            {enterError && <p className="m-0 text-accent-red text-s">{enterError}</p>}
                         </div>
                     </div>
                     <GitGraphPlayer
@@ -133,7 +157,12 @@ export default function ReleaseCountdown({ releaseDate, openToAll }: PropTypes) 
                 </>
             )}
             {showAdmin && (
-                <div className={styles.overlay} onClick={() => setShowAdmin(false)}>
+                <div
+                    className="
+                        fixed inset-0 flex items-center justify-center bg-[rgb(0_0_0/70%)] backdrop-blur-[6px] z-10
+                    "
+                    onClick={() => setShowAdmin(false)}
+                >
                     <div onClick={event => event.stopPropagation()}>
                         <ReleaseAdmin
                             releaseDate={releaseDate}

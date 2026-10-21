@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import CreateApiKeyForm from './CreateApiKeyForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
@@ -27,8 +26,8 @@ const { page, generateMetadata } = serverPage({
                 <CreateApiKeyForm popUpKey={popUpKey} />
             </AddHeaderItemPopUp>
         }>
-            <div className={styles.wrapper}>
-                <table className={styles.ApiKeysList}>
+            <div className="max-mobile:max-w-[80vw] max-mobile:overflow-y-scroll">
+                <table className="ohma-table">
                     <thead>
                         <tr>
                             <th>Navn</th>
@@ -40,8 +39,17 @@ const { page, generateMetadata } = serverPage({
                     </thead>
                     <tbody>
                         {apiKeys.map(apiKey => (
-                            <Link href={`/admin/api-keys/${apiKey.name}`} key={apiKey.id} passHref>
-                                <tr className={apiKey.active ? styles.activated : styles.deactivated}>
+                            <Link
+                                href={`/admin/api-keys/${apiKey.name}`}
+                                key={apiKey.id}
+                                passHref
+                                className="contents no-underline text-inherit"
+                            >
+                                <tr
+                                    className={apiKey.active
+                                        ? 'bg-[color-mix(in_srgb,var(--accent-green),white_50%)] text-accent-green'
+                                        : 'bg-[color-mix(in_srgb,var(--accent-red),white_50%)] text-accent-red'}
+                                >
                                     <td>{apiKey.name}</td>
                                     <td><Date date={apiKey.createdAt} /></td>
                                     <td><Date date={apiKey.updatedAt} /></td>

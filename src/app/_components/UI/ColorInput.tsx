@@ -1,5 +1,4 @@
 'use client'
-import styles from './ColorInput.module.scss'
 import { useId, useState } from 'react'
 import type { InputHTMLAttributes, ChangeEvent } from 'react'
 
@@ -13,6 +12,19 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
     label: string,
     background?: 'base' | 'raised',
 }
+
+const backgroundClassNames = {
+    base: `
+        bg-surface-raised
+        hover:bg-surface-hover
+        peer-focus:bg-surface-hover
+    `,
+    raised: `
+        bg-surface-hover
+        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        peer-focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+    `,
+} as const
 
 const rgbToHex = (red: number, green: number, blue: number): string => {
     const toHex = (value: number) => {
@@ -60,21 +72,47 @@ export default function ColorInput({
     return (
         <div
             className={
-                `${styles.ColorInput} ${background === 'raised' ? styles.onRaised : ''} ${className ?? ''}`
+                `
+                    relative w-full max-w-[320px] mt-2
+                    ${className ?? ''}
+                `
             }
         >
             <input
                 {...props}
                 id={inputId}
                 type="color"
-                className={styles.field}
+                // Stays focusable and labelled since it opens the OS picker; the trigger label is what is styled.
+                className="peer absolute w-px h-px opacity-0 pointer-events-none"
                 onChange={handleChange}
             />
-            <label htmlFor={inputId} className={styles.trigger}>
-                <span className={styles.swatch} style={{ backgroundColor: color }} />
-                <span className={styles.value}>{color.toUpperCase()}</span>
+            <label htmlFor={inputId} className={`
+                relative w-full flex items-center gap-2 border-2 border-transparent rounded-inner outline-0 text-m
+                text-left pt-6 px-4 pb-2 transition-[border-color,background-color] duration-300 cursor-pointer
+                peer-focus:border-accent-blue
+                peer-disabled:cursor-not-allowed peer-disabled:opacity-60
+                ${backgroundClassNames[background]}
+            `}>
+                <span
+                    className="
+                        shrink-0 size-[calc(var(--text-m)*1.25)] rounded-[calc(var(--rounding)-1.5*var(--gap))]
+                        shadow-[inset_0_0_0_1px_var(--surface-subtle)]
+                    "
+                    style={{ backgroundColor: color }} />
+                <span className="min-h-[calc(var(--text-m)*1.25)] flex items-center tabular-nums text-ink-strong">
+                    {color.toUpperCase()}
+                </span>
             </label>
-            <label htmlFor={inputId} className={styles.labe}>{label}</label>
+            <label
+                htmlFor={inputId}
+                className="
+                    absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-text-muted
+                    peer-focus:text-accent-blue
+                    transition-all duration-300 pointer-events-none z-1
+                "
+            >
+                {label}
+            </label>
         </div>
     )
 }

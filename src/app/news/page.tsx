@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import AddNews from './AddNews'
 import CurrentNews from './CurrentNews'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
@@ -16,7 +15,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ capabilities }) => (
         <PageWrapper
             headerItem={
-                <div className={styles.head}>
+                <div className="flex items-center gap-[1em]">
                     <ArchiveLink href="news/archive" />
                     {
                         capabilities.canCreate.authorized && (
@@ -28,7 +27,7 @@ const { page, generateMetadata } = serverPage({
                 </div>
             }
         >
-            <main className={styles.wrapper}>
+            <main className="image-card-list">
                 <CurrentNews />
             </main>
         </PageWrapper>

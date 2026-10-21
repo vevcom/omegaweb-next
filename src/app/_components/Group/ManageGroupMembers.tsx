@@ -1,5 +1,4 @@
 'use client'
-import styles from './ManageGroupMembers.module.scss'
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import TextInput from '@/components/UI/TextInput'
@@ -74,7 +73,7 @@ function AddMembers({ groupId, order, addMembersAction, popUpKey }: {
     const selectedUsers = selection?.users ?? []
 
     return (
-        <div className={styles.addPanel}>
+        <div className="flex flex-col gap-2 min-w-[min(80vw,700px)]">
             {selectedUsers.length > 0 && (
                 <Form
                     submitText={`Legg til ${selectedUsers.length} bruker(e) i orden ${order}`}
@@ -119,8 +118,8 @@ export default function ManageGroupMembers({
     const columnStyle = { '--member-columns': memberColumns } as CSSProperties
 
     return (
-        <div className={styles.ManageGroupMembers}>
-            <div className={styles.orderPicker}>
+        <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1 items-start">
                 <SelectNumber
                     name={`order-of-group-${groupId}`}
                     label="Orden"
@@ -135,7 +134,7 @@ export default function ManageGroupMembers({
                     }))}
                 />
                 {selectedOrder !== groupOrder && (
-                    <p className={styles.historyNote}>
+                    <p className="text-text-muted text-s">
                         Orden {selectedOrder} er historikk - gruppen selv står i orden {groupOrder}.
                         Medlemmer som legges til her blir lagt til som inaktive medlemskap.
                     </p>
@@ -146,7 +145,7 @@ export default function ManageGroupMembers({
                 <PopUp
                     key={selectedOrder}
                     popUpKey={addPopUpKey}
-                    showButtonClass={styles.addButton}
+                    showButtonClass="secondary-btn self-start py-2 px-4 text-s"
                     showButtonContent={<>Legg til medlemmer</>}
                 >
                     <UserPagingProvider
@@ -167,10 +166,13 @@ export default function ManageGroupMembers({
             )}
 
             {members.length === 0 ? (
-                <p className={styles.empty}>Gruppen har ingen medlemskap i orden {selectedOrder}.</p>
+                <p className="text-text-muted italic">Gruppen har ingen medlemskap i orden {selectedOrder}.</p>
             ) : (
-                <div className={styles.memberRows}>
-                    <div className={styles.memberHeader} style={columnStyle}>
+                <div className="flex flex-col gap-1">
+                    <div className="
+                        grid grid-cols-(--member-columns) items-center gap-4 px-4 text-text-muted text-s
+                        max-mobile:hidden
+                    " style={columnStyle}>
                         <span>Navn</span>
                         <span>Tittel</span>
                         <span>Status</span>
@@ -183,15 +185,22 @@ export default function ManageGroupMembers({
                         // and ignore the new order's `defaultValue`. The same user is usually a
                         // member of several orders, which is exactly when that bites.
                         <div
-                            className={styles.memberRow}
+                            className="
+                                grid grid-cols-(--member-columns) items-center gap-4 py-2 px-4 rounded-round layer
+                                max-mobile:grid-cols-1 max-mobile:gap-2
+                                [&_p:empty]:min-h-0 [&_p:empty]:m-0
+                            "
                             style={columnStyle}
                             key={`${selectedOrder}-${member.userId}`}
                         >
-                            <span className={styles.name}>{member.name}</span>
+                            <span className="min-w-0 text-text truncate">{member.name}</span>
                             {setMemberTitleAction ? (
                                 <Form
-                                    className={styles.titleForm}
-                                    buttonClassName={styles.titleSave}
+                                    className="
+                                        flex flex-row items-center gap-2 w-auto!
+                                        [&>*:last-child]:mt-0
+                                    "
+                                    buttonClassName="w-[5.5rem]!"
                                     submitText="Lagre"
                                     submitColor="secondary"
                                     action={formData => {
@@ -208,23 +217,31 @@ export default function ManageGroupMembers({
                                     refreshOnSuccess
                                 >
                                     <TextInput
-                                        className={styles.titleInput}
+                                        className="w-[12rem]"
                                         name="title"
                                         label="Tittel"
                                         defaultValue={member.title}
                                     />
                                 </Form>
                             ) : (
-                                <span className={styles.title}>{member.title}</span>
+                                <span className="text-text-muted text-s">{member.title}</span>
                             )}
-                            <span className={styles.badges}>
-                                {member.admin && <span className={styles.adminBadge}>Admin</span>}
-                                {!member.active && <span className={styles.inactiveBadge}>Inaktiv</span>}
+                            <span className="flex gap-1">
+                                {member.admin && <span className="
+                                    px-2 rounded-round border text-s whitespace-nowrap border-accent-blue text-accent-blue
+                                ">Admin</span>}
+                                {!member.active && <span className="
+                                    px-2 rounded-round border text-s whitespace-nowrap border-text-muted text-text-muted
+                                ">Inaktiv</span>}
                             </span>
                             {/* The action cells are rendered even when this member cannot use them,
                                 so that a row without them keeps the grid's columns. */}
                             {setMemberAdminAction && (
-                                <span className={styles.action}>
+                                <span className="
+                                    min-w-0
+                                    [&_button]:w-full
+                                    [&>*:last-child]:mt-0
+                                ">
                                     <Form
                                         submitText={member.admin ? 'Fjern admin' : 'Gjør til admin'}
                                         submitColor="secondary"
@@ -236,7 +253,11 @@ export default function ManageGroupMembers({
                                 </span>
                             )}
                             {removeMembersAction && (
-                                <span className={styles.action}>
+                                <span className="
+                                    min-w-0
+                                    [&_button]:w-full
+                                    [&>*:last-child]:mt-0
+                                ">
                                     {member.active && (
                                         <Form
                                             submitText="Fjern"

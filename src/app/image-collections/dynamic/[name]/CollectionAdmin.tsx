@@ -1,5 +1,4 @@
 'use client'
-import styles from './CollectionAdmin.module.scss'
 import CollectionAdminUpload from './CollectionAdminUpload'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
@@ -66,11 +65,14 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
     if (!canUpload && !canOpenEditPopUp && !canOpenVisibilityPopUp) return null
 
     return (
-        <div className={styles.CollectionAdmin}>
+        <div className="flex flex-row items-center gap-2">
             {
                 canUpload && (
                     <UploadHeaderItemPopUp popUpKey="UploadImages">
-                        <div className={styles.upload}>
+                        <div className="
+                            flex flex-col gap-4 w-[min(50vw,560px)] max-w-full
+                            max-mobile:w-full
+                        ">
                             {
                                 uploadOption === 'MANY' ? canUploadMany && (
                                     <CollectionAdminUpload
@@ -92,7 +94,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                             {
                                 canUploadOne && canUploadMany && (
                                     <Button
-                                        className={styles.toggleUpload}
+                                        className="self-start m-0!"
                                         onClick={() =>
                                             setUploadOption(uploadOption === 'MANY' ? 'ONE' : 'MANY')}
                                         color="secondary"
@@ -162,7 +164,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
             {
                 doubleLevelVisibility && canOpenVisibilityPopUp && (
                     <VisibilityHeaderItemPopUp popUpKey="Visibility">
-                        <div className={styles.visibility}>
+                        <div>
                             {
                                 canUpdateRegularVisibility && (
                                     <div>

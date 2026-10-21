@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import getCommittee from './getCommittee'
 import { updateCommitteeParagraphAction } from '@/services/groups/committees/actions'
 import { committeeOperations } from '@/services/groups/committees/operations'
@@ -41,7 +40,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: (data) => ({ title: data.committee.name }),
     render: ({ data, capabilities }) => (
-        <div className={styles.wrapper}>
+        <div>
             <CmsParagraph
                 capabilities={{ canEdit: capabilities.canEditCommitteeParagraph }}
                 cmsParagraph={data.paragraph}
@@ -52,7 +51,7 @@ const { page, generateMetadata } = serverPage({
             />
 
             <h2>Komitémedlemmer</h2>
-            <div className={styles.memberList}>
+            <div className="w-full grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-2">
                 {data.members.map((member, i) => <UserCard
                     key={i}
                     user={member.user}

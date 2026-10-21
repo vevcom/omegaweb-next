@@ -1,5 +1,4 @@
 'use client'
-import styles from './CmsParagraphEditor.module.scss'
 import CmsParagraphEditorForm from './CmsParagraphEditorForm'
 import EditOverlay from '@/components/Cms/EditOverlay'
 import PopUp from '@/components/PopUp/PopUp'
@@ -27,12 +26,20 @@ export default function CmsParagraphEditor({
     return (
         <PopUp
             popUpKey={`EditCmsParagraph${cmsParagraph.id}`}
-            showButtonClass={styles.openBtn}
+            showButtonClass="
+                border-none bg-transparent overflow-hidden
+                [&>*]:rounded-round
+            "
             showButtonContent={
                 <EditOverlay />
             }>
             <CmsParagraphEditorForm
-                className={`${styles.CmsParagraphEditor} ${editorClassName ?? ''}`}
+                // In the pop-up the editor (or its loader, whichever is the first child) takes up most of the screen.
+                className={`
+                    w-[70vw]
+                    [&>:first-child]:h-[70vh]
+                    ${editorClassName ?? ''}
+                `}
                 cmsParagraph={cmsParagraph}
                 updateCmsParagraphAction={updateCmsParagraphAction}
             />

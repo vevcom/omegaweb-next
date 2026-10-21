@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import CreateLockerForm from './CreateLockerForm'
 import CreateLockerLocationForm from './CreateLockerLocationForm'
 import LockerLocationSettings from './LockerLocationSettings'
@@ -31,7 +30,7 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper headerItem={
-                <div className={styles.header}>
+                <div className="flex justify-end items-center gap-2 w-full">
                     {capabilities.canCreateLockerLocation.authorized && (
                         <AddHeaderItemPopUp popUpKey="create_locker_location" label="Ny lokasjon">
                             <CreateLockerLocationForm />

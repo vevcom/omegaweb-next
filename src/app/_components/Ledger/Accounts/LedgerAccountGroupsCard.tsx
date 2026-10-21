@@ -1,4 +1,3 @@
-import styles from './LedgerAccountGroupsCard.module.scss'
 import LedgerAccountGroupList from './LedgerAccountGroupList'
 import AddGroupToLedgerAccount from './AddGroupToLedgerAccount'
 import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes'
@@ -17,7 +16,7 @@ export default async function LedgerAccountGroupsCard({ ledgerAccountId, groupId
     const currentGroups = allGroups.filter(group => groupIds.includes(group.id))
     const availableGroups = allGroups.filter(group => !groupIds.includes(group.id))
 
-    return <div className={styles.wrapper}>
+    return <div className="bg-surface-base rounded-round p-(--card-padding)">
         <h2>Grupper</h2>
         <LedgerAccountGroupList
             ledgerAccountId={ledgerAccountId}

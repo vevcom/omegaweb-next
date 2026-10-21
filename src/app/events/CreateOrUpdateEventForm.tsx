@@ -1,5 +1,4 @@
 'use client'
-import styles from './CreateOrUpdateEventForm.module.scss'
 import EventLocationInput from './EventLocationInput'
 import Checkbox from '@/components/UI/Checkbox'
 import { SelectString, SelectNumberPossibleNULL } from '@/components/UI/Select'
@@ -46,7 +45,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
     }
 
     return (
-        <div className={styles.CreateOrUpdateEventForm}>
+        <div className="min-w-[50vw] p-4">
             <h1>{event ? 'Endre' : 'Opprett'} arrangement</h1>
             <Form
                 closePopUpOnSuccess="EditEvent"
@@ -61,7 +60,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                 <TextInput label="Sted" name="location" defaultValue={event?.location ?? ''} />
                 <EventLocationInput name="locationMap" defaultValue={event?.locationMap} />
                 <SelectString
-                    className={styles.canBeViewedBy}
+                    className="max-w-[300px]"
                     label="Hvem kan se"
                     name="canBeViewedBy"
                     options={eventCanBeViewedByOptions}
@@ -69,7 +68,15 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                 />
                 <DateInput label="Start" name="eventStart" includeTime defaultValue={event?.eventStart} />
                 <DateInput label="Slutt" name="eventEnd" includeTime defaultValue={event?.eventEnd} />
-                <ul className={styles.tags}>
+                <ul
+                    className="
+                        mt-[1em] flex flex-row flex-wrap gap-x-[2em] overflow-visible list-none
+                        [&_h2]:flex-[1_1_100%]
+                        [&_li]:flex [&_li]:items-center [&_li]:z-1
+                        [&_li:hover]:z-2
+                        [&_li_input[type=checkbox]]:align-top [&_li_input[type=checkbox]]:mr-[4px]
+                    "
+                >
                     <h2>Tags</h2>
                     {
                         eventTags.map(tag => (
@@ -100,7 +107,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                   * Only when creating: an existing event has both levels in the admin panel on its
                   * own page, where they are saved one at a time against the stored visibilities.
                   */}
-                {!event && <div className={styles.visibility}>
+                {!event && <div className="flex flex-col gap-[0.5rem]">
                     <h2>Hvem kan administrere arrangementet?</h2>
                     <VisibilityMatrixEditor
                         requirements={adminRequirements}

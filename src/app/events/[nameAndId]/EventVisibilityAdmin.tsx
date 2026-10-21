@@ -1,5 +1,4 @@
 'use client'
-import styles from './EventVisibilityAdmin.module.scss'
 import Form from '@/components/Form/Form'
 import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
 import {
@@ -45,8 +44,8 @@ export default function EventVisibilityAdmin({ event, doubleLevelVisibility }: P
 
     if (!canEditVisibility && !canSetPublished) return null
 
-    return <div className={styles.EventVisibilityAdmin}>
-        {canSetPublished && <div className={styles.publish}>
+    return <div className="flex flex-col gap-[1rem]">
+        {canSetPublished && <div className="flex items-center gap-[1rem]">
             <p>{event.published ? 'Publisert' : 'Ikke publisert'}</p>
             <Form
                 action={() => setPublished({ data: { published: !event.published } })}

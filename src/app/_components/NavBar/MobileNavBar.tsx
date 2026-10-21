@@ -1,4 +1,3 @@
-import styles from './MobileNavBar.module.scss'
 import Menu from './Menu'
 import UserNavigation from './UserNavigation'
 import MobileNavBarItems from './MobileNavBarItems'
@@ -15,7 +14,16 @@ type PropTypes = {
 
 export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
     return (
-        <nav className={styles.MobileNavBar}>
+        <nav className="
+            relative hidden
+            max-mobile:grid
+            grid-cols-5 grid-rows-[auto] w-full h-full p-4 overflow-hidden bg-surface-base text-text
+            [&>*:not(:last-child)]:grid [&>*:not(:last-child)]:place-items-center
+            [&>*:not(:last-child)>button]:[background:none] [&>*:not(:last-child)>button]:text-inherit
+            [&>*:not(:last-child)>button]:border-none [&>*:not(:last-child)>button]:p-0
+            [&>*:not(:last-child)>button]:[font:inherit] [&>*:not(:last-child)>button]:cursor-pointer
+            [&>*:not(:last-child)>button]:[outline:inherit]
+        ">
             <MobileNavBarItems navItems={navItems} />
             <MobileMagicHat>
                 <StandardImageServer
@@ -31,7 +39,10 @@ export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
                 items={navItems}
                 openBtnVariant={'mobile'}
             />
-            <div className={styles.editMode}>
+            <div className="
+                absolute right-0 bottom-[calc(100%+3*var(--gap))] size-[48px] bg-black rounded-ss-[50%] translate-y-1/2
+                [&_svg]:w-[30px]! [&_svg]:h-[30px]!
+            ">
                 <EditModeSwitch />
             </div>
         </nav>

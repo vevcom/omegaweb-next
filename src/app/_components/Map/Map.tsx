@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './Map.module.scss'
 import Button from '@/components/UI/Button'
 import { useEffect, useRef, useState } from 'react'
 
@@ -23,19 +22,25 @@ export default function Map({ height, src, href, title, invertColors = false }: 
         if (active) iframeRef.current?.focus()
     }, [active])
 
-    return <div className={styles.map} onPointerLeave={() => setActive(false)}>
-        <div className={`${styles.wrapper} ${invertColors ? styles.inverted : ''}`} style={{ height }}>
+    return <div className="flex flex-col items-center gap-2" onPointerLeave={() => setActive(false)}>
+        <div
+            className={`
+                relative w-4/5 rounded-round overflow-hidden
+                ${invertColors ? 'invert hue-rotate-180' : ''}
+            `}
+            style={{ height }}
+        >
             <iframe
                 ref={iframeRef}
                 title={title}
                 src={src}
-                className={styles.iframe}
+                className="size-full border-none rounded-round bg-white"
                 tabIndex={active ? 0 : -1}
                 loading="lazy"
             />
             {!active && <button
                 type="button"
-                className={styles.overlay}
+                className="absolute inset-0 z-1 p-0 border-none bg-transparent cursor-pointer"
                 onClick={() => setActive(true)}
                 aria-label="Aktiver kartet for interaksjon"
             />}

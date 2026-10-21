@@ -1,5 +1,4 @@
 import ProductForm from './ProductForm'
-import styles from './page.module.scss'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { sortObjectsByName } from '@/lib/sortObjects'
@@ -24,7 +23,7 @@ const { page, generateMetadata } = serverPage({
                 </AddHeaderItemPopUp>
             }
         >
-            <table className={styles.table}>
+            <table className="ohma-table">
                 <thead>
                     <tr>
                         <th>Produkt</th>

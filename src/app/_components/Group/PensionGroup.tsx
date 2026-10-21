@@ -1,5 +1,4 @@
 'use client'
-import styles from './PensionGroup.module.scss'
 import Form from '@/components/Form/Form'
 import { configureAction } from '@/services/configureAction'
 import type { PensionGroupAction } from '@/services/groups/types'
@@ -35,8 +34,8 @@ export default function PensionGroup({
     pensionGroupAction,
 }: PropTypes) {
     return (
-        <div className={styles.PensionGroup}>
-            <p className={styles.explanation}>
+        <div className="flex flex-col gap-2">
+            <p className="text-text-muted max-w-[70ch]">
                 {pensioned
                     ? `${groupName} er pensjonert. Gruppen har ingen aktive medlemmer, kan ikke endres, `
                         + 'og holder ikke igjen inkrementering av Omega.'

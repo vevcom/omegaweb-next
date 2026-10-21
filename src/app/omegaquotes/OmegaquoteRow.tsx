@@ -1,4 +1,3 @@
-import styles from './OmegaquoteRow.module.scss'
 import Date from '@/components/Date/Date'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faQuoteLeft } from '@fortawesome/free-solid-svg-icons'
@@ -15,17 +14,21 @@ type PropTypes = {
  */
 export default function OmegaquoteRow({ quote }: PropTypes) {
     return (
-        <div className={styles.OmegaquoteRow}>
-            <div className={styles.lead}>
+        // Not a link, so the hover affordance list-row gives clickable listings is cancelled.
+        <div className="
+            list-row
+            hover:bg-surface-raised!
+        ">
+            <div className="list-row-lead text-text-muted text-l">
                 <FontAwesomeIcon icon={faQuoteLeft} />
             </div>
 
-            <div className={styles.main}>
-                <h2>{quote.quote}</h2>
+            <div className="list-row-main">
+                <h2 className="whitespace-normal! font-secondary italic line-clamp-2">{quote.quote}</h2>
                 <p>{quote.author}</p>
             </div>
 
-            <div className={styles.meta}>
+            <div className="list-row-meta">
                 <span><Date date={quote.timestamp} includeTime={false} /></span>
             </div>
         </div>

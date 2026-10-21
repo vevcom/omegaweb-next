@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './AddGroupToLedgerAccount.module.scss'
 import { SelectNumber } from '@/components/UI/Select'
 import Button from '@/components/UI/Button'
 import { updateLedgerAccountAsAdminAction } from '@/services/ledger/accounts/actions'
@@ -39,7 +38,7 @@ export default function AddGroupToLedgerAccount({ ledgerAccountId, availableGrou
     }
 
     return (
-        <div className={styles.addGroup}>
+        <div className="flex items-end gap-2 mt-2">
             <SelectNumber
                 name="groupId"
                 label="Gruppe"
@@ -48,7 +47,7 @@ export default function AddGroupToLedgerAccount({ ledgerAccountId, availableGrou
                 onChange={setSelectedGroupId}
             />
             <Button onClick={addGroup} color="secondary">Legg til</Button>
-            {error && <p className={styles.error}>{error}</p>}
+            {error && <p className="text-accent-red">{error}</p>}
         </div>
     )
 }

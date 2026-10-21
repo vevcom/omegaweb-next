@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import UserDotsInEditMode from './UserDotsInEditMode'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { dotOperations } from '@/services/dots/operations'
@@ -12,7 +11,7 @@ const { page, generateMetadata } = serverPage({
         return { profile, dots }
     },
     render: ({ data }) => (
-        <div className={styles.wrapper}>
+        <div className="bg-surface-base rounded-round p-(--card-padding)">
             <h2>Prikker</h2>
             <UserDotsInEditMode userId={data.profile.user.id} dots={data.dots} />
         </div>

@@ -1,5 +1,4 @@
 'use client'
-import styles from './GlobalSearch.module.scss'
 import ModeSwitch from './ModeSwitch'
 import Image from '@/components/Image/Image'
 import useKeyPress from '@/hooks/useKeyPress'
@@ -52,6 +51,11 @@ const categoryOptions: { value: Category, label: string }[] = [
     { value: 'users', label: 'Brukere' },
     { value: 'events', label: 'Arrangementer' },
 ]
+
+const kbdClassName = `
+    inline-flex items-center justify-center min-w-4 py-[calc(0.15*var(--gap))] px-[calc(0.4*var(--gap))]
+    mr-[calc(0.3*var(--gap))] bg-surface-hover rounded-[calc(0.35*var(--gap))] text-s text-text
+`
 
 /**
  * Global command-K search popup, inspired by JetBrains' "Search Everywhere": a single box
@@ -230,56 +234,97 @@ export default function GlobalSearch({ navItems }: PropTypes) {
     if (!isOpen) return null
 
     return (
-        <div className={styles.GlobalSearch}>
-            <div className={styles.main} ref={ref}>
-                <div className={styles.searchRow}>
-                    <FontAwesomeIcon icon={faMagnifyingGlass} className={styles.icon} />
+        <div className="
+            fixed inset-0 bg-[rgba(0,0,0,0.55)] z-20 flex justify-center pt-[12vh]
+            max-mobile:pt-0
+        ">
+            <div className="
+                w-[min(800px,90vw)] max-h-[70svh] h-[70svh] bg-[color-mix(in_srgb,var(--surface-base),transparent_40%)]
+                backdrop-blur-[8px] backdrop-saturate-[140%] rounded-round flex flex-col gap-2 p-4 overflow-hidden
+                max-mobile:w-screen max-mobile:max-h-svh max-mobile:h-svh max-mobile:rounded-none
+            " ref={ref}>
+                <div className="flex items-center gap-2 shrink-0">
+                    <FontAwesomeIcon icon={faMagnifyingGlass} className="shrink-0 text-text-muted" />
                     <input
                         ref={inputRef}
                         type="text"
-                        className={styles.field}
+                        className="
+                            flex-1 min-w-0 border-none bg-transparent outline-none text-l text-text
+                            placeholder:text-text-muted
+                        "
                         placeholder="Søk etter brukere, arrangementer og sider..."
                         autoComplete="off"
                         value={query}
                         onChange={handleQueryChange}
                         onKeyDown={handleKeyDown}
                     />
-                    {loading && <FontAwesomeIcon icon={faSpinner} spin className={styles.spinner} />}
-                    <button type="button" className={styles.closeBtn} aria-label="Lukk søk" onClick={close}>
+                    {loading && <FontAwesomeIcon icon={faSpinner} spin className="shrink-0 text-text-muted" />}
+                    <button
+                        type="button"
+                        className="
+                            hidden
+                            max-mobile:block
+                            shrink-0 bg-transparent border-none p-2 cursor-pointer text-l
+                        "
+                        aria-label="Lukk søk"
+                        onClick={close}
+                    >
                         <FontAwesomeIcon icon={faXmark} />
                     </button>
                 </div>
                 <ModeSwitch options={availableCategories} value={category} onChange={handleCategoryChange} />
-                <div className={styles.results}>
+                <div className="overflow-y-auto flex-1 min-h-0 flex flex-col gap-3">
                     {
                         flatItems.length === 0 ? (
-                            <p className={styles.empty}>
+                            <p className="my-4 text-center text-text-muted">
                                 {trimmedQuery || debouncedQuery ? 'Ingen treff' : 'Begynn å skrive for å søke'}
                             </p>
                         ) : sections.map(section => (
-                            <div key={section.label} className={styles.section}>
-                                <span className={styles.sectionLabel}>{section.label}</span>
-                                <ul>
+                            <div key={section.label} className="flex flex-col gap-1">
+                                <span className="text-s uppercase text-text-muted">{section.label}</span>
+                                <ul className="list-none m-0 p-0 flex flex-col gap-0.5">
                                     {section.items.map(item => {
                                         const index = flatItems.indexOf(item)
                                         return (
                                             <li key={item.key}>
                                                 <Link
                                                     href={item.href}
-                                                    className={index === safeActiveIndex ? styles.active : ''}
+                                                    className={`
+                                                        flex items-center gap-2 p-2 rounded-[calc(0.5*var(--gap))]
+                                                        no-underline transition-colors duration-300
+                                                        ${index === safeActiveIndex
+                                                ? 'bg-accent-blue text-text-inv'
+                                                : `
+                                                    text-text
+                                                    hover:bg-surface-hover
+                                                `}
+                                                    `}
                                                     onMouseEnter={() => setActiveIndex(index)}
                                                     onClick={close}
                                                 >
-                                                    <span className={styles.thumb}>
+                                                    <span className="
+                                                        relative shrink-0 size-10 rounded-[calc(0.5*var(--gap))]
+                                                        overflow-hidden flex items-center justify-center bg-surface-hover
+                                                        text-text-muted
+                                                        [&_div]:w-full [&_div]:h-full
+                                                        [&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full
+                                                        [&_img]:object-cover
+                                                    ">
                                                         {item.thumb.type === 'image' ? (
                                                             <Image image={item.thumb.image} width={40} />
                                                         ) : (
                                                             <FontAwesomeIcon icon={item.thumb.icon} />
                                                         )}
                                                     </span>
-                                                    <span className={styles.label}>{item.label}</span>
+                                                    <span className="
+                                                        flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap
+                                                    ">
+                                                        {item.label}
+                                                    </span>
                                                     {item.sublabel && (
-                                                        <span className={styles.sublabel}>{item.sublabel}</span>
+                                                        <span className="shrink-0 text-s text-inherit opacity-70">
+                                                            {item.sublabel}
+                                                        </span>
                                                     )}
                                                 </Link>
                                             </li>
@@ -290,11 +335,11 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                         ))
                     }
                 </div>
-                <div className={styles.hints}>
-                    <span><kbd>↑</kbd><kbd>↓</kbd> Naviger</span>
-                    <span><kbd>↵</kbd> Velg</span>
-                    <span><kbd>Tab</kbd> Bytt fane</span>
-                    <span><kbd>Esc</kbd> Lukk</span>
+                <div className="shrink-0 flex flex-wrap gap-3 pt-2 border-t border-surface-hover text-s text-text-muted">
+                    <span><kbd className={kbdClassName}>↑</kbd><kbd className={kbdClassName}>↓</kbd> Naviger</span>
+                    <span><kbd className={kbdClassName}>↵</kbd> Velg</span>
+                    <span><kbd className={kbdClassName}>Tab</kbd> Bytt fane</span>
+                    <span><kbd className={kbdClassName}>Esc</kbd> Lukk</span>
                 </div>
             </div>
         </div>

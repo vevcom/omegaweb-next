@@ -1,4 +1,3 @@
-import styles from './LedgerTransactionRow.module.scss'
 import LedgerTransactionDetails, { transactionPurposeNames, transactionStateNames } from './LedgerTransactionDetails'
 import PopUp from '@/components/PopUp/PopUp'
 import { displayAmount } from '@/lib/currency/convert'
@@ -14,8 +13,8 @@ type Props = {
 // CANCELED) transactions are struck through. SUCCEEDED is the plain/default style. The detailed
 // popup still spells the state out in full.
 function stateStyle(state: ExpandedLedgerTransaction['state']) {
-    if (state === 'PENDING') return styles.pending
-    if (state === 'FAILED' || state === 'CANCELED') return styles.terminalFailure
+    if (state === 'PENDING') return 'italic'
+    if (state === 'FAILED' || state === 'CANCELED') return 'line-through'
     return undefined
 }
 
@@ -27,7 +26,11 @@ export default function LedgerTransactionRow({ transaction, accountId }: Props) 
 
     const fundsChange = transaction.ledgerEntries.find(entry => entry.ledgerAccountId === accountId)?.funds ?? null
 
-    const rowClassName = [styles.row, stateStyle(transaction.state)].filter(Boolean).join(' ')
+    const rowClassName = `
+        cursor-pointer
+        hover:bg-surface-hover
+        ${stateStyle(transaction.state)}
+    `
 
     return <PopUp
         popUpKey={`LedgerTransactionDetails${transaction.id}`}
@@ -36,8 +39,8 @@ export default function LedgerTransactionRow({ transaction, accountId }: Props) 
                 <td>{displayDate(transaction.createdAt)}</td>
                 <td>{transaction.description ?? transactionPurposeNames[transaction.purpose]}</td>
                 <td>{transactionStateNames[transaction.state]}</td>
-                <td className={styles.rightAlign}><b>{displayAmount(totalFunds)}</b></td>
-                <td className={styles.rightAlign}>
+                <td className="text-right"><b>{displayAmount(totalFunds)}</b></td>
+                <td className="text-right">
                     <b>{fundsChange !== null ? displayAmount(fundsChange, true, true) : '-'}</b>
                 </td>
             </tr>

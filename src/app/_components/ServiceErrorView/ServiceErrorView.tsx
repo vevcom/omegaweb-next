@@ -1,4 +1,3 @@
-import styles from './ServiceErrorView.module.scss'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { errorCodes } from '@/services/error'
@@ -15,10 +14,14 @@ export default function ServiceErrorView({ error }: { error: Smorekopp }) {
     const message = error.errors.at(0)?.message ?? errorConfig?.defaultMessage ?? 'En ukjent feil har oppstått'
 
     return (
-        <div className={styles.wrapper}>
+        <div className="bg-surface-base px-4 flex-1 flex flex-col justify-center items-center min-h-[50vh]">
             <PageTitleSetter title="Feil" />
-            <div className={styles.info}>
-                <div className={styles.imageContainer}>
+            <div className="
+                flex justify-center items-center
+                max-mobile:min-h-[50vh]
+                [&_h3]:text-text
+            ">
+                <div className="border-r-2 border-solid border-surface-base pr-[20px] mr-[20px]">
                     <StandardImageServer
                         width={70}
                         standardImage="LOGO_SIMPLE"
@@ -27,7 +30,7 @@ export default function ServiceErrorView({ error }: { error: Smorekopp }) {
                 </div>
                 <div>
                     <h3>{message}</h3>
-                    <p className={styles.code}>{error.httpCode} - {error.errorCode}</p>
+                    <p className="text-text opacity-60 text-s">{error.httpCode} - {error.errorCode}</p>
                 </div>
             </div>
         </div>

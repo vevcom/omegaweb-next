@@ -1,5 +1,4 @@
 'use client'
-import styles from './CompanyListFilter.module.scss'
 import TextInput from '@/UI/TextInput'
 import { useDebounce } from '@/hooks/useDebounce'
 import { QueryParams } from '@/lib/queryParams/queryParams'
@@ -23,8 +22,8 @@ export default function CompanyListFilter({ currentName }: PropTypes) {
         setDetails({ name })
     }, 300)
     return (
-        <span className={styles.CompanyListFilter}>
-            <FontAwesomeIcon className={styles.icon} icon={faSearch} />
+        <span className="flex flex-row flex-nowrap items-center gap-3 w-full max-w-[360px]">
+            <FontAwesomeIcon className="shrink-0 text-text-muted" icon={faSearch} />
             <TextInput
                 name="name"
                 onChange={(e) => setNameFilter(e.target.value)}

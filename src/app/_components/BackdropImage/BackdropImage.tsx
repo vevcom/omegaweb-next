@@ -1,4 +1,4 @@
-import styles from './BackdropImage.module.scss'
+import animation from './BackdropImage.module.scss'
 import Image from '@/components/Image/Image'
 import type { CSSProperties, ReactNode } from 'react'
 import type { ExpandedImage } from '@/services/images/subservice/types'
@@ -25,15 +25,20 @@ export default function BackdropImage({ children, image, grayScale = true, image
 
     return (
         <div
-            className={styles.BackdropImage}
+            className="relative isolate h-full"
             style={{ '--backdrop-image-size': `${size}px` } as CSSProperties}
         >
-            <div className={styles.content}>
+            <div className="z-1 h-full">
                 {children}
             </div>
-            <div className={styles.image}>
+            <div className={`
+                absolute right-0 bottom-0 -z-1 w-[calc(0.6*var(--backdrop-image-size))] opacity-0 flex items-end
+                overflow-hidden
+                [&_*]:size-(--backdrop-image-size)
+                ${animation.fadeIn}
+            `}>
                 <Image
-                    className={grayScale ? styles.gray : ''}
+                    className={grayScale ? 'grayscale brightness-50 contrast-150' : ''}
                     image={image}
                     width={size}
                 />

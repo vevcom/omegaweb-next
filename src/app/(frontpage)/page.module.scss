@@ -1,115 +1,17 @@
-@use "@/styles/ohma";
-$omegamai: url("backgroundimages/Omegamai.jpeg");
-$frontImg: url("backgroundimages/frontImg.jpeg");
-$taktlause: url("backgroundimages/taktlause.jpeg");
-
-.pageRoot {
-    position: relative;
+.frontImg {
+    background-image: url("backgroundimages/frontImg.jpeg");
 }
 
-.link {
-    position: absolute;
-    top: ohma.$gap;
-    right: ohma.$gap;
-    z-index: 2;
-    @include ohma.secondaryBtn;
+.omegamai {
+    background-image: url("backgroundimages/Omegamai.jpeg");
 }
 
-.wrapper {
-    font-size: 40px;
-    // Separates the hero, the content and the footer by one grid step, so each
-    // reads as its own surface against the page background.
-    display: flex;
-    flex-direction: column;
-    gap: ohma.$gap;
-
-    > .part {
-        &.frontImg {
-            background-image: $frontImg;
-            border-radius: ohma.$rounding;
-            // .frontInfo paints its own radial gradient, so the corners have to
-            // be clipped rather than just rounding the background.
-            overflow: hidden;
-        }
-        &.omegamai {
-            background-image: $omegamai;
-            padding: calc(2 * #{ohma.$gap}) 0;
-        }
-        &.taktlause {
-            background-image: $taktlause;
-            padding: calc(2 * #{ohma.$gap}) 0;
-        }
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: top center;
-        background-attachment: fixed;
-        width: 100%;
-    }
+.taktlause {
+    background-image: url("backgroundimages/taktlause.jpeg");
 }
 
-// Was referenced from LoggedIn/LoggedOut but never defined, so the wrapper
-// rendered with class="undefined".
-.footer {
-    border-radius: ohma.$rounding;
-    overflow: hidden;
-}
-
-.frontInfo {
-    width: 100%;
-    min-height: calc(100dvh - #{ohma.$nav-height} - 3 * #{ohma.$gap});
-    display: grid;
-    place-items: center;
-    background: radial-gradient(ohma.$colors-black, transparent);
-
-    // Shrinks the hero by the promo bar's own height plus the gap that
-    // separates them, so the two together still fit where the hero alone
-    // used to.
-    &.withPromoBar {
-        min-height: calc(100dvh - #{ohma.$nav-height} - 3 * #{ohma.$gap} - 15 * #{ohma.$gap});
-    }
-    > div {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: calc(3 * #{ohma.$gap});
-        padding-bottom: 20px;
-
-        > a:not(.scrollDown) {
-            width: 100%;
-            margin: 0;
-            padding: calc(2.5 * #{ohma.$gap}) calc(3 * #{ohma.$gap});
-            font-weight: ohma.$fonts-weight-m;
-            @include ohma.secondaryBtn;
-        }
-
-        > a.primaryCta {
-            font-weight: ohma.$fonts-weight-l;
-            @include ohma.btn(ohma.$colors-accent-blue);
-            margin: 0;
-            padding: calc(2.5 * #{ohma.$gap}) calc(3 * #{ohma.$gap});
-        }
-
-        > .scrollDown {
-            color: ohma.$colors-white;
-            animation: scrollBounce 2s ease-in-out infinite;
-        }
-    }
-
-    @media (max-width: ohma.$mobileBreakpoint) {
-        min-height: calc(100dvh - 2 * #{ohma.$nav-height} - 4 * #{ohma.$gap});
-
-        &.withPromoBar {
-            min-height: calc(100dvh - 2 * #{ohma.$nav-height} - 4 * #{ohma.$gap} - 15 * #{ohma.$gap});
-        }
-    }
-}
-
-.crest {
-    display: grid;
-    place-items: center;
-    padding: calc(4 * #{ohma.$gap});
-    border-radius: 50%;
-    background: radial-gradient(circle, color-mix(in srgb, ohma.$colors-black, transparent 20%) 0%, transparent 70%);
+.scrollDown {
+    animation: scrollBounce 2s ease-in-out infinite;
 }
 
 @keyframes scrollBounce {

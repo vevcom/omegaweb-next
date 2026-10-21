@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './MobileNavBar.module.scss'
 import useActiveNavHref from '@/hooks/useActiveNavHref'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -19,7 +18,11 @@ export default function MobileNavBarItems({ navItems }: PropTypes) {
         <div key={item.name}>
             <Link href={item.href} aria-label={item.name} aria-current={item.href === activeHref ? 'page' : undefined}>
                 <FontAwesomeIcon
-                    className={`${styles.icon} ${item.href === activeHref ? styles.active : ''}`}
+                    className={`
+                        size-[25px]!
+                        [&_path]:text-inherit
+                        ${item.href === activeHref ? 'text-accent-blue' : 'text-text'}
+                    `}
                     icon={item.icon}
                     width={25}
                 />

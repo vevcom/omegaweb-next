@@ -12,12 +12,15 @@ const lines = generateLines()
 
 export default function Speedlines() {
     return (
-        <div className={styles.container}>
+        <div className="absolute w-full h-full overflow-hidden bg-black flex justify-center items-center">
             {lines.map(({ randomRotate, randomDelay, randomLength }, index) =>
                 (
                     <svg
                         key={index}
-                        className={styles.speedline}
+                        className={`
+                            ${styles.speedline}
+                            absolute w-full h-full stroke-surface-base stroke-[0.25] [stroke-dasharray:20_80] scale-200
+                        `}
                         viewBox="0 0 100 100"
                         style={{
                             '--rotate': `${randomRotate}deg`,

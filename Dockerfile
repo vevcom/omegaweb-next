@@ -28,7 +28,7 @@ RUN mkdir -p store/images
 # Copy remaining files except src
 # (src is binded in dev so there is no need to copy it here)
 COPY public public
-COPY next-env.d.t[s] next.config.ts tsconfig.json ./
+COPY next-env.d.t[s] next.config.ts tsconfig.json postcss.config.mjs ./
 
 COPY standard_store standard_store
 

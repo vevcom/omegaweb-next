@@ -1,4 +1,3 @@
-import styles from './CreateCommitteeForm.module.scss'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import FileInput from '@/components/UI/FileInput'
@@ -12,7 +11,7 @@ import { createCommitteeAction } from '@/services/groups/committees/actions'
  */
 export default function CreateCommitteeForm() {
     return (
-        <div className={styles.CreateCommitteeForm}>
+        <div>
             <Form action={createCommitteeAction}>
                 <TextInput name="name" label="Navn" />
                 <TextInput name="shortName" label="Kortnavn" />

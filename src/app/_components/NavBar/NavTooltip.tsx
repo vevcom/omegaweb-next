@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './NavTooltip.module.scss'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
@@ -31,7 +30,11 @@ export default function NavTooltip({ content, children }: PropTypes) {
                     {children}
                 </Tooltip.Trigger>
                 <Tooltip.Portal>
-                    <Tooltip.Content className={styles.content} side="right" sideOffset={8}>
+                    <Tooltip.Content className="
+                        bg-surface-hover text-text rounded-inner px-2 h-12 leading-12 z-200
+                        shadow-[0_6px_16px_rgba(0,0,0,0.25)] transition-[opacity,translate] duration-150 ease-out
+                        starting:opacity-0 starting:-translate-x-[4px]
+                    " side="right" sideOffset={8}>
                         {content}
                     </Tooltip.Content>
                 </Tooltip.Portal>

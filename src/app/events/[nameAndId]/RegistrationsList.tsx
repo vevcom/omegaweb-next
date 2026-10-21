@@ -1,5 +1,4 @@
 'use client'
-import styles from './RegistrationsList.module.scss'
 import GiveDotPopUp from './GiveDotPopUp'
 import GiveDotsToAbsentees from './GiveDotsToAbsentees'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
@@ -46,8 +45,11 @@ function DetailedTable({
             type,
         }}
     >
-        <div className={styles.RegistrationTable}>
-            <table>
+        <div className="block overflow-x-auto overflow-y-visible">
+            <table className="
+                ohma-table
+                [&_a]:no-underline [&_a]:text-inherit
+            ">
                 <thead>
                     <tr>
                         <th>Navn</th>
@@ -142,7 +144,10 @@ function DefaultList({
             type,
         }}
     >
-        <div className={styles.RegistrationsList}>
+        <div className="
+            w-full grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-2
+            [&>:last-child]:col-span-full
+        ">
             <EndlessScroll
                 pagingContext={EventRegistrationPagingContext}
                 renderer={row => {
@@ -150,7 +155,7 @@ function DefaultList({
                         return <UserCard key={row.id} user={{
                             ...row.user,
                             image: row.image
-                        }} className={styles.userCard} />
+                        }} />
                     }
                     return <ContactCard key={row.id} name={row.contact?.name ?? 'Ukjent'} image={row.image} />
                 }}

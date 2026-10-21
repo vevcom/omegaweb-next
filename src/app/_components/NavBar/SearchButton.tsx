@@ -1,5 +1,4 @@
 'use client'
-import styles from './SearchButton.module.scss'
 import { useGlobalSearch } from '@/contexts/GlobalSearch'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
@@ -10,12 +9,19 @@ export default function SearchButton() {
     return (
         <button
             type="button"
-            className={styles.searchButton}
+            className="group cursor-pointer bg-transparent border-none p-0 flex items-center justify-center size-12"
             aria-label="Søk"
             title="Søk (⌘K / Ctrl+K)"
             onClick={() => setIsOpen(true)}
         >
-            <FontAwesomeIcon className={styles.searchPicture} icon={faMagnifyingGlass} />
+            <FontAwesomeIcon
+                className="
+                    size-[30px]! text-text transition-colors duration-300
+                    [&_path]:text-inherit
+                    group-hover:text-accent-blue
+                "
+                icon={faMagnifyingGlass}
+            />
         </button>
     )
 }

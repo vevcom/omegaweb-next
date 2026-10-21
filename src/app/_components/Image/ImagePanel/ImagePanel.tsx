@@ -1,5 +1,4 @@
 'use client'
-import styles from './ImagePanel.module.scss'
 import ImagePanelImage from './ImagePanelImage'
 import ImageDisplay from './ImageDisplay'
 import Button from '@/components/UI/Button'
@@ -205,7 +204,10 @@ export default function ImagePanel<const PageSize extends number>({
         if (fetchPending) return <i>{images.length > 0 ? 'Laster inn flere...' : 'Laster inn...'}</i>
         if (allLoaded) {
             if (images.length > 0) return <i>Ingen flere å laste inn</i>
-            return <span className={styles.empty}>
+            return <span className="
+                flex flex-col items-center gap-2 py-12 text-ink-hover text-center
+                [&>svg]:text-[calc(6*var(--gap))] [&>svg]:opacity-50
+            ">
                 <FontAwesomeIcon icon={faImages} />
                 <i>Ingen bilder i denne samlingen enda</i>
             </span>
@@ -214,7 +216,7 @@ export default function ImagePanel<const PageSize extends number>({
     }
 
     return (
-        <div className={styles.ImagePanel}>
+        <div className="flex flex-row flex-wrap gap-2 relative">
             {images.map(image => (
                 <ImagePanelImage
                     key={image.id}
@@ -224,7 +226,7 @@ export default function ImagePanel<const PageSize extends number>({
                     onToggleSelect={selectionActive ? () => toggleSelected(image) : undefined}
                 />
             ))}
-            <span ref={loadControlRef} className={styles.loadControl}>
+            <span ref={loadControlRef} className="w-full flex justify-center items-center my-2">
                 {renderLoadControlContent()}
             </span>
             {withImageDisplay && displayedImage && (

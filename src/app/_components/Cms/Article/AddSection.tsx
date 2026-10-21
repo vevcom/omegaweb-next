@@ -1,5 +1,4 @@
 'use client'
-import styles from './AddSection.module.scss'
 import AddParts from '@/cms/AddParts'
 import { maxSections } from '@/cms/articles/constants'
 import useEditMode from '@/hooks/useEditMode'
@@ -36,10 +35,10 @@ export default function AddSection({
 
     if (!editable) return null
     return (
-        <span className={styles.AddSection}>
+        <span>
             {
                 currentNumberSections >= maxSections ? (
-                    <p className={styles.maxLength}>Maksimal lengde på {maxSections} nådd</p>
+                    <p className="w-full flex justify-center mb-2">Maksimal lengde på {maxSections} nådd</p>
                 ) : (
                     <AddParts
                         showParagraphAdd={true}

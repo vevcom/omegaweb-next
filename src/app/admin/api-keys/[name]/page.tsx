@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import UpdateApiKeyForm from './UpdateApiKeyForm'
 import { destroyApiKeyAction } from '@/services/apiKeys/actions'
 import { apiKeyOperations } from '@/services/apiKeys/operations'
@@ -25,16 +24,16 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'API nøkkel' }),
     render: ({ data: apiKey, capabilities }) => (
         <PageWrapper>
-            <div className={styles.wrapper}>
+            <div>
                 <h2>Navn: {apiKey.name}</h2>
                 <i>{apiKey.active ? 'Denne api nøkkelen er aktiv' : 'Denne api nøkkelen er inaktiv'}</i>
-                <div className={styles.dates}>
+                <div className="mt-[2em]">
                     <p>Utgår: {apiKey.expiresAt ? <Date date={apiKey.expiresAt} /> : 'ingen utløp'}</p>
                     <p>Opprettet: <Date date={apiKey.createdAt} /></p>
                     <p>Sist oppdatert: <Date date={apiKey.updatedAt} /></p>
                 </div>
 
-                <div className={styles.admin}>
+                <div className="mt-[1em] pt-[1em] border-t-[.3em] border-surface-subtle">
                     <h2>Endre på nøkkel</h2>
                     {capabilities.canUpdateApiKey.authorized &&
                     <UpdateApiKeyForm id={apiKey.id}>

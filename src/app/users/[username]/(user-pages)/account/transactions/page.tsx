@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import TransactionList from '@/components/Ledger/Transactions/LedgerTransactionList'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { Require } from '@/auth/authorizer/Require'
@@ -13,7 +12,7 @@ const { page, generateMetadata } = serverPage({
         return ledgerAccountOperations.read({ params: { userId: user.id } })
     },
     render: ({ data: ledgerAccount }) => (
-        <div className={styles.wrapper}>
+        <div className="bg-surface-base rounded-round p-(--card-padding) overflow-x-auto">
             <TransactionList accountId={ledgerAccount.id} />
         </div>
     ),

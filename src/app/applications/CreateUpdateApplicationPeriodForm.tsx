@@ -1,5 +1,4 @@
 'use client'
-import styles from './CreateUpdateApplicationPeriodForm.module.scss'
 import { createApplicationPeriodAction, updateApplicationPeriodAction } from '@/services/applications/periods/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
@@ -26,7 +25,7 @@ export default function CreateUpdateApplicationPeriodForm({ committees, period, 
             }
             submitText={period ? 'Oppdater' : 'Lag'}
             refreshOnSuccess
-            className={styles.CreateUpdateApplicationPeriodForm}
+            className="min-w-[50vw]"
             closePopUpOnSuccess={closePopUpOnSuccess}
             navigateOnSuccess={data => (data?.name ? `/applications/${encodeURIComponent(data.name)}` : null)}
         >
@@ -49,7 +48,7 @@ export default function CreateUpdateApplicationPeriodForm({ committees, period, 
                 defaultValue={period ? period.endPriorityDate : undefined}
             />
             <h3>Kommitéer som deltar i søknadsperioden</h3>
-            {period && <p className={styles.warning}>Fjerner man en komité vil det slette alle søknadene til komitéen!</p>}
+            {period && <p className="text-accent-red">Fjerner man en komité vil det slette alle søknadene til komitéen!</p>}
             {
                 committees.map(committee => (
                     <Checkbox

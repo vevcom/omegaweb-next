@@ -1,4 +1,3 @@
-import styles from './GroupTypeTable.module.scss'
 import Link from 'next/link'
 
 export type GroupTypeTableRow = {
@@ -46,7 +45,11 @@ export default function GroupTypeTable({
     )
 
     return (
-        <table className={styles.GroupTypeTable}>
+        <table className="
+            ohma-table
+            [&_a]:text-accent-blue [&_a]:no-underline
+            [&_a:hover]:underline
+        ">
             <thead>
                 <tr>
                     <th>{nameHeading}</th>
@@ -57,27 +60,27 @@ export default function GroupTypeTable({
             <tbody>
                 {rows.length === 0 && (
                     <tr>
-                        <td className={styles.empty} colSpan={3}>{emptyText}</td>
+                        <td className="text-text-muted italic" colSpan={3}>{emptyText}</td>
                     </tr>
                 )}
                 {rowsPensionedLast.map(row => {
                     const behind = !row.pensioned && row.order < currentOrder
-                    const orderClass = [
-                        row.pensioned && styles.pensioned,
-                        !row.pensioned && (behind ? styles.behind : styles.caughtUp),
-                    ].filter(Boolean).join(' ')
+                    // A group behind the current omega order still has to be migrated, and says so rather
+                    // than leaving the reader to work out what the colour means.
+                    const status = behind ? 'text-accent-red font-bold' : 'text-accent-green'
+                    const orderClass = row.pensioned ? '' : status
 
                     return (
                         <tr key={row.key}>
                             <th>{row.href ? <Link href={row.href}>{row.name}</Link> : row.name}</th>
-                            <td className={orderClass}>
-                                <span className={styles.order}>{row.order}</span>
+                            <td className={row.pensioned ? 'text-text-muted' : ''}>
+                                <span className={orderClass}>{row.order}</span>
                                 {behind && (
-                                    <span className={styles.note}>
+                                    <span className="block mt-0.5 text-accent-red text-s">
                                         står i en tidligere orden og må migreres til orden {currentOrder}
                                     </span>
                                 )}
-                                {row.pensioned && <span className={styles.note}>pensjonert</span>}
+                                {row.pensioned && <span className="block mt-0.5 text-accent-red text-s">pensjonert</span>}
                             </td>
                             <td>{row.members}</td>
                         </tr>

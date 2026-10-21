@@ -1,4 +1,3 @@
-import styles from './EditCategory.module.scss'
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import Textarea from '@/components/UI/Textarea'
@@ -65,7 +64,7 @@ export default function EditCategory({ category }: PropTypes) {
         <>
             {
                 canAddArticle && (
-                    <li className={styles.newArticle}>
+                    <li>
                         <Form
                             action={configureAction(
                                 addArticleToCategoryAction,
@@ -81,7 +80,12 @@ export default function EditCategory({ category }: PropTypes) {
                 (canUpdate || canUpdateRegularLevel || canUpdateAdminLevel) && (
                     <PopUp
                         popUpKey="editCategory"
-                        showButtonClass={styles.openEditCategory}
+                        showButtonClass="
+                            w-[30px] h-[30px] absolute top-[2em] right-[1em]
+                            max-mobile:top-[1em]
+                            bg-transparent border-none text-text transition-colors duration-300 ease-in-out
+                            hover:cursor-pointer hover:text-accent-blue
+                        "
                         showButtonContent={
                             <FontAwesomeIcon icon={faCog} />
                         }
@@ -89,7 +93,7 @@ export default function EditCategory({ category }: PropTypes) {
                         {
                             canUpdate && (
                                 <Form
-                                    className={styles.EditCategory}
+                                    className="w-[50vw]"
                                     action={updateCategory}
                                     successCallback={handleSuccessUpdate}
                                     submitText="Oppdater"
@@ -99,14 +103,14 @@ export default function EditCategory({ category }: PropTypes) {
                                         label="Beskrivelse"
                                         name="description"
                                         defaultValue={category.description || ''}
-                                        className={styles.description}
+                                        className="min-h-[150px]"
                                     />
                                 </Form>
                             )
                         }
                         {
                             canUpdateRegularLevel && (
-                                <div className={styles.visibility}>
+                                <div className="flex flex-col gap-[0.5rem] mt-[1em]">
                                     <h3>Hvem kan lese artiklene?</h3>
                                     <VisibilityAdmin
                                         visibility={category.visibility.regularLevel}
@@ -121,7 +125,7 @@ export default function EditCategory({ category }: PropTypes) {
                         }
                         {
                             canUpdateAdminLevel && (
-                                <div className={styles.visibility}>
+                                <div className="flex flex-col gap-[0.5rem] mt-[1em]">
                                     <h3>Hvem kan redigere artiklene?</h3>
                                     <VisibilityAdmin
                                         visibility={category.visibility.adminLevel}

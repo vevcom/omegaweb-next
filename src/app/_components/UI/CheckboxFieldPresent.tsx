@@ -1,5 +1,4 @@
 'use client'
-import styles from './CheckboxFieldPresent.module.scss'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 
 type PropTypes = {
@@ -21,7 +20,7 @@ export default function CheckboxFieldPresent({ name }: PropTypes) {
             value={FIELD_IS_PRESENT_VALUE}
             checked={true}
             readOnly
-            className={styles.hidden}
+            className="hidden"
         />
     )
 }

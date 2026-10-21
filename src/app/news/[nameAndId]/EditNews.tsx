@@ -1,5 +1,4 @@
 'use client'
-import styles from './EditNews.module.scss'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import useEditMode from '@/hooks/useEditMode'
@@ -69,8 +68,8 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
     )
 
     return (
-        <div className={styles.EditNews}>
-            <div className={styles.update}>
+        <div className="my-[.5em] mx-[3em] rounded-round bg-surface-base text-text flex flex-wrap gap-[1em]">
+            <div className="max-w-[200px]">
                 {
                     canUpdate && (
                         <Form
@@ -120,7 +119,11 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
             </div>
             {
                 doubleLevelVisibility && (
-                    <div className={styles.visibility}>
+                    <div className="
+                        flex-1 flex flex-wrap gap-[1em]
+                        [&_h3]:mb-[.5em]
+                        [&_button[type=submit]]:w-[200px]
+                    ">
                         {
                             canUpdateRegularVisibility && (
                                 <div>
@@ -155,7 +158,10 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                 )
             }
 
-            <div className={styles.publish}>
+            <div className="
+                max-w-[200px]
+                [&_p]:mb-[.5em] [&_p]:italic
+            ">
                 <p>{news.published ? 'Publisert' : 'Ikke publisert'}</p>
                 {
                     canSetPublished && (

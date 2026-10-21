@@ -1,47 +1,13 @@
-@use "@/styles/ohma";
-
 .FinalCountdown {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
     background: radial-gradient(
         circle at 50% 50%,
         hsl(210, 98%, 30%) 0%,
         hsl(215, 95%, 13%) 55%,
         hsl(222, 90%, 5%) 100%
     );
-    color: #fff;
-}
-
-.title {
-    position: absolute;
-    top: calc(3 * ohma.$gap);
-    margin: 0;
-    font-family: ohma.$fonts-secondary;
-    font-size: ohma.$fonts-xxl;
-    letter-spacing: 0.08em;
-    opacity: 0.85;
-}
-
-.stage {
-    display: grid;
-    place-items: center;
-}
-
-.number,
-.shockwave {
-    grid-area: 1 / 1;
 }
 
 .number {
-    font-size: min(62vh, 58vw);
-    font-weight: ohma.$fonts-weight-l;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    letter-spacing: -0.04em;
     text-shadow:
         0 0 0.06em rgb(3 127 252 / 90%),
         0 0 0.3em rgb(3 127 252 / 50%);
@@ -49,10 +15,6 @@
 }
 
 .shockwave {
-    width: min(50vh, 46vw);
-    aspect-ratio: 1;
-    border: 0.4rem solid rgb(255 255 255 / 60%);
-    border-radius: 50%;
     animation: shockwave 1s ease-out both;
 }
 
@@ -66,16 +28,11 @@
     }
 
     .shockwave {
-        border-width: 0.8rem;
         animation-name: shockwave-hard;
     }
 }
 
 .whiteout {
-    position: absolute;
-    inset: 0;
-    background: #fff;
-    pointer-events: none;
     animation: fade-from-white 3s ease-in-out both;
 }
 

@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './EventLocationInput.module.scss'
 import Button from '@/components/UI/Button'
 import EventLocationMap from '@/components/Event/EventLocationMap'
 import TextInput from '@/components/UI/TextInput'
@@ -38,7 +37,13 @@ export default function EventLocationInput({ name, defaultValue }: PropTypes) {
 
     const validLocation = readLocationMap(locationMap)
 
-    return <fieldset className={styles.EventLocationInput}>
+    return <fieldset
+        className="
+            min-w-0 m-0 p-0 border-none flex flex-col gap-4
+            [&_legend]:mb-2 [&_legend]:font-bold
+            [&>button]:self-start
+        "
+    >
         <legend>Kart til arrangementet</legend>
         <SelectString
             name={`${name}Provider`}
@@ -69,7 +74,10 @@ export default function EventLocationInput({ name, defaultValue }: PropTypes) {
             <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">
                 Finn koordinater i Google Maps
             </a>
-            <div className={styles.coordinates}>
+            <div className="
+                grid grid-cols-2 gap-4
+                max-mobile:grid-cols-1
+            ">
                 <NumberInput
                     name={`${name}Latitude`}
                     label="Breddegrad"

@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { SettingsHeaderItemPopUp } from '@/app/_components/HeaderItems/HeaderItemPopUp'
 import Form from '@/app/_components/Form/Form'
 import {
@@ -27,10 +26,10 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Lisenser' }),
     render: ({ data: licenses, capabilities }) => (
-        <div className={styles.wrapper}>
+        <div className="p-[1em]">
             <h1>Lisenser</h1>
             <p>Lisenser brukes for bilder</p>
-            <table className={styles.licenses}>
+            <table className="ohma-table">
                 <thead>
                     <tr>
                         <th>id</th>

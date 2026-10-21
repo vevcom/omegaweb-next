@@ -1,5 +1,4 @@
 'use client'
-import styles from './MakeNewCollection.module.scss'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
@@ -28,7 +27,7 @@ export default function MakeNewCollection() {
 
     return (
         <AddHeaderItemPopUp popUpKey={popUpKey}>
-            <div className={styles.MakeNewCollection}>
+            <div className="py-[2em] px-[7em] grid">
                 <Form
                     closePopUpOnSuccess={popUpKey}
                     refreshOnSuccess
@@ -46,7 +45,7 @@ export default function MakeNewCollection() {
                 >
                     <TextInput label="Navn" name="collectionName" />
                     <TextInput label="Beskrivelse" name="collectionDescription" />
-                    <div className={styles.visibility}>
+                    <div className="flex flex-col gap-[0.5em] min-w-[350px] mt-[1em]">
                         <h3>Hvem kan administrere albumet?</h3>
                         <VisibilityMatrixEditor
                             requirements={adminRequirements}

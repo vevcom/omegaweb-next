@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './ScrollArea.module.scss'
 import ScrollIndicator from './ScrollIndicator'
 import { useRef } from 'react'
 import type { ReactNode } from 'react'
@@ -15,11 +14,18 @@ export default function ScrollArea({ className, scrollerClassName, children }: P
     const scrollRef = useRef<HTMLDivElement>(null)
 
     return (
-        <div className={`${styles.ScrollArea} ${className ?? ''}`}>
-            <div ref={scrollRef} className={`${styles.scroller} ${scrollerClassName ?? ''}`}>
+        <div className={`
+            relative min-h-0
+            ${className ?? ''}
+        `}>
+            <div ref={scrollRef} className={`
+                h-full overflow-y-auto [scrollbar-width:none]
+                [&::-webkit-scrollbar]:hidden
+                ${scrollerClassName ?? ''}
+            `}>
                 {children}
             </div>
-            <ScrollIndicator scrollRef={scrollRef} className={styles.indicator} />
+            <ScrollIndicator scrollRef={scrollRef} className="top-(--rounding) bottom-(--rounding) right-1" />
         </div>
     )
 }

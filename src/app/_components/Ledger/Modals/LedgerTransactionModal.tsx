@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './LedgerTransactionModal.module.scss'
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import NumberInput from '@/components/UI/NumberInput'
@@ -156,7 +155,7 @@ export default function LedgerTransactionModal({
         popUpKey={popUpKey}
         customShowButton={(open) => <Button onClick={open} color="primary">{triggerLabel}</Button>}
     >
-        <div className={styles.transactionModalContainer}>
+        <div className="w-[min(500px,90vw)] m-6">
             <h2>{title}</h2>
 
             <Form
@@ -168,8 +167,8 @@ export default function LedgerTransactionModal({
                 {children}
 
                 {showChooser && resolvedMethod && (
-                    <div className={styles.paymentMethodChooser}>
-                        <span className={styles.paymentMethodChooserLabel}>Betal med</span>
+                    <div className="flex flex-col">
+                        <span className="text-s mb-2 text-text-muted">Betal med</span>
                         <HorizontalSelector
                             name="paymentMethod"
                             value={resolvedMethod}
@@ -193,7 +192,7 @@ export default function LedgerTransactionModal({
                 )}
 
                 {paymentMethod === 'MANUAL' && (
-                    <div className={styles.manualFields}>
+                    <div className="flex flex-col gap-2">
                         {paymentMethods.length > 1 && (
                             <Checkbox name="iUseThisWithCare" required>Jeg bruker dette med omhu.</Checkbox>
                         )}
@@ -217,13 +216,13 @@ export default function LedgerTransactionModal({
                 )}
 
                 {showTotal && (
-                    <div className={styles.totalRow}>
+                    <div className="flex justify-between font-bold">
                         <span>Totalt</span>
                         <span>{displayAmount(funds, false)}</span>
                     </div>
                 )}
                 {amountFromBalance > 0 && (
-                    <div className={styles.balanceRow}>
+                    <div className="flex justify-between text-text-muted">
                         <span>Fra kontosaldo</span>
                         <span>-{displayAmount(amountFromBalance, false)}</span>
                     </div>

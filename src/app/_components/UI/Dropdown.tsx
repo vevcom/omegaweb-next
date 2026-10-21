@@ -1,5 +1,4 @@
 'use client'
-import styles from './Dropdown.module.scss'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import useKeyPress from '@/hooks/useKeyPress'
 import { useEffect, useId, useRef, useState } from 'react'
@@ -24,6 +23,39 @@ export type PropTypes<ValueType> = {
     className?: string,
     disabled?: boolean,
 }
+
+export const dropdownColorClassNames = {
+    black: 'text-ink-strong',
+    primary: 'text-accent-blue',
+    secondary: 'text-text',
+    red: 'text-accent-red',
+    white: 'text-white',
+} as const
+
+export const dropdownLabelClassName = (floated: boolean) => `
+    absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1
+    ${floated ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-6 text-m'}`
+
+export const dropdownChevronClassName = (open: boolean) => `
+    absolute right-4 top-1/2 -translate-y-1/2 transition-[translate,rotate,color] duration-300
+    ${open ? 'rotate-180 text-accent-blue' : 'text-text-muted'}`
+
+const triggerBackgroundClassNames = {
+    base: { closed: `
+        bg-surface-raised
+        hover:bg-surface-hover
+    `, open: 'bg-surface-hover' },
+    raised: {
+        closed: `
+            bg-surface-hover
+            hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        `,
+        open: `
+            bg-surface-hover
+            hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        `,
+    },
+} as const
 
 /**
  * The state and keyboard handling of a dropdown, shared with SearchableDropdown.
@@ -118,14 +150,17 @@ export function DropdownPanel<ValueType extends string | number>({
     const panelRef = useRef<HTMLUListElement>(null)
 
     useEffect(() => {
-        panelRef.current?.querySelector(`.${styles.active}`)?.scrollIntoView({ block: 'nearest' })
+        panelRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' })
     }, [activeIndex])
 
     return (
-        <ul id={id} className={styles.panel} role="listbox" ref={panelRef}>
+        <ul id={id} className="
+            absolute top-[calc(100%+var(--gap))] left-0 right-0 z-5 list-none m-0 p-2 max-h-[260px] overflow-y-auto
+            rounded-inner bg-surface-hover shadow-soft-hover
+        " role="listbox" ref={panelRef}>
             {
                 options.length === 0 && emptyText ? (
-                    <li className={styles.empty}>{emptyText}</li>
+                    <li className="py-2 px-4 text-text-muted text-s">{emptyText}</li>
                 ) : options.map((option, index) => (
                     <li key={option.key ?? String(option.value)}>
                         <button
@@ -133,11 +168,18 @@ export function DropdownPanel<ValueType extends string | number>({
                             role="option"
                             aria-selected={option.value === value}
                             className={
-                                `${option.value === value ? styles.selected : ''} ` +
-                                `${index === activeIndex ? styles.active : ''}`
+                                `
+                                    w-full flex items-center justify-between gap-2 border-none bg-transparent text-left
+                                    text-m py-2 px-4 rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer
+                                    transition-colors duration-300
+                                    hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+                                    ${option.value === value ? 'text-accent-blue' : 'text-text'}
+                                    ${index === activeIndex ? 'bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]' : ''}
+                                `
                             }
                             onClick={() => onSelect(option)}
                             onMouseEnter={() => onActivate(index)}
+                            data-active={index === activeIndex}
                         >
                             <span>{option.label ?? option.value}</span>
                             {option.value === value && <FontAwesomeIcon icon={faCheck} />}
@@ -187,14 +229,23 @@ export default function Dropdown<ValueType extends string | number>({
         <div
             ref={ref}
             className={
-                `${styles.Dropdown} ${styles[color]} ` +
-                `${background === 'raised' ? styles.onRaised : ''} ${open ? styles.open : ''} ${className ?? ''}`
+                `
+                    relative mt-2 w-full max-w-[320px]
+                    ${className ?? ''}
+                `
             }
         >
             <button
                 type="button"
                 id={domId}
-                className={styles.trigger}
+                className={`
+                    relative w-full flex items-center border-2 rounded-inner outline-0 text-m text-left pt-6 pr-10 pb-2
+                    pl-4 transition-[border-color,background-color] duration-300 cursor-pointer
+                    disabled:cursor-not-allowed disabled:opacity-60
+                    ${dropdownColorClassNames[color]}
+                    ${open ? 'border-accent-blue' : 'border-transparent'}
+                    ${triggerBackgroundClassNames[background][open ? 'open' : 'closed']}
+                `}
                 disabled={disabled}
                 aria-haspopup="listbox"
                 aria-expanded={open}
@@ -202,12 +253,19 @@ export default function Dropdown<ValueType extends string | number>({
                 onClick={handleTriggerClick}
                 onKeyDown={handleKeyDown}
             >
-                <span className={styles.value}>{selectedOption?.label ?? selectedOption?.value ?? ''}</span>
-                <FontAwesomeIcon icon={faChevronDown} className={styles.chevron} />
+                <span
+                    className={`
+                        overflow-hidden text-ellipsis whitespace-nowrap min-h-[calc(var(--text-m)*1.25)]
+                        ${dropdownColorClassNames[color]}
+                    `}
+                >
+                    {selectedOption?.label ?? selectedOption?.value ?? ''}
+                </span>
+                <FontAwesomeIcon icon={faChevronDown} className={dropdownChevronClassName(open)} />
             </button>
             <label
                 htmlFor={domId}
-                className={`${styles.label} ${(open || selectedOption) ? styles.floated : ''}`}
+                className={dropdownLabelClassName(Boolean(open || selectedOption))}
             >
                 {label}
             </label>

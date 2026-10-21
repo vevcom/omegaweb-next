@@ -1,7 +1,0 @@
-@use '@/styles/ohma';
-
-.HeaderItemLink {
-    @include ohma.headerPillLink;
-
-    padding: 0 calc(1.75 * #{ohma.$gap}) 0 calc(2.5 * #{ohma.$gap});
-}

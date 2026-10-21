@@ -1,4 +1,3 @@
-import styles from './Image.module.scss'
 import { resolutionForWidth } from '@/lib/images/resolutionForWidth'
 import { imageSourceForResolution, srcSetForImage } from '@/lib/images/imageSource'
 import Link from 'next/link'
@@ -21,6 +20,17 @@ export type PropTypes = Omit<ImageProps, 'src' | 'alt'> & {
     disableLinkingToLicense?: boolean,
     tint?: string,
     tintAspectRatio?: number,
+}
+
+const imageClassName = `
+    [:where(&)]:relative [:where(&)]:m-0 [:where(&)]:box-border [:where(&)]:flex [:where(&)]:flex-col
+    [:where(&)]:w-(--image-width)
+    [&>img]:m-0 [&>img]:w-full [&>img]:h-full
+`
+
+const creditPlacementClassName = {
+    top: 'top-0 left-0',
+    bottom: 'bottom-0 left-0',
 }
 
 /**
@@ -59,10 +69,18 @@ export default function Image({
     const imageWidthStyle = { '--image-width': `${width}px` } as CSSProperties
 
     return (
-        <div style={imageWidthStyle} className={`${styles.Image} ${imageContainerClassName}`}>
+        <div style={imageWidthStyle} className={`
+            ${imageClassName}
+            ${imageContainerClassName}
+        `}>
             {tint && image.type === 'SVG' ? (
+                // A mask has no intrinsic size, so aspect-ratio is set inline; `contain` letterboxes
+                // a mismatched ratio rather than stretching.
                 <div
-                    className={styles.tinted}
+                    className="
+                        w-full [mask-image:var(--image-tint-mask)] mask-contain mask-no-repeat mask-center
+                        bg-(--image-tint-color)
+                    "
                     style={{
                         '--image-tint-mask': `url('${url}')`,
                         '--image-tint-color': tint,
@@ -80,15 +98,40 @@ export default function Image({
                     sizes={srcSet ? `${width}px` : undefined}
                 />
             )}
-            {image.credit && !hideCredit && <p className={`${styles.credit} ${styles[creditPlacement]}`}>{image.credit}</p>}
+            {image.credit && !hideCredit && (
+                <p className={`
+                    absolute bg-surface-base opacity-50 p-[.5em]
+                    ${creditPlacementClassName[creditPlacement]}
+                `}>
+                    {image.credit}
+                </p>
+            )}
             {!hideCopyRight && image.licenseLink && (
-                <div className={styles.license}>
-                    {disableLinkingToLicense ? <p>{image.licenseName}</p> : (
-                        <Link href={image.licenseLink} target="_blank" referrerPolicy="no-referrer">
+                <div className="
+                    group absolute right-0 top-0 z-2 flex flex-row items-center justify-around no-underline text-text
+                    hover:bg-surface-base hover:opacity-80
+                ">
+                    {disableLinkingToLicense ? (
+                        <p className="
+                            hidden
+                            group-hover:inline
+                            text-s ml-[.5em]
+                        ">{image.licenseName}</p>
+                    ) : (
+                        <Link
+                            href={image.licenseLink}
+                            target="_blank"
+                            referrerPolicy="no-referrer"
+                            className="
+                                hidden
+                                group-hover:inline
+                                text-s ml-[.5em]
+                            "
+                        >
                             {image.licenseName}
                         </Link>
                     )}
-                    <FontAwesomeIcon icon={faCopyright}/>
+                    <FontAwesomeIcon icon={faCopyright} className="text-text w-[20px]! h-[20px]! m-[.6em]"/>
                 </div>
             )}
         </div>
@@ -110,7 +153,7 @@ export function SrcImage({ src, width, ...props }: SrcImageProps) {
     const imageWidthStyle = { '--image-width': `${width}px` } as CSSProperties
 
     return (
-        <div style={imageWidthStyle} className={styles.Image}>
+        <div style={imageWidthStyle} className={imageClassName}>
             <img {...props} width={width} src={src} />
         </div>
     )

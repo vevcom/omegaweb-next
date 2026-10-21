@@ -1,5 +1,4 @@
 'use client'
-import styles from './page.module.scss'
 import CollectionAdmin from './CollectionAdmin'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import ImagePanel from '@/components/Image/ImagePanel/ImagePanel'
@@ -55,8 +54,8 @@ export default function DynamicCollectionPanel({ collection, doubleLevelVisibili
             }
         >
             <PageTitleSetter title={collection.name} />
-            <div className={styles.collectionHeader}>
-                {collection.description && <p className={styles.description}>{collection.description}</p>}
+            <div className="flex flex-col gap-1 mb-4">
+                {collection.description && <p className="text-m text-text-muted">{collection.description}</p>}
                 {doubleLevelVisibility && (
                     <DoubleLevelVisibilityDescription doubleLevelVisibility={doubleLevelVisibility} />
                 )}

@@ -1,4 +1,3 @@
-import styles from './UserNavigation.module.scss'
 import Link from 'next/link'
 
 type PropTypes = {
@@ -14,5 +13,8 @@ type PropTypes = {
 export default function UserNavigation({ isLoggedIn }: PropTypes) {
     const href = isLoggedIn ? '/users/me' : '/login'
 
-    return <Link className={styles.hidden} href={href} />
+    return <Link className="
+        opacity-0 w-full h-full absolute top-0 left-0
+        hover:cursor-pointer
+    " href={href} />
 }

@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { UpdateCabinProductPriceForm } from './UpdateCabinProductPriceForm'
 import { AddHeaderItemPopUp } from '@/app/_components/HeaderItems/HeaderItemPopUp'
 import { cabinProductOperations } from '@/services/cabin/product/operations'
@@ -38,7 +37,7 @@ const { page, generateMetadata } = serverPage({
                 </AddHeaderItemPopUp>
             }
         >
-            <div className={styles.infoDiv}>
+            <div className="[&_p]:mt-[1rem]">
                 <p>kanskje en måte å redigere på som en HeaderItem?</p>
 
                 <p>

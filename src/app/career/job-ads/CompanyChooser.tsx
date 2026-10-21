@@ -1,5 +1,4 @@
 'use client'
-import styles from './CompanyChooser.module.scss'
 import CompanyList from '@/components/Company/CompanyList'
 import TextInput from '@/components/UI/TextInput'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
@@ -23,12 +22,23 @@ export default function CompanyChooser({ className }: PropTypes) {
     }
 
     return (
-        <div className={`${styles.CompanyChooser} ${className ?? ''}`}>
-            <div className={styles.header}>
-                <TextInput className={styles.filter} label="Søk Navn" name="name" onChange={handleNameFilter} />
-                <Link href="/career/companies">Administrer bedrifter</Link>
+        <div className={`
+            flex flex-col min-h-0 gap-4 [--company-card-min:150px]
+            ${className ?? ''}
+        `}>
+            <div className="flex flex-row flex-wrap items-center justify-between gap-2 shrink-0">
+                <TextInput
+                    className="flex-[1_1_12em] max-w-[20em] mt-0!"
+                    label="Søk Navn"
+                    name="name"
+                    onChange={handleNameFilter}
+                />
+                <Link href="/career/companies" className="secondary-btn m-0 whitespace-nowrap">Administrer bedrifter</Link>
             </div>
-            <div className={styles.list}>
+            <div className="
+                flex-1 min-h-0 overflow-y-auto pr-2
+                [&>div]:mt-0!
+            ">
                 <CompanyList disableEditing serverRenderedData={[]} />
             </div>
         </div>

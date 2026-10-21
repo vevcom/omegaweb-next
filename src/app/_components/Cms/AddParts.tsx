@@ -1,4 +1,3 @@
-import styles from './AddParts.module.scss'
 import Button from '@/components/UI/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
@@ -46,7 +45,11 @@ export default function AddParts({
     ]
 
     return (
-        <div className={styles.AddParts}>
+        <div className="
+            z-1 flex
+            [&_button]:flex [&_button]:items-center [&_button]:justify-center
+            [&_button]:hover:cursor-pointer
+        ">
             {
                 parts.map((part, i) => part.shouldShow && (
                     <Button

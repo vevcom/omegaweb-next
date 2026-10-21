@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './RegisterAdmissiontrial.module.scss'
 import Form from '@/components/Form/Form'
 import OmegaIdReader from '@/components/OmegaId/Reader/OmegaIdReader'
 import UserList from '@/components/User/UserList/UserList'
@@ -21,7 +20,7 @@ export default function RegisterAdmissiontrial({
 }) {
     const canSearchUsers = useAuthorizer({ authorizer: userAuth.readPage }).authorized
     const canCreateTrial = useAuthorizer({ authorizer: admissionAuth.createTrial }).authorized
-    return <div className={styles.registration}>
+    return <div>
         <h4>Registrer med QR kode</h4>
         {canCreateTrial && (
             <OmegaIdReader
@@ -49,7 +48,7 @@ export default function RegisterAdmissiontrial({
 
         <h4>Søk opp soellen</h4>
         {canSearchUsers ? <>
-            <p className={styles.lead}>
+            <p className="text-text-muted">
                 Kun en soelle kan ta opptaksprøver. Filtrer på medlemskap for å finne dem.
             </p>
             {/* A button per row rather than a box to type an id into: who is being registered is then
@@ -57,7 +56,7 @@ export default function RegisterAdmissiontrial({
             <UserList
                 displayForUser={user => canCreateTrial && (
                     <Form
-                        className={styles.registerForm}
+                        className="m-0 p-0 text-[0.8rem]"
                         submitText="Registrer"
                         submitColor="secondary"
                         refreshOnSuccess
@@ -68,7 +67,7 @@ export default function RegisterAdmissiontrial({
                 )}
             />
         </> : (
-            <p className={styles.lead}>
+            <p className="text-text-muted">
                 Du mangler tilgangen «Les bruker», og kan derfor ikke søke opp soellen.
                 Registrer med Omega-ID i stedet.
             </p>

@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import {
     addInterestGroupMembersAction,
     migrateInterestGroupAction,
@@ -76,7 +75,7 @@ const { page, generateMetadata } = serverPage({
         return (
             <PageWrapper>
                 {capabilities.canPension.authorized && expanded && (
-                    <div className={styles.management}>
+                    <div className="mb-6">
                         <h2>Pensjonering</h2>
                         <PensionGroup
                             groupId={interestGroup.groupId}
@@ -89,7 +88,7 @@ const { page, generateMetadata } = serverPage({
                 )}
                 {!interestGroup.group.pensioned && expanded
                     && (capabilities.canAddMembers.authorized || capabilities.canRemoveMembers.authorized) && (
-                    <div className={styles.management}>
+                    <div className="mb-6">
                         <h2>Administrer medlemmer</h2>
                         <ManageGroupMembers
                             groupId={interestGroup.groupId}
@@ -117,7 +116,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 )}
                 {!interestGroup.group.pensioned && capabilities.canMigrate.authorized && expanded && (
-                    <div className={styles.migration}>
+                    <div className="mb-6">
                         <h2>Migrering</h2>
                         <MigrateGroup
                             groupId={interestGroup.groupId}
@@ -135,12 +134,12 @@ const { page, generateMetadata } = serverPage({
                 )}
 
                 <h2>Medlemmer</h2>
-                {ordersDescending.length === 0 && <p className={styles.empty}>Ingen medlemmer</p>}
+                {ordersDescending.length === 0 && <p className="text-text-muted italic">Ingen medlemmer</p>}
                 {ordersDescending.map(order => (
                     <div key={order}>
-                        <h3 className={styles.orderHeading}>{order}. Orden</h3>
+                        <h3 className="mt-6 text-text-muted">{order}. Orden</h3>
                         <hr />
-                        <div className={styles.memberList}>
+                        <div className="image-card-list">
                             {membersByOrder[order].map(member => (
                                 <UserCard
                                     key={member.userId}

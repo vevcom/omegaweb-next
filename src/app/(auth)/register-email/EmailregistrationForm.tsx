@@ -1,5 +1,4 @@
 'use client'
-import styles from './EmailregistrationForm.module.scss'
 import LinkOwUserForm from '@/app/(auth)/link-ow-user/LinkOwUserForm'
 import { registerNewEmailAction } from '@/services/users/actions'
 import Form from '@/components/Form/Form'
@@ -18,6 +17,13 @@ type PropTypes = {
     } | null,
     callbackUrl: string,
 }
+
+// A rule on each side of the text.
+const dividerClassName = `
+    flex justify-center items-center my-2 text-text-muted
+    before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted
+    after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted
+`
 
 export default function EmailRegistrationForm({ user, feideLoginMatch, callbackUrl }: PropTypes) {
     const { push } = useRouter()
@@ -71,7 +77,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
     if (!feideLoginMatch.createdByFeideLoginOnProjectNext) {
         return <>
             <h1>Vi fant brukeren din!</h1>
-            <p className={styles.notice}>
+            <p className="p-2 border-l-3 border-accent-blue">
                 Feide-innloggingen din ({feideLoginMatch.feideEmail}) er koblet til den eksisterende
                 brukeren din fra gamle Omegaveven, <strong>{user.firstname} {user.lastname}
                 ({user.username})</strong>, fordi e-posten stemte. Alt som hørte til den gamle brukeren
@@ -86,16 +92,16 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
 
     return <>
         <h1>Velkommen til Veven!</h1>
-        <p className={styles.notice}>
+        <p className="p-2 border-l-3 border-accent-blue">
             Vi fant ingen bruker fra gamle Omegaveven med Feide-e-posten din
             ({feideLoginMatch.feideEmail}). Hadde du bruker der, var den trolig registrert med en annen
             e-post. Du har to valg:
         </p>
-        <div className={styles.option}>
+        <div className="w-full">
             {emailForm}
         </div>
-        <div className={styles.divider}>eller</div>
-        <div className={styles.option}>
+        <div className={dividerClassName}>eller</div>
+        <div className="w-full">
             <LinkOwUserForm userId={user.id} title="B: Koble til eksisterende bruker" />
         </div>
     </>

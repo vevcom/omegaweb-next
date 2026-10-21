@@ -1,4 +1,3 @@
-import styles from './CmsLink.module.scss'
 import CmsLinkEditor from './CmsLinkEditor'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import Link from 'next/link'
@@ -16,6 +15,14 @@ type PropTypes = {
     capabilities: Capabilities<'canEdit'>
 }
 
+const colorClassNames = {
+    primary: 'btn m-0',
+    secondary: `
+        secondary-btn m-0
+        hover:bg-surface-hover hover:text-text
+    `,
+} as const
+
 export default function CmsLink({
     cmsLink,
     className,
@@ -24,13 +31,28 @@ export default function CmsLink({
     updateCmsLinkAction,
     capabilities,
 }: PropTypes) {
-    const buttonClass = `${styles.CmsLink} ${styles[color]}`
+    const buttonClass = `
+        flex justify-center items-center
+        ${colorClassNames[color]}
+    `
 
     return (
-        <div className={`${styles.CmsLink} ${className}`}>
+        <div
+            className={`
+                relative min-w-[70px] h-[30px]
+                [&>*]:absolute [&>*]:top-0 [&>*]:left-0 [&>*]:w-full [&>*]:h-full
+                ${className}
+            `}
+        >
             {
                 disabled
-                    ? <span aria-disabled className={`${buttonClass} ${styles.disabled}`}>{cmsLink.text}</span>
+                    ? <span aria-disabled className={`
+                        ${buttonClass}
+                        opacity-50 cursor-default
+                        hover:bg-surface-hover
+                    `}>
+                        {cmsLink.text}
+                    </span>
                     : <Link href={cmsLink.url} className={buttonClass}>{cmsLink.text}</Link>
             }
             <CmsLinkEditor

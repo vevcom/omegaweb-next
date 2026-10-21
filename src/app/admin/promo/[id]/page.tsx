@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
@@ -29,13 +28,13 @@ const { page, generateMetadata } = serverPage({
     metadata: (promo) => ({ title: `Rediger promo: ${promo.title}` }),
     render: ({ data: promo, capabilities }) => (
         <PageWrapper>
-            <div className={styles.image}>
+            <div className="flex flex-col items-start gap-2 mb-4">
                 <Image width={400} image={promo.image} hideCredit hideCopyRight />
                 {capabilities.canUpdatePromoImage.authorized &&
                 <PopUp
                     popUpKey="EditPromoImage"
                     showButtonContent="Endre bilde"
-                    showButtonClass={styles.changeImageBtn}
+                    showButtonClass="secondary-btn block py-[0.25em]! px-[0.5em]! text-s! whitespace-nowrap"
                 >
                     <ImageUploader
                         title="Endre bilde for promo"

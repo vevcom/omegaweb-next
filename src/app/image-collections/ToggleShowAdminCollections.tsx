@@ -1,5 +1,4 @@
 'use client'
-import styles from './ToggleShowAdminCollections.module.scss'
 import Checkbox from '@/UI/Checkbox'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { useRouter } from 'next/navigation'
@@ -29,7 +28,7 @@ export default function ToggleShowAdminCollections({
     }
 
     return (
-        <span className={styles.ToggleShowAdminCollections}>
+        <span className="flex items-center text-m">
             <Checkbox
                 name="onlyAdministratedCollections"
                 label="Bare samlinger jeg administrerer"

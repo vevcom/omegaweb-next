@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { ClassLevelConfig } from '@/services/groups/constants'
 import Button from '@/components/UI/Button'
 import ProfilePicture from '@/components/User/ProfilePicture'
@@ -29,6 +28,12 @@ export type PropTypes = {
         username: string
     }>,
 }
+
+const groupSectionClassName = `
+    mt-[1em]
+    [&_h2]:text-[1.1em] [&_h2]:text-ink-strong
+`
+const labelClassName = 'w-[10em] inline-block font-medium text-accent-blue'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
@@ -91,50 +96,79 @@ const { page, generateMetadata } = serverPage({
         }
 
         return (
-            <div className={styles.wrapper}>
-                <div className={styles.profile}>
-                    <div className={styles.profileContent} style={flairColour}>
-                        <div className={styles.profileContentInner}>
+            <div className="h-full">
+                <div className="grid grid-rows-[1fr_auto] gap-2 h-full">
+                    <div className="
+                        relative h-full min-h-0 bg-surface-base rounded-round
+                        before:content-[''] before:absolute before:inset-[calc(0.25rem*1.5)]
+                        before:rounded-[calc(var(--rounding)-0.375rem)] before:border-4
+                        before:border-[color:var(--flairColor,transparent)] before:pointer-events-none
+                    " style={flairColour}>
+                        <div className="
+                            absolute inset-[calc(0.25rem*1.5+4px)] overflow-y-auto p-8 grid grid-cols-[250px_1fr]
+                            grid-rows-[auto] items-start content-start gap-[0.5em]
+                            max-mobile:block
+                        ">
                             <ProfilePicture
                                 width={240}
                                 profileImage={profile.user.image}
                                 ringColor={relationshipColour[profile.user.relationshipStatus]}
                             />
-                            <div className={styles.header}>
-                                <div className={styles.nameAndId}>
-                                    <h1><UserDisplayName
+                            <div
+                                className="
+                                    flex flex-col justify-center
+                                    max-mobile:text-center max-mobile:items-center max-mobile:my-[1em] max-mobile:mx-[2em]
+                                "
+                            >
+                                <div className="
+                                    flex flex-row flex-wrap items-center
+                                    max-mobile:justify-center
+                                ">
+                                    <h1 className="mr-[.2em] text-[3em]"><UserDisplayName
                                         user={profile.user}
                                         width={40}
                                     /></h1>
                                 </div>
-                                <p className={styles.orderText}>
+                                <p className="text-text font-secondary font-light italic">
                                     { memberhipTitle() }
                                 </p>
 
-                                <div className={styles.committeesWrapper}>
+                                <div className="flex flex-wrap gap-[0.5em]">
                                     {committeeMemberships.active.map(membership =>
                                         <div
-                                            className={styles.committee}
+                                            className="mt-[0.5em]"
                                             key={`${membership.committee.shortName}-${membership.order}`}
                                         >
                                             <Link href={`/committees/${membership.committee.shortName}`}>
-                                                <p>{membership.title} i {membership.committee.name}</p>
+                                                <p className="
+                                                    rounded-[0.3em] p-[0.5em] bg-accent-blue text-surface-base
+                                                    inline-block
+                                                ">
+                                                    {membership.title} i {membership.committee.name}
+                                                </p>
                                             </Link>
                                         </div>
                                     )}
                                 </div>
 
-                                <hr />
+                                <hr className="
+                                    border-none h-px my-[0.5em] mr-[4em] ml-0 bg-surface-subtle
+                                    max-mobile:w-4/5 max-mobile:mx-auto
+                                " />
 
                                 {committeeMembershipsByOrder.length > 0 && (
-                                    <section className={styles.groupSection}>
+                                    <section className={groupSectionClassName}>
                                         <h2>Komitémedlemskap:</h2>
                                         {committeeMembershipsByOrder.map(membership =>
                                             <Link
                                                 key={`${membership.committee.shortName}-${membership.order}`}
                                                 href={`/committees/${membership.committee.shortName}`}
+                                                className="no-underline group"
                                             >
-                                                <p className={styles.studyProgramme}>
+                                                <p className="
+                                                    text-accent-blue
+                                                    group-hover:underline
+                                                ">
                                                     {membership.title} udaf {membership.order}´dis orden i{' '}
                                                     {membership.committee.name}
                                                 </p>
@@ -144,14 +178,18 @@ const { page, generateMetadata } = serverPage({
                                 )}
 
                                 {activeInterestGroups.length > 0 && (
-                                    <section className={styles.groupSection}>
+                                    <section className={groupSectionClassName}>
                                         <h2>Aktive Interessegruppemedlemskap:</h2>
                                         {activeInterestGroups.map(membership =>
                                             <Link
                                                 key={`${membership.interestGroup.id}-${membership.order}`}
                                                 href={`/interest-groups/${membership.interestGroup.id}`}
+                                                className="no-underline group"
                                             >
-                                                <p className={styles.studyProgramme}>
+                                                <p className="
+                                                    text-accent-blue
+                                                    group-hover:underline
+                                                ">
                                                     {membership.title} udaf {membership.order}´dis orden i{' '}
                                                     {membership.interestGroup.name}
                                                 </p>
@@ -161,36 +199,36 @@ const { page, generateMetadata } = serverPage({
                                 )}
 
                                 {activeStudyProgrammes.length > 0 && (
-                                    <section className={styles.groupSection}>
+                                    <section className={groupSectionClassName}>
                                         <h2>Studier:</h2>
                                         {activeStudyProgrammes.map(({ studyProgramme }) =>
-                                            <p key={studyProgramme.id} className={styles.studyProgramme}>
+                                            <p key={studyProgramme.id} className="text-text">
                                                 {studyProgramme.name} {`(${studyProgramme.code})`}
                                             </p>
                                         )}
                                     </section>
                                 )}
                             </div>
-                            <div className={styles.leftSection}>
-                                <div className={styles.buttons}>
+                            <div className="flex flex-col items-center">
+                                <div className="flex flex-col items-center gap-2">
                                     {isOwnProfile && (
                                         <>
                                             <Link href="/users/me/omegaid">
-                                                <Button color="secondary" className={styles.actionButton}>
+                                                <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
                                                     <FontAwesomeIcon icon={faQrcode} />
-                                                    <p>Omega-ID</p>
+                                                    <p className="w-[8em]">Omega-ID</p>
                                                 </Button>
                                             </Link>
                                             <Link href="/users/me/account">
-                                                <Button color="secondary" className={styles.actionButton}>
+                                                <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
                                                     <FontAwesomeIcon icon={faMoneyBill} />
-                                                    <p>Konto</p>
+                                                    <p className="w-[8em]">Konto</p>
                                                 </Button>
                                             </Link>
                                             <Link href="/logout">
-                                                <Button color="secondary" className={styles.actionButton}>
+                                                <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
                                                     <FontAwesomeIcon icon={faSignOut} />
-                                                    <p>Logg ut</p>
+                                                    <p className="w-[8em]">Logg ut</p>
                                                 </Button>
                                             </Link>
                                         </>
@@ -198,12 +236,20 @@ const { page, generateMetadata } = serverPage({
                                 </div>
 
                             </div>
-                            <div className={styles.profileMain}>
+                            <div
+                                className="
+                                    max-mobile:my-[1em] max-mobile:mx-[2em]
+                                    [&_p]:font-light! [&_p]:mb-[0.5em]! [&_p]:text-text!
+                                "
+                            >
 
 
                                 {/* An empty bio is only worth showing to someone who can write it, in edit mode. */}
                                 {(profile.user.bioParagraph.contentHtml !== '' || capabilities.canUpdateBio.authorized) &&
-                                    <div className={styles.bio}>
+                                    <div className="
+                                        mb-[2em] p-[1em] border-l-[3px] border-accent-blue text-ink-hover
+                                        bg-surface-raised
+                                    ">
                                         <h2>Bio:</h2>
                                         <CmsParagraph
                                             cmsParagraph={profile.user.bioParagraph}
@@ -218,7 +264,7 @@ const { page, generateMetadata } = serverPage({
 
                                 {(profile.user.relationshipStatus !== RelationshipStatus.NOT_SPECIFIED) &&
                                 <p>
-                                    <span className={styles.relationshipStatus}>Sivilstatus: </span>
+                                    <span className={labelClassName}>Sivilstatus: </span>
                                     {profile.user.relationshipStatusText ? profile.user.relationshipStatusText :
                                         profile.user.relationshipStatus === RelationshipStatus.SINGLE && 'Singel' ||
                                         profile.user.relationshipStatus === RelationshipStatus.ITS_COMPLICATED
@@ -231,15 +277,15 @@ const { page, generateMetadata } = serverPage({
 
 
                                 <p>
-                                    <span className={styles.email}>E-post:</span>
+                                    <span className={labelClassName}>E-post:</span>
                                     {profile.user.email}
                                 </p>
                                 <p>
-                                    <span className={styles.username}>Brukernavn:</span>
+                                    <span className={labelClassName}>Brukernavn:</span>
                                     {profile.user.username}
                                 </p>
                                 <p>
-                                    <span className={styles.username}>Klasse:</span>
+                                    <span className={labelClassName}>Klasse:</span>
                                     {profile.class ? ClassLevelConfig[profile.class.level].name : 'Ingen klasse'}
                                 </p>
                             </div>

@@ -1,5 +1,4 @@
 'use client'
-import styles from './MailFlow.module.scss'
 import {
     destroyAliasMailingListRelationAction,
     destroyMailingListExternalRelationAction,
@@ -162,19 +161,33 @@ export default function MailFlow({
 
         return <li
             key={`${chip.type}-${chip.id}`}
-            className={`${styles.chip} ${focused ? styles.focused : ''}`}
+            className={`
+                flex items-center gap-2 py-2 px-3 rounded-round bg-surface-subtle min-w-0
+                ${focused ? 'outline-2 outline-accent-green font-bold' : ''}
+            `}
         >
-            <FontAwesomeIcon icon={typeIcons[chip.type]} className={styles.typeIcon} />
+            <FontAwesomeIcon icon={typeIcons[chip.type]} className="text-text-muted flex-none" />
             {focused
-                ? <span className={styles.chipLabel}>{chip.label}</span>
-                : <Link className={styles.chipLabel} href={`/admin/mail/${chip.type}/${chip.id}`}>{chip.label}</Link>
+                ? <span className="text-text no-underline wrap-anywhere">{chip.label}</span>
+                : <Link
+                    className="
+                        text-text no-underline wrap-anywhere
+                        hover:underline
+                    "
+                    href={`/admin/mail/${chip.type}/${chip.id}`}
+                >
+                    {chip.label}
+                </Link>
             }
-            {chip.via && chip.via.length > 0 && <span className={styles.via}>
+            {chip.via && chip.via.length > 0 && <span className="text-[0.8rem] text-text-muted italic">
                 via {chip.via.map(viaItem => viaItem.label).join(', ')}
             </span>}
             {removable && <button
                 type="button"
-                className={styles.remove}
+                className="
+                    ml-auto bg-transparent border-none cursor-pointer text-text-muted p-1 leading-none flex-none
+                    hover:text-accent-red
+                "
                 aria-label={`Fjern ${chip.label}`}
                 onClick={() => removeRelation(chip)}
             >
@@ -186,13 +199,17 @@ export default function MailFlow({
     const renderStage = (title: string, sections: ChipSection[]) => {
         const chipCount = sections.reduce((count, section) => count + section.chips.length, 0)
 
-        return <section className={styles.stage}>
-            <h3>{title}</h3>
-            {chipCount === 0 && <p className={styles.none}>Ingen</p>}
+        return <section className="flex-[1_1_0] min-w-0">
+            <h3 className="mt-0 mx-0 mb-2 text-[0.85rem] uppercase tracking-[0.06em] text-text-muted">{title}</h3>
+            {chipCount === 0 && <p className="text-text-muted italic m-0">Ingen</p>}
             {sections.filter(section => section.chips.length > 0).map(section => (
-                <div key={section.label ?? title} className={styles.stageSection}>
-                    {section.label && <h4>{section.label}</h4>}
-                    <ul>
+                <div key={section.label ?? title} className="[&:not(:first-of-type)]:mt-3">
+                    {section.label && <h4
+                        className="mt-0 mx-0 mb-1 text-[0.75rem] font-normal uppercase tracking-[0.06em] text-text-muted"
+                    >
+                        {section.label}
+                    </h4>}
+                    <ul className="list-none m-0 p-0 flex flex-col gap-2">
                         {section.chips.map(renderChip)}
                     </ul>
                 </div>
@@ -200,18 +217,33 @@ export default function MailFlow({
         </section>
     }
 
-    return <div className={styles.flowCard}>
-        <div className={styles.flow}>
+    return <div className="bg-surface-raised rounded-[calc(3*var(--rounding))] p-(--card-padding)">
+        <div className="
+            flex flex-row items-stretch gap-4
+            max-mobile:flex-col
+        ">
             {renderStage('Alias', [{ chips: aliasChips }])}
-            <FontAwesomeIcon icon={faArrowRightLong} className={styles.arrow} />
+            <FontAwesomeIcon
+                icon={faArrowRightLong}
+                className="
+                    self-center text-text-muted text-[1.5rem] flex-none
+                    max-mobile:rotate-90
+                "
+            />
             {renderStage('E-postlister', [{ chips: mailingListChips }])}
-            <FontAwesomeIcon icon={faArrowRightLong} className={styles.arrow} />
+            <FontAwesomeIcon
+                icon={faArrowRightLong}
+                className="
+                    self-center text-text-muted text-[1.5rem] flex-none
+                    max-mobile:rotate-90
+                "
+            />
             {renderStage('Mottakere', [
                 { label: 'Grupper', chips: groupChips },
                 { label: 'Brukere', chips: userChips },
                 { label: 'Eksterne adresser', chips: externalChips },
             ])}
         </div>
-        {error && <p className={styles.error}>{error}</p>}
+        {error && <p className="text-accent-red mx-0 mb-0 mt-2">{error}</p>}
     </div>
 }

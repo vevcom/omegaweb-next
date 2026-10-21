@@ -1,4 +1,3 @@
-import styles from './Requirements.module.scss'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCheck, faXmark } from '@fortawesome/free-solid-svg-icons'
 import type { OmegaOrderRequirement } from '@/services/omegaOrder/types'
@@ -16,22 +15,35 @@ export default function Requirements({ requirements }: PropTypes) {
     const allFulfilled = fulfilledCount === requirements.length
 
     return (
-        <div className={styles.Requirements}>
-            <div className={styles.header}>
+        <div className="flex flex-col gap-2">
+            <div
+                className="
+                    flex justify-between items-center gap-2
+                    [&_p]:m-0 [&_p]:text-text-muted
+                    [&>span]:font-bold [&>span]:whitespace-nowrap
+                "
+            >
                 <p>For å kunne opprette neste orden må følgende ha skjedd:</p>
-                <span className={allFulfilled ? styles.fulfilled : styles.unfulfilled}>
+                <span className={allFulfilled ? 'text-accent-green' : 'text-accent-red'}>
                     {fulfilledCount} / {requirements.length}
                 </span>
             </div>
-            <ul>
+            <ul className="list-none m-0 p-0 flex flex-col gap-1">
                 {requirements.map(requirement => (
                     <li
                         key={requirement.key}
-                        className={requirement.fulfilled ? styles.fulfilled : styles.unfulfilled}
+                        className={`
+                            flex items-center gap-4 py-2 px-4 rounded-round layer
+                            [&_span]:text-text
+                            [&_svg]:shrink-0 [&_svg]:w-[1.2em]! [&_svg]:h-[1.2em]!
+                            ${requirement.fulfilled ? 'text-accent-green' : 'text-accent-red'}
+                        `}
                     >
                         <FontAwesomeIcon icon={requirement.fulfilled ? faCheck : faXmark} />
                         <span>{requirement.description}</span>
-                        {requirement.detail && <i className={styles.detail}>{requirement.detail}</i>}
+                        {requirement.detail && <i
+                            className="ml-auto text-text-muted text-s whitespace-nowrap"
+                        >{requirement.detail}</i>}
                     </li>
                 ))}
             </ul>

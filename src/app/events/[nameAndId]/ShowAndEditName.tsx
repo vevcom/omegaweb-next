@@ -1,5 +1,4 @@
 'use client'
-import styles from './ShowAndEditName.module.scss'
 import EditableTextField from '@/components/EditableTextField/EditableTextField'
 import { updateEventAction } from '@/services/events/actions'
 import { configureAction } from '@/services/configureAction'
@@ -29,7 +28,7 @@ export default function ShowAndEditName({ event, capabilities }: PropTypes) {
             inputName="name"
             submitButton={{
                 text: 'Lagre',
-                className: styles.submitButton
+                className: 'translate-y-[-50px]'
             }}
         >
             <h1>{event.name}</h1>

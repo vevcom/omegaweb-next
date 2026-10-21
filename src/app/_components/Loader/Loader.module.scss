@@ -1,7 +1,4 @@
-@use '@/styles/ohma';
-
 .Loader {
-    //filter: invert(1); Commented out for darkmode // TODO: Implement CMS SVG
     animation: rotate 1.3s cubic-bezier(0.99, 0.33, 0.82, 0.97) infinite;
 }
 

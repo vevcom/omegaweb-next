@@ -1,5 +1,4 @@
 'use client'
-import styles from './CreateApiKeyForm.module.scss'
 import Form from '@/components/Form/Form'
 import { createApiKeyAction } from '@/services/apiKeys/actions'
 import TextInput from '@/components/UI/TextInput'
@@ -11,6 +10,11 @@ import { useRouter } from 'next/navigation'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 
 type Color = 'red' | 'green' | null
+
+const copySuccessColorClass = {
+    red: 'text-accent-red',
+    green: 'text-accent-green',
+}
 
 type PropTypes = {
     popUpKey: PopUpKeyType
@@ -56,32 +60,40 @@ export default function CreateApiKeyForm({ popUpKey }: PropTypes) {
         )
     }
 
-    const colorClass = copySuccess.color ? styles[copySuccess.color] : ''
+    const colorClass = copySuccess.color ? copySuccessColorClass[copySuccess.color] : ''
 
     return (
-        <div className={styles.CreateApiKeyForm}>
+        <div className="min-w-[50vw] grid grid-cols-2">
             <Form
                 title="Lag en ny nøkkel"
                 action={createApiKeyAction}
-                className={styles.form}
                 successCallback={data => showApiKey(data?.key)}
             >
                 <TextInput name="name" label="Navn" />
             </Form>
 
-            <div className={styles.keyHolder}>
+            <div className="flex-[1_1_100%] flex flex-col h-full justify-start">
                 <h3>Nøkkel</h3>
-                <div className={styles.keyAndCopy}>
-                    {apiKeyToShow ? <p className={styles.ApiKey}>{apiKeyToShow}</p> : <i>Generer en nøkkel først</i>}
+                <div className="flex items-center gap-[1em]">
+                    {apiKeyToShow ? <p>{apiKeyToShow}</p> : <i>Generer en nøkkel først</i>}
                     {apiKeyToShow && (
-                        <button className={styles.copy} onClick={copyAPIKeyToClipboard}>
+                        <button
+                            className="
+                                bg-transparent border-none
+                                [&_svg]:text-text-muted [&_svg]:w-[1.5em]! [&_svg]:h-[1.5em]!
+                            "
+                            onClick={copyAPIKeyToClipboard}
+                        >
                             <FontAwesomeIcon icon={faCopy} />
                         </button>
                     )}
                 </div>
                 {
                     copySuccess && <p className={
-                        `${styles.copySuccess} ${colorClass}`
+                        `
+                            my-[.5em] mx-0
+                            ${colorClass}
+                        `
                     }>
                         {copySuccess.message}
                     </p>

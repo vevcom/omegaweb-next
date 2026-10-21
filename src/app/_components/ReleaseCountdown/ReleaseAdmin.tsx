@@ -1,5 +1,4 @@
 'use client'
-import styles from './ReleaseAdmin.module.scss'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import DateInput from '@/components/UI/DateInput'
@@ -28,7 +27,11 @@ export default function ReleaseAdmin({ releaseDate, openToAll, onGitGraphUpdated
     const [mockGitGraphCommits, setMockGitGraphCommits] = useState<number | null>(null)
 
     return (
-        <div className={styles.ReleaseAdmin}>
+        <div className="
+            flex flex-col gap-2 w-[min(28rem,calc(100vw-2*var(--gap)))] max-h-[calc(100vh-2*var(--gap))] overflow-y-auto
+            p-6 border border-[hsl(0,0%,20%)] rounded-[calc(3*var(--rounding))] bg-surface-base
+            [&_h2]:m-0 [&_h2]:font-secondary
+        ">
             <h2>Slippet</h2>
             <TextInput
                 type="password"
@@ -42,7 +45,7 @@ export default function ReleaseAdmin({ releaseDate, openToAll, onGitGraphUpdated
                 action={updateReleaseCountdownSettingsAction}
                 submitText="Lagre"
                 refreshOnSuccess
-                className={styles.form}
+                className="pt-2 border-t border-[hsl(0,0%,20%)]"
             >
                 <input type="hidden" name="password" value={password} />
                 <DateInput includeTime name="releaseDate" label="Slippes" defaultValue={new Date(releaseDate)} />
@@ -56,10 +59,10 @@ export default function ReleaseAdmin({ releaseDate, openToAll, onGitGraphUpdated
                     setGitGraphCommits(data?.commits ?? null)
                     onGitGraphUpdated()
                 }}
-                className={styles.form}
+                className="pt-2 border-t border-[hsl(0,0%,20%)]"
             >
                 <input type="hidden" name="password" value={password} />
-                {gitGraphCommits !== null && <p className={styles.note}>Hentet {gitGraphCommits} commits</p>}
+                {gitGraphCommits !== null && <p className="m-0 text-text-muted text-s">Hentet {gitGraphCommits} commits</p>}
             </Form>
             <Form
                 action={mockReleaseCountdownGitGraphAction}
@@ -69,11 +72,11 @@ export default function ReleaseAdmin({ releaseDate, openToAll, onGitGraphUpdated
                     setMockGitGraphCommits(data?.commits ?? null)
                     onGitGraphUpdated()
                 }}
-                className={styles.form}
+                className="pt-2 border-t border-[hsl(0,0%,20%)]"
             >
                 <input type="hidden" name="password" value={password} />
                 {mockGitGraphCommits !== null && (
-                    <p className={styles.note}>Lagret en testgraf med {mockGitGraphCommits} commits</p>
+                    <p className="m-0 text-text-muted text-s">Lagret en testgraf med {mockGitGraphCommits} commits</p>
                 )}
             </Form>
             <Form
@@ -81,7 +84,7 @@ export default function ReleaseAdmin({ releaseDate, openToAll, onGitGraphUpdated
                 submitText="Gå inn på nye veven"
                 submitColor="green"
                 refreshOnSuccess
-                className={styles.form}
+                className="pt-2 border-t border-[hsl(0,0%,20%)]"
             >
                 <input type="hidden" name="password" value={password} />
             </Form>

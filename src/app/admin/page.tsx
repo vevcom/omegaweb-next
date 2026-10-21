@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { authorizeAdminPage } from '@/app/admin/authorizeAdminPage'
 import { serverPage } from '@/app/ServerPage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -8,9 +7,12 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 const { page, generateMetadata } = serverPage({
     operation: ({ session }: PageOperationArgs) => authorizeAdminPage(null, session),
     render: () => (
-        <div className={styles.wrapper}>
-            <FontAwesomeIcon icon={faScrewdriverWrench} className={styles.icon} />
-            <p>Velg en ting å administrere i menyen</p>
+        <div className="w-full h-full flex flex-col items-center">
+            <FontAwesomeIcon
+                icon={faScrewdriverWrench}
+                className="pt-[calc(50vh-50px-5em)] w-[10em]! h-[10em]! text-text m-[1em]"
+            />
+            <p className="text-text-muted text-[1.5em] text-center">Velg en ting å administrere i menyen</p>
         </div>
     ),
 })

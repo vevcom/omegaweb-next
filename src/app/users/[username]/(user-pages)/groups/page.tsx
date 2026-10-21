@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import SimpleTable from '@/components/Table/SimpleTable'
 import { groupTypesConfig } from '@/services/groups/constants'
@@ -65,25 +64,25 @@ const { page, generateMetadata } = serverPage({
             })))
     },
     render: ({ data: sections }) => (
-        <div className={styles.wrapper}>
+        <div className="bg-surface-base rounded-round p-(--card-padding)">
             <h2>Grupper</h2>
             {sections.map(({ type, memberships }) =>
-                <section key={type} className={styles.groupType}>
+                <section key={type} className="mt-(--card-padding) overflow-x-auto">
                     <h3>{groupTypesConfig[type].namePlural}</h3>
                     {memberships.length === 0 ? (
-                        <p className={styles.empty}>Ingen medlemskap.</p>
+                        <p className="text-text-muted">Ingen medlemskap.</p>
                     ) : (
                         <SimpleTable
                             header={['Gruppe', 'Orden', 'Status']}
                             body={memberships.map(membership => [
                                 <>
                                     {membership.groupName}
-                                    <span className={styles.secondary}>{membership.title}</span>
+                                    <span className="block text-text-muted text-s">{membership.title}</span>
                                 </>,
                                 membership.order,
                                 <>
                                     {membership.active ? 'Aktiv' : 'Inaktiv'}
-                                    {membership.admin && <span className={styles.secondary}>Admin</span>}
+                                    {membership.admin && <span className="block text-text-muted text-s">Admin</span>}
                                 </>,
                             ])}
                         />

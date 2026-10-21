@@ -1,5 +1,4 @@
 'use client'
-import styles from './EditModeSwitch.module.scss'
 import { EditModeContext } from '@/contexts/EditMode'
 import useKeyPress from '@/hooks/useKeyPress'
 import { useContext, useEffect, useRef } from 'react'
@@ -32,10 +31,21 @@ export default function EditModeSwitch() {
 
 
     return (
-        <div className={styles.EditModeSwitch}>
-            <label>
-                <input ref={ref} checked={editingContext.editMode} type="checkbox" onChange={handleChange} />
-                <FontAwesomeIcon className={styles.EditModeSwitchIcon} icon={faPencil} />
+        <div className="size-full">
+            <label className="group/switch cursor-pointer flex items-center justify-center size-full p-2 box-border">
+                <input
+                    ref={ref}
+                    checked={editingContext.editMode}
+                    type="checkbox"
+                    onChange={handleChange}
+                    className="hidden peer"
+                />
+                <FontAwesomeIcon className="
+                    size-[var(--edit-mode-icon-size,20px)] text-text transition-all duration-200
+                    [&_path]:text-inherit
+                    peer-checked:text-accent-blue
+                    group-hover/switch:peer-not-checked:text-[color-mix(in_srgb,var(--accent-blue),var(--text))]
+                " icon={faPencil} />
             </label>
         </div>
     )

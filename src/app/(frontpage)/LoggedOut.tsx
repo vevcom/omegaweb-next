@@ -1,7 +1,15 @@
 import Section from './Section'
-import styles from './page.module.scss'
-import sectionStyles from './Section.module.scss'
 import InfoBubbles from './InfoBubbles'
+import {
+    footerClassName,
+    frontImgPartClassName,
+    frontInfoClassName,
+    frontInfoInnerClassName,
+    omegamaiPartClassName,
+    scrollDownClassName,
+    taktlausePartClassName,
+    wrapperClassName,
+} from './frontpageClassNames'
 import { MazeMapLophtet } from '@/components/MazeMap/MazeMap'
 import SocialIcons from '@/components/SocialIcons/SocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
@@ -14,6 +22,9 @@ import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 
+// Important flags: btn/secondary-btn set their own margin and padding at the same specificity.
+const ctaLayout = 'w-full m-0! py-5! px-6!'
+
 export default async function LoggedOutLandingPage() {
     const session = await ServerSession.fromNextAuth()
     const capabilities = runCapabilities(session, {
@@ -22,12 +33,15 @@ export default async function LoggedOutLandingPage() {
     })
 
     return (
-        <div className={styles.wrapper}>
+        <div className={wrapperClassName}>
             <PageTitleSetter title="Sct. Omega Broderskab" />
-            <div className={`${styles.part} ${styles.frontImg}`}>
-                <div className={styles.frontInfo}>
-                    <div>
-                        <div className={styles.crest}>
+            <div className={frontImgPartClassName}>
+                <div className={frontInfoClassName(false)}>
+                    <div className={frontInfoInnerClassName}>
+                        <div className="
+                            grid place-items-center p-8 rounded-full bg-radial-[circle] from-black/80 from-0%
+                            to-transparent to-70%
+                        ">
                             <StandardImageServer
                                 standardImage="LOGO_WHITE"
                                 width={300}
@@ -35,11 +49,20 @@ export default async function LoggedOutLandingPage() {
                             />
                         </div>
 
-                        <Link href="login">Logg inn</Link>
-                        <Link className={styles.primaryCta} href="/new-student">Ny student</Link>
-                        <Link href="/career">For bedrifter</Link>
+                        <Link className={`
+                            secondary-btn font-medium
+                            ${ctaLayout}
+                        `} href="login">Logg inn</Link>
+                        <Link className={`
+                            btn font-bold
+                            ${ctaLayout}
+                        `} href="/new-student">Ny student</Link>
+                        <Link className={`
+                            secondary-btn font-medium
+                            ${ctaLayout}
+                        `} href="/career">For bedrifter</Link>
 
-                        <Link className={styles.scrollDown} href="#firstSection">
+                        <Link className={scrollDownClassName} href="#firstSection">
                             <FontAwesomeIcon icon={faAngleDown} />
                         </Link>
                     </div>
@@ -53,7 +76,11 @@ export default async function LoggedOutLandingPage() {
                     imgWidth={450}
                     id="firstSection"
                 >
-                    <div className={sectionStyles.socials}>
+                    <div className="
+                        mt-4
+                        [&>a]:mr-2 [&>a]:text-text [&>a]:transition-colors [&>a]:duration-300
+                        [&>a:hover]:text-accent-blue
+                    ">
                         <SocialIcons />
                     </div>
                 </Section>
@@ -69,7 +96,7 @@ export default async function LoggedOutLandingPage() {
                 />
 
             </div>
-            <div className={`${styles.part} ${styles.omegamai}`}>
+            <div className={omegamaiPartClassName}>
                 <Section
                     capabilities={capabilities}
                     position="left"
@@ -88,10 +115,10 @@ export default async function LoggedOutLandingPage() {
                 />
 
             </div>
-            <div className={`${styles.part} ${styles.taktlause}`}>
+            <div className={taktlausePartClassName}>
                 <MazeMapLophtet height={'80vh'}/>
             </div>
-            <div className={styles.footer}>
+            <div className={footerClassName}>
                 <Footer />
             </div>
         </div>

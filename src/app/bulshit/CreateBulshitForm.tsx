@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './CreateBulshitForm.module.scss'
 import Form from '@/components/Form/Form'
 import { createBulshitAction } from '@/services/bulshit/actions'
 import Textarea from '@/components/UI/Textarea'
@@ -22,13 +21,16 @@ export default function CreateBulshitForm({ bulshitPosterId }: PropTypes) {
                 submitText="Legg til"
                 action={configureAction(createBulshitAction, { params: { bulshitPosterId } })}
                 successCallback={refresh}
-                className={styles.popupForm}
+                className="
+                    w-[400px]
+                    [&_input]:w-full
+                "
             >
                 <Textarea
                     name="quote"
                     label="Bulshit"
                     placeholder="Bulshit"
-                    className={styles.textarea}
+                    className="h-[100px] max-h-[300px]"
                 />
             </Form>
         </AddHeaderItemPopUp>

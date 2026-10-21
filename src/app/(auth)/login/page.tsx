@@ -1,5 +1,4 @@
 'use client'
-import styles from './page.module.scss'
 import TextInput from '@/UI/TextInput'
 import Button from '@/UI/Button'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
@@ -7,6 +6,13 @@ import { signIn } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { FormEvent } from 'react'
+
+// A rule on each side of the text.
+const dividerClassName = `
+    flex justify-center my-4
+    before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted
+    after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted
+`
 
 export default function LogIn() {
     const searchParams = useSearchParams()
@@ -28,9 +34,9 @@ export default function LogIn() {
 
     return <>
         <PageTitleSetter title={'Logg inn'}/>
-        <form className={styles.loginForm} onSubmit={handleSignIn}>
-            <TextInput className={styles.textInput} label="Brukernavn" name="username" type="text"/>
-            <TextInput className={styles.textInput} label="Passord" name="password" type="password"/>
+        <form onSubmit={handleSignIn}>
+            <TextInput className="max-w-[unset] mb-4" label="Brukernavn" name="username" type="text"/>
+            <TextInput className="max-w-[unset] mb-4" label="Passord" name="password" type="password"/>
             <Button color="primary" style={{ width: '100%', margin: '0' }}>
                 Logg inn
             </Button>
@@ -43,7 +49,7 @@ export default function LogIn() {
             </p>
         </form>
 
-        <div className={styles.divider}>
+        <div className={dividerClassName}>
             <span>eller</span>
         </div>
 
@@ -54,13 +60,20 @@ export default function LogIn() {
             Logg inn med Feide
         </Button>
 
-        <Link href="/send-reset-password-email" className={styles.resetPasswordLink}>
+        <Link
+            href="/send-reset-password-email"
+            className="
+                self-start
+                [&>p]:my-4 [&>p]:text-accent-blue [&>p]:text-s
+                [&:hover>p]:underline
+            "
+        >
             <p>
                 Glemt passord?
             </p>
         </Link>
 
-        <p className={styles.firstLoginText}>
+        <p className="text-text">
             Er det første gang du logger inn? Da er det bare å logge inn med feide for å lage en bruker.
         </p>
     </>

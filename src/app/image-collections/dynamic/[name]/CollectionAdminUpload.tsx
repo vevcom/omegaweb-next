@@ -1,5 +1,4 @@
 'use client'
-import styles from './CollectionAdminUpload.module.scss'
 import Dropzone from '@/components/UI/Dropzone'
 import Form from '@/components/Form/Form'
 import Slider from '@/components/UI/Slider'
@@ -89,7 +88,11 @@ export default function CollectionAdminUpload({ collectionId, refreshImages }: P
 
     return (
         <Form
-            className={styles.uploadMany}
+            className="
+                w-full
+                [&_button[type=submit]]:w-[calc(19*var(--gap))] [&_button[type=submit]]:ml-0
+                [&_label]:block [&_label]:w-full
+            "
             successCallback={refreshImages}
             closePopUpOnSuccess="UploadImages"
             title="Last opp bilder"

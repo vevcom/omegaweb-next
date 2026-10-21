@@ -1,4 +1,3 @@
-import styles from './layout.module.scss'
 import { SessionProvider } from '@/auth/session/useSession'
 import MobileNavBar from '@/components/NavBar/MobileNavBar'
 import { authOptions } from '@/auth/nextAuth/authOptions'
@@ -21,9 +20,9 @@ import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import { visibleNavItems } from '@/components/NavBar/navDef'
 import NavBar from '@/components/NavBar/NavBar'
 import { Inter } from 'next/font/google'
+import '@/styles/tailwind.css'
 import '@/styles/globals.scss'
 import { config } from '@fortawesome/fontawesome-svg-core'
-import '@fortawesome/fontawesome-svg-core/styles.css'
 import { getServerSession } from 'next-auth'
 import type { ReactNode } from 'react'
 import type { Metadata, Viewport } from 'next'
@@ -36,7 +35,7 @@ export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
     // Lets the page paint into the status bar and home indicator areas instead of
-    // being letterboxed between them. The safe-area insets in layout.module.scss
+    // being letterboxed between them. The safe-area insets on the wrapper grid
     // are what then keep the nav bars clear of the system UI.
     viewportFit: 'cover',
 }
@@ -91,7 +90,10 @@ export default async function RootLayout({ children }: PropTypes) {
 
     return (
         <html lang="nb" style={themeCssVars(theme)} data-tone={lightThemes.has(theme) ? 'light' : 'dark'}>
-            <body className={`${inter.className} ${styles.body}`}>
+            <body className={`
+                ${inter.className}
+                text-text bg-surface-raised bg-linear-125/srgb from-accent-blue/30 from-0% to-surface-base/20 to-70%
+            `}>
                 {/* Hoisted into the head by React. Keeps the browser chrome in step with the theme;
                     picking another one refreshes the page, which renders it anew. */}
                 <meta name="theme-color" content={themes[theme]['surface-base']} />
@@ -109,26 +111,45 @@ export default async function RootLayout({ children }: PropTypes) {
                                     <PageTitleProvider>
                                         <ReleaseCountdownGate>
                                             <NavMenuProvider>
-                                                <div className={styles.wrapper}>
-                                                    <div className={styles.navBar}>
+                                                <div className="
+                                                    grid grid-cols-[64px_minmax(0,1fr)] grid-rows-[64px_1fr_64px] gap-2
+                                                    h-dvh max-w-[2560px] mx-auto
+                                                    [grid-template-areas:'navBar_navBar'_'sideBar_content'_'sideBar_content']
+                                                    pt-[calc(var(--gap)+env(safe-area-inset-top))]
+                                                    pr-[calc(var(--gap)+env(safe-area-inset-right))]
+                                                    pb-[calc(var(--gap)+env(safe-area-inset-bottom))]
+                                                    pl-[calc(var(--gap)+env(safe-area-inset-left))]
+                                                    transition-[grid-template-columns] duration-300 ease-[ease]
+                                                    mobile:has-[>aside_[data-expanded=true]]:grid-cols-[220px_minmax(0,1fr)]
+                                                    max-mobile:grid-cols-[minmax(0,1fr)]
+                                                    max-mobile:[grid-template-areas:'navBar'_'content'_'mobileNavBar']
+                                                ">
+                                                    <div className="
+                                                        [grid-area:navBar] col-span-full h-[64px] z-3 rounded-round
+                                                    ">
                                                         <NavBar
                                                             isLoggedIn={navUser !== null}
                                                             profileImage={navUser?.image ?? null}
                                                             navItems={navItems}
                                                         />
                                                     </div>
-                                                    <aside className={styles.sideBar}>
+                                                    <aside className="
+                                                        [grid-area:sideBar] h-full w-full z-3
+                                                        max-mobile:hidden
+                                                    ">
                                                         <DesktopSideBar navItems={navItems} />
                                                     </aside>
-                                                    <main className={styles.content}>
-                                                        <ScrollArea
-                                                            className={styles.contentScroll}
-                                                            scrollerClassName={styles.contentScroller}
-                                                        >
+                                                    <main className="
+                                                        [grid-area:content] min-h-0 overflow-hidden rounded-round
+                                                    ">
+                                                        <ScrollArea className="h-full" scrollerClassName="flex flex-col">
                                                             {children}
                                                         </ScrollArea>
                                                     </main>
-                                                    <div className={styles.mobileNavBar}>
+                                                    <div className="
+                                                        hidden z-3 rounded-round overflow-hidden [grid-area:mobileNavBar]
+                                                        max-mobile:block max-mobile:h-[64px] max-mobile:w-full
+                                                    ">
                                                         <MobileNavBar
                                                             isLoggedIn={navUser !== null}
                                                             navItems={navItems}

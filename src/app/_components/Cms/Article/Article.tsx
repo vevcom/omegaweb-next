@@ -53,10 +53,28 @@ export default function Article({
     const clientCapabilities = capabilitiesToJsObject(capabilities)
 
     return (
-        <span className={styles.Article}>
+        <span className="
+            h-full grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr_auto]
+            [grid-template-areas:'coverImage_coverImage'_'article_sideBar'_'addSection_sideBar']
+            max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:grid-rows-[auto_1fr_auto_auto]
+            max-mobile:[grid-template-areas:'coverImage'_'article'_'addSection'_'sideBar']
+        ">
             {hideCoverImage ? <></> : (
-                <span className={`${coverImageClass} ${styles.coverImage}`}>
+                <span className={`
+                    ${coverImageClass}
+                    rounded-round [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)] relative
+                    [&>*:nth-child(2)]:absolute [&>*:nth-child(2)]:left-[min(4rem,4vw)] [&>*:nth-child(2)]:bottom-[1em]
+                    [&>*:nth-child(2)]:right-[min(4rem,4vw)] [&>*:nth-child(2)]:wrap-anywhere
+                `}>
                     <CmsImage
+                        className="
+                            relative w-full h-full
+                            after:absolute after:top-0 after:left-0 after:w-full after:h-full after:z-1
+                            after:bg-[linear-gradient(to_bottom,transparent_50%,var(--surface-base))]
+                            [&_div]:w-full [&_div]:h-full
+                            [&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:w-full [&_img]:h-[min(300px,40vh)]
+                            [&_img]:object-cover
+                        "
                         width={500}
                         cmsImage={article.coverImage}
                         updateCmsImageAction={actions.updateCoverImageAction}
@@ -76,12 +94,23 @@ export default function Article({
                     </SlideInOnView>
                 </span>
             )}
-            <article className={`${noMargin ? styles.noMargin : ''} ${articleClassName ?? ''}`}>
+            <article
+                className={`
+                    [grid-area:article] isolate
+                    [&>*]:isolate [&>*]:relative
+                    ${styles.article}
+                    ${noMargin ? '[&>*]:m-0' : `
+                        [&>*]:my-[2em] [&>*]:mx-[min(4rem,4vw)]
+                        [&>*:last-child]:mb-[1em]
+                    `}
+                    ${articleClassName ?? ''}
+                `}
+            >
                 {
                     article.articleSections.length ? (
                         article.articleSections.sort((a, b) => (a.order - b.order)).map((section, i) => (
                             <SlideInOnView direction="left" key={section.id}>
-                                <span className={styles.moveSection}>
+                                <span className="relative block">
                                     <ArticleSection
                                         actions={actions.articleSections}
                                         articleSection={section}
@@ -91,7 +120,7 @@ export default function Article({
                                         capabilities={clientCapabilities}
                                         showUp={i !== 0}
                                         showDown={i !== article.articleSections.length - 1}
-                                        className={styles.moverComponent}
+                                        className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[40%] z-2"
                                         reorderArticleSectionsAction={
                                             configureAction(
                                                 actions.reorderArticleSectionsAction,
@@ -108,16 +137,22 @@ export default function Article({
                             </SlideInOnView>
                         ))
                     ) : (
-                        <i className={styles.empty}>Denne artikkelen er tom</i>
+                        <i className="flex h-[2em]">Denne artikkelen er tom</i>
                     )
                 }
             </article>
             {sideBarContent && (
-                <aside className={`${styles.sideBar} ${sideBarClassName}`}>
+                <aside className={`
+                    [grid-area:sideBar]
+                    ${sideBarClassName}
+                `}>
                     {sideBarContent}
                 </aside>
             )}
-            <div className={`${styles.addSection} ${addSectionClassName ?? ''}`}>
+            <div className={`
+                [grid-area:addSection] my-0 mx-[min(4rem,4vw)]
+                ${addSectionClassName ?? ''}
+            `}>
                 <AddSection
                     capabilities={clientCapabilities}
                     currentNumberSections={article.articleSections.length}

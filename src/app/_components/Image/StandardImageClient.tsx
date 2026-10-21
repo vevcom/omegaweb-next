@@ -1,5 +1,4 @@
 'use client'
-import styles from './StandardImage.module.scss'
 import Image, { SrcImage } from './Image'
 import { useStandardImages } from '@/contexts/ClientData'
 import type { PropTypes } from './StandardImageServer'
@@ -24,9 +23,12 @@ export default function StandardImageClient({ standardImage, children, className
     }
 
     return (
-        <div className={`${styles.StandardImage} ${className}`}>
+        <div className={`
+            [:where(&)]:relative [:where(&)]:isolate [:where(&)]:table
+            ${className}
+        `}>
             {renderImage()}
-            {children && <div className={styles.children}>{children}</div>}
+            {children && <div className="absolute top-0 left-0 w-full h-full flex">{children}</div>}
         </div>
     )
 }

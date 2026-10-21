@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './LedgerAccountGroupList.module.scss'
 import { updateLedgerAccountAsAdminAction } from '@/services/ledger/accounts/actions'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -39,17 +38,24 @@ export default function LedgerAccountGroupList({ ledgerAccountId, groups, capabi
         <>
             <ul>
                 {groups.length > 0 ? groups.map(group => (
-                    <li key={group.id} className={styles.groupElement}>
+                    <li key={group.id} className="
+                        flex items-center justify-between gap-4 rounded-round border-2 border-solid border-surface-subtle
+                        my-2 p-4 text-l
+                    ">
                         <span>{group.name}</span>
                         {capabilities.canChangeGroups.authorized &&
-                            <button onClick={() => removeGroup(group.id)} className={styles.removeButton}>
+                            <button onClick={() => removeGroup(group.id)} className="
+                                text-l text-text-muted justify-self-end size-[20px] bg-white border-none rounded-full
+                                cursor-pointer transition-[background] duration-500 flex justify-center items-center
+                                hover:bg-[color-mix(in_srgb,white,black_10%)]
+                            ">
                                 <FontAwesomeIcon icon={faXmark} />
                             </button>
                         }
                     </li>
                 )) : <li><em>Denne kontoen er ikke knyttet til noen grupper.</em></li>}
             </ul>
-            {error && <p className={styles.error}>{error}</p>}
+            {error && <p className="text-accent-red">{error}</p>}
         </>
     )
 }

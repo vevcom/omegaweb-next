@@ -1,11 +1,17 @@
 'use client'
-import styles from './SlideInOnView.module.scss'
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 
 type PropTypes = {
     children: ReactNode
     direction?: 'left' | 'right' | 'top' | 'bottom'
+}
+
+const directionClassNames = {
+    bottom: 'translate-y-[20px]',
+    top: '-translate-y-[20px]',
+    left: '-translate-x-[20px]',
+    right: 'translate-x-[20px]',
 }
 
 export default function SlideInOnView({ children, direction = 'bottom' }: PropTypes) {
@@ -15,7 +21,7 @@ export default function SlideInOnView({ children, direction = 'bottom' }: PropTy
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    ref.current?.classList.add(styles.visible)
+                    ref.current?.classList.add('visible')
                 }
             },
             {
@@ -35,7 +41,11 @@ export default function SlideInOnView({ children, direction = 'bottom' }: PropTy
     }, [])
 
     return (
-        <div ref={ref} className={`${styles.SlideInOnView} ${styles[direction]}`}>
+        <div ref={ref} className={`
+            opacity-0 [transition:opacity_1s,translate_0.6s]
+            [&.visible]:opacity-100 [&.visible]:translate-none
+            ${directionClassNames[direction]}
+        `}>
             {children}
         </div>
     )

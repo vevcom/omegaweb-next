@@ -1,4 +1,3 @@
-import styles from './CommitteeLogo.module.scss'
 import Image from '@/components/Image/Image'
 import { imageSourceForResolution } from '@/lib/images/imageSource'
 import type { CSSProperties } from 'react'
@@ -28,7 +27,11 @@ export default function CommitteeLogo({ logoImage, width, className }: PropTypes
     // fallback case in case committee logo is not an svg.
     return (
         <div
-            className={`${styles.CommitteeLogo} ${className ?? ''}`}
+            className={`
+                aspect-square mask-(--committee-logo-mask) mask-contain mask-no-repeat mask-center
+                bg-[var(--committee-logo-color,var(--text))]
+                ${className ?? ''}
+            `}
             // The mask url is set from here rather than the stylesheet because it differs per
             // committee. fsLocationOriginal is a server-generated uuid, so it cannot break out of
             // the url(). Everything else about the mask lives in the stylesheet.

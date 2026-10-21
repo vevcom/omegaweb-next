@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import Article from '@/cms/Article/Article'
 import { configureAction } from '@/services/configureAction'
 import {
@@ -43,10 +42,10 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: (data) => ({ title: data.article.name }),
     render: ({ data, capabilities }) => (
-        <div className={styles.wrapper}>
+        <div>
             <Article
                 capabilities={capabilities}
-                coverImageClass={styles.coverImage}
+                coverImageClass="mobile:rounded-round! mobile:p-0!"
                 article={data.article}
                 actions={{
                     updateArticleAction: configureAction(

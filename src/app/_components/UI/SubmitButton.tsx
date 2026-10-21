@@ -1,5 +1,5 @@
 import styles from './SubmitButton.module.scss'
-import popUpStyles from '@/components/PopUp/PopUp.module.scss'
+import { popUpClassNames } from '@/components/PopUp/popUpClassNames'
 import Button from '@/components/UI/Button'
 import { PopUpContext } from '@/contexts/PopUp'
 import React, { useContext, useEffect, useId, useRef, useState } from 'react'
@@ -21,6 +21,8 @@ export type Confirmation = {
     confirm: boolean,
     text?: string,
 }
+
+const submitButtonClassName = 'w-40 m-0 text-text-inv transition-colors duration-300 ease-in-out'
 
 export default function SubmitButton({
     children,
@@ -58,7 +60,10 @@ export default function SubmitButton({
     const renderButtonContent = (label: ReactNode) => {
         if (pending) {
             return (
-                <div className={styles.loader}>
+                <div className={`
+                    flex justify-between px-[20px] py-px
+                    ${styles.loader}
+                `}>
                     <div></div>
                     <div></div>
                     <div></div>
@@ -74,7 +79,10 @@ export default function SubmitButton({
     }
     const button = (
         <Button
-            className={`${styles.submitButton} ${className ?? ''}`}
+            className={`
+                ${submitButtonClassName}
+                ${className ?? ''}
+            `}
             aria-disabled={pending || success}
             color={success ? 'green' : color}
             type="submit"
@@ -106,15 +114,15 @@ export default function SubmitButton({
             return undefined
         }
         popUpContext.teleport(
-            <div className={popUpStyles.PopUp}>
-                <div className={popUpStyles.main}>
-                    <div className={popUpStyles.overflow}>
-                        <button className={popUpStyles.closeBtn} onClick={() => setConfirmedOpen(false)}>
+            <div className={popUpClassNames.popUp}>
+                <div className={popUpClassNames.main}>
+                    <div className={popUpClassNames.overflow}>
+                        <button className={popUpClassNames.closeBtn} onClick={() => setConfirmedOpen(false)}>
                             <FontAwesomeIcon icon={faX} />
                         </button>
-                        <div className={popUpStyles.content}>
+                        <div>
                             <p>{confirmation?.text || 'Er du sikker?'}</p>
-                            <div className={styles.confirmActions}>
+                            <div className="flex justify-center gap-2 mt-4">
                                 <Button
                                     type="button"
                                     color="secondary"
@@ -123,7 +131,10 @@ export default function SubmitButton({
                                     Nei
                                 </Button>
                                 <Button
-                                    className={`${styles.submitButton} ${className ?? ''}`}
+                                    className={`
+                                        ${submitButtonClassName}
+                                        ${className ?? ''}
+                                    `}
                                     aria-disabled={pending || success}
                                     color={success ? 'green' : color}
                                     type="button"
@@ -143,12 +154,15 @@ export default function SubmitButton({
     }, [confirmedOpen, pending, success, popUpKey])
 
     return (
-        <div className={styles.submit}>
+        <div>
             {
                 (confirmation?.confirm) ? (
                     <>
                         <Button
-                            className={`${styles.submitButton} ${className ?? ''}`}
+                            className={`
+                                ${submitButtonClassName}
+                                ${className ?? ''}
+                            `}
                             color={color}
                             type="button"
                             onClick={() => setConfirmedOpen(true)}
@@ -162,7 +176,7 @@ export default function SubmitButton({
                             disabled={disabled}
                             aria-hidden="true"
                             tabIndex={-1}
-                            className={styles.hiddenSubmit}
+                            className="w-[0.1px] max-w-[0.1px] h-[0.1px] opacity-0 overflow-hidden absolute -z-1"
                         />
                     </>
                 ) : (
@@ -170,7 +184,10 @@ export default function SubmitButton({
                 )
             }
 
-            <p className={[pending ? styles.pending : ' ', styles.error].join(' ')}>
+            <p className={`
+                flex flex-col min-h-[1.15em] mb-[3px] text-accent-red
+                ${pending ? 'invisible' : ''}
+            `}>
                 {
                     generalErrors?.[0]?.message
                 }

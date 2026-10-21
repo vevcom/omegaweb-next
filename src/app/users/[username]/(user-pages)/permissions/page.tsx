@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import Permission from '@/components/Permission/Permission'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { permissionOperations } from '@/services/permissions/operations'
@@ -11,11 +10,11 @@ const { page, generateMetadata } = serverPage({
         return permissionOperations.readPermissionsOfUser({ params: { userId: profile.user.id } })
     },
     render: ({ data: permissions }) => (
-        <div className={styles.wrapper}>
+        <div className="bg-surface-base rounded-round p-(--card-padding)">
             <h2>Tilganger:</h2>
             <ul>
                 {permissions.map(permission =>
-                    <Permission key={permission} permission={permission} className={styles.permission} />
+                    <Permission key={permission} permission={permission} className="mb-[1em]" />
                 )}
             </ul>
         </div>

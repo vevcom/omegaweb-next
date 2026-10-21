@@ -1,5 +1,4 @@
 'use client'
-import styles from './error.module.scss'
 import Button from '@/components/UI/Button'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import StandardImageClient from '@/components/Image/StandardImageClient'
@@ -11,10 +10,17 @@ import StandardImageClient from '@/components/Image/StandardImageClient'
 */
 export default function ErrorBoundary({ error, reset }: {error: unknown, reset: () => void}) {
     return (
-        <div className={styles.wrapper}>
+        <div className="
+            bg-surface-base px-4 flex-1 flex flex-col justify-center items-center min-h-[50vh]
+            [&>button]:absolute [&>button]:top-[calc(64px+20px+var(--gap))] [&>button]:right-[20px] [&>button]:w-auto
+        ">
             <PageTitleSetter title={'Feil'} />
-            <div className={styles.info}>
-                <div className={styles.imageContainer}>
+            <div className="
+                flex justify-center items-center
+                max-mobile:min-h-[50vh]
+                [&_h3]:text-text
+            ">
+                <div className="border-r-2 border-solid border-surface-base pr-[20px] mr-[20px]">
                     <StandardImageClient
                         width={70}
                         standardImage="LOGO_SIMPLE"

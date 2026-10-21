@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import CreateInterestGroupForm from './CreateInterestGroupForm'
 import InterestGroup from './InterestGroup'
 import SpecialCmsParagraph from '@/cms/CmsParagraph/SpecialCmsParagraph'
@@ -48,8 +47,8 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'Interessegrupper' }),
     render: ({ data: interestGroups, capabilities, session }) => (
         <PageWrapper transparent>
-            <div className={styles.content}>
-                <div className={styles.generalInfo}>
+            <div>
+                <div className="bg-surface-base rounded-round p-4">
                     {capabilities.canCreate.authorized && (
                         <AddHeaderItemPopUp popUpKey="Create interest group">
                             <CreateInterestGroupForm/>
@@ -62,7 +61,7 @@ const { page, generateMetadata } = serverPage({
                         updateCmsParagraphAction={updateSpecialCmsParagraphContentGeneralInfoAction}
                     />
                 </div>
-                <main className={styles.islands}>
+                <main className="flex flex-col gap-2 mt-2">
                     {
                         // Pensioned groups are part of the history rather than something to join, so
                         // they are listed after the ones that still run.

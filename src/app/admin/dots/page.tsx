@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import SelectUserForDots from './SelectUserForDots'
 import UserDots from '@/components/Dot/UserDots'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -45,7 +44,7 @@ const { page, generateMetadata } = serverPage({
         if (data.userId === null) {
             return (
                 <PageWrapper>
-                    <div className={styles.wrapper}>
+                    <div className="p-4 flex flex-col gap-4">
                         <i>Velg brukeren du vil se prikkene til</i>
                         <UserSelectionProvider>
                             <UserPagingProvider
@@ -63,10 +62,10 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper>
-                <div className={styles.wrapper}>
-                    <div className={styles.actions}>
-                        <Link className={styles.action} href="/admin/dots">Velg en annen bruker</Link>
-                        <Link className={styles.action} href={
+                <div className="p-4 flex flex-col gap-4">
+                    <div className="flex flex-row flex-wrap items-center gap-2">
+                        <Link className="btn font-light m-0!" href="/admin/dots">Velg en annen bruker</Link>
+                        <Link className="btn font-light m-0!" href={
                             `/admin/dots?${QueryParams.userId.encodeUrl(data.userId)}` +
                             `&${QueryParams.onlyActive.encodeUrl(!data.onlyActive)}`
                         }>

@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import UserList from '@/components/User/UserList/UserList'
@@ -17,11 +16,11 @@ const { page, generateMetadata } = serverPage({
         <PageWrapper fillHeight headerItem={
             capabilities.canCreate.authorized && (
                 <AddHeaderItemPopUp popUpKey="createUser">
-                    <CreateUserForm className={styles.makeUser} />
+                    <CreateUserForm className="min-w-[30vw] flex flex-col items-center justify-center" />
                 </AddHeaderItemPopUp>
             )
         }>
-            <div className={styles.wrapper}>
+            <div className="h-full">
                 <UserPagingProvider
                     serverRenderedData={[]}
                     startPage={{

@@ -1,5 +1,4 @@
 import Item from './Item'
-import styles from './NavBar.module.scss'
 import UserNavigation from './UserNavigation'
 import ReportButton from './ReportButton'
 import SearchButton from './SearchButton'
@@ -24,11 +23,13 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
     const itemsForNav = navItems.slice(0, navSize - 1)
 
     return (
-        <nav className={styles.NavBar}>
-            <ul className={styles.list}>
-                <li className={styles.logoContainer}>
-                    <HomeLogoLink className={styles.logo}>
-                        <div className={styles.logoWrapper}>
+        <nav className="text-text text-m w-full h-[64px]">
+            <ul className="w-full h-full flex flex-row justify-start items-center list-none">
+                <li className="
+                    flex items-center justify-center h-full relative bg-accent-blue rounded-[calc(2*var(--gap))] p-2
+                ">
+                    <HomeLogoLink className="flex items-center justify-center">
+                        <div className="size-[48px] flex items-center justify-center">
                             <StandardImageServer
                                 standardImage="LOGO_SIMPLE"
                                 width={36}
@@ -40,22 +41,33 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                 </li>
 
                 <PageTitleSetter title="" />
-                <li className={styles.pageTitleLi} data-nav-title>
+                <li
+                    className="
+                        min-w-0 ml-2 flex items-center
+                        max-mobile:[body:has([data-slide-sidebar-toggle])_&]:pr-[calc(44px+2*var(--gap))]
+                    "
+                    data-nav-title
+                >
                     <NavBarTitle />
                 </li>
-                <li className={styles.grower}></li>
+                <li className="grow"></li>
                 {
                     itemsForNav.map((item) => (
-                        <li className={styles.navItem} key={item.name}>
+                        <li className="hidden" key={item.name}>
                             <Item key={item.name} {...item} />
                         </li>
                     ))
                 }
-                <li className={styles.rightSide}>
-                    <EditModeNavIcon className={styles.editMode} />
+                <li className="
+                    flex w-auto ml-auto items-center gap-1
+                    max-mobile:hidden
+                ">
+                    <EditModeNavIcon className="[--edit-mode-icon-size:30px] size-12" />
                     <SearchButton/>
                     <ReportButton/>
-                    <div className={styles.magicHat}>
+                    <div className="
+                        btn relative m-0! size-[64px] p-0! flex items-center justify-center rounded-[calc(2*var(--gap))]!
+                    ">
                         {
                             profileImage ? (
                                 <ProfilePicture

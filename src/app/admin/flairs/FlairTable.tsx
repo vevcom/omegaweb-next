@@ -1,5 +1,4 @@
 'use client'
-import styles from './page.module.scss'
 import { increaseFlairRankAction, decreaseFlairRankAction } from '@/services/flairs/actions'
 import { configureAction } from '@/services/configureAction'
 import { flairAuth } from '@/services/flairs/auth'
@@ -18,6 +17,28 @@ export type FlairRow = {
     name: string,
     colorStyle: { backgroundColor: string },
     editHref: string,
+}
+
+const columnClass = {
+    colHandle: 'flex-[0_0_calc(4*var(--gap))]',
+    colImage: `
+        flex-[0_0_100px]
+        max-mobile:basis-[72px] max-mobile:min-w-0
+        max-mobile:[&>:first-child]:[zoom:0.72]
+    `,
+    colName: 'flex-[1_1_auto] min-w-0 wrap-anywhere',
+    colColor: `
+        flex-[0_0_100px] self-stretch
+        max-mobile:basis-4
+    `,
+    colRank: `
+        flex-[0_0_calc(6*var(--gap))]
+        max-mobile:basis-6
+    `,
+    colLink: `
+        flex-[0_0_140px]
+        max-mobile:basis-6
+    `,
 }
 
 type RowPropTypes = {
@@ -41,23 +62,35 @@ function FlairTableRow({ row, index, canReorder, onDragEnd }: RowPropTypes) {
             dragControls={dragControls}
             onDragEnd={() => onDragEnd(row.id)}
             whileDrag={{ scale: 1.01, boxShadow: '0 8px 20px rgba(0, 0, 0, 0.35)' }}
-            className={styles.row}
+            className="
+                relative flex items-center gap-2 bg-surface-raised py-3 px-4 transition-[background-color] duration-300
+                even:bg-[color-mix(in_srgb,var(--surface-raised),white_3%)]
+                hover:bg-surface-hover
+            "
         >
-            <span className={styles.colHandle} role="cell">
+            <span className={columnClass.colHandle} role="cell">
                 {canReorder &&
-                <span className={styles.dragHandle} onPointerDown={startDrag}>
+                <span
+                    className="
+                        flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab
+                        touch-none select-none transition-colors duration-300
+                        hover:bg-surface-hover hover:text-ink-strong
+                        active:cursor-grabbing
+                    "
+                    onPointerDown={startDrag}
+                >
                     <FontAwesomeIcon icon={faGripVertical} />
                 </span>
                 }
             </span>
-            <span className={styles.colImage} role="cell">{row.image}</span>
-            <span className={styles.colName} role="cell">{row.name}</span>
-            <span className={styles.colColor} role="cell" style={row.colorStyle}></span>
-            <span className={styles.colRank} role="cell">{index + 1}</span>
-            <span className={styles.colLink} role="cell">
-                <Link className={styles.imageContainer} href={row.editHref}>
+            <span className={columnClass.colImage} role="cell">{row.image}</span>
+            <span className={columnClass.colName} role="cell">{row.name}</span>
+            <span className={columnClass.colColor} role="cell" style={row.colorStyle}></span>
+            <span className={columnClass.colRank} role="cell">{index + 1}</span>
+            <span className={columnClass.colLink} role="cell">
+                <Link href={row.editHref}>
                     <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
-                    <span className={styles.linkText}>Rediger</span>
+                    <span className="max-mobile:sr-only">Rediger</span>
                 </Link>
             </span>
         </Reorder.Item>
@@ -92,14 +125,21 @@ export default function FlairTable({ rows }: PropTypes) {
     }
 
     return (
-        <div className={styles.flairList} role="table">
-            <div className={styles.headerRow} role="row">
-                <span className={styles.colHandle} role="columnheader"></span>
-                <span className={styles.colImage} role="columnheader">Bilde</span>
-                <span className={styles.colName} role="columnheader">Navn</span>
-                <span className={styles.colColor} role="columnheader">Farge</span>
-                <span className={styles.colRank} role="columnheader">Rank</span>
-                <span className={styles.colLink} role="columnheader">Link</span>
+        <div
+            className="
+                w-full my-4 rounded-round overflow-hidden shadow-[var(--boxShadow)_0_1px_3px,var(--boxShadow)_0_1px_2px]
+                text-m
+                [&_a_svg]:mr-[0.5rem]
+            "
+            role="table"
+        >
+            <div className="flex items-center gap-2 bg-surface-raised text-ink-strong font-medium py-3 px-4" role="row">
+                <span className={columnClass.colHandle} role="columnheader"></span>
+                <span className={columnClass.colImage} role="columnheader">Bilde</span>
+                <span className={columnClass.colName} role="columnheader">Navn</span>
+                <span className={columnClass.colColor} role="columnheader">Farge</span>
+                <span className={columnClass.colRank} role="columnheader">Rank</span>
+                <span className={columnClass.colLink} role="columnheader">Link</span>
             </div>
             <Reorder.Group
                 as="div"
@@ -107,7 +147,7 @@ export default function FlairTable({ rows }: PropTypes) {
                 role="rowgroup"
                 values={order}
                 onReorder={setOrder}
-                className={styles.body}
+                className="flex flex-col"
             >
                 {order.map((row, index) => (
                     <FlairTableRow

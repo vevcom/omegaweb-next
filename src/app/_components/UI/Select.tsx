@@ -1,5 +1,4 @@
 'use client'
-import styles from './Select.module.scss'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { useId, type SelectHTMLAttributes } from 'react'
@@ -21,6 +20,42 @@ export type PropTypes<ValueType> = Omit<SelectHTMLAttributes<HTMLSelectElement>,
     defaultValue?: ValueType,
 })
 
+const colorClassNames = {
+    black: { field: `
+        text-ink-strong
+        focus:border-accent-blue
+    `, accent: 'peer-focus:text-accent-blue' },
+    primary: { field: `
+        text-accent-blue
+        focus:border-accent-blue
+    `, accent: 'peer-focus:text-accent-blue' },
+    secondary: { field: `
+        text-text
+        focus:border-accent-blue
+    `, accent: 'peer-focus:text-accent-blue' },
+    red: { field: `
+        text-accent-red
+        focus:border-accent-red
+    `, accent: 'peer-focus:text-accent-red' },
+    white: { field: `
+        text-white
+        focus:border-accent-blue
+    `, accent: 'peer-focus:text-accent-blue' },
+} as const
+
+const backgroundClassNames = {
+    base: `
+        bg-surface-raised
+        hover:bg-surface-hover
+        focus:bg-surface-hover
+    `,
+    raised: `
+        bg-surface-hover
+        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+    `,
+} as const
+
 export function SelectConstructor<ValueType extends string | number>(valueConverter: (value: string) => ValueType) {
     return function Select({
         name,
@@ -41,15 +76,25 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
         return (
             <div
                 className={
-                    `${styles.Select} ${styles[color]} ` +
-                    `${background === 'raised' ? styles.onRaised : ''} ${className ?? ''}`
+                    `
+                        relative w-full max-w-[320px] mt-2
+                        ${className ?? ''}
+                    `
                 }
             >
                 <select
                     {...props}
                     id={selectId}
                     name={name}
-                    className={styles.field}
+                    className={`
+                        peer appearance-none relative w-full flex items-center border-2 border-transparent rounded-inner
+                        outline-0 text-m leading-[calc(var(--text-m)*1.25)] text-left pt-6 pr-10 pb-2 pl-4
+                        transition-[border-color,background-color] duration-300 cursor-pointer
+                        disabled:cursor-not-allowed disabled:opacity-60
+                        [&_option]:bg-surface-raised [&_option]:text-text
+                        ${colorClassNames[color].field}
+                        ${backgroundClassNames[background]}
+                    `}
                     {
                         ...(value ? { value } : { defaultValue })
                     }
@@ -71,8 +116,22 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                         )
                     }
                 </select>
-                <FontAwesomeIcon icon={faChevronDown} className={styles.chevron} />
-                <label htmlFor={selectId} className={styles.labe}>{label ?? name}</label>
+                <FontAwesomeIcon
+                    icon={faChevronDown}
+                    className={`
+                        absolute right-4 top-1/2 -translate-y-1/2 text-text-muted transition-colors duration-300
+                        pointer-events-none
+                        ${colorClassNames[color].accent}
+                    `}
+                />
+                <label
+                    htmlFor={selectId}
+                    className={`
+                        absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-text-muted transition-all
+                        duration-300 pointer-events-none z-1
+                        ${colorClassNames[color].accent}
+                    `}
+                >{label ?? name}</label>
             </div>
         )
     }

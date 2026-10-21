@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { getProfileForUserPage } from '@/app/users/[username]/(user-pages)/getProfileForUserPage'
 import { createAdmissionTrialAction } from '@/services/admission/actions'
 import {
@@ -58,16 +57,19 @@ const { page, generateMetadata } = serverPage({
         const showTrialRegistration = capabilities.canRegisterTrial.authorized && currentLevel === 'SOELLE'
 
         return (
-            <div className={styles.wrapper}>
+            <div className="bg-surface-base rounded-round p-(--card-padding)">
                 <h2>Medlemsstatus</h2>
 
                 {/* Highest standing first, so the ladder is read from the top down. */}
-                <ol className={styles.ladder}>
+                <ol className="flex flex-col gap-2 list-none mt-(--card-padding) mx-0 mb-0 p-0">
                     {[...OMEGA_MEMBERSHIP_LEVEL_RANKING].reverse().map(level => (
-                        <li key={level} className={styles.step}>
-                            <div className={level === currentLevel
-                                ? `${styles.level} ${styles.current}`
-                                : styles.level}
+                        <li key={level} className="flex flex-col gap-2">
+                            <div className={`
+                                flex items-center justify-between gap-2 p-(--card-padding) border-2 rounded-round
+                                ${level === currentLevel
+                            ? 'border-accent-blue bg-surface-hover text-ink-strong font-bold'
+                            : 'border-transparent bg-surface-raised text-text-muted'}
+                            `}
                             >
                                 <span>
                                     {level === 'SYSKEN'
@@ -75,10 +77,12 @@ const { page, generateMetadata } = serverPage({
                                         : stepNames[level]}
                                 </span>
                                 {level === currentLevel
-                                    ? <span className={styles.marker}>Du er her</span>
+                                    ? <span className="
+                                        text-[0.8rem] font-normal uppercase tracking-[0.05em] text-accent-blue
+                                    ">Du er her</span>
                                     : capabilities.canChangeLevel.authorized && (
                                         <Form
-                                            className={styles.action}
+                                            className="m-0! p-0! text-[0.8rem]!"
                                             submitText="Flytt hit"
                                             submitColor="secondary"
                                             refreshOnSuccess
@@ -98,18 +102,23 @@ const { page, generateMetadata } = serverPage({
                                 gap between the two. Hidden from anyone who may not read them, since
                                 empty boxes would read as "none sat" rather than "not shown". */}
                             {level === 'SYSKEN' && capabilities.canReadTrials.authorized && (
-                                <ul className={styles.trials}>
+                                <ul className="flex flex-wrap gap-2 list-none m-0 py-0 px-(--card-padding)">
                                     {allAdmissions.map(admission => (
                                         <li
                                             key={admission}
-                                            className={sittedTrials.has(admission)
-                                                ? `${styles.trial} ${styles.sitted}`
-                                                : styles.trial}
+                                            className={`
+                                                flex flex-col items-center gap-2 flex-[1_1_0] min-w-[8rem]
+                                                p-[calc(2*var(--rounding))] text-center border-2 rounded-round
+                                                max-mobile:basis-full
+                                                ${sittedTrials.has(admission)
+                                            ? 'border-solid border-accent-green text-ink-strong'
+                                            : 'border-dashed border-[#adb5bd] text-text-muted'}
+                                            `}
                                         >
                                             <span>{admissionDisplayNames[admission]}</span>
                                             {showTrialRegistration && !sittedTrials.has(admission) && (
                                                 <Form
-                                                    className={styles.action}
+                                                    className="m-0! p-0! text-[0.8rem]!"
                                                     submitText="Registrer"
                                                     submitColor="secondary"
                                                     refreshOnSuccess
@@ -128,7 +137,10 @@ const { page, generateMetadata } = serverPage({
                     ))}
                 </ol>
 
-                <section className={styles.order}>
+                <section className="
+                    mt-(--card-padding) pt-(--card-padding) border-t border-surface-hover
+                    [&_h3]:mt-0 [&_h3]:mx-0 [&_h3]:mb-2
+                ">
                     <h3>Orden</h3>
                     <p>
                         Medlemskapet er udaf den {profile.omegaMembership.order}´dis orden.

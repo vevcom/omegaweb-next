@@ -1,113 +1,128 @@
 @use "ohma";
 
-*, html, body {
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-    font-family: ohma.$fonts-primary;
-    color: ohma.$colors-text;
-}
-
-html {
-    scroll-behavior: smooth;
-    background-color: ohma.$colors-surface-base;
-
-    --rounding: 1rem;
-    --gap: 0.5rem;
-    --card-padding: calc(3 * var(--rounding));
-
-    @include ohma.screenMobile {
-        --card-padding: var(--rounding);
+// Layered so Tailwind's utility classes (@layer utilities) can still
+// override these bare-element defaults (padding/margin/box-sizing,
+// heading sizes, link decoration, ...) - unlayered rules always beat
+// layered ones regardless of specificity, which would otherwise make
+// every plain-element default here un-overridable by Tailwind utilities.
+@layer base {
+    *, html, body {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        font-family: ohma.$fonts-primary;
+        color: ohma.$colors-text;
     }
 
-    --layer: hsl(210, 0%, 0%, 20%);
+    html {
+        scroll-behavior: smooth;
+        background-color: ohma.$colors-surface-base;
 
-    --boxShadow:   hsl(207, 0%,    0%,    20%);
-    --text:        hsl(0,   0%,    90%);
-    --text-muted:  hsl(0,   0%,    75%);
-    --text-inv:    hsl(0,   0%,    10%);
+        --rounding: 1rem;
+        --gap: 0.5rem;
+        --card-padding: calc(3 * var(--rounding));
 
-    --surface-base:    hsl(240 8% 8%);
-    --surface-raised:  hsl(240 6% 12%);
-    --surface-hover:   hsl(210, 8%, 18%);
-    --surface-subtle:  hsl(210, 8%, 35%);
+        @include ohma.screenMobile {
+            --card-padding: var(--rounding);
+        }
 
-    --ink-hover:  hsl(210, 8%, 65%);
-    --ink-strong: hsl(210, 8%, 75%);
+        --layer: hsl(210, 0%, 0%, 20%);
 
-    --accent-red:     hsl(0, 80%, 60%);
-    --accent-orange:  hsl(40, 80%, 60%);
-    --accent-yellow:  hsl(60, 80%, 60%);
-    --accent-green:   hsl(120, 80%, 60%);
-    --accent-cyan:    hsl(180, 80%, 60%);
-    --accent-blue:    #037FFC;
-    --accent-magenta: hsl(300, 80%, 60%);
-    --accent-violet:  hsl(260, 80%, 60%);
-}
+        --boxShadow:   hsl(207, 0%,    0%,    20%);
+        --text:        hsl(0,   0%,    90%);
+        --text-muted:  hsl(0,   0%,    75%);
+        --text-inv:    hsl(0,   0%,    10%);
 
-body {
-    font-size: ohma.$fonts-s;
-    font-weight: ohma.$fonts-weight-s;
-    overflow-x: hidden;
-    overscroll-behavior-y:contain;
-    background-color: ohma.$colors-surface-base;
-}
+        --surface-base:    hsl(240 8% 8%);
+        --surface-raised:  hsl(240 6% 12%);
+        --surface-hover:   hsl(210, 8%, 18%);
+        --surface-subtle:  hsl(210, 8%, 35%);
 
-* {
-    scrollbar-width: thin;
-    scrollbar-color: ohma.$colors-surface-subtle transparent;
-}
+        --ink-hover:  hsl(210, 8%, 65%);
+        --ink-strong: hsl(210, 8%, 75%);
 
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background-color: ohma.$colors-surface-subtle;
-    border-radius: 999px;
-    border: 2px solid transparent;
-    background-clip: content-box;
-
-    &:hover {
-        background-color: ohma.$colors-ink-hover;
+        --accent-red:     hsl(0, 80%, 60%);
+        --accent-orange:  hsl(40, 80%, 60%);
+        --accent-yellow:  hsl(60, 80%, 60%);
+        --accent-green:   hsl(120, 80%, 60%);
+        --accent-cyan:    hsl(180, 80%, 60%);
+        --accent-blue:    #037FFC;
+        --accent-magenta: hsl(300, 80%, 60%);
+        --accent-violet:  hsl(260, 80%, 60%);
     }
-}
 
-a {
-    color: ohma.$colors-accent-blue;
-    text-decoration: none;
-
-    &:hover {
-        text-decoration: underline;
+    body {
+        font-size: ohma.$fonts-s;
+        font-weight: ohma.$fonts-weight-s;
+        overflow-x: hidden;
+        overscroll-behavior-y:contain;
+        background-color: ohma.$colors-surface-base;
     }
-}
 
-h1 {
-    font-size: ohma.$fonts-xl;
-    font-weight: ohma.$fonts-weight-l;
-}
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: ohma.$colors-surface-subtle transparent;
+    }
 
-h2 {
-    font-size: ohma.$fonts-l;
-    font-weight: ohma.$fonts-weight-l;
-}
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
 
-h3 {
-    font-size: ohma.$fonts-l;
-    font-weight: ohma.$fonts-weight-m;
-}
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
 
-h4, p {
-    font-size: ohma.$fonts-m;
-    font-weight: ohma.$fonts-weight-s;
-}
+    ::-webkit-scrollbar-thumb {
+        background-color: ohma.$colors-surface-subtle;
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
 
-h5 {
-    font-size: ohma.$fonts-s;
-    font-weight: ohma.$fonts-weight-s;
+        &:hover {
+            background-color: ohma.$colors-ink-hover;
+        }
+    }
+
+    a {
+        color: ohma.$colors-accent-blue;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+
+    h1 {
+        font-size: ohma.$fonts-xl;
+        font-weight: ohma.$fonts-weight-l;
+    }
+
+    h2 {
+        font-size: ohma.$fonts-l;
+        font-weight: ohma.$fonts-weight-l;
+    }
+
+    h3 {
+        font-size: ohma.$fonts-l;
+        font-weight: ohma.$fonts-weight-m;
+    }
+
+    h4, p {
+        font-size: ohma.$fonts-m;
+        font-weight: ohma.$fonts-weight-s;
+    }
+
+    h5 {
+        font-size: ohma.$fonts-s;
+        font-weight: ohma.$fonts-weight-s;
+    }
+
+    ul {
+        list-style: disc;
+    }
+
+    ol {
+        list-style: decimal;
+    }
 }

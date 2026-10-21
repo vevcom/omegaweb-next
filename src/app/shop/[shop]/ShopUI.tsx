@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './ShopUI.module.scss'
 import { EditProductForShopForm } from './EditProductForShopForm'
 import PopUp from '@/components/PopUp/PopUp'
 import Button from '@/components/UI/Button'
@@ -87,7 +86,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
     }
 
     return <>
-        <table className={styles.table}>
+        <table className="ohma-table">
             <thead>
                 <tr>
                     {capabilities.canUpdateProduct.authorized && <th>Rediger</th>}
@@ -101,9 +100,12 @@ export default function ShopUI({ shop, userId, capabilities }: {
             </thead>
             <tbody>
                 {Object.values(shoppingCart.products).map(product =>
-                    <tr key={product.id} className={product.active ? '' : styles.deactivatedProduct}>
+                    <tr key={product.id} className={product.active ? '' : 'text-text-muted italic'}>
                         {capabilities.canUpdateProduct.authorized && (
-                            <td className={styles.editButtonWrapper}>
+                            <td className="
+                                text-center
+                                [&>button]:size-[30px] [&>button]:border-none [&>button]:bg-transparent
+                            ">
                                 <PopUp
                                     showButtonContent={<FontAwesomeIcon icon={faPencil} />}
                                     popUpKey={`editProductForShop-${product.id}`}
@@ -157,10 +159,10 @@ export default function ShopUI({ shop, userId, capabilities }: {
                 </tr>
             </tbody>
         </table>
-        {purchaseError && <p className={styles.error}>{purchaseError}</p>}
+        {purchaseError && <p className="text-accent-red">{purchaseError}</p>}
         {receipt && <div>
             <h2>Kvittering</h2>
-            <table className={styles.table}>
+            <table className="ohma-table">
                 <thead>
                     <tr>
                         <th>Produkt</th>

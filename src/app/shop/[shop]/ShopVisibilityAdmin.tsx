@@ -1,5 +1,4 @@
 'use client'
-import styles from './ShopVisibilityAdmin.module.scss'
 import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import {
@@ -23,7 +22,7 @@ export default function ShopVisibilityAdmin({ shop }: { shop: ExtendedShop }) {
 
     return <>
         {canUpdateRegularLevel && (
-            <div className={styles.visibility}>
+            <div className="flex flex-col gap-[0.5rem] mt-[1em]">
                 <h3>Hvem kan handle i butikken?</h3>
                 <VisibilityAdmin
                     visibility={shop.visibility.regularLevel}
@@ -36,7 +35,7 @@ export default function ShopVisibilityAdmin({ shop }: { shop: ExtendedShop }) {
             </div>
         )}
         {canUpdateAdminLevel && (
-            <div className={styles.visibility}>
+            <div className="flex flex-col gap-[0.5rem] mt-[1em]">
                 <h3>Hvem kan administrere butikken?</h3>
                 <VisibilityAdmin
                     visibility={shop.visibility.adminLevel}

@@ -186,8 +186,13 @@ const { page, generateMetadata } = serverPage({
         const dotGiverId = capabilities.canGiveDots.authorized && session.user ? session.user.id : null
 
         return (
-            <div className={styles.wrapper}>
-                <span className={styles.coverImage}>
+            <div className="w-full flex flex-wrap items-stretch gap-2">
+                <span className={`
+                    ${styles.coverImage}
+                    flex-[0_0_100%] block relative h-[20em]
+                    max-mobile:h-auto max-mobile:aspect-video
+                    bg-surface-base rounded-round overflow-hidden
+                `}>
                     <CmsImage
                         capabilities={{ canEdit: capabilities.canEditCmsCoverImage }}
                         cmsImage={event.coverImage}
@@ -198,9 +203,17 @@ const { page, generateMetadata } = serverPage({
                                 { implementationParams: { eventId: event.id } }
                             )}
                     />
-                    <div className={styles.infoInImage}>
+                    <div className={`
+                        ${styles.overlay}
+                        absolute inset-[auto_0_0_0] flex flex-wrap items-baseline gap-x-[1em] gap-y-0 pt-8 px-6 pb-4
+                        bg-[linear-gradient(to_bottom,transparent,rgb(0_0_0/60%))] rounded-b-round
+                        [&_h1]:text-xxl [&_h1]:wrap-anywhere [&_h1]:text-white
+                    `}>
                         <ShowAndEditName event={event} capabilities={{ canUpdate: capabilities.canUpdate.toJsObject() }} />
-                        <ul className={styles.tags}>
+                        <ul className="
+                            list-none flex flex-wrap gap-x-[1em] gap-y-0
+                            [&_a]:no-underline
+                        ">
                             {event.tags.map(tag => (
                                 <li key={tag.id}>
                                     <Link href={`/events?${QueryParams.eventTags.encodeUrl([tag.name])}`}>
@@ -210,7 +223,11 @@ const { page, generateMetadata } = serverPage({
                             ))}
                         </ul>
                     </div>
-                    <div className={styles.settings}>
+                    <div className={`
+                        ${styles.overlay}
+                        absolute top-2 right-2 z-1 flex gap-2
+                        [&_svg]:size-14
+                    `}>
                         {event.takesRegistration && (
                             capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
                         ) &&
@@ -250,7 +267,7 @@ const { page, generateMetadata } = serverPage({
                                 <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
                                 {event.takesRegistration && capabilities.canTakeAttendance.authorized &&
                                     <Link
-                                        className={styles.attendanceLink}
+                                        className="block p-2 text-center rounded-round bg-surface-raised text-text"
                                         href={`/events/${formatVevenUri(event.name, event.id)}/attendance`}
                                     >
                                         Registrer oppmøte
@@ -260,8 +277,6 @@ const { page, generateMetadata } = serverPage({
                                     <Form
                                         action={configureAction(destroyEventAction, { params: { id: event.id } })}
                                         navigateOnSuccess="/events"
-                                        className={styles.destroyForm}
-                                        buttonClassName={styles.destroyButton}
                                         submitText="Slett"
                                         submitColor="red"
                                         confirmation={{
@@ -274,7 +289,13 @@ const { page, generateMetadata } = serverPage({
                         )}
                     </div>
                 </span>
-                <aside>
+                <aside className="
+                    flex-[1_1_650px]
+                    max-mobile:basis-full
+                    bg-surface-base rounded-round pt-8 px-8 pb-2 flex flex-col gap-4
+                    [&>p]:flex [&>p]:items-center [&>p]:gap-[1em] [&>p]:text-l
+                    [&>p_svg]:size-[1.5em]
+                ">
                     <p>
                         <FontAwesomeIcon icon={faCalendar} />
                         <DateDisplay date={event.eventStart} includeTime />
@@ -324,7 +345,11 @@ const { page, generateMetadata } = serverPage({
                     </p>}
 
                 </aside>
-                <main>
+                <main className="
+                    flex-[999_1_420px]
+                    max-mobile:basis-full
+                    min-w-0 p-4 bg-surface-base rounded-round
+                ">
                     <CmsParagraph
                         capabilities={{ canEdit: capabilities.canEditCmsParagraph }}
                         cmsParagraph={event.paragraph}
@@ -342,7 +367,10 @@ const { page, generateMetadata } = serverPage({
                 </main>
 
                 {event.takesRegistration && capabilities.canReadRegistrations.authorized && (
-                    <div className={styles.registrationList}>
+                    <div className="
+                        flex-[0_0_100%] bg-surface-base p-2 rounded-round
+                        [&>h4]:text-xl [&>h4]:font-bold
+                    ">
                         <RegistrationsList
                             event={event}
                             canReadDetailed={capabilities.canReadRegistrationsDetailed.authorized}

@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { OmegaMembershipLevelConfig } from '@/services/groups/constants'
@@ -35,7 +34,7 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper>
-                <p className={styles.explanation}>
+                <p className="text-text-muted max-w-[70ch] mb-4">
                     Hvilken medlemsgruppe en bruker tilhører styres kun gjennom opptakssystemet. Gruppene
                     følger ordenen til Omega automatisk, og kan verken opprettes eller slettes.
                 </p>

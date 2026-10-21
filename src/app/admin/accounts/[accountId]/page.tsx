@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import LedgerAccountGroupsCard from '@/components/Ledger/Accounts/LedgerAccountGroupsCard'
 import EditLedgerAccountDetailsForm from '@/components/Ledger/Accounts/EditLedgerAccountDetailsForm'
 import PopUp from '@/components/PopUp/PopUp'
@@ -46,11 +45,15 @@ const { page, generateMetadata } = serverPage({
             : ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership] }),
     }),
     render: ({ data: ledgerAccount, capabilities }) => (
-        <div className={styles.wrapper}>
+        <div className="flex flex-col gap-2">
             {ledgerAccount.type === 'GROUP' && capabilities.canUpdate.authorized && (
                 <PopUp
                     popUpKey="editLedgerAccountDetails"
-                    showButtonClass={styles.editButton}
+                    showButtonClass="
+                        self-end size-[20px] bg-white border-none rounded-full cursor-pointer transition-[background]
+                        duration-500 flex justify-center items-center
+                        hover:bg-[color-mix(in_srgb,white,black_10%)]
+                    "
                     showButtonContent={<FontAwesomeIcon icon={faPencil} />}
                 >
                     <EditLedgerAccountDetailsForm

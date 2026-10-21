@@ -39,6 +39,13 @@ type PropTypes = {
     onNavigateRight: () => void,
 }
 
+const navButtonClassName = `
+    size-10 grid place-items-center rounded-full border-none cursor-pointer bg-surface-raised text-text
+    transition-[background-color] duration-300
+    hover:bg-surface-hover
+    [&>svg]:w-[45%]! [&>svg]:h-[45%]!
+`
+
 /**
  * The large view of the image an ImagePanel is currently displaying. A pure viewer - navigation,
  * closing and what image to show are the panel's responsibility, and administration of the image
@@ -69,12 +76,24 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
     }
 
     return (
-        <div className={styles.ImageDisplay}>
-            <div className={styles.panel} ref={panelRef}>
-                <div className={styles.header}>
-                    <div className={styles.meta}>
-                        <h2>{image.name}</h2>
-                        <dl>
+        <div className="
+            z-5 fixed top-0 left-0 w-screen h-dvh grid place-items-center bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px]
+        ">
+            <div
+                className="relative w-[95vw] h-[95dvh] flex flex-col gap-4 p-4 rounded-round bg-surface-base"
+                ref={panelRef}
+            >
+                <div className="shrink-0 flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                        <h2 className="font-secondary text-xl font-bold overflow-hidden text-ellipsis whitespace-nowrap">
+                            {image.name}
+                        </h2>
+                        <dl className="
+                            mt-2 flex flex-wrap gap-x-4 gap-y-0 text-s text-text-muted
+                            [&>div]:flex [&>div]:gap-[0.4em] [&>div]:min-w-0
+                            [&_dt]:text-ink-hover
+                            [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap
+                        ">
                             <div>
                                 <dt>Alt-tekst:</dt>
                                 <dd>{image.alt}</dd>
@@ -103,12 +122,17 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                             </div>
                         </dl>
                     </div>
-                    <button onClick={onClose} className={styles.close} aria-label="Lukk">
+                    <button onClick={onClose} className="shrink-0 close-btn" aria-label="Lukk">
                         <FontAwesomeIcon icon={faX}/>
                     </button>
                 </div>
 
-                <div className={styles.currentImage}>
+                <div className="
+                    flex-auto min-h-0 relative
+                    [&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full
+                    [&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full [&_img]:object-contain
+                    [&_img]:rounded-round
+                ">
                     {
                         loading ? (
                             <div className={styles.loading}></div>
@@ -124,17 +148,27 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                     }
                 </div>
 
-                <div className={styles.footer}>
-                    <span className={styles.footerSpacer} />
-                    <div className={styles.controls}>
-                        <button onClick={onNavigateLeft} aria-label="Forrige bilde">
+                <div className="
+                    shrink-0 flex items-center gap-2
+                    max-mobile:flex-wrap
+                ">
+                    <span className="
+                        flex-none w-44
+                        max-mobile:hidden
+                    " />
+                    <div className="flex-auto flex justify-center gap-2">
+                        <button onClick={onNavigateLeft} className={navButtonClassName} aria-label="Forrige bilde">
                             <FontAwesomeIcon icon={faChevronLeft}/>
                         </button>
-                        <button onClick={onNavigateRight} aria-label="Neste bilde">
+                        <button onClick={onNavigateRight} className={navButtonClassName} aria-label="Neste bilde">
                             <FontAwesomeIcon icon={faChevronRight}/>
                         </button>
                     </div>
-                    <div className={styles.selectImageSize}>
+                    <div className="
+                        flex-none w-44
+                        [&>*]:mt-0!
+                        max-mobile:w-full max-mobile:-order-1
+                    ">
                         <SelectString
                             defaultValue={imageSize}
                             value={imageSize}

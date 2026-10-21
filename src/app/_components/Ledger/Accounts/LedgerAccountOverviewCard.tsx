@@ -1,4 +1,3 @@
-import styles from './LedgerAccountOverviewCard.module.scss'
 import LedgerAccountBalance from './LedgerAccountBalance'
 import LedgerAccountFreezeButton from './LedgerAccountFreezeButton'
 import DepositModal from '@/components/Ledger/Modals/DepositModal'
@@ -47,16 +46,16 @@ export default async function LedgerAccountOverview({
         ? await getCustomerSessionClientSecret()
         : undefined
 
-    return <div className={styles.wrapper}>
+    return <div className="bg-surface-base rounded-round p-(--card-padding)">
         <h2>Kontooversikt</h2>
         <LedgerAccountBalance ledgerAccountId={ledgerAccount.id} showFees={showFees} />
         {
             ledgerAccount.frozen &&
-            <p className={styles.frozenWarning}>
+            <p className="text-accent-red">
                 <FontAwesomeIcon icon={faWarning}/> Kontoen er fryst; Ingen transaksjoner kan utføres.
             </p>
         }
-        <div className={styles.ledgerAccountOverviewButtons}>
+        <div className="mt-6 flex flex-row">
             {
                 capabilities.canDeposit.authorized &&
                 <DepositModal
@@ -68,7 +67,7 @@ export default async function LedgerAccountOverview({
             { capabilities.canPayout.authorized && <PayoutModal ledgerAccountId={ledgerAccount.id} /> }
             {
                 capabilities.canFreeze.authorized &&
-                <LedgerAccountFreezeButton ledgerAccount={ledgerAccount} className={styles.rightAligned} />
+                <LedgerAccountFreezeButton ledgerAccount={ledgerAccount} className="ml-auto" />
             }
         </div>
     </div>

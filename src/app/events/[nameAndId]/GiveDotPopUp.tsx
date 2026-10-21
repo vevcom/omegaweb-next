@@ -1,5 +1,4 @@
 'use client'
-import styles from './GiveDotPopUp.module.scss'
 import PopUp from '@/components/PopUp/PopUp'
 import Form from '@/components/Form/Form'
 import NumberInput from '@/components/UI/NumberInput'
@@ -27,7 +26,7 @@ export default function GiveDotPopUp({ eventId, accuserId, userId, popUpKey }: P
     )
 
     return (
-        <PopUp popUpKey={popUpKey} showButtonContent="Gi prikk" showButtonClass={styles.showButton}>
+        <PopUp popUpKey={popUpKey} showButtonContent="Gi prikk" showButtonClass="btn whitespace-nowrap">
             <Form
                 action={action}
                 title="Gi prikk"

@@ -1,5 +1,4 @@
 'use client'
-import styles from './CreateOmbul.module.scss'
 import OmbulCover from './OmbulCover'
 import TextInput from '@/components/UI/TextInput'
 import NumberInput from '@/components/UI/NumberInput'
@@ -82,12 +81,18 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
     }
 
     return (
-        <div className={styles.CreateOmbul}>
-            <h1>Lag ny ombul</h1>
+        <div className="
+            min-w-[60vw] grid grid-cols-[1fr_1fr] grid-rows-[auto_auto] gap-10
+            max-mobile:grid-cols-1
+        ">
+            <h1 className="col-[1/3] row-[1/2]">Lag ny ombul</h1>
             <Form
                 action={createOmbulAction}
                 submitText="Lag ombul"
-                className={styles.form}
+                className="
+                    col-[1/2] min-w-[30vw]
+                    [&_textarea]:min-h-[100px]
+                "
                 successCallback={handleCreate}
             >
                 <TextInput
@@ -124,7 +129,11 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
                     onChange={handlePreviewChange.bind(null, 'pImage')}
                 />
             </Form>
-            <div className={styles.imgPreview}>
+            <div className="
+                col-[2/3] ml-4 w-[70%] h-[70%] min-w-[20vw] max-w-[30vw]
+                max-mobile:hidden
+                [&_img]:w-[70%]! [&_img]:h-full [&_img]:object-contain! [&_img]:mb-2
+            ">
                 <OmbulCover preview={preview} ombul={null} />
             </div>
         </div>

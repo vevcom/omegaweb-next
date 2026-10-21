@@ -1,5 +1,4 @@
 import MailFlow from './MailFlow'
-import styles from './page.module.scss'
 import EditMailAlias from './(edit-components)/EditMailAlias'
 import EditMailingList from './(edit-components)/EditMailingList'
 import EditMailAddressExternal from './(edit-components)/EditMailAddressExternal'
@@ -64,12 +63,12 @@ const { page, generateMetadata } = serverPage({
         const { filter, id, results, mailOptions, groups, groupNames } = data
 
         return <PageWrapper>
-            <div className={styles.wrapper}>
-                <p className={styles.typeTag}>{typeDisplayNames[filter]}</p>
+            <div className="p-4 flex flex-col gap-4">
+                <p className="m-0 text-text-muted text-[0.85rem] uppercase tracking-[0.06em]">{typeDisplayNames[filter]}</p>
 
                 <MailFlow filter={filter} id={id} data={results} groupNames={groupNames} />
 
-                <div className={styles.editContainer}>
+                <div className="flex flex-row flex-wrap items-start gap-4">
                     {filter === 'mailingList' && <UserSelectionProvider>
                         <UserPagingProvider
                             startPage={{ page: 0, pageSize: 50 }}

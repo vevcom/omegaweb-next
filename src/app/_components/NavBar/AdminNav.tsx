@@ -1,5 +1,5 @@
 'use client'
-import styles from './DesktopSideBar.module.scss'
+import { dividerClassName, navIconClassName, navIconIconClassName, navIconLabelClassName } from './sideBarClassNames'
 import NavTooltip from './NavTooltip'
 import { adminNavItemHref } from './adminNavItemHref'
 import Link from 'next/link'
@@ -21,19 +21,19 @@ export default function AdminNav({ showAdmin, expanded = false, active = false }
     const adminLink = (
         <Link
             href={adminNavItemHref}
-            className={`${styles.navIcon} ${active ? styles.active : ''}`}
+            className={navIconClassName}
             aria-label="Admin"
             aria-current={active ? 'page' : undefined}
         >
-            <FontAwesomeIcon icon={faCog} className={styles.icon} />
-            <span className={styles.label}>Admin</span>
+            <FontAwesomeIcon icon={faCog} className={navIconIconClassName} />
+            <span className={navIconLabelClassName}>Admin</span>
         </Link>
     )
 
     return (
         <>
-            <hr className={styles.divider} />
-            <nav className={styles.adminNav} aria-label="Adminnavigasjon">
+            <hr className={dividerClassName} />
+            <nav className="w-full flex flex-col items-stretch shrink-0" aria-label="Adminnavigasjon">
                 {expanded ? adminLink : <NavTooltip content="Admin">{adminLink}</NavTooltip>}
             </nav>
         </>

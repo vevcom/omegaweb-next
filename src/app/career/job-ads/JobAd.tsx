@@ -1,4 +1,3 @@
-import styles from './JobAd.module.scss'
 import Image from '@/components/Image/Image'
 import SponsorBadge from '@/components/Company/SponsorBadge'
 import { formatVevenUri } from '@/lib/urlEncoding'
@@ -19,9 +18,9 @@ export default function JobAd({ jobAd }: PropTypes) {
     return (
         <Link
             href={`/career/job-ads/${formatVevenUri(jobAd.articleName, jobAd.id)}`}
-            className={styles.JobAd}
+            className="list-row"
         >
-            <div className={styles.thumb}>
+            <div className="list-row-thumb">
                 {jobAd.coverImage && (
                     <Image
                         disableLinkingToLicense
@@ -32,30 +31,32 @@ export default function JobAd({ jobAd }: PropTypes) {
                 )}
             </div>
 
-            <div className={styles.lead}>
+            <div className="list-row-lead">
                 {deadline ? <>
                     <b>{deadline.day}</b>
                     <span>{months[deadline.month - 1]}</span>
                 </> : (
-                    <span className={styles.noDeadline}>Løpende</span>
+                    <span className="text-s text-text-muted normal-case text-center">Løpende</span>
                 )}
             </div>
 
-            <div className={styles.main}>
+            <div className="list-row-main">
                 <h2>{jobAd.articleName}</h2>
                 <p>
                     <SponsorBadge
                         sponsorTier={jobAd.companySponsorTier}
                         iconOnly
-                        className={styles.sponsorMark}
+                        className="align-middle mr-1.5"
                     />
                     {jobAd.companyName} — {jobAdType[jobAd.type].label}
                 </p>
             </div>
 
-            <div className={styles.meta}>
+            <div className="list-row-meta">
                 {jobAd.location && <span>{jobAd.location}</span>}
-                {!jobAd.active && <span className={styles.inactive}>Inaktiv</span>}
+                {!jobAd.active && (
+                    <span className="bg-accent-red text-text-inv px-2 rounded-inner font-medium">Inaktiv</span>
+                )}
             </div>
         </Link>
     )

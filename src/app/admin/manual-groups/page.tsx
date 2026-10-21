@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import ManualGroupForm from './ManualGroupForm'
 import DestroyManualGroup from './DestroyManualGroup'
 import { manualGroupOperations } from '@/services/groups/manualGroups/operations'
@@ -44,12 +43,12 @@ const { page, generateMetadata } = serverPage({
                     </AddHeaderItemPopUp>
                 )}
             >
-                <p className={styles.explanation}>
+                <p className="text-text-muted max-w-[70ch]">
                     Øvrige grupper som ikke passer inn i de andre gruppetypene. De migreres én og én: når
                     Omega inkrementeres blir de stående i forrige orden til noen velger hvilke medlemmer
                     som skal videre.
                 </p>
-                <table className={styles.groupList}>
+                <table className="ohma-table">
                     <thead>
                         <tr>
                             {capabilities.canUpdateManualGroup.authorized && <th>Rediger</th>}
@@ -68,10 +67,10 @@ const { page, generateMetadata } = serverPage({
                             .map(manualGroup => (
                                 <tr key={manualGroup.id}>
                                     {capabilities.canUpdateManualGroup.authorized && (
-                                        <td className={styles.editCell}>
+                                        <td className="text-center">
                                             <PopUp
                                                 showButtonContent={<FontAwesomeIcon icon={faPencil} />}
-                                                showButtonClass={styles.editButton}
+                                                showButtonClass="w-[30px] h-[30px] border-none bg-transparent"
                                                 popUpKey={`update manual group ${manualGroup.id}`}
                                             >
                                                 <ManualGroupForm manualGroup={manualGroup} />
@@ -88,7 +87,7 @@ const { page, generateMetadata } = serverPage({
                                     <td>{membersOfGroup(manualGroup.groupId)}</td>
                                     <td>{manualGroup.group.pensioned ? 'Pensjonert' : 'Aktiv'}</td>
                                     {capabilities.canDestroyManualGroup.authorized && (
-                                        <td className={styles.rowActions}>
+                                        <td className="flex gap-2 items-center">
                                             <DestroyManualGroup id={manualGroup.id} name={manualGroup.name} />
                                         </td>
                                     )}

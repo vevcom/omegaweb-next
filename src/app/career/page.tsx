@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagraph'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import StandardImageServer from '@/components/Image/StandardImageServer'
@@ -15,6 +14,21 @@ import { careerAuth } from '@/services/career/auth'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/ServerPage'
+
+const linkClassName = `
+    bg-surface-raised rounded-round no-underline
+    hover:underline
+    text-text flex flex-row flex-wrap items-center
+    max-mobile:flex-col max-mobile:w-min max-mobile:self-center
+    [&>h2]:p-[1em] [&>h2]:flex-2 [&>h2]:text-center [&>h2]:text-xl
+`
+
+const linkImageClassName = `
+    flex-[0_0_auto] relative w-68 h-36 m-2 rounded-inner overflow-hidden
+    max-mobile:w-[calc(100%-2*var(--gap))]
+    [&_div]:absolute [&_div]:inset-0 [&_div]:size-full
+    [&_img]:size-full [&_img]:object-cover
+`
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
@@ -39,24 +53,24 @@ const { page, generateMetadata } = serverPage({
         <PageWrapper headerItem={
             data.contactorCmsLink ? <CmsLink
                 capabilities={{ canEdit: capabilities.canEditSpecialCmsLink }}
-                className={styles.conactorLink}
+                className="w-[170px] h-[35px]!"
                 cmsLink={data.contactorCmsLink}
                 updateCmsLinkAction={updateCareerSpecialCmsLinkAction}
             /> : <></>
         }>
-            <div className={styles.wrapper}>
+            <div className="relative">
                 <SpecialCmsParagraph
                     capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
-                    className={styles.info}
+                    className="mt-[1em] max-w-[75ch]"
                     special="CAREER_INFO"
                     readSpecialCmsParagraphAction={readSpecialCmsParagraphCareerInfoAction}
                     updateCmsParagraphAction={updateSpecialCmsParagraphContentCareerInfoAction}
                 />
-                <span className={styles.links}>
-                    <Link href="/career/job-ads">
+                <span className="flex flex-col gap-2">
+                    <Link href="/career/job-ads" className={linkClassName}>
                         <StandardImageServer
                             disableLinkingToLicense
-                            className={styles.linkImage}
+                            className={linkImageClassName}
                             width={300}
                             standardImage="MACHINE"
                         />
@@ -64,19 +78,19 @@ const { page, generateMetadata } = serverPage({
                     </Link>
                     <Link href={`/events?${QueryParams.eventTags.encodeUrl(
                         data.companyPresentationEventTag ? [data.companyPresentationEventTag.name] : []
-                    )}`}>
+                    )}`} className={linkClassName}>
                         <StandardImageServer
                             disableLinkingToLicense
-                            className={styles.linkImage}
+                            className={linkImageClassName}
                             width={300}
                             standardImage="FAIR"
                         />
                         <h2>Bedriftpresentasjoner</h2>
                     </Link>
-                    <Link href="/career/companies">
+                    <Link href="/career/companies" className={linkClassName}>
                         <StandardImageServer
                             disableLinkingToLicense
-                            className={styles.linkImage}
+                            className={linkImageClassName}
                             width={300}
                             standardImage="REALFAGSBYGGET"
                         />

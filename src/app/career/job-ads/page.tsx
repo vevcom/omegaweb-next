@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import CreateJobAdForm from './CreateJobAdForm'
 import CurrentJobAds from './CurrentJobAds'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
@@ -18,7 +17,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ capabilities }) => (
         <PageWrapper
             headerItem={
-                <div className={styles.head}>
+                <div className="flex items-center gap-[1em]">
                     {capabilities.canCreate.authorized && (
                         <AddHeaderItemPopUp popUpKey={'jobAdForm'}>
                             <CompanyPagingProvider
@@ -38,7 +37,7 @@ const { page, generateMetadata } = serverPage({
                     <ArchiveLink href="/career/job-ads/archive" />
                 </div>
             }>
-            <div className={styles.wrapper}>
+            <div className="row-list">
                 <CurrentJobAds/>
             </div>
         </PageWrapper>

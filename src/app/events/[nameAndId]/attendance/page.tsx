@@ -1,7 +1,6 @@
 import AttendanceScanner from './AttendanceScanner'
 import AttendanceCountsPill from './AttendanceCountsPill'
 import { AttendanceCountsProvider } from './AttendanceCounts'
-import styles from './page.module.scss'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import BackLink from '@/components/HeaderItems/BackLink'
 import { eventOperations } from '@/services/events/operations'
@@ -33,7 +32,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data }) => (
         <AttendanceCountsProvider initialCounts={data.counts}>
             <PageWrapper headerItem={
-                <div className={styles.header}>
+                <div className="flex justify-between items-center w-full gap-[1em]">
                     <BackLink
                         href={`/events/${formatVevenUri(data.event.name, data.event.id)}`}
                         label={data.event.name}
@@ -41,7 +40,7 @@ const { page, generateMetadata } = serverPage({
                     <AttendanceCountsPill />
                 </div>
             }>
-                <div className={styles.attendance}>
+                <div className="flex flex-col gap-2 p-2 text-center">
                     <AttendanceScanner
                         eventId={data.event.id}
                         omegaIdPublicKey={data.publicKey}

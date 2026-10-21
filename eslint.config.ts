@@ -3,6 +3,8 @@ import nextVitals from 'eslint-config-next/core-web-vitals'
 import tsNextRules from 'eslint-config-next/typescript'
 import tsConfigs from 'typescript-eslint'
 import checkFile from 'eslint-plugin-check-file'
+import betterTailwindcss from 'eslint-plugin-better-tailwindcss'
+import { getDefaultSelectors } from 'eslint-plugin-better-tailwindcss/api/defaults'
 
 // Next.js app-router special filenames are framework-fixed, so they're excluded from the
 // naming-convention rules below instead of flagged as violations.
@@ -19,12 +21,25 @@ const eslintConfig = defineConfig([
         },
         plugins: {
             '@typescript-eslint': tsConfigs.plugin,
+            'better-tailwindcss': betterTailwindcss,
         },
         settings: {
             'import/resolver': {
                 typescript: {
                     project: './tsconfig.json',
                 },
+            },
+            'better-tailwindcss': {
+                entryPoint: 'src/styles/tailwind.css',
+                // Besides className attributes, class strings live in props and constants whose
+                // names end in class or className, such as showButtonClass and wrapperClassName,
+                // as plain strings, as object values and as what a class-name function returns.
+                selectors: [
+                    ...getDefaultSelectors(),
+                    { kind: 'attribute', name: '^\\w*[cC]lass(?:Name)?$' },
+                    { kind: 'variable', name: '^\\w*[cC]lass(?:Name)?(?:e?s)?$' },
+                    { kind: 'variable', name: '^\\w*[cC]lass(?:Name)?(?:e?s)?$', match: [{ type: 'objectValues' }] },
+                ],
             },
         },
         extends: [
@@ -523,6 +538,16 @@ const eslintConfig = defineConfig([
                 'error',
                 {
                     code: 125
+                }
+            ],
+            // Long Tailwind class strings are wrapped into multi-line template literals, one group of
+            // variants per line, instead of exceeding max-len. The width leaves room for the quote and
+            // bracket that close the attribute, which the plugin does not count.
+            'better-tailwindcss/enforce-consistent-line-wrapping': [
+                'error',
+                {
+                    printWidth: 122,
+                    indent: 4,
                 }
             ],
             // dissallow relative imports (e.g. '../'), imports from same folder are stil allowed

@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './LedgerTransactionList.module.scss'
 import LedgerTransactionRow from './LedgerTransactionRow'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { LedgerTransactionPagingProvider, LedgerTransactionPagingContext } from '@/contexts/paging/LedgerTransactionPaging'
@@ -35,7 +34,7 @@ export default function TransactionList({ accountId }: Props) {
                 />
             }
             wrapper={children =>
-                <table className={styles.transactionList}>
+                <table className="ohma-table">
                     <thead>
                         <tr>
                             <th>Dato</th>

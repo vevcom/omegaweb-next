@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import ChangeName from './ChangeName'
 import OmbulAdmin from './OmbulAdmin'
 import { updateOmbulParagraphContentAction } from '@/services/ombul/actions'
@@ -34,39 +33,47 @@ const { page, generateMetadata } = serverPage({
         const path = `/store/ombul/${ombul.fsLocation}`
 
         return (
-            <PageWrapper hideTitle className={styles.ombulPage}>
-                <div className={styles.header}>
-                    <div className={styles.titleBlock}>
+            <PageWrapper hideTitle className="[&_h1]:normal-case!">
+                <div className="mb-6 flex flex-row flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0">
                         <ChangeName ombulId={ombul.id}>
                             <h1>{ombul.name}</h1>
                         </ChangeName>
-                        <p className={styles.issue}>{ombul.year} &middot; utgave {ombul.issueNumber}</p>
-                        {ombul.description && <p className={styles.description}>{ombul.description}</p>}
+                        <p className="mt-1 text-text-muted text-m">{ombul.year} &middot; utgave {ombul.issueNumber}</p>
+                        {ombul.description && <p className="mt-2 max-w-[75ch]">{ombul.description}</p>}
                     </div>
                     {/* Beside the title rather than in the wrapper's header slot, which sits above it -
                         the actions would otherwise be read before the issue they act on. */}
-                    <div className={styles.actions}>
-                        <a className={styles.download} href={path} download>Last ned</a>
-                        <Link className={styles.secondaryAction} href={path} target="blank">Åpne i ny fane</Link>
+                    <div className="flex flex-row flex-wrap items-center gap-2">
+                        <a className="btn m-0!" href={path} download>Last ned</a>
+                        <Link className="secondary-btn m-0!" href={path} target="blank">Åpne i ny fane</Link>
                         <PopUp
                             popUpKey={`OmbulPdfViewer${ombul.id}`}
-                            showButtonClass={styles.secondaryAction}
+                            showButtonClass="secondary-btn m-0!"
                             showButtonContent="Les PDF"
                         >
-                            <PdfDocument src={path} className={styles.book} />
+                            <PdfDocument src={path} className="block w-[min(calc(100vw-4rem),calc(130svh-6rem))]" />
                         </PopUp>
                     </div>
                 </div>
 
-                <div className={styles.coverAndParagraph}>
+                <div className="
+                    grid grid-cols-[calc(33*var(--gap))_1fr] items-start gap-6
+                    max-mobile:grid-cols-1
+                ">
                     {/* The cover itself rather than an OmbulCover card: on this page that card linked
                         back to the page you are already on and repeated the name and issue printed
                         right above it. */}
-                    <div className={styles.cover}>
+                    <div className="
+                        relative w-full max-w-[calc(33*var(--gap))] aspect-[5/7] rounded-round overflow-hidden
+                        bg-surface-raised
+                        [&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full
+                        [&_img]:w-full [&_img]:h-full [&_img]:object-cover
+                    ">
                         <Image image={ombul.coverImage} width={260} />
                     </div>
                     <CmsParagraph
-                        className={styles.paragraph}
+                        className="max-w-[75ch]"
                         capabilities={{ canEdit: capabilities.canUpdateParagraph }}
                         cmsParagraph={ombul.paragraph}
                         updateCmsParagraphAction={configureAction(

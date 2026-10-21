@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOverviewCard'
 import LedgerAccountPaymentMethods from '@/components/Ledger/Accounts/LedgerAccountPaymentMethodsCard'
 import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
@@ -33,7 +32,7 @@ const { page, generateMetadata } = serverPage({
             : ledgerAccountAuth.update({ accounts: [data.ledgerAccount.ownership] }),
     }),
     render: ({ data, capabilities }) => (
-        <div className={styles.wrapper}>
+        <div className="flex flex-col gap-2">
             <LedgerAccountOverview
                 ledgerAccount={data.ledgerAccount}
                 capabilities={capabilities}

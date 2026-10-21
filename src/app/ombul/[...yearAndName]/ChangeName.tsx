@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './ChangeName.module.scss'
 import EditableTextField from '@/components/EditableTextField/EditableTextField'
 import { updateOmbulAction } from '@/services/ombul/actions'
 import { ombulAuth } from '@/services/ombul/auth'
@@ -47,7 +46,7 @@ export default function ChangeName({ children, ombulId }: PropTypes) {
             inputName="name"
             submitButton={{
                 text: 'Endre',
-                className: styles.changeNameButton
+                className: '-translate-y-[30%]'
             }}
         >
             {children}

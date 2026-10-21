@@ -1,5 +1,4 @@
 'use client'
-import styles from './PdfDocument.module.scss'
 import useViewPort from '@/hooks/useViewPort'
 import {
     useEffect,
@@ -104,22 +103,32 @@ export default function PdfDocument({ src, className }: PropTypes) {
     if (typeof window !== 'undefined' && !window.Promise.withResolvers) {
         return (
             <>
-                <p className={styles.fallbackWarning}>
+                <p className="text-accent-red">
                 Din nettleser støtter ikke vevens fantastiske PDF-løsning. Bruker alternativ løsning.
                 </p>
-                <embed className={styles.fallback} src={src} type="application/pdf" />
+                <embed className="w-[70%] h-[90vh]" src={src} type="application/pdf" />
             </>
         )
     }
 
     return (
-        <div className={`${styles.PdfDocument} ${className}`}>
+        <div className={`
+            ${className}
+        `}>
             <Document
                 file={src}
                 onLoadSuccess={onDocumentLoadSuccess}
             >
-                <div className={styles.pages}>
-                    <div className={styles.leftPage}>
+                <div className="flex">
+                    <div className="
+                        w-1/2 flex
+                        [&>button]:bg-surface-raised [&>button]:border-none [&>button]:p-[1em]
+                        [&>button_svg]:text-text
+                        [&>button]:transition-[background-color] [&>button]:duration-300
+                        [&>button_svg]:size-[25px]
+                        [&>button:hover]:bg-surface-hover [&>button:hover]:cursor-pointer
+                        [&>button]:rounded-l-round
+                    ">
                         {
                             currentPages.leftPage && (
                                 <button
@@ -129,7 +138,10 @@ export default function PdfDocument({ src, className }: PropTypes) {
                                 </button>
                             )
                         }
-                        <div ref={leftPageRef} className={styles.page}>
+                        <div ref={leftPageRef} className="
+                            w-full
+                            [&_p]:w-full [&_p]:flex [&_p]:justify-center [&_p]:items-center
+                        ">
                             {
                                 loadingPage && (
                                     <p style={{ height: pageHeight }}>Laster...</p>
@@ -149,8 +161,19 @@ export default function PdfDocument({ src, className }: PropTypes) {
                             }
                         </div>
                     </div>
-                    <div className={styles.rightPage}>
-                        <div ref={rightPageRef} className={styles.page}>
+                    <div className="
+                        w-1/2 flex
+                        [&>button]:bg-surface-raised [&>button]:border-none [&>button]:p-[1em]
+                        [&>button_svg]:text-text
+                        [&>button]:transition-[background-color] [&>button]:duration-300
+                        [&>button_svg]:size-[25px]
+                        [&>button:hover]:bg-surface-hover [&>button:hover]:cursor-pointer
+                        [&>button]:rounded-r-round
+                    ">
+                        <div ref={rightPageRef} className="
+                            w-full
+                            [&_p]:w-full [&_p]:flex [&_p]:justify-center [&_p]:items-center
+                        ">
                             {
                                 loadingPage && (
                                     <p style={{ height: pageHeight }}>Laster...</p>

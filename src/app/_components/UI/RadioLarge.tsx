@@ -1,5 +1,3 @@
-import styles from './RadioLarge.module.scss'
-
 
 export default function RadioLarge<ValueType extends number | string>({
     name,
@@ -17,7 +15,14 @@ export default function RadioLarge<ValueType extends number | string>({
         label: string,
     }[]
 }) {
-    return <div className={styles.radioContainer}>
+    return <div className="
+        flex flex-row m-[1rem] text-l
+        [&>div>label]:p-[5px] [&>div>label]:border-3 [&>div>label]:border-[#ccc]
+        [&_input[type=radio]]:hidden
+        [&_input[type=radio]:checked+label]:border-accent-blue
+        [&>div:first-child>label]:rounded-l-round
+        [&>div:last-child>label]:rounded-r-round
+    ">
         {options.map((option, i) => {
             const id = `${name}-${i}`
             return <div key={option.value}>

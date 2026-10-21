@@ -1,9 +1,0 @@
-@use '@/styles/ohma';
-
-.EventArchiveList {
-    @include ohma.RowListLayout;
-
-    .loadingInfo {
-        color: ohma.$colors-text-muted;
-    }
-}

@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import EditNews from './EditNews'
 import CurrentNews from '@/app/news/CurrentNews'
 import Article from '@/cms/Article/Article'
@@ -48,10 +47,10 @@ const { page, generateMetadata } = serverPage({
         const { news, doubleLevelVisibility } = data
 
         return (
-            <div className={styles.wrapper}>
+            <div className="flex flex-col gap-2 h-full">
                 <Article
                     capabilities={capabilities}
-                    articleClassName={styles.article}
+                    articleClassName="bg-surface-base rounded-round overflow-y-auto p-[min(4rem,4vw)] grow mt-2"
                     article={news.article}
                     actions={{
                         updateArticleAction: configureAction(
@@ -100,7 +99,11 @@ const { page, generateMetadata } = serverPage({
                 />
                 <SlideInOnView>
                     <EditNews news={news} doubleLevelVisibility={doubleLevelVisibility}>
-                        <div className={styles.moreNews}>
+                        <div className="
+                            bg-surface-base rounded-round overflow-y-auto flex flex-col p-[min(4rem,4vw)] min-h-[80px]
+                            [&>div]:flex [&>div]:gap-2 [&>div]:overflow-x-auto [&>div]:snap-x [&>div]:snap-mandatory
+                            [&>div>*]:flex-[0_0_min(75%,300px)] [&>div>*]:snap-start
+                        ">
                             <h1>Flere nyheter</h1>
                             <div>
                                 <CurrentNews not={news.id} />

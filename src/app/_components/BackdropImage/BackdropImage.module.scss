@@ -1,40 +1,6 @@
-@use '@/styles/ohma';
-
-.BackdropImage {
-    position: relative;
-    isolation: isolate;
-    height: 100%;
-
-    .image {
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        z-index: -1;
-        // Only the corner of the image peeks out behind the content. The window keeps the same
-        // proportion of the image whatever size the consumer asks for.
-        width: calc(0.6 * var(--backdrop-image-size));
-        opacity: 0.0;
-        display: flex;
-        align-items: flex-end;
-        animation: fadein 1s ease-in forwards;
-        animation-delay: 1s;
-        overflow: hidden;
-
-        * {
-            width: var(--backdrop-image-size);
-            height: var(--backdrop-image-size);
-        }
-        .gray {
-            filter: grayscale(100%) brightness(0.5) contrast(1.5);
-        }
-    }
-
-    // The height belongs to whatever the backdrop is placed inside rather than to the backdrop
-    // itself, so a card can size its own content.
-    .content {
-        z-index: 1;
-        height: 100%;
-    }
+.fadeIn {
+    animation: fadein 1s ease-in forwards;
+    animation-delay: 1s;
 }
 
 @keyframes fadein {

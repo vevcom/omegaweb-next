@@ -1,9 +1,0 @@
-@use '@/styles/ohma';
-
-.header {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: ohma.$gap;
-    width: 100%;
-}

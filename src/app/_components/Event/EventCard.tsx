@@ -1,5 +1,4 @@
 import SmallEventTag from './SmallEventTag'
-import styles from './EventCard.module.scss'
 import Image from '@/components/Image/Image'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { osloDateTime } from '@/lib/dates/oslo'
@@ -22,37 +21,37 @@ export default function EventCard({ event }: PropTypes) {
     const from = event.takesRegistration ? event.registrationStart : event.eventStart
     const to = event.takesRegistration ? event.registrationEnd : event.eventEnd
 
-    return <Link href={link} className={styles.EventWrapper}>
-        <div className={styles.thumb}>
+    return <Link href={link} className="list-row">
+        <div className="list-row-thumb">
             {event.coverImage.image && (
                 <Image width={200} image={event.coverImage.image} />
             )}
         </div>
 
-        <div className={styles.lead}>
+        <div className="list-row-lead">
             <b>{osloDateTime(event.eventStart).day}</b>
             <span>{months[osloDateTime(event.eventStart).month - 1]}</span>
         </div>
 
-        <div className={styles.main}>
+        <div className="list-row-main">
             <h2>{event.name}</h2>
-            <div className={styles.tags}>
+            <div className="flex items-center gap-2 list-none">
                 {event.tags.map(tag => (
                     <SmallEventTag key={tag.id} eventTag={tag} />
                 ))}
             </div>
         </div>
 
-        <div className={styles.meta}>
+        <div className="list-row-meta">
             {event.location && <span>{event.location}</span>}
             <span>{twoDigitHour(from)}–{twoDigitHour(to)}</span>
             {event.takesRegistration && (
-                <span className={styles.registrations}>{event.numOfRegistrations} / {event.places}</span>
+                <span className="text-text font-medium">{event.numOfRegistrations} / {event.places}</span>
             )}
         </div>
 
         {event.takesRegistration && (
-            <div className={styles.bar}>
+            <div className="list-row-bar">
                 <div style={{ width: attendance }}></div>
             </div>
         )}

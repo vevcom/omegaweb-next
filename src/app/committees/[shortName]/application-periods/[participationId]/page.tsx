@@ -1,4 +1,3 @@
-import styles from './page.module.scss'
 import { committeeParticipationOperations } from '@/services/applications/committeeParticipation/operations'
 import { serverPage } from '@/app/ServerPage'
 import ProfilePicture from '@/components/User/ProfilePicture'
@@ -17,22 +16,24 @@ const { page, generateMetadata } = serverPage({
         )
 
         return (
-            <div className={styles.applicationsContainer}>
+            <div>
                 {sortedApplications.map((application, index) => (
-                    <div className={styles.applicationContainer} key={index}>
-                        <div className={styles.headingContainer}>
+                    <div className="mt-[1em] flex flex-col border-2 border-[hsla(0,0%,70%,0.507)] round" key={index}>
+                        <div className="
+                            flex items-center
+                            [&_*]:inline-block [&_*]:mx-[0.1em]
+                        ">
                             <h3>{application.priority}.</h3>
                             <ProfilePicture
                                 width={50}
                                 profileImage={application.user.image}
-                                className={styles.profilePicture}
                             />
-                            <Link className={styles.applicantName} href={`/users/${application.user.username}`}>
+                            <Link className="text-black" href={`/users/${application.user.username}`}>
                                 <h3>{application.user.firstname} {application.user.lastname}</h3>
                             </Link>
                         </div>
-                        <div className={styles.applicationTextContainer}>
-                            <p className={styles.applicationText}>{application.text}</p>
+                        <div>
+                            <p>{application.text}</p>
                         </div>
                     </div >
                 ))

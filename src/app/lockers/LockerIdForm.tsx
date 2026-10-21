@@ -1,5 +1,4 @@
 'use client'
-import styles from './LockerIdForm.module.scss'
 import Button from '@/components/UI/Button'
 import NumberInput from '@/components/UI/NumberInput'
 import { useRouter } from 'next/navigation'
@@ -19,7 +18,11 @@ export default function LockerIdForm() {
     }
 
     return (
-        <form className={styles.LockerIdForm} onSubmit={goToLocker}>
+        <form className="
+            flex items-end gap-2
+            [&>div]:m-0
+            [&>button]:m-0 [&>button]:whitespace-nowrap
+        " onSubmit={goToLocker}>
             <NumberInput
                 name="lockerId"
                 label="Skapnummer"

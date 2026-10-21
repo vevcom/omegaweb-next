@@ -1,27 +1,6 @@
-@use '@/styles/ohma';
-
-.container {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: black;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
 .speedline {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    stroke: ohma.$colors-surface-base;
-    stroke-width: 0.25;
-    stroke-dasharray: 20 80;
-    stroke-dashoffset: 0;
     animation: speedline-animation 2s infinite linear;
     animation-delay: var(--delay);
-    scale: 2;
 }
 
 @keyframes speedline-animation {
@@ -31,6 +10,6 @@
     }
     100% {
         transform: rotate(var(--rotate));
-        stroke-dashoffset: -100; /* Move the dash pattern by 100 units */
+        stroke-dashoffset: -100;
     }
 }

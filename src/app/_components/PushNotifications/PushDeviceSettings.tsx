@@ -1,6 +1,5 @@
 'use client'
 
-import styles from './PushDeviceSettings.module.scss'
 import {
     readBrowserPushSubscription,
     readPushSupport,
@@ -85,7 +84,12 @@ export default function PushDeviceSettings({ userId, vapidPublicKey }: {
         }
     }
 
-    return <section className={styles.pushDevice}>
+    return <section className="
+        mb-4 py-2 px-3 rounded-round bg-surface-raised
+        [&_h3]:mt-0
+        [&_p]:max-w-[60ch]
+        [&_ol]:max-w-[60ch] [&_ol]:pl-[1.5em]
+    ">
         <h3>Push-varsler på denne enheten</h3>
 
         {status === 'unsupported' && <p>
@@ -126,6 +130,6 @@ export default function PushDeviceSettings({ userId, vapidPublicKey }: {
             <Button color="secondary" onClick={disable} disabled={pending}>Skru av på denne enheten</Button>
         </>}
 
-        {error && <p className={styles.error}>{error}</p>}
+        {error && <p className="text-accent-red">{error}</p>}
     </section>
 }
