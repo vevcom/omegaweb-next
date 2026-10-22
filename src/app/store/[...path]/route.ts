@@ -1,14 +1,13 @@
 import '@pn-server-only'
 import { releaseCountdownHoldsBack } from '@/services/releaseCountdown/access'
-import { createReadStream, existsSync, statSync } from 'fs'
+import { storeBackend } from '@/lib/store/backend'
 import { extname, relative, resolve, sep } from 'path'
-import { Readable } from 'stream'
 
 const STORE_ROOT = resolve(process.cwd(), 'store')
 
 /**
- * What of the store is served, by its first path segment. Everything else under `store/` stays
- * on disk. Files in a store directory have uuid names that are never reused, so the browser may
+ * What of the store is served, by its first path segment. Everything else in the store stays
+ * private. Files in a store directory have uuid names that are never reused, so the browser may
  * keep them for as long as it likes. `private` keeps any shared cache in front from holding on to
  * a file after it, or the member on it, is gone.
  */
@@ -55,12 +54,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pat
         return new Response('Not found', { status: 404 })
     }
 
-    if (!existsSync(filePath) || !statSync(filePath).isFile()) {
+    const stream = await storeBackend.stream(storePath.join('/'))
+    if (!stream) {
         return new Response('Not found', { status: 404 })
     }
 
     const contentType = MIME_TYPES[extname(filePath).toLowerCase()] ?? 'application/octet-stream'
-    const stream = Readable.toWeb(createReadStream(filePath)) as ReadableStream
 
     return new Response(stream, {
         headers: {
