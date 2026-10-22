@@ -16,6 +16,10 @@ resources:
 # wins over the same key in the secret.
 configMapGenerator:
     - name: projectnext-config
+      # The migrate job in wave -1 reads it too.
+      options:
+          annotations:
+              argocd.argoproj.io/sync-wave: "-3"
       literals:
           - LOG_TO_CONSOLE=true
           - LOG_CONSOLE_LEVEL=info
