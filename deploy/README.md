@@ -95,7 +95,8 @@ Use `copy`, not `sync`, so deletes never reach the copy.
    `overlays/prod/kustomization.yaml` and the Phase app id in `overlays/prod/phase-secret.yaml`.
 4. **Set up S3.** Create the store and backup buckets on stack.it, turn on versioning for
    the store, and make keys with `openstack ec2 credentials create`. Add the store keys to
-   Phase as `STORE_S3_ACCESS_KEY_ID` and `STORE_S3_SECRET_ACCESS_KEY`.
+   Phase as `STORE_S3_ACCESS_KEY_ID` and `STORE_S3_SECRET_ACCESS_KEY`. The database
+   backups use the same keys, since EC2 keys reach every bucket in the project.
 5. **Create the two hand-made secrets.** Read the token with `read -s` so it stays out of
    the shell history.
 

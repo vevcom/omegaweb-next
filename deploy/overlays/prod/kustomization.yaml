@@ -8,6 +8,7 @@ resources:
     - ../../base
     - database-backup.yaml
     - phase-secret.yaml
+    - redirect-https.yaml
 
 configMapGenerator:
     - name: projectnext-config

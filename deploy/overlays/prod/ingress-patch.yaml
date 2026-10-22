@@ -4,6 +4,7 @@ metadata:
     name: projectnext
     annotations:
         cert-manager.io/cluster-issuer: letsencrypt
+        traefik.ingress.kubernetes.io/router.middlewares: projectnext-redirect-https@kubernetescrd
 spec:
     tls:
         - hosts: [sctomega.com]
