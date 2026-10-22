@@ -24,8 +24,8 @@ deploy/
 2. The workflow opens a pull request that sets that tag in `overlays/prod`.
 3. Merging the pull request is the deploy. Argo CD sees main change and syncs in waves:
    - wave -3: the database and the PhaseSecret
-   - wave -2: the store volume, locally only
-   - wave -1: the migrate job, which runs `migrate:deploy-and-seed`
+   - wave -1: the migrate job, which runs `migrate:deploy-and-seed`, and locally the store
+     volume it is the first to mount
    - wave 0: the app and the worker
 
    A failed migration stops the sync, so the old pods keep serving.
