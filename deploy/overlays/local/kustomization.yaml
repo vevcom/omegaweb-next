@@ -28,7 +28,7 @@ images:
 
 replicas:
     - name: projectnext
-      count: 1
+      count: 2
 
 patches:
     - target:
