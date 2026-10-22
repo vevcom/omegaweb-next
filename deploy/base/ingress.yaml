@@ -1,0 +1,17 @@
+# The host is set per overlay.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: projectnext
+spec:
+    rules:
+        - host: placeholder.invalid
+          http:
+              paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                        service:
+                            name: projectnext
+                            port:
+                                name: http

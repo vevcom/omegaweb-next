@@ -1,0 +1,33 @@
+# Runs on every sync after the database exists and before the app and
+# worker roll. A failure stops the sync, so the old pods keep serving.
+apiVersion: batch/v1
+kind: Job
+metadata:
+    name: projectnext-migrate
+    annotations:
+        argocd.argoproj.io/hook: Sync
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+        argocd.argoproj.io/sync-wave: "-1"
+spec:
+    backoffLimit: 1
+    template:
+        metadata:
+            labels:
+                app.kubernetes.io/name: projectnext-migrate
+        spec:
+            restartPolicy: Never
+            containers:
+                - name: migrate
+                  image: projectnext-tools
+                  command: [npm, run, migrate:deploy-and-seed]
+                  envFrom:
+                      - secretRef:
+                            name: projectnext-env
+                      - configMapRef:
+                            name: projectnext-config
+                  env:
+                      - name: DB_URI
+                        valueFrom:
+                            secretKeyRef:
+                                name: projectnext-db-app
+                                key: uri

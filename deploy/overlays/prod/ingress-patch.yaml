@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: projectnext
+    annotations:
+        cert-manager.io/cluster-issuer: letsencrypt
+spec:
+    tls:
+        - hosts: [sctomega.com]
+          secretName: projectnext-tls
+    rules:
+        - host: sctomega.com
+          http:
+              paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                        service:
+                            name: projectnext
+                            port:
+                                name: http

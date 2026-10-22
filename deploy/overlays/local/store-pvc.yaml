@@ -1,0 +1,14 @@
+# The store for k3d, unless deploy/k3d/.env.local points it at an S3 bucket the way
+# prod is. local-path volumes are ReadWriteOnce, which works only because every
+# pod that mounts this one runs on the same node.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: projectnext-store
+    annotations:
+        argocd.argoproj.io/sync-wave: "-2"
+spec:
+    accessModes: [ReadWriteOnce]
+    resources:
+        requests:
+            storage: 5Gi
