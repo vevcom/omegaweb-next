@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Project Next is the website for Sanctus Omega Broderskab, built with Next.js 16, TypeScript, Prisma, and PostgreSQL. The application runs in Docker containers for both development and production.
+Omegaweb Next is the website for Sanctus Omega Broderskab, built with Next.js 16, TypeScript, Prisma, and PostgreSQL. The application runs in Docker containers for both development and production.
 
 ## Development Commands
 
@@ -64,7 +64,7 @@ npm run docker:prisma-studio
 
 Access the container shell:
 ```bash
-docker exec -it -w /workspaces/projectNext pn-dev /bin/bash
+docker exec -it -w /workspaces/omegaweb-next pn-dev /bin/bash
 ```
 
 ## Architecture

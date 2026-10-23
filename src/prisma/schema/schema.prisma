@@ -1,4 +1,4 @@
-generator projectnext {
+generator omegawebnext {
   provider        = "prisma-client"
   previewFeatures = ["partialIndexes"]
   // Generate outside of src folder.

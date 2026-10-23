@@ -29,7 +29,7 @@ export const seedDevJobAds = defineSeedOperation(async (prisma: PrismaClient) =>
             type: 'FULL_TIME',
             applicationDeadline: tomorrow,
             articleName: 'Vever',
-            description: 'VevCom søker nye vevere for å febrilsk kode ferdig projectNext',
+            description: 'VevCom søker nye vevere for å febrilsk kode ferdig Omegaweb Next',
         },
         {
             type: 'PART_TIME',

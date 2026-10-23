@@ -1,4 +1,4 @@
-# design-sync notes — projectNext → claude.ai/design
+# design-sync notes — omegaweb-next → claude.ai/design
 
 Repo-specific gotchas for future syncs. Read this **and** `config.json` before
 re-running. Target project: `Ohma Design System`
@@ -6,7 +6,7 @@ re-running. Target project: `Ohma Design System`
 
 ## Why this repo needs a staging step
 
-projectNext is a **Next.js app, not a component library**: no library build, no
+omegaweb-next is a **Next.js app, not a component library**: no library build, no
 `dist/`, and every component styles itself with `*.module.scss`, which esbuild
 cannot load. `.design-sync/stage-pkg.mjs` mechanically transforms the real source
 into a bundlable package under `.design-sync/.cache/pkg/`:
