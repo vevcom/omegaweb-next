@@ -44,14 +44,15 @@ async function createUser({ withPassword, feideDomain = 'stud.ntnu.no' }: { with
 
 type TestUser = Awaited<ReturnType<typeof createUser>>
 
-function changeEmail({ user, feideEmail }: TestUser, { by = user, currentPassword, permissions = [] }: {
+function changeEmail({ user, feideEmail }: TestUser, { by = user, email = feideEmail, currentPassword, permissions = [] }: {
     by?: TestUser['user'],
+    email?: string,
     currentPassword?: string,
     permissions?: 'USERS_ADMIN'[],
 }) {
     return userOperations.registerNewEmail({
         params: { id: user.id },
-        data: { email: feideEmail, currentPassword },
+        data: { email, currentPassword },
         session: Session.fromJsObject({ memberships: [], permissions, user: by }),
     })
 }
@@ -91,6 +92,14 @@ describe('changing the email of a user', () => {
         const testUser = await createUser({ withPassword: false, feideDomain: 'uio.no' })
 
         expect(await changeEmail(testUser, {})).toEqual({ verified: false, email: testUser.feideEmail })
+        expect(await emailOf(testUser)).toBe(testUser.user.email)
+    })
+
+    test('verifies a student address other than the Feide one by mail', async () => {
+        const testUser = await createUser({ withPassword: false })
+        const email = `annen-${testUser.user.username}@stud.ntnu.no`
+
+        expect(await changeEmail(testUser, { email })).toEqual({ verified: false, email })
         expect(await emailOf(testUser)).toBe(testUser.user.email)
     })
 
