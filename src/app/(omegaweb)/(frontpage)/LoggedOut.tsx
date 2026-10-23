@@ -61,7 +61,7 @@ export default async function LoggedOutLandingPage() {
                         <Link className={`
                             secondary-btn font-medium
                             ${ctaLayout}
-                        `} href="/career">For bedrifter</Link>
+                        `} href="https://contactor.no">For bedrifter</Link>
 
                         <Link className={scrollDownClassName} href="#firstSection">
                             <FontAwesomeIcon icon={faAngleDown} />

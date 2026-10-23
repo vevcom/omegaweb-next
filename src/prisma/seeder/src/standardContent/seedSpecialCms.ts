@@ -69,7 +69,7 @@ const seedSpecialCmsLinkConfig: Record<SpecialCmsLink, SeedCmsLinkConfig> = {
         text: 'Les mer'
     },
     FRONTPAGE_3: {
-        url: '/career',
+        url: 'https://contactor.no',
         text: 'Les mer'
     },
     FRONTPAGE_4: {
