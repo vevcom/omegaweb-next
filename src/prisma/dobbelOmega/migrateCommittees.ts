@@ -22,7 +22,7 @@ const directoryName = dirname(fileName)
  * one skipped. Later steps that point at a skipped committee (committee-only news, a locker held by
  * it, a drain account of it) treat it as a committee without a group.
  */
-const COMMITTEES_NOT_MIGRATED = ['?']
+const COMMITTEES_NOT_MIGRATED = ['?', 'interessegruppe']
 
 /**
  * Omegaweb-basic records every membership of Omegarevyen one order too high, so each is brought
