@@ -6,8 +6,6 @@ import React, {
     useMemo,
     useCallback,
     useState,
-    useRef,
-    useEffectEvent
 } from 'react'
 import { useInView } from 'react-intersection-observer'
 import type { PagingContext } from '@/contexts/paging/PagingGenerator'
@@ -59,26 +57,16 @@ export default function EndlessScroll<Data, Cursor, const PageSize extends numbe
         return renderer(dataEntry, i)
     }), [context, renderer])
 
-    // Do not show button right away if allLoaded is true, it can cause flicker
-    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const [showButton, setShowButton] = useState(false)
-
-    const updateShowButton = useEffectEvent(() => {
-        if (!context.state.allLoaded) {
-            timerRef.current = setTimeout(() => {
-                setShowButton(true)
-            }, 500)
-        } else {
-            setShowButton(false)
-        }
-    })
+    // The button is held back half a second after each page, so it does not flicker while allLoaded settles.
+    const [buttonReadyFor, setButtonReadyFor] = useState<typeof state | null>(null)
 
     useEffect(() => {
-        updateShowButton()
-        return () => {
-            if (timerRef.current) clearTimeout(timerRef.current)
-        }
+        if (state.allLoaded) return undefined
+        const timer = setTimeout(() => setButtonReadyFor(state), 500)
+        return () => clearTimeout(timer)
     }, [state])
+
+    const showButton = !state.allLoaded && buttonReadyFor === state
 
     const loadingInfo = (
         <span ref={ref} className={`

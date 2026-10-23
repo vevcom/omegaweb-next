@@ -16,7 +16,7 @@ type PropTypes = {
 export default function SelectCompany({ company }: PropTypes) {
     const companyCtx = useContext(CompanySelectionContext)
     if (!companyCtx) return <></>
-    const isSelected = companyCtx.selectedCompany && companyCtx.selectedCompany.id === company.id
+    const isSelected = companyCtx.selectedCompany?.id === company.id
     return (
         <>
             <button className="opacity-0 size-full absolute top-0 left-0" onClick={() => {

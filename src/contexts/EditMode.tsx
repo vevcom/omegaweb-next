@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, createContext, useEffect, useCallback, useEffectEvent } from 'react'
+import React, { useState, createContext, useCallback } from 'react'
 
 type PropTypes = {
     children: React.ReactNode,
@@ -24,6 +24,8 @@ export default function EditModeProvider({ defaultValue = false, children }: Pro
     const [editMode, setEditMode_] = useState(defaultValue)
     const [editableContent, setEditableContent] = useState<string[]>([])
 
+    if (editMode && editableContent.length === 0) setEditMode_(false)
+
     const setEditMode = useCallback((newEditMode: boolean) => {
         if (newEditMode === false) setEditMode_(false)
         if (newEditMode === true && editableContent.length > 0) setEditMode_(true)
@@ -44,14 +46,6 @@ export default function EditModeProvider({ defaultValue = false, children }: Pro
             return prev.filter((k) => k !== key)
         })
     }, [])
-
-    const setEditModeEvent = useEffectEvent((newEditMode: boolean) => {
-        setEditMode(newEditMode)
-    })
-
-    useEffect(() => {
-        if (editableContent.length === 0) setEditModeEvent(false)
-    }, [editableContent])
 
     return (
         <EditModeContext.Provider value={{

@@ -94,7 +94,7 @@ export const authOptions: AuthOptions = {
             })
 
             // A password change bumps the epoch, which ends every session started before it.
-            if (!user || user.sessionEpoch !== token.sessionEpoch) return null
+            if (user?.sessionEpoch !== token.sessionEpoch) return null
 
             switch (token.provider) {
                 case 'credentials': {
