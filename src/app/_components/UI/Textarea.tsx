@@ -34,8 +34,8 @@ export default function Textarea({ label, background = 'base', className, id, ..
                 {...props}
                 id={inputId}
                 className={`
-                    min-h-[60px] w-full max-h-[300px] resize-y text-m text-ink-strong border-2 border-transparent
-                    rounded-inner py-3 px-4 transition-[border-color,background-color] duration-300
+                    min-h-[60px] w-full max-h-[60vh] resize-y field-sizing-content text-m text-ink-strong border-2
+                    border-transparent rounded-inner py-3 px-4 transition-[border-color,background-color] duration-300
                     focus:outline-0 focus:border-accent-blue
                     ${backgroundClassNames[background]}
                 `}
