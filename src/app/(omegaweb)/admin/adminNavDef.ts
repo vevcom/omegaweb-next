@@ -192,16 +192,16 @@ export const adminNavDef: AdminNavGroup[] = [
                 path: 'send-notification',
                 authorizers: () => [notificationAuth.create],
             },
-            {
-                title: 'Send e-post',
-                path: 'send-mail',
-                authorizers: () => [sendMailAuth.sendMail],
-            },
         ],
     },
     {
         header: { icon: faEnvelopesBulk, title: 'Mailing tjener' },
         links: [
+            {
+                title: 'Send e-post',
+                path: 'send-mail',
+                authorizers: () => [sendMailAuth.sendMail],
+            },
             {
                 title: 'E-postlister',
                 path: 'mail/mailingList',
