@@ -7,6 +7,9 @@ export const DEFAULT_NOTIFICATION_ALIAS = `noreply@${process.env.EMAIL_DOMAIN}`
 
 const port = Number(process.env.EMAIL_PORT) || 587
 const secure = process.env.EMAIL_SECURE === 'true'
+// For our own Postfix (mail-infrastructure), which has a self-signed certificate
+// and is only reached over the internal Docker network. Still encrypted, just not verified.
+const allowSelfSigned = process.env.EMAIL_TLS_ALLOW_SELF_SIGNED === 'true'
 
 // The .env.default placeholder for unfilled-in secrets - treated the same as unset.
 const UNSET_PLACEHOLDER = '<INSERT>'
@@ -24,6 +27,7 @@ export const TRANSPORT_OPTIONS: SMTPPool.Options = {
     secure,
     // Only STARTTLS on non-implicit-TLS ports - secure:true (465) already encrypts from connect.
     ...(secure ? {} : { requireTLS: true }),
+    ...(allowSelfSigned ? { tls: { rejectUnauthorized: false } } : {}),
     ...(hasAuth ? {
         auth: {
             user: emailUser,
