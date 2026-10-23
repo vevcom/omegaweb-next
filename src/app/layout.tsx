@@ -8,7 +8,6 @@ import GlobalSearchProvider from '@/contexts/GlobalSearch'
 import { permissionOperations } from '@/services/permissions/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
-import ReleaseCountdownGate from '@/components/ReleaseCountdown/ReleaseCountdownGate'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
 import { Theme, lightThemes } from '@/lib/theme'
 import { Inter } from 'next/font/google'
@@ -90,9 +89,7 @@ export default async function RootLayout({ children }: PropTypes) {
                             <EditModeProvider>
                                 <PopUpProvider>
                                     <PageTitleProvider>
-                                        <ReleaseCountdownGate>
-                                            {children}
-                                        </ReleaseCountdownGate>
+                                        {children}
                                     </PageTitleProvider>
                                 </PopUpProvider>
                             </EditModeProvider>
