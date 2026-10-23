@@ -14,7 +14,8 @@ export default async function LedgerAccountBalance({ ledgerAccountId: accountId,
     )
 
     return <div className="
-        grid grid-cols-[auto_1fr_auto] grid-flow-row auto-cols-max gap-x-4 whitespace-nowrap overflow-hidden
+        grid grid-cols-[auto_1fr_auto] grid-flow-row auto-cols-max items-baseline gap-x-4 whitespace-nowrap
+        overflow-hidden
         max-mobile:grid-cols-[auto_1fr]
     ">
         <div className="contents text-xxl">
