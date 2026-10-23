@@ -33,3 +33,18 @@ export function visibilityFilter(memberships: MembershipFiltered[]) {
 }
 
 export type VisibilityFilter = ReturnType<typeof visibilityFilter>
+
+/**
+ * The regular level of a double-level visibility as a `where` on the model owning the two levels.
+ * Whoever administrates also sees, as in `Require.levelOfDoubleVisibility`, so a row passes on
+ * either level. Every model with a double level names its relations visibilityRegular and
+ * visibilityAdmin, which is what makes one filter fit them all.
+ */
+export function regularLevelFilter(filter: VisibilityFilter) {
+    return {
+        OR: [
+            { visibilityRegular: filter },
+            { visibilityAdmin: filter },
+        ]
+    }
+}

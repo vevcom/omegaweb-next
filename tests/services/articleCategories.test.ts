@@ -127,11 +127,20 @@ describe('creating a category', () => {
         expect(await prisma.articleCategory.count({ where: { name: 'Åpen' } })).toBe(0)
     })
 
-    test('refuses an admin level that is not part of the regular level', async () => {
-        await expect(createCategory({
+    test('an admin level outside the regular level sees the category all the same', async () => {
+        const category = await createCategory({
             regularLevel: activeIn(groupOne),
             adminLevel: activeIn(groupTwo),
-        })).rejects.toThrow(Smorekopp)
+        })
+
+        await expect(articleCategoryOperations.visibility.readDoubleLevelMatrix({
+            params: { id: category.id },
+            session: sessionInGroups(groupTwo),
+        })).resolves.toMatchObject({ adminLevel: activeIn(groupTwo) })
+
+        const names = (await articleCategoryOperations.readAll({ session: sessionInGroups(groupTwo) }))
+            .map(candidate => candidate.name)
+        expect(names).toContain(category.name)
     })
 
     test('starts out with the given levels', async () => {

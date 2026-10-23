@@ -18,7 +18,10 @@ export default function DoubleLevelVisibilityDescription({ doubleLevelVisibility
 
     return (
         <p className="flex flex-col gap-[0.2em] mt-[0.5em] text-s opacity-85">
-            <span>Kan se: {describeMatrix(doubleLevelVisibility.regularLevel, groups)}</span>
+            <span>
+                Kan se: {describeMatrix(doubleLevelVisibility.regularLevel, groups)}
+                {doubleLevelVisibility.regularLevel.requirements.length > 0 && ' I tillegg alle som kan administrere.'}
+            </span>
             <span>Kan administrere: {describeMatrix(doubleLevelVisibility.adminLevel, groups)}</span>
         </p>
     )

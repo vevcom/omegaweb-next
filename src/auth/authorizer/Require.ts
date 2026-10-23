@@ -244,12 +244,19 @@ export class RequireBuilder<
      * belongs in auth.ts - fixed per operation, or chosen from the resource's own data - never
      * left for the caller to pick by supplying "the correct half" in `.data()` instead.
      *
+     * Whoever administrates also sees: the regular level is satisfied by either matrix, the admin
+     * level only by the admin matrix. The two matrices are stored and edited independently, so
+     * this is where the admin level becomes a subset of the regular level. A list query gets the
+     * same rule from `regularLevelFilter`.
+     *
      * Not `.visibility()`: that name is kept for a resource with a single level, where there is no
      * half to choose. No resource has one yet, so that method does not exist. */
     levelOfDoubleVisibility(opts: { level: 'regularLevel' | 'adminLevel', errorMessage?: string }):
         RequireBuilder<Data & { visibility: DoubleLevelVisibilityMatrix }, PrismaWhereFilter, EarlierUser, LastUser> {
         return this.and<{ visibility: DoubleLevelVisibilityMatrix }>(({ session, visibility }) => (
-            checkVisibility(session.memberships, visibility[opts.level])
+            checkVisibility(session.memberships, visibility.adminLevel) || (
+                opts.level === 'regularLevel' && checkVisibility(session.memberships, visibility.regularLevel)
+            )
                 ? { success: true }
                 : { success: false, errorMessage: opts.errorMessage }
         ))

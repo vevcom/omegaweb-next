@@ -1,5 +1,4 @@
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
-import { isSubVisibility } from '@/auth/visibility/isSubVisibility'
 import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
@@ -15,8 +14,8 @@ import type { VisibilityMatrix } from '@/services/visibility/types'
  * A standalone implementation of the double level visibility contract. It deliberately owns no
  * domain model of its own - its implementationParams are just the two visibility ids - so that
  * everything `implementDoubleLevelVisibilityOperations` provides (the matrix read, both level
- * updates, the ownership check and the admin-is-a-sub-of-regular invariant) is exercised without
- * dragging in image collections or any other owning service.
+ * updates and the ownership check) is exercised without dragging in image collections or any other
+ * owning service.
  */
 const testDoubleLevelVisibility = implementDoubleLevelVisibilityOperations({
     implementationParamsSchema: z.object({
@@ -103,10 +102,9 @@ function groupIdsOf(visibility: VisibilityMatrix): number[] {
 }
 
 /**
- * Arranges a pair into the levels a test needs. The admin level is always written first: an empty
- * admin level means "everyone administrates", which is not a sub-visibility of any narrowed regular
- * level, so narrowing the regular level first would (correctly) be rejected by the invariant.
- * When only a regular level is asked for, the admin level is set to the same matrix.
+ * Arranges a pair into the levels a test needs. The admin level is written first, since once set it
+ * is what updating the regular level takes. When only a regular level is asked for, the admin level
+ * is set to the same matrix.
  */
 async function arrangeLevels(
     pair: { regularId: number, adminId: number },
@@ -199,39 +197,6 @@ describe('checkVisibility', () => {
 
         expect(checkVisibility([membershipInGroup(1, false, 105)], visibility)).toBe(true)
         expect(checkVisibility([membershipInGroup(1, true, 106)], visibility)).toBe(false)
-    })
-})
-
-describe('isSubVisibility', () => {
-    test('everything is a sub-visibility of the empty (everyone) matrix', () => {
-        expect(isSubVisibility(activeIn(1), { requirements: [] })).toBe(true)
-    })
-
-    test('identical matrices are sub-visibilities of each other', () => {
-        expect(isSubVisibility(activeIn(1), activeIn(1))).toBe(true)
-    })
-
-    test('a disjoint matrix is not a sub-visibility', () => {
-        expect(isSubVisibility(activeIn(1), activeIn(2))).toBe(false)
-    })
-
-    test('adding a requirement narrows, so it stays a sub-visibility', () => {
-        const stricter: VisibilityMatrix = {
-            requirements: [
-                { conditions: [{ type: 'ACTIVE', groupId: 1 }] },
-                { conditions: [{ type: 'ACTIVE', groupId: 2 }] },
-            ],
-        }
-
-        expect(isSubVisibility(stricter, activeIn(1))).toBe(true)
-        expect(isSubVisibility(activeIn(1), stricter)).toBe(false)
-    })
-
-    test('an ACTIVE condition does not satisfy an ORDER condition on the same group', () => {
-        expect(isSubVisibility(
-            activeIn(1),
-            { requirements: [{ conditions: [{ type: 'ORDER', groupId: 1, order: 106 }] }] },
-        )).toBe(false)
     })
 })
 
@@ -438,123 +403,57 @@ describe('double level visibility implementation', () => {
         })
     })
 
-    describe('admin level must stay a sub-visibility of the regular level', () => {
-        test('the regular level cannot be narrowed while the admin level is still empty', async () => {
-            // An empty admin level means everyone administrates, which is not a sub-visibility of
-            // any narrowed regular level - so the admin level has to be narrowed first.
-            await expect(testDoubleLevelVisibility.updateRegularLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.regularId },
-                data: activeIn(groupOne),
-                session: Session.empty(),
-            })).rejects.toThrow(new Smorekopp('BAD DATA'))
+    describe('the admin level is part of the regular level', () => {
+        test('the regular level may leave out the admin level', async () => {
+            await arrangeLevels(pair, { regularLevel: activeIn(groupTwo), adminLevel: activeIn(groupOne) })
 
-            await arrangeLevels(pair, { regularLevel: activeIn(groupOne) })
-
-            expect(await readStoredMatrix(pair.regularId)).toEqual(activeIn(groupOne))
-        })
-
-        test('narrowing the regular level away from the admin level is rejected', async () => {
-            await testDoubleLevelVisibility.updateAdminLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.adminId },
-                data: activeIn(groupOne),
-                session: Session.empty(),
-            })
-
-            await expect(testDoubleLevelVisibility.updateRegularLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.regularId },
-                data: activeIn(groupTwo),
-                session: sessionInGroups(groupOne),
-            })).rejects.toThrow(new Smorekopp('BAD DATA'))
-
-            // The invariant is checked before anything is written.
-            expect(await readStoredMatrix(pair.regularId)).toEqual({ requirements: [] })
-        })
-
-        test('widening the admin level past the regular level is rejected', async () => {
-            await testDoubleLevelVisibility.updateAdminLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.adminId },
-                data: activeIn(groupOne),
-                session: Session.empty(),
-            })
-            await testDoubleLevelVisibility.updateRegularLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.regularId },
-                data: activeIn(groupOne),
-                session: sessionInGroups(groupOne),
-            })
-
-            await expect(testDoubleLevelVisibility.updateAdminLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.adminId },
-                data: activeIn(groupTwo),
-                session: sessionInGroups(groupOne),
-            })).rejects.toThrow(new Smorekopp('BAD DATA'))
-
+            expect(await readStoredMatrix(pair.regularId)).toEqual(activeIn(groupTwo))
             expect(await readStoredMatrix(pair.adminId)).toEqual(activeIn(groupOne))
         })
 
-        test('setting both levels to the same matrix is allowed', async () => {
-            await testDoubleLevelVisibility.updateAdminLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.adminId },
-                data: activeIn(groupOne),
-                session: Session.empty(),
-            })
-            await testDoubleLevelVisibility.updateRegularLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.regularId },
-                data: activeIn(groupOne),
-                session: sessionInGroups(groupOne),
-            })
+        test('whoever administrates reads the matrix, whatever the regular level says', async () => {
+            await arrangeLevels(pair, { regularLevel: activeIn(groupTwo), adminLevel: activeIn(groupOne) })
 
-            expect(await readStoredMatrix(pair.regularId)).toEqual(activeIn(groupOne))
-            expect(await readStoredMatrix(pair.adminId)).toEqual(activeIn(groupOne))
+            await expect(testDoubleLevelVisibility.readDoubleLevelMatrix({
+                params: pair,
+                session: sessionInGroups(groupOne),
+            })).resolves.toBeDefined()
+            await expect(testDoubleLevelVisibility.readDoubleLevelMatrix({
+                params: pair,
+                session: sessionInGroups(groupTwo),
+            })).resolves.toBeDefined()
+            await expect(testDoubleLevelVisibility.readDoubleLevelMatrix({
+                params: pair,
+                session: Session.empty(),
+            })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
         })
 
-        test('an admin level stricter than the regular level is allowed', async () => {
-            await arrangeLevels(pair, { regularLevel: activeIn(groupOne) })
+        test('the regular level grants nothing on the admin level', async () => {
+            await arrangeLevels(pair, { regularLevel: activeIn(groupTwo), adminLevel: activeIn(groupOne) })
 
-            await testDoubleLevelVisibility.updateAdminLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.adminId },
-                data: {
-                    requirements: [
-                        { conditions: [{ type: 'ACTIVE', groupId: groupOne }] },
-                        { conditions: [{ type: 'ACTIVE', groupId: groupTwo }] },
-                    ],
-                },
-                session: sessionInGroups(groupOne),
-            })
-
-            expect((await readStoredMatrix(pair.adminId)).requirements).toHaveLength(2)
-        })
-
-        test('widening the regular level is always allowed', async () => {
-            await testDoubleLevelVisibility.updateAdminLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.adminId },
-                data: activeIn(groupOne),
-                session: Session.empty(),
-            })
-            await testDoubleLevelVisibility.updateRegularLevel({
-                implementationParams: pair,
-                params: { visibilityId: pair.regularId },
-                data: activeIn(groupOne),
-                session: sessionInGroups(groupOne),
-            })
-
-            await testDoubleLevelVisibility.updateRegularLevel({
+            await expect(testDoubleLevelVisibility.updateRegularLevel({
                 implementationParams: pair,
                 params: { visibilityId: pair.regularId },
                 data: { requirements: [] },
-                session: sessionInGroups(groupOne),
-            })
-
-            expect(await readStoredMatrix(pair.regularId)).toEqual({ requirements: [] })
+                session: sessionInGroups(groupTwo),
+            })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
         })
+    })
+})
+
+describe('levelOfDoubleVisibility', () => {
+    const visibility = { regularLevel: activeIn(1), adminLevel: activeIn(2) }
+    const regularLevel = Require.levelOfDoubleVisibility({ level: 'regularLevel' }).data({ visibility })
+    const adminLevel = Require.levelOfDoubleVisibility({ level: 'adminLevel' }).data({ visibility })
+
+    test('the regular level is satisfied by either matrix', () => {
+        expect(regularLevel.auth(sessionInGroups(1)).authorized).toBe(true)
+        expect(regularLevel.auth(sessionInGroups(2)).authorized).toBe(true)
+        expect(regularLevel.auth(sessionInGroups(3)).authorized).toBe(false)
+    })
+
+    test('the admin level is satisfied by the admin matrix alone', () => {
+        expect(adminLevel.auth(sessionInGroups(2)).authorized).toBe(true)
+        expect(adminLevel.auth(sessionInGroups(1)).authorized).toBe(false)
     })
 })

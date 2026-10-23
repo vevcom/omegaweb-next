@@ -1,6 +1,5 @@
 import '@pn-server-only'
 import { visibilityOperations } from './operations'
-import { isSubVisibility } from '@/auth/visibility/isSubVisibility'
 import { ServiceError } from '@/services/error'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
@@ -10,23 +9,10 @@ import type { DoubleLevelVisibilityMatrix, VisibilityMatrix } from './types'
 import type { Awaitable } from '@/lib/awaitable'
 
 /**
- * The admin level must always be a sub-visibility of the regular level - an administrator who
- * cannot even see what they administrate is a broken state. Since either level can be updated on
- * its own, this is asserted on the pair that the update would result in, not on the stored pair.
- *
- * Exported so services that take both levels as part of creating the thing they guard can hold the
- * pair to the same invariant from the start.
+ * The two levels are stored and edited independently of each other. That an administrator can
+ * always see what they administrate is not a constraint on the pair but a rule of the authorizer:
+ * `Require.levelOfDoubleVisibility` lets the admin level satisfy the regular level.
  */
-export function assertAdminLevelIsSubOfRegularLevel(resultingMatrix: DoubleLevelVisibilityMatrix): void {
-    if (!isSubVisibility(resultingMatrix.adminLevel, resultingMatrix.regularLevel)) {
-        throw new ServiceError(
-            'BAD DATA',
-            'Alle som kan administrere må også kunne se - det administrative nivået må ' +
-            'være en delmengde av det vanlige nivået.'
-        )
-    }
-}
-
 type Authorizers<
     ImplementationParamsSchema extends z.ZodType<unknown>,
 > = {
@@ -134,12 +120,6 @@ export function implementDoubleLevelVisibilityOperations<
                 prisma,
                 implementationParams,
             })).regularLevel.id === params.visibilityId,
-            beforeRun: async ({ prisma, implementationParams, data }) => assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: { requirements: data.requirements },
-                adminLevel: (await readDoubleLevelMatrixInternal({
-                    params: implementationParams, prisma
-                })).adminLevel
-            })
         }),
         updateAdminLevel: visibilityOperations.update.implement<ImplementationParamsSchema>({
             implementationParamsSchema,
@@ -156,16 +136,10 @@ export function implementDoubleLevelVisibilityOperations<
                 prisma,
                 implementationParams,
             })).adminLevel.id === params.visibilityId,
-            beforeRun: async ({ prisma, implementationParams, data }) => {
+            beforeRun: ({ data }) => {
                 if (data.requirements.length === 0) {
                     throw new ServiceError('BAD DATA', 'Du må velge hvem som kan administrere')
                 }
-                assertAdminLevelIsSubOfRegularLevel({
-                    regularLevel: (await readDoubleLevelMatrixInternal({
-                        params: implementationParams, prisma
-                    })).regularLevel,
-                    adminLevel: { requirements: data.requirements }
-                })
             }
         })
     } as const

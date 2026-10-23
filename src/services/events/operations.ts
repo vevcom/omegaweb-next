@@ -17,12 +17,8 @@ import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
-import {
-    assertAdminLevelIsSubOfRegularLevel,
-    implementDoubleLevelVisibilityOperations,
-    toMatrix,
-    visibilityIncluder
-} from '@/services/visibility/implement'
+import { implementDoubleLevelVisibilityOperations, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
+import { regularLevelFilter } from '@/auth/visibility/visibilityFilter'
 import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
@@ -116,10 +112,6 @@ export const eventOperations = {
         authorizer: () => eventAuth.create,
         opensTransaction: true,
         operation: async ({ prisma, data, session }) => {
-            assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: { requirements: data.visibilityRegularRequirements },
-                adminLevel: { requirements: data.visibilityAdminRequirements },
-            })
             assertValidEventDates(data)
 
             // The event and everything it owns are created together, so a failure leaves no
@@ -572,7 +564,7 @@ function visibleEventsFilter(visibilityWhereFilter: VisibilityFilter | undefined
         OR: [
             { published: false, visibilityAdmin: visibilityWhereFilter },
             { published: true, canBeViewedBy: 'ALL' },
-            { published: true, canBeViewedBy: 'CAN_REGISTER', visibilityRegular: visibilityWhereFilter },
+            { published: true, canBeViewedBy: 'CAN_REGISTER', ...regularLevelFilter(visibilityWhereFilter) },
         ]
     }
 }

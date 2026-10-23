@@ -10,14 +10,12 @@ import { newsAuth } from './auth'
 import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { visibilityOperations } from '@/services/visibility/operations'
-import {
-    assertAdminLevelIsSubOfRegularLevel,
-    implementDoubleLevelVisibilityOperations
-} from '@/services/visibility/implement'
+import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { formatVevenUri } from '@/lib/urlEncoding'
+import { regularLevelFilter } from '@/auth/visibility/visibilityFilter'
 import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -56,11 +54,6 @@ export const newsOperations = {
             const { name, description, endDateTime } = data
 
             const backupEndDateTime = new Date(Date.now() + defaultNewsArticleOldCutoff * 24 * 60 * 60 * 1000)
-
-            assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: { requirements: data.visibilityRegularRequirements },
-                adminLevel: { requirements: data.visibilityAdminRequirements },
-            })
 
             return prisma.$transaction(async tx => {
                 const article = await articleOperations.create.internalCall({
@@ -255,7 +248,7 @@ function visibleNewsFilter(visibilityWhereFilter: VisibilityFilter | undefined):
     if (!visibilityWhereFilter) return {}
     return {
         OR: [
-            { published: true, visibilityRegular: visibilityWhereFilter },
+            { published: true, ...regularLevelFilter(visibilityWhereFilter) },
             { published: false, visibilityAdmin: visibilityWhereFilter },
         ]
     }

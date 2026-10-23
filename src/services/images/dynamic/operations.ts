@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { dynamicImageAuth } from './auth'
 import { dynamicImageSchemas } from './schemas'
+import { regularLevelFilter } from '@/auth/visibility/visibilityFilter'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
@@ -66,18 +67,20 @@ const readCollectionPage = defineOperation({
     paramsSchema: dynamicImageSchemas.params.readCollectionPage,
     authorizer: () => dynamicImageAuth.readCollectionPage,
     operation: async ({ prisma, params }, prismaWhereFilter) => {
+        // The filter is undefined only when the session bypasses visibility with IMAGE_ADMIN,
+        // which also means it administrates every collection - hence no admin filter either.
+        const visibilityWhere = () => {
+            if (!prismaWhereFilter) return {}
+            if (params.paging.details.showOnlyCollectionsSessionAdministrates) {
+                return { visibilityAdmin: prismaWhereFilter }
+            }
+            return regularLevelFilter(prismaWhereFilter)
+        }
         const collections = await prisma.imageCollection.findMany({
             ...cursorPagingSelection(params.paging.page),
             where: {
                 ...ownershipCheckWhereCondition(),
-                // The filter is undefined only when the session bypasses visibility with IMAGE_ADMIN,
-                // which also means it administrates every collection - hence no admin filter either.
-                ...(prismaWhereFilter ? {
-                    visibilityRegular: prismaWhereFilter,
-                    ...(params.paging.details.showOnlyCollectionsSessionAdministrates ? {
-                        visibilityAdmin: prismaWhereFilter
-                    } : {})
-                } : {})
+                ...visibilityWhere(),
             },
             include: expandedImageCollectionIncluder,
             orderBy: [

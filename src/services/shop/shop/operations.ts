@@ -6,11 +6,9 @@ import { ServiceError } from '@/services/error'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { productImageIncluder } from '@/services/shop/product/constants'
+import { regularLevelFilter } from '@/auth/visibility/visibilityFilter'
 import { visibilityOperations } from '@/services/visibility/operations'
-import {
-    assertAdminLevelIsSubOfRegularLevel,
-    implementDoubleLevelVisibilityOperations,
-} from '@/services/visibility/implement'
+import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import type { ExtendedShop } from './types'
 
 const visibility = implementDoubleLevelVisibilityOperations({
@@ -45,39 +43,32 @@ export const shopOperations = {
         dataSchema: shopSchemas.data.create,
         authorizer: () => shopAuth.create,
         opensTransaction: true,
-        operation: async ({ prisma, data }) => {
-            assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: { requirements: data.visibilityRegularRequirements },
-                adminLevel: { requirements: data.visibilityAdminRequirements },
+        operation: ({ prisma, data }) => prisma.$transaction(async tx => {
+            const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
+                prisma: tx,
+                data: { requirements: data.visibilityRegularRequirements },
+            })
+            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+                prisma: tx,
+                data: { requirements: data.visibilityAdminRequirements },
             })
 
-            return prisma.$transaction(async tx => {
-                const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
-                    prisma: tx,
-                    data: { requirements: data.visibilityRegularRequirements },
-                })
-                const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
-                    prisma: tx,
-                    data: { requirements: data.visibilityAdminRequirements },
-                })
-
-                return tx.shop.create({
-                    data: {
-                        name: data.name,
-                        description: data.description,
-                        visibilityRegular: { connect: { id: visibilityRegular.id } },
-                        visibilityAdmin: { connect: { id: visibilityAdmin.id } },
-                    },
-                })
+            return tx.shop.create({
+                data: {
+                    name: data.name,
+                    description: data.description,
+                    visibilityRegular: { connect: { id: visibilityRegular.id } },
+                    visibilityAdmin: { connect: { id: visibilityAdmin.id } },
+                },
             })
-        },
+        }),
     }),
 
     readMany: defineOperation({
         authorizer: () => shopAuth.readMany,
         operation: ({ prisma }, prismaWhereFilter) => prisma.shop.findMany({
             // No filter means the session bypasses the regular level with SHOP_ADMIN.
-            where: prismaWhereFilter ? { visibilityRegular: prismaWhereFilter } : undefined,
+            where: prismaWhereFilter ? regularLevelFilter(prismaWhereFilter) : undefined,
         }),
     }),
 
