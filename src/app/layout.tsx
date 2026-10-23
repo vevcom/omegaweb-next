@@ -77,7 +77,7 @@ export default async function RootLayout({ children }: PropTypes) {
     const theme = serverSession.user?.theme ?? Theme.STANDARD
 
     return (
-        <html lang="nb" data-tone={lightThemes.has(theme) ? 'light' : 'dark'}>
+        <html lang="nb" data-tone={lightThemes.has(theme) ? 'light' : 'dark'} data-scroll-behavior="smooth">
             <body className={inter.className}>
                 <ServiceWorkerRegister />
                 <SessionProvider session={nextAuthSession}>

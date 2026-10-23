@@ -1,11 +1,6 @@
 'use client'
 import useViewPort from '@/hooks/useViewPort'
-import {
-    useEffect,
-    useState,
-    useRef,
-    useEffectEvent
-} from 'react'
+import { useState, useRef } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
@@ -27,14 +22,8 @@ type PropTypes = {
  */
 export default function PdfDocument({ src, className }: PropTypes) {
     const [numPages, setNumPages] = useState<number | null>(null)
-    const [currentPages, setCurrentPages] = useState<{
-            leftPage: number | null,
-            rightPage: number | null
-        }>({
-            leftPage: null,
-            rightPage: null
-        })
     const [pagePair, setPagePair] = useState<number>(0)
+    const currentPages = pagesOfPair(numPages, pagePair)
     const [pageWidthLeft, setPageWidthLeft] = useState<number | null>(null)
     const [pageWidthRight, setPageWidthRight] = useState<number | null>(null)
     const [pageHeight, setPageHeight] = useState<number>(20)
@@ -55,35 +44,6 @@ export default function PdfDocument({ src, className }: PropTypes) {
     const onDocumentLoadSuccess = ({ numPages: numPagesCount }: { numPages: number }) => {
         setNumPages(numPagesCount)
     }
-
-    const updateCurrentPages = useEffectEvent(() => {
-        if (!numPages) return
-        if (pagePair < 0) {
-            setPagePair(1)
-        }
-        if (pagePair === 0) {
-            setCurrentPages({
-                leftPage: null,
-                rightPage: numPages > 0 ? 1 : null
-            })
-            return
-        }
-        if (2 * pagePair === numPages) {
-            setCurrentPages({
-                leftPage: numPages,
-                rightPage: null
-            })
-            return
-        }
-        setCurrentPages({
-            leftPage: 2 * pagePair,
-            rightPage: 2 * pagePair + 1
-        })
-    })
-
-    useEffect(() => {
-        updateCurrentPages()
-    }, [numPages, pagePair])
 
     useViewPort(() => {
         if (leftPageRef.current) setPageWidthLeft(leftPageRef.current.offsetWidth)
@@ -209,4 +169,11 @@ export default function PdfDocument({ src, className }: PropTypes) {
             </p>
         </div>
     )
+}
+
+function pagesOfPair(numPages: number | null, pagePair: number): { leftPage: number | null, rightPage: number | null } {
+    if (!numPages) return { leftPage: null, rightPage: null }
+    if (pagePair === 0) return { leftPage: null, rightPage: 1 }
+    if (2 * pagePair === numPages) return { leftPage: numPages, rightPage: null }
+    return { leftPage: 2 * pagePair, rightPage: 2 * pagePair + 1 }
 }
