@@ -11,6 +11,7 @@ import { displayAmount, convertAmount } from '@/lib/currency/convert'
 import { createActionError } from '@/services/actionError'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { paymentAuth } from '@/services/ledger/payments/auth'
+import { readLedgerTransactionStateByPaymentAction } from '@/services/ledger/transactions/actions'
 import { lazy, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PopUpKeyType } from '@/contexts/PopUp'
@@ -21,6 +22,25 @@ import type { StripePaymentRef } from '@/components/Stripe/StripePayment'
 // Avoid loading the Stripe components until they are needed
 const StripePayment = lazy(() => import('@/components/Stripe/StripePayment'))
 const StripeProvider = lazy(() => import('@/components/Stripe/StripeProvider'))
+
+const SETTLE_POLL_INTERVAL_MS = 500
+const SETTLE_TIMEOUT_MS = 10_000
+
+/**
+ * Waits for the Stripe webhook to settle the transaction a confirmed payment was made for, so the
+ * page refreshes with the new balance. Gives up after a while and returns PENDING, since the webhook
+ * will still settle it later. This is not so clean, but works for now.
+ */
+async function waitForSettledTransaction(paymentId: number) {
+    const deadline = Date.now() + SETTLE_TIMEOUT_MS
+    while (Date.now() < deadline) {
+        const result = await readLedgerTransactionStateByPaymentAction({ params: { paymentId } })
+        if (!result.success) break
+        if (result.data !== 'PENDING') return result.data
+        await new Promise(resolve => setTimeout(resolve, SETTLE_POLL_INTERVAL_MS))
+    }
+    return 'PENDING'
+}
 
 export type LedgerTransactionPaymentMethod = 'STRIPE' | 'MANUAL'
 
@@ -146,6 +166,11 @@ export default function LedgerTransactionModal({
         if (payment?.state === 'PROCESSING') {
             const confirmError = await confirmPayment(payment)
             if (confirmError) return createActionError('UNKNOWN ERROR', confirmError)
+
+            const state = await waitForSettledTransaction(payment.id)
+            if (state === 'FAILED' || state === 'CANCELED') {
+                return createActionError('UNKNOWN ERROR', 'Betalingen gikk ikke gjennom.')
+            }
         }
 
         return { success: true, data: undefined } as const

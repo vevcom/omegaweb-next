@@ -47,7 +47,7 @@ export default function PaymentMethodModal({ userId }: PropTypes) {
     return (
         <PopUp
             popUpKey="PaymentMethodModal"
-            customShowButton={(open) => <Button onClick={open}>Legg til bankkort</Button>}
+            customShowButton={(open) => <Button onClick={open} className="self-start">Legg til bankkort</Button>}
         >
             <h3>Legg til bankkort</h3>
             <div className="w-[min(500px,90vw)] m-6">

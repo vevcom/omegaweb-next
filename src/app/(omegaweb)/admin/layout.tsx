@@ -24,8 +24,8 @@ export default serverLayout({
             </div>
             <div
                 className="
-                    bg-surface-base grow min-w-0 ml-2 p-2 rounded-round overflow-y-auto h-[calc(100dvh-64px-26px)]
-                    max-mobile:m-0 max-mobile:h-[calc(100dvh-128px)]
+                    bg-surface-base grow min-w-0 ml-2 p-2 rounded-round overflow-y-auto h-[calc(100dvh-56px-26px)]
+                    max-mobile:m-0 max-mobile:h-[calc(100dvh-120px)]
                 "
             >
                 { children }

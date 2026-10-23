@@ -32,7 +32,7 @@ export default function SlideSidebar({ navigation }: PropTypes) {
 
     return <div
         className="
-            p-2 min-w-[250px] rounded-round max-h-[calc(100dvh-64px-26px)] overflow-y-scroll
+            p-2 min-w-[250px] rounded-round max-h-[calc(100dvh-56px-26px)] overflow-y-scroll
             max-mobile:p-0 max-mobile:m-0 max-mobile:min-w-0 max-mobile:max-h-none max-mobile:overflow-visible
         "
     >
@@ -61,8 +61,8 @@ export default function SlideSidebar({ navigation }: PropTypes) {
             <aside
                 className={`
                     flex flex-col gap-1 overflow-y-auto h-full text-text
-                    max-mobile:fixed max-mobile:top-[calc(64px+2*var(--gap))] max-mobile:left-0
-                    max-mobile:w-[min(85vw,320px)] max-mobile:h-[calc(100dvh-128px-4*var(--gap))] max-mobile:m-0
+                    max-mobile:fixed max-mobile:top-[calc(56px+2*var(--gap))] max-mobile:left-0
+                    max-mobile:w-[min(85vw,320px)] max-mobile:h-[calc(100dvh-120px-4*var(--gap))] max-mobile:m-0
                     max-mobile:p-2 max-mobile:bg-surface-base max-mobile:rounded-r-round max-mobile:z-5
                     max-mobile:transition-transform max-mobile:duration-300 max-mobile:ease-[ease]
                     ${open ? 'max-mobile:translate-x-0' : 'max-mobile:-translate-x-full'}

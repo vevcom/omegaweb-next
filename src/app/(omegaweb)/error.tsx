@@ -12,7 +12,7 @@ export default function ErrorBoundary({ error, reset }: {error: unknown, reset: 
     return (
         <div className="
             bg-surface-base px-4 flex-1 flex flex-col justify-center items-center min-h-[50vh]
-            [&>button]:absolute [&>button]:top-[calc(64px+20px+var(--gap))] [&>button]:right-[20px] [&>button]:w-auto
+            [&>button]:absolute [&>button]:top-[calc(56px+20px+var(--gap))] [&>button]:right-[20px] [&>button]:w-auto
         ">
             <PageTitleSetter title={'Feil'} />
             <div className="

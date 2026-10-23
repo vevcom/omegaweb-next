@@ -1,17 +1,19 @@
 'use client'
 
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 
 type PropTypes = {
     content: string
     children: ReactNode
+    disabled?: boolean
 }
 
 const noopSubscribe = () => () => {}
 
-export default function NavTooltip({ content, children }: PropTypes) {
+export default function NavTooltip({ content, children, disabled = false }: PropTypes) {
+    const [open, setOpen] = useState(false)
     // Tooltip.Trigger's asChild clones Radix-managed props (aria-describedby,
     // data-state, pointer/focus handlers, ref) onto children during render.
     // Something in that computation doesn't land identically between the
@@ -25,7 +27,7 @@ export default function NavTooltip({ content, children }: PropTypes) {
 
     return (
         <Tooltip.Provider delayDuration={150}>
-            <Tooltip.Root>
+            <Tooltip.Root open={open && !disabled} onOpenChange={setOpen}>
                 <Tooltip.Trigger asChild>
                     {children}
                 </Tooltip.Trigger>

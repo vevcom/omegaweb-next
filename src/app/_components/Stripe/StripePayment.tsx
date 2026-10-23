@@ -34,6 +34,9 @@ export default function StripePayment({ ref }: Props) {
                 confirmParams: {
                     return_url: window.location.href,
                 },
+                // Cards are confirmed without leaving the page, so the caller can wait for the
+                // payment to be recorded before refreshing.
+                redirect: 'if_required',
             })
 
             if (error) return error.message || 'En feil oppsto når betalingen skulle bekreftes.'

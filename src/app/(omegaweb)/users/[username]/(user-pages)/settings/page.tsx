@@ -8,7 +8,8 @@ import ArchiveUserForm from './ArchiveUserForm'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import Image from '@/components/Image/Image'
 import CmsParagraphEditorForm from '@/components/Cms/CmsParagraph/CmsParagraphEditorForm'
-import ImageUploader from '@/components/Image/ImageUploader'
+import Form from '@/components/Form/Form'
+import FileInput from '@/components/UI/FileInput'
 import { updateUserBioParagraphContentAction, updateUserProfileImageAction } from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
 import { userOperations } from '@/services/users/operations'
@@ -63,14 +64,17 @@ const { page, generateMetadata } = serverPage({
                         <h2>Profilbilde</h2>
                         <div className="flex flex-wrap items-start gap-[1em]">
                             <Image width={300} image={profile.user.image} alt={profile.user.image.alt} />
-                            <ImageUploader
-                                title="Endre profilbilde"
-                                uploadImageAction={configureAction(
+                            <Form
+                                className="w-fit!"
+                                submitText="Last opp"
+                                action={configureAction(
                                     updateUserProfileImageAction,
                                     { params: { username: profile.user.username } }
                                 )}
                                 refreshOnSuccess
-                            />
+                            >
+                                <FileInput label="Velg bilde" name="imageFile" color="primary" accept="image/*" />
+                            </Form>
                         </div>
                     </UserProfileSettingsCard>
                 )}

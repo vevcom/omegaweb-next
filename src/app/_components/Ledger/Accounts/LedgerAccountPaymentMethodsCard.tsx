@@ -4,9 +4,6 @@ import { userOperations } from '@/services/users/operations'
 import BooleanIndicator from '@/components/UI/BooleanIndicator'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
-import Link from 'next/link'
-import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 type Props = {
     userId: number,
@@ -37,11 +34,11 @@ export default async function LedgerAccountPaymentMethods({ userId }: Props) {
         </div>
         <div className="flex flex-col gap-2 mt-6">
             <h3>NTNU-kort <BooleanIndicator value={hasStudentCard} /></h3>
-            <p>For å benytte Kiogeskabet på Lophtet må et NTNU-kort være registrert.</p>
+            <p>
+                For å benytte Kiogeskabet på Lophtet må et NTNU-kort være registrert.
+                Dette kan gjøres på Kiogeskabet på Lophtet.
+            </p>
             <p>Kortnummer: <strong>{hasStudentCard ? user.studentCard : 'ikke registrert'}</strong></p>
-            <Link href={`/users/${user.username}/settings`} className="inline-flex items-center gap-2 w-fit">
-                Gå til siden for kortregistrering <FontAwesomeIcon icon={faArrowRight} />
-            </Link>
         </div>
     </div>
 }

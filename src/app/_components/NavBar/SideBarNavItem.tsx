@@ -14,19 +14,17 @@ type PropTypes = {
 }
 
 export default function SideBarNavItem({ item, expanded, active }: PropTypes) {
-    const link = (
-        <Link
-            href={item.href}
-            className={navIconClassName}
-            aria-label={item.name}
-            aria-current={active ? 'page' : undefined}
-        >
-            <FontAwesomeIcon icon={item.icon} className={navIconIconClassName} />
-            <span className={navIconLabelClassName}>{item.name}</span>
-        </Link>
+    return (
+        <NavTooltip content={item.name} disabled={expanded}>
+            <Link
+                href={item.href}
+                className={navIconClassName}
+                aria-label={item.name}
+                aria-current={active ? 'page' : undefined}
+            >
+                <FontAwesomeIcon icon={item.icon} className={navIconIconClassName} />
+                <span className={navIconLabelClassName}>{item.name}</span>
+            </Link>
+        </NavTooltip>
     )
-
-    if (expanded) return link
-
-    return <NavTooltip content={item.name}>{link}</NavTooltip>
 }

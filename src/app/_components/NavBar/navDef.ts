@@ -18,6 +18,7 @@ import { bulshitAuth } from '@/services/bulshit/auth'
 import { lockerAuth } from '@/services/lockers/auth'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
+import { Require } from '@/auth/authorizer/Require'
 import {
     faGamepad,
     faBook,
@@ -36,6 +37,7 @@ import {
     faPoo,
     faShoppingCart,
     faLock,
+    faChartLine,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -158,6 +160,13 @@ export const navDef: NavItem[] = [
         href: '/applications',
         icon: faIdCard,
         authorizers: () => [applicationPeriodAuth.readAll],
+    },
+    {
+        name: 'Phinans',
+        href: 'https://phinans.com/',
+        icon: faChartLine,
+        // An external site, so nothing here decides who may open it.
+        authorizers: () => [Require.nothing()],
     },
     {
         name: 'Administrasjon',

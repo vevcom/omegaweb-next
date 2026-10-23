@@ -25,8 +25,8 @@ export const footerClassName = 'rounded-round overflow-hidden'
 export const frontInfoClassName = (withPromoBar: boolean) => `
     w-full grid place-items-center bg-radial from-black to-transparent
     ${withPromoBar
-        ? 'min-h-[calc(100dvh-64px-18*var(--gap))] max-mobile:min-h-[calc(100dvh-128px-19*var(--gap))]'
-        : 'min-h-[calc(100dvh-64px-3*var(--gap))] max-mobile:min-h-[calc(100dvh-128px-4*var(--gap))]'}`
+        ? 'min-h-[calc(100dvh-56px-18*var(--gap))] max-mobile:min-h-[calc(100dvh-120px-19*var(--gap))]'
+        : 'min-h-[calc(100dvh-56px-3*var(--gap))] max-mobile:min-h-[calc(100dvh-120px-4*var(--gap))]'}`
 
 export const frontInfoInnerClassName = 'flex flex-col items-center gap-6 pb-[20px]'
 

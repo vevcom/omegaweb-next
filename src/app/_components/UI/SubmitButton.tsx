@@ -23,6 +23,9 @@ export type Confirmation = {
 }
 
 const submitButtonClassName = 'w-40 m-0 text-text-inv transition-colors duration-300 ease-in-out'
+// The answers to a confirmation share a size, and ignore the caller's class and color, which
+// style the button that asks the question.
+const confirmationButtonClassName = 'w-24 m-0 transition-colors duration-300 ease-in-out'
 
 export default function SubmitButton({
     children,
@@ -80,27 +83,31 @@ export default function SubmitButton({
         }
         return label
     }
-    const submitButton = (label: ReactNode) => (
-        <Button
-            className={`
-                ${submitButtonClassName}
-                ${className ?? ''}
-            `}
-            aria-disabled={pending || success}
-            color={success ? 'green' : color}
-            type="submit"
-            onClick={onClick}
-            disabled={disabled}
-        >
-            {renderButtonContent(label)}
-        </Button>
-    )
+    const submitButton = (label: ReactNode, isConfirmation = false) => {
+        const idleColor = isConfirmation ? 'red' : color
+        return (
+            <Button
+                className={isConfirmation ? confirmationButtonClassName : `
+                    ${submitButtonClassName}
+                    ${className ?? ''}
+                `}
+                aria-disabled={pending || success}
+                color={success ? 'green' : idleColor}
+                type="submit"
+                onClick={onClick}
+                disabled={disabled}
+            >
+                {renderButtonContent(label)}
+            </Button>
+        )
+    }
 
     const confirmationQuestion = (confirmButton: ReactNode) => (
         <div>
             <p>{confirmation?.text || 'Er du sikker?'}</p>
             <div className="flex justify-center gap-2 mt-4">
                 <Button
+                    className={confirmationButtonClassName}
                     type="button"
                     color="secondary"
                     onClick={() => setConfirmedOpen(false)}
@@ -154,12 +161,9 @@ export default function SubmitButton({
                         </button>
                         {confirmationQuestion(
                             <Button
-                                className={`
-                                    ${submitButtonClassName}
-                                    ${className ?? ''}
-                                `}
+                                className={confirmationButtonClassName}
                                 aria-disabled={pending || success}
-                                color={success ? 'green' : color}
+                                color={success ? 'green' : 'red'}
                                 type="button"
                                 disabled={disabled || pending || success}
                                 onClick={() => realSubmitRef.current?.click()}
@@ -177,7 +181,7 @@ export default function SubmitButton({
 
     const renderButtons = () => {
         if (!confirmation?.confirm) return submitButton(children)
-        if (insidePopUp) return confirmedOpen ? confirmationQuestion(submitButton('Ja')) : confirmationTrigger
+        if (insidePopUp) return confirmedOpen ? confirmationQuestion(submitButton('Ja', true)) : confirmationTrigger
         return (
             <>
                 {confirmationTrigger}

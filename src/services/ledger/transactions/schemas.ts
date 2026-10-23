@@ -27,6 +27,7 @@ const transaction = paramsFieldSchemas.pick({
 export const ledgerTransactionSchemas = {
     params: {
         read: transaction,
+        readStateByPayment: paramsFieldSchemas.pick({ paymentId: true }).required(),
         cancel: transaction,
         initiate: transaction,
         readPage: readPageInputSchemaObject(

@@ -324,8 +324,8 @@ async function migratePayments({
         }
 
         const description = link
-            ? `Migrert: ${commodity.description} (${link.role})`
-            : `Migrert: ${commodity.description}`
+            ? `${commodity.description} (${link.role})`
+            : commodity.description
 
         await pnPrisma.ledgerTransaction.create({
             data: {

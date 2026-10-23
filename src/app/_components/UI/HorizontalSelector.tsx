@@ -24,7 +24,7 @@ export default function HorizontalSelector<ValueType extends string | number>({
     className,
 }: PropTypes<ValueType>) {
     return <div className={`
-        inline-flex rounded-round overflow-hidden
+        inline-flex rounded-inner overflow-hidden
         [&_input[type=radio]]:hidden
         ${className ?? ''}
     `}>

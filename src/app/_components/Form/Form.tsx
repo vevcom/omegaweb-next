@@ -3,7 +3,6 @@ import { SUCCESS_FEEDBACK_TIME } from './constants'
 import { PopUpContext } from '@/contexts/PopUp'
 import SubmitButton from '@/components/UI/SubmitButton'
 import React, { Children, useContext, useEffect, useState, useEffectEvent } from 'react'
-import { useFormStatus } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
@@ -33,8 +32,7 @@ type InputType = {
 }
 type Inputs = InputType[]
 
-function Input({ input, errors }: InputType) {
-    const { pending } = useFormStatus()
+function Input({ input, errors, pending }: InputType & { pending: boolean }) {
     return (
         <span>
             <div>
@@ -102,6 +100,7 @@ export default function Form<GiveActionReturn>({
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
     const [inputs, setInputs] = useState<Inputs>(makeInputArray(children))
     const [success, setSuccess] = useState(false)
+    const [pending, setPending] = useState(false)
     const PopUpCtx = useContext(PopUpContext)
     const { refresh, push } = useRouter()
 
@@ -164,10 +163,19 @@ export default function Form<GiveActionReturn>({
         return
     }
 
+    // Tracked here since useFormStatus only covers a transition started during the submit event.
+    // That misses an action which awaits something before its first server action, such as a Stripe
+    // checkout, and everything after that server action.
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
+        if (pending) return
         const formData = new FormData(event.currentTarget)
-        await actionWithError(formData)
+        setPending(true)
+        try {
+            await actionWithError(formData)
+        } finally {
+            setPending(false)
+        }
     }
 
     return (
@@ -179,7 +187,7 @@ export default function Form<GiveActionReturn>({
             {title && <h2>{title}</h2>}
             {
                 inputs.map(({ input, errors }, i) => (
-                    <Input input={input} errors={errors} key={i} />
+                    <Input input={input} errors={errors} pending={pending} key={i} />
                 ))
             }
             <SubmitButton
@@ -187,6 +195,7 @@ export default function Form<GiveActionReturn>({
                 success={success}
                 generalErrors={generalErrors}
                 confirmation={confirmation}
+                pending={pending}
                 className={`
                     ${buttonClassName}
                     m-0
