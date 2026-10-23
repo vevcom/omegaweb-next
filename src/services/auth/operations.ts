@@ -133,7 +133,7 @@ export const authOperations = {
                     firstname: true,
                     lastname: true,
                     acceptedTerms: true,
-                    createdByFeideLoginOnProjectNext: true,
+                    createdByFeideLoginOnOmegawebNext: true,
                     credentials: { select: { userId: true } },
                     feideAccount: { select: { id: true, email: true } },
                 },
@@ -141,7 +141,7 @@ export const authOperations = {
 
             if (
                 !feideUser.feideAccount ||
-                !feideUser.createdByFeideLoginOnProjectNext ||
+                !feideUser.createdByFeideLoginOnOmegawebNext ||
                 feideUser.credentials ||
                 feideUser.acceptedTerms
             ) {
@@ -198,7 +198,7 @@ export const authOperations = {
             const user = await prisma.user.findUniqueOrThrow({
                 where: { id: params.userId },
                 select: {
-                    createdByFeideLoginOnProjectNext: true,
+                    createdByFeideLoginOnOmegawebNext: true,
                     feideAccount: { select: { email: true } },
                 },
             })
@@ -207,7 +207,7 @@ export const authOperations = {
 
             return {
                 feideEmail: user.feideAccount.email,
-                createdByFeideLoginOnProjectNext: user.createdByFeideLoginOnProjectNext,
+                createdByFeideLoginOnOmegawebNext: user.createdByFeideLoginOnOmegawebNext,
             }
         }
     }),

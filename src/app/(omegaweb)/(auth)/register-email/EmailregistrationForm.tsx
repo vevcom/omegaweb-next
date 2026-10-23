@@ -13,7 +13,7 @@ type PropTypes = {
     user: UserFiltered,
     feideLoginMatch: {
         feideEmail: string,
-        createdByFeideLoginOnProjectNext: boolean,
+        createdByFeideLoginOnOmegawebNext: boolean,
     } | null,
     callbackUrl: string,
 }
@@ -34,7 +34,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
 
     const emailForm = <>
         <Form
-            title={feideLoginMatch?.createdByFeideLoginOnProjectNext ? 'A: Opprett ny bruker' : 'Sett e-posten din'}
+            title={feideLoginMatch?.createdByFeideLoginOnOmegawebNext ? 'A: Opprett ny bruker' : 'Sett e-posten din'}
             submitText="Lagre e-post"
             action={actionToCall}
             successCallback={(data) => {
@@ -50,7 +50,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
                 }
             }}
         >
-            {feideLoginMatch?.createdByFeideLoginOnProjectNext && <p>
+            {feideLoginMatch?.createdByFeideLoginOnOmegawebNext && <p>
                 Velg dette hvis du aldri hadde bruker på gamle Omegaveven.
             </p>}
             <p>
@@ -74,7 +74,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
         </>
     }
 
-    if (!feideLoginMatch.createdByFeideLoginOnProjectNext) {
+    if (!feideLoginMatch.createdByFeideLoginOnOmegawebNext) {
         return <>
             <h1>Vi fant brukeren din!</h1>
             <p className="p-2 border-l-3 border-accent-blue">

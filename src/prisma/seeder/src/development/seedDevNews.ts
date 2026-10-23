@@ -24,13 +24,13 @@ export const seedDevNews = defineSeedOperation(async (prisma: PrismaClient) => {
     await Promise.all([
         ...Array.from({ length: OLD_NEWS_COUNT }).map((_, index) => upsertTestNews(prisma, {
             name: `dev_news_old_${index}`,
-            description: 'PN lanserer neste uke',
+            description: 'Omegaweb Next lanserer neste uke',
             endDateTime: oldEndDateTime,
             imageId: image.id,
         })),
         ...Array.from({ length: ACTIVE_NEWS_COUNT }).map((_, index) => upsertTestNews(prisma, {
             name: `dev_news_active_${index}`,
-            description: 'PN lanserer neste uke',
+            description: 'Omegaweb Next lanserer neste uke',
             endDateTime: activeEndDateTime,
             imageId: image.id,
         })),

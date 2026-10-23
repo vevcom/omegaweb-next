@@ -1,10 +1,11 @@
+# Kept from before the rename to Omegaweb Next: the store and logs volumes are named after it.
 name: projectnext-prod
 
 services:
-    projectnext:
+    omegaweb-next:
         extends:
             file: docker-compose.base.yml
-            service: projectnext
+            service: omegaweb-next
         build:
             target: prod
         networks:
@@ -26,7 +27,7 @@ services:
     migrate:
         extends:
             file: docker-compose.base.yml
-            service: projectnext
+            service: omegaweb-next
         build:
             target: tools
         command: ["npm", "run", "migrate:deploy-and-seed"]
@@ -47,7 +48,7 @@ services:
     worker:
         extends:
             file: docker-compose.base.yml
-            service: projectnext
+            service: omegaweb-next
         build:
             target: tools
         command: ["./node_modules/.bin/tsx", "src/workers/main.ts"]
@@ -82,7 +83,7 @@ services:
     tools:
         extends:
             file: docker-compose.base.yml
-            service: projectnext
+            service: omegaweb-next
         build:
             target: tools
         profiles:

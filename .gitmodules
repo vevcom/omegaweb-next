@@ -1,6 +1,6 @@
 [submodule "docs"]
 	path = docs
-	url = https://github.com/vevcom/projectNext.wiki.git
+	url = https://github.com/vevcom/omegaweb-next.wiki.git
 [submodule "pncli"]
 	path = pncli
 	url = https://github.com/vevcom/pncli.git
