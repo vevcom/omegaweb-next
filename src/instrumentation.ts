@@ -9,7 +9,4 @@ export async function register() {
         const { assertProductionSecrets } = await import('@/lib/productionSecrets')
         assertProductionSecrets()
     }
-
-    const { prepareReleaseCountdown } = await import('@/services/releaseCountdown/prepare')
-    await prepareReleaseCountdown()
 }
