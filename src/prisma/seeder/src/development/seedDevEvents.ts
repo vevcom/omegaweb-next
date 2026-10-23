@@ -36,6 +36,12 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
         }
     })
 
+    const { groupId: memberGroupId } = await prisma.omegaMembershipGroup.findUniqueOrThrow({
+        where: { omegaMembershipLevel: 'SYSKEN' },
+        select: { groupId: true },
+    })
+    const visibilityRegularRequirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId: memberGroupId }] }]
+
     const coverImage = await prisma.image.findUniqueOrThrow({
         where: {
             standardImage: 'FAIR',
@@ -58,6 +64,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 tagIds: [
                     bedPresTag.id,
                 ],
+                visibilityRegularRequirements,
                 visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
             },
             registrationCount: 10,
@@ -74,6 +81,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 registrationStart: today,
                 registrationEnd: tomorrow,
                 tagIds: [],
+                visibilityRegularRequirements,
                 visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
             },
             registrationCount: 0,
@@ -91,6 +99,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 registrationStart: today,
                 registrationEnd: tomorrow,
                 tagIds: [],
+                visibilityRegularRequirements,
                 visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
             },
             registrationCount: 70,
