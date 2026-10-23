@@ -18,8 +18,9 @@ export default function ScrollArea({ className, scrollerClassName, children }: P
             relative min-h-0
             ${className ?? ''}
         `}>
+            {/* Rounded so that content cut off at its edges keeps rounded corners. */}
             <div ref={scrollRef} className={`
-                h-full overflow-y-auto [scrollbar-width:none]
+                h-full overflow-y-auto rounded-round [scrollbar-width:none]
                 [&::-webkit-scrollbar]:hidden
                 ${scrollerClassName ?? ''}
             `}>
