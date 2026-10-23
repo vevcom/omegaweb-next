@@ -11,7 +11,7 @@ const { page, generateMetadata } = serverPage({
         return { profile, dots }
     },
     render: ({ data }) => (
-        <div className="bg-surface-base rounded-round p-(--card-padding)">
+        <div className="min-h-full bg-surface-base rounded-round p-(--card-padding)">
             <h2>Prikker</h2>
             <UserDotsInEditMode userId={data.profile.user.id} dots={data.dots} />
         </div>
