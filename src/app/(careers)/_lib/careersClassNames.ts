@@ -1,6 +1,6 @@
 export const bandClassName = 'w-screen ml-[calc(50%-50vw)]'
 
-export const innerClassName = 'w-full max-w-(--contactor-max-width) mx-auto px-(--contactor-page-padding)'
+export const innerClassName = 'w-full max-w-(--careers-max-width) mx-auto px-(--careers-page-padding)'
 
 export const badgeClassName = 'block mb-6 text-s font-semibold tracking-[0.2em] uppercase'
 
@@ -31,6 +31,6 @@ export const cmsLinkTextClassName = `
 `
 
 export const navyCmsLinkClassName = `
-    [&>a]:bg-contactor-navy [&>a]:text-white
-    [&>a:hover]:bg-contactor-navy-dark [&>a:hover]:text-white
+    [&>a]:bg-careers-navy [&>a]:text-white
+    [&>a:hover]:bg-careers-navy-dark [&>a:hover]:text-white
 `

@@ -35,16 +35,16 @@
     --font-secondary: 'PlayfairDisplay', serif;
     --font-title: 'OldLondon', 'PlayfairDisplay', serif;
 
-    --color-contactor-navy: #1a2744;
-    --color-contactor-navy-dark: #0f1a2e;
-    --color-contactor-accent: #0891b2;
-    --color-contactor-accent-dark: #0e7490;
-    --color-contactor-accent-light: #22d3ee;
-    --color-contactor-yellow: #ffc23c;
-    --color-contactor-line: #d5dce6;
+    --color-careers-navy: #1a2744;
+    --color-careers-navy-dark: #0f1a2e;
+    --color-careers-accent: #0891b2;
+    --color-careers-accent-dark: #0e7490;
+    --color-careers-accent-light: #22d3ee;
+    --color-careers-yellow: #ffc23c;
+    --color-careers-line: #d5dce6;
 
-    --font-contactor-sans: var(--contactor-font-sans), system-ui, sans-serif;
-    --font-contactor-heading: var(--contactor-font-heading), var(--contactor-font-sans), sans-serif;
+    --font-careers-sans: var(--careers-font-sans), system-ui, sans-serif;
+    --font-careers-heading: var(--careers-font-heading), var(--careers-font-sans), sans-serif;
 
     --text-*: initial;
     --text-s: clamp(12px, 2vw, 14px);

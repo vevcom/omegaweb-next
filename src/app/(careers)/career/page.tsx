@@ -1,6 +1,6 @@
-import ContactorHeroShape from '@/app/(contactor)/_components/ContactorHeroShape'
-import UpcomingCompanyPresentations from '@/app/(contactor)/_components/UpcomingCompanyPresentations'
-import { CAREER_PATH, companyPresentationsHref } from '@/app/(contactor)/_lib/contactorSite'
+import CareersHeroShape from '@/app/(careers)/_components/CareersHeroShape'
+import UpcomingCompanyPresentations from '@/app/(careers)/_components/UpcomingCompanyPresentations'
+import { CAREER_PATH, companyPresentationsHref } from '@/app/(careers)/_lib/careersSite'
 import {
     badgeClassName,
     bandClassName,
@@ -10,7 +10,7 @@ import {
     innerClassName,
     navyCmsLinkClassName,
     sectionHeadingClassName,
-} from '@/app/(contactor)/_lib/contactorClassNames'
+} from '@/app/(careers)/_lib/careersClassNames'
 import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagraph'
 import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
@@ -33,7 +33,7 @@ import type {
     SpecialCmsParagraph as SpecialCmsParagraphT,
 } from '@/prisma-generated-pn-types'
 
-/** The two study programmes Contactor represents, each with its paragraph and its links to NTNU. */
+/** The two study programmes the career site represents, each with its paragraph and its links to NTNU. */
 const programmes: {
     name: string,
     paragraph: SpecialCmsParagraphT,
@@ -60,7 +60,7 @@ const navyParagraphClassName = '[&_:is(p,li)]:text-m [&_:is(p,li)]:text-white/70
 const programmeLinkClassName = `
     ${cmsLinkTextClassName}
     [&>a]:text-s [&>a]:font-medium [&>a]:text-white/70
-    [&>a:hover]:text-contactor-accent-light [&>a:hover]:underline
+    [&>a:hover]:text-careers-accent-light [&>a:hover]:underline
     [&>a]:after:content-['_↗'] [&>a]:after:text-[0.8em]
 `
 
@@ -96,22 +96,22 @@ const { page, generateMetadata } = serverPage({
                     ${bandClassName}
                     relative overflow-hidden
                 `}>
-                    <ContactorHeroShape variant="desktop" />
+                    <CareersHeroShape variant="desktop" />
                     <div className={`
                         ${innerClassName}
                         relative flex flex-col justify-center min-h-[32rem] py-12
                         max-mobile:min-h-0 max-mobile:pt-0
                     `}>
-                        <ContactorHeroShape variant="mobile" />
+                        <CareersHeroShape variant="mobile" />
                         <div className="relative max-w-[34rem]">
                             <span className={`
                                 ${badgeClassName}
-                                text-contactor-accent-dark
+                                text-careers-accent-dark
                             `}>Bedriftskontakt NTNU</span>
                             <h1 className="
-                                text-[clamp(2rem,5vw,3.25rem)] leading-[1.1] tracking-[-0.02em]! text-contactor-navy
+                                text-[clamp(2rem,5vw,3.25rem)] leading-[1.1] tracking-[-0.02em]! text-careers-navy
                             ">
-                                Der <span className="text-contactor-accent">bedrifter</span> &amp;{' '}
+                                Der <span className="text-careers-accent">bedrifter</span> &amp;{' '}
                                 {'teknologi­studenter'} møtes
                             </h1>
                             <p className="max-w-[36rem] mt-6 text-l leading-[1.6] text-text-muted">
@@ -135,7 +135,7 @@ const { page, generateMetadata } = serverPage({
 
                 <section id="studieprogrammene" className={`
                     ${bandClassName}
-                    py-24 bg-contactor-navy
+                    py-24 bg-careers-navy
                 `}>
                     <div className={`
                         ${innerClassName}
@@ -145,7 +145,7 @@ const { page, generateMetadata } = serverPage({
                         <div>
                             <span className={`
                                 ${badgeClassName}
-                                text-contactor-accent-light
+                                text-careers-accent-light
                             `}>Studieprogrammene</span>
                             <h2 className={`
                                 ${sectionHeadingClassName}
@@ -165,7 +165,7 @@ const { page, generateMetadata } = serverPage({
                             max-mobile:grid-cols-1
                         ">
                             {programmes.map(programme => (
-                                <article key={programme.name} className="p-10 bg-contactor-navy">
+                                <article key={programme.name} className="p-10 bg-careers-navy">
                                     <h3 className="mb-4 text-l leading-[1.3] text-white">{programme.name}</h3>
                                     <SpecialCmsParagraph
                                         special={programme.paragraph}
@@ -200,11 +200,11 @@ const { page, generateMetadata } = serverPage({
                         <div>
                             <span className={`
                                 ${badgeClassName}
-                                text-contactor-accent-dark
+                                text-careers-accent-dark
                             `}>Om oss</span>
                             <h2 className={`
                                 ${sectionHeadingClassName}
-                                mb-6 text-contactor-navy
+                                mb-6 text-careers-navy
                             `}>Et dedikert team av studenter</h2>
                             <SpecialCmsParagraph
                                 special="CAREER_ABOUT"
@@ -216,8 +216,8 @@ const { page, generateMetadata } = serverPage({
                             />
                             <Link href={`${CAREER_PATH}/about`} className={`
                                 ${buttonClassName}
-                                mt-8 bg-contactor-navy text-white
-                                hover:bg-contactor-navy-dark
+                                mt-8 bg-careers-navy text-white
+                                hover:bg-careers-navy-dark
                             `}>
                                 Møt teamet
                                 <FontAwesomeIcon icon={faArrowRight} />
@@ -241,7 +241,7 @@ const { page, generateMetadata } = serverPage({
 
                 <section className={`
                     ${bandClassName}
-                    py-24 bg-contactor-navy text-center
+                    py-24 bg-careers-navy text-center
                 `}>
                     <div className={`
                         ${innerClassName}
@@ -259,8 +259,8 @@ const { page, generateMetadata } = serverPage({
                             className={`
                                 ${cmsLinkButtonClassName}
                                 mt-6
-                                [&>a]:bg-white [&>a]:text-contactor-navy
-                                [&>a:hover]:bg-white/90 [&>a:hover]:text-contactor-navy
+                                [&>a]:bg-white [&>a]:text-careers-navy
+                                [&>a:hover]:bg-white/90 [&>a:hover]:text-careers-navy
                             `}
                             {...linkActions}
                         />

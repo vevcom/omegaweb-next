@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     title: { absolute: 'Fant ikke siden | Contactor NTNU' },
 }
 
-/** Catches the urls under /career no route matches, so that the 404 page renders inside Contactor's layout. */
+/** Catches the urls under /career no route matches, so that the 404 page renders inside the career layout. */
 export default function NotFoundCatchAll() {
     notFound()
 }

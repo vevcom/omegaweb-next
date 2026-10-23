@@ -1,11 +1,11 @@
 import { QueryParams } from '@/lib/queryParams/queryParams'
 
-/** Where the career pages - Contactor's site inside Omega's, the (contactor) route group - live. */
+/** Where the career pages, the (careers) route group, live. */
 export const CAREER_PATH = '/career'
 
-export const CONTACTOR_EMAIL = 'post@contactor.no'
+export const CAREERS_EMAIL = 'post@contactor.no'
 
-export const CONTACTOR_SOCIALS = {
+export const CAREERS_SOCIALS = {
     facebook: 'https://www.facebook.com/ContactorNTNU/',
     linkedin: 'https://www.linkedin.com/company/contactor-ntnu/',
     instagram: 'https://www.instagram.com/contactorntnu/',
@@ -21,13 +21,13 @@ export function companyPresentationsHref(companyPresentationEventTag: { name: st
     )}`
 }
 
-/** The links of Contactor's navigation: the parts of the career pages, then the way to get in touch. */
+/** The links of the career site's navigation: the parts of the career pages, then the way to get in touch. */
 export function careerNavLinks(companyPresentationEventTag: { name: string } | null): { name: string, href: string }[] {
     return [
         { name: 'Jobbannonser', href: `${CAREER_PATH}/job-ads` },
         { name: 'Bedriftspresentasjoner', href: companyPresentationsHref(companyPresentationEventTag) },
         { name: 'Bedrifter', href: `${CAREER_PATH}/companies` },
         { name: 'Om oss', href: `${CAREER_PATH}/about` },
-        { name: 'Kontakt', href: `mailto:${CONTACTOR_EMAIL}` },
+        { name: 'Kontakt', href: `mailto:${CAREERS_EMAIL}` },
     ]
 }

@@ -1,16 +1,16 @@
-import ContactorNavBar from './_components/ContactorNavBar'
-import ContactorFooter from './_components/ContactorFooter'
-import { karla, sora } from './_lib/contactorFonts'
-import { contactorTheme } from './_lib/contactorTheme'
-import { careerNavLinks } from './_lib/contactorSite'
-import { innerClassName } from './_lib/contactorClassNames'
+import CareersNavBar from './_components/CareersNavBar'
+import CareersFooter from './_components/CareersFooter'
+import { karla, sora } from './_lib/careersFonts'
+import { careersTheme } from './_lib/careersTheme'
+import { careerNavLinks } from './_lib/careersSite'
+import { innerClassName } from './_lib/careersClassNames'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { careerAuth } from '@/services/career/auth'
 import { serverLayout, withFallback } from '@/app/ServerPage'
 import type { Metadata } from 'next'
 
-// Contactor's pages carry its name, not Omega's, in the tab.
+// The career pages carry Contactor's name, not Omega's, in the tab.
 export const metadata: Metadata = {
     title: {
         default: 'Contactor NTNU',
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 }
 
 /**
- * Contactor's site inside Omega's: the career pages, with Contactor's navigation, footer, fonts
+ * The career pages as their own site inside Omega's, with their own navigation, footer, fonts
  * and theme in place of Omega's. The pages themselves use the same services, CMS and components
  * as the rest of the site.
  */
@@ -38,24 +38,24 @@ export default serverLayout({
     render: ({ data, capabilities, children }) => (
         <div
             className={`
-                min-h-dvh flex flex-col bg-surface-base text-text font-contactor-sans [--contactor-max-width:1320px]
-                [--contactor-page-padding:clamp(1.5rem,5vw,4rem)]
-                [&_*]:font-contactor-sans
-                [&_:is(h1,h2,h3,h4)]:font-contactor-heading [&_:is(h1,h2,h3,h4)]:tracking-[-0.01em]
+                min-h-dvh flex flex-col bg-surface-base text-text font-careers-sans [--careers-max-width:1320px]
+                [--careers-page-padding:clamp(1.5rem,5vw,4rem)]
+                [&_*]:font-careers-sans
+                [&_:is(h1,h2,h3,h4)]:font-careers-heading [&_:is(h1,h2,h3,h4)]:tracking-[-0.01em]
                 ${karla.variable}
                 ${sora.variable}
             `}
             data-tone="light"
         >
-            <SiteTheme colors={contactorTheme} />
-            <ContactorNavBar links={careerNavLinks(data.companyPresentationEventTag)} />
+            <SiteTheme colors={careersTheme} />
+            <CareersNavBar links={careerNavLinks(data.companyPresentationEventTag)} />
             <main className={`
                 ${innerClassName}
                 flex-1
             `}>
                 {children}
             </main>
-            <ContactorFooter capabilities={capabilities} />
+            <CareersFooter capabilities={capabilities} />
         </div>
     ),
 })

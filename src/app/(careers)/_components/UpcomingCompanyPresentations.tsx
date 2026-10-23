@@ -1,4 +1,4 @@
-import { bandClassName, innerClassName } from '@/app/(contactor)/_lib/contactorClassNames'
+import { bandClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import Link from 'next/link'
 
 type PropTypes = {
@@ -16,18 +16,18 @@ export default function UpcomingCompanyPresentations({ eventsHref }: PropTypes) 
             aria-label="Kommende bedriftspresentasjoner"
             className={`
                 ${bandClassName}
-                border-y border-contactor-line bg-surface-raised
+                border-y border-careers-line bg-surface-raised
             `}
         >
             <div className={`
                 ${innerClassName}
                 flex flex-wrap items-center gap-x-8 gap-y-2 py-5
             `}>
-                <span className="text-contactor-accent-dark text-s font-semibold tracking-[0.15em] uppercase">
+                <span className="text-careers-accent-dark text-s font-semibold tracking-[0.15em] uppercase">
                     Kommende bedriftspresentasjoner
                 </span>
                 <span className="flex-1 text-text-muted text-m">Her kommer de neste bedriftspresentasjonene.</span>
-                <Link href={eventsHref} className="text-contactor-navy text-m font-semibold">Alle arrangementer →</Link>
+                <Link href={eventsHref} className="text-careers-navy text-m font-semibold">Alle arrangementer →</Link>
             </div>
         </section>
     )

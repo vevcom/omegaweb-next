@@ -1,6 +1,6 @@
-import ContactorWordmark from './ContactorWordmark'
-import { CONTACTOR_SOCIALS } from '@/app/(contactor)/_lib/contactorSite'
-import { cmsLinkTextClassName, innerClassName } from '@/app/(contactor)/_lib/contactorClassNames'
+import CareersWordmark from './CareersWordmark'
+import { CAREERS_SOCIALS } from '@/app/(careers)/_lib/careersSite'
+import { cmsLinkTextClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
 import { readCareerSpecialCmsLinkAction, updateCareerSpecialCmsLinkAction } from '@/services/career/actions'
 import Link from 'next/link'
@@ -15,16 +15,16 @@ type PropTypes = {
 const headingClassName = 'mb-2 text-s font-semibold tracking-[0.1em] uppercase text-white'
 const textClassName = 'text-white/80 text-m leading-[1.6]'
 
-export default function ContactorFooter({ capabilities }: PropTypes) {
+export default function CareersFooter({ capabilities }: PropTypes) {
     return (
-        <footer className="mt-20 bg-contactor-navy">
+        <footer className="mt-20 bg-careers-navy">
             <div className={`
                 ${innerClassName}
                 py-16 grid grid-cols-[2fr_1fr_1fr] gap-10
                 max-mobile:grid-cols-1
             `}>
                 <div>
-                    <ContactorWordmark light />
+                    <CareersWordmark light />
                     <p className={`
                         ${textClassName}
                         max-w-[45ch] mt-4
@@ -38,13 +38,13 @@ export default function ContactorFooter({ capabilities }: PropTypes) {
                         [&_a:hover]:text-white
                         [&_svg]:text-inherit
                     ">
-                        <Link href={CONTACTOR_SOCIALS.facebook} target="_blank" aria-label="Contactor på Facebook">
+                        <Link href={CAREERS_SOCIALS.facebook} target="_blank" aria-label="Contactor på Facebook">
                             <FontAwesomeIcon icon={faFacebookSquare} />
                         </Link>
-                        <Link href={CONTACTOR_SOCIALS.linkedin} target="_blank" aria-label="Contactor på LinkedIn">
+                        <Link href={CAREERS_SOCIALS.linkedin} target="_blank" aria-label="Contactor på LinkedIn">
                             <FontAwesomeIcon icon={faLinkedin} />
                         </Link>
-                        <Link href={CONTACTOR_SOCIALS.instagram} target="_blank" aria-label="Contactor på Instagram">
+                        <Link href={CAREERS_SOCIALS.instagram} target="_blank" aria-label="Contactor på Instagram">
                             <FontAwesomeIcon icon={faInstagram} />
                         </Link>
                     </div>

@@ -207,7 +207,7 @@ src/
 │   ├── (omegaweb)/         # Omega's site: its navigation and the user's theme
 │   │   ├── admin/          # Admin pages
 │   │   └── [feature]/      # Feature-specific pages
-│   └── (contactor)/        # Contactor's site under /career: its own layout, theme and fonts
+│   └── (careers)/          # The career pages as their own site: own layout, theme and fonts
 │       └── career/
 ├── auth/                   # Authentication and authorization
 │   ├── authorizer/         # Authorization classes

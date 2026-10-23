@@ -1,6 +1,6 @@
 import type { ThemeColors } from '@/lib/theme'
 
-export const contactorTheme: ThemeColors = {
+export const careersTheme: ThemeColors = {
     layer: 'hsla(222, 45%, 18%, 0.06)',
     text: '#0f172a',
     'text-muted': '#475569',

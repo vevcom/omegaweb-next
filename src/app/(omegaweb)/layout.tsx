@@ -16,7 +16,7 @@ type PropTypes = {
 }
 
 /**
- * Omega's site: the navigation around every page but Contactor's (see the (contactor) group), in
+ * Omega's site: the navigation around every page but the career pages (see the (careers) group), in
  * the theme the user has chosen. Like the root layout it loads with withPageSession rather than
  * serverLayout, as the registration pages are under it and must stay reachable for a user who
  * has not finished registering.
