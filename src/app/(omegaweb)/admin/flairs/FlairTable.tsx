@@ -4,7 +4,7 @@ import { configureAction } from '@/services/configureAction'
 import { flairAuth } from '@/services/flairs/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowUpRightFromSquare, faGripVertical } from '@fortawesome/free-solid-svg-icons'
@@ -103,13 +103,15 @@ type PropTypes = {
 
 export default function FlairTable({ rows }: PropTypes) {
     const [order, setOrder] = useState(rows)
+    const [prevRows, setPrevRows] = useState(rows)
     const router = useRouter()
     const canIncreaseFlairRank = useAuthorizer({ authorizer: flairAuth.increaseRank }).authorized
     const canDecreaseFlairRank = useAuthorizer({ authorizer: flairAuth.decreaseRank }).authorized
 
-    useEffect(() => {
+    if (prevRows !== rows) {
+        setPrevRows(rows)
         setOrder(rows)
-    }, [rows])
+    }
 
     const commitOrder = async (flairId: number) => {
         const originalIndex = rows.findIndex(row => row.id === flairId)

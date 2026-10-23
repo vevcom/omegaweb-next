@@ -6,7 +6,7 @@ import useAuthorizer from '@/hooks/useAuthorizer'
 import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { PointerEvent, ReactNode } from 'react'
 
@@ -78,13 +78,15 @@ type PropTypes = {
  */
 export default function PrioritizedCommittees({ items, userId }: PropTypes) {
     const [order, setOrder] = useState(items)
+    const [prevItems, setPrevItems] = useState(items)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
     const canReorder = useAuthorizer({ authorizer: applicationAuth.update.data({ userId }) }).authorized
 
-    useEffect(() => {
+    if (prevItems !== items) {
+        setPrevItems(items)
         setOrder(items)
-    }, [items])
+    }
 
     const handleShowError = useCallback((message: string) => {
         setError(message)
