@@ -11,11 +11,10 @@ export const navIconIconClassName = `
     ${activeColor}
 `
 
+// Matches the duration of the sidebar's width transition in the root layout.
 export const navIconLabelClassName = `
-    whitespace-nowrap overflow-hidden opacity-0 max-w-0 ml-0 text-text transition-[opacity,max-width,margin-left,color]
-    duration-300 ease-[ease]
-    group-data-[expanded=true]/sidebar:opacity-100 group-data-[expanded=true]/sidebar:max-w-[160px]
-    group-data-[expanded=true]/sidebar:ml-2
+    whitespace-nowrap overflow-hidden ml-2 text-text opacity-0 transition-[opacity,color] duration-300 ease-[ease]
+    group-data-[expanded=true]/sidebar:opacity-100
     ${activeColor}
 `
 

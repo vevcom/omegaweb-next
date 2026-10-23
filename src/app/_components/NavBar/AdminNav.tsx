@@ -18,23 +18,21 @@ type PropTypes = {
 export default function AdminNav({ showAdmin, expanded = false, active = false }: PropTypes) {
     if (!showAdmin) return null
 
-    const adminLink = (
-        <Link
-            href={adminNavItemHref}
-            className={navIconClassName}
-            aria-label="Admin"
-            aria-current={active ? 'page' : undefined}
-        >
-            <FontAwesomeIcon icon={faCog} className={navIconIconClassName} />
-            <span className={navIconLabelClassName}>Admin</span>
-        </Link>
-    )
-
     return (
         <>
             <hr className={dividerClassName} />
             <nav className="w-full flex flex-col items-stretch shrink-0" aria-label="Adminnavigasjon">
-                {expanded ? adminLink : <NavTooltip content="Admin">{adminLink}</NavTooltip>}
+                <NavTooltip content="Admin" disabled={expanded}>
+                    <Link
+                        href={adminNavItemHref}
+                        className={navIconClassName}
+                        aria-label="Admin"
+                        aria-current={active ? 'page' : undefined}
+                    >
+                        <FontAwesomeIcon icon={faCog} className={navIconIconClassName} />
+                        <span className={navIconLabelClassName}>Admin</span>
+                    </Link>
+                </NavTooltip>
             </nav>
         </>
     )
