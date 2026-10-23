@@ -2,8 +2,6 @@ import { isBuildPhase } from '@/lib/isBuildPhase'
 import { ServiceError } from '@/services/error'
 
 
-export const NTNUEmailDomain = 'stud.ntnu.no'
-
 export const MailListTypeArray = ['alias', 'mailingList', 'group', 'user', 'mailaddressExternal'] as const
 
 export const validMailAddressDomains = isBuildPhase() ? ['build-phase-placeholder.invalid'] : (() => {
