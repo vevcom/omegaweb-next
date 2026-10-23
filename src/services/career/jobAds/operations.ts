@@ -72,7 +72,7 @@ export const jobAdOperations = {
                 data: {
                     title: `Ny jobbannonse: ${articleName}`,
                     message: `${jobAd.company.name} har lagt ut en ny jobbannonse: ${articleName}`,
-                    url: `/career/job-ads/${formatVevenUri(articleName, jobAd.id)}`,
+                    url: `/job-ads/${formatVevenUri(articleName, jobAd.id)}`,
                     audience: { permission: 'JOBAD_USE' },
                 },
             })

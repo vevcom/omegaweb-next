@@ -1,5 +1,6 @@
 'use client'
-import SelectedCompany from '@/career/job-ads/SelectedCompany'
+import SelectedCompany from './SelectedCompany'
+import CompanyChooser from './CompanyChooser'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
@@ -7,7 +8,6 @@ import { SelectString } from '@/components/UI/Select'
 import DateInput from '@/components/UI/DateInput'
 import Slider from '@/app/_components/UI/Slider'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
-import CompanyChooser from '@/career/job-ads/CompanyChooser'
 import { destroyJobAdAction, updateJobAdAction } from '@/career/jobAds/actions'
 import { jobAdOptions } from '@/services/career/jobAds/constants'
 import useEditMode from '@/hooks/useEditMode'
@@ -20,6 +20,7 @@ import type { ExpandedJobAd } from '@/services/career/jobAds/types'
 
 type PropTypes = {
     jobAd: ExpandedJobAd
+    basePath: string
     children?: ReactNode
 }
 
@@ -35,7 +36,7 @@ const columnClassName = `
 `
 const headingClassName = 'text-s font-medium uppercase tracking-[0.06em] text-text-muted shrink-0'
 
-export default function EditJobAd({ jobAd, children }: PropTypes) {
+export default function EditJobAd({ jobAd, basePath, children }: PropTypes) {
     const canEdit = useEditMode({
         authorizer: jobAdAuth.update
     })
@@ -65,7 +66,7 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
                     <Form
                         action={updateAction}
                         navigateOnSuccess={(data) =>
-                            `/career/job-ads/${data ? formatVevenUri(data.articleName, data.id) : ''}`
+                            `${basePath}/${data ? formatVevenUri(data.articleName, data.id) : ''}`
                         }
                         submitText="Oppdater"
                     >
@@ -103,7 +104,7 @@ export default function EditJobAd({ jobAd, children }: PropTypes) {
                         <div className="mt-4 pt-4 border-t border-surface-hover">
                             <Form
                                 action={configureAction(destroyJobAdAction, { params: { id: jobAd.id } })}
-                                navigateOnSuccess="/career/job-ads"
+                                navigateOnSuccess={basePath}
                                 submitText="Slett annonse"
                                 confirmation={{
                                     confirm: true,

@@ -8,16 +8,18 @@ import type { SimpleJobAd } from '@/services/career/jobAds/types'
 
 type PropTypes = {
     jobAd: SimpleJobAd
+    /** The job ads page the row links under, which differs between Omega's site and the career site. */
+    basePath: string
 }
 
 const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des']
 
-export default function JobAd({ jobAd }: PropTypes) {
+export default function JobAd({ jobAd, basePath }: PropTypes) {
     const deadline = jobAd.applicationDeadline ? osloDateTime(jobAd.applicationDeadline) : null
 
     return (
         <Link
-            href={`/career/job-ads/${formatVevenUri(jobAd.articleName, jobAd.id)}`}
+            href={`${basePath}/${formatVevenUri(jobAd.articleName, jobAd.id)}`}
             className="list-row"
         >
             <div className="list-row-thumb">

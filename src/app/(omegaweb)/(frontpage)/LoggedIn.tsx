@@ -10,7 +10,7 @@ import {
 } from './frontpageClassNames'
 import PromoBar from './PromoBar'
 import EventCard from '@/app/_components/Event/EventCard'
-import JobAd from '@/career/job-ads/JobAd'
+import JobAd from '@/components/JobAds/JobAd'
 import NewsCard from '@/app/(omegaweb)/news/NewsCard'
 import OmbulRow from '@/app/(omegaweb)/ombul/OmbulRow'
 import OmegaquoteRow from '@/app/(omegaweb)/omegaquotes/OmegaquoteRow'
@@ -128,13 +128,13 @@ export default async function LoggedInLandingPage() {
                         </LoggedInSection>
                         <LoggedInSection
                             title="Jobbannonser"
-                            link="/career/job-ads"
+                            link="/job-ads"
                             layout="rows"
                             span="half"
                             emptyMessage="Det er for tiden ingen jobbannonser"
                         >
                             {jobAds.map((jobAd, key) => (
-                                <JobAd key={key} jobAd={jobAd} />
+                                <JobAd key={key} jobAd={jobAd} basePath="/job-ads" />
                             ))}
                         </LoggedInSection>
                         {capabilities.canReadOmbul.authorized && (
