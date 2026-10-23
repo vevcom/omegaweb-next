@@ -4,6 +4,7 @@ import ImageUploader from '@/components/Image/ImageUploader'
 import MigrateGroup from '@/components/Group/MigrateGroup'
 import ManageGroupMembers from '@/components/Group/ManageGroupMembers'
 import PensionGroup from '@/components/Group/PensionGroup'
+import UpdateCommitteeForm from './UpdateCommitteeForm'
 import { groupMembersByOrder } from '@/components/Group/groupMembersByOrder'
 import { configureAction } from '@/services/configureAction'
 import {
@@ -43,6 +44,7 @@ const { page, generateMetadata } = serverPage({
         return { committee, expanded, members, currentOrder }
     },
     capabilities: (data) => ({
+        canUpdate: committeeAuth.update,
         canEditLogo: committeeAuth.updateLogo.data({ groupId: data.committee.groupId }),
         canMigrate: committeeAuth.migrateGroup.data({ groupId: data.committee.groupId }),
         canAddMembers: committeeAuth.addMembers.data({ groupId: data.committee.groupId }),
@@ -73,6 +75,17 @@ const { page, generateMetadata } = serverPage({
                         {expanded && <span>Aktive medlemmer: {expanded.members}</span>}
                     </div>
                 </header>
+
+                {!committee.group.pensioned && capabilities.canUpdate.authorized && (
+                    <section className={sectionClassName}>
+                        <h3>Navn</h3>
+                        <UpdateCommitteeForm
+                            id={committee.id}
+                            name={committee.name}
+                            shortName={committee.shortName}
+                        />
+                    </section>
+                )}
 
                 {!committee.group.pensioned && <section className={sectionClassName}>
                     <h3>Logo</h3>

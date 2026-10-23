@@ -3,6 +3,7 @@ import { makeAction } from '@/services/serverAction'
 import { committeeOperations } from '@/services/groups/committees/operations'
 
 export const createCommitteeAction = makeAction(committeeOperations.create)
+export const updateCommitteeAction = makeAction(committeeOperations.update)
 export const addCommitteeMembersAction = makeAction(committeeOperations.addMembers)
 export const removeCommitteeMembersAction = makeAction(committeeOperations.removeMembers)
 export const setCommitteeMemberAdminAction = makeAction(committeeOperations.setMemberAdmin)
