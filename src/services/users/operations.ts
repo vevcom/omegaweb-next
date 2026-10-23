@@ -654,8 +654,14 @@ export const userOperations = {
                     where: { username: params.username },
                 })
 
-                const uploadedImage =
-                    await userProfileImageOperations.uploadImage.internalCall({ prisma: tx, data })
+                const uploadedImage = await userProfileImageOperations.uploadImage.internalCall({
+                    prisma: tx,
+                    data: {
+                        imageFile: data.imageFile,
+                        imageName: 'Profilbilde',
+                        imageAlt: `Profilbilde av ${existingUser.firstname} ${existingUser.lastname}`.slice(0, 100),
+                    },
+                })
 
                 await tx.user.update({
                     where: { id: existingUser.id },

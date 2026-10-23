@@ -1,5 +1,5 @@
 import { Zpn } from '@/lib/fields/zpn'
-import { imageSchemas } from '@/services/images/subservice/schemas'
+import { imageDataFieldSchemas } from '@/services/images/subservice/schemas'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Sex, RelationshipStatus, Theme } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
@@ -149,7 +149,8 @@ export const userSchemas = {
             email: true,
         }),
 
-        updateProfileImage: imageSchemas.data.uploadImage,
+        // Only the file: the operation fills in the image's name and alt text itself.
+        updateProfileImage: imageDataFieldSchemas.pick({ imageFile: true }),
 
         connectStudentCard: userDataFieldSchemas.pick({
             studentCard: true,
