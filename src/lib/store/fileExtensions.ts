@@ -59,7 +59,8 @@ function detectExtension(content: Buffer): StorableExtension | null {
     if (startsWith([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return 'png'
     if (startsWith([0xff, 0xd8, 0xff])) return 'jpeg'
     if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'webp'
-    if (ascii(0, 5) === '%PDF-') return 'pdf'
+    // Readers accept the pdf header anywhere in the first 1024 bytes, and some older pdfs have bytes before it.
+    if (ascii(0, 1024).includes('%PDF-')) return 'pdf'
     if (ascii(4, 8) === 'ftyp') {
         // The ftyp box lists the major brand at 8 and the compatible brands from 16 to the end of the box.
         const boxEnd = Math.min(content.readUInt32BE(0), content.length)
