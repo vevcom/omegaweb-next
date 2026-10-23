@@ -16,7 +16,6 @@ import { standardImageCollectionOperations } from '@/services/images/standard/op
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { classOperations } from '@/services/groups/classes/operations'
-import { NTNUEmailDomain } from '@/services/mail/constants'
 import { feideEmailDomainsTrustedAsVerified } from '@/lib/feide/constants'
 import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
 import { sendEmailChangedMail } from '@/lib/email/systemMail/emailChanged'
@@ -432,13 +431,6 @@ export const userOperations = {
                     verified: true,
                     email: data.email,
                 }
-            }
-
-            if (data.email.endsWith(`@${NTNUEmailDomain}`)) {
-                throw new ServiceError(
-                    'BAD PARAMETERS',
-                    `Den nye e-posten må være din ${NTNUEmailDomain}-e-post, eller en personlig e-post.`
-                )
             }
 
             await sendVerifyEmail(storedUser, data.email)
