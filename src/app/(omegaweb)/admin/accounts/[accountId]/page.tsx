@@ -1,8 +1,6 @@
 import LedgerAccountGroupsCard from '@/components/Ledger/Accounts/LedgerAccountGroupsCard'
 import EditLedgerAccountDetailsForm from '@/components/Ledger/Accounts/EditLedgerAccountDetailsForm'
 import PopUp from '@/components/PopUp/PopUp'
-import { faPencil } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOverviewCard'
 import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
@@ -11,6 +9,8 @@ import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
 import { paymentAuth } from '@/services/ledger/payments/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/ServerPage'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -76,7 +76,10 @@ const { page, generateMetadata } = serverPage({
                 showFees
             />
             {/* Add link to products overview */}
-            <LedgerAccountTransactionSummary transactionsHref={`${ledgerAccount.id}/transactions`} />
+            <LedgerAccountTransactionSummary
+                accountId={ledgerAccount.id}
+                transactionsHref={`${ledgerAccount.id}/transactions`}
+            />
         </div>
     ),
 })

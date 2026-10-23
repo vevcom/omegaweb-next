@@ -37,7 +37,10 @@ const { page, generateMetadata } = serverPage({
                 showFees={capabilities.canSeeFees.authorized}
             />
             <LedgerAccountPaymentMethods userId={data.userId} />
-            <LedgerAccountTransactionSummary transactionsHref="account/transactions" />
+            <LedgerAccountTransactionSummary
+                accountId={data.ledgerAccount.id}
+                transactionsHref="account/transactions"
+            />
         </div>
     ),
 })
