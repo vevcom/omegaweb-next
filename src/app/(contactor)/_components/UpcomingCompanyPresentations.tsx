@@ -1,4 +1,4 @@
-import styles from './UpcomingCompanyPresentations.module.scss'
+import { bandClassName, innerClassName } from '@/app/(contactor)/_lib/contactorClassNames'
 import Link from 'next/link'
 
 type PropTypes = {
@@ -12,11 +12,22 @@ type PropTypes = {
  */
 export default function UpcomingCompanyPresentations({ eventsHref }: PropTypes) {
     return (
-        <section aria-label="Kommende bedriftspresentasjoner" className={styles.strip}>
-            <div className={styles.inner}>
-                <span className={styles.label}>Kommende bedriftspresentasjoner</span>
-                <span className={styles.placeholder}>Her kommer de neste bedriftspresentasjonene.</span>
-                <Link href={eventsHref} className={styles.all}>Alle arrangementer →</Link>
+        <section
+            aria-label="Kommende bedriftspresentasjoner"
+            className={`
+                ${bandClassName}
+                border-y border-contactor-line bg-surface-raised
+            `}
+        >
+            <div className={`
+                ${innerClassName}
+                flex flex-wrap items-center gap-x-8 gap-y-2 py-5
+            `}>
+                <span className="text-contactor-accent-dark text-s font-semibold tracking-[0.15em] uppercase">
+                    Kommende bedriftspresentasjoner
+                </span>
+                <span className="flex-1 text-text-muted text-m">Her kommer de neste bedriftspresentasjonene.</span>
+                <Link href={eventsHref} className="text-contactor-navy text-m font-semibold">Alle arrangementer →</Link>
             </div>
         </section>
     )

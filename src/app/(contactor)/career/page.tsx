@@ -1,7 +1,16 @@
-import styles from './page.module.scss'
 import ContactorHeroShape from '@/app/(contactor)/_components/ContactorHeroShape'
 import UpcomingCompanyPresentations from '@/app/(contactor)/_components/UpcomingCompanyPresentations'
 import { CAREER_PATH, companyPresentationsHref } from '@/app/(contactor)/_lib/contactorSite'
+import {
+    badgeClassName,
+    bandClassName,
+    buttonClassName,
+    cmsLinkButtonClassName,
+    cmsLinkTextClassName,
+    innerClassName,
+    navyCmsLinkClassName,
+    sectionHeadingClassName,
+} from '@/app/(contactor)/_lib/contactorClassNames'
 import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagraph'
 import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
@@ -42,6 +51,19 @@ const programmes: {
     },
 ]
 
+// The CMS paragraph sizes and colours its elements itself; these are the page's own.
+const paragraphClassName = `
+    [&_:is(p,li)]:leading-[1.7]!
+    [&_p+p]:mt-4
+`
+const navyParagraphClassName = '[&_:is(p,li)]:text-m [&_:is(p,li)]:text-white/70'
+const programmeLinkClassName = `
+    ${cmsLinkTextClassName}
+    [&>a]:text-s [&>a]:font-medium [&>a]:text-white/70
+    [&>a:hover]:text-contactor-accent-light [&>a:hover]:underline
+    [&>a]:after:content-['_↗'] [&>a]:after:text-[0.8em]
+`
+
 const { page, generateMetadata } = serverPage({
     operation: async () => ({
         companyPresentationEventTag: await withFallback(
@@ -69,20 +91,41 @@ const { page, generateMetadata } = serverPage({
             updateCmsLinkAction: updateCareerSpecialCmsLinkAction,
         }
         return (
-            <div className={styles.page}>
-                <section className={styles.hero}>
+            <div className="flex flex-col">
+                <section className={`
+                    ${bandClassName}
+                    relative overflow-hidden
+                `}>
                     <ContactorHeroShape variant="desktop" />
-                    <div className={styles.inner}>
+                    <div className={`
+                        ${innerClassName}
+                        relative flex flex-col justify-center min-h-[32rem] py-12
+                        max-mobile:min-h-0 max-mobile:pt-0
+                    `}>
                         <ContactorHeroShape variant="mobile" />
-                        <div className={styles.heroText}>
-                            <span className={styles.badge}>Bedriftskontakt NTNU</span>
-                            <h1>
-                                Der <span className={styles.highlight}>bedrifter</span> &amp;{' '}
+                        <div className="relative max-w-[34rem]">
+                            <span className={`
+                                ${badgeClassName}
+                                text-contactor-accent-dark
+                            `}>Bedriftskontakt NTNU</span>
+                            <h1 className="
+                                text-[clamp(2rem,5vw,3.25rem)] leading-[1.1] tracking-[-0.02em]! text-contactor-navy
+                            ">
+                                Der <span className="text-contactor-accent">bedrifter</span> &amp;{' '}
                                 {'teknologi­studenter'} møtes
                             </h1>
-                            <p className={styles.subtitle}>Broen mellom studenter og næringslivet</p>
-                            <div className={styles.actions}>
-                                <SpecialCmsLink special="CAREER_CONTACT" className={styles.contactLink} {...linkActions} />
+                            <p className="max-w-[36rem] mt-6 text-l leading-[1.6] text-text-muted">
+                                Broen mellom studenter og næringslivet
+                            </p>
+                            <div className="flex flex-wrap gap-4 mt-10">
+                                <SpecialCmsLink
+                                    special="CAREER_CONTACT"
+                                    className={`
+                                        ${cmsLinkButtonClassName}
+                                        ${navyCmsLinkClassName}
+                                    `}
+                                    {...linkActions}
+                                />
                             </div>
                         </div>
                     </div>
@@ -90,32 +133,54 @@ const { page, generateMetadata } = serverPage({
 
                 <UpcomingCompanyPresentations eventsHref={companyPresentationsHref(data.companyPresentationEventTag)} />
 
-                <section id="studieprogrammene" className={styles.programmes}>
-                    <div className={styles.inner}>
-                        <div className={styles.programmesIntro}>
-                            <span className={styles.badge}>Studieprogrammene</span>
-                            <h2>Hvem representerer vi?</h2>
+                <section id="studieprogrammene" className={`
+                    ${bandClassName}
+                    py-24 bg-contactor-navy
+                `}>
+                    <div className={`
+                        ${innerClassName}
+                        grid grid-cols-[1fr_2fr] gap-16
+                        max-mobile:grid-cols-1
+                    `}>
+                        <div>
+                            <span className={`
+                                ${badgeClassName}
+                                text-contactor-accent-light
+                            `}>Studieprogrammene</span>
+                            <h2 className={`
+                                ${sectionHeadingClassName}
+                                mb-6 text-white
+                            `}>Hvem representerer vi?</h2>
                             <SpecialCmsParagraph
                                 special="CAREER_PROGRAMMES"
-                                className={styles.paragraph}
+                                className={`
+                                    ${paragraphClassName}
+                                    ${navyParagraphClassName}
+                                `}
                                 {...paragraphActions}
                             />
                         </div>
-                        <div className={styles.programmeGrid}>
+                        <div className="
+                            grid grid-cols-2 gap-px border border-white/12 bg-white/12
+                            max-mobile:grid-cols-1
+                        ">
                             {programmes.map(programme => (
-                                <article key={programme.name} className={styles.programme}>
-                                    <h3>{programme.name}</h3>
+                                <article key={programme.name} className="p-10 bg-contactor-navy">
+                                    <h3 className="mb-4 text-l leading-[1.3] text-white">{programme.name}</h3>
                                     <SpecialCmsParagraph
                                         special={programme.paragraph}
-                                        className={styles.paragraph}
+                                        className={`
+                                            ${paragraphClassName}
+                                            ${navyParagraphClassName}
+                                        `}
                                         {...paragraphActions}
                                     />
-                                    <div className={styles.programmeLinks}>
+                                    <div className="flex flex-wrap gap-x-8 gap-y-2 mt-6">
                                         {programme.links.map(link => (
                                             <SpecialCmsLink
                                                 key={link}
                                                 special={link}
-                                                className={styles.link}
+                                                className={programmeLinkClassName}
                                                 {...linkActions}
                                             />
                                         ))}
@@ -126,18 +191,43 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </section>
 
-                <section className={styles.about}>
-                    <div className={styles.inner}>
-                        <div className={styles.aboutText}>
-                            <span className={styles.badge}>Om oss</span>
-                            <h2>Et dedikert team av studenter</h2>
-                            <SpecialCmsParagraph special="CAREER_ABOUT" className={styles.paragraph} {...paragraphActions} />
-                            <Link href={`${CAREER_PATH}/about`} className={styles.primaryButton}>
+                <section className="py-24">
+                    <div className={`
+                        ${innerClassName}
+                        grid grid-cols-2 items-center gap-16
+                        max-mobile:grid-cols-1
+                    `}>
+                        <div>
+                            <span className={`
+                                ${badgeClassName}
+                                text-contactor-accent-dark
+                            `}>Om oss</span>
+                            <h2 className={`
+                                ${sectionHeadingClassName}
+                                mb-6 text-contactor-navy
+                            `}>Et dedikert team av studenter</h2>
+                            <SpecialCmsParagraph
+                                special="CAREER_ABOUT"
+                                className={`
+                                    ${paragraphClassName}
+                                    [&_:is(p,li)]:text-l [&_:is(p,li)]:text-text-muted
+                                `}
+                                {...paragraphActions}
+                            />
+                            <Link href={`${CAREER_PATH}/about`} className={`
+                                ${buttonClassName}
+                                mt-8 bg-contactor-navy text-white
+                                hover:bg-contactor-navy-dark
+                            `}>
                                 Møt teamet
                                 <FontAwesomeIcon icon={faArrowRight} />
                             </Link>
                         </div>
-                        <div className={styles.aboutImage}>
+                        <div className={`
+                            [--image-width:100%] overflow-hidden rounded-[calc(var(--rounding)/2)] aspect-[4/3]
+                            [&>div]:block [&>div]:size-full
+                            [&_img]:size-full [&_img]:object-cover
+                        `}>
                             <SpecialCmsImage
                                 special="CAREER_ABOUT"
                                 width={900}
@@ -149,11 +239,31 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </section>
 
-                <section className={styles.cta}>
-                    <div className={styles.inner}>
-                        <h2>Klar for å møte fremtidens ingeniører?</h2>
-                        <p>Send oss en henvendelse, så tar vi oss av alt det praktiske.</p>
-                        <SpecialCmsLink special="CAREER_CONTACT" className={styles.ctaLink} {...linkActions} />
+                <section className={`
+                    ${bandClassName}
+                    py-24 bg-contactor-navy text-center
+                `}>
+                    <div className={`
+                        ${innerClassName}
+                        flex flex-col items-center gap-4
+                    `}>
+                        <h2 className={`
+                            ${sectionHeadingClassName}
+                            text-white
+                        `}>Klar for å møte fremtidens ingeniører?</h2>
+                        <p className="max-w-[50ch] text-l text-white/70">
+                            Send oss en henvendelse, så tar vi oss av alt det praktiske.
+                        </p>
+                        <SpecialCmsLink
+                            special="CAREER_CONTACT"
+                            className={`
+                                ${cmsLinkButtonClassName}
+                                mt-6
+                                [&>a]:bg-white [&>a]:text-contactor-navy
+                                [&>a:hover]:bg-white/90 [&>a:hover]:text-contactor-navy
+                            `}
+                            {...linkActions}
+                        />
                     </div>
                 </section>
             </div>

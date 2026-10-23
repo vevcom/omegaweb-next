@@ -1,9 +1,9 @@
-import styles from './layout.module.scss'
 import ContactorNavBar from './_components/ContactorNavBar'
 import ContactorFooter from './_components/ContactorFooter'
 import { karla, sora } from './_lib/contactorFonts'
 import { contactorTheme } from './_lib/contactorTheme'
 import { careerNavLinks } from './_lib/contactorSite'
+import { innerClassName } from './_lib/contactorClassNames'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { careerAuth } from '@/services/career/auth'
@@ -36,14 +36,23 @@ export default serverLayout({
         canEditSpecialCmsLink: careerAuth.updateSpecialCmsLink,
     }),
     render: ({ data, capabilities, children }) => (
-        <div className={`
-            ${styles.site}
-            ${karla.variable}
-            ${sora.variable}
-        `} data-tone="light">
+        <div
+            className={`
+                min-h-dvh flex flex-col bg-surface-base text-text font-contactor-sans [--contactor-max-width:1320px]
+                [--contactor-page-padding:clamp(1.5rem,5vw,4rem)]
+                [&_*]:font-contactor-sans
+                [&_:is(h1,h2,h3,h4)]:font-contactor-heading [&_:is(h1,h2,h3,h4)]:tracking-[-0.01em]
+                ${karla.variable}
+                ${sora.variable}
+            `}
+            data-tone="light"
+        >
             <SiteTheme colors={contactorTheme} />
             <ContactorNavBar links={careerNavLinks(data.companyPresentationEventTag)} />
-            <main className={styles.content}>
+            <main className={`
+                ${innerClassName}
+                flex-1
+            `}>
                 {children}
             </main>
             <ContactorFooter capabilities={capabilities} />

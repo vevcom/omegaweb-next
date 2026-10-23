@@ -1,6 +1,6 @@
-import styles from './ContactorFooter.module.scss'
 import ContactorWordmark from './ContactorWordmark'
 import { CONTACTOR_SOCIALS } from '@/app/(contactor)/_lib/contactorSite'
+import { cmsLinkTextClassName, innerClassName } from '@/app/(contactor)/_lib/contactorClassNames'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
 import { readCareerSpecialCmsLinkAction, updateCareerSpecialCmsLinkAction } from '@/services/career/actions'
 import Link from 'next/link'
@@ -12,17 +12,32 @@ type PropTypes = {
     capabilities: Capabilities<'canEditSpecialCmsLink'>,
 }
 
+const headingClassName = 'mb-2 text-s font-semibold tracking-[0.1em] uppercase text-white'
+const textClassName = 'text-white/80 text-m leading-[1.6]'
+
 export default function ContactorFooter({ capabilities }: PropTypes) {
     return (
-        <footer className={styles.footer}>
-            <div className={styles.inner}>
-                <div className={styles.about}>
+        <footer className="mt-20 bg-contactor-navy">
+            <div className={`
+                ${innerClassName}
+                py-16 grid grid-cols-[2fr_1fr_1fr] gap-10
+                max-mobile:grid-cols-1
+            `}>
+                <div>
                     <ContactorWordmark light />
-                    <p>
+                    <p className={`
+                        ${textClassName}
+                        max-w-[45ch] mt-4
+                    `}>
                         Bedriftskomité for Omega, NTNU. Vi knytter næringslivet sammen med studentene ved
                         kybernetikk og robotikk og elektronisk systemdesign og innovasjon.
                     </p>
-                    <div className={styles.socials}>
+                    <div className="
+                        flex gap-4 mt-6
+                        [&_a]:text-[1.5em] [&_a]:text-white/80
+                        [&_a:hover]:text-white
+                        [&_svg]:text-inherit
+                    ">
                         <Link href={CONTACTOR_SOCIALS.facebook} target="_blank" aria-label="Contactor på Facebook">
                             <FontAwesomeIcon icon={faFacebookSquare} />
                         </Link>
@@ -35,26 +50,36 @@ export default function ContactorFooter({ capabilities }: PropTypes) {
                     </div>
                 </div>
                 <div>
-                    <h3>Kontakt</h3>
+                    <h3 className={headingClassName}>Kontakt</h3>
                     <SpecialCmsLink
                         special="CAREER_CONTACT"
-                        className={styles.contactLink}
+                        className={`
+                            ${cmsLinkTextClassName}
+                            [&>a]:text-white/80 [&>a]:text-m [&>a]:font-normal
+                            [&>a:hover]:text-white
+                        `}
                         capabilities={{ canEdit: capabilities.canEditSpecialCmsLink }}
                         readSpecialCmsLinkAction={readCareerSpecialCmsLinkAction}
                         updateCmsLinkAction={updateCareerSpecialCmsLinkAction}
                     />
                 </div>
                 <div>
-                    <h3>Adresse</h3>
-                    <p>Contactor NTNU</p>
-                    <p>Høgskoleringen 1</p>
-                    <p>7034 Trondheim</p>
+                    <h3 className={headingClassName}>Adresse</h3>
+                    <p className={textClassName}>Contactor NTNU</p>
+                    <p className={textClassName}>Høgskoleringen 1</p>
+                    <p className={textClassName}>7034 Trondheim</p>
                 </div>
             </div>
-            <div className={styles.bottom}>
-                <div className={styles.inner}>
-                    <span>© Contactor NTNU</span>
-                    <Link href="/">Tilbake til Omegaveven</Link>
+            <div className="border-t border-white/15">
+                <div className={`
+                    ${innerClassName}
+                    flex justify-between gap-4 py-4
+                `}>
+                    <span className="text-s text-white/80">© Contactor NTNU</span>
+                    <Link href="/" className="
+                        text-s text-white/80
+                        hover:text-white
+                    ">Tilbake til Omegaveven</Link>
                 </div>
             </div>
         </footer>
