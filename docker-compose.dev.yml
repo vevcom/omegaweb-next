@@ -15,7 +15,6 @@ services:
             - ${PROJECT_ROOT:-.}/logs:/usr/src/app/logs
             - devstore:/usr/src/app/store
             - dotnext:/usr/src/app/.next
-            - dobbelOmegaManifest:/usr/src/app/dobbelOmegaManifest
 
     worker:
         extends:
@@ -54,6 +53,4 @@ volumes:
     devstore:
         driver: local
     dotnext:
-        driver: local
-    dobbelOmegaManifest:
         driver: local

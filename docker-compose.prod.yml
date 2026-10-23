@@ -13,7 +13,6 @@ services:
         volumes:
             - store:/usr/src/app/store
             - logs:/usr/src/app/logs
-            - dobbelOmegaManifest:/usr/src/app/dobbelOmegaManifest
         deploy:
             replicas: 2
         restart: always
@@ -72,32 +71,6 @@ services:
             migrate:
                 condition: service_completed_successfully
 
-    # One-shot, never started with the stack. The migration/seed toolchain needs the
-    # full dependency tree (see the tools stage in the Dockerfile), so it ships as its
-    # own image and is run on demand:
-    #
-    #   docker compose -f docker-compose.prod.yml --profile tools run --rm tools npm run dobbelOmega:run
-    #
-    # The image has no default command, so the job must be named: DobbelOmega resets the whole
-    # database, and a bare `run tools` only opens a node prompt.
-    tools:
-        extends:
-            file: docker-compose.base.yml
-            service: omegaweb-next
-        build:
-            target: tools
-        profiles:
-            - tools
-        healthcheck:
-            disable: true
-        networks:
-            - dokploy-network
-        volumes:
-            - store:/usr/src/app/store
-            - logs:/usr/src/app/logs
-            - dobbelOmegaManifest:/usr/src/app/dobbelOmegaManifest
-        restart: "no"
-
     # Local database for github actions.
     db:
         extends:
@@ -121,6 +94,4 @@ volumes:
     store:
         driver: local
     logs:
-        driver: local
-    dobbelOmegaManifest:
         driver: local

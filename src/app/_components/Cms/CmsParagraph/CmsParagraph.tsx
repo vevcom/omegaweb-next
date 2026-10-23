@@ -35,8 +35,8 @@ export default function CmsParagraph({ cmsParagraph, className, updateCmsParagra
                             [&_h2]:text-text
                             [&_p]:leading-[1.5]
                         "
-                        // Sanitized again on the way out, not only when written: rows written before
-                        // html imported by DobbelOmega, never passed through it.
+                        // Sanitized again on the way out, not only when written: older rows, and the
+                        // html imported from OmegaWeb Basic, never passed through it.
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(cmsParagraph.contentHtml) }}
                     />
                 ) : (

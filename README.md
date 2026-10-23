@@ -85,7 +85,7 @@ Set `BUILDX_NO_DEFAULT_ATTESTATIONS=1` in the build environment. BuildKit otherw
 
 ### Applying database schema migrations
 
-Schema changes go through [Prisma Migrate](https://www.prisma.io/docs/orm/prisma-migrate), in development as well as production. The dev database is built from the committed migrations (the dev reseed and DobbelOmega both use `prisma migrate reset`), so a schema change only reaches it through a migration.
+Schema changes go through [Prisma Migrate](https://www.prisma.io/docs/orm/prisma-migrate), in development as well as production. The dev database is built from the committed migrations (the dev reseed uses `prisma migrate reset`), so a schema change only reaches it through a migration.
 
 Whenever you change a schema file under `src/prisma/schema/`, generate a migration for it locally and commit the result:
 
@@ -97,11 +97,11 @@ This runs in a one-off container, so it works whether or not the dev environment
 
 Committed migrations are applied **automatically on every deploy**. `docker-compose.prod.yml` has a one-shot `migrate` service that runs `migrate:deploy`, and `omegaweb-next` declares `depends_on: migrate: condition: service_completed_successfully` - so the web app does not start until migrations have exited 0, and a failed migration fails the deploy instead of booting the app against a half-applied schema. `migrate:deploy` only runs migrations that have not been applied yet, never touches existing data outside of what a migration's SQL explicitly does, and is a no-op once everything is applied, so an ordinary deploy costs nothing.
 
-The same one-shot then runs the standard seed (`seed:data`, via `migrate:deploy-and-seed`). This is not the dev reseed - it never resets anything. Every standard resource is upserted: content users can edit through the site (special CMS, news, notification channels, study programmes, ...) is only created if missing, while content they cannot edit (standard images, special image collections) is brought in line with the source code, so e.g. a changed file in `standard_store/` reaches production on the next deploy. It writes the standard images' files, so the service mounts the `store` volume. It never imports from Omegaweb-basic: that is DobbelOmega, which only runs when started on purpose (see below).
+The same one-shot then runs the standard seed (`seed:data`, via `migrate:deploy-and-seed`). This is not the dev reseed - it never resets anything. Every standard resource is upserted: content users can edit through the site (special CMS, news, notification channels, study programmes, ...) is only created if missing, while content they cannot edit (standard images, special image collections) is brought in line with the source code, so e.g. a changed file in `standard_store/` reaches production on the next deploy. It writes the standard images' files, so the service mounts the `store` volume.
 
 Migrations therefore run *before* the new code is serving, while the previous release may still be up. Keep each migration backward-compatible with the release before it: add columns nullable, backfill, and drop the old shape in a later release rather than in the same one.
 
-The `migrate` service runs the `tools` image with the command overridden. A dedicated leaner stage was measured and abandoned: at 2.80 GB against `tools`' 2.81 GB it saved nothing, because the weight is all in the shared `base` layer (`npm ci` with devDependencies, both generated Prisma clients) rather than in the source tree on top. Reusing `tools` means the one-shot is the same image `worker` already builds, so it adds no build time at all. The `tools` image has no default command: `migrate` and `worker` each set their own, and a one-shot job such as DobbelOmega - which force-resets the database - only runs when it is named.
+The `migrate` service runs the `tools` image with the command overridden. A dedicated leaner stage was measured and abandoned: at 2.80 GB against `tools`' 2.81 GB it saved nothing, because the weight is all in the shared `base` layer (`npm ci` with devDependencies, the generated Prisma client) rather than in the source tree on top. Reusing `tools` means the one-shot is the same image `worker` already builds, so it adds no build time at all. The `tools` image has no default command: `migrate` and `worker` each set their own.
 
 To run it by hand against a database - the first deploy into an empty Dokploy Postgres resource, say:
 
@@ -109,7 +109,7 @@ To run it by hand against a database - the first deploy into an empty Dokploy Po
 docker compose -f docker-compose.prod.yml run --rm migrate
 ```
 
-Tracked history starts at `20260922000000_init`, which creates the whole schema from empty. It carries no history from the `db push` era: anything merged before migrations existed is simply part of that initial snapshot rather than a migration of its own. It therefore expects an **empty database** - the Dokploy Postgres resource before its first deploy, or a database about to be filled by DobbelOmega. Run it against a database that already has these tables but no migration history and `migrate deploy` stops before applying anything, with P3005 ("the database schema is not empty").
+Tracked history starts at `20260922000000_init`, which creates the whole schema from empty. It carries no history from the `db push` era: anything merged before migrations existed is simply part of that initial snapshot rather than a migration of its own. It therefore expects an **empty database**, the Dokploy Postgres resource before its first deploy. Run it against a database that already has these tables but no migration history and `migrate deploy` stops before applying anything, with P3005 ("the database schema is not empty").
 
 ### Rehearsing the production stack locally
 
@@ -136,22 +136,6 @@ Deploying it:
 
 `EMAIL_SERVER` on the stack is unrelated to this Postfix deployment - it points the app at its own outbound provider (e.g. SMTP2GO), configured with `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` and `EMAIL_SECURE`.
 
-### Running DobbelOmega
-
-To load data from Omegaweb-basic, run the `tools` service. **This is a one-time bulk import, not a routine deploy step: it force-resets the database, deleting everything currently in it.** For ordinary schema changes once the site has real data, the `migrate` service above already handles it.
-
-```bash
-docker compose -f docker-compose.prod.yml --profile tools run --rm tools npm run dobbelOmega:run
-```
-
-The command has to be named: the `tools` image has no default, so a `run tools` meant for something else - or pointed at the wrong database - opens a node prompt rather than wiping it.
-
-`tools` sits behind a profile so it never starts with the stack - it is a one-shot job, not a service. It is a separate image because the deployed web application no longer contains the toolchain: the `prod` stage ships only the modules the Next.js server actually imports (via `output: 'standalone'`), which takes it from 2.8 GB to under 500 MB - the difference between a ~6 minute rollout and about one. The seeder and DobbelOmega import the whole service layer, so they need the full dependency tree; keeping that in the deployed image would have put the 2.3 GB straight back.
-
-`tools` builds on the same cached layers as a normal deploy, so it is quick to produce on a host that has built the app before. It reads the same environment variables as the rest of the stack - point `POSTGRES_HOST` at the database you actually mean to overwrite.
-
-The reset goes through `prisma migrate reset`, not `prisma db push --force-reset`. `db push` leaves behind a populated schema with no `_prisma_migrations` table, and the `migrate` service then fails on the next deploy (P3005, "the database schema is not empty") - which takes the whole stack with it, since every service waits for that one-shot to exit 0. `migrate reset` reapplies the committed migrations and records them, so an import leaves the database in a state ordinary deploys can carry forward.
-
 ## Lint
 
 To lint the project (TS/JS) run
@@ -177,18 +161,6 @@ To auto-fix style linting errors run
 ```bash
 npm run lint:style -- --fix
 ```
-
-## Migration from omegaweb basic
-
-DobbelOmega, the import from omegaweb-basic, lives in `src/prisma/dobbelOmega/` and is separate from the seeder: starting the app seeds the standard data (and the development data in dev), and never imports. Importing is an explicit command, which **resets the database** before building on the standard data:
-
-```bash
-npm run docker:dobbelOmega:run
-```
-
-or `npm run dobbelOmega:run` inside the projectnext container.
-
-If you are connected to our test database on openStack, make sure to be on the ntnu network to be able to connect.
 
 ## Testing
 
