@@ -55,7 +55,12 @@ export default async function LedgerAccountOverview({
                 <FontAwesomeIcon icon={faWarning}/> Kontoen er fryst; Ingen transaksjoner kan utføres.
             </p>
         }
-        <div className="mt-6 flex flex-row">
+        {/* The freeze button is a form with room for an error message under it, so the plain
+            buttons get the same room to keep them from stretching to its height. */}
+        <div className="
+            mt-6 flex flex-row
+            [&>button]:mb-[calc(var(--gap)+1.15em+3px)]
+        ">
             {
                 capabilities.canDeposit.authorized &&
                 <DepositModal
