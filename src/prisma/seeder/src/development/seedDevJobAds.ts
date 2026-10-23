@@ -1,5 +1,5 @@
 import { devCompanyName } from './seedDevCompanies'
-import { jobAdOperations } from '@/services/career/jobAds/operations'
+import { jobAdOperations } from '@/services/careers/jobAds/operations'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
 import type { PrismaClient } from '@/prisma-generated-pn-client'

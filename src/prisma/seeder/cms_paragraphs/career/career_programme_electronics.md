@@ -1,0 +1,1 @@
+Elektronisk systemdesign og innovasjon lærer alt fra matematikk, elektronikk og analyse til design av elektroniske systemer. Studiet har fokus på prosjektarbeid i grupper, problemløsing og å forske seg frem til løsninger på gitte problemstillinger. Temaer som IoT, signalbehandling og kunstig intelligens går igjen.

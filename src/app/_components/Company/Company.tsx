@@ -7,15 +7,15 @@ import TextInput from '@/UI/TextInput'
 import CmsImage from '@/cms/CmsImage/CmsImage'
 import Form from '@/components/Form/Form'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import { companyAuth } from '@/services/career/companies/auth'
+import { companyAuth } from '@/services/careers/companies/auth'
 import {
     destroyCompanyAction,
     updateCompanyAction,
     updateCompanyCmsLogoAction
-} from '@/services/career/companies/actions'
+} from '@/services/careers/companies/actions'
 import { configureAction } from '@/services/configureAction'
 import type { CompanySponsorTier } from '@/prisma-generated-pn-types'
-import type { CompanyExpanded } from '@/services/career/companies/types'
+import type { CompanyExpanded } from '@/services/careers/companies/types'
 
 const sponsorTierClass = {
     MAIN: `

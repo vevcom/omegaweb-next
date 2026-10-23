@@ -1,0 +1,1 @@
+Kybernetikk og robotikk kombinerer målemetoder, datateknologi, matematiske beregninger og påvirkningsinnretninger. Her lærer studentene om datastyrte proteser, selvstyrte intelligente roboter, ubemannede fly, ultralyd og mye mer. Reguleringsteknikk og kunstig intelligens er blant fordypningsområdene studentene kan velge.

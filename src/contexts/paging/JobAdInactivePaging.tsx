@@ -1,7 +1,7 @@
 'use client'
 import { generatePaging } from './PagingGenerator'
-import { readInactiveJobAdsPageAction } from '@/services/career/jobAds/actions'
-import type { JobAdInactiveCursor, JobAdInactiveDetails, SimpleJobAd } from '@/services/career/jobAds/types'
+import { readInactiveJobAdsPageAction } from '@/services/careers/jobAds/actions'
+import type { JobAdInactiveCursor, JobAdInactiveDetails, SimpleJobAd } from '@/services/careers/jobAds/types'
 
 export type PageSizeJobAdInactive = 12
 

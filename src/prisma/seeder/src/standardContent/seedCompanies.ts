@@ -1,4 +1,4 @@
-import { companyOperations } from '@/services/career/companies/operations'
+import { companyOperations } from '@/services/careers/companies/operations'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
 import { getImageForCmsImageRelation } from '@/seeder/src/standardContent/seedImages'
