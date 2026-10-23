@@ -40,6 +40,33 @@ export const ledgerTransactionOperations = {
     }),
 
     /**
+     * Reads the state of the transaction a payment was made for, so a checkout can wait for the
+     * Stripe webhook to settle it. A reimbursement reusing the payment comes later, so the first
+     * transaction is the one paid for.
+     */
+    readStateByPayment: defineOperation({
+        authorizer: async ({ params, prisma }) => {
+            const transaction = await prisma.ledgerTransaction.findFirst({
+                where: { paymentId: params.paymentId },
+                orderBy: { id: 'asc' },
+                select: { id: true },
+            })
+            return ledgerTransactionAuth.readStateByPayment.data({
+                accounts: transaction ? await resolveTransactionAccounts(prisma, transaction.id) : [],
+            })
+        },
+        paramsSchema: ledgerTransactionSchemas.params.readStateByPayment,
+        operation: async ({ prisma, params }) => {
+            const transaction = await prisma.ledgerTransaction.findFirstOrThrow({
+                where: { paymentId: params.paymentId },
+                orderBy: { id: 'asc' },
+                select: { state: true },
+            })
+            return transaction.state
+        },
+    }),
+
+    /**
      * Cancels a PENDING transaction and its payment, so a late webhook can't mark it SUCCEEDED.
      * Throws if the transaction has already resolved, even when that happens during the cancel.
      */

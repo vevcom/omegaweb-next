@@ -11,6 +11,8 @@ export const ledgerTransactionAuth = {
     // Being party to one side of the transaction is enough to view it.
     read: partyToAnyAccount,
 
+    readStateByPayment: partyToAnyAccount,
+
     readPage: ownsEveryAccount,
 
     // A system recomputation step, not meant to be called directly by a user. Its real callers
