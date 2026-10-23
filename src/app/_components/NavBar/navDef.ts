@@ -4,7 +4,7 @@
 import { adminNavAuthorizers } from '@/app/(omegaweb)/admin/adminNavDef'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
-import { jobAdAuth } from '@/services/career/jobAds/auth'
+import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { eventAuth } from '@/services/events/auth'
 import { ombulAuth } from '@/services/ombul/auth'

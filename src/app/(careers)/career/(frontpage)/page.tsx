@@ -1,5 +1,5 @@
-import CareersHeroShape from '@/app/(careers)/_components/CareersHeroShape'
-import UpcomingCompanyPresentations from '@/app/(careers)/_components/UpcomingCompanyPresentations'
+import CareersHeroShape from '@/app/(careers)/career/(frontpage)/CareersHeroShape'
+import UpcomingCompanyPresentations from '@/app/(careers)/career/(frontpage)/UpcomingCompanyPresentations'
 import { CAREER_PATH, companyPresentationsHref } from '@/app/(careers)/_lib/careersSite'
 import {
     badgeClassName,
@@ -16,14 +16,14 @@ import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import {
-    readCareerSpecialCmsImageAction,
-    readCareerSpecialCmsLinkAction,
-    readCareerSpecialCmsParagraphAction,
-    updateCareerSpecialCmsImageAction,
-    updateCareerSpecialCmsLinkAction,
-    updateCareerSpecialCmsParagraphContentAction,
-} from '@/services/career/actions'
-import { careerAuth } from '@/services/career/auth'
+    readCareersFrontpageSpecialCmsImageAction,
+    readCareersFrontpageSpecialCmsLinkAction,
+    readCareersFrontpageSpecialCmsParagraphAction,
+    updateCareersFrontpageSpecialCmsImageAction,
+    updateCareersFrontpageSpecialCmsLinkAction,
+    updateCareersFrontpageSpecialCmsParagraphContentAction,
+} from '@/services/careers/frontpage/actions'
+import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -72,9 +72,9 @@ const { page, generateMetadata } = serverPage({
         ),
     }),
     capabilities: () => ({
-        canEditSpecialCmsParagraph: careerAuth.updateSpecialCmsParagraphContent,
-        canEditSpecialCmsImage: careerAuth.updateSpecialCmsImage,
-        canEditSpecialCmsLink: careerAuth.updateSpecialCmsLink,
+        canEditSpecialCmsParagraph: careersFrontpageAuth.updateSpecialCmsParagraphContent,
+        canEditSpecialCmsImage: careersFrontpageAuth.updateSpecialCmsImage,
+        canEditSpecialCmsLink: careersFrontpageAuth.updateSpecialCmsLink,
     }),
     // Absolute: the layout's "| Contactor NTNU" template only applies to the segments under it,
     // and the frontpage is the site's own name.
@@ -82,13 +82,13 @@ const { page, generateMetadata } = serverPage({
     render: ({ data, capabilities }) => {
         const paragraphActions = {
             capabilities: { canEdit: capabilities.canEditSpecialCmsParagraph },
-            readSpecialCmsParagraphAction: readCareerSpecialCmsParagraphAction,
-            updateCmsParagraphAction: updateCareerSpecialCmsParagraphContentAction,
+            readSpecialCmsParagraphAction: readCareersFrontpageSpecialCmsParagraphAction,
+            updateCmsParagraphAction: updateCareersFrontpageSpecialCmsParagraphContentAction,
         }
         const linkActions = {
             capabilities: { canEdit: capabilities.canEditSpecialCmsLink },
-            readSpecialCmsLinkAction: readCareerSpecialCmsLinkAction,
-            updateCmsLinkAction: updateCareerSpecialCmsLinkAction,
+            readSpecialCmsLinkAction: readCareersFrontpageSpecialCmsLinkAction,
+            updateCmsLinkAction: updateCareersFrontpageSpecialCmsLinkAction,
         }
         return (
             <div className="flex flex-col">
@@ -232,8 +232,8 @@ const { page, generateMetadata } = serverPage({
                                 special="CAREER_ABOUT"
                                 width={900}
                                 capabilities={{ canEdit: capabilities.canEditSpecialCmsImage }}
-                                readSpecialCmsImageAction={readCareerSpecialCmsImageAction}
-                                updateCmsImageAction={updateCareerSpecialCmsImageAction}
+                                readSpecialCmsImageAction={readCareersFrontpageSpecialCmsImageAction}
+                                updateCmsImageAction={updateCareersFrontpageSpecialCmsImageAction}
                             />
                         </div>
                     </div>

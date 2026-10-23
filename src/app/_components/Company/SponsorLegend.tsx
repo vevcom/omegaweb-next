@@ -1,5 +1,5 @@
 import SponsorBadge from './SponsorBadge'
-import { companySponsorTierDetails } from '@/services/career/companies/constants'
+import { companySponsorTierDetails } from '@/services/careers/companies/constants'
 
 export default function SponsorLegend() {
     return (

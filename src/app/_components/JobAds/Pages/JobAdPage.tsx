@@ -15,12 +15,12 @@ import {
     updateJobAdArticleSectionAction,
     updateJobAdArticleSectionsAddPartAction,
     updateJobAdArticleSectionsRemovePartAction
-} from '@/services/career/jobAds/actions'
-import { jobAdOperations } from '@/services/career/jobAds/operations'
-import { jobAdType } from '@/services/career/jobAds/constants'
+} from '@/services/careers/jobAds/actions'
+import { jobAdOperations } from '@/services/careers/jobAds/operations'
+import { jobAdType } from '@/services/careers/jobAds/constants'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { configureAction } from '@/services/configureAction'
-import { jobAdAuth } from '@/services/career/jobAds/auth'
+import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { serverPage } from '@/app/ServerPage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {

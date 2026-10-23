@@ -1,6 +1,6 @@
 'use server'
 import { makeAction } from '@/services/serverAction'
-import { jobAdOperations } from '@/services/career/jobAds/operations'
+import { jobAdOperations } from '@/services/careers/jobAds/operations'
 
 export const createJobAdAction = makeAction(jobAdOperations.create)
 export const destroyJobAdAction = makeAction(jobAdOperations.destroy)

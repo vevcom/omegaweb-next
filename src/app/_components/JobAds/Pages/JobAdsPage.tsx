@@ -5,7 +5,7 @@ import ArchiveLink from '@/components/HeaderItems/ArchiveLink'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { CompanyPagingProvider } from '@/contexts/paging/CompanyPaging'
 import CompanySelectionProvider from '@/contexts/CompanySelection'
-import { jobAdAuth } from '@/services/career/jobAds/auth'
+import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { serverPage } from '@/app/ServerPage'
 
 /** The job ads list, rendered under `basePath` on both Omega's site and the career site. */

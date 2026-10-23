@@ -2,7 +2,10 @@ import CareersWordmark from './CareersWordmark'
 import { CAREERS_SOCIALS } from '@/app/(careers)/_lib/careersSite'
 import { cmsLinkTextClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
-import { readCareerSpecialCmsLinkAction, updateCareerSpecialCmsLinkAction } from '@/services/career/actions'
+import {
+    readCareersFrontpageSpecialCmsLinkAction,
+    updateCareersFrontpageSpecialCmsLinkAction,
+} from '@/services/careers/frontpage/actions'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFacebookSquare, faInstagram, faLinkedin } from '@fortawesome/free-brands-svg-icons'
@@ -59,8 +62,8 @@ export default function CareersFooter({ capabilities }: PropTypes) {
                             [&>a:hover]:text-white
                         `}
                         capabilities={{ canEdit: capabilities.canEditSpecialCmsLink }}
-                        readSpecialCmsLinkAction={readCareerSpecialCmsLinkAction}
-                        updateCmsLinkAction={updateCareerSpecialCmsLinkAction}
+                        readSpecialCmsLinkAction={readCareersFrontpageSpecialCmsLinkAction}
+                        updateCmsLinkAction={updateCareersFrontpageSpecialCmsLinkAction}
                     />
                 </div>
                 <div>

@@ -1,5 +1,5 @@
 import type { jobAdSchemas } from './schemas'
-import type { CompanyExpanded } from '@/services/career/companies/types'
+import type { CompanyExpanded } from '@/services/careers/companies/types'
 import type { ExpandedArticle } from '@/cms/articles/types'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
 import type { CompanySponsorTier, JobAd } from '@/prisma-generated-pn-types'

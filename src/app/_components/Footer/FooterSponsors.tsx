@@ -1,9 +1,9 @@
 import Image from '@/components/Image/Image'
-import { companyOperations } from '@/services/career/companies/operations'
+import { companyOperations } from '@/services/careers/companies/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import type { SponsorCompany } from '@/services/career/companies/types'
+import type { SponsorCompany } from '@/services/careers/companies/types'
 
 const MAIN_LOGO_WIDTH = 190
 const SPONSOR_LOGO_WIDTH = 110

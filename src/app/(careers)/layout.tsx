@@ -6,7 +6,7 @@ import { careerNavLinks } from './_lib/careersSite'
 import { innerClassName } from './_lib/careersClassNames'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import { eventTagOperations } from '@/services/events/tags/operations'
-import { careerAuth } from '@/services/career/auth'
+import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
 import { serverLayout, withFallback } from '@/app/ServerPage'
 import type { Metadata } from 'next'
 
@@ -33,7 +33,7 @@ export default serverLayout({
         ),
     }),
     capabilities: () => ({
-        canEditSpecialCmsLink: careerAuth.updateSpecialCmsLink,
+        canEditSpecialCmsLink: careersFrontpageAuth.updateSpecialCmsLink,
     }),
     render: ({ data, capabilities, children }) => (
         <div

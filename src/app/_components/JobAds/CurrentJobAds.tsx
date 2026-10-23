@@ -1,5 +1,5 @@
 import JobAd from './JobAd'
-import { jobAdOperations } from '@/services/career/jobAds/operations'
+import { jobAdOperations } from '@/services/careers/jobAds/operations'
 import { withPageSession } from '@/app/ServerPage'
 
 type PropTypes = {

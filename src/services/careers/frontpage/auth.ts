@@ -1,6 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 
-export const careerAuth = {
+export const careersFrontpageAuth = {
     readSpecialCmsParagraph: Require.nothing(),
     updateSpecialCmsParagraphContent: Require.permission('JOBAD_ADMIN').or().permission('COMMITTEE_ADMIN'),
     readSpecialCmsImage: Require.nothing(),

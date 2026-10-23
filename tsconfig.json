@@ -79,8 +79,8 @@
       "@/api/*": [
         "src/app/api/*"
       ],
-      "@/career/*": [
-        "src/services/career/*",
+      "@/careers/*": [
+        "src/services/careers/*",
         "src/app/(careers)/career/*"
       ],
       "@/seeder/*": [

@@ -2,9 +2,9 @@ import Image from '@/components/Image/Image'
 import SponsorBadge from '@/components/Company/SponsorBadge'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { osloDateTime } from '@/lib/dates/oslo'
-import { jobAdType } from '@/services/career/jobAds/constants'
+import { jobAdType } from '@/services/careers/jobAds/constants'
 import Link from 'next/link'
-import type { SimpleJobAd } from '@/services/career/jobAds/types'
+import type { SimpleJobAd } from '@/services/careers/jobAds/types'
 
 type PropTypes = {
     jobAd: SimpleJobAd

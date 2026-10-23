@@ -1,5 +1,5 @@
 import Company from './Company'
-import type { CompanyExpanded } from '@/services/career/companies/types'
+import type { CompanyExpanded } from '@/services/careers/companies/types'
 
 /**
  * Used to render companies server side and client side in consistent way

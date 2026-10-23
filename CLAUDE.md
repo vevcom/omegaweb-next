@@ -127,7 +127,7 @@ Rules are written once in a service's `auth.ts` as `Require` chains. The same ru
 ### Sub-operations, ownership checks and internal calls
 
 - **`defineSubOperation`** defines an operation for a sub-service, such as CMS paragraphs, images, or links, that other services embed. It has no authorizer of its own. Its schemas and `operation` are functions, so an implementer can pass implementation fields.
-- **`.implement({ authorizer, ownershipCheck, beforeRun? })`** turns a sub-operation into a callable operation for one owning service. For example, `careerOperations` implements `cmsParagraphOperations.updateContent`.
+- **`.implement({ authorizer, ownershipCheck, beforeRun? })`** turns a sub-operation into a callable operation for one owning service. For example, `careersFrontpageOperations` implements `cmsParagraphOperations.updateContent`.
   - `authorizer`: may this user act on the owning resource?
   - `ownershipCheck`: does the sub-resource actually belong to the owning resource? For example, is the paragraph the career page's special paragraph? Returning false rejects the call. This is resource-to-resource integrity, not user permission.
   - `beforeRun`: optional extra checks that run after both and may throw.
