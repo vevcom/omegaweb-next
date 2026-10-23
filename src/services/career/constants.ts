@@ -5,16 +5,16 @@ import type { SpecialCmsImage, SpecialCmsLink, SpecialCmsParagraph } from '@/pri
  * section (an intro and one paragraph per study programme), the "about us" section, and the links
  * to the study programmes and to getting in touch.
  */
-export const careerCmsParagraphs: Readonly<SpecialCmsParagraph[]> = [
+export const careerCmsParagraphs: readonly SpecialCmsParagraph[] = [
     'CAREER_ABOUT',
     'CAREER_PROGRAMMES',
     'CAREER_PROGRAMME_CYBERNETICS',
     'CAREER_PROGRAMME_ELECTRONICS',
 ]
 
-export const careerCmsImages: Readonly<SpecialCmsImage[]> = ['CAREER_ABOUT']
+export const careerCmsImages: readonly SpecialCmsImage[] = ['CAREER_ABOUT']
 
-export const careerCmsLinks: Readonly<SpecialCmsLink[]> = [
+export const careerCmsLinks: readonly SpecialCmsLink[] = [
     'CAREER_CONTACT',
     'CAREER_CYBERNETICS_FIVE_YEAR',
     'CAREER_CYBERNETICS_TWO_YEAR',

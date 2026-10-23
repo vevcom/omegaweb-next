@@ -36,7 +36,11 @@ export default serverLayout({
         canEditSpecialCmsLink: careerAuth.updateSpecialCmsLink,
     }),
     render: ({ data, capabilities, children }) => (
-        <div className={`${styles.site} ${karla.variable} ${sora.variable}`} data-tone="light">
+        <div className={`
+            ${styles.site}
+            ${karla.variable}
+            ${sora.variable}
+        `} data-tone="light">
             <SiteTheme colors={contactorTheme} />
             <ContactorNavBar links={careerNavLinks(data.companyPresentationEventTag)} />
             <main className={styles.content}>

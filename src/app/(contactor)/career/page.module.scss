@@ -1,10 +1,6 @@
 @use '@/styles/ohma';
 @use '../_lib/contactor';
 
-// Contactor's frontpage after contactor.no: the hero with its sweep, the strip of upcoming company
-// presentations, the study programmes on navy, "about us", and the call to action on navy. The
-// typography rules sit under .page so that they win over the layout's and the CMS components'
-// own, which are as specific as a plain .hero h1 would be.
 .page {
     display: flex;
     flex-direction: column;

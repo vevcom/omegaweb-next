@@ -18,7 +18,7 @@ type PropTypes = Omit<CmsLinkProps, 'cmsLink'> & {
  */
 export default async function SpecialCmsLink({ special, readSpecialCmsLinkAction, ...props }: PropTypes) {
     const res = await configureAction(readSpecialCmsLinkAction, { params: { special } })()
-    if (!res.success) return <i>Error: {res.error && res.error[0].message}</i>
+    if (!res.success) return <i>Error: {res.error?.[0].message}</i>
 
     return (
         <CmsLink cmsLink={res.data} {...props} />

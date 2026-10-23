@@ -3,7 +3,7 @@ import { serverPage } from '@/app/ServerPage'
 
 /** Contactor's "about us" page. Empty for now: the frontpage links here from its "om oss" section. */
 const { page, generateMetadata } = serverPage({
-    operation: async () => ({}),
+    operation: () => ({}),
     metadata: () => ({ title: 'Om oss' }),
     render: () => (
         <div className={styles.page}>

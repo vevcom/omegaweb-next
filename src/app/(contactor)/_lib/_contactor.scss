@@ -1,8 +1,5 @@
 @use '@/styles/ohma';
 
-// What the sections of Contactor's pages share. The frontpage is laid out as full-width bands with
-// a centred column inside, the way contactor.no is; the main column of the layout is narrower, so
-// a band breaks out of it to the viewport's edges.
 @mixin band {
     width: 100vw;
     margin-left: calc(50% - 50vw);
