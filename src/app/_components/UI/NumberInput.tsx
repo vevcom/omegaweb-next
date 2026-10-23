@@ -57,7 +57,7 @@ export default function NumberInput({
 
     return (
         <div className={`
-            relative mt-2 w-full max-w-[200px] flex flex-col
+            relative mt-2 w-full max-w-[320px] flex flex-col
             ${className}
         `}>
             <input

@@ -70,7 +70,6 @@ export default function ChannelSettings({
                         label="Beskrivelse"
                         name="description"
                         defaultValue={currentChannelState.description ?? ''}
-                        className="max-w-[350px]! w-full"
                     />
                 </div>
 
