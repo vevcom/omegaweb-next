@@ -40,6 +40,7 @@ export const imageSizes = {
 } as const
 
 export const imageProcessing = {
+    /** How many times an image is claimed before it is left alone until an admin resets it. */
     maxAttempts: 3,
     /**
      * How long a worker can take to process an image before its claim is considered stale and

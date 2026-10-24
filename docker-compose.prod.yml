@@ -54,7 +54,7 @@ services:
         environment:
             IGNORE_SERVER_ONLY: 'true'
         healthcheck:
-            test: ["CMD-SHELL", "pgrep -f \"[w]orkers/main.ts\" > /dev/null"]
+            test: ["CMD-SHELL", "find /tmp/worker-heartbeat -mmin -2 | grep -q ."]
             interval: 10s
             timeout: 3s
             retries: 3

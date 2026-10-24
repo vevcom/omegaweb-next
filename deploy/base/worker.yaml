@@ -33,6 +33,14 @@ spec:
                             secretKeyRef:
                                 name: projectnext-db-app
                                 key: uri
+                  # The workers rewrite the file every 30 seconds unless a tick is stuck, see
+                  # src/workers/main.ts. Failing three times in a row covers the start.
+                  livenessProbe:
+                      exec:
+                          command: [sh, -c, find /tmp/worker-heartbeat -mmin -2 | grep -q .]
+                      periodSeconds: 30
+                      timeoutSeconds: 5
+                      failureThreshold: 3
                   resources:
                       requests:
                           cpu: 50m

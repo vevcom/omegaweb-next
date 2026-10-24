@@ -280,12 +280,10 @@ export const imageOperations = {
                 })
                 return { success: true }
             } catch (error) {
+                // The attempt was already counted when the worker claimed the image.
                 await prisma.image.update({
                     where: { id: image.id },
-                    data: {
-                        processingAttempts: { increment: 1 },
-                        processingError: String(error),
-                    }
+                    data: { processingError: String(error) },
                 })
                 return { success: false, error: String(error) }
             }
