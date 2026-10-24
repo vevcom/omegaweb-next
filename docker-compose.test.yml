@@ -1,8 +1,8 @@
 services:
-    projectnext:
+    omegaweb-next:
         extends:
             file: docker-compose.base.yml
-            service: projectnext
+            service: omegaweb-next
         build:
             target: test
         tty: true # Allows for colorized output

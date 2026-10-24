@@ -35,7 +35,7 @@ export async function moveFeideAccountToUser(
             where: { id: fromUserId },
             select: {
                 acceptedTerms: true,
-                createdByFeideLoginOnProjectNext: true,
+                createdByFeideLoginOnOmegawebNext: true,
                 credentials: { select: { userId: true } },
                 feideAccount: { select: { id: true } },
             },
@@ -49,7 +49,7 @@ export async function moveFeideAccountToUser(
             throw new ServiceError('BAD PARAMETERS', 'Brukeren har ikke lenger denne Feide-kontoen.')
         }
 
-        if (!fromUser.createdByFeideLoginOnProjectNext) {
+        if (!fromUser.createdByFeideLoginOnOmegawebNext) {
             throw new ServiceError(
                 'BAD PARAMETERS',
                 'Feide-kontoen kan bare flyttes fra en bruker som ble opprettet ved Feide-innloggingen.'

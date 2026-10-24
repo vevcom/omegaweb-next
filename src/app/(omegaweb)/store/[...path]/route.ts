@@ -1,5 +1,4 @@
 import '@pn-server-only'
-import { releaseCountdownHoldsBack } from '@/services/releaseCountdown/access'
 import { createReadStream, existsSync, statSync } from 'fs'
 import { extname, relative, resolve, sep } from 'path'
 import { Readable } from 'stream'
@@ -17,11 +16,6 @@ const SERVED_DIRECTORIES = new Map([
     ['ombul', { cacheControl: 'private, max-age=31536000, immutable' }],
 ])
 
-/** Single files served from directories that are not. Rewritten in place, so never cached. */
-const SERVED_FILES = new Map([
-    ['releaseCountdown/gitGraph.json', { cacheControl: 'private, no-store' }],
-])
-
 const MIME_TYPES: Record<string, string> = {
     '.pdf': 'application/pdf',
     '.png': 'image/png',
@@ -32,7 +26,6 @@ const MIME_TYPES: Record<string, string> = {
     '.heic': 'image/heic',
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
-    '.json': 'application/json',
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ path: string[] }> }) {
@@ -47,10 +40,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ pat
     // Looked up by the resolved path, not the segments: `images/..%2Fother%2Ffile.json` starts with
     // `images`, but is not in it.
     const storePath = relative(STORE_ROOT, filePath).split(sep)
-    // A visitor the release countdown holds back gets its own file and nothing else of the store.
-    const served = SERVED_FILES.get(storePath.join('/')) ?? (
-        storePath.length > 1 && !await releaseCountdownHoldsBack() ? SERVED_DIRECTORIES.get(storePath[0]) : undefined
-    )
+    const served = storePath.length > 1 ? SERVED_DIRECTORIES.get(storePath[0]) : undefined
     if (!served) {
         return new Response('Not found', { status: 404 })
     }

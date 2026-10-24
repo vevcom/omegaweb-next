@@ -1,8 +1,8 @@
 services:
-    projectnext:
+    omegaweb-next:
         extends:
             file: docker-compose.base.yml
-            service: projectnext
+            service: omegaweb-next
         build:
             target: dev
         ports:
@@ -15,12 +15,11 @@ services:
             - ${PROJECT_ROOT:-.}/logs:/usr/src/app/logs
             - devstore:/usr/src/app/store
             - dotnext:/usr/src/app/.next
-            - dobbelOmegaManifest:/usr/src/app/dobbelOmegaManifest
 
     worker:
         extends:
             file: docker-compose.base.yml
-            service: projectnext
+            service: omegaweb-next
         build:
             target: dev
         command: ["./node_modules/.bin/tsx", "src/workers/main.ts"]
@@ -44,7 +43,7 @@ services:
 
     stripe:
         image: stripe/stripe-cli:v1.37.3
-        command: listen --forward-to http://projectnext:3000/api/stripe-events --skip-verify
+        command: listen --forward-to http://omegaweb-next:3000/api/stripe-events --skip-verify
         environment:
             STRIPE_API_KEY: ${STRIPE_SECRET_KEY} 
 
@@ -54,6 +53,4 @@ volumes:
     devstore:
         driver: local
     dotnext:
-        driver: local
-    dobbelOmegaManifest:
         driver: local

@@ -103,7 +103,7 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                     lastname: user.lastname,
                     username,
                     emailVerified: null,
-                    createdByFeideLoginOnProjectNext: true,
+                    createdByFeideLoginOnOmegawebNext: true,
                     bioParagraph: { create: {} },
                     ledgerAccount: {
                         create: { type: 'USER' },

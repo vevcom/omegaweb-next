@@ -21,27 +21,28 @@ enum Theme {
 }
 
 model User {
-  id                               Int                @id @default(autoincrement())
-  username                         String             @unique
-  email                            String             @unique
-  firstname                        String             @default("[Fjernet]")
-  lastname                         String             @default("[Fjernet]")
-  relationshipStatus               RelationshipStatus @default(NOT_SPECIFIED)
-  theme                            Theme              @default(STANDARD)
-  relationshipStatusText           String             @default("")
-  archived                         Boolean            @default(false)
-  acceptedTerms                    DateTime?
-  imageConsent                     Boolean            @default(false) //if the user has consented to being photographed
-  sex                              Sex?
-  allergies                        String?
-  mobile                           String?
-  emailVerified                    DateTime?
+  id                                Int                @id @default(autoincrement())
+  username                          String             @unique
+  email                             String             @unique
+  firstname                         String             @default("[Fjernet]")
+  lastname                          String             @default("[Fjernet]")
+  relationshipStatus                RelationshipStatus @default(NOT_SPECIFIED)
+  theme                             Theme              @default(STANDARD)
+  relationshipStatusText            String             @default("")
+  archived                          Boolean            @default(false)
+  acceptedTerms                     DateTime?
+  imageConsent                      Boolean            @default(false) //if the user has consented to being photographed
+  sex                               Sex?
+  allergies                         String?
+  mobile                            String?
+  emailVerified                     DateTime?
   // Only set for a user created on a Feide login that matched no existing (migrated) user. Such a
   // user may hand its Feide account over to a migrated user using the admin and be deleted - no other user may.
-  createdByFeideLoginOnProjectNext Boolean            @default(false)
+  // The column keeps its pre-rename name so that this needs no migration.
+  createdByFeideLoginOnOmegawebNext Boolean            @default(false) @map("createdByFeideLoginOnProjectNext")
   // Bumped to end every session of the user, as a password change does. A session carries the value
   // it was started with and is only valid while that still matches.
-  sessionEpoch                     Int                @default(0)
+  sessionEpoch                      Int                @default(0)
 
   bulshit     Bulshit[]
   image       Image?    @relation(fields: [imageId], references: [id])
@@ -83,7 +84,7 @@ model User {
   // which mailing lists the user is on.
   notificationSubscriptions NotificationSubscription[]
   browserPushSubscriptions  BrowserPushSubscription[]
-  notificationsTargeted     Notification[]          @relation(name: "NotificationTargets")
+  notificationsTargeted     Notification[]             @relation(name: "NotificationTargets")
   weeklyMailOutboxEntries   WeeklyMailOutboxEntry[]
   mailingLists              MailingListUser[]
 
