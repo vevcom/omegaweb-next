@@ -162,7 +162,7 @@ export default function RegistrationUI({
                 setErrorText(message)
                 setBtnState(RegistrationButtonState.ERROR)
             } else {
-                setErrorText('Kunne ikke melde deg av påmelding.')
+                setErrorText('Kunne ikke melde deg av.')
                 setBtnState(RegistrationButtonState.ERROR)
             }
         } else {
@@ -227,13 +227,13 @@ export default function RegistrationUI({
                 btnState === RegistrationButtonState.NOT_REGISTERED ||
                 btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN
             ) && 'Meld meg på'}
-            {btnState === RegistrationButtonState.REGISTERED && 'Meld av arrangement'}
-            {btnState === RegistrationButtonState.ON_WAITING_LIST && 'Meld av venteliste'}
+            {btnState === RegistrationButtonState.REGISTERED && 'Meld meg av'}
+            {btnState === RegistrationButtonState.ON_WAITING_LIST && 'Meld meg av ventelisten'}
             {btnState === RegistrationButtonState.FULL && 'Fullt'}
-            {btnState === RegistrationButtonState.WAITING_LIST_OPEN && 'Meld meg på venteliste'}
+            {btnState === RegistrationButtonState.WAITING_LIST_OPEN && 'Meld meg på ventelisten'}
             {btnState === RegistrationButtonState.ERROR && errorText}
             {btnState === RegistrationButtonState.REGISTRATION_CLOSED && 'Påmeldingen er over'}
-            {btnState === RegistrationButtonState.BANNED_BY_DOTS && 'Utestengt av prikker'}
+            {btnState === RegistrationButtonState.BANNED_BY_DOTS && 'Utestengt på grunn av prikker'}
             {btnState === RegistrationButtonState.NOT_ALLOWED && 'Du kan ikke melde deg på dette arrangementet'}
         </SubmitButton>
 
@@ -272,12 +272,12 @@ export default function RegistrationUI({
         )}
 
         {dotPunishment?.type === 'ban' && (
-            <p>Du har for mange prikker, og kan derfor ikke melde deg på arrangementer.</p>
+            <p>Du har for mange prikker og kan derfor ikke melde deg på arrangementer.</p>
         )}
 
         {dotPunishment?.type === 'timeout' && (
             <p>
-                Du har prikker, og må derfor vente {dotPunishment.punishmentMinutes} minutter
+                Du har prikker og må derfor vente {dotPunishment.punishmentMinutes} minutter
                 etter ordinær påmeldingsstart med å melde deg på.
             </p>
         )}

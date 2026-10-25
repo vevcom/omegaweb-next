@@ -52,7 +52,7 @@ export default async function LedgerAccountOverview({
         {
             ledgerAccount.frozen &&
             <p className="text-accent-red">
-                <FontAwesomeIcon icon={faWarning}/> Kontoen er fryst; Ingen transaksjoner kan utføres.
+                <FontAwesomeIcon icon={faWarning}/> Kontoen er fryst, så ingen transaksjoner kan utføres.
             </p>
         }
         {/* The freeze button is a form with room for an error message under it, so the plain

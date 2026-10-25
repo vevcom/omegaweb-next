@@ -35,7 +35,7 @@ const { page, generateMetadata } = serverPage({
         // A pensioned committee is history: the service refuses every change to it.
         canEditCommitteeParagraph: Require.allOf(
             committeeAuth.updateParagraphContent.data({ groupId: data.committee.groupId }),
-            Require.custom(() => !data.committee.group.pensioned, { errorMessage: 'Komiteen er pensjonert' }),
+            Require.custom(() => !data.committee.group.pensioned, { errorMessage: 'Komitéen er pensjonert' }),
         ),
     }),
     metadata: (data) => ({ title: data.committee.name }),

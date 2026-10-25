@@ -110,7 +110,7 @@ export default function MigrateGroup({
                             <span>
                                 <Checkbox
                                     name={`admin-${candidate.userId}`}
-                                    label="Admin"
+                                    label="Administrator"
                                     checked={keep.get(candidate.userId) ?? false}
                                     disabled={!keep.has(candidate.userId)}
                                     onChange={() => toggleAdmin(candidate.userId)}

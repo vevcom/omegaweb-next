@@ -1,4 +1,4 @@
 # Andre seksjon i statutter
 Hei hå
 Detta blir bra 
-[link](http://omega.ntnu.no)
+[lenke](http://omega.ntnu.no)

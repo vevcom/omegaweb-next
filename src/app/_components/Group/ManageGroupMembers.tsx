@@ -229,7 +229,7 @@ export default function ManageGroupMembers({
                             <span className="flex gap-1">
                                 {member.admin && <span className="
                                     px-2 rounded-round border text-s whitespace-nowrap border-accent-blue text-accent-blue
-                                ">Admin</span>}
+                                ">Administrator</span>}
                                 {!member.active && <span className="
                                     px-2 rounded-round border text-s whitespace-nowrap border-text-muted text-text-muted
                                 ">Inaktiv</span>}

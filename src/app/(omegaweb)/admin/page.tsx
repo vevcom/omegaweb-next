@@ -12,7 +12,7 @@ const { page, generateMetadata } = serverPage({
                 icon={faScrewdriverWrench}
                 className="pt-[calc(50vh-50px-5em)] w-[10em]! h-[10em]! text-text m-[1em]"
             />
-            <p className="text-text-muted text-[1.5em] text-center">Velg en ting å administrere i menyen</p>
+            <p className="text-text-muted text-[1.5em] text-center">Velg hva du vil administrere i menyen</p>
         </div>
     ),
 })

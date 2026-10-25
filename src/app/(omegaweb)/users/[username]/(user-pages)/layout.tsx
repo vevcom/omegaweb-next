@@ -20,7 +20,7 @@ function userPagesTitle(
     session: SessionMaybeUser,
 ): PageTitle {
     const name = `${user.firstname} ${user.lastname}`
-    if (session.user?.username === user.username) return { title: 'Min Side', subtitle: name }
+    if (session.user?.username === user.username) return { title: 'Min side', subtitle: name }
     return { title: /[sxz]$/i.test(name) ? `${name}' sider` : `${name}s sider` }
 }
 

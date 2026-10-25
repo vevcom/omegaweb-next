@@ -68,7 +68,7 @@ export const apiKeyOperations = {
                 select: apiFilterSelection,
             })
 
-            if (!apiKey) throw new ServiceError('BAD PARAMETERS', 'Api key does not exist')
+            if (!apiKey) throw new ServiceError('BAD PARAMETERS', 'API-nøkkelen finnes ikke')
             return {
                 ...apiKey,
                 ...await updateIfExpired({

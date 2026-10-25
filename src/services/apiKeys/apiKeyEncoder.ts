@@ -23,7 +23,7 @@ export function decodeApiKey(key: string) {
     const id = params.get('id')
     const keyStr = params.get('key')
     if (!id || !keyStr || isNaN(parseInt(id, 10))) {
-        throw new ServiceError('BAD PARAMETERS', 'Invalid key')
+        throw new ServiceError('BAD PARAMETERS', 'Ugyldig nøkkel')
     }
     return {
         id: parseInt(id, 10),

@@ -197,6 +197,7 @@ const { page, generateMetadata } = serverPage({
                         capabilities={{ canEdit: capabilities.canEditCmsCoverImage }}
                         cmsImage={event.coverImage}
                         width={900}
+                        sizes="100vw"
                         updateCmsImageAction={
                             configureAction(
                                 updateEventCmsCoverImageAction,
@@ -256,7 +257,7 @@ const { page, generateMetadata } = serverPage({
                                     <p>
                                         Konto: {event.ledgerAccount
                                             ? (event.ledgerAccount.name ?? `Konto ${event.ledgerAccount.id}`)
-                                            : 'ingen. Betaling feiler til arrangementet er knyttet til en konto.'}
+                                            : 'ingen. Betaling fungerer ikke før arrangementet er knyttet til en konto.'}
                                     </p>
                                     <ConnectEventToLedgerForm
                                         eventId={event.id}
@@ -320,10 +321,10 @@ const { page, generateMetadata } = serverPage({
                             {event.numOfRegistrations} / {event.places}
                         </p>
                         <p>
-                            Påmelding start: <DateDisplay date={event.registrationStart} includeTime />
+                            Påmeldingsstart: <DateDisplay date={event.registrationStart} includeTime />
                         </p>
                         <p>
-                            Påmelding slutt: <DateDisplay date={event.registrationEnd} includeTime />
+                            Påmeldingsslutt: <DateDisplay date={event.registrationEnd} includeTime />
                         </p>
                         {event.waitingList && <p>
                             På venteliste: {event.numOnWaitingList}

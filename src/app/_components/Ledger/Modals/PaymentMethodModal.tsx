@@ -22,7 +22,9 @@ export default function PaymentMethodModal({ userId }: PropTypes) {
         .authorized
 
     const handleSubmit = async () => {
-        if (!stripePaymentRef.current) return createActionError('UNKNOWN ERROR', 'Noe gikk galt ved innhenting av Stripe.')
+        if (!stripePaymentRef.current) {
+            return createActionError('UNKNOWN ERROR', 'Noe gikk galt da Stripe skulle lastes inn.')
+        }
 
         const submitError = await stripePaymentRef.current.submit()
 

@@ -43,8 +43,8 @@ export default function OmegaIdElement({ token }: {
         return () => clearInterval(interval)
     })
 
-    if (session.loading) return <p>Loading...</p>
-    if (!session.session.user) return <p>Could not load Omega-ID, since the user is not loggedin.</p>
+    if (session.loading) return <p>Laster inn...</p>
+    if (!session.session.user) return <p>Kunne ikke laste Omega-ID fordi du ikke er logget inn.</p>
     const user = session.session.user
 
     return <div className="

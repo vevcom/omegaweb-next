@@ -22,15 +22,15 @@ const dataFieldSchemas = z.object({
 
     takesRegistration: Zpn.checkboxOrBoolean({ label: 'Tar påmelding' }),
     places: z.coerce.number().int().optional(),
-    registrationStart: Zpn.date({ label: 'Påmelding start' }).optional(),
-    registrationEnd: Zpn.date({ label: 'Påmelding slutt' }).optional(),
+    registrationStart: Zpn.date({ label: 'Påmeldingsstart' }).optional(),
+    registrationEnd: Zpn.date({ label: 'Påmeldingsslutt' }).optional(),
     price: z.coerce.number().min(0).transform(val => convertAmount(val)).optional(),
-    paymentStart: Zpn.date({ label: 'Betaling start' }).optional(),
-    paymentEnd: Zpn.date({ label: 'Betaling slutt' }).optional(),
+    paymentStart: Zpn.date({ label: 'Betalingsstart' }).optional(),
+    paymentEnd: Zpn.date({ label: 'Betalingsslutt' }).optional(),
 
     waitingList: Zpn.checkboxOrBoolean({ label: 'Venteliste' }),
 
-    tagIds: Zpn.numberListCheckboxFriendly({ label: 'tags' }),
+    tagIds: Zpn.numberListCheckboxFriendly({ label: 'Tagger' }),
 
     published: Zpn.checkboxOrBoolean({ label: 'Publisert' }),
 

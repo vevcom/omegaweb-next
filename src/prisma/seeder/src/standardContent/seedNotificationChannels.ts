@@ -51,14 +51,14 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         {
             special: 'NEW_NEWS_ARTICLE',
             name: 'Ny nyhetsartikkel',
-            description: 'Varslinger om nye artikler',
+            description: 'Varslinger om nye nyhetsartikler',
             defaultMethods: allNotificationMethodsOff,
             availableMethods: allNotificationMethodsOn,
         },
         {
             special: 'NEW_JOBAD',
             name: 'Ny jobbannonse',
-            description: 'Varslinger at en ny jobbanonse er ute',
+            description: 'Varslinger om nye jobbannonser',
             defaultMethods: {
                 email: false,
                 emailWeekly: true,
@@ -68,14 +68,14 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         },
         {
             special: 'NEW_OMEGAQUOTE',
-            name: 'Ny omegaquote',
-            description: 'Varslinger om en ny omega quote',
+            name: 'Ny Omegaquote',
+            description: 'Varslinger om nye Omegaquotes',
             defaultMethods: allNotificationMethodsOff,
             availableMethods: allNotificationMethodsOn,
         },
         {
             special: 'EVENT_WAITINGLIST_PROMOTION',
-            name: 'Venteliste opprykk',
+            name: 'Opprykk fra venteliste',
             description: 'Varsling ved opprykk fra venteliste',
             defaultMethods: {
                 email: true,
@@ -101,7 +101,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         },
         {
             name: 'Merch',
-            description: 'Her kommer det varslinger om Omega Merch fra Blaest-Com',
+            description: 'Her kommer det varslinger om Omega Merch fra BlaestCom',
             defaultMethods: {
                 email: true,
                 emailWeekly: false,
@@ -112,7 +112,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         },
         {
             name: 'Driftsstatus',
-            description: 'Her kommer det varslinger dersom noe på veven ikke funnker, eller ved planlagt vedlikehld',
+            description: 'Her kommer det varslinger dersom noe på veven ikke fungerer, eller ved planlagt vedlikehold',
             defaultMethods: {
                 email: true,
                 emailWeekly: false,
@@ -123,7 +123,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         },
         {
             name: 'Contactor',
-            description: 'Her kommer det diverse informasjon fra contactor',
+            description: 'Her kommer det diverse informasjon fra Contactor',
             defaultMethods: {
                 email: true,
                 emailWeekly: false,

@@ -29,14 +29,14 @@ const paramsFieldSchemas = z.object({
 const oneAccountKey = [
     ({ userId, ledgerAccountId }: { userId?: number, ledgerAccountId?: number }) =>
         userId !== undefined || ledgerAccountId !== undefined,
-    'Enten bruker ID eller konto ID må være oppgitt.',
+    'Enten bruker-ID eller konto-ID må være oppgitt.',
 ] as const
 
 /** A batch of accounts needs at least one non-empty id list to match against. */
 const atLeastOneIdList = [
     ({ ledgerAccountIds, userIds, groupIds }: { ledgerAccountIds?: number[], userIds?: number[], groupIds?: number[] }) =>
         Boolean(ledgerAccountIds?.length || userIds?.length || groupIds?.length),
-    'Minst én av konto ID-er, bruker ID-er eller gruppe ID-er må være oppgitt.',
+    'Minst én konto-ID, bruker-ID eller gruppe-ID må være oppgitt.',
 ] as const
 
 const account = paramsFieldSchemas.pick({

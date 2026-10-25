@@ -33,7 +33,7 @@ export const cabinProductOperations = {
             ])
 
             if (releasePeriod && pricePeriod.validFrom <= releasePeriod.releaseUntil) {
-                throw new ServiceError('BAD PARAMETERS', 'Cannot change prices for a product that is released')
+                throw new ServiceError('BAD PARAMETERS', 'Kan ikke endre prisene på et produkt som er sluppet')
             }
 
             const result = await prisma.cabinProductPrice.create({

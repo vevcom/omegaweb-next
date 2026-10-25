@@ -36,7 +36,7 @@ export function LinkFeideAccountTemplate({
 
             <p>
                 Med vennlig hilsen<br/>
-                Vevcom
+                VevCom
             </p>
         </Html>
     )

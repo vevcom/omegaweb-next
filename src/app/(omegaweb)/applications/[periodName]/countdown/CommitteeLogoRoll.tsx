@@ -106,7 +106,7 @@ export default function CommitteeLogoRoll({ committees, periodName }: PropTypes)
                 let content = null
                 if (idx === 'applicantionCount') {
                     content = <>
-                        <h1>Søknader Hittil</h1>
+                        <h1>Søknader hittil</h1>
                         <h1>{applicationCount}</h1>
                     </>
                 } else if (typeof idx === 'number' && committees[idx]) {

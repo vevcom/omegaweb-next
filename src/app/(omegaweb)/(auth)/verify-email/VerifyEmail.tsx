@@ -47,13 +47,13 @@ export default function VerifyEmail({ token }: { token: string }) {
     if (sessionUserId !== verifiedUser.id) {
         return <>
             <p>E-postadressen er bekreftet.</p>
-            <p>Ups, du er visst logged inn som noen andre, dette kan skape litt problemer.</p>
+            <p>Ops, du er visst logget inn som noen andre. Det kan skape litt problemer.</p>
             <Link href="/logout">Logg ut</Link>
         </>
     }
 
     return <>
         <p>E-postadressen er bekreftet.</p>
-        <Link href="/users/me">Gå til profil siden</Link>
+        <Link href="/users/me">Gå til profilsiden</Link>
     </>
 }

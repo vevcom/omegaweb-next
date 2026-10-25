@@ -9,7 +9,7 @@ const dataFieldSchemas = z.object({
         100, 'Navnet kan maks være 100 tegn langt'
     ),
     description: z.string().trim().max(
-        200, 'Beskrivelsen kan maks være 200 tegn langt'
+        200, 'Beskrivelsen kan maks være 200 tegn lang'
     ),
     website: z.union([
         z.literal('').transform(() => null),

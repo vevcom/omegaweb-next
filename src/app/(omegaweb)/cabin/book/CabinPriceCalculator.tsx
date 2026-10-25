@@ -57,7 +57,7 @@ export default function CabinPriceCalculator({
 
     return <div>
         <SimpleTable
-            header={['Produkt', 'Pris per natt', 'Antall', 'Total Pris']}
+            header={['Produkt', 'Pris per natt', 'Antall', 'Total pris']}
             body={tableBody}
         />
         <p>Total pris {displayAmount(totalPrice)}</p>

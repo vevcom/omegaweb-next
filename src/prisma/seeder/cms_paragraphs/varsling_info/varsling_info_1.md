@@ -14,7 +14,7 @@ Det finnes mange gode hjelpetjenester og dette arket viser en oversikt over hvor
 
 
 ## <u>NTNU beredskapstelefon: 800 80 388</u>
-NTNU sin beredskapstelefon er bemannet 24/7 og kan hjelpe deg med å sette
+NTNUs beredskapstelefon er bemannet 24/7 og kan hjelpe deg med å sette
 i gang riktige prosesser. De svarer godt på spørsmål og kan sende deg videre
 til riktig sted.
 
@@ -26,7 +26,7 @@ omgangskrets. Telefonen er gratis og døgnåpen.
 
 ## <u>Samtale med rådgiver - SIT</u>
 Hvis du trenger noen å snakke med kan du møte en trygg og nøytral
-samarbeidspartner som du kan reflektere åpent med. SIT sine rådgivere og
+samarbeidspartner som du kan reflektere åpent med. Sits rådgivere og
 helsesykepleiere har lang erfaring med å snakke med studenter, de vil lytte til
 deg og gi deg råd og veiledning hvis du har behov for det. Her er lenken til
 timebestilling: [https://kurspaamelding.no/sit/timebestilling/](https://kurspaamelding.no/sit/timebestilling/)
@@ -40,7 +40,7 @@ MO-senteret.
 ## <u>Politiet - 02800</u>
 Hvis du har vært utsatt for voldtekt eller andre seksuelle overgrep bør du
 kontakte politiet. Dette er alvorlig straffbare krenkelser. Mange kan ha
-vanskelig for å sette ord på det de har vært utsatt for og. Har du vært utsatt for
+vanskelig for å sette ord på det de har vært utsatt for. Har du vært utsatt for
 voldtekt, seksuelle overgrep eller mistenker at det har skjedd, ta kontakt med
 nærmeste overgrepsmottak eller politi for hjelp og avklaring om hva du skal
 gjøre videre. Det er overgrepsmottak i alle fylker i Norge.
@@ -57,10 +57,10 @@ bevis.
 <br>
 
 
-## <u>Varsling på NTNU: studiesammenheng på campus. Si ifra- portalen.</u>
+## <u>Varsling på NTNU: studiesammenheng på campus. Si ifra-portalen.</u>
 Ved NTNU ønsker vi at du sier fra om uønskede hendelser eller om noe ikke
 fungerer som det skal. Da er du med på å gjøre NTNU til et trygt sted for
-studenter og ansatte. Dette er linken til NTNU sin si ifra portal hvor du finner
+studenter og ansatte. Dette er lenken til NTNUs Si ifra-portal, der du finner
 mer informasjon om dette tilbudet: [https://i.ntnu.no/sifra](https://i.ntnu.no/sifra)
 
 ## <u>Studentombudet</u>
@@ -72,18 +72,18 @@ ulike alternativer. De kan forklare universitetsprosedyrer og gi veiledning om
 studentrettigheter. Bidra til å løse en sak på lavest mulig nivå og påpeke
 utfordringer overfor universitetet. Anbefale endringer i retningslinjer og
 prosedyrer og være en nøytral, uavhengig instans mellom partene i en
-eventuell konflikt. Her er lenke til studentombudets nettside for mer
+eventuell konflikt. Her er lenken til studentombudets nettside for mer
 informasjon: [https://www.ntnu.no/studentombud](https://www.ntnu.no/studentombud)
 
 ## <u>Hovedstyret</u>
 Lurer du på noe vedrørende dette informasjonsarket, så kan du kontakte
 Hovedstyret. Dersom du ønsker å kontakte oss personlig står informasjonen
-vår på veven. Vi har selvfølgelig taushetsplikt. Merk at vi ikke er noe erstatning
+vår på veven. Vi har selvfølgelig taushetsplikt. Merk at vi ikke er noen erstatning
 for alternativene over, men ikke nøl med å ta kontakt hvis det er noe.
 Kontaktpersoner utenfor Hovedstyret
 I Omega har vi to kontaktpersoner utenfor Hovedstyret som blir byttet ut hvert
 år. Informasjonen til disse finner du på veven. Det er disse personene du kan
-kontakte dersom du vil ta opp noe om hovedstyret, noe du ikke ønsker å ta direkte til Hovedstyret eller dersom du vil være anonym ovenfor dem.
+kontakte dersom du vil ta opp noe om hovedstyret, noe du ikke ønsker å ta direkte til Hovedstyret eller dersom du vil være anonym overfor dem.
 Kontaktpersonene har taushetsplikt, men kan videreformidle saken til
 Hovedstyret dersom det er ønskelig.
 

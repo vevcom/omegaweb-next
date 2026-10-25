@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 const validAddress = z.string().email().refine(
     address => validMailAddressDomains.includes(address.split('@')[1].trim()),
-    `The domain is not valid, valid domains are: ${validMailAddressDomains.join(', ')}`
+    `Domenet er ugyldig. Gyldige domener er: ${validMailAddressDomains.join(', ')}`
 )
 
 const dataFieldSchemas = z.object({

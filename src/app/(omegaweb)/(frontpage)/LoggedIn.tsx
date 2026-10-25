@@ -120,7 +120,7 @@ export default async function LoggedInLandingPage() {
                             link="/events"
                             layout="rows"
                             span="half"
-                            emptyMessage="Det er for tiden ingen kommende hendelser"
+                            emptyMessage="Det er for tiden ingen kommende arrangementer"
                         >
                             {events.map((event, key) => (
                                 <EventCard key={key} event={event} />
@@ -156,7 +156,7 @@ export default async function LoggedInLandingPage() {
                                 link="/omegaquotes"
                                 layout="rows"
                                 span="half"
-                                emptyMessage="Det er ingen quotes å vise enda"
+                                emptyMessage="Det er ingen sitater å vise ennå"
                             >
                                 {omegaquotes.map(quote => (
                                     <OmegaquoteRow key={quote.id} quote={quote} />

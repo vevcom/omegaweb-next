@@ -28,7 +28,7 @@ const { page, generateMetadata } = serverPage({
     }),
     render: ({ data, capabilities }) => (
         <div className="bg-surface-base rounded-round p-(--card-padding)">
-            <h2>Notifikasjoner</h2>
+            <h2>Varslinger</h2>
             {capabilities.canManagePushDevice.authorized && (
                 <PushDeviceSettings
                     userId={data.profile.user.id}

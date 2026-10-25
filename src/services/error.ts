@@ -19,7 +19,7 @@ export const errorCodes = [
     {
         name: 'BAD DATA',
         httpCode: 400,
-        defaultMessage: 'Feil i dataen',
+        defaultMessage: 'Feil i dataene',
     },
     {
         name: 'UNKNOWN ERROR',
@@ -128,7 +128,7 @@ export class ServiceError extends Smorekopp<ServiceErrorCode> {
 export class ParseError<Input> extends Smorekopp<'BAD PARAMETERS'> {
     public parseError: SafeParseError<Input>
     constructor(parseError: SafeParseError<Input>) {
-        super('BAD PARAMETERS', 'Bad parameters')
+        super('BAD PARAMETERS', 'Feil i parametrene')
         this.parseError = parseError
     }
 }

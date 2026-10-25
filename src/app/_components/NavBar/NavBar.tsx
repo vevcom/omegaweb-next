@@ -33,7 +33,7 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                             <StandardImageServer
                                 standardImage="LOGO_SIMPLE"
                                 width={36}
-                                alt="omega logo"
+                                alt="Omega-logo"
                                 tint="white"
                             />
                         </div>

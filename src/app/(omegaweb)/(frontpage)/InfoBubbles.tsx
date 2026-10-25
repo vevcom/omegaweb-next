@@ -25,8 +25,8 @@ function InfoBubbles() {
                 </div>
                 <div className={heading}>Sosialt</div>
                 <div className={text}>
-                Sct. Omega Broderskaps mål er å skape et fargerikt sosialt liv for studenter
-                ved studiene for Elektronisk Systemdesign og Innovasjon, og Kybernetikk og Robotikk.
+                Sct. Omega Broderskaps mål er å skape et fargerikt sosialt liv for studentene
+                på Elektronisk systemdesign og innovasjon og Kybernetikk og robotikk.
                 </div>
             </div>
             <div className={bubbleClassName}>
@@ -35,8 +35,7 @@ function InfoBubbles() {
                 </div>
                 <div className={heading}>Komitéer</div>
                 <div className={text}>
-                Linjeforeningen består av 17 komitéer som alle inkluderer
-                studenter på et bredt spekter,
+                Linjeforeningen har 17 komitéer som favner bredt,
                 med alt fra revy til store fester som Phaestum Immatricularis.
                 </div>
             </div>
@@ -47,7 +46,7 @@ function InfoBubbles() {
                 <div className={heading}>Næringsliv</div>
                 <div className={text}>
                 Omega har kontakt med mange bedrifter og jobber kontinuerlig med å skape
-                et godt forhold mellom studenten og en fremtidig arbeidsplass.
+                et godt forhold mellom studentene og fremtidige arbeidsgivere.
                 </div>
             </div>
         </div>

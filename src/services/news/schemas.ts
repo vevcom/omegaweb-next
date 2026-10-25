@@ -4,9 +4,9 @@ import { visibilityRequirementsSchema } from '@/services/visibility/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
-    name: z.string().max(25, 'max lengde 25').min(2, 'min lengde 2'),
-    description: z.string().max(200, 'max lengde 200').min(2, 'min lengde 2').or(z.literal('')),
-    endDateTime: Zpn.date({ label: 'Avsluttning' }).optional(),
+    name: z.string().max(25, 'Maks lengde er 25 tegn').min(2, 'Minimum lengde er 2 tegn'),
+    description: z.string().max(200, 'Maks lengde er 200 tegn').min(2, 'Minimum lengde er 2 tegn').or(z.literal('')),
+    endDateTime: Zpn.date({ label: 'Avslutning' }).optional(),
     published: Zpn.checkboxOrBoolean({ label: 'Publisert' }),
 
     /**

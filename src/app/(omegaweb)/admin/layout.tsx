@@ -15,7 +15,7 @@ export default serverLayout({
             max-w-full flex flex-row relative p-0
             max-mobile:h-[calc(100dvh-60px)]
         ">
-            <PageTitleSetter title={'Admin'} />
+            <PageTitleSetter title={'Administrasjon'} />
             <div className="
                 bg-surface-base rounded-round self-start sticky
                 max-mobile:static

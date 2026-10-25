@@ -65,7 +65,7 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
             [&>h2]:flex-[1_1_100%] [&>h2]:text-m [&>h2]:font-medium [&>h2]:text-text-muted [&>h2]:uppercase
             [&>h2]:tracking-[0.08em]
         ">
-            <h2>Admin</h2>
+            <h2>Administrasjon</h2>
             <div className="
                 flex-[0_1_auto]
                 [&>*:not(:last-child)]:border-b [&>*:not(:last-child)]:border-surface-subtle [&>*:not(:last-child)]:pb-6
@@ -105,7 +105,7 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
                             navigateOnSuccess={ombulPath}
                             submitText="Oppdater fil"
                         >
-                            <FileInput name="ombulFile" label="Ombul fil" color="primary" />
+                            <FileInput name="ombulFile" label="Ombul-fil" color="primary" />
                         </Form>
                     )
                 }
@@ -122,7 +122,7 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
                             submitColor="red"
                             confirmation={{
                                 confirm: true,
-                                text: 'Sikker på at du vil slette ombul? Dette kan ikke angres.',
+                                text: 'Er du sikker på at du vil slette ombulen? Dette kan ikke angres.',
                             }}
                         ></Form>
                     )

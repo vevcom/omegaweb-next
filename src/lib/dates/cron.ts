@@ -9,7 +9,7 @@ function divideCronString(cronExpression: string) {
         }
     }
 
-    if (ret.length !== 3) throw new Error('The cron string is invalid, it needs three parts.')
+    if (ret.length !== 3) throw new Error('Cron-uttrykket er ugyldig. Det må ha tre deler.')
 
     return ret
 }
@@ -34,7 +34,7 @@ function numberInCronExpression(number: number, cronExpressionPart: string) {
     function parseCronRange(input: string): number[] {
         const parts = input.split('-')
         if (parts.length > 2) {
-            throw new Error('The cron expression is invalid. Containing an invalid -')
+            throw new Error('Cron-uttrykket er ugyldig. Det inneholder en ugyldig -.')
         }
 
         if (parts.length === 1 && parts[0] === '*') {
@@ -49,7 +49,7 @@ function numberInCronExpression(number: number, cronExpressionPart: string) {
 
         const endNumber = parseInt(parts[1], 10)
         if (startNumber >= endNumber) {
-            throw new Error('The cron expression is invalid. The range must increase.')
+            throw new Error('Cron-uttrykket er ugyldig. Intervallet må være stigende.')
         }
 
         return createArrayFromRange(startNumber, endNumber + 1)
@@ -58,7 +58,7 @@ function numberInCronExpression(number: number, cronExpressionPart: string) {
     const validNumbers = commaSplit.map(commaPart => {
         const parts = commaPart.split('/')
         if (parts.length > 2) {
-            throw new Error('The cron expression is invalid. Containing an invalid /')
+            throw new Error('Cron-uttrykket er ugyldig. Det inneholder en ugyldig /.')
         }
 
         let result = parseCronRange(parts[0])

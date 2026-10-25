@@ -119,12 +119,12 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
                 />
                 <FileInput
                     color="primary"
-                    label="Ombul fil"
+                    label="Ombul-fil"
                     name="ombulFile"
                 />
                 <FileInput
                     color="primary"
-                    label="Ombul cover"
+                    label="Forsidebilde"
                     name="ombulCoverImage"
                     onChange={handlePreviewChange.bind(null, 'pImage')}
                 />

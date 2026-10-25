@@ -36,7 +36,7 @@ export default function DesktopSideBar({ navItems }: PropTypes) {
                     h-full w-full flex flex-col items-stretch gap-1 overflow-y-auto overflow-x-hidden
                     [scrollbar-width:none]
                     [&::-webkit-scrollbar]:hidden
-                " aria-label="Desktop navigation">
+                " aria-label="Hovednavigasjon">
                     {sideBarItems.map((item) => (
                         <SideBarNavItem
                             key={item.name}
@@ -64,7 +64,7 @@ export default function DesktopSideBar({ navItems }: PropTypes) {
                     hover:[&_svg]:text-accent-blue
                 "
                 onClick={() => setExpanded(prev => !prev)}
-                aria-label={expanded ? 'Collapse navigation' : 'Expand navigation'}
+                aria-label={expanded ? 'Skjul navigasjonen' : 'Utvid navigasjonen'}
             >
                 <FontAwesomeIcon icon={expanded ? faChevronLeft : faChevronRight} />
             </button>

@@ -38,7 +38,7 @@ export default function ChangeName({ article, updateArticleAction, capabilities 
             }
             inputName="name"
             submitButton={{
-                text: 'lagre',
+                text: 'Lagre',
                 className: 'absolute bottom-full left-0 w-[200px] [&_button]:my-2 [&_button]:mx-0'
             }}
             editable={editable}

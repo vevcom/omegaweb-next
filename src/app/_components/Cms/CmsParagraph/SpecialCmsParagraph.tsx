@@ -1,6 +1,5 @@
 import CmsParagraph from './CmsParagraph'
 import { configureAction } from '@/services/configureAction'
-import React from 'react'
 import type { PropTypes as PropTypesCmsParapraph } from './CmsParagraph'
 import type { SpecialCmsParagraph as SpecialCmsParagraphT } from '@/prisma-generated-pn-types'
 import type { ReadSpecialCmsParagraphAction } from '@/cms/paragraphs/types'
@@ -24,7 +23,7 @@ type PropTypes = Omit<PropTypesCmsParapraph, 'cmsParagraph'> & {
  */
 export default async function SpecialCmsParagraph({ special, readSpecialCmsParagraphAction, ...props }: PropTypes) {
     const res = await configureAction(readSpecialCmsParagraphAction, { params: { special } })()
-    if (!res.success) return <i>Error: {res.error?.[0].message}</i>
+    if (!res.success) return <i>Feil: {res.error?.[0].message}</i>
 
     return (
         <CmsParagraph cmsParagraph={res.data} {...props} />

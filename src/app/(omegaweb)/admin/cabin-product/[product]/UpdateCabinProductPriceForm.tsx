@@ -19,7 +19,7 @@ export function UpdateCabinProductPriceForm({
     pricePeriods: PricePeriod[],
 }) {
     if (pricePeriods.length === 0) {
-        return <p>Det er ingen prisperioder som ikke er sluppet enda. Lag en ny pris periode før du oppdaterer prisene.</p>
+        return <p>Det er ingen prisperioder som ikke er sluppet enda. Lag en ny prisperiode før du oppdaterer prisene.</p>
     }
     return <Form
         action={configureAction(createCabinProductPriceAction, { params: { cabinProductId: productId } })}
@@ -27,7 +27,7 @@ export function UpdateCabinProductPriceForm({
     >
         <TextInput name="description" label="Beskrivelse" />
         <NumberInput name="price" label="Pris" defaultValue={100} min={0} />
-        <TextInput name="cronInterval" label="Cron intervall for gyldighet" defaultValue="* * *" />
+        <TextInput name="cronInterval" label="Cron-intervall for gyldighet" defaultValue="* * *" />
         {productType === 'CABIN' &&
             <NumberInput name="memberShare" label="Medlemsandel" defaultValue={0} />
         }
@@ -40,7 +40,7 @@ export function UpdateCabinProductPriceForm({
                 label: displayDate(period.validFrom, false),
             }))}
             name="pricePeriodId"
-            label="Pris periode"
+            label="Prisperiode"
         />
     </Form>
 }

@@ -22,10 +22,10 @@ function fileHasAllowedExtension(file: File): boolean {
 }
 
 export const imageFileSchema = z.instanceof(File).refine(
-    file => file.size < maxImageFileSizeBytes, `Bildet må være mindre enn ${maxImageFileSizeMb}mb`
+    file => file.size < maxImageFileSizeBytes, `Bildet må være mindre enn ${maxImageFileSizeMb} MB`
 ).refine(
     fileHasAllowedExtension,
-    `File type must be one of ${allowedExtensions.join(', ')}`
+    `Filtypen må være en av ${allowedExtensions.join(', ')}`
 )
 
 /**
@@ -40,7 +40,7 @@ export const imageDataFieldSchemas = z.object({
     imageFile: imageFileSchema,
     imageFiles: zfd.repeatable(z.array(z.instanceof(File)).refine(
         files => files.every(file => file.size < maxImageFileSizeBytes),
-        `Alle filer må være mindre enn ${maxImageFileSizeMb}mb`
+        `Alle filer må være mindre enn ${maxImageFileSizeMb} MB`
     )).refine(
         files => files.every(fileHasAllowedExtension),
         `Filtypen må være en av ${allowedExtensions.join(', ')}`
@@ -49,10 +49,10 @@ export const imageDataFieldSchemas = z.object({
         `Du kan bare laste opp mellom 1 og ${maxImageCountInOneBatch} bilder av gangen`
     ).refine(
         files => files.reduce((total, file) => total + file.size, 0) <= maxImageBatchSizeBytes,
-        `Bildene kan til sammen være maks ${maxImageBatchSizeMb}mb per opplasting`
+        `Bildene kan til sammen være maks ${maxImageBatchSizeMb} MB per opplasting`
     ),
-    imageName: z.string().max(50, 'max length is 50').min(2, 'min length is 2').optional(),
-    imageAlt: z.string().max(100, 'max length is 100').min(2, 'min length is 2'),
+    imageName: z.string().max(50, 'Maks lengde er 50 tegn').min(2, 'Minimum lengde er 2 tegn').optional(),
+    imageAlt: z.string().max(100, 'Maks lengde er 100 tegn').min(2, 'Minimum lengde er 2 tegn'),
     // The license chooser sends 'NULL' for no license, and the id as a string otherwise.
     imageLicenseId: z.preprocess(
         value => (value === 'NULL' ? null : value),

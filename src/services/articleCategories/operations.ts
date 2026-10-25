@@ -267,7 +267,7 @@ export const articleCategoryOperations = {
                     }
                 },
             })
-            if (!category) throw new ServiceError('NOT FOUND', `Category ${params.name} not found`)
+            if (!category) throw new ServiceError('NOT FOUND', `Fant ikke kategorien ${params.name}`)
             const newestArticle = category.articles[0]
             const coverImage = newestArticle ? await prisma.cmsImage.findUniqueOrThrow({
                 where: { id: newestArticle.coverImageId },

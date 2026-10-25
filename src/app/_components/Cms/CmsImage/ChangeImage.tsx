@@ -89,11 +89,11 @@ export default function ChangeImage({
                         ${imageClipClassName}
                         w-[min(200px,24vh)] max-h-[min(200px,24vh)]
                     `}>
-                        {displayImage ? <Image width={200} image={displayImage} /> : <p>Ingen bilde valgt enda</p>}
+                        {displayImage ? <Image width={200} image={displayImage} /> : <p>Ikke noe bilde valgt ennå</p>}
                     </div>
                 )
             }
-            <i>{displayImage ? `image name: ${displayImage.name}` : 'ingen bilde valgt enda'}</i>
+            <i>{displayImage ? `Bildenavn: ${displayImage.name}` : 'Ikke noe bilde valgt ennå'}</i>
             {renderSubmitControls()}
         </div>
     )

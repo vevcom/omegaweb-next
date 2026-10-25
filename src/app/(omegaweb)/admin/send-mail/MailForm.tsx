@@ -17,7 +17,7 @@ export default function MailForm({ mailingLists }: PropTypes) {
     return <>
         <Form
             action={sendMailAction}
-            submitText="Send elektronisk post"
+            submitText="Send e-post"
             className="w-full"
             buttonClassName="max-w-[300px] w-full!"
             successCallback={data => setSuccessMessage(data ? `Sendt til ${data.recipientCount} mottakere.` : null)}

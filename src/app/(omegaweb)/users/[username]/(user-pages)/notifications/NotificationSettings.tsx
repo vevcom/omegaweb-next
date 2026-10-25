@@ -22,7 +22,7 @@ import type {
 function generateChannelTree(channels: ExpandedNotificationChannel[], subscriptions: Subscription[]): NotificationBranch {
     const rootChannel = channels.find(channel => channel.special === 'ROOT')
     if (!rootChannel) {
-        throw Error('Ingen ROOT varslings kanal')
+        throw Error('Fant ikke rotkanalen for varslinger')
     }
 
     function extendChannel(channel: ExpandedNotificationChannel): NotificationBranch {

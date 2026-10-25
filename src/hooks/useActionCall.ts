@@ -32,7 +32,7 @@ export default function useActionCall<
                 setRes({ data: null, error: result })
             }
         }).catch(() => {
-            setRes({ data: null, error: createActionError('UNKNOWN ERROR', 'An unknown error occured') })
+            setRes({ data: null, error: createActionError('UNKNOWN ERROR', 'Det oppstod en ukjent feil') })
         })
     }, [action])
 

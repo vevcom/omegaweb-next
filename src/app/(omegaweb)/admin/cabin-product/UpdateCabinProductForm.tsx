@@ -11,7 +11,7 @@ export function UpdateCabinProductForm() {
         submitText="Opprett nytt produkt"
     >
         <input type="hidden" name="type" value="BED" />
-        <TextInput name="name" label="Produkt navn" />
+        <TextInput name="name" label="Produktnavn" />
         <NumberInput name="amount" label="Antall på hytta" defaultValue={1} />
     </Form>
 }

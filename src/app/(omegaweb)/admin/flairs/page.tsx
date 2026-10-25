@@ -79,7 +79,7 @@ const { page, generateMetadata } = serverPage({
                 </AddHeaderItemPopUp>
             }>
                 <p>
-                    Flairen med lavest <strong>rank</strong> er den som vises først på brukerens profil, og
+                    Flairen med lavest <strong>rangering</strong> er den som vises først på brukerens profil, og
                     den som bestemmer fargen på brukerprofilen. Dra i håndtaket for å endre rekkefølgen.
                 </p>
                 <FlairTable rows={rows} />

@@ -143,10 +143,10 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                         max-mobile:hidden
                     ">
                         <div className="max-w-[150px] overflow-hidden">
-                            <h2>Edit image link</h2>
+                            <h2>Endre bilde</h2>
                             <div>
-                                <p>name: {cmsImage.name}</p>
-                                <i>id: {cmsImage.id}</i>
+                                <p>Navn: {cmsImage.name}</p>
+                                <i>ID: {cmsImage.id}</i>
                             </div>
                         </div>
                         <ChangeImage

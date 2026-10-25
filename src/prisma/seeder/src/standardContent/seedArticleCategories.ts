@@ -13,7 +13,7 @@ type SeedArticleCategoryConfig = Pick<Data<typeof articleCategoryOperations.crea
 export const seedArticleCategoriesConfig = [
     {
         name: 'om omega',
-        description: 'lær om omega',
+        description: 'Lær om Omega',
         articles: [
             {
                 name: 'om omega',
@@ -69,7 +69,7 @@ export const seedArticleCategoriesConfig = [
     },
     {
         name: 'guider',
-        description: 'få hjelp til ting',
+        description: 'Få hjelp med ting',
         articles: [
             {
                 name: 'prikkreglement',

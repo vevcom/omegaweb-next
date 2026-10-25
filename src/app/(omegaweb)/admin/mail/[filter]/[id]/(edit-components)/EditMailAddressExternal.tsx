@@ -74,7 +74,7 @@ export default function EditMailAddressExternal({
             submitColor="red"
             confirmation={{
                 confirm: true,
-                text: 'Sikker på at du vil slette denne eksterne adressen? Dette kan ikke angres.',
+                text: 'Er du sikker på at du vil slette denne eksterne adressen? Dette kan ikke angres.',
             }}
         />}
     </>

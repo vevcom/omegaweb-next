@@ -27,7 +27,7 @@ export default function CreateUserForm({ className }: PropTypes) {
                 <TextInput label="Brukernavn" name="username"/>
                 <TextInput label="Fornavn" name="firstname"/>
                 <TextInput label="Etternavn" name="lastname"/>
-                <p>Når en bruker lages vil brukeren få tilsendt en e-post, med en link for å fullføre registreringen.</p>
+                <p>Når en bruker opprettes, får brukeren tilsendt en e-post med en lenke for å fullføre registreringen.</p>
             </Form>
         </div>
     )

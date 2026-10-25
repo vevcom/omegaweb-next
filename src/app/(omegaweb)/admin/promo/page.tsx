@@ -51,8 +51,8 @@ const { page, generateMetadata } = serverPage({
                 </AddHeaderItemPopUp>
             }>
                 <p>
-                    Promoen vises som en bar under forsidebildet, kun i perioden mellom fra- og til-dato.
-                    Er flere perioder aktive samtidig vises den som ble opprettet sist.
+                    Promoen vises som en stripe under forsidebildet, bare mellom fra- og til-datoen.
+                    Er flere promoer aktive samtidig, vises den som ble opprettet sist.
                 </p>
                 <SimpleTable
                     header={['Bilde', 'Tittel', 'Periode', 'Status']}

@@ -77,7 +77,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         [&_li_input[type=checkbox]]:align-top [&_li_input[type=checkbox]]:mr-[4px]
                     "
                 >
-                    <h2>Tags</h2>
+                    <h2>Tagger</h2>
                     {
                         eventTags.map(tag => (
                             <li key={tag.id}>
@@ -97,7 +97,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                     }
                 </ul>
                 <Slider
-                    label="Med registrering"
+                    label="Med påmelding"
                     name="takesRegistration"
                     onChange={handleShowRegistration}
                     defaultChecked={event?.takesRegistration}
@@ -161,25 +161,25 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         defaultValue={event?.hostedByCommitteeId ?? 'NULL'}
                     />}
                     <DateInput
-                        label="Registrering Start"
+                        label="Påmeldingsstart"
                         name="registrationStart"
                         defaultValue={event?.registrationStart}
                         includeTime
                     />
                     <DateInput
-                        label="Registrering Slutt"
+                        label="Påmeldingsslutt"
                         name="registrationEnd"
                         defaultValue={event?.registrationEnd}
                         includeTime
                     />
                     <DateInput
-                        label="Betaling Start"
+                        label="Betalingsstart"
                         name="paymentStart"
                         defaultValue={event?.paymentStart ?? undefined}
                         includeTime
                     />
                     <DateInput
-                        label="Betaling Slutt"
+                        label="Betalingsslutt"
                         name="paymentEnd"
                         defaultValue={event?.paymentEnd ?? undefined}
                         includeTime

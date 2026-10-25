@@ -30,7 +30,7 @@ export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
                     standardImage="MAGISK_HATT"
                     width={25}
                     height={25}
-                    alt="log in button"
+                    alt={isLoggedIn ? 'Profil' : 'Logg inn'}
                     tint="var(--magic-hat-tint, var(--text))"
                 />
                 <UserNavigation isLoggedIn={isLoggedIn} />

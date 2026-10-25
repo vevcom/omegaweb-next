@@ -166,7 +166,7 @@ const { page, generateMetadata } = serverPage({
                                                     text-accent-blue
                                                     group-hover:underline
                                                 ">
-                                                    {membership.title} udaf {membership.order}´dis orden i{' '}
+                                                    {membership.title} uudaf {membership.order}´dis orden i{' '}
                                                     {membership.committee.name}
                                                 </p>
                                             </Link>
@@ -176,7 +176,7 @@ const { page, generateMetadata } = serverPage({
 
                                 {activeInterestGroups.length > 0 && (
                                     <section className={groupSectionClassName}>
-                                        <h2>Aktive Interessegruppemedlemskap:</h2>
+                                        <h2>Aktive interessegruppemedlemskap:</h2>
                                         {activeInterestGroups.map(membership =>
                                             <Link
                                                 key={`${membership.interestGroup.id}-${membership.order}`}
@@ -187,7 +187,7 @@ const { page, generateMetadata } = serverPage({
                                                     text-accent-blue
                                                     group-hover:underline
                                                 ">
-                                                    {membership.title} udaf {membership.order}´dis orden i{' '}
+                                                    {membership.title} uudaf {membership.order}´dis orden i{' '}
                                                     {membership.interestGroup.name}
                                                 </p>
                                             </Link>

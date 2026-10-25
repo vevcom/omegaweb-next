@@ -15,15 +15,15 @@ export function VerifyEmailTemplate({
             <p>Hei {user.firstname},</p>
 
             <p>
-                Du får denne e-posten siden du nettopp registrerte deg hos {process.env.WEBSITE_DOMAIN}.
-                Vennligst bekreft e-posten din ved å trykke på <a href={link}>linken</a>.
+                Du får denne e-posten fordi du nettopp registrerte deg hos {process.env.WEBSITE_DOMAIN}.
+                Bekreft e-posten din ved å trykke på <a href={link}>lenken</a>.
             </p>
 
-            <p>Hvis du ikke har registrert deg hos {process.env.WEBSITE_DOMAIN} kan du bare se bort i fra denne e-posten.</p>
+            <p>Hvis du ikke har registrert deg hos {process.env.WEBSITE_DOMAIN}, kan du bare se bort fra denne e-posten.</p>
 
             <p>
                 Med vennlig hilsen<br/>
-                Vevcom
+                VevCom
             </p>
         </Html>
     )
