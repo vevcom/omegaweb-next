@@ -68,8 +68,8 @@ actions_key=$(grep '^NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=' "$env_file" | cut -d= 
 stripe_key=$(grep '^NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=' "$env_file" | cut -d= -f2- || true)
 
 for target in prod tools; do
-    image=ghcr.io/vevcom/project-next:local
-    [[ $target == tools ]] && image=ghcr.io/vevcom/project-next-tools:local
+    image=ghcr.io/vevcom/omegaweb-next:local
+    [[ $target == tools ]] && image=ghcr.io/vevcom/omegaweb-next-tools:local
     docker build --target "$target" -t "$image" \
         --build-arg NEXT_SERVER_ACTIONS_ENCRYPTION_KEY="$actions_key" \
         --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="$stripe_key" .

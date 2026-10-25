@@ -20,10 +20,10 @@ configMapGenerator:
 
 images:
     - name: projectnext
-      newName: ghcr.io/vevcom/project-next
+      newName: ghcr.io/vevcom/omegaweb-next
       newTag: local
     - name: projectnext-tools
-      newName: ghcr.io/vevcom/project-next-tools
+      newName: ghcr.io/vevcom/omegaweb-next-tools
       newTag: local
 
 replicas:

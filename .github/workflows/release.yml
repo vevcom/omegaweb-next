@@ -19,9 +19,9 @@ jobs:
       matrix:
         include:
           - target: prod
-            image: ghcr.io/vevcom/project-next
+            image: ghcr.io/vevcom/omegaweb-next
           - target: tools
-            image: ghcr.io/vevcom/project-next-tools
+            image: ghcr.io/vevcom/omegaweb-next-tools
     steps:
     - name: checkout
       uses: actions/checkout@v4
@@ -56,8 +56,8 @@ jobs:
       working-directory: deploy/overlays/prod
       run: |
         kustomize edit set image \
-          projectnext=ghcr.io/vevcom/project-next:${{ github.event.release.tag_name }} \
-          projectnext-tools=ghcr.io/vevcom/project-next-tools:${{ github.event.release.tag_name }}
+          projectnext=ghcr.io/vevcom/omegaweb-next:${{ github.event.release.tag_name }} \
+          projectnext-tools=ghcr.io/vevcom/omegaweb-next-tools:${{ github.event.release.tag_name }}
     - uses: peter-evans/create-pull-request@v7
       with:
         branch: deploy/${{ github.event.release.tag_name }}

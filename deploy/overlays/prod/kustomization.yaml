@@ -23,10 +23,10 @@ configMapGenerator:
 # The tags are bumped by .github/workflows/release.yml through a pull request.
 images:
     - name: projectnext
-      newName: ghcr.io/vevcom/project-next
+      newName: ghcr.io/vevcom/omegaweb-next
       newTag: v0.0.0
     - name: projectnext-tools
-      newName: ghcr.io/vevcom/project-next-tools
+      newName: ghcr.io/vevcom/omegaweb-next-tools
       newTag: v0.0.0
 
 patches:
