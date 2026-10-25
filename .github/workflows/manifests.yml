@@ -17,10 +17,10 @@ jobs:
     - name: install kubeconform
       run: |
         curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
-    # CRD schemas (Cluster, Application, ...) come from the datree catalog, which has none for PhaseSecret.
+    # CRD schemas (Cluster, Middleware, ...) come from the datree catalog, which has none for PhaseSecret.
     - name: validate
       run: |
-        for dir in deploy/overlays/* deploy/argocd/prod deploy/argocd/local deploy/cluster; do
+        for dir in deploy/overlays/*; do
           echo "::group::$dir"
           kustomize build "$dir" | ./kubeconform -strict -summary -skip PhaseSecret \
             -schema-location default \

@@ -1,8 +1,0 @@
-# Same as prod but tracks a branch, so a pushed change can be tried on k3d first.
-# The branch is set in root.yaml and projectnext.yaml.
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-    - root.yaml
-    - ../platform
-    - projectnext.yaml

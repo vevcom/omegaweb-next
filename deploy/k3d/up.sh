@@ -3,8 +3,9 @@
 # images on a workstation. Safe to re-run: it rebuilds the images and re-applies
 # everything. Tear down with `k3d cluster delete projectnext`.
 #
-# With --argocd it installs Argo CD instead of applying the overlay, and Argo CD
-# deploys the branch named in deploy/argocd/local from GitHub, so push it first.
+# With --argocd it installs Argo CD instead of applying the overlay and points it at
+# clusters/local in the vivat repo, which deploys the branch of this repo named in
+# its omegaweb.yaml from GitHub, so push that branch first.
 set -euo pipefail
 
 argocd=false
@@ -83,9 +84,9 @@ if $argocd; then
     helm repo add argo https://argoproj.github.io/argo-helm --force-update >/dev/null
     helm upgrade --install argocd argo/argo-cd --version 10.10.5 \
         --namespace argocd --create-namespace --wait
-    kubectl apply -k deploy/argocd/local
+    kubectl apply -k 'https://github.com/vevcom/vivat//clusters/local?ref=main'
     # The first sync installs the operators before the app, so this takes a while.
-    kubectl -n argocd wait application/projectnext --for=jsonpath='{.status.health.status}'=Healthy --timeout=20m
+    kubectl -n argocd wait application/omegaweb --for=jsonpath='{.status.health.status}'=Healthy --timeout=20m
     # A rebuilt image keeps its tag, so Argo CD sees nothing to roll out.
     kubectl -n "$namespace" rollout restart deployment
     kubectl -n "$namespace" rollout status deployment --timeout=5m

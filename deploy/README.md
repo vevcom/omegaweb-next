@@ -1,7 +1,9 @@
 # Deploying with k3s and Argo CD
 
-Production runs on k3s and is deployed by Argo CD from this repository. The compose
-files stay for development and tests.
+Production runs on k3s and is deployed by Argo CD. This directory holds the app's own
+manifests. The rest of the cluster lives in [vivat](https://github.com/vevcom/vivat):
+Argo CD's applications, the operators and the Let's Encrypt issuer. The compose files
+stay for development and tests.
 
 ```
 deploy/
@@ -9,11 +11,6 @@ deploy/
 ├── overlays/
 │   ├── local/         # k3d on a workstation: locally built images, no TLS, store on disk or S3
 │   └── prod/          # sctomega.com: release images, TLS, backups, Phase secrets, S3 store
-├── cluster/           # Cluster-wide resources such as the Let's Encrypt issuer
-├── argocd/
-│   ├── platform/      # Operators as Helm apps: cert-manager, CloudNativePG, Phase
-│   ├── prod/          # Root app for prod, which tracks main
-│   └── local/         # Root app for k3d, which tracks a branch
 └── k3d/               # Local cluster config and up.sh
 ```
 
@@ -22,7 +19,8 @@ deploy/
 1. Publishing a GitHub release runs `.github/workflows/release.yml`. It builds the
    `prod` and `tools` images and pushes them to GHCR under the release tag.
 2. The workflow opens a pull request that sets that tag in `overlays/prod`.
-3. Merging the pull request is the deploy. Argo CD sees main change and syncs in waves:
+3. Merging the pull request is the deploy. The `omegaweb` application, which vivat
+   defines, sees main change and syncs in waves:
    - wave -3: the database and the PhaseSecret
    - wave -1: the migrate job, which runs `migrate:deploy-and-seed`, and locally the store
      volume it is the first to mount
@@ -42,7 +40,8 @@ k3d cluster delete projectnext     # tear down
 ```
 
 `up.sh` applies the overlay with `kubectl` and does not use Argo CD. To try Argo CD
-itself, push the branch named in `argocd/local/*.yaml` and start from a fresh cluster:
+itself, push your branch, set it as `targetRevision` in vivat's
+`clusters/local/omegaweb.yaml` and start from a fresh cluster:
 
 ```bash
 k3d cluster delete projectnext
@@ -90,8 +89,7 @@ Use `copy`, not `sync`, so deletes never reach the copy.
    Traefik on Docker Swarm, so either use a fresh VM or plan a short outage
    for the switch.
 2. **Install Argo CD** with Helm, as in the local steps.
-3. **Fill in the TODOs.** Set the issuer email in `cluster/cluster-issuer.yaml`, the
-   backup bucket in `overlays/prod/database-patch.yaml`, the store bucket in
+3. **Fill in the TODOs.** Set the backup bucket in `overlays/prod/database-patch.yaml`, the store bucket in
    `overlays/prod/kustomization.yaml` and the Phase app id in `overlays/prod/phase-secret.yaml`.
 4. **Set up S3.** Create the store and backup buckets on stack.it, turn on versioning for
    the store, and make keys with `openstack ec2 credentials create`. Add the store keys to
@@ -110,7 +108,7 @@ Use `copy`, not `sync`, so deletes never reach the copy.
 
 6. **Set up GitHub.** Add the secret `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` and the
    variable `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and keep both GHCR packages private.
-7. **Bootstrap Argo CD** with `kubectl apply -k deploy/argocd/prod`.
+7. **Bootstrap Argo CD** from vivat, as its README describes.
 8. **Move the data.** Stop the Dokploy stack, then `pg_dump` the Dokploy database
    into the `projectnext-db` cluster with `pg_restore`. Copy the `store` volume to the
    bucket with `rclone copy <store volume> s3:<bucket>`. Then point DNS at the new box.

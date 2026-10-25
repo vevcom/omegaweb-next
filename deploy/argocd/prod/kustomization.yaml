@@ -1,9 +1,0 @@
-# Applied once by hand with `kubectl apply -k`. From then on the root application
-# syncs this directory, itself included.
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-    - root.yaml
-    - ../platform
-    - cluster.yaml
-    - projectnext.yaml
