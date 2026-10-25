@@ -76,6 +76,7 @@ export default function Article({
                             [&_img]:object-cover
                         "
                         width={500}
+                        sizes="100vw"
                         cmsImage={article.coverImage}
                         updateCmsImageAction={actions.updateCoverImageAction}
                         capabilities={capabilities}

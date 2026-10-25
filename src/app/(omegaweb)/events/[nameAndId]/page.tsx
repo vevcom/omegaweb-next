@@ -197,6 +197,7 @@ const { page, generateMetadata } = serverPage({
                         capabilities={{ canEdit: capabilities.canEditCmsCoverImage }}
                         cmsImage={event.coverImage}
                         width={900}
+                        sizes="100vw"
                         updateCmsImageAction={
                             configureAction(
                                 updateEventCmsCoverImageAction,
