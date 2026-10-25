@@ -10,7 +10,9 @@ import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { userOperations } from '@/services/users/operations'
 import { verifyJWT } from '@/lib/jwt/jwt'
+import { feideEmailDomainsTrustedAsVerified } from '@/lib/feide/constants'
 import logger from '@/lib/logger'
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 
 /** Verifies and reads the claims of a link Feide account token. */
 function readLinkFeideAccountClaims(token: string) {
@@ -47,24 +49,42 @@ export const authOperations = {
                 bypassAuth: true,
             })
 
-            if (iat < user.updatedAt) {
-                throw new ServiceError('JWT INVALID', 'The user has changed since the token was generated.')
+            // Only a later verification spends the token. Other writes to the user, such as the one
+            // every Feide login makes, must not.
+            if (user.emailVerified && iat < user.emailVerified) {
+                throw new ServiceError(
+                    'JWT INVALID',
+                    'Lenken er allerede brukt eller utdatert. Be om en ny e-post fra registreringssiden.'
+                )
             }
 
-            const updatedUser = await prisma.user.update({
-                where: {
-                    id: userId,
-                },
-                data: {
-                    emailVerified: new Date(),
-                    email,
-                },
-                select: {
-                    ...userBasicSelection,
-                    email: true,
-                    acceptedTerms: true,
-                },
-            })
+            let updatedUser
+            try {
+                updatedUser = await prisma.user.update({
+                    where: {
+                        id: userId,
+                    },
+                    data: {
+                        emailVerified: new Date(),
+                        email,
+                    },
+                    select: {
+                        ...userBasicSelection,
+                        email: true,
+                        acceptedTerms: true,
+                    },
+                })
+            } catch (error) {
+                // The clicker controls the mailbox, so saying the address is taken leaks nothing.
+                if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
+                    throw new ServiceError(
+                        'DUPLICATE',
+                        'E-postadressen tilhører allerede en annen bruker. Hadde du bruker på gamle ' +
+                        'Omegaveven med denne adressen, velg «Koble til eksisterende bruker» på registreringssiden.'
+                    )
+                }
+                throw error
+            }
             await sendEmailChangedMail(updatedUser, user.email)
 
             return updatedUser
@@ -97,7 +117,8 @@ export const authOperations = {
                 throw new ServiceError('JWT INVALID', 'The password has already been changed')
             }
 
-            return userId
+            // Tokens issued before the email claim was added carry none.
+            return { userId, email: typeof payload.email === 'string' ? payload.email : null }
         }
     }),
 
@@ -105,8 +126,8 @@ export const authOperations = {
         paramsSchema: authSchemas.params.resetPassword,
         dataSchema: authSchemas.data.resetPassword,
         authorizer: () => authAuth.resetPassword,
-        operation: async ({ params, data }) => {
-            const userId = await authOperations.verifyResetPasswordToken({ params })
+        operation: async ({ prisma, params, data }) => {
+            const { userId, email } = await authOperations.verifyResetPasswordToken({ params })
 
             await userOperations.updatePassword({
                 params: {
@@ -115,6 +136,14 @@ export const authOperations = {
                 data,
                 bypassAuth: true,
             })
+
+            // Following the link proves the address, so a user signing up need not verify it again.
+            if (email) {
+                await prisma.user.updateMany({
+                    where: { id: userId, email, emailVerified: null },
+                    data: { emailVerified: new Date() },
+                })
+            }
         }
     }),
 
@@ -205,8 +234,11 @@ export const authOperations = {
 
             if (!user.feideAccount) return null
 
+            const feideEmailDomain = user.feideAccount.email.split('@').pop() ?? ''
+
             return {
                 feideEmail: user.feideAccount.email,
+                feideEmailTrustedAsVerified: feideEmailDomainsTrustedAsVerified.includes(feideEmailDomain),
                 createdByFeideLoginOnProjectNext: user.createdByFeideLoginOnProjectNext,
             }
         }

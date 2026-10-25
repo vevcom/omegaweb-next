@@ -1,6 +1,7 @@
 'use client'
 
 import LedgerTransactionRow from './LedgerTransactionRow'
+import LedgerTransactionTable, { emptyTransactionsText } from './LedgerTransactionTable'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { LedgerTransactionPagingProvider, LedgerTransactionPagingContext } from '@/contexts/paging/LedgerTransactionPaging'
 import { useContext } from 'react'
@@ -15,7 +16,7 @@ function EmptyState() {
 
     if (!context.state.allLoaded || context.state.data.length > 0) return null
 
-    return <p>Her var det tomt! Hva med å ta seg en tur innom Kiogeskapet?</p>
+    return <p>{emptyTransactionsText}</p>
 }
 
 export default function TransactionList({ accountId }: Props) {
@@ -33,22 +34,7 @@ export default function TransactionList({ accountId }: Props) {
                     transaction={transaction}
                 />
             }
-            wrapper={children =>
-                <table className="ohma-table">
-                    <thead>
-                        <tr>
-                            <th>Dato</th>
-                            <th>Beskrivelse</th>
-                            <th>Status</th>
-                            <th>Beløp</th>
-                            <th>Saldoendring</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {children}
-                    </tbody>
-                </table>
-            }
+            wrapper={children => <LedgerTransactionTable>{children}</LedgerTransactionTable>}
         />
     </LedgerTransactionPagingProvider>
 }

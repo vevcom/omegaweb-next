@@ -5,7 +5,7 @@ import type { CmsLink as CmsLinkT } from '@/prisma-generated-pn-types'
 import type { UpdateCmsLinkAction } from '@/cms/links/types'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
 
-type PropTypes = {
+export type PropTypes = {
     cmsLink: CmsLinkT
     className?: string
     color?: 'primary' | 'secondary'

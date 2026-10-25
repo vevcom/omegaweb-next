@@ -16,7 +16,7 @@ export default function SearchButton() {
         >
             <FontAwesomeIcon
                 className="
-                    size-[30px]! text-text transition-colors duration-300
+                    size-5! text-text transition-colors duration-300
                     [&_path]:text-inherit
                     group-hover:text-accent-blue
                 "

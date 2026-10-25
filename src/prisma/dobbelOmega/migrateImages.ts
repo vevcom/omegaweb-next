@@ -1,5 +1,6 @@
 import { owIdToPnId, type IdMapper } from './IdMapper'
 import { createProgressBar } from './progressBar'
+import { membersOnlyVisibility } from './membersOnlyVisibility'
 import manifest from './manifest'
 import { imageOperations } from '@/services/images/subservice/operations'
 import { allowedExtensions } from '@/services/images/subservice/constants'
@@ -53,7 +54,7 @@ export default async function migrateImages(
             name: garbageCollectionName,
             description: 'Denne samlingen inneholder bilder som ikke tilhørete noen samling i omegaweb-basic',
             visibilityRegular: {
-                create: {},
+                create: await membersOnlyVisibility(pnPrisma),
             },
             visibilityAdmin: {
                 create: { requirements: { create: [{}] } }

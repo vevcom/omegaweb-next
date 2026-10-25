@@ -317,6 +317,39 @@ describe('canceling a transaction', () => {
     })
 })
 
+describe('reading the state of a payment\'s transaction', () => {
+    const sessionOf = (userId: number) => Session.fromJsObject({
+        user: { id: userId } as NonNullable<Parameters<typeof Session.fromJsObject>[0]['user']>,
+        permissions: [],
+        memberships: [],
+    })
+
+    test('the payer sees the transaction go from PENDING to SUCCEEDED once the webhook settles it', async () => {
+        const account = await createAccount('statebypaymentpayer')
+        const { paymentId, paymentIntentId } = await startStripeDeposit(account.id)
+        const session = sessionOf(account.ownership.userId!)
+
+        await expect(ledgerTransactionOperations.readStateByPayment({ params: { paymentId }, session }))
+            .resolves.toBe('PENDING')
+
+        await stripeWebhookCallback(stripeEvent('payment_intent.succeeded', paymentIntentId))
+
+        await expect(ledgerTransactionOperations.readStateByPayment({ params: { paymentId }, session }))
+            .resolves.toBe('SUCCEEDED')
+    })
+
+    test('someone who is not party to the transaction cannot read it', async () => {
+        const account = await createAccount('statebypaymentowner')
+        const stranger = await createAccount('statebypaymentstranger')
+        const { paymentId } = await startStripeDeposit(account.id)
+
+        await expect(ledgerTransactionOperations.readStateByPayment({
+            params: { paymentId },
+            session: sessionOf(stranger.ownership.userId!),
+        })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+    })
+})
+
 describe('the Stripe webhook', () => {
     test('nothing is credited before Stripe reports the payment as succeeded', async () => {
         const account = await createAccount('stripewaiting')

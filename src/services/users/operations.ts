@@ -16,7 +16,6 @@ import { standardImageCollectionOperations } from '@/services/images/standard/op
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { classOperations } from '@/services/groups/classes/operations'
-import { NTNUEmailDomain } from '@/services/mail/constants'
 import { feideEmailDomainsTrustedAsVerified } from '@/lib/feide/constants'
 import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
 import { sendEmailChangedMail } from '@/lib/email/systemMail/emailChanged'
@@ -362,7 +361,8 @@ export const userOperations = {
                 where: { id: params.id },
                 data: {
                     sessionEpoch: { increment: 1 },
-                    credentials: { update: { passwordHash } },
+                    // A migrated or invited user gets their first password through a reset.
+                    credentials: { upsert: { create: { passwordHash }, update: { passwordHash } } },
                 },
             })
 
@@ -383,6 +383,7 @@ export const userOperations = {
                     ...userBasicSelection,
                     email: true,
                     emailVerified: true,
+                    acceptedTerms: true,
                     feideAccount: {
                         select: {
                             email: true,
@@ -399,13 +400,13 @@ export const userOperations = {
                 }
             }
 
-            // Password resets go to the email, so once the user has a password, changing the email
-            // takes it. A user without one is still signing up through the Feide login they just made.
+            // Password resets go to the email, so a registered user must give their password to change
+            // it. A user still signing up is not asked, since /register sets the password anyway.
             const credentials = await prisma.credentials.findUnique({
                 where: { userId: params.id },
                 select: { passwordHash: true },
             })
-            if (credentials && !(
+            if (credentials && storedUser.acceptedTerms && !(
                 data.currentPassword && await decryptAndComparePassword(data.currentPassword, credentials.passwordHash)
             )) {
                 throw new ServiceError('BAD PARAMETERS', 'Feil passord.')
@@ -432,13 +433,6 @@ export const userOperations = {
                     verified: true,
                     email: data.email,
                 }
-            }
-
-            if (data.email.endsWith(`@${NTNUEmailDomain}`)) {
-                throw new ServiceError(
-                    'BAD PARAMETERS',
-                    `Den nye e-posten må være din ${NTNUEmailDomain}-e-post, eller en personlig e-post.`
-                )
             }
 
             await sendVerifyEmail(storedUser, data.email)
@@ -654,8 +648,14 @@ export const userOperations = {
                     where: { username: params.username },
                 })
 
-                const uploadedImage =
-                    await userProfileImageOperations.uploadImage.internalCall({ prisma: tx, data })
+                const uploadedImage = await userProfileImageOperations.uploadImage.internalCall({
+                    prisma: tx,
+                    data: {
+                        imageFile: data.imageFile,
+                        imageName: 'Profilbilde',
+                        imageAlt: `Profilbilde av ${existingUser.firstname} ${existingUser.lastname}`.slice(0, 100),
+                    },
+                })
 
                 await tx.user.update({
                     where: { id: existingUser.id },

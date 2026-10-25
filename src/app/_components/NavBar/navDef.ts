@@ -1,11 +1,10 @@
 //This file defines all the routes for the navbar and menu
 //Higher placment in array gives hight priority on where it is placed (ie menu vs. navbar)
 //does not include / or /login (or profile route) as they are always shown and ar special
-import { adminNavAuthorizers } from '@/app/admin/adminNavDef'
+import { adminNavAuthorizers } from '@/app/(omegaweb)/admin/adminNavDef'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
-import { jobAdAuth } from '@/services/career/jobAds/auth'
-import { careerAuth } from '@/services/career/auth'
+import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { eventAuth } from '@/services/events/auth'
 import { ombulAuth } from '@/services/ombul/auth'
@@ -19,6 +18,7 @@ import { bulshitAuth } from '@/services/bulshit/auth'
 import { lockerAuth } from '@/services/lockers/auth'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
+import { Require } from '@/auth/authorizer/Require'
 import {
     faGamepad,
     faBook,
@@ -26,7 +26,6 @@ import {
     faCamera,
     faNewspaper,
     faCalendar,
-    faSuitcase,
     faBeer,
     faBriefcase,
     faGraduationCap,
@@ -38,6 +37,7 @@ import {
     faPoo,
     faShoppingCart,
     faLock,
+    faChartLine,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -72,7 +72,7 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Jobbannonser',
-        href: '/career/job-ads',
+        href: '/job-ads',
         icon: faBriefcase,
         authorizers: () => [jobAdAuth.readActive],
     },
@@ -81,13 +81,6 @@ export const navDef: NavItem[] = [
         href: '/shop',
         icon: faShoppingCart,
         authorizers: () => [shopAuth.readMany],
-    },
-    {
-        name: 'For bedrifter',
-        href: '/career',
-        icon: faSuitcase,
-        authorizers: () => [careerAuth.readSpecialCmsParagraphCareerInfo],
-        audience: 'loggedOut',
     },
     {
         name: 'Ny student?',
@@ -107,13 +100,6 @@ export const navDef: NavItem[] = [
         href: '/ombul',
         icon: faBook,
         authorizers: () => [ombulAuth.readLatest],
-    },
-    {
-        name: 'Karriere',
-        href: '/career',
-        icon: faSuitcase,
-        authorizers: () => [careerAuth.readSpecialCmsParagraphCareerInfo],
-        audience: 'loggedIn',
     },
     {
         name: 'Nyheter',
@@ -174,6 +160,13 @@ export const navDef: NavItem[] = [
         href: '/applications',
         icon: faIdCard,
         authorizers: () => [applicationPeriodAuth.readAll],
+    },
+    {
+        name: 'Phinans',
+        href: 'https://phinans.com/',
+        icon: faChartLine,
+        // An external site, so nothing here decides who may open it.
+        authorizers: () => [Require.nothing()],
     },
     {
         name: 'Administrasjon',

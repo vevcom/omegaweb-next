@@ -93,6 +93,9 @@ export const paymentOperations = {
                     description: payment.descriptionLong ?? undefined,
                     statement_descriptor_suffix: payment.descriptionShort ?? undefined,
                     customer: customerId,
+                    // Stripe defaults to automatic_async, which may send payment_intent.succeeded before
+                    // the charge has the balance transaction the webhook reads the fee from.
+                    capture_method: 'automatic',
                     // Stripe allows us to attach arbitrary metadata to payment intents
                     // Currently, we don't use this for anything, but it might be
                     // useful in the future.

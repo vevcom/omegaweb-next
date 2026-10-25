@@ -1,6 +1,6 @@
 'use client'
 import { displayDate } from '@/lib/dates/displayDate'
-import { useEffect, useEffectEvent, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 type PropTypes = {
     date: Date
@@ -13,12 +13,10 @@ type PropTypes = {
  * @param includeTime - Whether to include time in the display
  * @returns the date in jsx
  */
+const subscribeToNothing = () => () => {}
+
 export default function Date({ date, includeTime = true }: PropTypes) {
-    const [isClient, setIsClient] = useState(false)
-
-    const handleClientHydration = useEffectEvent(() => setIsClient(true))
-
-    useEffect(() => handleClientHydration(), [])
+    const isClient = useSyncExternalStore(subscribeToNothing, () => true, () => false)
 
     if (!isClient) {
         return `${date.toISOString().substring(0, includeTime ? 16 : 10)} (UTC)`

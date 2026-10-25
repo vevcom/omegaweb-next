@@ -23,6 +23,8 @@ export function ResetPasswordTemplate({
                 Lenken blir ugyldig etter {resetPasswordExpiration / 60} minutter.
             </p>
 
+            <p>Brukernavnet ditt er <strong>{user.username}</strong>. Det er det du logger inn med.</p>
+
             <p>Hvis du ikke har trykket på glemt passord knappen kan du bare se bort i fra denne e-posten.</p>
 
             <p>

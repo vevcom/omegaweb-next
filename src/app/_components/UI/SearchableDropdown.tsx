@@ -22,7 +22,7 @@ export type PropTypes<ValueType> = Omit<DropdownPropTypes<ValueType>, 'options'>
     options: SearchableDropdownOption<ValueType>[],
 }
 
-const focusBorderClassNames = {
+export const focusBorderClassNames = {
     black: 'focus:border-accent-blue',
     primary: 'focus:border-accent-blue',
     secondary: 'focus:border-accent-blue',
@@ -30,7 +30,7 @@ const focusBorderClassNames = {
     white: 'focus:border-accent-blue',
 } as const
 
-const backgroundClassNames = {
+export const backgroundClassNames = {
     base: `
         bg-surface-raised
         hover:bg-surface-hover

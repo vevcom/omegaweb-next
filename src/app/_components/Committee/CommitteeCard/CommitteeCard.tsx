@@ -28,7 +28,11 @@ export default function CommitteeCard({ image, title, children, href }: PropType
                         )
                     }
                 </div>
-                <div className="[&>h2]:text-l [&>h2]:font-bold [&>h2]:text-ink-strong">
+                {/* Long names are hyphenated, or broken anywhere when no hyphenation fits. */}
+                <div className="
+                    min-w-0
+                    [&>h2]:text-l [&>h2]:font-bold [&>h2]:text-ink-strong [&>h2]:hyphens-auto [&>h2]:wrap-anywhere
+                ">
                     <h2>{title}</h2>
                     {children}
                 </div>

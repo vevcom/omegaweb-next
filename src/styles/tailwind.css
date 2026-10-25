@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "@fortawesome/fontawesome-svg-core/styles.css" layer(base);
 
-@custom-variant tone-light (html[data-tone="light"] &);
+@custom-variant tone-light ([data-tone="light"] &);
 
 @theme inline {
     --spacing: calc(var(--gap) / 2);
@@ -34,6 +34,17 @@
     --font-primary: 'Inter', sans-serif;
     --font-secondary: 'PlayfairDisplay', serif;
     --font-title: 'OldLondon', 'PlayfairDisplay', serif;
+
+    --color-careers-navy: #1a2744;
+    --color-careers-navy-dark: #0f1a2e;
+    --color-careers-accent: #0891b2;
+    --color-careers-accent-dark: #0e7490;
+    --color-careers-accent-light: #22d3ee;
+    --color-careers-yellow: #ffc23c;
+    --color-careers-line: #d5dce6;
+
+    --font-careers-sans: var(--careers-font-sans), system-ui, sans-serif;
+    --font-careers-heading: var(--careers-font-heading), var(--careers-font-sans), sans-serif;
 
     --text-*: initial;
     --text-s: clamp(12px, 2vw, 14px);

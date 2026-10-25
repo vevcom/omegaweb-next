@@ -4,7 +4,7 @@ import NavTooltip from './NavTooltip'
 import { adminNavItemHref } from './adminNavItemHref'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCog } from '@fortawesome/free-solid-svg-icons'
+import { faTools } from '@fortawesome/free-solid-svg-icons'
 
 type PropTypes = {
     /** Whether any page of `adminNavDef` is one the session may open. */
@@ -18,23 +18,21 @@ type PropTypes = {
 export default function AdminNav({ showAdmin, expanded = false, active = false }: PropTypes) {
     if (!showAdmin) return null
 
-    const adminLink = (
-        <Link
-            href={adminNavItemHref}
-            className={navIconClassName}
-            aria-label="Admin"
-            aria-current={active ? 'page' : undefined}
-        >
-            <FontAwesomeIcon icon={faCog} className={navIconIconClassName} />
-            <span className={navIconLabelClassName}>Admin</span>
-        </Link>
-    )
-
     return (
         <>
             <hr className={dividerClassName} />
             <nav className="w-full flex flex-col items-stretch shrink-0" aria-label="Adminnavigasjon">
-                {expanded ? adminLink : <NavTooltip content="Admin">{adminLink}</NavTooltip>}
+                <NavTooltip content="Administrasjon" disabled={expanded}>
+                    <Link
+                        href={adminNavItemHref}
+                        className={navIconClassName}
+                        aria-label="Administrasjon"
+                        aria-current={active ? 'page' : undefined}
+                    >
+                        <FontAwesomeIcon icon={faTools} className={navIconIconClassName} />
+                        <span className={navIconLabelClassName}>Administrasjon</span>
+                    </Link>
+                </NavTooltip>
             </nav>
         </>
     )

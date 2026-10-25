@@ -85,7 +85,7 @@ export default function ScrollIndicator({ scrollRef, className, style }: PropTyp
         const drag = dragRef.current
         const container = scrollRef.current
         const track = trackRef.current
-        if (!drag || drag.pointerId !== event.pointerId || !container || !track) return
+        if (drag?.pointerId !== event.pointerId || !container || !track) return
         // The thumb spans the track the way the viewport spans the content, so this is the same ratio.
         const scrollPerPixel = container.scrollHeight / track.clientHeight
         container.scrollTop = drag.startScrollTop + (event.clientY - drag.startY) * scrollPerPixel

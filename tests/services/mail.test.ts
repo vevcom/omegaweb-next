@@ -24,6 +24,7 @@ afterEach(async () => {
     await prisma.mailAlias.deleteMany({ where: { address: { startsWith: 'test-' } } })
     await prisma.mailingList.deleteMany({ where: { name: { startsWith: 'test-' } } })
     await prisma.mailAddressExternal.deleteMany({ where: { address: { endsWith: '@gmail.com' } } })
+    await prisma.mailAddressExternal.deleteMany({ where: { address: { startsWith: 'test-' } } })
 })
 
 // ─── Alias Domain Validation ──────────────────────────────────────────────────
@@ -64,11 +65,37 @@ describe('external mail address validation', () => {
         })).rejects.toThrow()
     })
 
-    test('NTNU student domain is rejected', async () => {
-        await expect(mailAddressExternalOperations.create({
-            data: { address: 'student@stud.ntnu.no', description: '' },
+    test('a student address without a user is accepted', async () => {
+        const ext = await mailAddressExternalOperations.create({
+            data: { address: 'test-student@stud.ntnu.no', description: '' },
             bypassAuth: true,
-        })).rejects.toThrow()
+        })
+        expect(ext.address).toBe('test-student@stud.ntnu.no')
+    })
+
+    test('the email of a user is rejected, whatever its case', async () => {
+        const user = await prisma.user.create({
+            data: {
+                username: 'test-ext-user',
+                email: 'test-ext-user@gmail.com',
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+            },
+        })
+        await expect(mailAddressExternalOperations.create({
+            data: { address: 'Test-Ext-User@gmail.com', description: '' },
+            bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+
+        const ext = await mailAddressExternalOperations.create({
+            data: { address: 'test-other@gmail.com', description: '' },
+            bypassAuth: true,
+        })
+        await expect(mailAddressExternalOperations.update({
+            params: { id: ext.id },
+            data: { address: user.email, description: '' },
+            bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
     })
 })
 

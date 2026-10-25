@@ -324,7 +324,7 @@ export const cabinBookingOperations = {
             // gives away that the cabin is taken but not where one booking ends and the next begins.
             return bookings.reduce<BookingFiltered[]>((spans, booking) => {
                 const last = spans[spans.length - 1]
-                return last && last.type === booking.type && last.end.getTime() === booking.start.getTime()
+                return last?.type === booking.type && last.end.getTime() === booking.start.getTime()
                     ? [...spans.slice(0, -1), { ...last, end: booking.end }]
                     : [...spans, booking]
             }, [])

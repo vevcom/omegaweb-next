@@ -2,7 +2,7 @@
 import { SelectNumberPossibleNULL } from '@/UI/Select'
 import { readAllLicensesAction } from '@/services/licenses/actions'
 import useActionCall from '@/hooks/useActionCall'
-import { useCallback, useEffect, useState, useEffectEvent } from 'react'
+import { useCallback, useState } from 'react'
 
 type PropTypes = {
     defaultLicenseName?: string | null
@@ -18,19 +18,9 @@ export default function LicenseChooser({ defaultLicenseName, name = 'licenseId' 
     const action = useCallback(() => readAllLicensesAction(), [])
     const { data } = useActionCall(action)
 
-    const [licenseId, setLicenseId] = useState<number | 'NULL'>('NULL')
-
-    const updateLicenseId = useEffectEvent(() => {
-        if (!defaultLicenseName) return
-        const license = data?.find(licns => licns.name === defaultLicenseName)
-        if (license) {
-            setLicenseId(license.id)
-        }
-    })
-
-    useEffect(() => {
-        updateLicenseId()
-    }, [defaultLicenseName, data])
+    const [chosenLicenseId, setChosenLicenseId] = useState<number | 'NULL' | null>(null)
+    const defaultLicenseId = data?.find(license => license.name === defaultLicenseName)?.id ?? 'NULL'
+    const licenseId = chosenLicenseId ?? defaultLicenseId
 
     return (
         <SelectNumberPossibleNULL
@@ -44,7 +34,7 @@ export default function LicenseChooser({ defaultLicenseName, name = 'licenseId' 
                 ] as const
             }
             value={licenseId}
-            onChange={setLicenseId}
+            onChange={setChosenLicenseId}
         />
     )
 }
