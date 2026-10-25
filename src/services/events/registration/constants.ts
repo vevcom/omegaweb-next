@@ -19,18 +19,20 @@ export const eventRegistrationSelection = {
 } satisfies Prisma.EventRegistrationSelect
 
 /**
- * The order registrations queue in for the places of an event: the ones registered first take the
- * places, and the ones past them queue on the waiting list. The autoincremented id is the order
- * they were registered in, and being unique it is a total order - so it also cursor-pages cleanly.
+ * The order registrations queue in for the places of an event: the ones first in the queue take the
+ * places, and the ones past them queue on the waiting list. Ties on `queuedAt` fall back to the id,
+ * which makes it a total order that also cursor-pages cleanly.
  */
-export const eventRegistrationQueueOrder = {
-    id: 'asc',
-} as const satisfies Prisma.EventRegistrationOrderByWithRelationInput
+export const eventRegistrationQueueOrder = [
+    { queuedAt: 'asc' },
+    { id: 'asc' },
+] satisfies Prisma.EventRegistrationOrderByWithRelationInput[]
 
 export const eventRegistrationSelectionDetailed = {
     id: true,
     note: true,
     attendedAt: true,
+    manuallyPaid: true,
     user: {
         select: {
             ...userCardSelection,

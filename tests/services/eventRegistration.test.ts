@@ -154,6 +154,7 @@ async function createPaidEvent({ committeeId, ledgerAccountId }: { committeeId: 
             waitingList: false,
             registrationStart: new Date(Date.now() - HOUR),
             registrationEnd: new Date(Date.now() + 24 * HOUR),
+            takesPayment: true,
             price: 50,
             paymentStart: new Date(Date.now() - HOUR),
             paymentEnd: new Date(Date.now() + 24 * HOUR),
