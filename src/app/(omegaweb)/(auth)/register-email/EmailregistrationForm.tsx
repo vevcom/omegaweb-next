@@ -13,6 +13,7 @@ type PropTypes = {
     user: UserFiltered,
     feideLoginMatch: {
         feideEmail: string,
+        feideEmailTrustedAsVerified: boolean,
         createdByFeideLoginOnProjectNext: boolean,
     } | null,
     callbackUrl: string,
@@ -31,6 +32,9 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
     const [feedback, setFeedback] = useState<string | null>(null)
 
     const actionToCall = configureAction(registerNewEmailAction, { params: { id: user.id } })
+
+    // Only a trusted Feide email is taken without a verification mail, so that is the one offered.
+    const trustedFeideEmail = feideLoginMatch?.feideEmailTrustedAsVerified ? feideLoginMatch.feideEmail : null
 
     const emailForm = <>
         <Form
@@ -57,11 +61,13 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
                 Skriv inn e-posten du vil bruke. Du kan bruke ntnu-e-posten din,
                 men vær oppmerksom på at du mister tilgang til denne når du er ferdig å studere.
             </p>
-            {feideLoginMatch && <p>
-                Feide-e-posten din ({feideLoginMatch.feideEmail}) er allerede bekreftet, så beholder du den
+            {trustedFeideEmail ? <p>
+                Feide-e-posten din ({trustedFeideEmail}) er allerede bekreftet, så beholder du den
                 trenger du ikke bekrefte noe. Velger du en annen e-post, sender vi en bekreftelseslenke dit.
+            </p> : <p>
+                Vi sender en bekreftelseslenke til e-posten du velger.
             </p>}
-            <TextInput label="E-post" name="email" defaultValue={user.email} />
+            <TextInput label="E-post" name="email" defaultValue={trustedFeideEmail ?? user.email} />
         </Form>
 
         {feedback && <p>{feedback}</p>}
@@ -80,8 +86,8 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
             <p className="p-2 border-l-3 border-accent-blue">
                 Feide-innloggingen din ({feideLoginMatch.feideEmail}) er koblet til den eksisterende
                 brukeren din fra gamle Omegaveven, <strong>{user.firstname} {user.lastname}
-                ({user.username})</strong>, fordi e-posten stemte. Alt som hørte til den gamle brukeren
-                din følger med.
+                ({user.username})</strong>{user.email === feideLoginMatch.feideEmail && ', fordi e-posten stemte'}.
+                Alt som hørte til den gamle brukeren din følger med.
             </p>
             <p>
                 Er ikke dette deg? Logg ut og ta kontakt med Vevcom før du fortsetter.

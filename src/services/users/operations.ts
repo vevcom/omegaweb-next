@@ -361,7 +361,8 @@ export const userOperations = {
                 where: { id: params.id },
                 data: {
                     sessionEpoch: { increment: 1 },
-                    credentials: { update: { passwordHash } },
+                    // A migrated or invited user gets their first password through a reset.
+                    credentials: { upsert: { create: { passwordHash }, update: { passwordHash } } },
                 },
             })
 
@@ -382,6 +383,7 @@ export const userOperations = {
                     ...userBasicSelection,
                     email: true,
                     emailVerified: true,
+                    acceptedTerms: true,
                     feideAccount: {
                         select: {
                             email: true,
@@ -398,13 +400,13 @@ export const userOperations = {
                 }
             }
 
-            // Password resets go to the email, so once the user has a password, changing the email
-            // takes it. A user without one is still signing up through the Feide login they just made.
+            // Password resets go to the email, so a registered user must give their password to change
+            // it. A user still signing up is not asked, since /register sets the password anyway.
             const credentials = await prisma.credentials.findUnique({
                 where: { userId: params.id },
                 select: { passwordHash: true },
             })
-            if (credentials && !(
+            if (credentials && storedUser.acceptedTerms && !(
                 data.currentPassword && await decryptAndComparePassword(data.currentPassword, credentials.passwordHash)
             )) {
                 throw new ServiceError('BAD PARAMETERS', 'Feil passord.')
