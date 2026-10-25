@@ -5,6 +5,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { userOperations } from '@/services/users/operations'
 import { userSchemas } from '@/services/users/schemas'
 import { userPrivateSelection } from '@/services/users/constants'
+import { recordSentMail } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 
 // Mail is not actually sent under jest (see mailHandler), so a verification mail shows up only as
@@ -13,16 +14,26 @@ import { describe, expect, test } from '@jest/globals'
 const password = 'riktig-passord-123'
 let userCounter = 0
 
-async function createUser({ withPassword, feideDomain = 'stud.ntnu.no' }: { withPassword: boolean, feideDomain?: string }) {
+async function createUser({
+    withPassword,
+    registered = withPassword,
+    feideDomain = 'stud.ntnu.no',
+    emailIsFeideEmail = false,
+}: {
+    withPassword: boolean,
+    registered?: boolean,
+    feideDomain?: string,
+    emailIsFeideEmail?: boolean,
+}) {
     const username = `ny-epost-${++userCounter}`
-    const email = `${username}@example.com`
     const feideEmail = `feide-${username}@${feideDomain}`
+    const email = emailIsFeideEmail ? feideEmail : `${username}@example.com`
     const user = await prisma.user.create({
         data: {
             username,
             email,
-            emailVerified: new Date(),
-            acceptedTerms: withPassword ? new Date() : null,
+            emailVerified: emailIsFeideEmail ? null : new Date(),
+            acceptedTerms: registered ? new Date() : null,
             bioParagraph: { create: {} },
             ledgerAccount: { create: { type: 'USER' } },
             feideAccount: { create: {
@@ -86,6 +97,28 @@ describe('changing the email of a user', () => {
     test('needs no password from a user still signing up', async () => {
         const testUser = await createUser({ withPassword: false })
         expect(await changeEmail(testUser, {})).toEqual({ verified: true, email: testUser.feideEmail })
+    })
+
+    test('needs no password from a user with one who has not finished registering', async () => {
+        const testUser = await createUser({ withPassword: true, registered: false })
+        expect(await changeEmail(testUser, {})).toEqual({ verified: true, email: testUser.feideEmail })
+    })
+
+    test('tells the old address when the email changes', async () => {
+        const testUser = await createUser({ withPassword: false })
+        const sentMail = recordSentMail()
+
+        await changeEmail(testUser, {})
+
+        expect(sentMail).toHaveBeenCalledWith(expect.objectContaining({ to: testUser.user.email }))
+    })
+
+    test('sends no mail when keeping the Feide email the user already has', async () => {
+        const testUser = await createUser({ withPassword: false, emailIsFeideEmail: true })
+        const sentMail = recordSentMail()
+
+        expect(await changeEmail(testUser, {})).toEqual({ verified: true, email: testUser.feideEmail })
+        expect(sentMail).not.toHaveBeenCalled()
     })
 
     test('verifies a Feide email from another organisation by mail rather than trusting it', async () => {
