@@ -7,6 +7,7 @@ import { JWT_ISSUER } from '@/lib/jwt/constants'
 import { emailValidationExpiration } from '@/lib/email/systemMail/constants'
 import { decryptAndComparePassword, hashAndEncryptPassword } from '@/auth/passwordHash'
 import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
+import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { recordSentMail } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 import { sign } from 'jsonwebtoken'
@@ -183,7 +184,32 @@ describe('verify email', () => {
         expect(stored.emailVerified).toBeInstanceOf(Date)
     })
 
-    test('a verification token is refused once the user has changed since it was issued', async () => {
+    test('a verification token outlives changes to the user that are not a verification', async () => {
+        const user = await createUserChangedAnHourAgo('verifyunrelated', { withPassword: false })
+        const token = verifyEmailToken(user.id, user.email)
+
+        // What every Feide login does to the user.
+        await invalidateOneUserSessionData(prisma, user.id)
+
+        await authOperations.verifyEmail({ params: { token } })
+        const stored = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+        expect(stored.emailVerified).toBeInstanceOf(Date)
+    })
+
+    test('a verification token for an address another user has is refused as a duplicate', async () => {
+        const user = await createUserChangedAnHourAgo('verifytaken', { withPassword: false })
+        const otherUser = await createUserChangedAnHourAgo('verifytakenother', { withPassword: false })
+
+        await expect(authOperations.verifyEmail({
+            params: { token: verifyEmailToken(user.id, otherUser.email) },
+        })).rejects.toThrow(new Smorekopp('DUPLICATE'))
+
+        const stored = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+        expect(stored.email).toBe(user.email)
+        expect(stored.emailVerified).toBeNull()
+    })
+
+    test('a verification token is refused once an email was verified after it was issued', async () => {
         const user = await createUserChangedAnHourAgo('verifythree', { withPassword: false })
         const firstToken = verifyEmailToken(user.id, 'verifythree-forste@example.com')
         const secondToken = verifyEmailToken(user.id, 'verifythree-andre@example.com')
