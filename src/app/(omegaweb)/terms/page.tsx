@@ -58,7 +58,7 @@ export default function Terms() {
                     <ul>
                         <li>
                             Veven drives av linjeforeningen Sanctus Omega Broderskab (Omega) ved NTNU.
-                            Vevcom har det tekniske ansvaret.
+                            VevCom har det tekniske ansvaret.
                         </li>
                         <li>
                             Vi lagrer de opplysningene som trengs for å drive et medlemsregister: kontakt&shy;informasjon,
@@ -135,7 +135,7 @@ export default function Terms() {
                         der det finnes felt for det.
                     </li>
                     <li>
-                        Administratorer - Vevcom, hovedstyret og de komitéene det gjelder - kan redigere eller fjerne
+                        Administratorer - VevCom, hovedstyret og de komitéene det gjelder - kan redigere eller fjerne
                         innhold på Veven uten å varsle først, se punkt 8.
                     </li>
                 </ul>
@@ -198,19 +198,19 @@ export default function Terms() {
                     tillatelser eller en API-nøkkel. At du har tilgang til opplysninger, gir deg ikke rett til å
                     kopiere dem ut eller bruke dem til noe annet enn det tilgangen ble gitt for, jf.{' '}
                     <LawLink href={gdprArticle(5)}>artikkel 5 (1) b om formålsbegrensning</LawLink>. Trenger komitéen
-                    din opplysninger fra Veven til noe nytt, spør Vevcom og hovedstyret før du henter dem ut.
+                    din opplysninger fra Veven til noe nytt, spør VevCom og hovedstyret før du henter dem ut.
                 </p>
                 <p>
-                    Kopierer du personopplysninger ut av Veven og inn i et system Vevcom ikke drifter, blir du eller
+                    Kopierer du personopplysninger ut av Veven og inn i et system VevCom ikke drifter, blir du eller
                     komitéen din selv behandlingsansvarlig for dem og trenger et eget rettslig grunnlag etter{' '}
                     <LawLink href={gdprArticle(6)}>artikkel 6</LawLink>. Et slikt uttrekk uten avtale er et brudd på
                     personopplysningssikkerheten: det følges opp etter punkt 8, kan måtte meldes til Datatilsynet, og
-                    Vevcom kan kreve at opplysningene slettes og at slettingen dokumenteres.
+                    VevCom kan kreve at opplysningene slettes og at slettingen dokumenteres.
                 </p>
 
                 <h3>8. Brudd på vilkårene</h3>
                 <p>
-                    Vevcom forvalter Veven og kan sette i verk tiltak etter disse vilkårene på egen hånd, uten å
+                    VevCom forvalter Veven og kan sette i verk tiltak etter disse vilkårene på egen hånd, uten å
                     legge saken fram for hovedstyret først. Tiltakene er å
                 </p>
                 <ul>
@@ -221,7 +221,7 @@ export default function Terms() {
                 <p>
                     Tiltak kan settes i verk uten varsel når det er nødvendig for å stanse et pågående brudd eller
                     for å sikre driften av Veven. Den det gjelder får beskjed om tiltaket og begrunnelsen for det så
-                    snart det er praktisk mulig, og kan be om at saken vurderes på nytt - først av Vevcom, deretter
+                    snart det er praktisk mulig, og kan be om at saken vurderes på nytt - først av VevCom, deretter
                     av hovedstyret, som kan omgjøre tiltaket.
                 </p>
                 <p>
@@ -231,7 +231,7 @@ export default function Terms() {
 
                 <h3>9. Drift og ansvar</h3>
                 <p>
-                    Veven driftes på frivillig basis av Vevcom. Vi gjør vårt beste for å holde den oppe og
+                    Veven driftes på frivillig basis av VevCom. Vi gjør vårt beste for å holde den oppe og
                     opplysningene riktige, men kan ikke garantere feilfri drift. Omega er ikke ansvarlig for tap
                     som følge av nedetid, feil eller tap av data.
                 </p>
@@ -248,7 +248,7 @@ export default function Terms() {
                 <p>
                     Sanctus Omega Broderskab, org.nr. 890 384 692, er behandlingsansvarlig for
                     personopplysningene som behandles på Veven. Henvendelser om personvern går til hovedstyret
-                    på <a href={`mailto:hs@${emailDomain}`}>hs@{emailDomain}</a>, tekniske spørsmål til Vevcom
+                    på <a href={`mailto:hs@${emailDomain}`}>hs@{emailDomain}</a>, tekniske spørsmål til VevCom
                     på <a href={`mailto:vevcom@${emailDomain}`}>vevcom@{emailDomain}</a>.
                 </p>
 
@@ -345,7 +345,7 @@ export default function Terms() {
                     </li>
                     <li>
                         Administratorer med de relevante tillatelsene - for eksempel brukeradministratorer,
-                        hovedstyret og Vevcom - ser mer enn vanlige medlemmer, blant annet kontaktopplysninger,
+                        hovedstyret og VevCom - ser mer enn vanlige medlemmer, blant annet kontaktopplysninger,
                         prikker og transaksjoner.
                     </li>
                     <li>

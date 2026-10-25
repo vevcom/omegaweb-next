@@ -1,4 +1,4 @@
-# Vevcommiteens vedtekter
+# Vev Comiteens vedtekter
 
 ## 1\. Formål
 
@@ -20,7 +20,7 @@ Komitéen skal bestå av tolv-seksten personer med mindre det oppstår en særli
 
 ## 3\. Oppgaver
 
-Vevcom skal drifte, vedlikeholde og dokumentere Omegas hjemmesider og datapark.
+VevCom skal drifte, vedlikeholde og dokumentere Omegas hjemmesider og datapark.
 
 ## 4\. Valg
 
@@ -40,8 +40,8 @@ Alle vervene i komitéen varer i to år. Pensjoniststatus oppnås etter å ha v�
 
 ### 7.1\. Treårige verv
 
-På våren, før semesterets siste møte, kan de aktive medlemmene som snart vil ha vært aktive medlemmer i to år søke om å fungere som aktivt medlem i ett år til. Søknaden skal behandles av alle aktive medlemmer i vevcom. Dersom søknaden godkjennes, vil personen det gjelder få fungere som aktivt medlem av komitéen i ett år til uten å fylle opp en plass i komitéen. Pensjoniststatus vil i dette tilfellet være oppnådd etter tre år som aktivt medlem i stedet for to.
+På våren, før semesterets siste møte, kan de aktive medlemmene som snart vil ha vært aktive medlemmer i to år søke om å fungere som aktivt medlem i ett år til. Søknaden skal behandles av alle aktive medlemmer i VevCom. Dersom søknaden godkjennes, vil personen det gjelder få fungere som aktivt medlem av komitéen i ett år til uten å fylle opp en plass i komitéen. Pensjoniststatus vil i dette tilfellet være oppnådd etter tre år som aktivt medlem i stedet for to.
 
 ## 8\. Endring av vedtekter
 
-En vedtektsendring må godkjennes av flertallet av aktive medlemmer i Vevcommiteen for at den skal kunne tre i kraft.
+En vedtektsendring må godkjennes av flertallet av aktive medlemmer i Vev Comiteen for at den skal kunne tre i kraft.

@@ -84,7 +84,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
                 din følger med.
             </p>
             <p>
-                Er ikke dette deg? Logg ut og ta kontakt med Vevcom før du fortsetter.
+                Er ikke dette deg? Logg ut og ta kontakt med VevCom før du fortsetter.
             </p>
             {emailForm}
         </>

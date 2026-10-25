@@ -143,7 +143,7 @@ const { page, generateMetadata } = serverPage({
                 ">
                     <h3>Orden</h3>
                     <p>
-                        Medlemskapet er udaf den {profile.omegaMembership.order}´dis orden.
+                        Medlemskapet er uudaf den {profile.omegaMembership.order}´dis orden.
                     </p>
                     {capabilities.canChangeOrder.authorized && (
                         <Form

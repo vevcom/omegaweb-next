@@ -101,7 +101,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         },
         {
             name: 'Merch',
-            description: 'Her kommer det varslinger om Omega Merch fra Blaest-Com',
+            description: 'Her kommer det varslinger om Omega Merch fra BlaestCom',
             defaultMethods: {
                 email: true,
                 emailWeekly: false,

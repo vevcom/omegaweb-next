@@ -69,7 +69,7 @@ export const OmegaMembershipLevelConfig = {
     },
     SYSKEN: {
         name: 'Medlem',
-        description: 'Broder udaf Sct. Omega Broderskab'
+        description: 'Broder uudaf Sct. Omega Broderskab'
     },
     DEN_GEMENE_HOB: {
         name: 'Eksterne',

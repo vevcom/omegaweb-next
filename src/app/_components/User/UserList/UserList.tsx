@@ -358,7 +358,7 @@ export default function UserList({
                                 groupSelected && (
                                     <>
                                         <th>Tittel</th>
-                                        <th>Admin</th>
+                                        <th>Administrator</th>
                                     </>
                                 )
                             }

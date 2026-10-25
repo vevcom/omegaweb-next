@@ -15,7 +15,7 @@ const { page, generateMetadata } = serverPage({
     capabilities: () => ({
         canSendMail: sendMailAuth.sendMail,
     }),
-    metadata: () => ({ title: 'Elektronisk postutsendelse' }),
+    metadata: () => ({ title: 'E-postutsendelse' }),
     render: ({ data: mailingLists, capabilities }) => (
         <PageWrapper>
             {capabilities.canSendMail.authorized && <MailForm mailingLists={mailingLists} />}

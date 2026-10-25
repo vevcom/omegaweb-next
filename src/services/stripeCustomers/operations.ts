@@ -79,7 +79,7 @@ export const stripeCustomerOperations = {
                 // This should never happen as we never delete customers in Stripe.
                 throw new ServiceError(
                     'SERVER ERROR',
-                    'Stripe-kunden som hører til brukeren, er slettet. Kontakt Vevcom.',
+                    'Stripe-kunden som hører til brukeren, er slettet. Kontakt VevCom.',
                 )
             }
 

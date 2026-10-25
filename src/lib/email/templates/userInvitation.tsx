@@ -17,7 +17,7 @@ export function UserInvitationTemplate({
             <p>
                 Vi har begynt å opprette en bruker til deg hos {process.env.WEBSITE_DOMAIN}.
                 Følg <a href={link}>denne lenken</a> for å fullføre registreringen.
-                Har du problemer med å fullføre registreringen, kan du ta kontakt med Vevcom på e-post:{' '}
+                Har du problemer med å fullføre registreringen, kan du ta kontakt med VevCom på e-post:{' '}
                 <a href={`mailto:vevcom@${process.env.EMAIL_DOMAIN}`}>vevcom@{process.env.EMAIL_DOMAIN}</a>.
             </p>
 
@@ -25,7 +25,7 @@ export function UserInvitationTemplate({
 
             <p>
                 Med vennlig hilsen<br/>
-                Vevcom
+                VevCom
             </p>
         </Html>
     )

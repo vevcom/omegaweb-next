@@ -23,7 +23,7 @@ export function VerifyEmailTemplate({
 
             <p>
                 Med vennlig hilsen<br/>
-                Vevcom
+                VevCom
             </p>
         </Html>
     )

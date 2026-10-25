@@ -82,7 +82,7 @@ const { page, generateMetadata } = serverPage({
                                 membership.order,
                                 <>
                                     {membership.active ? 'Aktiv' : 'Inaktiv'}
-                                    {membership.admin && <span className="block text-text-muted text-s">Admin</span>}
+                                    {membership.admin && <span className="block text-text-muted text-s">Administrator</span>}
                                 </>,
                             ])}
                         />

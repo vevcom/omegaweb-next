@@ -166,7 +166,7 @@ const { page, generateMetadata } = serverPage({
                                                     text-accent-blue
                                                     group-hover:underline
                                                 ">
-                                                    {membership.title} udaf {membership.order}´dis orden i{' '}
+                                                    {membership.title} uudaf {membership.order}´dis orden i{' '}
                                                     {membership.committee.name}
                                                 </p>
                                             </Link>
@@ -187,7 +187,7 @@ const { page, generateMetadata } = serverPage({
                                                     text-accent-blue
                                                     group-hover:underline
                                                 ">
-                                                    {membership.title} udaf {membership.order}´dis orden i{' '}
+                                                    {membership.title} uudaf {membership.order}´dis orden i{' '}
                                                     {membership.interestGroup.name}
                                                 </p>
                                             </Link>

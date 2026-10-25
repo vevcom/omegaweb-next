@@ -27,7 +27,7 @@ export function ResetPasswordTemplate({
 
             <p>
                 Med vennlig hilsen<br/>
-                Vevcom
+                VevCom
             </p>
         </Html>
     )
