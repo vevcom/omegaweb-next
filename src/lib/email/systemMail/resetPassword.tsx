@@ -15,8 +15,10 @@ export async function sendResetPasswordMail(email: string) {
     const user = await userOperations.readOrNull({ params: { email: emailParsed }, bypassAuth: true })
     if (!user) return email
 
+    // The email lets the reset also verify the address, since only its owner can follow the link.
     const jwt = generateJWT('resetpassword', {
         sub: user.id,
+        email: user.email,
     }, resetPasswordExpiration)
 
     const link = `${process.env.WEBSITE_URL}/reset-password-form?${QueryParams.token.encodeUrl(jwt)}`

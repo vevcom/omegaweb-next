@@ -1,4 +1,5 @@
 import { createProgressBar } from './progressBar'
+import { membersOnlyVisibility } from './membersOnlyVisibility'
 import type { IdMapper } from './IdMapper'
 import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
 import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
@@ -12,6 +13,7 @@ import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic
 export default async function migrateImageCollections(pnPrisma: PrismaClientPn, owPrisma: PrismaClientOw) {
     const imageCollections = await owPrisma.imageGroups.findMany()
 
+    const visibilityRegular = await membersOnlyVisibility(pnPrisma)
     const IdMap: IdMapper = []
     const bar = createProgressBar('Migrating image collections', imageCollections.length)
     for (const imageCollection of imageCollections) {
@@ -37,7 +39,7 @@ export default async function migrateImageCollections(pnPrisma: PrismaClientPn, 
                 updatedAt: imageCollection.updatedAt,
                 //TODO: Link to right committee through visibility
                 visibilityRegular: {
-                    create: {} //Assuming all collections from omegaweb-basic to be public on migration is probably fine
+                    create: visibilityRegular
                 },
                 visibilityAdmin: {
                     create: { requirements: { create: [{}] } }

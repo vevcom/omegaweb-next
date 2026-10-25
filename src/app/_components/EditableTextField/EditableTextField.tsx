@@ -1,7 +1,7 @@
 'use client'
 import Form from '@/components/Form/Form'
 import useKeyPress from '@/hooks/useKeyPress'
-import React, { useEffect, useState, useRef, useEffectEvent } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import type { PropTypes as FormPropTypes } from '@/components/Form/Form'
@@ -36,6 +36,7 @@ export default function EditableTextField<ReturnType>({
 }: PropTypes<ReturnType>) {
     const [value, setValue] = useState('')
     const [noChange, setNoChange] = useState(true)
+    const [prevEditable, setPrevEditable] = useState(editable)
     const ref = useRef<HTMLInputElement>(null)
     const submitRef = useRef<HTMLButtonElement>(null)
     useKeyPress('Enter', () => {
@@ -43,11 +44,10 @@ export default function EditableTextField<ReturnType>({
         submitRef.current?.click()
     })
 
-    const resetNoChange = useEffectEvent(() => setNoChange(true))
-
-    useEffect(() => {
-        resetNoChange()
-    }, [editable])
+    if (prevEditable !== editable) {
+        setPrevEditable(editable)
+        setNoChange(true)
+    }
 
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
         setNoChange(false)

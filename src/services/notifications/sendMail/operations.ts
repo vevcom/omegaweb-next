@@ -3,18 +3,45 @@ import { sendMailAuth } from './auth'
 import { sendMailSchemas } from './schemas'
 import { getMailHandler } from '@/lib/email/mailHandler'
 import { defineSubOperation } from '@/services/serviceOperation'
+import { resolveMailRecipients } from '@/services/mail/recipients'
+import { replaceSpecialSymbols } from '@/services/notifications/methods/helpers'
+import { Smorekopp } from '@/services/error'
 import { render } from '@react-email/render'
+import type { UserBasic } from '@/services/users/types'
+
+/** An address with no user has nothing to fill the placeholders with, so they are left out. */
+function fillInPlaceholders(text: string, user: UserBasic | null) {
+    return user ? replaceSpecialSymbols(text, user) : text.replace(/%[unN]/g, '')
+}
 
 /**
  * The raw mail senders, only callable from other server code via internalCall. Everything that
  * leaves the site by mail goes through these.
  */
 const internal = {
-    /** Sends one simple text mail. Implemented with authorization as `sendMail` below. */
+    /**
+     * Sends a text mail to typed addresses and mailing lists. Each recipient gets a mail of their own,
+     * so nobody sees who else got it and the placeholders can be filled in per recipient.
+     * Implemented with authorization as `sendMail` below.
+     */
     sendMail: defineSubOperation({
         dataSchema: () => sendMailSchemas.data.sendMail,
-        operation: () => async ({ data }) => {
-            await getMailHandler().sendSingleMail(data)
+        operation: () => async ({ prisma, data }) => {
+            const recipients = await resolveMailRecipients(prisma, {
+                addresses: data.recipients,
+                mailingListIds: data.mailingListIds,
+            })
+            if (recipients.length === 0) {
+                throw new Smorekopp('BAD PARAMETERS', 'Fant ingen mottakere. Skriv inn en adresse eller velg en liste.')
+            }
+
+            await getMailHandler().sendBulkMail(recipients.map(recipient => ({
+                from: data.from,
+                to: recipient.address,
+                subject: fillInPlaceholders(data.subject, recipient.user),
+                text: fillInPlaceholders(data.text, recipient.user),
+            })))
+            return { recipientCount: recipients.length }
         },
     }),
 

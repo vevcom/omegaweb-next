@@ -1,21 +1,22 @@
 import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
 import { owIdToPnId, type IdMapper } from './IdMapper'
 import { createProgressBar } from './progressBar'
+import { membersOnlyVisibility } from './membersOnlyVisibility'
 import type { PrismaClient as PrismaClientPn } from '@/prisma-generated-pn-client'
+import type { Prisma } from '@/prisma-generated-pn-types'
 import type { PrismaClient as PrismaClientOw } from '@/prisma-generated-ow-basic/client'
 import type { Limits } from './migrationLimits'
 import type { UserMigrator } from './migrateUsers'
 
 /**
- * The two visibility levels every event needs. Nothing in the old system restricted who could see
- * an event, so the regular level is created without requirements - which checkVisibility reads as
- * open to all. Administration is another matter: the admin level gets one requirement with no
+ * The two visibility levels every event needs. The regular level is the standard one, active
+ * members of Omega. Administration is another matter: the admin level gets one requirement with no
  * conditions, which can never be satisfied, so migrated events are administrated by those who hold
  * the EVENT_ADMIN permission and no one else.
  */
-async function createVisibilities(pnPrisma: PrismaClientPn) {
+async function createVisibilities(pnPrisma: PrismaClientPn, regularLevel: Prisma.VisibilityCreateInput) {
     const [visibilityRegular, visibilityAdmin] = await Promise.all([
-        pnPrisma.visibility.create({ data: {} }),
+        pnPrisma.visibility.create({ data: regularLevel }),
         pnPrisma.visibility.create({ data: { requirements: { create: [{}] } } }),
     ])
     return {
@@ -35,6 +36,8 @@ export default async function migrateEvents(
     userMigrator: UserMigrator,
     limits: Limits
 ): Promise<IdMapper> {
+    const regularLevel = await membersOnlyVisibility(pnPrisma)
+
     const events = await owPrisma.events.findMany({
         take: limits.events ? limits.events : undefined,
         orderBy: limits.events ? {
@@ -88,7 +91,7 @@ export default async function migrateEvents(
                 extraFields: event.extraFields ?? undefined,
                 createdById: event.CreatedByUserId ? await userMigrator.getPnUserId(event.CreatedByUserId) : undefined,
                 published: true,
-                ...(await createVisibilities(pnPrisma)),
+                ...(await createVisibilities(pnPrisma, regularLevel)),
             }
         })
 
@@ -165,7 +168,7 @@ export default async function migrateEvents(
                 cmsParagraphId: paragraph.id,
                 waitingList: false,
                 published: true,
-                ...(await createVisibilities(pnPrisma)),
+                ...(await createVisibilities(pnPrisma, regularLevel)),
             }
         })
         simpleEventsBar.increment()

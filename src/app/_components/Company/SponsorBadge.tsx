@@ -1,4 +1,4 @@
-import { companySponsorTierDetails } from '@/services/career/companies/constants'
+import { companySponsorTierDetails } from '@/services/careers/companies/constants'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCrown, faStar } from '@fortawesome/free-solid-svg-icons'
 import type { CompanySponsorTier } from '@/prisma-generated-pn-types'

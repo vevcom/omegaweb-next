@@ -2,8 +2,8 @@ import { imageSchemas } from '@/services/images/subservice/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
-    name: z.string().max(32).min(1).trim(),
-    shortName: z.string().max(32).min(1).trim(),
+    name: z.string().max(32).trim().min(1),
+    shortName: z.string().max(32).trim().min(1),
 })
 
 const paramsFieldSchemas = z.object({

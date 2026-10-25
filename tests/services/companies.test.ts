@@ -1,7 +1,7 @@
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
-import { companyOperations } from '@/services/career/companies/operations'
+import { companyOperations } from '@/services/careers/companies/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { Page } from '@/lib/paging/types'

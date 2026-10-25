@@ -104,9 +104,17 @@ export default async function migrateOmbul(
         const pdfBuffer = Buffer.from(await res.arrayBuffer())
         const pdfFile = new File([new Uint8Array(pdfBuffer)], ombul.originalName, { type: 'application/pdf' })
 
-        const { fsLocation } = await ombulStore.createFile(pdfFile)
+        // The store reads the type from the content, so a body that is not a pdf, such as an error page, is skipped.
+        const stored = await ombulStore.createFile(pdfFile).catch(() => null)
         fetchBar.increment()
-        return fsLocation
+        if (!stored) {
+            logger.error(
+                `Ombul pdf from ${fsLocationOldVev} is not a pdf, skipping. `
+                + `It starts with ${JSON.stringify(pdfBuffer.subarray(0, 32).toString('latin1'))}`
+            )
+            return null
+        }
+        return stored.fsLocation
     }))
     fetchBar.stop()
 

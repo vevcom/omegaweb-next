@@ -1,6 +1,6 @@
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-const dotBaseDurationDays = 14
+const dotBaseDurationDays = 30
 
 export const dotBaseDuration = 1000 * 60 * 60 * 24 * dotBaseDurationDays
 

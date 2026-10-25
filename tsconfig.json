@@ -79,9 +79,9 @@
       "@/api/*": [
         "src/app/api/*"
       ],
-      "@/career/*": [
-        "src/services/career/*",
-        "src/app/career/*"
+      "@/careers/*": [
+        "src/services/careers/*",
+        "src/app/(careers)/career/*"
       ],
       "@/seeder/*": [
         "src/prisma/seeder/*"

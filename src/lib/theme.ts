@@ -1,5 +1,4 @@
 import { Theme } from '@/prisma-generated-pn-types'
-import type { CSSProperties } from 'react'
 
 export { Theme }
 
@@ -12,7 +11,7 @@ export const themeLabels: Record<Theme, string> = {
     [Theme.OW_BASIC]: 'Alt var bedre før',
 }
 
-type ThemeColors = {
+export type ThemeColors = {
     layer: string;
     text: string;
     'text-muted': string;
@@ -149,10 +148,10 @@ export const themes: Record<Theme, ThemeColors> = {
     },
 }
 
-export function themeCssVars(theme: Theme): CSSProperties {
-    return Object.fromEntries(
-        Object.entries(themes[theme]).map(([key, value]) => [`--${key}`, value])
-    )
+/** The theme as a stylesheet setting its variables on :root, for SiteTheme. */
+export function themeCss(colors: ThemeColors): string {
+    const declarations = Object.entries(colors).map(([key, value]) => `--${key}:${value}`)
+    return `:root{${declarations.join(';')}}`
 }
 
 export const lightThemes: ReadonlySet<Theme> = new Set([Theme.LIGHT, Theme.SOLARIZED, Theme.OW_BASIC])

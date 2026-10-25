@@ -25,9 +25,8 @@ export default function CmsParagraph({ cmsParagraph, className, updateCmsParagra
                         className="
                             w-full
                             [&_*]:break-words [&_*]:text-text-muted
-                            [&_ul_ul]:pl-[20px]
-                            [&_ol_ol]:pl-[20px]
-                            [&_li]:list-inside
+                            [&_ul]:pl-[1.5em]
+                            [&_ol]:pl-[1.5em]
                             [&_a]:no-underline [&_a]:text-accent-blue [&_a]:font-bold
                             [&_a:hover]:underline
                             [&_h1]:mb-[.5em]

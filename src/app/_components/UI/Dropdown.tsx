@@ -61,17 +61,20 @@ const triggerBackgroundClassNames = {
  * The state and keyboard handling of a dropdown, shared with SearchableDropdown.
  * @param listedOptions - The options in the panel, which are the ones the arrow keys move between.
  * @param onClose - Called every time the panel closes, on top of closing it.
+ * @param keepOpenOnSelect - Leaves the panel open after an option is picked, for picking several.
  */
 export function useDropdown<ValueType extends string | number>({
     listedOptions,
     defaultValue,
     onChange,
     onClose,
+    keepOpenOnSelect = false,
 }: {
     listedOptions: DropdownOption<ValueType>[],
     defaultValue?: ValueType,
     onChange?: (value: ValueType) => void,
     onClose?: () => void,
+    keepOpenOnSelect?: boolean,
 }) {
     const [value, setValue] = useState<ValueType | undefined>(defaultValue)
     const [open, setOpen] = useState(false)
@@ -87,7 +90,7 @@ export function useDropdown<ValueType extends string | number>({
 
     const select = (option: DropdownOption<ValueType>) => {
         setValue(option.value)
-        close()
+        if (!keepOpenOnSelect) close()
         onChange?.(option.value)
     }
 
@@ -129,6 +132,7 @@ export function useDropdown<ValueType extends string | number>({
  * dropdown is open.
  * @param emptyText - Shown in place of the options when there are none. Without it the panel is just empty.
  * @param id - The listbox's id, for the control that opens it to reference with aria-controls.
+ * @param selectedValues - Marks several options as selected, in place of `value`.
  */
 export function DropdownPanel<ValueType extends string | number>({
     options,
@@ -138,6 +142,7 @@ export function DropdownPanel<ValueType extends string | number>({
     onActivate,
     emptyText,
     id,
+    selectedValues,
 }: {
     options: DropdownOption<ValueType>[],
     value: ValueType | undefined,
@@ -146,7 +151,11 @@ export function DropdownPanel<ValueType extends string | number>({
     onActivate: (index: number) => void,
     emptyText?: string,
     id?: string,
+    selectedValues?: ValueType[],
 }) {
+    const isSelected = (option: DropdownOption<ValueType>) => (
+        selectedValues ? selectedValues.includes(option.value) : option.value === value
+    )
     const panelRef = useRef<HTMLUListElement>(null)
 
     useEffect(() => {
@@ -166,14 +175,14 @@ export function DropdownPanel<ValueType extends string | number>({
                         <button
                             type="button"
                             role="option"
-                            aria-selected={option.value === value}
+                            aria-selected={isSelected(option)}
                             className={
                                 `
                                     w-full flex items-center justify-between gap-2 border-none bg-transparent text-left
                                     text-m py-2 px-4 rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer
                                     transition-colors duration-300
                                     hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-                                    ${option.value === value ? 'text-accent-blue' : 'text-text'}
+                                    ${isSelected(option) ? 'text-accent-blue' : 'text-text'}
                                     ${index === activeIndex ? 'bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]' : ''}
                                 `
                             }
@@ -182,7 +191,7 @@ export function DropdownPanel<ValueType extends string | number>({
                             data-active={index === activeIndex}
                         >
                             <span>{option.label ?? option.value}</span>
-                            {option.value === value && <FontAwesomeIcon icon={faCheck} />}
+                            {isSelected(option) && <FontAwesomeIcon icon={faCheck} />}
                         </button>
                     </li>
                 ))

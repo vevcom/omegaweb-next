@@ -74,7 +74,7 @@ export default function PopUp({
     const router = useRouter()
     const searchParams = useSearchParams()
     const pathName = usePathname()
-    const [isOpen, setIsOpen] = useState(false)
+    const [isOpen, setIsOpen] = useState(() => storeInUrl && searchParams.get('pop-up-key') === String(popUpKey))
 
     const popUpContext = useContext(PopUpContext)
     useKeyPress('Escape', () => setIsOpen(false))
@@ -85,6 +85,19 @@ export default function PopUp({
     if (!popUpContext) throw new Error('Trenger PopUpContext for pop-up-vinduer')
 
     const { teleport, remove, keyOfCurrentNode } = popUpContext
+
+    // Another pop-up took over, or the provider cleared on navigation.
+    const [prevKeyOfCurrentNode, setPrevKeyOfCurrentNode] = useState(keyOfCurrentNode)
+    if (prevKeyOfCurrentNode !== keyOfCurrentNode) {
+        setPrevKeyOfCurrentNode(keyOfCurrentNode)
+        if (keyOfCurrentNode !== popUpKey) setIsOpen(false)
+    }
+
+    const [prevSearchParams, setPrevSearchParams] = useState(searchParams)
+    if (prevSearchParams !== searchParams) {
+        setPrevSearchParams(searchParams)
+        if (storeInUrl && searchParams.get('pop-up-key') === String(popUpKey)) setIsOpen(true)
+    }
 
     const handleTeleportOrRemove = useEffectEvent(() => {
         if (isOpen) {
@@ -102,16 +115,6 @@ export default function PopUp({
     // away while open, for example along with the thing it was deleting.
     useEffect(() => () => remove(popUpKey), [remove, popUpKey])
 
-    const handleCloseIfNotCurrent = useEffectEvent(() => {
-        if (popUpContext.keyOfCurrentNode !== popUpKey) {
-            setIsOpen(false)
-        }
-    })
-
-    useEffect(() => {
-        handleCloseIfNotCurrent()
-    }, [keyOfCurrentNode, popUpKey])
-
     useEffect(() => {
         contentRef.current = (
             <PopUpDialog key={popUpKey} mainRef={ref} triggerRef={triggerRef} close={() => setIsOpen(false)}>
@@ -122,21 +125,6 @@ export default function PopUp({
             teleport(contentRef.current, popUpKey)
         }
     }, [children, isOpen, popUpKey, teleport, ref])
-
-    const handleSearchParamsChange = useEffectEvent(() => {
-        if (!storeInUrl) return
-
-        const params = new URLSearchParams(searchParams.toString())
-        const keyInUrl = params.get('pop-up-key') === popUpKey
-
-        if (keyInUrl && !isOpen) {
-            setIsOpen(true)
-        }
-    })
-
-    useEffect(() => {
-        handleSearchParamsChange()
-    }, [searchParams])
 
     const handleIsOpenChange = useEffectEvent(() => {
         if (!storeInUrl) return

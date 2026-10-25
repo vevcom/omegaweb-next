@@ -2,8 +2,7 @@
 import { SUCCESS_FEEDBACK_TIME } from './constants'
 import { PopUpContext } from '@/contexts/PopUp'
 import SubmitButton from '@/components/UI/SubmitButton'
-import React, { Children, useContext, useEffect, useState, useEffectEvent } from 'react'
-import { useFormStatus } from 'react-dom'
+import React, { Children, useContext, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
@@ -29,12 +28,9 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
 type InputType = {
     input: ReactNode,
     label?: string,
-    errors: ErrorMessage[],
 }
-type Inputs = InputType[]
 
-function Input({ input, errors }: InputType) {
-    const { pending } = useFormStatus()
+function Input({ input, errors, pending }: { input: ReactNode, errors: ErrorMessage[], pending: boolean }) {
     return (
         <span>
             <div>
@@ -59,13 +55,12 @@ function hasProps(obj: unknown): obj is { props: { name?: string; id?: string } 
         && obj.props !== null
 }
 
-const makeInputArray = (children: ReactNode): Inputs =>
+const makeInputArray = (children: ReactNode): InputType[] =>
     Children.toArray(children).map((child) => {
         if (typeof child !== 'object' || !child) {
             return {
                 input: child,
                 label: undefined,
-                errors: [],
             }
         }
         let name: string | undefined = undefined
@@ -77,7 +72,6 @@ const makeInputArray = (children: ReactNode): Inputs =>
         return {
             input: child,
             label: name || id,
-            errors: [],
         }
     })
 
@@ -100,23 +94,17 @@ export default function Form<GiveActionReturn>({
     ...props
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
-    const [inputs, setInputs] = useState<Inputs>(makeInputArray(children))
+    const [inputErrors, setInputErrors] = useState<Partial<Record<string, ErrorMessage[]>>>({})
     const [success, setSuccess] = useState(false)
+    const [pending, setPending] = useState(false)
     const PopUpCtx = useContext(PopUpContext)
     const { refresh, push } = useRouter()
 
-    const updateInputs = useEffectEvent(() => {
-        setInputs(makeInputArray(children))
-    })
-
-    useEffect(() => {
-        updateInputs()
-    }, [children])
+    const inputs = makeInputArray(children)
 
     const actionWithError = async (formData: FormData) => {
-        const inputs_ = makeInputArray(children)
-        setGeneralErrors(() => undefined)
-        setInputs(() => inputs_)
+        setGeneralErrors(undefined)
+        setInputErrors({})
 
         const res = await action(formData)
 
@@ -153,21 +141,34 @@ export default function Form<GiveActionReturn>({
             return
         }
 
-        //sort errors
+        const labels = inputs.map(input => input.label)
+        const errorsByLabel: Partial<Record<string, ErrorMessage[]>> = {}
+        const unmatchedErrors: ErrorMessage[] = []
         res.error.forEach(error => {
-            if (error.path === undefined) return setGeneralErrors((prev) => (prev ? [...prev, error] : [error]))
-            const inputWithError = inputs_.find((input) => input.label === (error.path ?? [])[0])
-            if (inputWithError) return inputWithError.errors.push(error)
-            return setGeneralErrors((prev) => (prev ? [...prev, error] : [error]))
+            const label = error.path?.[0]
+            if (typeof label === 'string' && labels.includes(label)) {
+                errorsByLabel[label] = [...(errorsByLabel[label] ?? []), error]
+            } else {
+                unmatchedErrors.push(error)
+            }
         })
-        setInputs(inputs_)
-        return
+        setInputErrors(errorsByLabel)
+        if (unmatchedErrors.length > 0) setGeneralErrors(unmatchedErrors)
     }
 
+    // Tracked here since useFormStatus only covers a transition started during the submit event.
+    // That misses an action which awaits something before its first server action, such as a Stripe
+    // checkout, and everything after that server action.
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
+        if (pending) return
         const formData = new FormData(event.currentTarget)
-        await actionWithError(formData)
+        setPending(true)
+        try {
+            await actionWithError(formData)
+        } finally {
+            setPending(false)
+        }
     }
 
     return (
@@ -178,8 +179,8 @@ export default function Form<GiveActionReturn>({
         `} {...props} onSubmit={handleSubmit}>
             {title && <h2>{title}</h2>}
             {
-                inputs.map(({ input, errors }, i) => (
-                    <Input input={input} errors={errors} key={i} />
+                inputs.map(({ input, label }, i) => (
+                    <Input input={input} errors={(label && inputErrors[label]) || []} pending={pending} key={i} />
                 ))
             }
             <SubmitButton
@@ -187,6 +188,7 @@ export default function Form<GiveActionReturn>({
                 success={success}
                 generalErrors={generalErrors}
                 confirmation={confirmation}
+                pending={pending}
                 className={`
                     ${buttonClassName}
                     m-0

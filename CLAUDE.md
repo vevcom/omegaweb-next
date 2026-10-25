@@ -127,7 +127,7 @@ Rules are written once in a service's `auth.ts` as `Require` chains. The same ru
 ### Sub-operations, ownership checks and internal calls
 
 - **`defineSubOperation`** defines an operation for a sub-service, such as CMS paragraphs, images, or links, that other services embed. It has no authorizer of its own. Its schemas and `operation` are functions, so an implementer can pass implementation fields.
-- **`.implement({ authorizer, ownershipCheck, beforeRun? })`** turns a sub-operation into a callable operation for one owning service. For example, `careerOperations` implements `cmsParagraphOperations.updateContent`.
+- **`.implement({ authorizer, ownershipCheck, beforeRun? })`** turns a sub-operation into a callable operation for one owning service. For example, `careersFrontpageOperations` implements `cmsParagraphOperations.updateContent`.
   - `authorizer`: may this user act on the owning resource?
   - `ownershipCheck`: does the sub-resource actually belong to the owning resource? For example, is the paragraph the career page's special paragraph? Returning false rejects the call. This is resource-to-resource integrity, not user permission.
   - `beforeRun`: optional extra checks that run after both and may throw.
@@ -201,10 +201,14 @@ The project uses extensive TypeScript path aliases. See `tsconfig.json`:
 ```
 src/
 ├── app/                    # Next.js app directory: pages, routes, layouts
+│   ├── layout.tsx          # The document and the shared providers, no navigation or theme
 │   ├── _components/        # Shared React components
 │   ├── api/                # API routes, e.g. NextAuth
-│   ├── admin/              # Admin pages
-│   └── [feature]/          # Feature-specific pages
+│   ├── (omegaweb)/         # Omega's site: its navigation and the user's theme
+│   │   ├── admin/          # Admin pages
+│   │   └── [feature]/      # Feature-specific pages
+│   └── (careers)/          # The career pages as their own site: own layout, theme and fonts
+│       └── career/
 ├── auth/                   # Authentication and authorization
 │   ├── authorizer/         # Authorization classes
 │   ├── session/            # Session management
@@ -317,7 +321,7 @@ Server components do the opposite: pages, layouts and other server components im
 
 #### Pages: `serverPage`
 
-Pages are built with `serverPage` from `@/app/ServerPage`. The example below is trimmed from `src/app/news/[nameAndId]/page.tsx`:
+Pages are built with `serverPage` from `@/app/ServerPage`. The example below is trimmed from `src/app/(omegaweb)/news/[nameAndId]/page.tsx`:
 
 ```tsx
 import { newsOperations } from '@/services/news/operations'

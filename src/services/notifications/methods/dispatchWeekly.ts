@@ -1,7 +1,7 @@
-import { sendMailSchemas } from '@/services/notifications/sendMail/schemas'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { linkToNotificationPage, replaceSpecialSymbols } from './helpers'
 import { weeklyDigest } from './constants'
+import { sendMailSchemas } from '@/services/notifications/sendMail/schemas'
+import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
@@ -35,7 +35,7 @@ export function buildWeeklyDigestText(user: UserBasicWithEmail, notifications: W
  * @returns Whether the digest was sent.
  */
 export async function sendWeeklyEmailDigest(user: UserBasicWithEmail, notifications: WeeklyDigestNotification[]) {
-    const parsed = sendMailSchemas.data.sendMail.safeParse({
+    const parsed = sendMailSchemas.data.notificationMail.safeParse({
         from: DEFAULT_NOTIFICATION_ALIAS,
         to: user.email,
         subject: weeklyDigest.subject,
