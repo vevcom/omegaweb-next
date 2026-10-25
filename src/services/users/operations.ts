@@ -361,7 +361,8 @@ export const userOperations = {
                 where: { id: params.id },
                 data: {
                     sessionEpoch: { increment: 1 },
-                    credentials: { update: { passwordHash } },
+                    // A migrated or invited user gets their first password through a reset.
+                    credentials: { upsert: { create: { passwordHash }, update: { passwordHash } } },
                 },
             })
 

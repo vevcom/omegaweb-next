@@ -97,7 +97,8 @@ export const authOperations = {
                 throw new ServiceError('JWT INVALID', 'The password has already been changed')
             }
 
-            return userId
+            // Tokens issued before the email claim was added carry none.
+            return { userId, email: typeof payload.email === 'string' ? payload.email : null }
         }
     }),
 
@@ -105,8 +106,8 @@ export const authOperations = {
         paramsSchema: authSchemas.params.resetPassword,
         dataSchema: authSchemas.data.resetPassword,
         authorizer: () => authAuth.resetPassword,
-        operation: async ({ params, data }) => {
-            const userId = await authOperations.verifyResetPasswordToken({ params })
+        operation: async ({ prisma, params, data }) => {
+            const { userId, email } = await authOperations.verifyResetPasswordToken({ params })
 
             await userOperations.updatePassword({
                 params: {
@@ -115,6 +116,14 @@ export const authOperations = {
                 data,
                 bypassAuth: true,
             })
+
+            // Following the link proves the address, so a user signing up need not verify it again.
+            if (email) {
+                await prisma.user.updateMany({
+                    where: { id: userId, email, emailVerified: null },
+                    data: { emailVerified: new Date() },
+                })
+            }
         }
     }),
 

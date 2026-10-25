@@ -59,8 +59,8 @@ const resetPassword = (token: string, password = NEW_PASSWORD) => authOperations
     data: { password, confirmPassword: password },
 })
 
-const resetPasswordToken = (userId: number, expiresIn = 60 * 60) =>
-    generateJWT('resetpassword', { sub: userId }, expiresIn)
+const resetPasswordToken = (userId: number, expiresIn = 60 * 60, email?: string) =>
+    generateJWT('resetpassword', { sub: userId, email }, expiresIn)
 
 const verifyEmailToken = (userId: number, email: string, expiresIn = emailValidationExpiration) =>
     generateJWT('verifyemail', { sub: userId, email }, expiresIn)
@@ -70,7 +70,8 @@ describe('reset password', () => {
         const user = await createUserChangedAnHourAgo('resetone', { withPassword: true })
         const token = resetPasswordToken(user.id)
 
-        expect(await authOperations.verifyResetPasswordToken({ params: { token } })).toBe(user.id)
+        expect(await authOperations.verifyResetPasswordToken({ params: { token } }))
+            .toEqual({ userId: user.id, email: null })
 
         await resetPassword(token)
 
@@ -104,6 +105,26 @@ describe('reset password', () => {
         await expect(resetPassword(token, 'enda-et-passord-123'))
             .rejects.toThrow(new Smorekopp('JWT INVALID'))
         expect(await passwordMatches(user.id, NEW_PASSWORD)).toBe(true)
+    })
+
+    test('a reset gives a user without a password their first one and verifies the address', async () => {
+        const user = await createUserChangedAnHourAgo('resetfirst', { withPassword: false })
+
+        await resetPassword(resetPasswordToken(user.id, 60 * 60, user.email))
+
+        expect(await passwordMatches(user.id, NEW_PASSWORD)).toBe(true)
+        const stored = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+        expect(stored.emailVerified).toBeInstanceOf(Date)
+    })
+
+    test('a reset only verifies the address the mail went to', async () => {
+        const user = await createUserChangedAnHourAgo('resetotheremail', { withPassword: false })
+
+        await resetPassword(resetPasswordToken(user.id, 60 * 60, 'resetotheremail-gammel@example.com'))
+
+        expect(await passwordMatches(user.id, NEW_PASSWORD)).toBe(true)
+        const stored = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+        expect(stored.emailVerified).toBeNull()
     })
 
     test('an expired reset token is refused', async () => {
