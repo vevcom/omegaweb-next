@@ -3,6 +3,7 @@ import TextInput from '@/UI/TextInput'
 import Button from '@/UI/Button'
 import SubmitButton from '@/UI/SubmitButton'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { useSession } from '@/auth/session/useSession'
 import { signIn } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
@@ -27,7 +28,8 @@ const errorMessages: Record<string, string> = {
 export default function LogIn() {
     const searchParams = useSearchParams()
     const session = useSession()
-    const callbackUrl = searchParams.get('callbackUrl') || '/users/me'
+    // Validated here as well, since the continue link below skips NextAuth's own check.
+    const callbackUrl = QueryParams.callbackUrl.decodeValue(searchParams.get('callbackUrl') ?? undefined) ?? '/users/me'
 
     // Feide errors arrive in the url. Credentials errors are kept here, so a new attempt clears them.
     const [error, setError] = useState(searchParams.get('error'))
@@ -59,6 +61,9 @@ export default function LogIn() {
             setSignedIn(true)
             // A full load, so every server component renders with the new session.
             window.location.href = result.url ?? callbackUrl
+        } catch {
+            // NextAuth does not catch a sign-in request that fails on the network.
+            setError('Default')
         } finally {
             setPending(false)
         }
