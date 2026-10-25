@@ -1,4 +1,5 @@
 import CreateCommitteeForm from './CreateCommitteeForm'
+import CommitteeOrder from './CommitteeOrder'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { committeeAuth } from '@/services/groups/committees/auth'
@@ -21,6 +22,7 @@ const { page, generateMetadata } = serverPage({
     },
     capabilities: () => ({
         canCreate: committeeAuth.create,
+        canReorder: committeeAuth.reorder,
     }),
     metadata: () => ({ title: 'Komitéer' }),
     render: ({ data, capabilities }) => {
@@ -45,6 +47,16 @@ const { page, generateMetadata } = serverPage({
                 )}
             >
                 <GroupTypeTable rows={rows} currentOrder={data.currentOrder.order} emptyText="Ingen komitéer" />
+                {capabilities.canReorder.authorized && (
+                    <section className="mt-8">
+                        <h2>Rekkefølge</h2>
+                        <p className="text-text-muted">Rekkefølgen komitéene vises i på komitésiden. Dra for å flytte.</p>
+                        <CommitteeOrder committees={data.committees
+                            .filter(committee => !committee.group.pensioned)
+                            .map(committee => ({ id: committee.id, name: committee.name }))}
+                        />
+                    </section>
+                )}
             </PageWrapper>
         )
     },

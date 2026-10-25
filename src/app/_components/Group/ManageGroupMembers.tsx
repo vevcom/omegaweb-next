@@ -4,6 +4,7 @@ import PopUp from '@/components/PopUp/PopUp'
 import TextInput from '@/components/UI/TextInput'
 import { SelectNumber } from '@/components/UI/Select'
 import UserList from '@/components/User/UserList/UserList'
+import ReorderableList from '@/components/UI/ReorderableList'
 import { configureAction } from '@/services/configureAction'
 import UsersSelectionProvider, { UsersSelectionContext } from '@/contexts/UsersSelection'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
@@ -12,6 +13,7 @@ import type { CSSProperties } from 'react'
 import type {
     AddGroupMembersAction,
     RemoveGroupMembersAction,
+    ReorderGroupMembersAction,
     SetGroupMemberAdminAction,
     SetGroupMemberTitleAction,
 } from '@/services/groups/types'
@@ -51,6 +53,8 @@ type PropTypes = {
     removeMembersAction?: RemoveGroupMembersAction,
     setMemberAdminAction?: SetGroupMemberAdminAction,
     setMemberTitleAction?: SetGroupMemberTitleAction,
+    /** Given, the members can be dragged into the order they are listed in. */
+    reorderMembersAction?: ReorderGroupMembersAction,
 }
 
 /**
@@ -99,6 +103,7 @@ export default function ManageGroupMembers({
     removeMembersAction,
     setMemberAdminAction,
     setMemberTitleAction,
+    reorderMembersAction,
 }: PropTypes) {
     const [selectedOrder, setSelectedOrder] = useState(groupOrder)
     const addPopUpKey: PopUpKeyType = `Add members to group ${groupId} order ${selectedOrder}`
@@ -109,6 +114,7 @@ export default function ManageGroupMembers({
     // against the same track list. The actions that are not offered at all drop their column rather
     // than leaving a gap.
     const memberColumns = [
+        ...(reorderMembersAction ? ['1.5rem'] : []),
         'minmax(6rem, 1fr)',
         setMemberTitleAction ? '20rem' : 'minmax(6rem, 1fr)',
         '9rem',
@@ -116,6 +122,98 @@ export default function ManageGroupMembers({
         ...(removeMembersAction ? ['6rem'] : []),
     ].join(' ')
     const columnStyle = { '--member-columns': memberColumns } as CSSProperties
+    const memberRowClassName = `
+        grid grid-cols-(--member-columns) items-center gap-4 py-2 px-4 rounded-round layer
+        max-mobile:grid-cols-1 max-mobile:gap-2
+        [&_p:empty]:min-h-0 [&_p:empty]:m-0
+    `
+
+    const memberCells = (member: ManageGroupMembersMember) => (
+        <>
+            <span className="min-w-0 text-text truncate">{member.name}</span>
+            {setMemberTitleAction ? (
+                <Form
+                    className="
+                        flex flex-row items-center gap-2 w-auto!
+                        [&>*:last-child]:mt-0
+                    "
+                    buttonClassName="w-[5.5rem]!"
+                    submitText="Lagre"
+                    submitColor="secondary"
+                    action={formData => {
+                        const title = formData.get('title')
+                        return configureAction(
+                            setMemberTitleAction, { params: { groupId, order: selectedOrder } }
+                        )({
+                            data: {
+                                userId: member.userId,
+                                title: typeof title === 'string' ? title : '',
+                            },
+                        })
+                    }}
+                    refreshOnSuccess
+                >
+                    <TextInput
+                        className="w-[12rem]"
+                        name="title"
+                        label="Tittel"
+                        defaultValue={member.title}
+                    />
+                </Form>
+            ) : (
+                <span className="text-text-muted text-s">{member.title}</span>
+            )}
+            <span className="flex gap-1">
+                {member.admin && <span className="
+                    px-2 rounded-round border text-s whitespace-nowrap border-accent-blue text-accent-blue
+                ">Administrator</span>}
+                {!member.active && <span className="
+                    px-2 rounded-round border text-s whitespace-nowrap border-text-muted text-text-muted
+                ">Inaktiv</span>}
+            </span>
+            {/* The action cells are rendered even when this member cannot use them,
+                so that a row without them keeps the grid's columns. */}
+            {setMemberAdminAction && (
+                <span className="
+                    min-w-0
+                    [&_button]:w-full
+                    [&>*:last-child]:mt-0
+                ">
+                    <Form
+                        submitText={member.admin ? 'Fjern admin' : 'Gjør til admin'}
+                        submitColor="secondary"
+                        action={() => configureAction(
+                            setMemberAdminAction, { params: { groupId, order: selectedOrder } }
+                        )({ data: { userId: member.userId, admin: !member.admin } })}
+                        refreshOnSuccess
+                    />
+                </span>
+            )}
+            {removeMembersAction && (
+                <span className="
+                    min-w-0
+                    [&_button]:w-full
+                    [&>*:last-child]:mt-0
+                ">
+                    {member.active && (
+                        <Form
+                            submitText="Fjern"
+                            submitColor="red"
+                            action={() => configureAction(
+                                removeMembersAction, { params: { groupId, order: selectedOrder } }
+                            )({ data: { userIds: [member.userId] } })}
+                            refreshOnSuccess
+                            confirmation={{
+                                confirm: true,
+                                text: `Fjerne ${member.name} fra gruppen i orden `
+                                    + `${selectedOrder}? Medlemskapet blir satt inaktivt.`
+                            }}
+                        />
+                    )}
+                </span>
+            )}
+        </>
+    )
 
     return (
         <div className="flex flex-col gap-4">
@@ -173,108 +271,38 @@ export default function ManageGroupMembers({
                         grid grid-cols-(--member-columns) items-center gap-4 px-4 text-text-muted text-s
                         max-mobile:hidden
                     " style={columnStyle}>
+                        {reorderMembersAction && <span />}
                         <span>Navn</span>
                         <span>Tittel</span>
                         <span>Status</span>
                         {setMemberAdminAction && <span />}
                         {removeMembersAction && <span />}
                     </div>
-                    {members.map(member => (
+                    {reorderMembersAction ? (
+                        // Remounted per order, since the title inputs are uncontrolled.
+                        <ReorderableList
+                            key={selectedOrder}
+                            items={members}
+                            getId={member => member.userId}
+                            saveOrder={userIds => configureAction(
+                                reorderMembersAction, { params: { groupId, order: selectedOrder } }
+                            )({ data: { userIds } })}
+                            className="flex flex-col gap-1"
+                            itemClassName={memberRowClassName}
+                            itemStyle={columnStyle}
+                            renderItem={(member, { handle }) => <>{handle}{memberCells(member)}</>}
+                        />
+                    ) : members.map(member => (
                         // Keyed by order as well as user: the title input is uncontrolled, so a row
                         // React reuses across an order change would keep the value it already has
                         // and ignore the new order's `defaultValue`. The same user is usually a
                         // member of several orders, which is exactly when that bites.
                         <div
-                            className="
-                                grid grid-cols-(--member-columns) items-center gap-4 py-2 px-4 rounded-round layer
-                                max-mobile:grid-cols-1 max-mobile:gap-2
-                                [&_p:empty]:min-h-0 [&_p:empty]:m-0
-                            "
+                            className={memberRowClassName}
                             style={columnStyle}
                             key={`${selectedOrder}-${member.userId}`}
                         >
-                            <span className="min-w-0 text-text truncate">{member.name}</span>
-                            {setMemberTitleAction ? (
-                                <Form
-                                    className="
-                                        flex flex-row items-center gap-2 w-auto!
-                                        [&>*:last-child]:mt-0
-                                    "
-                                    buttonClassName="w-[5.5rem]!"
-                                    submitText="Lagre"
-                                    submitColor="secondary"
-                                    action={formData => {
-                                        const title = formData.get('title')
-                                        return configureAction(
-                                            setMemberTitleAction, { params: { groupId, order: selectedOrder } }
-                                        )({
-                                            data: {
-                                                userId: member.userId,
-                                                title: typeof title === 'string' ? title : '',
-                                            },
-                                        })
-                                    }}
-                                    refreshOnSuccess
-                                >
-                                    <TextInput
-                                        className="w-[12rem]"
-                                        name="title"
-                                        label="Tittel"
-                                        defaultValue={member.title}
-                                    />
-                                </Form>
-                            ) : (
-                                <span className="text-text-muted text-s">{member.title}</span>
-                            )}
-                            <span className="flex gap-1">
-                                {member.admin && <span className="
-                                    px-2 rounded-round border text-s whitespace-nowrap border-accent-blue text-accent-blue
-                                ">Administrator</span>}
-                                {!member.active && <span className="
-                                    px-2 rounded-round border text-s whitespace-nowrap border-text-muted text-text-muted
-                                ">Inaktiv</span>}
-                            </span>
-                            {/* The action cells are rendered even when this member cannot use them,
-                                so that a row without them keeps the grid's columns. */}
-                            {setMemberAdminAction && (
-                                <span className="
-                                    min-w-0
-                                    [&_button]:w-full
-                                    [&>*:last-child]:mt-0
-                                ">
-                                    <Form
-                                        submitText={member.admin ? 'Fjern admin' : 'Gjør til admin'}
-                                        submitColor="secondary"
-                                        action={() => configureAction(
-                                            setMemberAdminAction, { params: { groupId, order: selectedOrder } }
-                                        )({ data: { userId: member.userId, admin: !member.admin } })}
-                                        refreshOnSuccess
-                                    />
-                                </span>
-                            )}
-                            {removeMembersAction && (
-                                <span className="
-                                    min-w-0
-                                    [&_button]:w-full
-                                    [&>*:last-child]:mt-0
-                                ">
-                                    {member.active && (
-                                        <Form
-                                            submitText="Fjern"
-                                            submitColor="red"
-                                            action={() => configureAction(
-                                                removeMembersAction, { params: { groupId, order: selectedOrder } }
-                                            )({ data: { userIds: [member.userId] } })}
-                                            refreshOnSuccess
-                                            confirmation={{
-                                                confirm: true,
-                                                text: `Fjerne ${member.name} fra gruppen i orden `
-                                                    + `${selectedOrder}? Medlemskapet blir satt inaktivt.`
-                                            }}
-                                        />
-                                    )}
-                                </span>
-                            )}
+                            {memberCells(member)}
                         </div>
                     ))}
                 </div>
