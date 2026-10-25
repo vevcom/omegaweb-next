@@ -10,6 +10,7 @@ import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { userOperations } from '@/services/users/operations'
 import { verifyJWT } from '@/lib/jwt/jwt'
+import { feideEmailDomainsTrustedAsVerified } from '@/lib/feide/constants'
 import logger from '@/lib/logger'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 
@@ -233,8 +234,11 @@ export const authOperations = {
 
             if (!user.feideAccount) return null
 
+            const feideEmailDomain = user.feideAccount.email.split('@').pop() ?? ''
+
             return {
                 feideEmail: user.feideAccount.email,
+                feideEmailTrustedAsVerified: feideEmailDomainsTrustedAsVerified.includes(feideEmailDomain),
                 createdByFeideLoginOnProjectNext: user.createdByFeideLoginOnProjectNext,
             }
         }
