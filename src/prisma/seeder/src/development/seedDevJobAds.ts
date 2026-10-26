@@ -71,6 +71,7 @@ export const seedDevJobAds = defineSeedOperation(async (prisma: PrismaClient) =>
                 data: {
                     ...jobAd,
                     companyId: company.id,
+                    rollingDueDate: false,
                 },
             })
 
