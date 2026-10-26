@@ -25,6 +25,7 @@ export const eventFieldsToExpose = [
     'registrationEnd',
     'canBeViewedBy',
     'takesRegistration',
+    'takesPayment',
     'price',
     'paymentStart',
     'paymentEnd'

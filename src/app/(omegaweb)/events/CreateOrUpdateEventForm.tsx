@@ -35,6 +35,7 @@ type PropTypes = {
  */
 export default function CreateOrUpdateEventForm({ event, eventTags, committees }: PropTypes) {
     const [showRegistrationOptions, setShowRegistrationOptions] = useState(event?.takesRegistration ?? false)
+    const [showPaymentOptions, setShowPaymentOptions] = useState(event?.takesPayment ?? false)
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
     const action = event ? configureAction(updateEventAction, { params: { id: event.id } }) : createEventAction
@@ -141,12 +142,6 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         name="places"
                         defaultValue={event?.places}
                     />
-                    <NumberInput
-                        label="Pris (tom for gratis arrangement)"
-                        name="price"
-                        min={0}
-                        defaultValue={event?.price ? event.price / 100 : undefined}
-                    />
                     {/*
                       * Left out when the committees could not be read: offered without the committee
                       * of the event, the select would submit its first option and clear it.
@@ -172,20 +167,35 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         defaultValue={event?.registrationEnd}
                         includeTime
                     />
-                    <DateInput
-                        label="Betalingsstart"
-                        name="paymentStart"
-                        defaultValue={event?.paymentStart ?? undefined}
-                        includeTime
+                    <Slider
+                        label="Tar betaling"
+                        name="takesPayment"
+                        onChange={changeEvent => setShowPaymentOptions(changeEvent.target.checked)}
+                        defaultChecked={event?.takesPayment}
                     />
-                    <DateInput
-                        label="Betalingsslutt"
-                        name="paymentEnd"
-                        defaultValue={event?.paymentEnd ?? undefined}
-                        includeTime
-                    />
+                    {showPaymentOptions && <>
+                        <NumberInput
+                            label="Pris"
+                            name="price"
+                            min={0}
+                            defaultValue={event?.price ? event.price / 100 : undefined}
+                        />
+                        <DateInput
+                            label="Betalingsstart"
+                            name="paymentStart"
+                            defaultValue={event?.paymentStart ?? undefined}
+                            includeTime
+                        />
+                        <DateInput
+                            label="Betalingsslutt"
+                            name="paymentEnd"
+                            defaultValue={event?.paymentEnd ?? undefined}
+                            includeTime
+                        />
+                    </>}
                 </> : <>
                     <input type="hidden" name="waitingList" value={FIELD_IS_PRESENT_VALUE} />
+                    <input type="hidden" name="takesPayment" value={FIELD_IS_PRESENT_VALUE} />
                 </>}
             </Form>
         </div>
