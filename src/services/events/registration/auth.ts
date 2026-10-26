@@ -44,6 +44,8 @@ export const eventRegistrationAuth = {
 
     updateNotes: registrationOfUser,
     destroy: registrationOfUser,
+    move: eventAdminLevel,
+    setManuallyPaid: eventAdminLevel,
 
     // Never the registrant's own: marking yourself as shown up would dodge the dots for not showing up.
     registerAttendance: eventAdminAsUser,

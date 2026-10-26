@@ -32,9 +32,10 @@ model Event {
   registrationEnd    DateTime
   waitingList        Boolean
   eventRegistrations EventRegistration[]
-  // Price in øre. Null means free.
+  takesPayment       Boolean             @default(false)
+  // Price in øre. Set exactly when the event takes payment.
   price              Int?
-  // Only meaningful when price is set. Separate from the registration period.
+  // Set exactly when the event takes payment. Separate from the registration period.
   paymentStart       DateTime?
   paymentEnd         DateTime?
 
@@ -107,19 +108,25 @@ model EventRegistration {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
   note      String?
+  // Registrations queue for the places of the event by this time, then by id. It is when they
+  // registered until an administrator moves one.
+  queuedAt  DateTime        @default(now())
 
   // Null until attendance is taken for the event - after that, null means they did not show up.
   attendedAt               DateTime?
   attendanceRegisteredBy   User?     @relation(name: "attendanceRegisteredBy", fields: [attendanceRegisteredById], references: [id], onDelete: SetNull)
   attendanceRegisteredById Int?
 
-  // Legacy from old database
+  // Paid outside the ledger, for example in person, as marked by an administrator of the event.
   manuallyPaid      Boolean @default(false)
-  company           Boolean @default(false) // This is if a registrations has a plus one.
+
+  // Legacy from old database
+  company          Boolean @default(false) // This is if a registrations has a plus one.
   extraFieldChoices Json?   @db.Json
 
   ledgerTransactions LedgerTransaction[]
 
   @@unique([eventId, userId])
+  @@index([eventId, queuedAt])
   @@index([userId])
 }

@@ -12,10 +12,17 @@ import UserDisplayName from '@/components/User/UserDisplayName'
 import Slider from '@/components/UI/Slider'
 import Form from '@/components/Form/Form'
 import ContactCard from '@/components/User/ContactCard'
-import { destroyEventRegistrationAction, setEventAttendanceAction } from '@/services/events/registration/actions'
+import {
+    destroyEventRegistrationAction,
+    moveEventRegistrationAction,
+    setEventAttendanceAction,
+    setEventRegistrationManuallyPaidAction,
+} from '@/services/events/registration/actions'
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
 import { configureAction } from '@/services/configureAction'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faArrowDown, faArrowUp } from '@fortawesome/free-solid-svg-icons'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { EventFiltered } from '@/services/events/types'
@@ -32,7 +39,7 @@ function DetailedTable({
     attendanceTakerId: number | null,
     dotGiverId: number | null,
 }) {
-    const columns = 7 + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
+    const columns = 7 + (event.takesPayment ? 1 : 0) + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
 
     return <EventRegistrationDetailedPagingProvider
         serverRenderedData={[]}
@@ -52,12 +59,13 @@ function DetailedTable({
             ">
                 <thead>
                     <tr>
+                        <th>Flytt</th>
                         <th>Navn</th>
                         <th>E-post</th>
                         <th>Mobil</th>
                         <th>Allergier</th>
                         <th>Notat</th>
-                        <th>Betalt</th>
+                        {event.takesPayment && <th>Betalt</th>}
                         {attendanceTakerId !== null && <th>Møtt</th>}
                         {dotGiverId !== null && <th>Prikk</th>}
                         <th>Slett</th>
@@ -72,12 +80,45 @@ function DetailedTable({
                                 <UserDisplayName user={row.user} width={20} />
                             </Link> : row.contact?.name
                             return <tr key={row.id}>
+                                <td>
+                                    <div className="flex gap-1">
+                                        {(['UP', 'DOWN'] as const).map(direction => <Form
+                                            key={direction}
+                                            action={configureAction(
+                                                moveEventRegistrationAction,
+                                                { params: { registrationId: row.id, direction } }
+                                            )}
+                                            submitText={
+                                                <FontAwesomeIcon icon={direction === 'UP' ? faArrowUp : faArrowDown} />
+                                            }
+                                            buttonClassName="w-auto!"
+                                            refreshOnSuccess
+                                        />)}
+                                    </div>
+                                </td>
                                 <td>{name}</td>
                                 <td>{row.user ? row.user.email : row.contact?.email}</td>
                                 <td>{row.user ? row.user.mobile : row.contact?.mobile}</td>
                                 <td>{row.user ? row.user.allergies : 'Ukjent'}</td>
                                 <td>{row.note}</td>
-                                <td>{row.ledgerTransactions.length > 0 ? 'Ja' : 'Nei'}</td>
+                                {event.takesPayment && <td>
+                                    {row.ledgerTransactions.length > 0 ? 'Ja' : <Form
+                                        action={configureAction(
+                                            setEventRegistrationManuallyPaidAction,
+                                            { params: { registrationId: row.id } }
+                                        )}
+                                        submitText={row.manuallyPaid ? 'Fjern betalt' : 'Marker betalt'}
+                                        submitColor={row.manuallyPaid ? 'red' : 'green'}
+                                        buttonClassName="w-auto!"
+                                        refreshOnSuccess
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="manuallyPaid"
+                                            value={row.manuallyPaid ? FIELD_IS_PRESENT_VALUE : 'on'}
+                                        />
+                                    </Form>}
+                                </td>}
                                 {attendanceTakerId !== null && <td>
                                     <Form
                                         action={configureAction(
