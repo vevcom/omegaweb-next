@@ -1,13 +1,13 @@
 'use client'
 import CompanyChooser from './CompanyChooser'
 import SelectedCompany from './SelectedCompany'
+import Slider from '../UI/Slider'
 import { createJobAdAction } from '@/services/careers/jobAds/actions'
 import TextInput from '@/components/UI/TextInput'
 import Form from '@/components/Form/Form'
 import { SelectString } from '@/components/UI/Select'
 import { jobAdOptions } from '@/services/careers/jobAds/constants'
 import DateInput from '@/components/UI/DateInput'
-import Slider from '../UI/Slider'
 
 export default function CreateJobAdForm() {
     return (
