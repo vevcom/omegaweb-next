@@ -125,7 +125,7 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
 
     if (!editable) return null
     return (
-        <PopUp
+        <PopUp title="Endre bilde"
             popUpKey={`EditCmsImage${cmsImage.id}`}
             showButtonContent={<EditOverlay />}
             showButtonClass="w-full h-full absolute top-0 left-0 border-none bg-transparent"
@@ -143,7 +143,6 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                         max-mobile:hidden
                     ">
                         <div className="max-w-[150px] overflow-hidden">
-                            <h2>Endre bilde</h2>
                             <div>
                                 <p>Navn: {cmsImage.name}</p>
                                 <i>ID: {cmsImage.id}</i>

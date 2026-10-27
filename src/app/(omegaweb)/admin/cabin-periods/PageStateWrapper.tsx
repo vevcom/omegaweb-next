@@ -37,7 +37,7 @@ export default function PageStateWrapper({
     return <>
 
         {canCreateReleasePeriod &&
-            <PopUp
+            <PopUp title="Nytt slipp"
                 popUpKey="CreateNewReleasePeriod"
                 showButtonContent="Nytt slipp"
                 showButtonClass="btn"
@@ -57,7 +57,7 @@ export default function PageStateWrapper({
                 displayDate(period.releaseTime, false),
                 displayDate(period.releaseUntil, false),
                 !canUpdateReleasePeriod || period.releaseTime < new Date() ? '' :
-                    <PopUp
+                    <PopUp title="Endre slipp"
                         key={period.id}
                         popUpKey={`UpdateReleasePeriod${period.id}`}
                         showButtonContent="Endre"
@@ -81,7 +81,7 @@ export default function PageStateWrapper({
         />
 
         {canCreatePricePeriod &&
-            <PopUp
+            <PopUp title="Ny prisperiode"
                 popUpKey="CreateNewPricePeriod"
                 showButtonContent="Ny prisperiode"
                 showButtonClass="btn"
@@ -99,7 +99,7 @@ export default function PageStateWrapper({
             body={pricePeriods.map(period => [
                 displayDate(period.validFrom, false),
                 !canUpdatePricePeriod || isPricePeriodReleased(period) ? '' :
-                    <PopUp
+                    <PopUp title="Endre prisperiode"
                         key={period.id}
                         popUpKey={`UpdatePricePeriod${period.id}`}
                         showButtonContent="Endre"

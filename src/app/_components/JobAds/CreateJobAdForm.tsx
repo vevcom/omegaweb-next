@@ -18,7 +18,6 @@ export default function CreateJobAdForm() {
             "
         >
             <Form
-                title="Lag en ny stillingsannonse"
                 submitText="Opprett"
                 action={createJobAdAction}
                 refreshOnSuccess

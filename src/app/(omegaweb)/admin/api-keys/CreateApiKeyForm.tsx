@@ -65,7 +65,6 @@ export default function CreateApiKeyForm({ popUpKey }: PropTypes) {
     return (
         <div className="min-w-[50vw] grid grid-cols-2">
             <Form
-                title="Lag en ny nøkkel"
                 action={createApiKeyAction}
                 successCallback={data => showApiKey(data?.key)}
             >

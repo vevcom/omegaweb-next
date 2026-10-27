@@ -26,10 +26,9 @@ export default function GiveDotPopUp({ eventId, accuserId, userId, popUpKey }: P
     )
 
     return (
-        <PopUp popUpKey={popUpKey} showButtonContent="Gi prikk" showButtonClass="btn whitespace-nowrap">
+        <PopUp title="Gi prikk" popUpKey={popUpKey} showButtonContent="Gi prikk" showButtonClass="btn whitespace-nowrap">
             <Form
                 action={action}
-                title="Gi prikk"
                 submitText="Gi prikk"
                 closePopUpOnSuccess={popUpKey}
                 refreshOnSuccess

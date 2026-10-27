@@ -20,7 +20,7 @@ export const jobAdsPage = (basePath: string) => serverPage({
             headerItem={
                 <div className="flex items-center gap-[1em]">
                     {capabilities.canCreate.authorized && (
-                        <AddHeaderItemPopUp popUpKey={'jobAdForm'}>
+                        <AddHeaderItemPopUp title="Ny stillingsannonse" popUpKey={'jobAdForm'}>
                             <CompanyPagingProvider
                                 serverRenderedData={[]}
                                 startPage={{

@@ -19,7 +19,7 @@ const { page, generateMetadata } = serverPage({
                     <ArchiveLink href="news/archive" />
                     {
                         capabilities.canCreate.authorized && (
-                            <AddHeaderItemPopUp popUpKey="createNewsPop">
+                            <AddHeaderItemPopUp title="Ny nyhet" popUpKey="createNewsPop">
                                 <AddNews />
                             </AddHeaderItemPopUp>
                         )

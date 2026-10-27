@@ -45,39 +45,46 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
     }
 
     return (
-        <div className="min-w-[50vw] p-4">
-            <h1>{event ? 'Endre' : 'Opprett'} arrangement</h1>
-            <Form
-                closePopUpOnSuccess="EditEvent"
-                action={action}
-                submitText={event ? 'Oppdater' : 'Opprett'}
-                refreshOnSuccess
-                navigateOnSuccess={
-                    data => (data?.name ? `/events/${formatVevenUri(data.name, data.id)}` : '/events')
-                }
-            >
-                <TextInput label="Navn" name="name" defaultValue={event?.name} />
-                <TextInput label="Sted" name="location" defaultValue={event?.location ?? ''} />
-                <EventLocationInput name="locationMap" defaultValue={event?.locationMap} />
-                <SelectString
-                    className="max-w-[300px]"
-                    label="Hvem kan se"
-                    name="canBeViewedBy"
-                    options={eventCanBeViewedByOptions}
-                    defaultValue={event?.canBeViewedBy}
-                />
-                <DateInput label="Start" name="eventStart" includeTime defaultValue={event?.eventStart} />
-                <DateInput label="Slutt" name="eventEnd" includeTime defaultValue={event?.eventEnd} />
-                <ul
-                    className="
-                        mt-[1em] flex flex-row flex-wrap gap-x-[2em] overflow-visible list-none
-                        [&_h2]:flex-[1_1_100%]
-                        [&_li]:flex [&_li]:items-center [&_li]:z-1
-                        [&_li:hover]:z-2
-                        [&_li_input[type=checkbox]]:align-top [&_li_input[type=checkbox]]:mr-[4px]
-                    "
-                >
-                    <h2>Tagger</h2>
+        <Form
+            className="
+                mobile:grid mobile:grid-cols-[repeat(2,320px)] mobile:gap-x-4
+                [&_fieldset]:min-w-0
+                [&_legend]:mb-2 [&_legend]:font-bold
+                mobile:[&>span:has(>div>fieldset)]:col-span-full
+            "
+            closePopUpOnSuccess="EditEvent"
+            action={action}
+            submitText={event ? 'Oppdater' : 'Opprett'}
+            refreshOnSuccess
+            navigateOnSuccess={
+                data => (data?.name ? `/events/${formatVevenUri(data.name, data.id)}` : '/events')
+            }
+        >
+            <TextInput label="Navn" name="name" defaultValue={event?.name} />
+            <TextInput label="Sted" name="location" defaultValue={event?.location ?? ''} />
+            <EventLocationInput name="locationMap" defaultValue={event?.locationMap} />
+            <DateInput label="Start" name="eventStart" includeTime defaultValue={event?.eventStart} />
+            <DateInput label="Slutt" name="eventEnd" includeTime defaultValue={event?.eventEnd} />
+            <SelectString
+                label="Hvem kan se"
+                name="canBeViewedBy"
+                options={eventCanBeViewedByOptions}
+                defaultValue={event?.canBeViewedBy}
+            />
+            <Slider
+                label="Med påmelding"
+                name="takesRegistration"
+                onChange={handleShowRegistration}
+                defaultChecked={event?.takesRegistration}
+            />
+            <fieldset>
+                <legend>Tagger</legend>
+                <ul className="
+                    flex flex-row flex-wrap gap-x-[2em] overflow-visible list-none
+                    [&_li]:flex [&_li]:items-center [&_li]:z-1
+                    [&_li:hover]:z-2
+                    [&_li_input[type=checkbox]]:align-top [&_li_input[type=checkbox]]:mr-[4px]
+                ">
                     {
                         eventTags.map(tag => (
                             <li key={tag.id}>
@@ -96,98 +103,103 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         ))
                     }
                 </ul>
+            </fieldset>
+
+            {/* An array rather than a fragment, since Form gives each of its children its own error. */}
+            {showRegistrationOptions ? [
+                <NumberInput
+                    key="places"
+                    label="Plasser"
+                    name="places"
+                    defaultValue={event?.places}
+                />,
+                <NumberInput
+                    key="price"
+                    label="Pris (tom for gratis arrangement)"
+                    name="price"
+                    min={0}
+                    defaultValue={event?.price ? event.price / 100 : undefined}
+                />,
+                <DateInput
+                    key="registrationStart"
+                    label="Påmeldingsstart"
+                    name="registrationStart"
+                    defaultValue={event?.registrationStart}
+                    includeTime
+                />,
+                <DateInput
+                    key="registrationEnd"
+                    label="Påmeldingsslutt"
+                    name="registrationEnd"
+                    defaultValue={event?.registrationEnd}
+                    includeTime
+                />,
+                <DateInput
+                    key="paymentStart"
+                    label="Betalingsstart"
+                    name="paymentStart"
+                    defaultValue={event?.paymentStart ?? undefined}
+                    includeTime
+                />,
+                <DateInput
+                    key="paymentEnd"
+                    label="Betalingsslutt"
+                    name="paymentEnd"
+                    defaultValue={event?.paymentEnd ?? undefined}
+                    includeTime
+                />,
                 <Slider
-                    label="Med påmelding"
-                    name="takesRegistration"
-                    onChange={handleShowRegistration}
-                    defaultChecked={event?.takesRegistration}
+                    key="waitingList"
+                    label="Venteliste"
+                    name="waitingList"
+                    defaultChecked={event?.waitingList}
+                />,
+                /*
+                 * Left out when the committees could not be read: offered without the committee
+                 * of the event, the select would submit its first option and clear it.
+                 */
+                canSetHostCommittee && <SelectNumberPossibleNULL
+                    key="hostedByCommitteeId"
+                    label="Arrangeres av"
+                    name="hostedByCommitteeId"
+                    options={[
+                        { value: 'NULL', label: 'Ingen komité' },
+                        ...committees.map(committee => ({ value: committee.id, label: committee.name })),
+                    ]}
+                    defaultValue={event?.hostedByCommitteeId ?? 'NULL'}
+                />,
+            ] : (
+                <input type="hidden" name="waitingList" value={FIELD_IS_PRESENT_VALUE} />
+            )}
+
+            {/*
+              * Only when creating: an existing event has both levels in the admin panel on its
+              * own page, where they are saved one at a time against the stored visibilities.
+              */}
+            {!event && <fieldset>
+                <legend>Hvem kan administrere arrangementet?</legend>
+                <VisibilityMatrixEditor
+                    requirements={adminRequirements}
+                    onChange={setAdminRequirements}
                 />
-
-                {/*
-                  * Only when creating: an existing event has both levels in the admin panel on its
-                  * own page, where they are saved one at a time against the stored visibilities.
-                  */}
-                {!event && <div className="flex flex-col gap-[0.5rem]">
-                    <h2>Hvem kan administrere arrangementet?</h2>
-                    <VisibilityMatrixEditor
-                        requirements={adminRequirements}
-                        onChange={setAdminRequirements}
-                    />
-                    <input
-                        type="hidden"
-                        name="visibilityAdminRequirements"
-                        value={JSON.stringify(adminRequirements)}
-                    />
-                    <h2>Hvem kan melde seg på? (tomt betyr alle)</h2>
-                    <VisibilityMatrixEditor
-                        requirements={regularRequirements}
-                        onChange={setRegularRequirements}
-                    />
-                    <input
-                        type="hidden"
-                        name="visibilityRegularRequirements"
-                        value={JSON.stringify(regularRequirements)}
-                    />
-                </div>}
-
-                {showRegistrationOptions ? <>
-                    <Slider
-                        label="Venteliste"
-                        name="waitingList"
-                        defaultChecked={event?.waitingList}
-                    />
-                    <NumberInput
-                        label="Plasser"
-                        name="places"
-                        defaultValue={event?.places}
-                    />
-                    <NumberInput
-                        label="Pris (tom for gratis arrangement)"
-                        name="price"
-                        min={0}
-                        defaultValue={event?.price ? event.price / 100 : undefined}
-                    />
-                    {/*
-                      * Left out when the committees could not be read: offered without the committee
-                      * of the event, the select would submit its first option and clear it.
-                      */}
-                    {canSetHostCommittee && <SelectNumberPossibleNULL
-                        label="Arrangeres av"
-                        name="hostedByCommitteeId"
-                        options={[
-                            { value: 'NULL', label: 'Ingen komité' },
-                            ...committees.map(committee => ({ value: committee.id, label: committee.name })),
-                        ]}
-                        defaultValue={event?.hostedByCommitteeId ?? 'NULL'}
-                    />}
-                    <DateInput
-                        label="Påmeldingsstart"
-                        name="registrationStart"
-                        defaultValue={event?.registrationStart}
-                        includeTime
-                    />
-                    <DateInput
-                        label="Påmeldingsslutt"
-                        name="registrationEnd"
-                        defaultValue={event?.registrationEnd}
-                        includeTime
-                    />
-                    <DateInput
-                        label="Betalingsstart"
-                        name="paymentStart"
-                        defaultValue={event?.paymentStart ?? undefined}
-                        includeTime
-                    />
-                    <DateInput
-                        label="Betalingsslutt"
-                        name="paymentEnd"
-                        defaultValue={event?.paymentEnd ?? undefined}
-                        includeTime
-                    />
-                </> : <>
-                    <input type="hidden" name="waitingList" value={FIELD_IS_PRESENT_VALUE} />
-                </>}
-            </Form>
-        </div>
+                <input
+                    type="hidden"
+                    name="visibilityAdminRequirements"
+                    value={JSON.stringify(adminRequirements)}
+                />
+            </fieldset>}
+            {!event && <fieldset>
+                <legend>Hvem kan melde seg på? (tomt betyr alle)</legend>
+                <VisibilityMatrixEditor
+                    requirements={regularRequirements}
+                    onChange={setRegularRequirements}
+                />
+                <input
+                    type="hidden"
+                    name="visibilityRegularRequirements"
+                    value={JSON.stringify(regularRequirements)}
+                />
+            </fieldset>}
+        </Form>
     )
 }

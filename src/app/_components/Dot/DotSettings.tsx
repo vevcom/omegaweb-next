@@ -21,12 +21,11 @@ type PropTypes = {
  */
 export default function DotSettings({ dot, showUpdateForm, showDestroyForm }: PropTypes) {
     return (
-        <SettingsHeaderItemPopUp popUpKey={`dotSettings ${dot.id}`}>
+        <SettingsHeaderItemPopUp title="Endre prikk" popUpKey={`dotSettings ${dot.id}`}>
             {
                 showUpdateForm &&
                 <Form
                     action={configureAction(updateDotAction, { params: { id: dot.id } })}
-                    title="Endre prikk"
                     submitText="Endre"
                     refreshOnSuccess
                 >

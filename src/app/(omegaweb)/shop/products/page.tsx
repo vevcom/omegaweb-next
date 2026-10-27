@@ -26,7 +26,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: { products, defaultImage }, capabilities }) => (
         <PageWrapper
             headerItem={capabilities.canCreateProduct.authorized &&
-                <AddHeaderItemPopUp popUpKey="createProduct">
+                <AddHeaderItemPopUp title="Nytt produkt" popUpKey="createProduct">
                     <ProductForm />
                 </AddHeaderItemPopUp>
             }

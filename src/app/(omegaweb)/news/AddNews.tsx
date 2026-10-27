@@ -35,27 +35,34 @@ export default function AddNews() {
                   * The levels are collected here rather than after the fact: a news article created
                   * with an empty admin level would be administrable by anyone until it was narrowed.
                   */}
-                <div className="flex flex-col gap-[0.5rem]">
-                    <h3>Hvem kan administrere nyheten?</h3>
-                    <VisibilityMatrixEditor
-                        requirements={adminRequirements}
-                        onChange={setAdminRequirements}
-                    />
-                    <input
-                        type="hidden"
-                        name="visibilityAdminRequirements"
-                        value={JSON.stringify(adminRequirements)}
-                    />
-                    <h3>Hvem kan lese nyheten? (tomt betyr alle)</h3>
-                    <VisibilityMatrixEditor
-                        requirements={regularRequirements}
-                        onChange={setRegularRequirements}
-                    />
-                    <input
-                        type="hidden"
-                        name="visibilityRegularRequirements"
-                        value={JSON.stringify(regularRequirements)}
-                    />
+                <div className="
+                    grid gap-x-4 gap-y-2
+                    mobile:grid-cols-2
+                ">
+                    <div className="flex flex-col gap-2">
+                        <h3>Hvem kan administrere nyheten?</h3>
+                        <VisibilityMatrixEditor
+                            requirements={adminRequirements}
+                            onChange={setAdminRequirements}
+                        />
+                        <input
+                            type="hidden"
+                            name="visibilityAdminRequirements"
+                            value={JSON.stringify(adminRequirements)}
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <h3>Hvem kan lese nyheten? (tomt betyr alle)</h3>
+                        <VisibilityMatrixEditor
+                            requirements={regularRequirements}
+                            onChange={setRegularRequirements}
+                        />
+                        <input
+                            type="hidden"
+                            name="visibilityRegularRequirements"
+                            value={JSON.stringify(regularRequirements)}
+                        />
+                    </div>
                 </div>
             </Form>
         </div>

@@ -22,7 +22,7 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'API-nøkler' }),
     render: ({ data: apiKeys, capabilities }) => (
         <PageWrapper headerItem={capabilities.canCreateApiKey.authorized &&
-            <AddHeaderItemPopUp popUpKey={popUpKey}>
+            <AddHeaderItemPopUp title="Ny API-nøkkel" popUpKey={popUpKey}>
                 <CreateApiKeyForm popUpKey={popUpKey} />
             </AddHeaderItemPopUp>
         }>

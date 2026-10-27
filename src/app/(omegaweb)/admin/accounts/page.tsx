@@ -18,7 +18,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ capabilities }) => (
         <PageWrapper headerItem={
             capabilities.canCreate.authorized &&
-            <AddHeaderItemPopUp popUpKey={popUpKey}>
+            <AddHeaderItemPopUp title="Ny gruppekonto" popUpKey={popUpKey}>
                 <CreateGroupLedgerAccountForm popUpKey={popUpKey} />
             </AddHeaderItemPopUp>
         }>

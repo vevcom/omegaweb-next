@@ -22,7 +22,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data, capabilities }) => (
         <PageWrapper headerItem={
             capabilities.canCreatePeriod.authorized && (
-                <AddHeaderItemPopUp popUpKey="addApplicationPeriod">
+                <AddHeaderItemPopUp title="Ny søknadsperiode" popUpKey="addApplicationPeriod">
                     <CreateUpdateApplicationPeriodForm
                         committees={data.committees}
                         closePopUpOnSuccess="addApplicationPeriod"

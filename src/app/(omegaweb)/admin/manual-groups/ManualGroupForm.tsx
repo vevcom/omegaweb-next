@@ -13,7 +13,6 @@ export default function ManualGroupForm({ manualGroup }: PropTypes) {
 
     return (
         <Form
-            title={create ? 'Opprett gruppe' : 'Oppdater gruppe'}
             submitText={create ? 'Opprett' : 'Oppdater'}
             action={create
                 ? createManualGroupAction

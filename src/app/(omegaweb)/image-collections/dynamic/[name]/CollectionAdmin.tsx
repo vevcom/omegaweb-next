@@ -68,7 +68,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
         <div className="flex flex-row items-center gap-2">
             {
                 canUpload && (
-                    <UploadHeaderItemPopUp popUpKey="UploadImages">
+                    <UploadHeaderItemPopUp title="Last opp bilder" popUpKey="UploadImages">
                         <div className="
                             flex flex-col gap-4 w-[min(50vw,560px)] max-w-full
                             max-mobile:w-full
@@ -81,7 +81,6 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                                     />
                                 ) : canUploadOne && (
                                     <ImageUploader
-                                        title="Last opp bilde"
                                         successCallback={refreshImages}
                                         closePopUpOnSuccess="UploadImages"
                                         uploadImageAction={configureAction(
@@ -111,12 +110,11 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                 // The settings variant defaults to a smaller button than the other two, so it is
                 // matched to them explicitly.
                 canOpenEditPopUp && (
-                    <SettingsHeaderItemPopUp scale={40} popUpKey="Edit">
+                    <SettingsHeaderItemPopUp title="Rediger samling" scale={40} popUpKey="Edit">
                         {
                             canUpdateCollection && (
                                 <Form
                                     refreshOnSuccess
-                                    title="Rediger samling"
                                     submitText="Oppdater"
                                     closePopUpOnSuccess="Edit"
                                     action={configureAction(
@@ -163,7 +161,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
             }
             {
                 doubleLevelVisibility && canOpenVisibilityPopUp && (
-                    <VisibilityHeaderItemPopUp popUpKey="Visibility">
+                    <VisibilityHeaderItemPopUp title="Synlighet" popUpKey="Visibility">
                         <div>
                             {
                                 canUpdateRegularVisibility && (

@@ -51,10 +51,9 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper headerItem={capabilities.canCreateFreezePeriod.authorized &&
-                <AddHeaderItemPopUp popUpKey={createPopUpKey}>
+                <AddHeaderItemPopUp title="Ny frysperiode" popUpKey={createPopUpKey}>
                     <Form
                         action={createDotFreezePeriodAction}
-                        title="Ny frysperiode"
                         submitText="Lag frysperiode"
                         closePopUpOnSuccess={createPopUpKey}
                         refreshOnSuccess
@@ -98,7 +97,7 @@ const { page, generateMetadata } = serverPage({
                                                     <span className={statusClass[status.style]}>{status.text}</span>
                                                 </td>
                                                 <td>
-                                                    <SettingsHeaderItemPopUp
+                                                    <SettingsHeaderItemPopUp title="Endre frysperiode"
                                                         popUpKey={`dotFreezePeriodSettings ${freezePeriod.id}`}
                                                     >
                                                         {capabilities.canUpdateFreezePeriod.authorized &&
@@ -106,7 +105,6 @@ const { page, generateMetadata } = serverPage({
                                                             action={configureAction(updateDotFreezePeriodAction, {
                                                                 params: { id: freezePeriod.id },
                                                             })}
-                                                            title="Endre frysperiode"
                                                             submitText="Endre"
                                                             refreshOnSuccess
                                                         >

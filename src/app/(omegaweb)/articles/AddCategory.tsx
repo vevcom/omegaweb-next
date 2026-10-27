@@ -21,27 +21,34 @@ export default function AddCategory() {
         >
             <TextInput label="Navn" name="name" />
             <Textarea className="min-h-[100px]" label="Beskrivelse" name="description" />
-            <div className="flex flex-col gap-[0.5rem]">
-                <h3>Hvem kan redigere artiklene?</h3>
-                <VisibilityMatrixEditor
-                    requirements={adminRequirements}
-                    onChange={setAdminRequirements}
-                />
-                <input
-                    type="hidden"
-                    name="visibilityAdminRequirements"
-                    value={JSON.stringify(adminRequirements)}
-                />
-                <h3>Hvem kan lese artiklene? (tomt betyr alle)</h3>
-                <VisibilityMatrixEditor
-                    requirements={regularRequirements}
-                    onChange={setRegularRequirements}
-                />
-                <input
-                    type="hidden"
-                    name="visibilityRegularRequirements"
-                    value={JSON.stringify(regularRequirements)}
-                />
+            <div className="
+                grid gap-x-4 gap-y-2
+                mobile:grid-cols-2
+            ">
+                <div className="flex flex-col gap-2">
+                    <h3>Hvem kan redigere artiklene?</h3>
+                    <VisibilityMatrixEditor
+                        requirements={adminRequirements}
+                        onChange={setAdminRequirements}
+                    />
+                    <input
+                        type="hidden"
+                        name="visibilityAdminRequirements"
+                        value={JSON.stringify(adminRequirements)}
+                    />
+                </div>
+                <div className="flex flex-col gap-2">
+                    <h3>Hvem kan lese artiklene? (tomt betyr alle)</h3>
+                    <VisibilityMatrixEditor
+                        requirements={regularRequirements}
+                        onChange={setRegularRequirements}
+                    />
+                    <input
+                        type="hidden"
+                        name="visibilityRegularRequirements"
+                        value={JSON.stringify(regularRequirements)}
+                    />
+                </div>
             </div>
         </Form>
     )

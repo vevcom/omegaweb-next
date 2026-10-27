@@ -77,7 +77,9 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
             <div
                 className={
                     `
-                        relative w-full max-w-[320px] mt-2
+                        relative w-full max-w-[320px]
+                        in-[[role=dialog]]:max-w-none
+                        mt-2
                         ${className ?? ''}
                     `
                 }

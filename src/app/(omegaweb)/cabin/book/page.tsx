@@ -103,7 +103,7 @@ const { page, generateMetadata } = serverPage({
 
         return <PageWrapper
             headerItem={capabilities.canConnectToLedgerAccount.authorized && (
-                <SettingsHeaderItemPopUp scale={30} popUpKey="cabinSettings">
+                <SettingsHeaderItemPopUp title="Innstillinger for hytta" scale={30} popUpKey="cabinSettings">
                     <p>
                         Konto: {ledgerAccount
                             ? (ledgerAccount.name ?? `Konto ${ledgerAccount.id}`)

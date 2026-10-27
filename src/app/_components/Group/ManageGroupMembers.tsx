@@ -142,7 +142,7 @@ export default function ManageGroupMembers({
             </div>
 
             {addMembersAction && (
-                <PopUp
+                <PopUp title="Legg til medlemmer"
                     key={selectedOrder}
                     popUpKey={addPopUpKey}
                     showButtonClass="secondary-btn self-start py-2 px-4 text-s"

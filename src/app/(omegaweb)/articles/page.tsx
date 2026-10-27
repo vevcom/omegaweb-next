@@ -15,7 +15,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: categories, capabilities }) => (
         <PageWrapper headerItem={
             capabilities.canCreate.authorized && (
-                <AddHeaderItemPopUp popUpKey="CreateCategory">
+                <AddHeaderItemPopUp title="Ny kategori" popUpKey="CreateCategory">
                     <AddCategory />
                 </AddHeaderItemPopUp>
             )

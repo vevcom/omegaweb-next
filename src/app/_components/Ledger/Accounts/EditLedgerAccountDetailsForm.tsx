@@ -15,7 +15,6 @@ type Props = {
 export default function EditLedgerAccountDetailsForm({ ledgerAccount, popUpKey }: Props) {
     return (
         <Form
-            title="Rediger konto"
             submitText="Lagre"
             action={configureAction(updateLedgerAccountAction, { params: { ledgerAccountId: ledgerAccount.id } })}
             closePopUpOnSuccess={popUpKey}

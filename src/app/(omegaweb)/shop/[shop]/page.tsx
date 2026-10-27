@@ -61,7 +61,7 @@ const { page, generateMetadata } = serverPage({
             headerItem={
                 <div className="flex items-center gap-[0.5rem]">
                     {(capabilities.canAddProduct.authorized || capabilities.canCreateProduct.authorized) && (
-                        <AddHeaderItemPopUp popUpKey="addProductToShop" label="Produkt">
+                        <AddHeaderItemPopUp title="Legg til produkt" popUpKey="addProductToShop" label="Produkt">
                             {capabilities.canAddProduct.authorized && (
                                 <FindProductForm shopId={shop.id} products={unconnectedProducts} />
                             )}
@@ -76,7 +76,7 @@ const { page, generateMetadata } = serverPage({
                         capabilities.canUpdateRegularLevel.authorized ||
                         capabilities.canUpdateAdminLevel.authorized
                     ) && (
-                        <SettingsHeaderItemPopUp scale={30} popUpKey="shopSettings">
+                        <SettingsHeaderItemPopUp title="Innstillinger for butikken" scale={30} popUpKey="shopSettings">
                             {capabilities.canUpdateShop.authorized && <UpdateShopForm shop={shop} />}
                             {capabilities.canConnectToLedgerAccount.authorized && <>
                                 <p>

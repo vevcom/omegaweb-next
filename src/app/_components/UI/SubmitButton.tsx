@@ -155,10 +155,13 @@ export default function SubmitButton({
         popUpContext.teleport(
             <div className={popUpClassNames.popUp}>
                 <div className={popUpClassNames.main}>
-                    <div className={popUpClassNames.overflow}>
-                        <button className={popUpClassNames.closeBtn} onClick={() => setConfirmedOpen(false)}>
+                    <div className={popUpClassNames.header}>
+                        <button className="close-btn shrink-0" onClick={() => setConfirmedOpen(false)} aria-label="Lukk">
                             <FontAwesomeIcon icon={faX} />
                         </button>
+                        <h2 className="m-0">Bekreft</h2>
+                    </div>
+                    <div className={popUpClassNames.overflow}>
                         {confirmationQuestion(
                             <Button
                                 className={confirmationButtonClassName}

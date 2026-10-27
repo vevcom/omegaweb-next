@@ -5,14 +5,11 @@ export const popUpClassNames = {
         max-mobile:bottom-0
     `,
     main: `
-        w-min max-h-[95svh] p-6 z-9 rounded-round bg-surface-base
+        flex flex-col w-min max-h-[95svh] p-3 z-9 rounded-round bg-surface-base
         mobile:absolute mobile:top-1/2 mobile:left-1/2 mobile:-translate-x-1/2 mobile:-translate-y-1/2
+        mobile:min-w-[calc(320px+1.5rem)]
         max-mobile:w-[100svw] max-mobile:translate-y-[calc(100svh-100%)] max-mobile:rounded-b-none
     `,
-    overflow: 'overflow-x-visible overflow-y-auto m-0 p-0 max-h-[calc(95svh-var(--card-padding)*2)]',
-    closeBtn: `
-        close-btn absolute
-        mobile:top-[calc(-48px-var(--gap))] mobile:left-0
-        max-mobile:-top-14 max-mobile:left-4
-    `,
+    header: 'flex items-center gap-4 mb-4',
+    overflow: 'min-h-0 overflow-x-visible overflow-y-auto',
 }

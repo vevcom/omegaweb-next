@@ -26,11 +26,10 @@ export default function LockerLocationSettings({ location, capabilities }: PropT
     const name = `${location.building} ${location.floor}. etasje`
 
     return (
-        <SettingsHeaderItemPopUp popUpKey={popUpKey}>
+        <SettingsHeaderItemPopUp title={`Endre ${name}`} popUpKey={popUpKey}>
             <div className="flex flex-col gap-4 min-w-[min(360px,80vw)]">
                 {capabilities.canUpdate.authorized && (
                     <Form
-                        title={`Endre ${name}`}
                         submitText="Lagre"
                         action={configureAction(updateLockerLocationAction, { params: { id: location.id } })}
                         refreshOnSuccess

@@ -21,7 +21,6 @@ export default function CreateLockerForm({ locations }: PropTypes) {
 
     return (
         <Form
-            title="Nytt skap"
             submitText="Opprett"
             action={createLockerAction}
             refreshOnSuccess

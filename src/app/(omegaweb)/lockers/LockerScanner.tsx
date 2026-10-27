@@ -11,12 +11,8 @@ export default function LockerScanner() {
     const router = useRouter()
 
     return (
-        <ScanHeaderItemPopUp popUpKey="scan_locker_qr_code">
-            <div className="
-                flex flex-col gap-2 min-w-[min(360px,80vw)]
-                [&>h2]:text-center
-            ">
-                <h2>Skann QR-koden på skapet</h2>
+        <ScanHeaderItemPopUp title="Skann QR-koden på skapet" popUpKey="scan_locker_qr_code">
+            <div className="flex flex-col gap-2 min-w-[min(360px,80vw)]">
                 <QrCodeReader
                     singleRead
                     qrboxSize={250}

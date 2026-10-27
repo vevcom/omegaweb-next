@@ -86,7 +86,10 @@ export default function EventTagsAdmin({
                             </Link>
                             {
                                 capabilities.canUpdateTags.authorized || capabilities.canDestroyTags.authorized ? (
-                                    <SettingsHeaderItemPopUp scale={25} popUpKey={`EventTagPopUp${tag.id}`}>
+                                    <SettingsHeaderItemPopUp
+                                        title={`Endre ${tag.name}`}
+                                        scale={25} popUpKey={`EventTagPopUp${tag.id}`}
+                                    >
                                         {capabilities.canUpdateTags.authorized && <span
                                             className="border-b-3 border-surface-subtle"
                                         >

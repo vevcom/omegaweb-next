@@ -73,10 +73,8 @@ const { page, generateMetadata } = serverPage({
                             page="EVENT"
                         />
                         {capabilities.canCreate.authorized && (
-                            <AddHeaderItemPopUp popUpKey="CreateEventPopUp">
-                                <div className="min-w-[50vw] grid place-content-center">
-                                    <CreateOrUpdateEventForm eventTags={eventTags} committees={committees} />
-                                </div>
+                            <AddHeaderItemPopUp title="Nytt arrangement" popUpKey="CreateEventPopUp">
+                                <CreateOrUpdateEventForm eventTags={eventTags} committees={committees} />
                             </AddHeaderItemPopUp>
                         )}
                         <ArchiveLink href={tagNames?.length ?

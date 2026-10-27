@@ -6,10 +6,11 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 
 type PropTypes = {
-    className?: string
+    className?: string,
+    title?: string,
 }
 
-export default function CreateUserForm({ className }: PropTypes) {
+export default function CreateUserForm({ className, title }: PropTypes) {
     const { refresh } = useRouter()
 
     return (
@@ -18,7 +19,7 @@ export default function CreateUserForm({ className }: PropTypes) {
             ${className}
         `}>
             <Form
-                title="Lag en bruker"
+                title={title}
                 submitText="Lag bruker"
                 action={createUserAction}
                 successCallback={refresh}

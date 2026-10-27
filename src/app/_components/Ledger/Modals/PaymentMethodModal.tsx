@@ -47,11 +47,10 @@ export default function PaymentMethodModal({ userId }: PropTypes) {
     if (!canAddPaymentMethod) return null
 
     return (
-        <PopUp
+        <PopUp title="Legg til bankkort"
             popUpKey="PaymentMethodModal"
             customShowButton={(open) => <Button onClick={open} className="self-start">Legg til bankkort</Button>}
         >
-            <h3>Legg til bankkort</h3>
             <div className="w-[min(500px,90vw)] m-6">
                 <Form action={handleSubmit} submitText="Legg til bankkort">
                     <StripeProvider mode="setup">

@@ -27,7 +27,7 @@ const { page, generateMetadata } = serverPage({
                         <HeaderItemLink href="/shop/products" label="Produkter" icon={faBox} />
                     )}
                     {capabilities.canCreateShop.authorized && (
-                        <AddHeaderItemPopUp popUpKey="createShop">
+                        <AddHeaderItemPopUp title="Ny butikk" popUpKey="createShop">
                             <CreateShopForm />
                         </AddHeaderItemPopUp>
                     )}

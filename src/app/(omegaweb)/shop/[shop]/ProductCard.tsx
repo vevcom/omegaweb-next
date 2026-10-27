@@ -78,7 +78,7 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                 <div className="flex items-start justify-between gap-2">
                     <h3 className="m-0 text-m font-bold leading-tight wrap-anywhere">{product.name}</h3>
                     {canUpdateProduct && (
-                        <PopUp
+                        <PopUp title={`Endre ${product.name}`}
                             popUpKey={`editProductForShop-${product.id}`}
                             showButtonContent={<FontAwesomeIcon icon={faPencil} />}
                             showButtonClass="

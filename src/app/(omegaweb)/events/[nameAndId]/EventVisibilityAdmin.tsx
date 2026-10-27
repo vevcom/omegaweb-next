@@ -44,7 +44,8 @@ export default function EventVisibilityAdmin({ event, doubleLevelVisibility }: P
 
     if (!canEditVisibility && !canSetPublished) return null
 
-    return <div className="flex flex-col gap-[1rem]">
+    return <section>
+        <h3>Publisering og synlighet</h3>
         {canSetPublished && <div className="flex items-center gap-[1rem]">
             <p>{event.published ? 'Publisert' : 'Ikke publisert'}</p>
             <Form
@@ -54,28 +55,33 @@ export default function EventVisibilityAdmin({ event, doubleLevelVisibility }: P
             />
         </div>}
 
-        {doubleLevelVisibility && canUpdateRegularVisibility && <div>
-            <h3>Hvem kan melde seg på</h3>
-            <VisibilityAdmin
-                visibility={doubleLevelVisibility.regularLevel}
-                visibilityId={event.visibilityRegularId}
-                updateVisibilityAction={configureAction(
-                    updateEventRegularLevelVisibilityAction,
-                    { implementationParams: { id: event.id } }
-                )}
-            />
-        </div>}
+        <div className="
+            grid gap-4
+            mobile:grid-cols-2
+        ">
+            {doubleLevelVisibility && canUpdateRegularVisibility && <div>
+                <h4>Hvem kan melde seg på</h4>
+                <VisibilityAdmin
+                    visibility={doubleLevelVisibility.regularLevel}
+                    visibilityId={event.visibilityRegularId}
+                    updateVisibilityAction={configureAction(
+                        updateEventRegularLevelVisibilityAction,
+                        { implementationParams: { id: event.id } }
+                    )}
+                />
+            </div>}
 
-        {doubleLevelVisibility && canUpdateAdminVisibility && <div>
-            <h3>Hvem kan administrere</h3>
-            <VisibilityAdmin
-                visibility={doubleLevelVisibility.adminLevel}
-                visibilityId={event.visibilityAdminId}
-                updateVisibilityAction={configureAction(
-                    updateEventAdminLevelVisibilityAction,
-                    { implementationParams: { id: event.id } }
-                )}
-            />
-        </div>}
-    </div>
+            {doubleLevelVisibility && canUpdateAdminVisibility && <div>
+                <h4>Hvem kan administrere</h4>
+                <VisibilityAdmin
+                    visibility={doubleLevelVisibility.adminLevel}
+                    visibilityId={event.visibilityAdminId}
+                    updateVisibilityAction={configureAction(
+                        updateEventAdminLevelVisibilityAction,
+                        { implementationParams: { id: event.id } }
+                    )}
+                />
+            </div>}
+        </div>
+    </section>
 }

@@ -15,9 +15,8 @@ export default function CreateOmegaquoteForm() {
     if (session.loading || !session.session.user) return null
 
     return (
-        <AddHeaderItemPopUp popUpKey="new_omega_quote">
+        <AddHeaderItemPopUp title="Ny Omegaquote" popUpKey="new_omega_quote">
             <Form
-                title="Ny Omegaquote"
                 submitText="Legg til"
                 action={configureAction(
                     createQuoteAction,

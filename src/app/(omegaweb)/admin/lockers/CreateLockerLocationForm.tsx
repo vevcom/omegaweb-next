@@ -7,7 +7,6 @@ import NumberInput from '@/components/UI/NumberInput'
 export default function CreateLockerLocationForm() {
     return (
         <Form
-            title="Ny skaplokasjon"
             submitText="Opprett"
             action={createLockerLocationAction}
             refreshOnSuccess

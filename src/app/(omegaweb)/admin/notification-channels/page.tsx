@@ -59,7 +59,7 @@ const { page, generateMetadata } = serverPage({
         return (
             <PageWrapper
                 headerItem={capabilities.canCreateChannel.authorized &&
-                    <AddHeaderItemPopUp popUpKey="CreateNotificationChannel">
+                    <AddHeaderItemPopUp title="Legg til varslingskanal" popUpKey="CreateNotificationChannel">
                         <AddNotificationChannel channels={channels}/>
                     </AddHeaderItemPopUp>
                 }

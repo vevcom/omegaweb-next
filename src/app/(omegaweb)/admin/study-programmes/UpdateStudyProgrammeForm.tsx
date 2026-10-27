@@ -20,7 +20,6 @@ export default function UpdateStudyProgrammeForm({
     const create = studyProgramme === undefined
 
     return <Form
-        title={`${create ? 'Legg til' : 'Oppdater'} studieprogram`}
         submitText={create ? 'Legg til' : 'Oppdater'}
         action={create
             ? createStudyProgrammeAction

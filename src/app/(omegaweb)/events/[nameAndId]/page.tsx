@@ -232,7 +232,7 @@ const { page, generateMetadata } = serverPage({
                         {event.takesRegistration && (
                             capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
                         ) &&
-                            <UsersHeaderItemPopUp scale={30} popUpKey="Users">
+                            <UsersHeaderItemPopUp title="Påmeldinger" scale={30} popUpKey="Users">
                                 <ManualRegistrationForm
                                     eventId={event.id}
                                     capabilities={{
@@ -249,43 +249,52 @@ const { page, generateMetadata } = serverPage({
                             || capabilities.canDestroy.authorized
                             || (event.takesRegistration && capabilities.canTakeAttendance.authorized)
                         ) && (
-                            <SettingsHeaderItemPopUp scale={30} popUpKey="EditEvent">
-                                {capabilities.canUpdate.authorized &&
-                                    <CreateOrUpdateEventForm event={event} eventTags={tags} committees={committees} />
-                                }
-                                {capabilities.canConnectToLedgerAccount.authorized && <>
-                                    <p>
-                                        Konto: {event.ledgerAccount
-                                            ? (event.ledgerAccount.name ?? `Konto ${event.ledgerAccount.id}`)
-                                            : 'ingen. Betaling fungerer ikke før arrangementet er knyttet til en konto.'}
-                                    </p>
-                                    <ConnectEventToLedgerForm
-                                        eventId={event.id}
-                                        currentLedgerAccountId={event.ledgerAccountId}
-                                        ledgerAccounts={ledgerAccounts}
-                                    />
-                                </>}
-                                <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
-                                {event.takesRegistration && capabilities.canTakeAttendance.authorized &&
-                                    <Link
-                                        className="block p-2 text-center rounded-round bg-surface-raised text-text"
-                                        href={`/events/${formatVevenUri(event.name, event.id)}/attendance`}
-                                    >
-                                        Registrer oppmøte
-                                    </Link>
-                                }
-                                { capabilities.canDestroy.authorized &&
-                                    <Form
-                                        action={configureAction(destroyEventAction, { params: { id: event.id } })}
-                                        navigateOnSuccess="/events"
-                                        submitText="Slett"
-                                        submitColor="red"
-                                        confirmation={{
-                                            confirm: true,
-                                            text: 'Er du sikker på at du vil slette dette arrangementet?'
-                                        }}
-                                    />
-                                }
+                            <SettingsHeaderItemPopUp title="Innstillinger for arrangement" scale={30} popUpKey="EditEvent">
+                                <div className="
+                                    flex flex-col gap-8
+                                    [&_section]:flex [&_section]:flex-col [&_section]:gap-2
+                                ">
+                                    {capabilities.canUpdate.authorized && <section>
+                                        <h3>Detaljer</h3>
+                                        <CreateOrUpdateEventForm event={event} eventTags={tags} committees={committees} />
+                                    </section>}
+                                    {capabilities.canConnectToLedgerAccount.authorized && <section>
+                                        <h3>Konto</h3>
+                                        <p>
+                                            {event.ledgerAccount
+                                                ? (event.ledgerAccount.name ?? `Konto ${event.ledgerAccount.id}`)
+                                                : 'Ingen. Betaling fungerer ikke før arrangementet er knyttet til en konto.'}
+                                        </p>
+                                        <ConnectEventToLedgerForm
+                                            eventId={event.id}
+                                            currentLedgerAccountId={event.ledgerAccountId}
+                                            ledgerAccounts={ledgerAccounts}
+                                        />
+                                    </section>}
+                                    <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
+                                    <div className="flex items-center gap-4 whitespace-nowrap">
+                                        {event.takesRegistration && capabilities.canTakeAttendance.authorized &&
+                                            <Link
+                                                className="secondary-btn"
+                                                href={`/events/${formatVevenUri(event.name, event.id)}/attendance`}
+                                            >
+                                                Registrer oppmøte
+                                            </Link>
+                                        }
+                                        {capabilities.canDestroy.authorized &&
+                                            <Form
+                                                action={configureAction(destroyEventAction, { params: { id: event.id } })}
+                                                navigateOnSuccess="/events"
+                                                submitText="Slett arrangement"
+                                                submitColor="red"
+                                                confirmation={{
+                                                    confirm: true,
+                                                    text: 'Er du sikker på at du vil slette dette arrangementet?'
+                                                }}
+                                            />
+                                        }
+                                    </div>
+                                </div>
                             </SettingsHeaderItemPopUp>
                         )}
                     </div>

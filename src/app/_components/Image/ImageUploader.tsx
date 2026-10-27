@@ -7,7 +7,7 @@ import type { PopUpKeyType } from '@/contexts/PopUp'
 
 type PropTypes = {
     uploadImageAction: UploadSpecialCollectionImageAction,
-    title: string,
+    title?: string,
     className?: string,
     successCallback?: (data?: unknown) => void,
     refreshOnSuccess?: boolean,

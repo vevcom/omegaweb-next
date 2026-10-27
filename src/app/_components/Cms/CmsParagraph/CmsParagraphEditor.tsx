@@ -24,7 +24,7 @@ export default function CmsParagraphEditor({
 
     if (!editable) return null
     return (
-        <PopUp
+        <PopUp title="Endre avsnitt"
             popUpKey={`EditCmsParagraph${cmsParagraph.id}`}
             showButtonClass="
                 border-none bg-transparent overflow-hidden

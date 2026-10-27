@@ -50,7 +50,7 @@ const { page, generateMetadata } = serverPage({
             <div>
                 <div className="bg-surface-base rounded-round p-4">
                     {capabilities.canCreate.authorized && (
-                        <AddHeaderItemPopUp popUpKey="Create interest group">
+                        <AddHeaderItemPopUp title="Lag interessegruppe" popUpKey="Create interest group">
                             <CreateInterestGroupForm/>
                         </AddHeaderItemPopUp>
                     )}

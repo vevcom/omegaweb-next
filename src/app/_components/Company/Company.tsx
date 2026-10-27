@@ -101,13 +101,12 @@ export default function Company({
                 <p>{company.description}</p>
                 {
                     showSettings ? (
-                        <SettingsHeaderItemPopUp
+                        <SettingsHeaderItemPopUp title="Rediger bedrift"
                             showButtonClass="text-text absolute top-0 right-0 z-2"
                             popUpKey={`Edit ${company.id}`}
                         >
                             {
                                 canUpdate.authorized && <Form
-                                    title="Rediger bedrift"
                                     action={configureAction(updateCompanyAction, { params: { id: company.id } })}
                                     refreshOnSuccess
                                     closePopUpOnSuccess={`Edit ${company.id}`}

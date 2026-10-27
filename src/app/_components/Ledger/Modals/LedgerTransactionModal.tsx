@@ -176,12 +176,11 @@ export default function LedgerTransactionModal({
         return { success: true, data: undefined } as const
     }
 
-    return <PopUp
+    return <PopUp title={title}
         popUpKey={popUpKey}
         customShowButton={(open) => <Button onClick={open} color="primary">{triggerLabel}</Button>}
     >
         <div className="w-[min(500px,90vw)] m-6">
-            <h2>{title}</h2>
 
             <Form
                 action={handleSubmit}
