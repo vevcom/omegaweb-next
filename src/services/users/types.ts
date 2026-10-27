@@ -8,6 +8,7 @@ import type { userSchemas } from './schemas'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
 import type { ClassLevel, OmegaMembershipLevel } from '@/prisma-generated-pn-types'
 import type { Prisma } from '@/prisma-generated-pn-types'
+import type { ExpandedImage } from '@/services/images/subservice/types'
 
 /**
  * Who a read of users covers. See userPartitions.
@@ -27,6 +28,7 @@ export type StandardMembeships = {
 }
 
 export type UserPagingReturn = UserCard & StandardMembeships & {
+    image: ExpandedImage
     selectedGroupInfo?: {
         title?: string
         admin?: boolean

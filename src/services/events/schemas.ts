@@ -117,6 +117,7 @@ export const eventSchemas = {
         read: eventId,
         readManyCurrent: paramsFieldSchemas.pick({
             tags: true,
+            name: true,
         }),
         readManyArchivedPage: readPageInputSchemaObject(
             paramsFieldSchemas.pick({

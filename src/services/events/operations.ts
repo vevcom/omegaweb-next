@@ -223,6 +223,10 @@ export const eventOperations = {
                     eventEnd: {
                         gte: new Date()
                     },
+                    name: {
+                        contains: params.name,
+                        mode: 'insensitive'
+                    },
                     eventTagEvents: eventTagSelector(params.tags),
                     ...visibleEventsFilter(visibilityWhereFilter)
                 },

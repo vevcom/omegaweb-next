@@ -2,6 +2,7 @@ import EventArchiveList from './EventArchiveList'
 import TagHeaderItem from '@/app/(omegaweb)/events/TagHeaderItem'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import EventTag from '@/components/Event/EventTag'
+import { eventsHref } from '@/components/Event/eventsHref'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { EventArchivePagingProvider } from '@/contexts/paging/EventArchivePaging'
 import { QueryParams } from '@/lib/queryParams/queryParams'
@@ -15,8 +16,9 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ searchParams }: PageOperationArgs) => {
         const tagNames = QueryParams.eventTags.decode(searchParams)
+        const search = QueryParams.search.decode(searchParams) ?? ''
         const eventTags = await eventTagOperations.readAll({})
-        return { tagNames, eventTags }
+        return { tagNames, search, eventTags }
     },
     capabilities: () => ({
         canUpdateTags: eventTagAuth.update,
@@ -25,11 +27,11 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Hvad der har hendt' }),
     render: ({ data, capabilities }) => {
-        const { tagNames, eventTags } = data
+        const { tagNames, search, eventTags } = data
         const currentTags = tagNames ? eventTags.filter(tag => tagNames.includes(tag.name)) : []
 
         return (
-            <PageWrapper headerItem={
+            <PageWrapper search={{ value: search, label: 'Søk i arkivet' }} headerItem={
                 <div className="flex justify-between items-center w-full gap-[1em]">
                     <div className="
                         flex items-center gap-[1em]
@@ -39,12 +41,12 @@ const { page, generateMetadata } = serverPage({
                         [&_a:hover]:after:-translate-1/2
                     ">
                         {currentTags.map(tag => {
-                            const remainingTags = currentTags
-                                .filter(currentTag => currentTag.name !== tag.name)
-                                .map(currentTag => currentTag.name)
-                            const href = currentTags.length === 1 ?
-                                '/events/archive' :
-                                `/events/archive?${QueryParams.eventTags.encodeUrl(remainingTags)}`
+                            const href = eventsHref('EVENT_ARCHIVE', {
+                                tags: currentTags
+                                    .filter(currentTag => currentTag.name !== tag.name)
+                                    .map(currentTag => currentTag.name),
+                                search,
+                            })
 
                             return (
                                 <Link key={tag.name} href={href}>
@@ -59,11 +61,10 @@ const { page, generateMetadata } = serverPage({
                             currentTags={currentTags}
                             capabilities={capabilities}
                             page="EVENT_ARCHIVE"
+                            search={search}
                         />
                         <Link
-                            href={tagNames?.length
-                                ? `/events?${QueryParams.eventTags.encodeUrl(tagNames)}`
-                                : '/events'}
+                            href={eventsHref('EVENT', { tags: tagNames, search })}
                             className="
                                 text-text
                                 [&_svg]:size-[30px]!
@@ -77,7 +78,7 @@ const { page, generateMetadata } = serverPage({
                 <EventArchivePagingProvider serverRenderedData={[]} startPage={{
                     page: 0,
                     pageSize: 12
-                }} details={{ tags: tagNames }}>
+                }} details={{ tags: tagNames, name: search || undefined }} key={search}>
                     <EventArchiveList />
                 </EventArchivePagingProvider>
             </PageWrapper>
