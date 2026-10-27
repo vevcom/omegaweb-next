@@ -1,7 +1,8 @@
 'use client'
 import EventLocationInput from './EventLocationInput'
 import Checkbox from '@/components/UI/Checkbox'
-import { SelectString, SelectNumberPossibleNULL } from '@/components/UI/Select'
+import Dropdown from '@/components/UI/Dropdown'
+import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import DateInput from '@/components/UI/DateInput'
 import Slider from '@/components/UI/Slider'
 import NumberInput from '@/components/UI/NumberInput'
@@ -60,12 +61,12 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                 <TextInput label="Navn" name="name" defaultValue={event?.name} />
                 <TextInput label="Sted" name="location" defaultValue={event?.location ?? ''} />
                 <EventLocationInput name="locationMap" defaultValue={event?.locationMap} />
-                <SelectString
+                <Dropdown
                     className="max-w-[300px]"
                     label="Hvem kan se"
                     name="canBeViewedBy"
                     options={eventCanBeViewedByOptions}
-                    defaultValue={event?.canBeViewedBy}
+                    defaultValue={event?.canBeViewedBy ?? eventCanBeViewedByOptions[0].value}
                 />
                 <DateInput label="Start" name="eventStart" includeTime defaultValue={event?.eventStart} />
                 <DateInput label="Slutt" name="eventEnd" includeTime defaultValue={event?.eventEnd} />
@@ -146,7 +147,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                       * Left out when the committees could not be read: offered without the committee
                       * of the event, the select would submit its first option and clear it.
                       */}
-                    {canSetHostCommittee && <SelectNumberPossibleNULL
+                    {canSetHostCommittee && <SearchableDropdown<number | 'NULL'>
                         label="Arrangeres av"
                         name="hostedByCommitteeId"
                         options={[

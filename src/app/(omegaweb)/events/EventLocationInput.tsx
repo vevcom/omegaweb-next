@@ -4,7 +4,7 @@ import Button from '@/components/UI/Button'
 import EventLocationMap from '@/components/Event/EventLocationMap'
 import TextInput from '@/components/UI/TextInput'
 import NumberInput from '@/components/UI/NumberInput'
-import { SelectString } from '@/components/UI/Select'
+import Dropdown from '@/components/UI/Dropdown'
 import { readLocationMap } from '@/lib/maps/locationMap'
 import { useState } from 'react'
 import type { LocationMap } from '@/lib/maps/locationMap'
@@ -45,7 +45,7 @@ export default function EventLocationInput({ name, defaultValue }: PropTypes) {
         "
     >
         <legend>Kart til arrangementet</legend>
-        <SelectString
+        <Dropdown
             name={`${name}Provider`}
             label="Karttype"
             value={provider}
