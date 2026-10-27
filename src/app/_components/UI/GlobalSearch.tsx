@@ -5,7 +5,7 @@ import Image from '@/components/Image/Image'
 import useKeyPress from '@/hooks/useKeyPress'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import { useDebounce } from '@/hooks/useDebounce'
-import { searchAction } from '@/services/search/actions'
+import { searchAllAction } from '@/services/search/actions'
 import { searchCategories } from '@/services/search/constants'
 import { useGlobalSearch } from '@/contexts/GlobalSearch'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -116,7 +116,7 @@ export default function GlobalSearch({ navItems, adminNavItems, categories }: Pr
         let cancelled = false
         const searchCategory = category === 'all' || category === 'navigation' ? undefined : category
 
-        void searchAction({ params: { query: debouncedQuery, category: searchCategory } }).then(result => {
+        void searchAllAction({ params: { query: debouncedQuery, category: searchCategory } }).then(result => {
             if (cancelled) return
             setResultSections(result.success ? result.data : [])
             setLoading(false)

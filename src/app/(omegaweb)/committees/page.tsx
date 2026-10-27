@@ -10,13 +10,9 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ searchParams }: PageOperationArgs) => {
         const search = QueryParams.search.decode(searchParams) ?? ''
-        const needle = search.trim().toLowerCase()
-        const committees = await committeeOperations.readAll({})
         return {
             search,
-            committees: committees.filter(committee =>
-                committee.name.toLowerCase().includes(needle) || committee.shortName.toLowerCase().includes(needle)
-            ),
+            committees: (await committeeOperations.search({ params: { query: search } })).rows,
         }
     },
     metadata: () => ({ title: 'Komitéer' }),

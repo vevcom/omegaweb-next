@@ -15,7 +15,7 @@ import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { implementUpdateArticleSectionOperations } from '@/cms/articleSections/implement'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { articleSectionOperations } from '@/cms/articleSections/operations'
-import { defaultSearchResultLimit } from '@/services/search/constants'
+import { implementSearchOperation } from '@/services/search/implement'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 const commonGroupOperations = implementGroupType({
@@ -99,19 +99,25 @@ export const interestGroupOperations = {
         })
     }),
 
-    search: defineOperation({
-        paramsSchema: interestGroupSchemas.params.search,
+    search: implementSearchOperation({
         authorizer: () => interestGroupAuth.search,
-        operation: ({ prisma, params }) => prisma.interestGroup.findMany({
-            take: params.limit ?? defaultSearchResultLimit,
-            where: { name: { contains: params.query, mode: 'insensitive' } },
+        find: ({ prisma, query, take }) => prisma.interestGroup.findMany({
+            take,
+            where: { name: { contains: query, mode: 'insensitive' } },
             select: {
                 id: true,
                 name: true,
                 group: { select: { pensioned: true } },
             },
             orderBy: [{ group: { pensioned: 'asc' } }, { name: 'asc' }],
-        })
+        }),
+        toSearchResult: interestGroup => ({
+            key: `interest-group-${interestGroup.id}`,
+            href: `/interest-groups/${interestGroup.id}`,
+            label: interestGroup.name,
+            sublabel: interestGroup.group.pensioned ? 'Pensjonert' : undefined,
+            image: null,
+        }),
     }),
 
     read: defineOperation({

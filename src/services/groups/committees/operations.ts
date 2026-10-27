@@ -19,7 +19,7 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { GroupType } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { defaultSearchResultLimit } from '@/services/search/constants'
+import { implementSearchOperation } from '@/services/search/implement'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -39,18 +39,17 @@ const readAll = defineOperation({
     }
 })
 
-const search = defineOperation({
+const search = implementSearchOperation({
     authorizer: () => committeeAuth.search,
-    paramsSchema: committeeSchemas.params.search,
-    operation: async ({ prisma, params }) => {
+    find: async ({ prisma, query, take }) => {
         const defaultCommitteeLogo = await readDefaultCommitteeLogo()
 
         const committees = await prisma.committee.findMany({
-            take: params.limit ?? defaultSearchResultLimit,
+            take,
             where: {
                 OR: [
-                    { name: { contains: params.query, mode: 'insensitive' } },
-                    { shortName: { contains: params.query, mode: 'insensitive' } },
+                    { name: { contains: query, mode: 'insensitive' } },
+                    { shortName: { contains: query, mode: 'insensitive' } },
                 ],
             },
             include: committeeLogoIncluder,
@@ -61,7 +60,14 @@ const search = defineOperation({
             ...committee,
             logoImage: committee.logoImage ?? defaultCommitteeLogo
         }))
-    }
+    },
+    toSearchResult: committee => ({
+        key: `committee-${committee.id}`,
+        href: `/committees/${committee.shortName}`,
+        label: committee.name,
+        sublabel: committee.group.pensioned ? 'Pensjonert' : undefined,
+        image: committee.logoImage,
+    }),
 })
 
 const read = defineOperation({

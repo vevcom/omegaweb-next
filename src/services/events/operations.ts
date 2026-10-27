@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
-import { defaultSearchResultLimit, eventListSelection } from './constants'
+import { eventListSelection } from './constants'
 import { eventRegistrationQueueOrder } from './registration/constants'
 import { notifyPromotedFromWaitingList } from './registration/notifyPromotedFromWaitingList'
 import { notificationOperations } from '@/services/notifications/operations'
@@ -15,6 +15,7 @@ import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
+import { implementSearchOperation } from '@/services/search/implement'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import {
@@ -261,16 +262,14 @@ export const eventOperations = {
     }),
 
     /**
-     * The event half of the global search: the few events best matching a free text query, for a
-     * search box to show while the user types. Both past and coming events are searched, the most
-     * recent ones first, and only the events the session may see at all - the very same
+     * The events matching a free text query, the most recent ones first. Both past and coming
+     * events are searched, and only the events the session may see at all - the very same
      * visibility rule as the lists of current and archived events above.
      */
-    search: defineOperation({
-        paramsSchema: eventSchemas.params.search,
+    search: implementSearchOperation({
         authorizer: () => eventAuth.search,
-        operation: async ({ prisma, params }, visibilityWhereFilter) => await prisma.event.findMany({
-            take: params.limit ?? defaultSearchResultLimit,
+        find: ({ prisma, query, take, prismaWhereFilter }) => prisma.event.findMany({
+            take,
             select: {
                 id: true,
                 name: true,
@@ -282,11 +281,18 @@ export const eventOperations = {
                 }
             },
             where: {
-                name: { contains: params.query, mode: 'insensitive' },
-                ...visibleEventsFilter(visibilityWhereFilter)
+                name: { contains: query, mode: 'insensitive' },
+                ...visibleEventsFilter(prismaWhereFilter)
             },
             orderBy: { eventStart: 'desc' },
-        })
+        }),
+        toSearchResult: event => ({
+            key: `event-${event.id}`,
+            href: `/events/${formatVevenUri(event.name, event.id)}`,
+            label: event.name,
+            sublabel: displayDate(event.eventStart, false),
+            image: event.coverImage.image,
+        }),
     }),
 
     update: defineOperation({

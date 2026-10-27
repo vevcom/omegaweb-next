@@ -18,7 +18,7 @@ import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { formatVevenUri } from '@/lib/urlEncoding'
-import { defaultSearchResultLimit } from '@/services/search/constants'
+import { implementSearchOperation } from '@/services/search/implement'
 import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -148,21 +148,27 @@ export const newsOperations = {
             return news.map(withCoverImage)
         }
     }),
-    search: defineOperation({
-        paramsSchema: newsSchemas.params.search,
+    search: implementSearchOperation({
         authorizer: () => newsAuth.search,
-        operation: async ({ prisma, params }, visibilityWhereFilter) => {
+        find: async ({ prisma, query, take, prismaWhereFilter }) => {
             const news = await prisma.newsArticle.findMany({
-                take: params.limit ?? defaultSearchResultLimit,
+                take,
                 where: {
-                    article: { name: { contains: params.query, mode: 'insensitive' } },
-                    ...visibleNewsFilter(visibilityWhereFilter),
+                    article: { name: { contains: query, mode: 'insensitive' } },
+                    ...visibleNewsFilter(prismaWhereFilter),
                 },
                 orderBy: newsArticleOrdering,
                 include: simpleNewsArticleRelationsIncluder,
             })
             return news.map(withCoverImage)
-        }
+        },
+        toSearchResult: news => ({
+            key: `news-${news.id}`,
+            href: `/news/${formatVevenUri(news.article.name, news.id)}`,
+            label: news.article.name,
+            sublabel: news.published ? undefined : 'Utkast',
+            image: news.coverImage,
+        }),
     }),
     read: defineOperation({
         paramsSchema: newsSchemas.params.read,

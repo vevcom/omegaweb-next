@@ -9,7 +9,7 @@ import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { formatVevenUri } from '@/lib/urlEncoding'
-import { defaultSearchResultLimit } from '@/services/search/constants'
+import { implementSearchOperation } from '@/services/search/implement'
 import type { ExpandedJobAd, SimpleJobAd } from './types'
 
 const read = defineOperation({
@@ -109,15 +109,14 @@ export const jobAdOperations = {
             }))
         }
     }),
-    search: defineOperation({
-        paramsSchema: jobAdSchemas.params.search,
+    search: implementSearchOperation({
         authorizer: () => jobAdAuth.search,
-        operation: async ({ prisma, params }) => await prisma.jobAd.findMany({
-            take: params.limit ?? defaultSearchResultLimit,
+        find: ({ prisma, query, take }) => prisma.jobAd.findMany({
+            take,
             where: {
                 OR: [
-                    { article: { name: { contains: params.query, mode: 'insensitive' } } },
-                    { company: { name: { contains: params.query, mode: 'insensitive' } } },
+                    { article: { name: { contains: query, mode: 'insensitive' } } },
+                    { company: { name: { contains: query, mode: 'insensitive' } } },
                 ],
             },
             orderBy: [{ active: 'desc' }, ...activeJobAdOrdering],
@@ -127,7 +126,14 @@ export const jobAdOperations = {
                 article: { select: { name: true } },
                 company: { select: { name: true } },
             },
-        })
+        }),
+        toSearchResult: jobAd => ({
+            key: `job-ad-${jobAd.id}`,
+            href: `/job-ads/${formatVevenUri(jobAd.article.name, jobAd.id)}`,
+            label: jobAd.article.name,
+            sublabel: jobAd.active ? jobAd.company.name : `${jobAd.company.name} (utløpt)`,
+            image: null,
+        }),
     }),
     /**
      * This handler reads a page of inactive jobAds

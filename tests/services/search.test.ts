@@ -1,24 +1,74 @@
 import { Session } from '@/auth/session/Session'
 import { prisma } from '@/prisma-pn-client-instance'
+import { Smorekopp } from '@/services/error'
 import { searchOperations } from '@/services/search/operations'
 import { eventOperations } from '@/services/events/operations'
+import { companyOperations } from '@/services/careers/companies/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 
 const COMPANY_NAME = 'Søketest Bedrift AS'
+const OTHER_COMPANY_NAME = 'Søketest Konsern AS'
 
 const sessionOf = (permissions: Parameters<typeof Session.fromJsObject>[0]['permissions']) =>
     Session.fromJsObject({ user: null, permissions, memberships: [] })
 
 beforeAll(async () => {
-    await prisma.company.create({
-        data: { name: COMPANY_NAME, description: 'En bedrift å søke etter.', logo: { create: {} } },
+    await Promise.all([COMPANY_NAME, OTHER_COMPANY_NAME].map(name => prisma.company.create({
+        data: { name, description: 'En bedrift å søke etter.', logo: { create: {} } },
+    })))
+})
+
+describe('the search operation of a service', () => {
+    test('finds every match by part of a name, ignoring case, as rows and as results', async () => {
+        const { rows, searchResults } = await companyOperations.search({
+            params: { query: 'søketest' },
+            session: sessionOf(['COMPANY_USE']),
+        })
+        expect(rows.map(company => company.name)).toEqual(
+            expect.arrayContaining([COMPANY_NAME, OTHER_COMPANY_NAME])
+        )
+        expect(rows).toHaveLength(2)
+        expect(searchResults.map(result => result.label)).toEqual(rows.map(company => company.name))
+    })
+
+    test('an empty query, blank or not, lists everything', async () => {
+        const { rows } = await companyOperations.search({
+            params: { query: '  ' },
+            session: sessionOf(['COMPANY_USE']),
+        })
+        expect(rows.map(company => company.name)).toEqual(
+            expect.arrayContaining([COMPANY_NAME, OTHER_COMPANY_NAME])
+        )
+        expect(rows.length).toBe(await prisma.company.count())
+    })
+
+    test('the global search still needs text to search for', async () => {
+        await expect(searchOperations.searchAll({
+            params: { query: '  ' },
+            session: sessionOf(['COMPANY_USE']),
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+    })
+
+    test('a limit caps the matches', async () => {
+        const { rows } = await companyOperations.search({
+            params: { query: 'søketest', limit: 1 },
+            session: sessionOf(['COMPANY_USE']),
+        })
+        expect(rows).toHaveLength(1)
+    })
+
+    test('is gated by the authorizer of the service', async () => {
+        await expect(companyOperations.search({
+            params: { query: 'søketest' },
+            session: sessionOf([]),
+        })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
     })
 })
 
 describe('global search', () => {
     test('finds a company by part of its name, ignoring case', async () => {
-        const sections = await searchOperations.search({
-            params: { query: 'søketest' },
+        const sections = await searchOperations.searchAll({
+            params: { query: 'søketest bedrift' },
             session: sessionOf(['COMPANY_USE']),
         })
         const companies = sections.find(section => section.category === 'companies')
@@ -26,7 +76,7 @@ describe('global search', () => {
     })
 
     test('leaves out the categories the session may not search', async () => {
-        const sections = await searchOperations.search({
+        const sections = await searchOperations.searchAll({
             params: { query: 'søketest' },
             session: sessionOf(['COMPANY_USE']),
         })
@@ -48,6 +98,7 @@ describe('global search', () => {
                 eventEnd: new Date(Date.now() + 7 * 24 * HOUR + 2 * HOUR),
                 canBeViewedBy: 'ALL',
                 takesRegistration: false,
+                waitingList: false,
                 tagIds: [],
                 visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
             },
@@ -64,7 +115,7 @@ describe('global search', () => {
     })
 
     test('a single category the session may not search gives no sections', async () => {
-        const sections = await searchOperations.search({
+        const sections = await searchOperations.searchAll({
             params: { query: 'søketest', category: 'companies' },
             session: sessionOf([]),
         })

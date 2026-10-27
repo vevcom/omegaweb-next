@@ -2,7 +2,6 @@ import '@pn-server-only'
 import { userSchemas } from './schemas'
 import { userAuth } from './auth'
 import {
-    defaultSearchResultLimit,
     maxNumberOfGroupsInFilter,
     standardMembershipSelection,
     userBasicSelection,
@@ -12,6 +11,7 @@ import {
     userProfileSelection
 } from './constants'
 import { userProfileImageOperations } from './profileImageCollection'
+import { implementSearchOperation } from '@/services/search/implement'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
@@ -243,18 +243,16 @@ export const userOperations = {
     }),
 
     /**
-     * The user half of the global search: the few users best matching a free text query, for a
-     * search box to show while the user types. Every word of the query must occur in some part of
+     * The users matching a free text query. Every word of the query must occur in some part of
      * the name of the user, so that "ola nor" finds "Ola Nordmann".
      */
-    search: defineOperation({
-        paramsSchema: userSchemas.params.search,
+    search: implementSearchOperation({
         authorizer: () => userAuth.search,
-        operation: async ({ prisma, params }) => {
-            const words = params.query.split(/\s+/).filter(Boolean)
+        find: async ({ prisma, query, take }) => {
+            const words = query.split(/\s+/).filter(Boolean)
 
             const users = await prisma.user.findMany({
-                take: params.limit ?? defaultSearchResultLimit,
+                take,
                 select: {
                     id: true,
                     username: true,
@@ -279,7 +277,14 @@ export const userOperations = {
             })
 
             return users.map(user => ({ ...user, image: user.image ?? defaultProfileImage }))
-        }
+        },
+        toSearchResult: user => ({
+            key: `user-${user.id}`,
+            href: `/users/${user.username}`,
+            label: `${user.firstname} ${user.lastname}`,
+            sublabel: `@${user.username}`,
+            image: user.image,
+        }),
     }),
 
     connectStudentCard: defineOperation({

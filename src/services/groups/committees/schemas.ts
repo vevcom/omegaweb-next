@@ -1,5 +1,4 @@
 import { imageSchemas } from '@/services/images/subservice/schemas'
-import { searchParamsFieldSchemas } from '@/services/search/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -38,7 +37,6 @@ export const committeeSchemas = {
             committeeId,
             committeeShortName,
         ]),
-        search: searchParamsFieldSchemas.pick({ query: true, limit: true }),
         readArticle: committeeShortName,
         readParagraph: committeeShortName,
         updateParagraphContent: committeeShortName,

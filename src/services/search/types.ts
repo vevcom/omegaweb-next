@@ -10,6 +10,12 @@ export type SearchResult = {
     image: ExpandedImage | null,
 }
 
+/** What the `search` operation of every service returns: its rows, and the same rows as results. */
+export type SearchReturn<Row> = {
+    rows: Row[],
+    searchResults: SearchResult[],
+}
+
 export type SearchSection = {
     category: SearchCategory,
     results: SearchResult[],
