@@ -123,8 +123,8 @@ export default function FileInput({
                 htmlFor={inputId}
                 className={`
                     absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1
-                    ${value ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-6 text-m'}
-                    peer-focus:top-2 peer-focus:text-[length:calc(var(--text-s)*0.85)]
+                    ${value ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-1/2 -translate-y-1/2 text-m'}
+                    peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[length:calc(var(--text-s)*0.85)]
                     ${focus.label}
                 `}
             >

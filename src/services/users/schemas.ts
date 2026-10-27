@@ -46,9 +46,6 @@ const paramsFieldSchemas = z.object({
     username: z.string(),
     email: z.string().trim().toLowerCase(),
     studentCard: z.string(),
-    query: z.string().trim().min(1).max(100),
-    limit: z.number().int().min(1).max(25)
-        .optional(),
     partOfName: z.string().max(100),
     groups: z.array(groupFilter),
     selectedGroup: groupFilter.nullable().optional(),
@@ -169,11 +166,6 @@ export const userSchemas = {
         readPage,
         readUnarchivedPage: readPage,
         readArchivedPage: readPage,
-
-        search: paramsFieldSchemas.pick({
-            query: true,
-            limit: true,
-        }),
 
         connectStudentCard: id,
         update: z.union([id, username]),

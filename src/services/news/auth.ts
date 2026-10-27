@@ -36,4 +36,5 @@ export const newsAuth = {
     ),
     readCurrent: Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
     readOldPage: Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
+    search: Require.visibilityFilter({ bypassPermission: 'NEWS_ADMIN' }),
 } as const

@@ -2,11 +2,13 @@ import MobileNavBar from '@/components/NavBar/MobileNavBar'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
 import NavBar from '@/components/NavBar/NavBar'
 import { visibleNavItems } from '@/components/NavBar/navDef'
+import { visibleAdminNav } from '@/app/(omegaweb)/admin/adminNavDef'
 import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import NavMenuProvider from '@/contexts/NavMenu'
 import GlobalSearch from '@/UI/GlobalSearch'
 import { userOperations } from '@/services/users/operations'
+import { searchCategories, searchCategoryNames } from '@/services/search/constants'
 import { withFallback, withPageSession } from '@/app/ServerPage'
 import { Theme, themes } from '@/lib/theme'
 import type { ReactNode } from 'react'
@@ -34,6 +36,15 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
         }
     })
     const navItems = visibleNavItems(serverSession)
+    const adminNavItems = visibleAdminNav(serverSession).flatMap(group => group.links.map(link => ({
+        name: link.title,
+        href: `/admin/${link.path}`,
+        icon: group.header.icon,
+        group: group.header.title,
+    })))
+    const searchableCategories = searchCategoryNames.filter(
+        category => searchCategories[category].authorizer.auth(serverSession).authorized
+    )
     // Anyone not logged in gets the default theme, which globals.scss already holds.
     const theme = serverSession.user?.theme ?? Theme.STANDARD
 
@@ -42,7 +53,7 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
             min-h-dvh text-text bg-surface-raised bg-linear-125/srgb from-accent-blue/30 from-0% to-surface-base/20 to-70%
         ">
             <SiteTheme colors={themes[theme]} />
-            <GlobalSearch navItems={navItems} />
+            <GlobalSearch navItems={navItems} adminNavItems={adminNavItems} categories={searchableCategories} />
             <NavMenuProvider>
                 <div className="
                     grid grid-cols-[56px_minmax(0,1fr)] grid-rows-[56px_1fr_64px] gap-2 h-dvh max-w-[2560px] mx-auto

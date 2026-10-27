@@ -14,8 +14,11 @@ import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { orderOptions } from '@/lib/groups/groupOptions'
 import { UsersSelectionContext } from '@/contexts/UsersSelection'
 import { UserSelectionContext } from '@/contexts/UserSelection'
+import { QueryParams } from '@/lib/queryParams/queryParams'
+import { UserListFiltersContext } from '@/contexts/UserListFilters'
+import { FiltersToggleButton } from '@/components/User/UserList/UserListFiltersToggle'
 import { useContext, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCheck, faSort, faSortDown, faSortUp } from '@fortawesome/free-solid-svg-icons'
 import type { UserPagingReturn } from '@/services/users/types'
@@ -40,6 +43,11 @@ type PropTypes = {
      * Where a row leads when `linksToUser` is set. Defaults to the user's profile.
      */
     userHref?: (user: UserPagingReturn) => string,
+    /**
+     * Takes the name to filter on from the `search` query param instead of its own input, for a
+     * page whose PageWrapper header has the search.
+     */
+    nameFromSearchParam?: boolean,
 }
 
 function getGroupType(groups: ExpandedGroupsOfAllTypes | null, type: GroupType) {
@@ -107,11 +115,16 @@ export default function UserList({
     },
     linksToUser,
     userHref = user => `/users/${user.username}`,
+    nameFromSearchParam = false,
 }: PropTypes) {
     const userPaging = useContext(UserPagingContext)
     const usersSelection = useContext(UsersSelectionContext)
     const userSelection = useContext(UserSelectionContext)
     const router = useRouter()
+    const searchParamName = useSearchParams().get(QueryParams.search.name) ?? ''
+    const filtersContext = useContext(UserListFiltersContext)
+    const [localFiltersOpen, setLocalFiltersOpen] = useState(false)
+    const filtersOpen = filtersContext?.open ?? localFiltersOpen
 
     const groupSelected = !!userPaging?.details.selectedGroup
     const partition = userPaging?.details.partition ?? 'activeOmegaStudents'
@@ -156,6 +169,18 @@ export default function UserList({
             }, [] as { groupId: number, groupOrder: number | 'ACTIVE' }[])
         })
     }, [groupSelection])
+
+    useEffect(() => {
+        if (!nameFromSearchParam || !userPaging || userPaging.details.partOfName === searchParamName) return
+        userPaging.setDetails({ ...userPaging.details, partOfName: searchParamName })
+    }, [searchParamName, nameFromSearchParam, userPaging])
+
+    const activeFilterCount = Object.values(groupSelection).filter(({ group }) => group).length +
+        (partition === 'unarchived' ? 1 : 0)
+    const setActiveFilterCount = filtersContext?.setActiveCount
+    useEffect(() => {
+        setActiveFilterCount?.(activeFilterCount)
+    }, [setActiveFilterCount, activeFilterCount])
 
     if (!userPaging) throw new Error('Fant ikke UserPagingContext')
 
@@ -231,7 +256,7 @@ export default function UserList({
         `}>
             <div className="w-full flex flex-row flex-wrap items-end mb-2 gap-4">
                 {
-                    !disableFilters.name && (
+                    !disableFilters.name && !nameFromSearchParam && (
                         <TextInput
                             name="partOfName"
                             label="Navn"
@@ -240,96 +265,108 @@ export default function UserList({
                         />
                     )
                 }
-                {
-                    !disableFilters.COMMITTEE && (
-                        <div className="flex flex-col gap-2 min-w-[150px]">
-                            <SearchableDropdown
-                                name="komite"
-                                label="Komité"
-                                onChange={groupId => handleGroupSelect(groupId, 'COMMITTEE')}
-                                options={getGroupOptions(groups, 'COMMITTEE')}
-                            />
-                            {
-                                groupSelection.COMMITTEE.group && <Dropdown
-                                    name="orden"
-                                    label="Orden"
-                                    onChange={order => handleGroupOrderSelect(order, 'COMMITTEE')}
-                                    options={getOrdereOptions(groupSelection.COMMITTEE.group)}
+                {!filtersContext && (
+                    <FiltersToggleButton
+                        open={filtersOpen}
+                        onToggle={() => setLocalFiltersOpen(previous => !previous)}
+                        activeCount={activeFilterCount}
+                    />
+                )}
+                <div className={`
+                    contents
+                    ${filtersOpen ? '' : 'max-mobile:hidden'}
+                `}>
+                    {
+                        !disableFilters.COMMITTEE && (
+                            <div className="flex flex-col gap-2 min-w-[150px]">
+                                <SearchableDropdown
+                                    name="komite"
+                                    label="Komité"
+                                    onChange={groupId => handleGroupSelect(groupId, 'COMMITTEE')}
+                                    options={getGroupOptions(groups, 'COMMITTEE')}
                                 />
-                            }
-                        </div>
-                    )
-                }
-                {
-                    !disableFilters.CLASS && (
-                        <div className="flex flex-col gap-2 min-w-[150px]">
-                            <Dropdown
-                                name="klasse"
-                                label="Klasse"
-                                onChange={groupId => handleGroupSelect(groupId, 'CLASS')}
-                                options={getGroupOptions(groups, 'CLASS')}
-                            />
-                            {
-                                groupSelection.CLASS.group && <Dropdown
-                                    name="orden"
-                                    label="Orden"
-                                    onChange={order => handleGroupOrderSelect(order, 'CLASS')}
-                                    options={getOrdereOptions(groupSelection.CLASS.group)}
+                                {
+                                    groupSelection.COMMITTEE.group && <Dropdown
+                                        name="orden"
+                                        label="Orden"
+                                        onChange={order => handleGroupOrderSelect(order, 'COMMITTEE')}
+                                        options={getOrdereOptions(groupSelection.COMMITTEE.group)}
+                                    />
+                                }
+                            </div>
+                        )
+                    }
+                    {
+                        !disableFilters.CLASS && (
+                            <div className="flex flex-col gap-2 min-w-[150px]">
+                                <Dropdown
+                                    name="klasse"
+                                    label="Klasse"
+                                    onChange={groupId => handleGroupSelect(groupId, 'CLASS')}
+                                    options={getGroupOptions(groups, 'CLASS')}
                                 />
-                            }
-                        </div>
-                    )
-                }
-                {
-                    !disableFilters.STUDY_PROGRAMME && (
-                        <div className="flex flex-col gap-2 min-w-[150px]">
-                            <Dropdown
-                                name="studie"
-                                label="Studieprogram"
-                                onChange={groupId => handleGroupSelect(groupId, 'STUDY_PROGRAMME')}
-                                options={getGroupOptions(groups, 'STUDY_PROGRAMME')}
-                            />
-                            {
-                                groupSelection.STUDY_PROGRAMME.group && <Dropdown
-                                    name="orden"
-                                    label="Orden"
-                                    onChange={order => handleGroupOrderSelect(order, 'STUDY_PROGRAMME')}
-                                    options={getOrdereOptions(groupSelection.STUDY_PROGRAMME.group)}
+                                {
+                                    groupSelection.CLASS.group && <Dropdown
+                                        name="orden"
+                                        label="Orden"
+                                        onChange={order => handleGroupOrderSelect(order, 'CLASS')}
+                                        options={getOrdereOptions(groupSelection.CLASS.group)}
+                                    />
+                                }
+                            </div>
+                        )
+                    }
+                    {
+                        !disableFilters.STUDY_PROGRAMME && (
+                            <div className="flex flex-col gap-2 min-w-[150px]">
+                                <Dropdown
+                                    name="studie"
+                                    label="Studieprogram"
+                                    onChange={groupId => handleGroupSelect(groupId, 'STUDY_PROGRAMME')}
+                                    options={getGroupOptions(groups, 'STUDY_PROGRAMME')}
                                 />
-                            }
-                        </div>
-                    )
-                }
-                {
-                    !disableFilters.OMEGA_MEMBERSHIP_GROUP && (
-                        <div className="flex flex-col gap-2 min-w-[150px]">
-                            <Dropdown
-                                name="medlemskap"
-                                label="Medlemskap"
-                                onChange={groupId => handleGroupSelect(groupId, 'OMEGA_MEMBERSHIP_GROUP')}
-                                options={getGroupOptions(groups, 'OMEGA_MEMBERSHIP_GROUP')}
-                            />
-                            {
-                                groupSelection.OMEGA_MEMBERSHIP_GROUP.group && <Dropdown
-                                    name="orden"
-                                    label="Orden"
-                                    onChange={order => handleGroupOrderSelect(order, 'OMEGA_MEMBERSHIP_GROUP')}
-                                    options={getOrdereOptions(groupSelection.OMEGA_MEMBERSHIP_GROUP.group)}
+                                {
+                                    groupSelection.STUDY_PROGRAMME.group && <Dropdown
+                                        name="orden"
+                                        label="Orden"
+                                        onChange={order => handleGroupOrderSelect(order, 'STUDY_PROGRAMME')}
+                                        options={getOrdereOptions(groupSelection.STUDY_PROGRAMME.group)}
+                                    />
+                                }
+                            </div>
+                        )
+                    }
+                    {
+                        !disableFilters.OMEGA_MEMBERSHIP_GROUP && (
+                            <div className="flex flex-col gap-2 min-w-[150px]">
+                                <Dropdown
+                                    name="medlemskap"
+                                    label="Medlemskap"
+                                    onChange={groupId => handleGroupSelect(groupId, 'OMEGA_MEMBERSHIP_GROUP')}
+                                    options={getGroupOptions(groups, 'OMEGA_MEMBERSHIP_GROUP')}
                                 />
-                            }
-                        </div>
-                    )
-                }
-                {
-                    canWiden && (
-                        <Checkbox
-                            name="widen"
-                            label="Vis også uteksaminerte og ikke opptatte"
-                            checked={partition === 'unarchived'}
-                            onChange={handleWiden}
-                        />
-                    )
-                }
+                                {
+                                    groupSelection.OMEGA_MEMBERSHIP_GROUP.group && <Dropdown
+                                        name="orden"
+                                        label="Orden"
+                                        onChange={order => handleGroupOrderSelect(order, 'OMEGA_MEMBERSHIP_GROUP')}
+                                        options={getOrdereOptions(groupSelection.OMEGA_MEMBERSHIP_GROUP.group)}
+                                    />
+                                }
+                            </div>
+                        )
+                    }
+                    {
+                        canWiden && (
+                            <Checkbox
+                                name="widen"
+                                label="Vis også uteksaminerte og ikke opptatte"
+                                checked={partition === 'unarchived'}
+                                onChange={handleWiden}
+                            />
+                        )
+                    }
+                </div>
             </div>
             <div className="flex-auto overflow-y-auto">
                 <table className="
@@ -347,18 +384,24 @@ export default function UserList({
                                     Navn {sortIcon('name')}
                                 </button>
                             </th>
-                            <th className={sortableClassName} aria-sort={ariaSort('username')}>
+                            <th
+                                className={`
+                                    ${sortableClassName}
+                                    max-mobile:hidden
+                                `}
+                                aria-sort={ariaSort('username')}
+                            >
                                 <button type="button" className={sortButtonClassName} onClick={() => handleSort('username')}>
                                     Brukernavn {sortIcon('username')}
                                 </button>
                             </th>
-                            <th>Studie</th>
-                            <th>Klasse</th>
+                            <th className="max-mobile:hidden">Studie</th>
+                            <th className="max-mobile:hidden">Klasse</th>
                             {
                                 groupSelected && (
                                     <>
-                                        <th>Tittel</th>
-                                        <th>Administrator</th>
+                                        <th className="max-mobile:hidden">Tittel</th>
+                                        <th className="max-mobile:hidden">Administrator</th>
                                     </>
                                 )
                             }

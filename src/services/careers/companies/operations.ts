@@ -10,6 +10,8 @@ import { defineOperation } from '@/services/serviceOperation'
 import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { cmsImageOperations } from '@/cms/images/operations'
+import { implementSearchOperation } from '@/services/search/implement'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { SponsorCompany } from './types'
 
@@ -56,6 +58,22 @@ export const companyOperations = {
             orderBy: companySponsorOrdering,
             include: logoIncluder,
         })
+    }),
+    search: implementSearchOperation({
+        authorizer: () => companyAuth.search,
+        find: ({ prisma, query, take }) => prisma.company.findMany({
+            take,
+            where: { name: { contains: query, mode: 'insensitive' } },
+            orderBy: companySponsorOrdering,
+            include: logoIncluder,
+        }),
+        // A company has no page of its own, so the result opens the company list filtered to it.
+        toSearchResult: company => ({
+            key: `company-${company.id}`,
+            href: `/career/companies?${QueryParams.companyName.encodeUrl(company.name)}`,
+            label: company.name,
+            image: company.logo.image,
+        }),
     }),
     update: defineOperation({
         paramsSchema: companySchemas.params.update,

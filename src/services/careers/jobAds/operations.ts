@@ -9,6 +9,7 @@ import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { formatVevenUri } from '@/lib/urlEncoding'
+import { implementSearchOperation } from '@/services/search/implement'
 import type { ExpandedJobAd, SimpleJobAd } from './types'
 
 const read = defineOperation({
@@ -107,6 +108,32 @@ export const jobAdOperations = {
                 companySponsorTier: jobAd.company.sponsorTier,
             }))
         }
+    }),
+    search: implementSearchOperation({
+        authorizer: () => jobAdAuth.search,
+        find: ({ prisma, query, take }) => prisma.jobAd.findMany({
+            take,
+            where: {
+                OR: [
+                    { article: { name: { contains: query, mode: 'insensitive' } } },
+                    { company: { name: { contains: query, mode: 'insensitive' } } },
+                ],
+            },
+            orderBy: [{ active: 'desc' }, ...activeJobAdOrdering],
+            select: {
+                id: true,
+                active: true,
+                article: { select: { name: true } },
+                company: { select: { name: true } },
+            },
+        }),
+        toSearchResult: jobAd => ({
+            key: `job-ad-${jobAd.id}`,
+            href: `/job-ads/${formatVevenUri(jobAd.article.name, jobAd.id)}`,
+            label: jobAd.article.name,
+            sublabel: jobAd.active ? jobAd.company.name : `${jobAd.company.name} (utløpt)`,
+            image: null,
+        }),
     }),
     /**
      * This handler reads a page of inactive jobAds

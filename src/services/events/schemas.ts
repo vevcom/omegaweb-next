@@ -54,9 +54,6 @@ const dataFieldSchemas = z.object({
 const paramsFieldSchemas = z.object({
     id: z.number(),
     eventId: z.number(),
-    query: z.string().trim().min(1).max(100),
-    limit: z.number().int().min(1).max(25)
-        .optional(),
     name: z.string().max(100).optional(),
     tags: z.array(z.string()).nullable(),
 })
@@ -117,6 +114,7 @@ export const eventSchemas = {
         read: eventId,
         readManyCurrent: paramsFieldSchemas.pick({
             tags: true,
+            name: true,
         }),
         readManyArchivedPage: readPageInputSchemaObject(
             paramsFieldSchemas.pick({
@@ -127,10 +125,6 @@ export const eventSchemas = {
                 tags: true,
             }),
         ),
-        search: paramsFieldSchemas.pick({
-            query: true,
-            limit: true,
-        }),
         update: eventId,
         updateCmsCoverImage: eventImplementationId,
         setPublished: eventId,
