@@ -11,12 +11,11 @@ export const RELEASE_COUNTDOWN_PASSWORD = process.env.RELEASE_COUNTDOWN_PASSWORD
 /**
  * The countdown keeps its state in files rather than the database, so it works before the
  * database is migrated and seeded, and so nothing of it has to be cleaned up after release.
- * They live in the store, which is the volume that outlives the container. The settings file is
- * created on startup (see `prepare.ts`) and the git graph fetched from GitHub when missing.
+ * They live in the store, which outlives the container. The settings file is created on startup
+ * (see `prepare.ts`) and the git graph fetched from GitHub when missing.
  */
-export const RELEASE_COUNTDOWN_STORE_DIRECTORY = 'store/releaseCountdown'
-export const RELEASE_COUNTDOWN_SETTINGS_FILE = `${RELEASE_COUNTDOWN_STORE_DIRECTORY}/settings.json`
-export const RELEASE_COUNTDOWN_GIT_GRAPH_FILE = `${RELEASE_COUNTDOWN_STORE_DIRECTORY}/gitGraph.json`
+export const RELEASE_COUNTDOWN_SETTINGS_FILE = 'releaseCountdown/settings.json'
+export const RELEASE_COUNTDOWN_GIT_GRAPH_FILE = 'releaseCountdown/gitGraph.json'
 /**
  * Where the client fetches the git graph from: the store is served as is.
  */

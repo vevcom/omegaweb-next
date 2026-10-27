@@ -3,12 +3,10 @@ import {
     DEFAULT_RELEASE_DATE,
     RELEASE_COUNTDOWN_GIT_GRAPH_FILE,
     RELEASE_COUNTDOWN_SETTINGS_FILE,
-    RELEASE_COUNTDOWN_STORE_DIRECTORY,
 } from './constants'
 import logger from '@/lib/logger'
+import { storeBackend } from '@/lib/store/backend'
 import { z } from 'zod'
-import { access, mkdir, readFile, rename, writeFile } from 'fs/promises'
-import { randomUUID } from 'crypto'
 import type { ReleaseCountdownSettings } from './types'
 import type { GitGraph } from './gitGraph/types'
 
@@ -22,15 +20,8 @@ const defaultSettings = (): ReleaseCountdownSettings => ({
     openToAll: false,
 })
 
-/**
- * Written to a temporary file and renamed into place, so a request that reads while another
- * writes sees either the old file or the new one, never half of the new one.
- */
-async function writeJsonFile(path: string, content: unknown) {
-    await mkdir(RELEASE_COUNTDOWN_STORE_DIRECTORY, { recursive: true })
-    const temporary = `${path}.${randomUUID()}.tmp`
-    await writeFile(temporary, JSON.stringify(content))
-    await rename(temporary, path)
+async function writeJsonFile(key: string, content: unknown) {
+    await storeBackend.write(key, Buffer.from(JSON.stringify(content)))
 }
 
 /**
@@ -43,10 +34,6 @@ function parseJson(raw: string): unknown {
     } catch {
         return undefined
     }
-}
-
-function isMissingFile(error: unknown) {
-    return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT'
 }
 
 export async function writeSettings(settings: ReleaseCountdownSettings) {
@@ -62,17 +49,14 @@ export async function writeSettings(settings: ReleaseCountdownSettings) {
  * defaults are used until it is put right.
  */
 export async function readSettings(): Promise<ReleaseCountdownSettings> {
-    let raw: string
-    try {
-        raw = await readFile(RELEASE_COUNTDOWN_SETTINGS_FILE, 'utf-8')
-    } catch (error) {
-        if (!isMissingFile(error)) throw error
+    const raw = await storeBackend.read(RELEASE_COUNTDOWN_SETTINGS_FILE)
+    if (raw === null) {
         const settings = defaultSettings()
         await writeSettings(settings)
         return settings
     }
 
-    const parsed = settingsFileSchema.safeParse(parseJson(raw))
+    const parsed = settingsFileSchema.safeParse(parseJson(raw.toString('utf-8')))
     if (!parsed.success) {
         logger.warn('The release countdown settings file is not what was expected - using the defaults', {
             file: RELEASE_COUNTDOWN_SETTINGS_FILE,
@@ -91,11 +75,5 @@ export async function writeGitGraph(graph: GitGraph) {
 }
 
 export async function hasGitGraph(): Promise<boolean> {
-    try {
-        await access(RELEASE_COUNTDOWN_GIT_GRAPH_FILE)
-        return true
-    } catch (error) {
-        if (!isMissingFile(error)) throw error
-        return false
-    }
+    return await storeBackend.exists(RELEASE_COUNTDOWN_GIT_GRAPH_FILE)
 }

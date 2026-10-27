@@ -1,15 +1,15 @@
 import '@pn-server-only'
 import { extensionForContent, type StorableExtension } from './fileExtensions'
+import { storeBackend } from './backend'
 import { ServiceError } from '@/services/error'
 import { v4 as uuid } from 'uuid'
-import { mkdir, opendir, readFile, unlink, writeFile } from 'fs/promises'
-import { join } from 'path'
+import { posix } from 'path'
 import type { File } from 'buffer'
 import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * This implements the store and lets a service use the store. The staticStorePrefix is where the service will store
- * its files in the store volume. The allowedExtentions is used to validate the file type before storing it, and is
+ * its files in the store. The allowedExtentions is used to validate the file type before storing it, and is
  * captured as a literal type so createFile's own allowedExt can be typechecked as a subset of it - createFile can be
  * stricter than the implementation about which extensions it allows, but never wider.
  *
@@ -17,15 +17,23 @@ import type { Awaitable } from '@/lib/awaitable'
  * destroy files in the store.
  *
  * createFile takes a File, checks its type by its content (never by the mime type the client sent), and stores it
- * in the store volume.
+ * in the store.
  * It returns the fsLocation and ext of the stored file.
- * destroyFile takes the fsLocation of a file and deletes it from the store volume.
+ * destroyFile takes the fsLocation of a file and deletes it from the store.
  * listFiles lets the store worker find the files no row refers to (see createOrphanDestroyer).
+ *
+ * The store is a directory on disk or an S3 bucket, see storeBackend.
  */
 export function implementStore<const AllowedExt extends readonly StorableExtension[]>(config: {
     staticStorePrefix: string,
     allowedExtentions: AllowedExt
 }) {
+    function storeKey(fsLocation: string, dynamicStorePrefix?: string) {
+        return dynamicStorePrefix
+            ? posix.join(config.staticStorePrefix, dynamicStorePrefix, fsLocation)
+            : posix.join(config.staticStorePrefix, fsLocation)
+    }
+
     async function createFile(
         file: File,
         allowedExt: readonly AllowedExt[number][] = config.allowedExtentions,
@@ -39,11 +47,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
         const ext = storableExtension(buffer, allowedExt)
         const processedBuffer = await prosessor(buffer)
         const fsLocation = `${uuid()}.${ext}`
-        const destination = dynamicStorePrefix
-            ? join('store', config.staticStorePrefix, dynamicStorePrefix)
-            : join('store', config.staticStorePrefix)
-        await mkdir(destination, { recursive: true })
-        await writeFile(join(destination, fsLocation), processedBuffer)
+        await storeBackend.write(storeKey(fsLocation, dynamicStorePrefix), processedBuffer)
         return {
             fsLocation,
             ext
@@ -54,17 +58,11 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
         fsLocation: string,
         dynamicStorePrefix?: string
     ): Promise<Buffer> {
-        const filePath = dynamicStorePrefix
-            ? join('store', config.staticStorePrefix, dynamicStorePrefix, fsLocation)
-            : join('store', config.staticStorePrefix, fsLocation)
-        try {
-            return await readFile(filePath)
-        } catch (error) {
-            if (isErrorWithCode(error) && error.code === 'ENOENT') {
-                throw new ServiceError('NOT FOUND', 'Filen du forsøkte å finne ble ikke funnet')
-            }
-            throw error
+        const content = await storeBackend.read(storeKey(fsLocation, dynamicStorePrefix))
+        if (content === null) {
+            throw new ServiceError('NOT FOUND', 'Filen du forsøkte å finne ble ikke funnet')
         }
+        return content
     }
 
     async function destroyFile(
@@ -72,45 +70,19 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
         dynamicStorePrefix?: string,
         throwOnNotFound = true
     ): Promise<void> {
-        const filePath = dynamicStorePrefix
-            ? join('store', config.staticStorePrefix, dynamicStorePrefix, fsLocation)
-            : join('store', config.staticStorePrefix, fsLocation)
-        try {
-            await unlink(filePath)
-        } catch (error) {
-            if (isErrorWithCode(error) && error.code === 'ENOENT') {
-                if (throwOnNotFound) {
-                    throw new ServiceError('NOT FOUND', 'Filen du forsøkte å finne ble ikke funnet')
-                }
-                return
-            }
-            throw error
+        const destroyed = await storeBackend.destroy(storeKey(fsLocation, dynamicStorePrefix))
+        if (!destroyed && throwOnNotFound) {
+            throw new ServiceError('NOT FOUND', 'Filen du forsøkte å finne ble ikke funnet')
         }
     }
 
     /**
-     * The fsLocations of the files in the store, read from the directory a batch at a time so that a
-     * store of any size never has to be held in memory at once. Only the store's own directory is
-     * listed: no store keeps files under a dynamic prefix.
+     * The fsLocations of the files in the store, a batch at a time so that a store of any size never
+     * has to be held in memory at once. Only the store's own prefix is listed: no store keeps files
+     * under a dynamic prefix.
      */
-    async function* listFiles(batchSize: number): AsyncGenerator<string[]> {
-        let directory
-        try {
-            directory = await opendir(join('store', config.staticStorePrefix), { bufferSize: batchSize })
-        } catch (error) {
-            if (isErrorWithCode(error) && error.code === 'ENOENT') return
-            throw error
-        }
-        let batch: string[] = []
-        for await (const entry of directory) {
-            if (!entry.isFile()) continue
-            batch.push(entry.name)
-            if (batch.length >= batchSize) {
-                yield batch
-                batch = []
-            }
-        }
-        if (batch.length > 0) yield batch
+    function listFiles(batchSize: number): AsyncGenerator<string[]> {
+        return storeBackend.list(config.staticStorePrefix, batchSize)
     }
 
     /**
@@ -140,8 +112,4 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
         destroyFile,
         listFiles,
     } as const
-}
-
-function isErrorWithCode(error: unknown): error is { code: string } {
-    return typeof error === 'object' && error !== null && 'code' in error
 }

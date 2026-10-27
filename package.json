@@ -34,6 +34,7 @@
     "prisma-studio": "npx prisma studio --port 5555 --browser none"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1147.0",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/free-brands-svg-icons": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
