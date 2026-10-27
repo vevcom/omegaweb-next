@@ -1,4 +1,5 @@
 import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
+import HeaderSearch from '@/components/HeaderItems/HeaderSearch'
 import React from 'react'
 
 export default function PageWrapper({
@@ -8,9 +9,12 @@ export default function PageWrapper({
     hideTitle = false,
     transparent = false,
     className,
+    search,
 }: {
     children: React.ReactNode,
     headerItem?: React.ReactNode,
+    /** Shows a search in the header, written to the `search` query param for the page to filter on. */
+    search?: { value: string, label?: string, shallow?: boolean },
     fillHeight?: boolean,
     hideTitle?: boolean,
     /** For pages laid out as islands: drops the wrapper's surface-base panel so the page background shows through. */
@@ -40,9 +44,18 @@ export default function PageWrapper({
         <ScrollArea className={wrapperClass} scrollerClassName={scrollerClass}>
             {!hideTitle && (
                 <div className={headerClass}>
-                    <div>
-                        { headerItem }
-                    </div>
+                    {search ? (
+                        <div className="flex-wrap gap-2">
+                            <HeaderSearch defaultValue={search.value} label={search.label} shallow={search.shallow} />
+                            <div className="flex-1 min-w-0 flex items-center justify-end">
+                                { headerItem }
+                            </div>
+                        </div>
+                    ) : (
+                        <div>
+                            { headerItem }
+                        </div>
+                    )}
                 </div>
             )}
 

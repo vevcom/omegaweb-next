@@ -1,6 +1,7 @@
 import { Session } from '@/auth/session/Session'
 import { prisma } from '@/prisma-pn-client-instance'
 import { searchOperations } from '@/services/search/operations'
+import { eventOperations } from '@/services/events/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 
 const COMPANY_NAME = 'Søketest Bedrift AS'
@@ -34,6 +35,32 @@ describe('global search', () => {
         expect(categories).not.toContain('users')
         expect(categories).not.toContain('committees')
         expect(categories).not.toContain('jobAds')
+    })
+
+    test('the current events can be narrowed to part of a name, ignoring case', async () => {
+        const group = await prisma.group.findFirstOrThrow()
+        const HOUR = 60 * 60 * 1000
+        const createEvent = (name: string) => eventOperations.create({
+            data: {
+                name,
+                location: 'Lophtet',
+                eventStart: new Date(Date.now() + 7 * 24 * HOUR),
+                eventEnd: new Date(Date.now() + 7 * 24 * HOUR + 2 * HOUR),
+                canBeViewedBy: 'ALL',
+                takesRegistration: false,
+                tagIds: [],
+                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+            },
+            bypassAuth: true,
+        })
+        await createEvent('Søketest Julebord')
+        await createEvent('Søketest Sommerfest')
+
+        const events = await eventOperations.readManyCurrent({
+            params: { tags: null, name: 'søketest jule' },
+            bypassAuth: true,
+        })
+        expect(events.map(event => event.name)).toEqual(['Søketest Julebord'])
     })
 
     test('a single category the session may not search gives no sections', async () => {

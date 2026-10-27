@@ -730,6 +730,7 @@ async function readUserPage(
         ...cursorPagingSelection(page),
         select: {
             ...userCardSelection,
+            image: { include: expandedImageIncluder },
             memberships: {
                 select: {
                     admin: true,
@@ -791,6 +792,9 @@ async function readUserPage(
         // value is undefined behaviour in postgresql.
         orderBy
     })
+    const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
+        params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
+    })
     return users.map(user => {
         const clas = user.memberships.find(
             membership => membership.group.class !== null)?.group.class?.level
@@ -806,6 +810,7 @@ async function readUserPage(
             membership => membership.groupId === details.selectedGroup?.groupId)?.admin
         return {
             ...user,
+            image: user.image ?? defaultProfileImage,
             class: clas,
             studyProgramme,
             membershipType,
