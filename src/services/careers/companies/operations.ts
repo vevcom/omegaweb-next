@@ -10,6 +10,7 @@ import { defineOperation } from '@/services/serviceOperation'
 import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { cmsImageOperations } from '@/cms/images/operations'
+import { defaultSearchResultLimit } from '@/services/search/constants'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { SponsorCompany } from './types'
 
@@ -53,6 +54,16 @@ export const companyOperations = {
                     mode: 'insensitive'
                 }
             },
+            orderBy: companySponsorOrdering,
+            include: logoIncluder,
+        })
+    }),
+    search: defineOperation({
+        paramsSchema: companySchemas.params.search,
+        authorizer: () => companyAuth.search,
+        operation: async ({ prisma, params }) => await prisma.company.findMany({
+            take: params.limit ?? defaultSearchResultLimit,
+            where: { name: { contains: params.query, mode: 'insensitive' } },
             orderBy: companySponsorOrdering,
             include: logoIncluder,
         })

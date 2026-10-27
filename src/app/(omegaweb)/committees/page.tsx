@@ -1,11 +1,26 @@
 import CommitteeCard from '@/components/Committee/CommitteeCard/CommitteeCard'
 import { committeeOperations } from '@/services/groups/committees/operations'
+import SearchBar from '@/UI/SearchBar'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage } from '@/app/ServerPage'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => committeeOperations.readAll({}),
+    operation: async ({ searchParams }: PageOperationArgs) => {
+        const search = QueryParams.search.decode(searchParams) ?? ''
+        const needle = search.trim().toLowerCase()
+        const committees = await committeeOperations.readAll({})
+        return {
+            search,
+            committees: committees.filter(committee =>
+                committee.name.toLowerCase().includes(needle) || committee.shortName.toLowerCase().includes(needle)
+            ),
+        }
+    },
     metadata: () => ({ title: 'Komitéer' }),
-    render: ({ data: committees }) => {
+    render: ({ data: { search, committees } }) => {
         // A pensioned committee is part of Omega's history rather than of it now, so it is listed
         // below the ones that still run rather than mixed in among them.
         const active = committees.filter(committee => !committee.group.pensioned)
@@ -29,6 +44,9 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <div className="w-full h-full text-text self-start">
+                <div className="mb-2">
+                    <SearchBar defaultValue={search} label="Søk etter komité" />
+                </div>
                 {
                     committees.length ? (
                         <>
@@ -41,9 +59,10 @@ const { page, generateMetadata } = serverPage({
                             )}
                         </>
                     ) : (
-                        <i>
-                            Ingen komitéer å vise
-                        </i>
+                        <div className="flex flex-col items-center gap-3 mt-12 text-text-muted">
+                            <FontAwesomeIcon icon={faMagnifyingGlass} className="text-4xl" />
+                            <i>{search ? 'Ingen komitéer matcher søket' : 'Ingen komitéer å vise'}</i>
+                        </div>
                     )
                 }
             </div>

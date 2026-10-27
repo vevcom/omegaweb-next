@@ -18,6 +18,7 @@ import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { formatVevenUri } from '@/lib/urlEncoding'
+import { defaultSearchResultLimit } from '@/services/search/constants'
 import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -141,6 +142,22 @@ export const newsOperations = {
                     ...visibleNewsFilter(visibilityWhereFilter),
                 },
                 ...cursorPagingSelection(params.paging.page),
+                orderBy: newsArticleOrdering,
+                include: simpleNewsArticleRelationsIncluder,
+            })
+            return news.map(withCoverImage)
+        }
+    }),
+    search: defineOperation({
+        paramsSchema: newsSchemas.params.search,
+        authorizer: () => newsAuth.search,
+        operation: async ({ prisma, params }, visibilityWhereFilter) => {
+            const news = await prisma.newsArticle.findMany({
+                take: params.limit ?? defaultSearchResultLimit,
+                where: {
+                    article: { name: { contains: params.query, mode: 'insensitive' } },
+                    ...visibleNewsFilter(visibilityWhereFilter),
+                },
                 orderBy: newsArticleOrdering,
                 include: simpleNewsArticleRelationsIncluder,
             })

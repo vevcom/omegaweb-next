@@ -15,6 +15,7 @@ import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { implementUpdateArticleSectionOperations } from '@/cms/articleSections/implement'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { articleSectionOperations } from '@/cms/articleSections/operations'
+import { defaultSearchResultLimit } from '@/services/search/constants'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 const commonGroupOperations = implementGroupType({
@@ -95,6 +96,21 @@ export const interestGroupOperations = {
                 { name: 'asc' },
                 { id: 'asc' },
             ]
+        })
+    }),
+
+    search: defineOperation({
+        paramsSchema: interestGroupSchemas.params.search,
+        authorizer: () => interestGroupAuth.search,
+        operation: ({ prisma, params }) => prisma.interestGroup.findMany({
+            take: params.limit ?? defaultSearchResultLimit,
+            where: { name: { contains: params.query, mode: 'insensitive' } },
+            select: {
+                id: true,
+                name: true,
+                group: { select: { pensioned: true } },
+            },
+            orderBy: [{ group: { pensioned: 'asc' } }, { name: 'asc' }],
         })
     }),
 

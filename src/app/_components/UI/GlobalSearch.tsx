@@ -1,18 +1,15 @@
 'use client'
 import ModeSwitch from './ModeSwitch'
+import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import Image from '@/components/Image/Image'
 import useKeyPress from '@/hooks/useKeyPress'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import { useDebounce } from '@/hooks/useDebounce'
-import { searchEventsAction } from '@/services/events/actions'
-import { searchUsersAction } from '@/services/users/actions'
-import { userAuth } from '@/services/users/auth'
-import useAuthorizer from '@/hooks/useAuthorizer'
+import { searchAction } from '@/services/search/actions'
+import { searchCategories } from '@/services/search/constants'
 import { useGlobalSearch } from '@/contexts/GlobalSearch'
-import { formatVevenUri } from '@/lib/urlEncoding'
-import { displayDate } from '@/lib/dates/displayDate'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faMagnifyingGlass, faCalendar, faSpinner, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faMagnifyingGlass, faSpinner, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -20,8 +17,10 @@ import type { ChangeEvent, KeyboardEvent } from 'react'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
 import type { NavLink } from '@/components/NavBar/navDef'
 import type { ExpandedImage } from '@/services/images/subservice/types'
+import type { SearchCategory } from '@/services/search/constants'
+import type { SearchSection as ResultSection } from '@/services/search/types'
 
-type Category = 'all' | 'navigation' | 'users' | 'events'
+type Category = 'all' | 'navigation' | SearchCategory
 
 type Thumb =
     | { type: 'icon', icon: IconDefinition }
@@ -43,14 +42,11 @@ type SearchSection = {
 export type PropTypes = {
     /** The nav items the session may open, as `visibleNavItems` leaves them. */
     navItems: NavLink[],
+    /** The admin pages the session may open, as `visibleAdminNav` leaves them, with their group's title. */
+    adminNavItems: (NavLink & { group: string })[],
+    /** The categories the session may search, each by its own `search` authorizer. */
+    categories: SearchCategory[],
 }
-
-const categoryOptions: { value: Category, label: string }[] = [
-    { value: 'all', label: 'Alt' },
-    { value: 'navigation', label: 'Navigasjon' },
-    { value: 'users', label: 'Brukere' },
-    { value: 'events', label: 'Arrangementer' },
-]
 
 const kbdClassName = `
     inline-flex items-center justify-center min-w-4 py-[calc(0.15*var(--gap))] px-[calc(0.4*var(--gap))]
@@ -59,14 +55,15 @@ const kbdClassName = `
 
 /**
  * Global command-K search popup, inspired by JetBrains' "Search Everywhere": a single box
- * that searches site navigation, users and events at once, grouped into tabs the user can
+ * that searches site navigation and every searchable service at once, grouped into tabs the user can
  * cycle through with Tab/Shift+Tab and browse with the arrow keys.
  */
-export default function GlobalSearch({ navItems }: PropTypes) {
-    const canSearchUsers = useAuthorizer({ authorizer: userAuth.search }).authorized
-    const availableCategories = canSearchUsers
-        ? categoryOptions
-        : categoryOptions.filter(option => option.value !== 'users')
+export default function GlobalSearch({ navItems, adminNavItems, categories }: PropTypes) {
+    const availableCategories: { value: Category, label: string }[] = [
+        { value: 'all', label: 'Alt' },
+        { value: 'navigation', label: 'Navigasjon' },
+        ...categories.map(name => ({ value: name, label: searchCategories[name].label })),
+    ]
 
     const { isOpen, setIsOpen } = useGlobalSearch()
     const [category, setCategory] = useState<Category>('all')
@@ -74,14 +71,10 @@ export default function GlobalSearch({ navItems }: PropTypes) {
     const [debouncedQuery, setDebouncedQuery] = useState('')
     const [activeIndex, setActiveIndex] = useState(0)
     const [loading, setLoading] = useState(false)
-    const [userResults, setUserResults] = useState<
-        { id: number, username: string, firstname: string, lastname: string, image: ExpandedImage }[]
-    >([])
-    const [eventResults, setEventResults] = useState<
-        { id: number, name: string, eventStart: Date, coverImage: { image: ExpandedImage | null } }[]
-    >([])
+    const [resultSections, setResultSections] = useState<ResultSection[]>([])
 
     const inputRef = useRef<HTMLInputElement>(null)
+    const tabsRef = useRef<HTMLDivElement>(null)
     const router = useRouter()
     const updateDebouncedQuery = useDebounce((value: string) => setDebouncedQuery(value), 300)
 
@@ -91,8 +84,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
         setQuery('')
         setDebouncedQuery('')
         setActiveIndex(0)
-        setUserResults([])
-        setEventResults([])
+        setResultSections([])
     }
     const ref = useClickOutsideRef(close)
     useKeyPress('Escape', close)
@@ -115,66 +107,72 @@ export default function GlobalSearch({ navItems }: PropTypes) {
     }, [isOpen])
 
     useEffect(() => {
+        tabsRef.current?.querySelector('[aria-pressed=true]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    }, [category])
+
+    useEffect(() => {
         if (!debouncedQuery) return undefined
 
         let cancelled = false
-        const limit = category === 'all' ? undefined : 20
+        const searchCategory = category === 'all' || category === 'navigation' ? undefined : category
 
-        void Promise.all([
-            canSearchUsers ? searchUsersAction({ params: { query: debouncedQuery, limit } }) : null,
-            searchEventsAction({ params: { query: debouncedQuery, limit } }),
-        ]).then(([usersResult, eventsResult]) => {
+        void searchAction({ params: { query: debouncedQuery, category: searchCategory } }).then(result => {
             if (cancelled) return
-            setUserResults(usersResult?.success ? usersResult.data : [])
-            setEventResults(eventsResult.success ? eventsResult.data : [])
+            setResultSections(result.success ? result.data : [])
             setLoading(false)
         })
 
         return () => {
             cancelled = true
         }
-    }, [debouncedQuery, category, canSearchUsers])
+    }, [debouncedQuery, category])
 
     const trimmedQuery = query.trim().toLowerCase()
 
-    const navSectionItems: SearchItem[] = useMemo(() => navItems
-        .filter(item => trimmedQuery === '' || item.name.toLowerCase().includes(trimmedQuery))
-        .map(item => ({
-            key: `nav-${item.href}`,
-            href: item.href,
-            thumb: { type: 'icon', icon: item.icon },
-            label: item.name,
-        })),
-    [navItems, trimmedQuery])
-
-    const userSectionItems: SearchItem[] = useMemo(() => userResults.map(user => ({
-        key: `user-${user.id}`,
-        href: `/users/${user.username}`,
-        thumb: { type: 'image', image: user.image },
-        label: `${user.firstname} ${user.lastname}`,
-        sublabel: `@${user.username}`,
-    })), [userResults])
-
-    const eventSectionItems: SearchItem[] = useMemo(() => eventResults.map(event => ({
-        key: `event-${event.id}`,
-        href: `/events/${formatVevenUri(event.name, event.id)}`,
-        thumb: event.coverImage.image
-            ? { type: 'image', image: event.coverImage.image }
-            : { type: 'icon', icon: faCalendar },
-        label: event.name,
-        sublabel: displayDate(new Date(event.eventStart), false),
-    })), [eventResults])
+    const navSectionItems: SearchItem[] = useMemo(() => [
+        ...navItems
+            .filter(item => trimmedQuery === '' || item.name.toLowerCase().includes(trimmedQuery))
+            .map((item): SearchItem => ({
+                key: `nav-${item.href}`,
+                href: item.href,
+                thumb: { type: 'icon', icon: item.icon },
+                label: item.name,
+            })),
+        // Admin pages only show up when searched for, so they don't crowd the plain list of pages.
+        ...(trimmedQuery === '' ? [] : adminNavItems)
+            .filter(item => `${item.name} ${item.group}`.toLowerCase().includes(trimmedQuery))
+            .map((item): SearchItem => ({
+                key: `admin-nav-${item.href}`,
+                href: item.href,
+                thumb: { type: 'icon', icon: item.icon },
+                label: item.name,
+                sublabel: `Admin · ${item.group}`,
+            })),
+    ], [navItems, adminNavItems, trimmedQuery])
 
     const sections: SearchSection[] = useMemo(() => {
-        if (category === 'navigation') return [{ label: 'Navigasjon', items: navSectionItems }]
-        if (category === 'users') return [{ label: 'Brukere', items: userSectionItems }]
-        if (category === 'events') return [{ label: 'Arrangementer', items: eventSectionItems }]
-        return [
-            { label: 'Navigasjon', items: navSectionItems.slice(0, 5) },
-            { label: 'Brukere', items: userSectionItems },
-            { label: 'Arrangementer', items: eventSectionItems },
-        ].filter(section => section.items.length > 0)
-    }, [category, navSectionItems, userSectionItems, eventSectionItems])
+        const navSection = { label: 'Navigasjon', items: navSectionItems }
+        if (category === 'navigation') return [navSection]
+
+        const fromResults: SearchSection[] = resultSections
+            .filter(section => category === 'all' || section.category === category)
+            .map(section => ({
+                label: searchCategories[section.category].label,
+                items: section.results.map(result => ({
+                    key: result.key,
+                    href: result.href,
+                    thumb: result.image
+                        ? { type: 'image', image: result.image }
+                        : { type: 'icon', icon: searchCategories[section.category].icon },
+                    label: result.label,
+                    sublabel: result.sublabel,
+                })),
+            }))
+        if (category !== 'all') return fromResults
+
+        return [{ ...navSection, items: navSectionItems.slice(0, 5) }, ...fromResults]
+            .filter(section => section.items.length > 0)
+    }, [category, navSectionItems, resultSections])
 
     const flatItems = useMemo(() => sections.flatMap(section => section.items), [sections])
     const safeActiveIndex = flatItems.length === 0 ? -1 : Math.min(activeIndex, flatItems.length - 1)
@@ -188,8 +186,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
             setLoading(true)
         } else {
             setDebouncedQuery('')
-            setUserResults([])
-            setEventResults([])
+            setResultSections([])
             setLoading(false)
         }
     }
@@ -252,7 +249,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                             flex-1 min-w-0 border-none bg-transparent outline-none text-l text-text
                             placeholder:text-text-muted
                         "
-                        placeholder="Søk etter brukere, arrangementer og sider..."
+                        placeholder="Søk etter brukere, arrangementer, komitéer, nyheter og sider..."
                         autoComplete="off"
                         value={query}
                         onChange={handleQueryChange}
@@ -272,7 +269,14 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                         <FontAwesomeIcon icon={faXmark} />
                     </button>
                 </div>
-                <ModeSwitch options={availableCategories} value={category} onChange={handleCategoryChange} />
+                <div ref={tabsRef} className="shrink-0">
+                    <ScrollArea orientation="horizontal" scrollerClassName="
+                        pb-2
+                        [&>div]:w-max
+                    ">
+                        <ModeSwitch options={availableCategories} value={category} onChange={handleCategoryChange} />
+                    </ScrollArea>
+                </div>
                 <div className="overflow-y-auto flex-1 min-h-0 flex flex-col gap-3">
                     {
                         flatItems.length === 0 ? (
@@ -311,7 +315,12 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                                                         [&_img]:object-cover
                                                     ">
                                                         {item.thumb.type === 'image' ? (
-                                                            <Image image={item.thumb.image} width={40} />
+                                                            <Image
+                                                                image={item.thumb.image}
+                                                                width={40}
+                                                                hideCredit
+                                                                hideCopyRight
+                                                            />
                                                         ) : (
                                                             <FontAwesomeIcon icon={item.thumb.icon} />
                                                         )}

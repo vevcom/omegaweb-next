@@ -19,6 +19,7 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { GroupType } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
+import { defaultSearchResultLimit } from '@/services/search/constants'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -29,6 +30,31 @@ const readAll = defineOperation({
 
         const committees = await prisma.committee.findMany({
             include: committeeLogoIncluder,
+        })
+
+        return committees.map(committee => ({
+            ...committee,
+            logoImage: committee.logoImage ?? defaultCommitteeLogo
+        }))
+    }
+})
+
+const search = defineOperation({
+    authorizer: () => committeeAuth.search,
+    paramsSchema: committeeSchemas.params.search,
+    operation: async ({ prisma, params }) => {
+        const defaultCommitteeLogo = await readDefaultCommitteeLogo()
+
+        const committees = await prisma.committee.findMany({
+            take: params.limit ?? defaultSearchResultLimit,
+            where: {
+                OR: [
+                    { name: { contains: params.query, mode: 'insensitive' } },
+                    { shortName: { contains: params.query, mode: 'insensitive' } },
+                ],
+            },
+            include: committeeLogoIncluder,
+            orderBy: [{ group: { pensioned: 'asc' } }, { name: 'asc' }],
         })
 
         return committees.map(committee => ({
@@ -324,6 +350,7 @@ export const committeeOperations = {
     update,
     updateLogo,
     readAll,
+    search,
     read,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
