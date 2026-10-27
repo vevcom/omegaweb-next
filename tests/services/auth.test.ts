@@ -276,7 +276,7 @@ describe('archived users', () => {
             data: {
                 username: 'archivedclaimer',
                 email: 'archivedclaimer@stud.ntnu.no',
-                createdByFeideLoginOnProjectNext: true,
+                createdByFeideLoginOnOmegawebNext: true,
                 bioParagraph: { create: {} },
                 ledgerAccount: { create: { type: 'USER' } },
                 feideAccount: { create: {

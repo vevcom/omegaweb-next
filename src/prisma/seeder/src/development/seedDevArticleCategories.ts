@@ -10,7 +10,7 @@ type SeedArticleCategoryConfig = Pick<Data<typeof articleCategoryOperations.crea
     articles: SeedArticleConfig[],
 }
 
-export const seedArticleCategoriesConfig = [
+export const seedDevArticleCategoriesConfig = [
     {
         name: 'om omega',
         description: 'Lær om Omega',
@@ -114,15 +114,14 @@ export const seedArticleCategoriesConfig = [
  * If the article does not exist - it is created with all its sections and content
  * given by the config.
  */
-export const seedArticleCategories = defineSeedOperation(async (prisma) => {
-    await Promise.all(seedArticleCategoriesConfig.map(async category => {
+export const seedDevArticleCategories = defineSeedOperation(async (prisma) => {
+    await Promise.all(seedDevArticleCategoriesConfig.map(async category => {
         const categoryResult = await upsert({
             checkExistence: () => articleCategoryOperations.read({ params: { name: category.name } }),
             create: () => articleCategoryOperations.create({
-                // Standard content is readable by everyone and edited through the
-                // ARTICLE_CATEGORY_ADMIN permission rather than by any group: a requirement with no
-                // conditions can never be satisfied, so the admin level admits only those who bypass
-                // it with that permission.
+                // Readable by everyone and edited through the ARTICLE_CATEGORY_ADMIN permission
+                // rather than by any group: a requirement with no conditions can never be satisfied,
+                // so the admin level admits only those who bypass it with that permission.
                 data: {
                     name: category.name,
                     description: category.description,

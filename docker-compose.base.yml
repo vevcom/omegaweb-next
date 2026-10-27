@@ -3,7 +3,7 @@
 # This way, we can avoid duplicating the configuration for the shared services.
 
 services:
-    projectnext:
+    omegaweb-next:
         build:
             context: ${PROJECT_ROOT:-.}/
             dockerfile: ${PROJECT_ROOT:-.}/Dockerfile
@@ -12,9 +12,6 @@ services:
                 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
         environment:
             DB_URI: ${DB_URI}
-            OW_STORE_URL: ${OW_STORE_URL}
-            OW_DB_URI: ${OW_DB_URI}
-            MIGRATION_WITH_LIMITS: ${MIGRATION_WITH_LIMITS}
             LOG_TO_CONSOLE: ${LOG_TO_CONSOLE}
             LOG_CONSOLE_LEVEL: ${LOG_CONSOLE_LEVEL}
             LOG_TO_FOLDER: ${LOG_TO_FOLDER}
@@ -48,8 +45,6 @@ services:
             JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
             JWT_SECRET: ${JWT_SECRET}
             WEBSITE_URL: ${WEBSITE_URL}
-            RELEASE_COUNTDOWN_PASSWORD: ${RELEASE_COUNTDOWN_PASSWORD}
-            GITHUB_TOKEN: ${GITHUB_TOKEN}
         healthcheck:
             test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
             interval: 10s

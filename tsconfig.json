@@ -54,9 +54,6 @@
       "@/prisma-pn-client-instance": [
         "src/prisma/client.ts"
       ],
-      "@/prisma-generated-ow-basic/*": [
-        "generated/ow-prisma/*"
-      ],
       "@/contexts/*": [
         "src/contexts/*"
       ],

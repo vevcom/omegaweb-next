@@ -100,13 +100,13 @@ export const paymentOperations = {
                     // Currently, we don't use this for anything, but it might be
                     // useful in the future.
                     metadata: {
-                        projectNextPaymentId: params.paymentId,
+                        omegawebNextPaymentId: params.paymentId,
                     },
                 }, {
                     // The idempotency key makes it so that multiple requests with the
                     // same key return the same result. This is useful in case
                     // initiate payment is accidentally called twice.
-                    idempotencyKey: `project-next-payment-id-${params.paymentId}-created-at-${payment.createdAt.getTime()}`,
+                    idempotencyKey: `omegaweb-next-payment-id-${params.paymentId}-created-at-${payment.createdAt.getTime()}`,
                 })
 
                 if (paymentIntent.client_secret === null) {
@@ -138,7 +138,7 @@ export const paymentOperations = {
                     await stripe.paymentIntents.cancel(
                         paymentIntent.id,
                         {},
-                        { idempotencyKey: `project-next-payment-intent-${paymentIntent.id}-cancel-unstarted` },
+                        { idempotencyKey: `omegaweb-next-payment-intent-${paymentIntent.id}-cancel-unstarted` },
                     )
                     throw new ServiceError('BAD PARAMETERS', 'Betalingen ble avbrutt før den kom i gang.')
                 }
@@ -172,7 +172,7 @@ export const paymentOperations = {
                     await stripe.paymentIntents.cancel(
                         paymentIntentId,
                         {},
-                        { idempotencyKey: `project-next-payment-id-${params.paymentId}-cancel` },
+                        { idempotencyKey: `omegaweb-next-payment-id-${params.paymentId}-cancel` },
                     )
                 } catch (error) {
                     // Stripe refuses to cancel an intent that is already final. That is fine when

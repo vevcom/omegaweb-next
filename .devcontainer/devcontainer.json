@@ -1,5 +1,5 @@
 {
-    "name": "ProjectNext",
+    "name": "Omegaweb Next",
     "build": {
         "dockerfile": "Dockerfile"
     },
