@@ -99,6 +99,11 @@ export default async function migrateEvents(
             const result = await pnPrisma.eventRegistration.create({
                 data: {
                     eventId: newEvent.id,
+                    // The queue for the places is ordered by this, and the registrations are created
+                    // concurrently, so the order has to come from omegaweb-basic.
+                    queuedAt: registration.createdAt,
+                    createdAt: registration.createdAt,
+                    updatedAt: registration.updatedAt,
                     company: registration.company,
                     manuallyPaid: registration.manPaid,
                     note: registration.note,

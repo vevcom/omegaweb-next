@@ -35,6 +35,7 @@ type PropTypes = {
  */
 export default function CreateOrUpdateEventForm({ event, eventTags, committees }: PropTypes) {
     const [showRegistrationOptions, setShowRegistrationOptions] = useState(event?.takesRegistration ?? false)
+    const [showPaymentOptions, setShowPaymentOptions] = useState(event?.takesPayment ?? false)
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
     const action = event ? configureAction(updateEventAction, { params: { id: event.id } }) : createEventAction
@@ -113,12 +114,11 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                     name="places"
                     defaultValue={event?.places}
                 />,
-                <NumberInput
-                    key="price"
-                    label="Pris (tom for gratis arrangement)"
-                    name="price"
-                    min={0}
-                    defaultValue={event?.price ? event.price / 100 : undefined}
+                <Slider
+                    key="waitingList"
+                    label="Venteliste"
+                    name="waitingList"
+                    defaultChecked={event?.waitingList}
                 />,
                 <DateInput
                     key="registrationStart"
@@ -134,25 +134,33 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                     defaultValue={event?.registrationEnd}
                     includeTime
                 />,
-                <DateInput
+                <Slider
+                    key="takesPayment"
+                    label="Tar betaling"
+                    name="takesPayment"
+                    onChange={changeEvent => setShowPaymentOptions(changeEvent.target.checked)}
+                    defaultChecked={event?.takesPayment}
+                />,
+                showPaymentOptions && <NumberInput
+                    key="price"
+                    label="Pris"
+                    name="price"
+                    min={0}
+                    defaultValue={event?.price ? event.price / 100 : undefined}
+                />,
+                showPaymentOptions && <DateInput
                     key="paymentStart"
                     label="Betalingsstart"
                     name="paymentStart"
                     defaultValue={event?.paymentStart ?? undefined}
                     includeTime
                 />,
-                <DateInput
+                showPaymentOptions && <DateInput
                     key="paymentEnd"
                     label="Betalingsslutt"
                     name="paymentEnd"
                     defaultValue={event?.paymentEnd ?? undefined}
                     includeTime
-                />,
-                <Slider
-                    key="waitingList"
-                    label="Venteliste"
-                    name="waitingList"
-                    defaultChecked={event?.waitingList}
                 />,
                 /*
                  * Left out when the committees could not be read: offered without the committee
@@ -168,9 +176,10 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                     ]}
                     defaultValue={event?.hostedByCommitteeId ?? 'NULL'}
                 />,
-            ] : (
-                <input type="hidden" name="waitingList" value={FIELD_IS_PRESENT_VALUE} />
-            )}
+            ] : [
+                <input key="waitingList" type="hidden" name="waitingList" value={FIELD_IS_PRESENT_VALUE} />,
+                <input key="takesPayment" type="hidden" name="takesPayment" value={FIELD_IS_PRESENT_VALUE} />,
+            ]}
 
             {/*
               * Only when creating: an existing event has both levels in the admin panel on its

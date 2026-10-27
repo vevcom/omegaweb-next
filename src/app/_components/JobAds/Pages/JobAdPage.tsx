@@ -125,12 +125,17 @@ export const jobAdPage = (basePath: string) => serverPage({
                                 <li>
                                     <FontAwesomeIcon icon={faClock} />
                                     <h3>Søknadsfrist</h3>
-                                    <p>
-                                        { jobAd.applicationDeadline ?
-                                            <Date date={jobAd.applicationDeadline} /> :
-                                            'Ingen søknadsfrist satt'
-                                        }
-                                    </p>
+                                    {jobAd.rollingDueDate
+                                        ?
+                                        <p>Løpende frist</p>
+                                        :
+                                        <p>
+                                            {jobAd.applicationDeadline ?
+                                                <Date date={jobAd.applicationDeadline} /> :
+                                                'Ingen søknadsfrist satt'
+                                            }
+                                        </p>
+                                    }
                                 </li>
                                 <li>
                                     <FontAwesomeIcon icon={faNewspaper} />

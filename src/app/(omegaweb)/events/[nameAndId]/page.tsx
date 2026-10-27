@@ -87,12 +87,12 @@ const { page, generateMetadata } = serverPage({
             : null
 
         // What paying for the event out of pocket would take: the visitor's balance, and a
-        // Stripe customer session for saved payment methods. Only relevant when the event is
-        // priced and the visitor can register at all.
+        // Stripe customer session for saved payment methods. Only relevant when the event takes
+        // payment.
         let eventPaymentBalance: number | undefined
         let eventPaymentCustomerSessionSecret: string | undefined
 
-        if (event.takesRegistration && event.price && session.user) {
+        if (event.takesPayment && session.user) {
             eventPaymentBalance = (await ledgerAccountOperations.calculateBalance({
                 params: { userId: session.user.id },
             })).amount
@@ -244,7 +244,7 @@ const { page, generateMetadata } = serverPage({
                         }
                         {(
                             capabilities.canUpdate.authorized
-                            || capabilities.canConnectToLedgerAccount.authorized
+                            || (event.takesPayment && capabilities.canConnectToLedgerAccount.authorized)
                             || capabilities.canUpdateVisibility.authorized
                             || capabilities.canDestroy.authorized
                             || (event.takesRegistration && capabilities.canTakeAttendance.authorized)
@@ -258,7 +258,7 @@ const { page, generateMetadata } = serverPage({
                                         <h3>Detaljer</h3>
                                         <CreateOrUpdateEventForm event={event} eventTags={tags} committees={committees} />
                                     </section>}
-                                    {capabilities.canConnectToLedgerAccount.authorized && <section>
+                                    {event.takesPayment && capabilities.canConnectToLedgerAccount.authorized && <section>
                                         <h3>Konto</h3>
                                         <p>
                                             {event.ledgerAccount

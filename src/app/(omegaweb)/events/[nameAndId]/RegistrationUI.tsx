@@ -184,15 +184,15 @@ export default function RegistrationUI({
 
     // Payment only applies once registration is confirmed, not while waitlisted.
     const now = new Date()
-    const paymentOpen = Boolean(event.price && event.paymentStart && event.paymentEnd) &&
+    const paymentOpen = event.takesPayment && Boolean(event.paymentStart && event.paymentEnd) &&
         event.paymentStart! <= now && now <= event.paymentEnd!
-    const paymentNotYetOpen = Boolean(event.price && event.paymentStart) && event.paymentStart! > now
-    const paymentClosed = Boolean(event.price && event.paymentEnd) && event.paymentEnd! < now
+    const paymentNotYetOpen = event.takesPayment && Boolean(event.paymentStart) && event.paymentStart! > now
+    const paymentClosed = event.takesPayment && Boolean(event.paymentEnd) && event.paymentEnd! < now
     // registration (not registrationState) is used here since it reflects payment status as of
     // the last full page load - any payment action refreshes the page (see refreshOnSuccess on
     // EventPaymentModal), which re-fetches this from the server.
-    const alreadyPaid = Boolean(registration?.ledgerTransactions.length)
-    const showPayment = Boolean(event.price) && btnState === RegistrationButtonState.REGISTERED && !alreadyPaid
+    const alreadyPaid = Boolean(registration?.ledgerTransactions.length) || Boolean(registration?.manuallyPaid)
+    const showPayment = event.takesPayment && btnState === RegistrationButtonState.REGISTERED && !alreadyPaid
 
     return <>
         <SubmitButton

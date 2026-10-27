@@ -10,7 +10,15 @@ import {
 import { eventAdminLevel, eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
 import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'
-import { firstOnWaitingList, lockEvent, queuePosition, queueSegmentFilter } from './queue'
+import {
+    lockEvent,
+    queuedAhead,
+    queuedBehind,
+    queuePosition,
+    queueSegmentFilter,
+    queueSegments,
+    untieQueue,
+} from './queue'
 import { dotOperations } from '@/services/dots/operations'
 import { displayDate } from '@/lib/dates/displayDate'
 import { Smorekopp } from '@/services/error'
@@ -290,6 +298,7 @@ export const eventRegistrationOperations = {
                         id: true,
                         eventId: true,
                         userId: true,
+                        queuedAt: true,
                         event: { select: { name: true, places: true, registrationEnd: true } },
                     },
                 })
@@ -365,6 +374,81 @@ export const eventRegistrationOperations = {
                 await notifyPromotedFromWaitingList(promoted.event, [promoted.nextInLine])
             }
         }
+    }),
+
+    /**
+     * Moves a registration one step up or down the queue by trading queue times with the
+     * registration next to it. It is silent, even when it carries someone onto the places, since it
+     * mostly corrects queues that came out wrong from the migration.
+     */
+    move: defineOperation({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.move.data({
+            visibility: (await registrationOwnerAndEventVisibility(prisma, params.registrationId)).doubleLevelMatrix,
+        }),
+        paramsSchema: eventRegistrationSchemas.params.move,
+        opensTransaction: true,
+        operation: async ({ prisma, params }) => {
+            const { eventId } = await prisma.eventRegistration.findUniqueOrThrow({
+                where: { id: params.registrationId },
+                select: { eventId: true },
+            })
+
+            await prisma.$transaction(async tx => {
+                await lockEvent(tx, eventId)
+                const registration = await tx.eventRegistration.findUniqueOrThrow({
+                    where: { id: params.registrationId },
+                    select: { id: true, queuedAt: true },
+                })
+                const up = params.direction === 'UP'
+
+                const neighbour = await tx.eventRegistration.findFirst({
+                    where: { eventId, ...(up ? queuedAhead(registration) : queuedBehind(registration)) },
+                    orderBy: up
+                        ? [{ queuedAt: 'desc' }, { id: 'desc' }]
+                        : eventRegistrationQueueOrder,
+                    select: { id: true, queuedAt: true },
+                })
+                if (!neighbour) {
+                    throw new Smorekopp(
+                        'BAD PARAMETERS',
+                        up ? 'Påmeldingen er allerede først i køen.' : 'Påmeldingen er allerede sist i køen.'
+                    )
+                }
+
+                const ahead = up ? neighbour : registration
+                const behind = up ? registration : neighbour
+                // On equal times the id decides, so trading them would change nothing.
+                const times = ahead.queuedAt.getTime() === behind.queuedAt.getTime()
+                    ? await untieQueue(tx, eventId)
+                    : new Map([[ahead.id, ahead.queuedAt], [behind.id, behind.queuedAt]])
+                await tx.eventRegistration.update({ where: { id: behind.id }, data: { queuedAt: times.get(ahead.id) } })
+                await tx.eventRegistration.update({ where: { id: ahead.id }, data: { queuedAt: times.get(behind.id) } })
+            })
+        },
+    }),
+
+    /** For payments made outside the ledger, for example in person. */
+    setManuallyPaid: defineOperation({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.setManuallyPaid.data({
+            visibility: (await registrationOwnerAndEventVisibility(prisma, params.registrationId)).doubleLevelMatrix,
+        }),
+        paramsSchema: eventRegistrationSchemas.params.setManuallyPaid,
+        dataSchema: eventRegistrationSchemas.data.setManuallyPaid,
+        operation: async ({ prisma, params, data }) => {
+            const { event } = await prisma.eventRegistration.findUniqueOrThrow({
+                where: { id: params.registrationId },
+                select: { event: { select: { takesPayment: true } } },
+            })
+            if (data.manuallyPaid && !event.takesPayment) {
+                throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet tar ikke betaling.')
+            }
+
+            return await prisma.eventRegistration.update({
+                where: { id: params.registrationId },
+                data: { manuallyPaid: data.manuallyPaid },
+                select: { id: true, manuallyPaid: true },
+            })
+        },
     }),
 
     /**
@@ -525,8 +609,12 @@ export const eventRegistrationOperations = {
 
             const { event } = registration
 
-            if (!event.price) {
+            if (!event.takesPayment || !event.price) {
                 throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet krever ikke betaling.')
+            }
+
+            if (registration.manuallyPaid) {
+                throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
             }
 
             // Waiting-list membership is derived from queue position, as in readOfUser. Enforced
@@ -778,16 +866,13 @@ async function countAttendance(
     prisma: PrismaPossibleTransaction<false>,
     eventId: number
 ): Promise<EventAttendanceCounts> {
-    const boundary = await firstOnWaitingList(prisma, eventId)
-    const onThePlaces = boundary ? { eventId, id: { lt: boundary } } : { eventId }
+    const segments = await queueSegments(prisma, eventId)
 
     const [attended, total, attendedFromWaitingList] = await Promise.all([
-        prisma.eventRegistration.count({ where: { ...onThePlaces, attendedAt: { not: null } } }),
-        prisma.eventRegistration.count({ where: onThePlaces }),
-        boundary
-            ? prisma.eventRegistration.count({
-                where: { eventId, id: { gte: boundary }, attendedAt: { not: null } },
-            })
+        prisma.eventRegistration.count({ where: { ...segments.places, attendedAt: { not: null } } }),
+        prisma.eventRegistration.count({ where: segments.places }),
+        segments.waitingList
+            ? prisma.eventRegistration.count({ where: { ...segments.waitingList, attendedAt: { not: null } } })
             : 0,
     ])
 
@@ -822,8 +907,8 @@ async function notAttendedFilter(
     prisma: PrismaPossibleTransaction<false>,
     eventId: number
 ): Promise<Prisma.EventRegistrationWhereInput> {
-    const boundary = await firstOnWaitingList(prisma, eventId)
-    return { eventId, attendedAt: null, ...(boundary ? { id: { lt: boundary } } : {}) }
+    const { places } = await queueSegments(prisma, eventId)
+    return { ...places, attendedAt: null }
 }
 
 /**
