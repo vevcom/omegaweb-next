@@ -34,7 +34,7 @@ export const dropdownColorClassNames = {
 
 export const dropdownLabelClassName = (floated: boolean) => `
     absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1
-    ${floated ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-6 text-m'}`
+    ${floated ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-1/2 -translate-y-1/2 text-m'}`
 
 export const dropdownChevronClassName = (open: boolean) => `
     absolute right-4 top-1/2 -translate-y-1/2 transition-[translate,rotate,color] duration-300

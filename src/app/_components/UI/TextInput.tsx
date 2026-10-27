@@ -85,12 +85,12 @@ export default function TextInput({
                 peer-placeholder-shown:text-m peer-placeholder-shown:cursor-text
                 ${compact ? `
                     top-0.5 text-[length:calc(var(--text-s)*0.7)]
-                    peer-placeholder-shown:top-2.5
-                    peer-focus:top-0.5 peer-focus:text-[length:calc(var(--text-s)*0.7)]
+                    peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2
+                    peer-focus:top-0.5 peer-focus:translate-y-0 peer-focus:text-[length:calc(var(--text-s)*0.7)]
                 ` : `
                     top-2 text-[length:calc(var(--text-s)*0.85)]
-                    peer-placeholder-shown:top-6
-                    peer-focus:top-2 peer-focus:text-[length:calc(var(--text-s)*0.85)]
+                    peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2
+                    peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[length:calc(var(--text-s)*0.85)]
                 `}
                 ${colorClassNames[color].label}
             `}>{label}</label>
