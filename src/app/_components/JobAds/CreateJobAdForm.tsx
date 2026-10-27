@@ -1,6 +1,7 @@
 'use client'
 import CompanyChooser from './CompanyChooser'
 import SelectedCompany from './SelectedCompany'
+import Slider from '@/components/UI/Slider'
 import { createJobAdAction } from '@/services/careers/jobAds/actions'
 import TextInput from '@/components/UI/TextInput'
 import Form from '@/components/Form/Form'
@@ -23,12 +24,18 @@ export default function CreateJobAdForm() {
                 action={createJobAdAction}
                 refreshOnSuccess
             >
-                <TextInput label="Tittel" name="articleName"/>
-                <TextInput label="Beskrivelse" name="description"/>
-                <TextInput label="Sted" name="location"/>
+                <TextInput label="Tittel" name="articleName" />
+                <TextInput label="Beskrivelse" name="description" />
+                <TextInput label="Sted" name="location" />
                 <SelectedCompany />
-                <SelectString options={jobAdOptions} label="Type" name="type"/>
-                <DateInput includeTime label="Søknadsfrist" name="applicationDeadline"/>
+                <SelectString options={jobAdOptions} label="Type" name="type" />
+                <DateInput includeTime label="Søknadsfrist" name="applicationDeadline" />
+                <Slider
+                    label="Løpende"
+                    name="rollingDueDate"
+                    defaultChecked={false}
+                    color="primary"
+                />
             </Form>
             <CompanyChooser className="
                 mobile:min-h-0 mobile:h-[80vh]
