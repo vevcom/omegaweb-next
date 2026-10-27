@@ -16,6 +16,7 @@ export type PropTypes<ValueType> = {
     name: string,
     label: string,
     defaultValue?: ValueType,
+    value?: ValueType,
     options: DropdownOption<ValueType>[],
     onChange?: (value: ValueType) => void,
     color?: 'primary' | 'secondary' | 'red' | 'black' | 'white',
@@ -66,17 +67,20 @@ const triggerBackgroundClassNames = {
 export function useDropdown<ValueType extends string | number>({
     listedOptions,
     defaultValue,
+    value: controlledValue,
     onChange,
     onClose,
     keepOpenOnSelect = false,
 }: {
     listedOptions: DropdownOption<ValueType>[],
     defaultValue?: ValueType,
+    value?: ValueType,
     onChange?: (value: ValueType) => void,
     onClose?: () => void,
     keepOpenOnSelect?: boolean,
 }) {
-    const [value, setValue] = useState<ValueType | undefined>(defaultValue)
+    const [internalValue, setValue] = useState<ValueType | undefined>(defaultValue)
+    const value = controlledValue ?? internalValue
     const [open, setOpen] = useState(false)
     const [activeIndex, setActiveIndex] = useState(-1)
     const domId = useId()
@@ -204,6 +208,7 @@ export default function Dropdown<ValueType extends string | number>({
     name,
     label,
     defaultValue,
+    value: controlledValue,
     options,
     onChange,
     color = 'black',
@@ -222,7 +227,7 @@ export default function Dropdown<ValueType extends string | number>({
         select,
         openWithActive,
         handleKeyDown,
-    } = useDropdown({ listedOptions: options, defaultValue, onChange })
+    } = useDropdown({ listedOptions: options, defaultValue, value: controlledValue, onChange })
 
     const selectedOption = options.find(option => option.value === value)
 
