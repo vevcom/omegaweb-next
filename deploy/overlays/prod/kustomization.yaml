@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: projectnext
+
+resources:
+    - namespace.yaml
+    - ../../base
+    - database-backup.yaml
+    - phase-secret.yaml
+    - redirect-https.yaml
+
+configMapGenerator:
+    - name: projectnext-config
+      behavior: merge
+      literals:
+          - WEBSITE_URL=https://sctomega.com
+          - NEXTAUTH_URL=https://sctomega.com
+          # The store keys, STORE_S3_ACCESS_KEY_ID and STORE_S3_SECRET_ACCESS_KEY, come from Phase.
+          - STORE_S3_ENDPOINT=https://s3.stack.it.ntnu.no
+          - STORE_S3_BUCKET=CHANGE-ME
+
+# The tags are bumped by .github/workflows/release.yml through a pull request.
+images:
+    - name: projectnext
+      newName: ghcr.io/vevcom/omegaweb-next
+      newTag: v0.0.0
+    - name: projectnext-tools
+      newName: ghcr.io/vevcom/omegaweb-next-tools
+      newTag: v0.0.0
+
+patches:
+    - path: ingress-patch.yaml
+    - path: database-patch.yaml
+    # The images are private because the build bakes in NEXT_SERVER_ACTIONS_ENCRYPTION_KEY.
+    # ghcr-pull is created by hand, like phase-service-token.
+    - target:
+          kind: (Deployment|Job)
+      patch: |-
+          - op: add
+            path: /spec/template/spec/imagePullSecrets
+            value:
+                - name: ghcr-pull

@@ -1,0 +1,29 @@
+name: manifests
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: [ "deploy/**" ]
+  pull_request:
+    branches: [ "main" ]
+    paths: [ "deploy/**" ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+    - name: install kubeconform
+      run: |
+        curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+    # CRD schemas (Cluster, Middleware, ...) come from the datree catalog, which has none for PhaseSecret.
+    - name: validate
+      run: |
+        for dir in deploy/overlays/*; do
+          echo "::group::$dir"
+          kustomize build "$dir" | ./kubeconform -strict -summary -skip PhaseSecret \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+          echo "::endgroup::"
+        done

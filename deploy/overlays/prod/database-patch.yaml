@@ -1,0 +1,27 @@
+# TODO: move to the Barman Cloud plugin, which replaces barmanObjectStore in CloudNativePG 1.26.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+    name: projectnext-db
+spec:
+    storage:
+        size: 20Gi
+    # Some S3-compatible stores reject the checksums newer AWS clients add to every request.
+    env:
+        - name: AWS_REQUEST_CHECKSUM_CALCULATION
+          value: when_required
+        - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+          value: when_required
+    backup:
+        retentionPolicy: 30d
+        barmanObjectStore:
+            destinationPath: s3://CHANGE-ME/projectnext-db
+            endpointURL: https://s3.stack.it.ntnu.no
+            # EC2 keys reach every bucket in the OpenStack project, so the store keys do.
+            s3Credentials:
+                accessKeyId:
+                    name: projectnext-env
+                    key: STORE_S3_ACCESS_KEY_ID
+                secretAccessKey:
+                    name: projectnext-env
+                    key: STORE_S3_SECRET_ACCESS_KEY

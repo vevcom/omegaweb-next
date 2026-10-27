@@ -2,7 +2,17 @@ import '@pn-server-only'
 import { workers } from './definitions'
 import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
+import { writeFile } from 'fs/promises'
 import type { Worker, WorkerName } from './types'
+
+/**
+ * Rewritten every HEARTBEAT_INTERVAL_MS while no tick has run longer than MAX_TICK_MS. The worker's
+ * liveness probe (deploy/base/worker.yaml) restarts the container once it goes stale, which catches
+ * a tick stuck on a call that never returns as well as a blocked event loop.
+ */
+const HEARTBEAT_FILE = '/tmp/worker-heartbeat'
+const HEARTBEAT_INTERVAL_MS = 30 * 1000
+const MAX_TICK_MS = 10 * 60 * 1000
 
 /**
  * Runs the workers side by side in this process until it receives SIGTERM or SIGINT. Each one
@@ -31,17 +41,35 @@ async function runWorkers(selected: Worker[]) {
         wakeUps.add(wakeUp)
     })
 
+    const tickStartedAt = new Map<string, number>()
+
     async function loop({ name, intervalMs, tick }: Worker) {
         logger.info(`${name} started`)
         while (!stopping) {
+            tickStartedAt.set(name, Date.now())
             try {
                 if (await tick()) continue
             } catch (error) {
                 logger.error(`${name} tick failed: ${error}`)
+            } finally {
+                tickStartedAt.delete(name)
             }
             if (!stopping) await sleep(intervalMs)
         }
         logger.info(`${name} stopped`)
+    }
+
+    async function beat() {
+        const stuck = Array.from(tickStartedAt).filter(([, startedAt]) => Date.now() - startedAt > MAX_TICK_MS)
+        if (stuck.length > 0) {
+            logger.error(`Workers stopped their heartbeat, since a tick has run too long: ${
+                stuck.map(([name]) => name).join(', ')
+            }`)
+            return
+        }
+        await writeFile(HEARTBEAT_FILE, String(Date.now())).catch((error: unknown) => {
+            logger.error(`Workers failed to write their heartbeat: ${error}`)
+        })
     }
 
     (['SIGTERM', 'SIGINT'] as const).forEach(signal => {
@@ -52,7 +80,11 @@ async function runWorkers(selected: Worker[]) {
         })
     })
 
+    await beat()
+    const heartbeat = setInterval(() => void beat(), HEARTBEAT_INTERVAL_MS)
+
     await Promise.all(selected.map(loop))
+    clearInterval(heartbeat)
     await prisma.$disconnect()
 }
 

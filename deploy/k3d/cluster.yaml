@@ -1,0 +1,9 @@
+# k3d cluster create --config deploy/k3d/cluster.yaml
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+    name: projectnext
+servers: 1
+ports:
+    - port: 8080:80
+      nodeFilters: [loadbalancer]

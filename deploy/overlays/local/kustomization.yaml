@@ -1,0 +1,54 @@
+# For a k3d cluster on a workstation. The images are built locally and imported
+# with `k3d image import`, and the projectnext-env secret is created by hand from
+# a .env file, see deploy/README.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: projectnext
+
+resources:
+    - namespace.yaml
+    - ../../base
+    - store-pvc.yaml
+
+configMapGenerator:
+    - name: projectnext-config
+      behavior: merge
+      literals:
+          - WEBSITE_URL=http://projectnext.localhost:8080
+          - NEXTAUTH_URL=http://projectnext.localhost:8080
+
+images:
+    - name: projectnext
+      newName: ghcr.io/vevcom/omegaweb-next
+      newTag: local
+    - name: projectnext-tools
+      newName: ghcr.io/vevcom/omegaweb-next-tools
+      newTag: local
+
+replicas:
+    - name: projectnext
+      count: 2
+
+patches:
+    - target:
+          kind: Ingress
+          name: projectnext
+      patch: |-
+          - op: replace
+            path: /spec/rules/0/host
+            value: projectnext.localhost
+    - target:
+          kind: (Deployment|Job)
+      patch: |-
+          - op: add
+            path: /spec/template/spec/volumes
+            value:
+                - name: store
+                  persistentVolumeClaim:
+                      claimName: projectnext-store
+          - op: add
+            path: /spec/template/spec/containers/0/volumeMounts
+            value:
+                - name: store
+                  mountPath: /usr/src/app/store

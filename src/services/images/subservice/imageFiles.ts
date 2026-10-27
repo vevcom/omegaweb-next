@@ -10,6 +10,11 @@ import { File } from 'node:buffer'
 import type { ExpandedImage } from './types'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
+// libvips caches the results of operations, but every variant decodes the original anew, so the
+// cache is never hit. It kept about 160mb per variant of a 26 megapixel photo, which ran the
+// worker past its memory limit.
+sharp.cache(false)
+
 /** Where the image system keeps its files: the originals and the resized variants. */
 export const imageStore = implementStore({
     staticStorePrefix: 'images',

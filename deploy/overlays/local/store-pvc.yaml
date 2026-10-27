@@ -1,0 +1,17 @@
+# The store for k3d, unless deploy/k3d/.env.local points it at an S3 bucket the way
+# prod is. local-path volumes are ReadWriteOnce, which works only because every
+# pod that mounts this one runs on the same node.
+#
+# local-path only binds the volume once a pod uses it, and Argo CD waits for a wave to be
+# healthy before the next. So the volume shares a wave with the migrate job, its first user.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: projectnext-store
+    annotations:
+        argocd.argoproj.io/sync-wave: "-1"
+spec:
+    accessModes: [ReadWriteOnce]
+    resources:
+        requests:
+            storage: 5Gi

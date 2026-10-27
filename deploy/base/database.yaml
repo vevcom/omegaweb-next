@@ -1,0 +1,17 @@
+# CloudNativePG creates the projectnext-db-app secret, whose `uri` key every pod
+# reads as DB_URI.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+    name: projectnext-db
+    annotations:
+        argocd.argoproj.io/sync-wave: "-3"
+spec:
+    instances: 1
+    imageName: ghcr.io/cloudnative-pg/postgresql:16.6
+    bootstrap:
+        initdb:
+            database: projectnext
+            owner: projectnext
+    storage:
+        size: 10Gi
