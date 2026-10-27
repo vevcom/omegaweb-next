@@ -1,6 +1,7 @@
 import { Zpn } from '@/lib/fields/zpn'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { JobType } from '@/prisma-generated-pn-types'
+import { searchParamsFieldSchemas } from '@/services/search/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -50,6 +51,7 @@ export const jobAdSchemas = {
     },
     params: {
         read: id,
+        search: searchParamsFieldSchemas.pick({ query: true, limit: true }),
         readInactivePage: readPageInputSchemaObject(
             id,
             paramsFieldSchemas.pick({

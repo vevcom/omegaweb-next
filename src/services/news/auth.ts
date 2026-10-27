@@ -46,4 +46,5 @@ export const newsAuth = {
     ),
     readCurrent: visibleNews,
     readOldPage: visibleNews,
+    search: visibleNews,
 } as const

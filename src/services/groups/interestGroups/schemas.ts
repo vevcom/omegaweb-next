@@ -1,3 +1,4 @@
+import { searchParamsFieldSchemas } from '@/services/search/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -27,6 +28,7 @@ export const interestGroupSchemas = {
     },
     params: {
         read: interestGroupId,
+        search: searchParamsFieldSchemas.pick({ query: true, limit: true }),
         update: interestGroupId,
         destroy: interestGroupId,
         updateArticleSection: paramsFieldSchemas.pick({
