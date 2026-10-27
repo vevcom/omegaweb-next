@@ -93,5 +93,3 @@ export const eventListSelection = {
         }
     },
 } as const satisfies Prisma.EventSelect
-
-export const defaultSearchResultLimit = 5

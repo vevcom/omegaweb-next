@@ -10,7 +10,8 @@ import { defineOperation } from '@/services/serviceOperation'
 import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { cmsImageOperations } from '@/cms/images/operations'
-import { defaultSearchResultLimit } from '@/services/search/constants'
+import { implementSearchOperation } from '@/services/search/implement'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { SponsorCompany } from './types'
 
@@ -58,15 +59,21 @@ export const companyOperations = {
             include: logoIncluder,
         })
     }),
-    search: defineOperation({
-        paramsSchema: companySchemas.params.search,
+    search: implementSearchOperation({
         authorizer: () => companyAuth.search,
-        operation: async ({ prisma, params }) => await prisma.company.findMany({
-            take: params.limit ?? defaultSearchResultLimit,
-            where: { name: { contains: params.query, mode: 'insensitive' } },
+        find: ({ prisma, query, take }) => prisma.company.findMany({
+            take,
+            where: { name: { contains: query, mode: 'insensitive' } },
             orderBy: companySponsorOrdering,
             include: logoIncluder,
-        })
+        }),
+        // A company has no page of its own, so the result opens the company list filtered to it.
+        toSearchResult: company => ({
+            key: `company-${company.id}`,
+            href: `/career/companies?${QueryParams.companyName.encodeUrl(company.name)}`,
+            label: company.name,
+            image: company.logo.image,
+        }),
     }),
     update: defineOperation({
         paramsSchema: companySchemas.params.update,
