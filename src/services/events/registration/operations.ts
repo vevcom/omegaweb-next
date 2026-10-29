@@ -7,7 +7,7 @@ import {
     eventRegistrationSelection,
     maxDotsForNotShowingUp,
 } from './constants'
-import { eventAdminLevel, eventRegistrationAuth } from './auth'
+import { eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
 import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'
 import {
@@ -31,7 +31,6 @@ import { ledgerTransactionOperations } from '@/services/ledger/transactions/oper
 import { refundOperations } from '@/services/ledger/refunds/operations'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
-import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
@@ -99,6 +98,120 @@ const createRegistration = defineSubOperation({
                     onWaitingList: event._count.eventRegistrations >= event.places,
                 }
             }),
+})
+
+/**
+ * Unregisters. When the registration held a place and someone queued on the waiting list, the
+ * first of them takes the place and is told so once the change is saved. The event is locked
+ * while the queue changes, so a registration arriving at the same time cannot be skipped.
+ * Implemented twice below: as `destroy`, where users unregister themselves, within the registration
+ * period and never from a binding registration, and as `destroyAsAdmin`, where an administrator of
+ * the event removes any registration at any time.
+ */
+const destroyRegistration = defineSubOperation({
+    paramsSchema: () => eventRegistrationSchemas.params.destroy,
+    opensTransaction: true,
+    operation: ({ asAdmin }: { asAdmin: boolean }) =>
+        async ({ prisma, params }) => {
+            const { eventId } = await prisma.eventRegistration.findUniqueOrThrow({
+                where: { id: params.registrationId },
+                select: { eventId: true },
+            })
+
+            const promoted = await prisma.$transaction(async tx => {
+                await lockEvent(tx, eventId)
+                const registration = await tx.eventRegistration.findUniqueOrThrow({
+                    where: { id: params.registrationId },
+                    select: {
+                        id: true,
+                        eventId: true,
+                        userId: true,
+                        queuedAt: true,
+                        event: {
+                            select: { name: true, places: true, registrationEnd: true, bindingRegistration: true },
+                        },
+                    },
+                })
+
+                if (!asAdmin) {
+                    if (registration.event.bindingRegistration) {
+                        throw new Smorekopp(
+                            'BAD PARAMETERS',
+                            'Påmeldingen er bindende. Ta kontakt med arrangørene om du ikke kan komme.'
+                        )
+                    }
+                    if (registration.event.registrationEnd < new Date()) {
+                        throw new Smorekopp(
+                            'BAD PARAMETERS',
+                            'Du kan ikke melde deg av etter påmeldingsfristen. Ta kontakt med arrangørene.'
+                        )
+                    }
+                }
+
+                const heldPlace = await queuePosition(tx, registration) < registration.event.places
+
+                // A still-processing attempt (e.g. Stripe checkout open in another tab) needs
+                // handling too, not just an already-SUCCEEDED one.
+                const liveTransaction = await tx.ledgerTransaction.findFirst({
+                    where: {
+                        eventRegistrationId: params.registrationId,
+                        OR: [{ state: 'PENDING' }, validTransactionFilter],
+                    },
+                    select: { id: true, state: true },
+                })
+                if (liveTransaction && registration.userId) {
+                    const payerAccount = await ledgerAccountOperations.read({
+                        params: { userId: registration.userId },
+                        bypassAuth: true,
+                        prisma: tx,
+                    })
+
+                    if (liveTransaction.state === 'SUCCEEDED') {
+                        await refundOperations.reverseTransaction({
+                            params: {
+                                originalTransactionId: liveTransaction.id,
+                                reason: 'Avregistrert fra betalt arrangement.',
+                                refundTo: payerAccount.id,
+                            },
+                            prisma: tx,
+                            bypassAuth: true,
+                        })
+                    } else {
+                        // Canceled so a late webhook can't complete it. If the payment succeeds at that
+                        // very moment, the cancel fails, and unregistering again reverses it instead.
+                        await ledgerTransactionOperations.cancel({
+                            params: { id: liveTransaction.id },
+                            prisma: tx,
+                            bypassAuth: true,
+                        })
+                    }
+                }
+
+                await tx.eventRegistration.delete({
+                    where: {
+                        id: params.registrationId,
+                    },
+                })
+                if (!heldPlace) return null
+
+                // The first one past the places, now that this one is gone, has taken its place.
+                const nextInLine = await tx.eventRegistration.findFirst({
+                    where: {
+                        eventId: registration.eventId,
+                    },
+                    skip: registration.event.places - 1,
+                    orderBy: eventRegistrationQueueOrder,
+                    include: {
+                        contact: true,
+                    }
+                })
+                return nextInLine ? { event: { id: registration.eventId, name: registration.event.name }, nextInLine } : null
+            })
+
+            if (promoted) {
+                await notifyPromotedFromWaitingList(promoted.event, [promoted.nextInLine])
+            }
+        },
 })
 
 export const eventRegistrationOperations = {
@@ -272,108 +385,23 @@ export const eventRegistrationOperations = {
         }
     }),
 
-    /**
-     * Unregisters. When the registration held a place and someone queued on the waiting list, the
-     * first of them takes the place and is told so once the change is saved. The event is locked
-     * while the queue changes, so a registration arriving at the same time cannot be skipped.
-     */
-    destroy: defineOperation({
+    destroy: destroyRegistration.implement({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.destroy(
-            await registrationOwnerAndEventVisibility(prisma, params.registrationId)
-        ),
-        paramsSchema: eventRegistrationSchemas.params.destroy,
-        opensTransaction: true,
-        operation: async ({ prisma, params, session }) => {
-            const { eventId } = await prisma.eventRegistration.findUniqueOrThrow({
+            await prisma.eventRegistration.findUniqueOrThrow({
                 where: { id: params.registrationId },
-                select: { eventId: true },
+                select: { userId: true },
             })
-            const isAdmin = await sessionAdministratesEvent(prisma, session, eventId)
+        ),
+        ownershipCheck: () => true,
+        operationImplementationFields: { asAdmin: false },
+    }),
 
-            const promoted = await prisma.$transaction(async tx => {
-                await lockEvent(tx, eventId)
-                const registration = await tx.eventRegistration.findUniqueOrThrow({
-                    where: { id: params.registrationId },
-                    select: {
-                        id: true,
-                        eventId: true,
-                        userId: true,
-                        queuedAt: true,
-                        event: { select: { name: true, places: true, registrationEnd: true } },
-                    },
-                })
-
-                if (registration.event.registrationEnd < new Date() && !isAdmin) {
-                    throw new Smorekopp(
-                        'BAD PARAMETERS',
-                        'Du kan ikke melde deg av etter påmeldingsfristen. Ta kontakt med arrangørene.'
-                    )
-                }
-
-                const heldPlace = await queuePosition(tx, registration) < registration.event.places
-
-                // A still-processing attempt (e.g. Stripe checkout open in another tab) needs
-                // handling too, not just an already-SUCCEEDED one.
-                const liveTransaction = await tx.ledgerTransaction.findFirst({
-                    where: {
-                        eventRegistrationId: params.registrationId,
-                        OR: [{ state: 'PENDING' }, validTransactionFilter],
-                    },
-                    select: { id: true, state: true },
-                })
-                if (liveTransaction && registration.userId) {
-                    const payerAccount = await ledgerAccountOperations.read({
-                        params: { userId: registration.userId },
-                        bypassAuth: true,
-                        prisma: tx,
-                    })
-
-                    if (liveTransaction.state === 'SUCCEEDED') {
-                        await refundOperations.reverseTransaction({
-                            params: {
-                                originalTransactionId: liveTransaction.id,
-                                reason: 'Avregistrert fra betalt arrangement.',
-                                refundTo: payerAccount.id,
-                            },
-                            prisma: tx,
-                            bypassAuth: true,
-                        })
-                    } else {
-                        // Canceled so a late webhook can't complete it. If the payment succeeds at that
-                        // very moment, the cancel fails, and unregistering again reverses it instead.
-                        await ledgerTransactionOperations.cancel({
-                            params: { id: liveTransaction.id },
-                            prisma: tx,
-                            bypassAuth: true,
-                        })
-                    }
-                }
-
-                await tx.eventRegistration.delete({
-                    where: {
-                        id: params.registrationId,
-                    },
-                })
-                if (!heldPlace) return null
-
-                // The first one past the places, now that this one is gone, has taken its place.
-                const nextInLine = await tx.eventRegistration.findFirst({
-                    where: {
-                        eventId: registration.eventId,
-                    },
-                    skip: registration.event.places - 1,
-                    orderBy: eventRegistrationQueueOrder,
-                    include: {
-                        contact: true,
-                    }
-                })
-                return nextInLine ? { event: { id: registration.eventId, name: registration.event.name }, nextInLine } : null
-            })
-
-            if (promoted) {
-                await notifyPromotedFromWaitingList(promoted.event, [promoted.nextInLine])
-            }
-        }
+    destroyAsAdmin: destroyRegistration.implement({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.destroyAsAdmin.data({
+            visibility: (await registrationOwnerAndEventVisibility(prisma, params.registrationId)).doubleLevelMatrix,
+        }),
+        ownershipCheck: () => true,
+        operationImplementationFields: { asAdmin: true },
     }),
 
     /**
@@ -751,18 +779,6 @@ async function eventVisibilityAndPublished(prisma: PrismaPossibleTransaction<fal
         }),
     ])
     return { visibility, published: event.published }
-}
-
-/**
- * Whether the session administrates one event - what lets it unregister anyone after the
- * registration deadline.
- */
-async function sessionAdministratesEvent(
-    prisma: PrismaPossibleTransaction<false>,
-    session: SessionMaybeUser,
-    eventId: number
-) {
-    return eventAdminLevel.data({ visibility: await eventVisibility(prisma, eventId) }).auth(session).authorized
 }
 
 /**

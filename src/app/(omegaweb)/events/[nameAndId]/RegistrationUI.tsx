@@ -8,6 +8,7 @@ import {
     createEventRegistrationAction,
     createEventRegistrationAsAdminAction,
     destroyEventRegistrationAction,
+    destroyEventRegistrationAsAdminAction,
     updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
@@ -46,7 +47,7 @@ export default function RegistrationUI({
     dotPunishment: DotPunishment | null,
     availableBalance?: number,
     customerSessionClientSecret?: string,
-    capabilities: CapabilitiesJsObject<'canRegister' | 'canRegisterAsAdmin'>,
+    capabilities: CapabilitiesJsObject<'canRegister' | 'canRegisterAsAdmin' | 'canUnregisterAsAdmin'>,
 }) {
     if (!event.takesRegistration) {
         throw new Error('Kan bare vise påmeldingsknapp for arrangement som har påmelding')
@@ -147,37 +148,50 @@ export default function RegistrationUI({
         }
     }
 
+    const unregister = async (
+        // Separate implementations of one sub-operation, which may diverge.
+        // eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
+        destroyAction: typeof destroyEventRegistrationAction | typeof destroyEventRegistrationAsAdminAction
+    ) => {
+        if (!registrationState) return
+        const result = await destroyAction({
+            params: { registrationId: registrationState.id },
+        })
+
+        if (result.success) {
+            setBtnState(getInitialBtnState(null))
+            setRegistrationState(null)
+        } else if (result.error && result.error.length > 0) {
+            const message = result.error[0].message
+            setErrorText(message)
+            setBtnState(RegistrationButtonState.ERROR)
+        } else {
+            setErrorText('Kunne ikke melde deg av.')
+            setBtnState(RegistrationButtonState.ERROR)
+        }
+    }
+
     const buttonOnClick = async () => {
         setBtnPending(true)
-
         if (registrationState) {
-            const result = await destroyEventRegistrationAction({
-                params: { registrationId: registrationState.id },
-            })
-            if (result.success) {
-                setBtnState(getInitialBtnState(null))
-                setRegistrationState(null)
-            } else if (result.error && result.error.length > 0) {
-                const message = result.error[0].message
-                setErrorText(message)
-                setBtnState(RegistrationButtonState.ERROR)
-            } else {
-                setErrorText('Kunne ikke melde deg av.')
-                setBtnState(RegistrationButtonState.ERROR)
-            }
+            await unregister(destroyEventRegistrationAction)
         } else {
             await register(createEventRegistrationAction)
         }
-
         setBtnPending(false)
         setBtnKey(btnKey + 1)
     }
 
-    // Administrators of the event register outside the registration period and past their own dots
-    // - through a button of its own, so that it is clear it is not an ordinary registration.
+    // Administrators of the event register outside the registration period and past their own dots,
+    // and unregister from a binding registration or after the deadline, through buttons of their
+    // own, so that it is clear it is not an ordinary registration.
     const adminButtonOnClick = async () => {
         setBtnPending(true)
-        await register(createEventRegistrationAsAdminAction)
+        if (registrationState) {
+            await unregister(destroyEventRegistrationAsAdminAction)
+        } else {
+            await register(createEventRegistrationAsAdminAction)
+        }
         setBtnPending(false)
         setBtnKey(btnKey + 1)
     }
@@ -194,30 +208,31 @@ export default function RegistrationUI({
     const alreadyPaid = Boolean(registration?.ledgerTransactions.length) || Boolean(registration?.manuallyPaid)
     const showPayment = event.takesPayment && btnState === RegistrationButtonState.REGISTERED && !alreadyPaid
 
+    const isRegistered = btnState === RegistrationButtonState.REGISTERED ||
+        btnState === RegistrationButtonState.ON_WAITING_LIST
+    const mayRegister = btnState === RegistrationButtonState.NOT_REGISTERED ||
+        btnState === RegistrationButtonState.WAITING_LIST_OPEN
+    // A binding registration, or one past the deadline, is only taken back by those who administrate
+    // the event.
+    const registrationClosed = event.registrationEnd < now
+    const mayUnregister = isRegistered && !event.bindingRegistration && !registrationClosed
+
+    const confirmation = () => {
+        if (mayUnregister) {
+            return { confirm: true, text: 'Er du sikker på at du vil melde deg av?' }
+        }
+        if (mayRegister && event.bindingRegistration) {
+            return { confirm: true, text: 'Påmeldingen er bindende. Er du sikker på at du vil melde deg på?' }
+        }
+        return undefined
+    }
+
     return <>
         <SubmitButton
             success={false}
-            confirmation={
-                btnState === RegistrationButtonState.REGISTERED ||
-                    btnState === RegistrationButtonState.ON_WAITING_LIST
-                    ? {
-                        confirm: true,
-                        text: 'Er du sikker på at du vil melde deg av?'
-                    }
-                    : undefined
-            }
-            disabled={
-                btnState !== RegistrationButtonState.NOT_REGISTERED &&
-                btnState !== RegistrationButtonState.WAITING_LIST_OPEN &&
-                btnState !== RegistrationButtonState.REGISTERED &&
-                btnState !== RegistrationButtonState.ON_WAITING_LIST
-            }
-            color={
-                btnState === RegistrationButtonState.REGISTERED ||
-                    btnState === RegistrationButtonState.ON_WAITING_LIST
-                    ? 'red'
-                    : 'primary'
-            }
+            confirmation={confirmation()}
+            disabled={!mayRegister && !mayUnregister}
+            color={mayUnregister ? 'red' : 'primary'}
             className="w-full! m-0!"
             onClick={buttonOnClick}
             pending={btnPending}
@@ -227,8 +242,10 @@ export default function RegistrationUI({
                 btnState === RegistrationButtonState.NOT_REGISTERED ||
                 btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN
             ) && 'Meld meg på'}
-            {btnState === RegistrationButtonState.REGISTERED && 'Meld meg av'}
-            {btnState === RegistrationButtonState.ON_WAITING_LIST && 'Meld meg av ventelisten'}
+            {btnState === RegistrationButtonState.REGISTERED && (mayUnregister ? 'Meld meg av' : 'Påmeldt')}
+            {btnState === RegistrationButtonState.ON_WAITING_LIST && (
+                mayUnregister ? 'Meld meg av ventelisten' : 'På ventelisten'
+            )}
             {btnState === RegistrationButtonState.FULL && 'Fullt'}
             {btnState === RegistrationButtonState.WAITING_LIST_OPEN && 'Meld meg på ventelisten'}
             {btnState === RegistrationButtonState.ERROR && errorText}
@@ -241,6 +258,13 @@ export default function RegistrationUI({
             <p>Påmeldingen åpner om <CountDown referenceDate={registrationStart} /></p>
         )}
 
+        {isRegistered && event.bindingRegistration && (
+            <p>Påmeldingen er bindende. Ta kontakt med arrangørene om du ikke kan komme.</p>
+        )}
+        {isRegistered && !event.bindingRegistration && registrationClosed && (
+            <p>Påmeldingsfristen er over. Ta kontakt med arrangørene om du ikke kan komme.</p>
+        )}
+
         {!registrationState && capabilities.canRegisterAsAdmin.authorized && (
             <SubmitButton
                 success={false}
@@ -251,6 +275,20 @@ export default function RegistrationUI({
                 key={`admin-${btnKey}`}
             >
                 Meld meg på som administrator
+            </SubmitButton>
+        )}
+
+        {registrationState && !mayUnregister && capabilities.canUnregisterAsAdmin.authorized && (
+            <SubmitButton
+                success={false}
+                color="secondary"
+                confirmation={{ confirm: true, text: 'Er du sikker på at du vil melde deg av?' }}
+                className="w-full! m-0!"
+                onClick={adminButtonOnClick}
+                pending={btnPending}
+                key={`admin-${btnKey}`}
+            >
+                Meld meg av som administrator
             </SubmitButton>
         )}
 

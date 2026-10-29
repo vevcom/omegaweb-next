@@ -13,7 +13,7 @@ import Slider from '@/components/UI/Slider'
 import Form from '@/components/Form/Form'
 import ContactCard from '@/components/User/ContactCard'
 import {
-    destroyEventRegistrationAction,
+    destroyEventRegistrationAsAdminAction,
     moveEventRegistrationAction,
     setEventAttendanceAction,
     setEventRegistrationManuallyPaidAction,
@@ -147,7 +147,7 @@ function DetailedTable({
                                 <td>
                                     <Form
                                         action={configureAction(
-                                            destroyEventRegistrationAction,
+                                            destroyEventRegistrationAsAdminAction,
                                             { params: { registrationId: row.id } }
                                         )}
                                         submitText="Slett"

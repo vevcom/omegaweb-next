@@ -26,18 +26,20 @@ model Event {
   ledgerAccount       LedgerAccount? @relation(fields: [ledgerAccountId], references: [id])
   ledgerAccountId     Int?
 
-  takesRegistration  Boolean
-  places             Int                 @default(0)
-  registrationStart  DateTime
-  registrationEnd    DateTime
-  waitingList        Boolean
-  eventRegistrations EventRegistration[]
-  takesPayment       Boolean             @default(false)
+  takesRegistration   Boolean
+  places              Int                 @default(0)
+  registrationStart   DateTime
+  registrationEnd     DateTime
+  waitingList         Boolean
+  // Registrants cannot unregister themselves. Only those who administrate the event remove a registration.
+  bindingRegistration Boolean             @default(false)
+  eventRegistrations  EventRegistration[]
+  takesPayment        Boolean             @default(false)
   // Price in øre. Set exactly when the event takes payment.
-  price              Int?
+  price               Int?
   // Set exactly when the event takes payment. Separate from the registration period.
-  paymentStart       DateTime?
-  paymentEnd         DateTime?
+  paymentStart        DateTime?
+  paymentEnd          DateTime?
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

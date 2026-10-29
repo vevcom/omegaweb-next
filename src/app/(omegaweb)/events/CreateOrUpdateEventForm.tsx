@@ -137,6 +137,11 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         name="waitingList"
                         defaultChecked={event?.waitingList}
                     />
+                    <Slider
+                        label="Bindende påmelding"
+                        name="bindingRegistration"
+                        defaultChecked={event?.bindingRegistration}
+                    />
                     <NumberInput
                         label="Plasser"
                         name="places"
@@ -195,6 +200,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                     </>}
                 </> : <>
                     <input type="hidden" name="waitingList" value={FIELD_IS_PRESENT_VALUE} />
+                    <input type="hidden" name="bindingRegistration" value={FIELD_IS_PRESENT_VALUE} />
                     <input type="hidden" name="takesPayment" value={FIELD_IS_PRESENT_VALUE} />
                 </>}
             </Form>

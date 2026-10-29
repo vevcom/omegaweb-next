@@ -159,6 +159,9 @@ const { page, generateMetadata } = serverPage({
         canRegisterAsAdmin: eventRegistrationAuth.createAsAdmin.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
+        canUnregisterAsAdmin: eventRegistrationAuth.destroyAsAdmin.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        }),
         canRegisterGuest: eventRegistrationAuth.createGuest.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
@@ -329,6 +332,9 @@ const { page, generateMetadata } = serverPage({
                         {event.waitingList && <p>
                             På venteliste: {event.numOnWaitingList}
                         </p>}
+                        {event.bindingRegistration && <p>
+                            Påmeldingen er bindende
+                        </p>}
                         <RegistrationUI
                             event={event}
                             registration={ownRegistration}
@@ -338,6 +344,7 @@ const { page, generateMetadata } = serverPage({
                             capabilities={{
                                 canRegister: capabilities.canRegister.toJsObject(),
                                 canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
+                                canUnregisterAsAdmin: capabilities.canUnregisterAsAdmin.toJsObject(),
                             }}
                         />
                     </> : <p>
