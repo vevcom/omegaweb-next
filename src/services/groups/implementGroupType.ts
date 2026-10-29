@@ -95,6 +95,25 @@ export function implementSimpleAddRemoveMembersOperation({ type, auth }: {
 }
 
 /**
+ * Opt-in ordering of a group's members, for the group types whose members are listed in an order
+ * someone chose.
+ */
+export function implementReorderMembersOperation({ type, auth }: {
+    type: GroupType,
+    auth: {
+        reorderMembers: GroupAuthorizerOfGroup,
+    },
+}) {
+    return {
+        reorderMembers: groupOperations.reorderMembers.implement({
+            authorizer: ({ params }) => auth.reorderMembers({ groupId: params.groupId }),
+            ownershipCheck: ownershipCheckOfType(type),
+            beforeRun: ({ prisma, params }) => assertGroupNotPensioned(prisma, params.groupId),
+        }),
+    } as const
+}
+
+/**
  * Migration for the group types that are migrated one group at a time by a human picking who to
  * keep (committees, interest groups and manual groups). A group of such a type sits at either the
  * current omega order (migrated) or one below it (not yet migrated).

@@ -20,6 +20,23 @@ export async function isGroupOfType(
 }
 
 /**
+ * Refuses a new order of a list unless it holds every existing id exactly once. A list that was
+ * read before an item was added or removed is stale, and applying it would leave items unplaced.
+ */
+export function assertIsReorderingOf(orderedIds: number[], existingIds: number[]): void {
+    const existing = new Set(existingIds)
+    const isReordering = orderedIds.length === existing.size
+        && new Set(orderedIds).size === orderedIds.length
+        && orderedIds.every(id => existing.has(id))
+    if (!isReordering) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            'Listen er endret siden den ble lastet inn. Last inn siden på nytt og prøv igjen.'
+        )
+    }
+}
+
+/**
  * The group's pensioned flag, with the name of its own type's row. Only the group types that are
  * migrated by hand have a name here, and only they can be pensioned.
  */

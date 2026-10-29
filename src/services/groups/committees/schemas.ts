@@ -4,6 +4,7 @@ import { z } from 'zod'
 const dataFieldSchemas = z.object({
     name: z.string().max(32).trim().min(1),
     shortName: z.string().max(32).trim().min(1),
+    committeeIds: z.number().array(),
 })
 
 const paramsFieldSchemas = z.object({
@@ -31,6 +32,7 @@ export const committeeSchemas = {
         create: committee.merge(imageSchemas.data.uploadImage.partial()),
         update: committee.partial(),
         updateLogo: imageSchemas.data.uploadImage,
+        reorder: dataFieldSchemas.pick({ committeeIds: true }),
     },
     params: {
         read: z.union([

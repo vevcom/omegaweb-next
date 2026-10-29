@@ -8,6 +8,8 @@ model Membership {
   title      String     @default("Medlem")
   omegaOrder OmegaOrder @relation(fields: [order], references: [order], onDelete: Restrict)
   order      Int
+  /// Where the member is listed among the group's memberships of the same order, lowest first.
+  position   Int        @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -91,8 +93,9 @@ model Committee {
 
   name      String
   shortName String @unique
+  position  Int    @default(0)
 
-  committeeArticle   Article      @relation(fields: [committeeArticleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  committeeArticle  Article      @relation(fields: [committeeArticleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   committeeArticleId Int          @unique
   logoImage          Image?       @relation(fields: [logoImageId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   logoImageId        Int?         @unique
