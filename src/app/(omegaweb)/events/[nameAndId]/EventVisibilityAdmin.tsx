@@ -18,8 +18,14 @@ type PropTypes = {
     doubleLevelVisibility: DoubleLevelVisibilityMatrix | null,
 }
 
+const sectionClassName = `
+    flex flex-col gap-4 p-4 rounded-round layer
+    [&>h3]:m-0 [&>h3]:text-l [&>h3]:font-bold
+    [&>p]:m-0 [&>p]:text-s [&>p]:text-text-muted
+`
+
 /**
- * The two visibility levels of an event and whether it is published - the tools only those who
+ * Whether the event is published and its two visibility levels - the tools only those who
  * administrate the event get to see.
  */
 export default function EventVisibilityAdmin({ event, doubleLevelVisibility }: PropTypes) {
@@ -44,18 +50,33 @@ export default function EventVisibilityAdmin({ event, doubleLevelVisibility }: P
 
     if (!canEditVisibility && !canSetPublished) return null
 
-    return <div className="flex flex-col gap-[1rem]">
-        {canSetPublished && <div className="flex items-center gap-[1rem]">
-            <p>{event.published ? 'Publisert' : 'Ikke publisert'}</p>
-            <Form
-                action={() => setPublished({ data: { published: !event.published } })}
-                refreshOnSuccess
-                submitText={event.published ? 'Avpubliser' : 'Publiser'}
-            />
-        </div>}
+    return <div className="
+        flex flex-col gap-4 min-w-[min(80vw,40rem)]
+        [&>h2]:m-0
+    ">
+        <h2>Synlighet</h2>
 
-        {doubleLevelVisibility && canUpdateRegularVisibility && <div>
+        {canSetPublished && <section className={sectionClassName}>
+            <h3>Publisering</h3>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <p className="m-0">
+                    {event.published
+                        ? 'Arrangementet er publisert.'
+                        : 'Arrangementet er et utkast som bare administratorene ser.'}
+                </p>
+                <Form
+                    action={() => setPublished({ data: { published: !event.published } })}
+                    refreshOnSuccess
+                    submitText={event.published ? 'Avpubliser' : 'Publiser'}
+                    submitColor={event.published ? 'red' : 'green'}
+                    className="w-auto!"
+                />
+            </div>
+        </section>}
+
+        {doubleLevelVisibility && canUpdateRegularVisibility && <section className={sectionClassName}>
             <h3>Hvem kan melde seg på</h3>
+            <p>Uten krav kan alle melde seg på.</p>
             <VisibilityAdmin
                 visibility={doubleLevelVisibility.regularLevel}
                 visibilityId={event.visibilityRegularId}
@@ -64,10 +85,11 @@ export default function EventVisibilityAdmin({ event, doubleLevelVisibility }: P
                     { implementationParams: { id: event.id } }
                 )}
             />
-        </div>}
+        </section>}
 
-        {doubleLevelVisibility && canUpdateAdminVisibility && <div>
+        {doubleLevelVisibility && canUpdateAdminVisibility && <section className={sectionClassName}>
             <h3>Hvem kan administrere</h3>
+            <p>Uten krav kan bare de med rettigheten EVENT_ADMIN administrere arrangementet.</p>
             <VisibilityAdmin
                 visibility={doubleLevelVisibility.adminLevel}
                 visibilityId={event.visibilityAdminId}
@@ -76,6 +98,6 @@ export default function EventVisibilityAdmin({ event, doubleLevelVisibility }: P
                     { implementationParams: { id: event.id } }
                 )}
             />
-        </div>}
+        </section>}
     </div>
 }
