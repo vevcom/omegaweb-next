@@ -9,14 +9,15 @@ type PropTypes = {
     eventTags: EventTag[],
     currentTags: EventTag[]
     capabilities: Capabilities<'canCreateTags' | 'canUpdateTags' | 'canDestroyTags'>
-    page: 'EVENT' | 'EVENT_ARCHIVE'
+    /** The list the tags filter: the events page or its archive. */
+    basePath: string
 }
 
 export default function TagHeaderItem({
     eventTags,
     currentTags,
     capabilities,
-    page
+    basePath
 }: PropTypes) {
     return (
         <TagHeasderItemPopUp scale={35} popUpKey="TagEventPopUp">
@@ -25,7 +26,7 @@ export default function TagHeaderItem({
                     capabilities={capabilities}
                     eventTags={eventTags}
                     selectedTags={currentTags}
-                    page={page}
+                    basePath={basePath}
                 />
             </PopUpProvider>
         </TagHeasderItemPopUp>
