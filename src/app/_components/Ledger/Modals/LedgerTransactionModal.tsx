@@ -180,7 +180,7 @@ export default function LedgerTransactionModal({
         popUpKey={popUpKey}
         customShowButton={(open) => <Button onClick={open} color="primary">{triggerLabel}</Button>}
     >
-        <div className="w-[min(500px,90vw)] m-6">
+        <div className="w-[min(500px,calc(100svw-3rem))]">
             <h2>{title}</h2>
 
             <Form
