@@ -64,15 +64,15 @@ export const ClassLevelConfig = {
 
 export const OmegaMembershipLevelConfig = {
     SOELLE: {
-        name: 'Solle noice',
+        name: 'Soelle',
         description: 'Avsky!'
     },
     SYSKEN: {
-        name: 'Medlem',
+        name: 'Sysken',
         description: 'Broder uudaf Sct. Omega Broderskab'
     },
     DEN_GEMENE_HOB: {
-        name: 'Eksterne',
+        name: 'Den gemene hob',
         description: 'Ekstern bruker som ikke er medlem av Omega'
     }
 } as const satisfies Record<OmegaMembershipLevel, {
