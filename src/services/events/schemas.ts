@@ -30,6 +30,7 @@ const dataFieldSchemas = z.object({
     paymentEnd: Zpn.date({ label: 'Betalingsslutt' }).optional(),
 
     waitingList: Zpn.checkboxOrBoolean({ label: 'Venteliste' }),
+    binding: Zpn.checkboxOrBoolean({ label: 'Bindende påmelding' }),
 
     tagIds: Zpn.numberListCheckboxFriendly({ label: 'Tagger' }),
 
@@ -87,6 +88,7 @@ const eventFields = {
     price: true,
     paymentStart: true,
     paymentEnd: true,
+    binding: true
 } as const
 
 const eventId = paramsFieldSchemas.pick({

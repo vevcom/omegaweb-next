@@ -329,6 +329,9 @@ const { page, generateMetadata } = serverPage({
                         {event.waitingList && <p>
                             På venteliste: {event.numOnWaitingList}
                         </p>}
+                        {event.binding && <p>
+                            Bindende påmelding
+                        </p>}
                         <RegistrationUI
                             event={event}
                             registration={ownRegistration}

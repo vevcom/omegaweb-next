@@ -27,6 +27,7 @@ model Event {
   ledgerAccountId     Int?
 
   takesRegistration  Boolean
+  binding            Boolean             @default(false)
   places             Int                 @default(0)
   registrationStart  DateTime
   registrationEnd    DateTime

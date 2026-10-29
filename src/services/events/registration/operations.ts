@@ -299,7 +299,7 @@ export const eventRegistrationOperations = {
                         eventId: true,
                         userId: true,
                         queuedAt: true,
-                        event: { select: { name: true, places: true, registrationEnd: true } },
+                        event: { select: { name: true, places: true, registrationEnd: true, binding: true } },
                     },
                 })
 
@@ -307,6 +307,17 @@ export const eventRegistrationOperations = {
                     throw new Smorekopp(
                         'BAD PARAMETERS',
                         'Du kan ikke melde deg av etter påmeldingsfristen. Ta kontakt med arrangørene.'
+                    )
+                }
+
+                /**  Throws error if the event has binding signup, the user is has a spot in the event
+                 *   and the caller is not an admin.  
+                */
+                const onWaitingList = await queuePosition(prisma, registration) >= registration.event.places
+                if (registration.event.binding && !onWaitingList && !isAdmin) {
+                    throw new Smorekopp(
+                        'BAD PARAMETERS',
+                        'Du kan ikke melde deg av fordi arrangementet har bindende påmelding. Ta kontakt med arrangørene.'
                     )
                 }
 

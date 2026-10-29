@@ -21,6 +21,20 @@ export type SearchParams = Record<string, string | string[] | undefined>
 
 export type ServerPageSession = Session<'HAS_USER'> | Session<'NO_USER'>
 
+const resolvedServerPageProps = new Map<string, { params: object, searchParams: SearchParams }>()
+const RESOLVED_SERVER_PAGE_PROPS_LIMIT = 1000
+
+const rememberResolvedServerPageProps = (
+    serializedProps: string,
+    props: { params: object, searchParams: SearchParams }
+) => {
+    resolvedServerPageProps.set(serializedProps, props)
+    if (resolvedServerPageProps.size > RESOLVED_SERVER_PAGE_PROPS_LIMIT) {
+        const oldestKey = resolvedServerPageProps.keys().next().value
+        if (oldestKey !== undefined) resolvedServerPageProps.delete(oldestKey)
+    }
+}
+
 /**
  * The arguments a serverPage operation receives. Pages with route params annotate their
  * operation callback with this to declare the params' shape:
@@ -168,14 +182,17 @@ export function serverPage<
     // argument identity - and Next does not guarantee that the page and generateMetadata
     // receive identical params/searchParams promise instances. Serializing the resolved
     // (JSON-safe) values gives a stable key to memoize on.
-    const serializeProps = async ({ params, searchParams }: PageProps<Params>) =>
-        JSON.stringify({ params: await params, searchParams: await searchParams })
+    const serializeProps = async ({ params, searchParams }: PageProps<Params>) => {
+        const resolvedProps = { params: await params, searchParams: await searchParams }
+        const serializedProps = JSON.stringify(resolvedProps)
+        rememberResolvedServerPageProps(serializedProps, resolvedProps)
+        return serializedProps
+    }
 
     const load = cache(async (serializedProps: string) => {
-        const { params, searchParams } = JSON.parse(serializedProps) as {
-            params: Params,
-            searchParams: SearchParams,
-        }
+        const resolvedProps = resolvedServerPageProps.get(serializedProps)
+        if (!resolvedProps) throw new Error('Server page props were not registered before loading')
+        const { params, searchParams } = resolvedProps as { params: Params, searchParams: SearchParams }
         const session = await ServerSession.fromNextAuth()
         if (!allowUnregistered) await redirectUnregistered(session)
         const data = await withServiceContext(

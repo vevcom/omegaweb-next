@@ -30,7 +30,7 @@ enum RegistrationButtonState {
     REGISTRATION_CLOSED = 'REGISTRATION_CLOSED',
     BANNED_BY_DOTS = 'BANNED_BY_DOTS',
     NOT_ALLOWED = 'NOT_ALLOWED',
-    ERROR = 'ERROR',
+    ERROR = 'ERROR'
 }
 
 export default function RegistrationUI({
@@ -60,6 +60,11 @@ export default function RegistrationUI({
 
     const getInitialBtnState = (ownRegistration: EventRegistrationWithWaitingList | null) => {
         if (ownRegistration) {
+            if (event.binding) {
+                return ownRegistration.onWaitingList ?
+                    RegistrationButtonState.ON_WAITING_LIST :
+                    RegistrationButtonState.BINDING
+            }
             return ownRegistration.onWaitingList ?
                 RegistrationButtonState.ON_WAITING_LIST :
                 RegistrationButtonState.REGISTERED
@@ -235,6 +240,7 @@ export default function RegistrationUI({
             {btnState === RegistrationButtonState.REGISTRATION_CLOSED && 'Påmeldingen er over'}
             {btnState === RegistrationButtonState.BANNED_BY_DOTS && 'Utestengt på grunn av prikker'}
             {btnState === RegistrationButtonState.NOT_ALLOWED && 'Du kan ikke melde deg på dette arrangementet'}
+            {btnState === RegistrationButtonState.NOT_ALLOWED && 'Bindende påmelding, du kan ikke melde deg av'}
         </SubmitButton>
 
         {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && (

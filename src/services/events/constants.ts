@@ -28,7 +28,8 @@ export const eventFieldsToExpose = [
     'takesPayment',
     'price',
     'paymentStart',
-    'paymentEnd'
+    'paymentEnd',
+    'binding'
 ] as const satisfies (keyof Event)[]
 
 export const eventFilterSelection = {

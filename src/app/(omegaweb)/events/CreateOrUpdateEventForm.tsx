@@ -142,6 +142,11 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                         name="places"
                         defaultValue={event?.places}
                     />
+                    <Slider
+                        label="Bindende påmelding"
+                        name="binding"
+                        defaultChecked={event?.binding}
+                    />
                     {/*
                       * Left out when the committees could not be read: offered without the committee
                       * of the event, the select would submit its first option and clear it.
@@ -195,6 +200,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                     </>}
                 </> : <>
                     <input type="hidden" name="waitingList" value={FIELD_IS_PRESENT_VALUE} />
+                    <input type="hidden" name="binding" value={FIELD_IS_PRESENT_VALUE} />
                     <input type="hidden" name="takesPayment" value={FIELD_IS_PRESENT_VALUE} />
                 </>}
             </Form>
