@@ -34,7 +34,7 @@ const { page, generateMetadata } = serverPage({
             image: <>
                 <Flair flair={flair} width={100} />
                 {capabilities.canUpdateFlairImage.authorized &&
-                <PopUp
+                <PopUp title={`Endre bilde for ${flair.name}`}
                     popUpKey={`EditFlairImage${flair.id}`}
                     showButtonContent="Endre bilde"
                     showButtonClass="
@@ -43,7 +43,6 @@ const { page, generateMetadata } = serverPage({
                     "
                 >
                     <ImageUploader
-                        title={`Endre bilde for ${flair.name}`}
                         refreshOnSuccess
                         closePopUpOnSuccess={`EditFlairImage${flair.id}`}
                         uploadImageAction={configureAction(
@@ -61,9 +60,8 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper headerItem={capabilities.canCreateFlair.authorized &&
-                <AddHeaderItemPopUp popUpKey="CreateFlair">
+                <AddHeaderItemPopUp title="Opprett ny flair" popUpKey="CreateFlair">
                     <Form
-                        title="Opprett ny flair"
                         submitText="Opprett flair"
                         action={createFlairAction}
                         closePopUpOnSuccess="CreateFlair"

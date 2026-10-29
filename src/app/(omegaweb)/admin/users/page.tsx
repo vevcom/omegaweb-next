@@ -17,7 +17,7 @@ const { page, generateMetadata } = serverPage({
             w-full
             [&>*]:w-1/2
         ">
-            {capabilities.canCreateUser.authorized && <CreateUserForm />}
+            {capabilities.canCreateUser.authorized && <CreateUserForm title="Lag en bruker" />}
             {capabilities.canLinkFeideAccount.authorized && <LinkFeideAccountForm />}
         </div>
     ),

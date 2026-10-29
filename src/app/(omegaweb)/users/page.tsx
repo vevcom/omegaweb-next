@@ -15,7 +15,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ capabilities }) => (
         <PageWrapper fillHeight headerItem={
             capabilities.canCreate.authorized && (
-                <AddHeaderItemPopUp popUpKey="createUser">
+                <AddHeaderItemPopUp title="Ny bruker" popUpKey="createUser">
                     <CreateUserForm className="min-w-[30vw] flex flex-col items-center justify-center" />
                 </AddHeaderItemPopUp>
             )

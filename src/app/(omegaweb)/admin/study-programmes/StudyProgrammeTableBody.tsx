@@ -16,7 +16,7 @@ export default function StudyProgrammeTableBody({ studyprogrammes }: { studyprog
     return <tbody>
         {studyprogrammes.map(studyProgramme =>
             <tr key={studyProgramme.id}>
-                {canEdit && <td className="text-center"><PopUp
+                {canEdit && <td className="text-center"><PopUp title={`Oppdater ${studyProgramme.name}`}
                     showButtonContent={<FontAwesomeIcon icon={faPencil} />}
                     showButtonClass="w-[30px] h-[30px] border-none bg-transparent"
                     popUpKey={`UpdateStudyProgramme${studyProgramme.id}`}

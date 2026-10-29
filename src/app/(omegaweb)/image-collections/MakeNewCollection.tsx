@@ -26,8 +26,8 @@ export default function MakeNewCollection() {
     }
 
     return (
-        <AddHeaderItemPopUp popUpKey={popUpKey}>
-            <div className="py-[2em] px-[7em] grid">
+        <AddHeaderItemPopUp title="Lag et album" popUpKey={popUpKey}>
+            <div className="grid">
                 <Form
                     closePopUpOnSuccess={popUpKey}
                     refreshOnSuccess
@@ -39,7 +39,6 @@ export default function MakeNewCollection() {
                                     : '/image-collections'
                             )
                     }
-                    title="Lag et album"
                     submitText="Lag album"
                     action={handleCreate}
                 >

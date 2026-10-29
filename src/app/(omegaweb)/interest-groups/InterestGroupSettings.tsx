@@ -37,11 +37,10 @@ export default function InterestGroupSettings({
     const popUpKey = `Update interest group ${interestGroupName}`
 
     return (
-        <SettingsHeaderItemPopUp scale={40} popUpKey={popUpKey}>
+        <SettingsHeaderItemPopUp title="Oppdater interessegruppe" scale={40} popUpKey={popUpKey}>
             {
                 editableUpdate && (
                     <>
-                        <h2>Oppdater interessegruppe</h2>
                         <Form
                             refreshOnSuccess
                             closePopUpOnSuccess={popUpKey}

@@ -15,9 +15,8 @@ export default function CreateBulshitForm({ bulshitPosterId }: PropTypes) {
     const { refresh } = useRouter()
 
     return (
-        <AddHeaderItemPopUp popUpKey="new_omega_bulshit">
+        <AddHeaderItemPopUp title="Ny Bulshit" popUpKey="new_omega_bulshit">
             <Form
-                title="Ny Bulshit"
                 submitText="Legg til"
                 action={configureAction(createBulshitAction, { params: { bulshitPosterId } })}
                 successCallback={refresh}

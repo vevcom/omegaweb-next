@@ -14,7 +14,6 @@ type Props = {
 export default function CreateGroupLedgerAccountForm({ popUpKey }: Props) {
     return (
         <Form
-            title="Ny gruppekonto"
             submitText="Opprett konto"
             action={createLedgerAccountAction}
             closePopUpOnSuccess={popUpKey}

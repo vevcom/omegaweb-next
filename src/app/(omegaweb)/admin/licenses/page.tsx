@@ -49,11 +49,10 @@ const { page, generateMetadata } = serverPage({
                                 </Link>
                             </td>
                             <td>
-                                <SettingsHeaderItemPopUp popUpKey={`LicenseSettings ${license.id}`}>
+                                <SettingsHeaderItemPopUp title="Endre lisens" popUpKey={`LicenseSettings ${license.id}`}>
                                     {capabilities.canUpdateLicense.authorized &&
                                     <Form
                                         action={configureAction(updateLicenseAction, { params: { id: license.id } })}
-                                        title="Endre lisens"
                                         submitText="Endre"
                                     >
                                         <TextInput name="name" label="Navn" defaultValue={license.name} />

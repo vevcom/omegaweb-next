@@ -34,7 +34,7 @@ export default function LedgerTransactionRow({ transaction, accountId }: Props) 
         ${stateStyle(transaction.state)}
     `
 
-    return <PopUp
+    return <PopUp title="Transaksjon"
         popUpKey={`LedgerTransactionDetails${transaction.id}`}
         customShowButton={open => (
             <tr className={rowClassName} onClick={open}>

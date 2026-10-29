@@ -47,7 +47,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: ledgerAccount, capabilities }) => (
         <div className="flex flex-col gap-2">
             {ledgerAccount.type === 'GROUP' && capabilities.canUpdate.authorized && (
-                <PopUp
+                <PopUp title="Rediger konto"
                     popUpKey="editLedgerAccountDetails"
                     showButtonClass="
                         self-end size-[20px] bg-white border-none rounded-full cursor-pointer transition-[background]

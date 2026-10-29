@@ -240,6 +240,7 @@ export default function Dropdown<ValueType extends string | number>({
             className={
                 `
                     relative mt-2 w-full max-w-[320px]
+                    in-[[role=dialog]]:max-w-none
                     ${className ?? ''}
                 `
             }

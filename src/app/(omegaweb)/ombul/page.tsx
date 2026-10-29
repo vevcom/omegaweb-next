@@ -35,7 +35,7 @@ const { page, generateMetadata } = serverPage({
             <PageWrapper
                 headerItem={
                     capabilities.canCreate.authorized && (
-                        <AddHeaderItemPopUp popUpKey="create ombul">
+                        <AddHeaderItemPopUp title="Lag ny ombul" popUpKey="create ombul">
                             <CreateOmbul latestOmbul={data.latestOmbul} />
                         </AddHeaderItemPopUp>
                     )

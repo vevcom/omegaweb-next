@@ -82,10 +82,9 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
 
     return (
         <div className="
-            min-w-[60vw] grid grid-cols-[1fr_1fr] grid-rows-[auto_auto] gap-10
+            min-w-[60vw] grid grid-cols-[1fr_1fr] gap-10
             max-mobile:grid-cols-1
         ">
-            <h1 className="col-[1/3] row-[1/2]">Lag ny ombul</h1>
             <Form
                 action={createOmbulAction}
                 submitText="Lag ombul"

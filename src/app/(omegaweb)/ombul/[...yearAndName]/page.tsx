@@ -47,7 +47,7 @@ const { page, generateMetadata } = serverPage({
                     <div className="flex flex-row flex-wrap items-center gap-2">
                         <a className="btn m-0!" href={path} download>Last ned</a>
                         <Link className="secondary-btn m-0!" href={path} target="blank">Åpne i ny fane</Link>
-                        <PopUp
+                        <PopUp title={ombul.name}
                             popUpKey={`OmbulPdfViewer${ombul.id}`}
                             showButtonClass="secondary-btn m-0!"
                             showButtonContent="Les PDF"

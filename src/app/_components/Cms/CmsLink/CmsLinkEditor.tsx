@@ -22,7 +22,7 @@ export default function CmsLinkEditor({ cmsLink, updateCmsLinkAction, capabiliti
 
     if (!editable) return null
     return (
-        <PopUp
+        <PopUp title="Endre lenke"
             popUpKey={`EditCmsLink${cmsLink.id}`}
             showButtonClass="border-none bg-transparent rounded-round overflow-hidden"
             showButtonContent={

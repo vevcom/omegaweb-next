@@ -31,7 +31,6 @@ export default function AddNotificationChannel({ channels }: PropTypes) {
     }
 
     return <Form
-        title="Legg til varslingskanal"
         submitText="Legg til"
         action={configureAction(createNotificationChannelAction, {
             params: {

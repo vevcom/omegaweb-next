@@ -23,12 +23,11 @@ export default function CreateDotForm({ userId }: PropTypes) {
     if (session.loading || !session.session.user) return null
 
     return (
-        <AddHeaderItemPopUp popUpKey={createPopUpKey} scale={18}>
+        <AddHeaderItemPopUp title="Gi ny prikk" popUpKey={createPopUpKey} scale={18}>
             <Form
                 action={configureAction(createDotAction, {
                     params: { accuserId: session.session.user.id },
                 })}
-                title="Gi ny prikk"
                 submitText="Gi prikk"
                 closePopUpOnSuccess={createPopUpKey}
                 refreshOnSuccess

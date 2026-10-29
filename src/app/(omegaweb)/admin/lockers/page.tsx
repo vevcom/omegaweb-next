@@ -32,12 +32,12 @@ const { page, generateMetadata } = serverPage({
             <PageWrapper headerItem={
                 <div className="flex justify-end items-center gap-2 w-full">
                     {capabilities.canCreateLockerLocation.authorized && (
-                        <AddHeaderItemPopUp popUpKey="create_locker_location" label="Ny lokasjon">
+                        <AddHeaderItemPopUp title="Ny skaplokasjon" popUpKey="create_locker_location" label="Ny lokasjon">
                             <CreateLockerLocationForm />
                         </AddHeaderItemPopUp>
                     )}
                     {capabilities.canCreateLocker.authorized && (
-                        <AddHeaderItemPopUp popUpKey="create_locker" label="Nytt skap">
+                        <AddHeaderItemPopUp title="Nytt skap" popUpKey="create_locker" label="Nytt skap">
                             <CreateLockerForm locations={sortedLocations} />
                         </AddHeaderItemPopUp>
                     )}

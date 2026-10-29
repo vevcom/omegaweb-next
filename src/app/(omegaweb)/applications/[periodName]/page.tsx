@@ -146,7 +146,7 @@ const { page, generateMetadata } = serverPage({
                     <div className="shrink-0 flex gap-[0.5em] items-center flex-wrap">
                         {
                             userId ? (
-                                <PopUp
+                                <PopUp title={`Søknad til ${part.committee.name}`}
                                     popUpKey={`committee-${part.committee.shortName}-apply`}
                                     showButtonContent={
                                         <span>
@@ -155,7 +155,6 @@ const { page, generateMetadata } = serverPage({
                                     }
                                     showButtonClass="btn m-0!"
                                 >
-                                    <h1>Søknad til {part.committee.name}</h1>
                                     {
                                         (part.priority === null
                                             ? capabilities.canCreateApplication.authorized
@@ -247,7 +246,10 @@ const { page, generateMetadata } = serverPage({
                     || capabilities.canRemoveAllApplicationTexts.authorized
                     || capabilities.canDestroyPeriod.authorized
                 ) && (
-                    <SettingsHeaderItemPopUp popUpKey={`period-${period.name}-settings`} scale={35}>
+                    <SettingsHeaderItemPopUp
+                        title={`Innstillinger for ${period.name}`}
+                        popUpKey={`period-${period.name}-settings`} scale={35}
+                    >
                         {capabilities.canUpdatePeriod.authorized && (
                             <CreateUpdateApplicationPeriodForm
                                 committees={committees}

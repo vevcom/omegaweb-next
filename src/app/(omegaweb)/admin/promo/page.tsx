@@ -30,9 +30,8 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper headerItem={capabilities.canCreatePromo.authorized &&
-                <AddHeaderItemPopUp popUpKey="CreatePromo">
+                <AddHeaderItemPopUp title="Opprett ny promo" popUpKey="CreatePromo">
                     <Form
-                        title="Opprett ny promo"
                         submitText="Opprett promo"
                         action={createPromoAction}
                         closePopUpOnSuccess="CreatePromo"

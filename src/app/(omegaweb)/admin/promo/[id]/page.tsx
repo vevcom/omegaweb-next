@@ -31,13 +31,12 @@ const { page, generateMetadata } = serverPage({
             <div className="flex flex-col items-start gap-2 mb-4">
                 <Image width={400} image={promo.image} hideCredit hideCopyRight />
                 {capabilities.canUpdatePromoImage.authorized &&
-                <PopUp
+                <PopUp title="Endre bilde for promo"
                     popUpKey="EditPromoImage"
                     showButtonContent="Endre bilde"
                     showButtonClass="secondary-btn block py-[0.25em]! px-[0.5em]! text-s! whitespace-nowrap"
                 >
                     <ImageUploader
-                        title="Endre bilde for promo"
                         refreshOnSuccess
                         closePopUpOnSuccess="EditPromoImage"
                         uploadImageAction={configureAction(

@@ -10,7 +10,6 @@ export default function CreateInterestGroupForm() {
             [&_form>*]:w-[200px] [&_form>*]:m-0
             [&_form_button[type=submit]]:w-[220px]
         ">
-            <h2>Lag interessegruppe</h2>
             <Form
                 refreshOnSuccess
                 action={createInterestGroupAction}

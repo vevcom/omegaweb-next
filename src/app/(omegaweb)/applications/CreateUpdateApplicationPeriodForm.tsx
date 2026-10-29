@@ -17,7 +17,6 @@ type PropTypes = {
 export default function CreateUpdateApplicationPeriodForm({ committees, period, closePopUpOnSuccess }: PropTypes) {
     return (
         <Form
-            title={period ? `Oppdater søknadsperiode: ${period.name}` : 'Legg til ny søknadsperiode'}
             action={
                 period
                     ? configureAction(updateApplicationPeriodAction, { params: { name: period.name } })

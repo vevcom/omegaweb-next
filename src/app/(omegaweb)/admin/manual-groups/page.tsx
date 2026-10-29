@@ -38,7 +38,7 @@ const { page, generateMetadata } = serverPage({
         return (
             <PageWrapper
                 headerItem={capabilities.canCreateManualGroup.authorized && (
-                    <AddHeaderItemPopUp popUpKey="create manual group">
+                    <AddHeaderItemPopUp title="Opprett gruppe" popUpKey="create manual group">
                         <ManualGroupForm />
                     </AddHeaderItemPopUp>
                 )}
@@ -68,7 +68,7 @@ const { page, generateMetadata } = serverPage({
                                 <tr key={manualGroup.id}>
                                     {capabilities.canUpdateManualGroup.authorized && (
                                         <td className="text-center">
-                                            <PopUp
+                                            <PopUp title={`Oppdater ${manualGroup.name}`}
                                                 showButtonContent={<FontAwesomeIcon icon={faPencil} />}
                                                 showButtonClass="w-[30px] h-[30px] border-none bg-transparent"
                                                 popUpKey={`update manual group ${manualGroup.id}`}

@@ -81,6 +81,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
     return (
         <div className={`
             mt-2 w-full max-w-[320px]
+            in-[[role=dialog]]:max-w-none
             ${className ?? ''}
         `}>
             <div ref={ref} className="relative">

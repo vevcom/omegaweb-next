@@ -95,7 +95,6 @@ export default function CollectionAdminUpload({ collectionId, refreshImages }: P
             "
             successCallback={refreshImages}
             closePopUpOnSuccess="UploadImages"
-            title="Last opp bilder"
             submitText="Last opp"
             action={handleBatchedUpload}
         >

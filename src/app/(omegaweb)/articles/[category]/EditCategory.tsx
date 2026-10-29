@@ -78,7 +78,7 @@ export default function EditCategory({ category }: PropTypes) {
             }
             {
                 (canUpdate || canUpdateRegularLevel || canUpdateAdminLevel) && (
-                    <PopUp
+                    <PopUp title="Endre kategori"
                         popUpKey="editCategory"
                         showButtonClass="
                             w-[30px] h-[30px] absolute top-[2em] right-[1em]

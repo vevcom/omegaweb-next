@@ -59,6 +59,7 @@ export default function DateInput({
             className={
                 `
                     flex flex-col gap-2 mt-2 w-full max-w-[320px]
+                    in-[[role=dialog]]:max-w-none
                     ${colorClassNames[color]}
                     ${className}
                 `

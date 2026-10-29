@@ -48,9 +48,8 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: { name, serverRenderedData }, capabilities }) => (
         <PageWrapper headerItem={
             capabilities.canCreate.authorized && (
-                <AddHeaderItemPopUp popUpKey="CreateCompany">
+                <AddHeaderItemPopUp title="Ny bedrift" popUpKey="CreateCompany">
                     <Form
-                        title="Ny bedrift"
                         action={createCompanyAction}
                         refreshOnSuccess
                         closePopUpOnSuccess="CreateCompany"
