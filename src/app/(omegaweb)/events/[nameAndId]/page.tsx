@@ -5,6 +5,9 @@ import RegistrationsList from './RegistrationsList'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import EventVisibilityAdmin from './EventVisibilityAdmin'
 import ConnectEventToLedgerForm from './ConnectEventToLedgerForm'
+import EventPaymentSection from './EventPaymentSection'
+import EventSidebarSection from './EventSidebarSection'
+import EventInfoRow from './EventInfoRow'
 import EventLocationMap from '@/components/Event/EventLocationMap'
 import DateDisplay from '@/components/Date/Date'
 import CreateOrUpdateEventForm from '@/app/(omegaweb)/events/CreateOrUpdateEventForm'
@@ -33,9 +36,15 @@ import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
-import { faCalendar, faExclamation, faLocationDot, faPeopleGroup, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { faCalendar, faLocationDot, faLock, faPeopleGroup } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { PageOperationArgs } from '@/app/ServerPage'
+
+/** A row of the sidebar led by an icon. */
+const iconRowClassName = `
+    m-0 flex items-center gap-3 text-m
+    [&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-text-muted
+`
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ nameAndId: string }>) => {
@@ -181,6 +190,10 @@ const { page, generateMetadata } = serverPage({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
             published: data.event.published,
         }) : Require.user(),
+        // Paying for the registration, in the name of the session's own user.
+        canPay: session.user
+            ? eventRegistrationAuth.createPayment.data({ userId: session.user.id })
+            : Require.user(),
     }),
     metadata: (data) => ({ title: data.event.name }),
     render: ({ data, capabilities, session }) => {
@@ -294,64 +307,71 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </span>
                 <aside className="
-                    flex-[1_1_650px]
+                    flex-[1_1_650px] min-w-0 flex flex-col gap-2
                     max-mobile:basis-full
-                    bg-surface-base rounded-round pt-8 px-8 pb-2 flex flex-col gap-4
-                    [&>p]:flex [&>p]:items-center [&>p]:gap-[1em] [&>p]:text-l
-                    [&>p_svg]:size-[1.5em]
                 ">
-                    <p>
-                        <FontAwesomeIcon icon={faCalendar} />
-                        <DateDisplay date={event.eventStart} includeTime />
-                        {' - '}
-                        <DateDisplay date={event.eventEnd} includeTime />
-                    </p>
-                    <p>
-                        <FontAwesomeIcon icon={faLocationDot} />
-                        {event.location}
-                    </p>
-                    {event.hostedByCommittee && <p>
-                        <FontAwesomeIcon icon={faPeopleGroup} />
-                        <span>
-                            Arrangeres av <Link href={`/committees/${event.hostedByCommittee.shortName}`}>
-                                {event.hostedByCommittee.name}
-                            </Link>
-                        </span>
-                    </p>}
-                    {event.takesRegistration ? <>
-                        <p>
-                            <FontAwesomeIcon icon={faUsers} />
-                            {event.numOfRegistrations} / {event.places}
+                    <EventSidebarSection title="Tid og sted">
+                        <p className={iconRowClassName}>
+                            <FontAwesomeIcon icon={faCalendar} />
+                            <span>
+                                <DateDisplay date={event.eventStart} includeTime />
+                                {' – '}
+                                <DateDisplay date={event.eventEnd} includeTime />
+                            </span>
                         </p>
-                        <p>
-                            Påmeldingsstart: <DateDisplay date={event.registrationStart} includeTime />
+                        <p className={iconRowClassName}>
+                            <FontAwesomeIcon icon={faLocationDot} />
+                            <span>{event.location}</span>
                         </p>
-                        <p>
-                            Påmeldingsslutt: <DateDisplay date={event.registrationEnd} includeTime />
-                        </p>
-                        {event.waitingList && <p>
-                            På venteliste: {event.numOnWaitingList}
+                        {event.hostedByCommittee && <p className={iconRowClassName}>
+                            <FontAwesomeIcon icon={faPeopleGroup} />
+                            <span>
+                                Arrangeres av <Link href={`/committees/${event.hostedByCommittee.shortName}`}>
+                                    {event.hostedByCommittee.name}
+                                </Link>
+                            </span>
                         </p>}
-                        {event.bindingRegistration && <p>
-                            Påmeldingen er bindende
-                        </p>}
-                        <RegistrationUI
+                    </EventSidebarSection>
+
+                    <EventSidebarSection title="Påmelding">
+                        {event.takesRegistration ? <>
+                            <EventInfoRow label="Plasser">{event.numOfRegistrations} / {event.places}</EventInfoRow>
+                            {event.waitingList && (
+                                <EventInfoRow label="På venteliste">{event.numOnWaitingList}</EventInfoRow>
+                            )}
+                            <EventInfoRow label="Påmeldingsstart">
+                                <DateDisplay date={event.registrationStart} includeTime />
+                            </EventInfoRow>
+                            <EventInfoRow label="Påmeldingsslutt">
+                                <DateDisplay date={event.registrationEnd} includeTime />
+                            </EventInfoRow>
+                            {event.bindingRegistration && <p className={iconRowClassName}>
+                                <FontAwesomeIcon icon={faLock} />
+                                <span>Påmeldingen er bindende</span>
+                            </p>}
+                            <RegistrationUI
+                                event={event}
+                                registration={ownRegistration}
+                                dotPunishment={dotPunishment}
+                                capabilities={{
+                                    canRegister: capabilities.canRegister.toJsObject(),
+                                    canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
+                                    canUnregisterAsAdmin: capabilities.canUnregisterAsAdmin.toJsObject(),
+                                }}
+                            />
+                        </> : <p className="text-text-muted">Dette arrangementet tar ikke påmelding.</p>}
+                    </EventSidebarSection>
+
+                    {event.takesPayment && (
+                        <EventPaymentSection
                             event={event}
                             registration={ownRegistration}
-                            dotPunishment={dotPunishment}
+                            userId={session.user?.id ?? null}
                             availableBalance={data.eventPaymentBalance}
                             customerSessionClientSecret={data.eventPaymentCustomerSessionSecret}
-                            capabilities={{
-                                canRegister: capabilities.canRegister.toJsObject(),
-                                canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
-                                canUnregisterAsAdmin: capabilities.canUnregisterAsAdmin.toJsObject(),
-                            }}
+                            capabilities={{ canPay: capabilities.canPay }}
                         />
-                    </> : <p>
-                        <FontAwesomeIcon icon={faExclamation} />
-                        Dette arrangementet tar ikke påmeldinger
-                    </p>}
-
+                    )}
                 </aside>
                 <main className="
                     flex-[999_1_420px]

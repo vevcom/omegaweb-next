@@ -3,7 +3,6 @@ import CountDown from '@/components/CountDown/CountDown'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import SubmitButton from '@/components/UI/SubmitButton'
-import EventPaymentModal from '@/components/Ledger/Modals/EventPaymentModal'
 import {
     createEventRegistrationAction,
     createEventRegistrationAsAdminAction,
@@ -12,11 +11,9 @@ import {
     updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
-import { eventRegistrationAuth } from '@/services/events/registration/auth'
-import { Require } from '@/auth/authorizer/Require'
-import useAuthorizer from '@/hooks/useAuthorizer'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import type { EventExpanded } from '@/services/events/types'
 import type { DotPunishment, EventRegistrationWithWaitingList } from '@/services/events/registration/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
@@ -38,15 +35,11 @@ export default function RegistrationUI({
     event,
     registration,
     dotPunishment,
-    availableBalance,
-    customerSessionClientSecret,
     capabilities,
 }: {
     event: EventExpanded,
-    registration: (EventRegistrationWithWaitingList & { ledgerTransactions: { id: number }[] }) | null,
+    registration: EventRegistrationWithWaitingList | null,
     dotPunishment: DotPunishment | null,
-    availableBalance?: number,
-    customerSessionClientSecret?: string,
     capabilities: CapabilitiesJsObject<'canRegister' | 'canRegisterAsAdmin' | 'canUnregisterAsAdmin'>,
 }) {
     if (!event.takesRegistration) {
@@ -95,11 +88,9 @@ export default function RegistrationUI({
     const [btnKey, setBtnKey] = useState(1)
 
     const session = useSession()
-    const canPay = useAuthorizer({
-        authorizer: session.data
-            ? eventRegistrationAuth.createPayment.data({ userId: session.data.user.id })
-            : Require.user(),
-    }).authorized
+    // The rest of the page, such as the payment section, is rendered on the server from the
+    // registration, so it is refreshed once the registration changes.
+    const { refresh } = useRouter()
 
     useEffect(() => {
         const timeUntilRegistration = registrationStart.getTime() - (new Date()).getTime()
@@ -138,6 +129,7 @@ export default function RegistrationUI({
         if (result.success) {
             setBtnState(getInitialBtnState(result.data))
             setRegistrationState(result.data)
+            refresh()
         } else if (result.error && result.error.length > 0) {
             const message = result.error[0].message
             setErrorText(message)
@@ -161,6 +153,7 @@ export default function RegistrationUI({
         if (result.success) {
             setBtnState(getInitialBtnState(null))
             setRegistrationState(null)
+            refresh()
         } else if (result.error && result.error.length > 0) {
             const message = result.error[0].message
             setErrorText(message)
@@ -196,25 +189,13 @@ export default function RegistrationUI({
         setBtnKey(btnKey + 1)
     }
 
-    // Payment only applies once registration is confirmed, not while waitlisted.
-    const now = new Date()
-    const paymentOpen = event.takesPayment && Boolean(event.paymentStart && event.paymentEnd) &&
-        event.paymentStart! <= now && now <= event.paymentEnd!
-    const paymentNotYetOpen = event.takesPayment && Boolean(event.paymentStart) && event.paymentStart! > now
-    const paymentClosed = event.takesPayment && Boolean(event.paymentEnd) && event.paymentEnd! < now
-    // registration (not registrationState) is used here since it reflects payment status as of
-    // the last full page load - any payment action refreshes the page (see refreshOnSuccess on
-    // EventPaymentModal), which re-fetches this from the server.
-    const alreadyPaid = Boolean(registration?.ledgerTransactions.length) || Boolean(registration?.manuallyPaid)
-    const showPayment = event.takesPayment && btnState === RegistrationButtonState.REGISTERED && !alreadyPaid
-
     const isRegistered = btnState === RegistrationButtonState.REGISTERED ||
         btnState === RegistrationButtonState.ON_WAITING_LIST
     const mayRegister = btnState === RegistrationButtonState.NOT_REGISTERED ||
         btnState === RegistrationButtonState.WAITING_LIST_OPEN
     // A binding registration, or one past the deadline, is only taken back by those who administrate
     // the event.
-    const registrationClosed = event.registrationEnd < now
+    const registrationClosed = event.registrationEnd < new Date()
     const mayUnregister = isRegistered && !event.bindingRegistration && !registrationClosed
 
     const confirmation = () => {
@@ -292,23 +273,6 @@ export default function RegistrationUI({
             </SubmitButton>
         )}
 
-        {showPayment && canPay && event.price && paymentOpen && (
-            <EventPaymentModal
-                eventId={event.id}
-                userId={session.data.user.id}
-                price={event.price}
-                availableBalance={availableBalance}
-                customerSessionClientSecret={customerSessionClientSecret}
-                triggerLabel="Betal for arrangementet"
-            />
-        )}
-        {showPayment && paymentNotYetOpen && (
-            <p>Betaling åpner om <CountDown referenceDate={event.paymentStart!} /></p>
-        )}
-        {showPayment && paymentClosed && (
-            <p>Betalingsperioden er over.</p>
-        )}
-
         {dotPunishment?.type === 'ban' && (
             <p>Du har for mange prikker og kan derfor ikke melde deg på arrangementer.</p>
         )}
@@ -320,7 +284,7 @@ export default function RegistrationUI({
             </p>
         )}
 
-        {registrationState && event.registrationEnd > new Date() && <Form
+        {registrationState && !registrationClosed && <Form
             action={configureAction(
                 updateEventRegistrationNotesAction,
                 { params: { registrationId: registrationState.id } }
@@ -329,6 +293,5 @@ export default function RegistrationUI({
         >
             <TextInput name="note" label="Notat" defaultValue={registrationState.note || ''} />
         </Form>}
-
     </>
 }
