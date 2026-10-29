@@ -5,6 +5,9 @@ import RegistrationsList from './RegistrationsList'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import EventVisibilityAdmin from './EventVisibilityAdmin'
 import ConnectEventToLedgerForm from './ConnectEventToLedgerForm'
+import EventPaymentSection from './EventPaymentSection'
+import EventSidebarSection from './EventSidebarSection'
+import EventInfoRow from './EventInfoRow'
 import EventLocationMap from '@/components/Event/EventLocationMap'
 import DateDisplay from '@/components/Date/Date'
 import CreateOrUpdateEventForm from '@/app/(omegaweb)/events/CreateOrUpdateEventForm'
@@ -12,7 +15,14 @@ import CmsImage from '@/components/Cms/CmsImage/CmsImage'
 import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
 import Form from '@/components/Form/Form'
 import EventTag from '@/components/Event/EventTag'
-import { SettingsHeaderItemPopUp, UsersHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import {
+    DeleteHeaderItemPopUp,
+    EditHeaderItemPopUp,
+    PaymentHeaderItemPopUp,
+    UsersHeaderItemPopUp,
+    VisibilityHeaderItemPopUp,
+} from '@/components/HeaderItems/HeaderItemPopUp'
+import HeaderItemLink from '@/components/HeaderItems/HeaderItemLink'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { committeeOperations } from '@/services/groups/committees/operations'
@@ -33,9 +43,15 @@ import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
-import { faCalendar, faExclamation, faLocationDot, faPeopleGroup, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { faCalendar, faLocationDot, faLock, faPeopleGroup, faQrcode } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { PageOperationArgs } from '@/app/ServerPage'
+
+/** A row of the sidebar led by an icon. */
+const iconRowClassName = `
+    m-0 flex items-center gap-3 text-m
+    [&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-text-muted
+`
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ nameAndId: string }>) => {
@@ -159,6 +175,9 @@ const { page, generateMetadata } = serverPage({
         canRegisterAsAdmin: eventRegistrationAuth.createAsAdmin.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
+        canUnregisterAsAdmin: eventRegistrationAuth.destroyAsAdmin.data({
+            visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
+        }),
         canRegisterGuest: eventRegistrationAuth.createGuest.data({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
         }),
@@ -178,6 +197,10 @@ const { page, generateMetadata } = serverPage({
             visibility: data.doubleLevelVisibility ?? EMPTY_VISIBILITY,
             published: data.event.published,
         }) : Require.user(),
+        // Paying for the registration, in the name of the session's own user.
+        canPay: session.user
+            ? eventRegistrationAuth.createPayment.data({ userId: session.user.id })
+            : Require.user(),
     }),
     metadata: (data) => ({ title: data.event.name }),
     render: ({ data, capabilities, session }) => {
@@ -226,13 +249,26 @@ const { page, generateMetadata } = serverPage({
                     </div>
                     <div className={`
                         ${styles.overlay}
-                        absolute top-2 right-2 z-1 flex gap-2
-                        [&_svg]:size-14
+                        absolute top-2 right-2 z-1 flex flex-wrap justify-end gap-2
                     `}>
+                        {capabilities.canUpdate.authorized && (
+                            <EditHeaderItemPopUp scale={30} popUpKey="EditEvent" ariaLabel="Endre arrangementet">
+                                <CreateOrUpdateEventForm event={event} eventTags={tags} committees={committees} />
+                            </EditHeaderItemPopUp>
+                        )}
+                        {capabilities.canUpdateVisibility.authorized && (
+                            <VisibilityHeaderItemPopUp
+                                scale={30}
+                                popUpKey="EventVisibility"
+                                ariaLabel="Synlighet og publisering"
+                            >
+                                <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
+                            </VisibilityHeaderItemPopUp>
+                        )}
                         {event.takesRegistration && (
                             capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
-                        ) &&
-                            <UsersHeaderItemPopUp scale={30} popUpKey="Users">
+                        ) && (
+                            <UsersHeaderItemPopUp scale={30} popUpKey="Users" ariaLabel="Meld på andre">
                                 <ManualRegistrationForm
                                     eventId={event.id}
                                     capabilities={{
@@ -241,110 +277,117 @@ const { page, generateMetadata } = serverPage({
                                     }}
                                 />
                             </UsersHeaderItemPopUp>
-                        }
-                        {(
-                            capabilities.canUpdate.authorized
-                            || (event.takesPayment && capabilities.canConnectToLedgerAccount.authorized)
-                            || capabilities.canUpdateVisibility.authorized
-                            || capabilities.canDestroy.authorized
-                            || (event.takesRegistration && capabilities.canTakeAttendance.authorized)
-                        ) && (
-                            <SettingsHeaderItemPopUp scale={30} popUpKey="EditEvent">
-                                {capabilities.canUpdate.authorized &&
-                                    <CreateOrUpdateEventForm event={event} eventTags={tags} committees={committees} />
-                                }
-                                {event.takesPayment && capabilities.canConnectToLedgerAccount.authorized && <>
+                        )}
+                        {event.takesRegistration && capabilities.canTakeAttendance.authorized && (
+                            <HeaderItemLink
+                                href={`/events/${formatVevenUri(event.name, event.id)}/attendance`}
+                                label="Registrer oppmøte"
+                                icon={faQrcode}
+                                iconOnlyScale={30}
+                            />
+                        )}
+                        {event.takesPayment && capabilities.canConnectToLedgerAccount.authorized && (
+                            <PaymentHeaderItemPopUp scale={30} popUpKey="EventLedgerAccount" ariaLabel="Konto for betaling">
+                                <ConnectEventToLedgerForm
+                                    eventId={event.id}
+                                    ledgerAccount={event.ledgerAccount}
+                                    ledgerAccounts={ledgerAccounts}
+                                />
+                            </PaymentHeaderItemPopUp>
+                        )}
+                        {capabilities.canDestroy.authorized && (
+                            <DeleteHeaderItemPopUp scale={30} popUpKey="DestroyEvent" ariaLabel="Slett arrangementet">
+                                <div className="
+                                    flex flex-col gap-4 min-w-[min(80vw,28rem)]
+                                    [&>h2]:m-0
+                                    [&>p]:m-0
+                                ">
+                                    <h2>Slett arrangementet</h2>
                                     <p>
-                                        Konto: {event.ledgerAccount
-                                            ? (event.ledgerAccount.name ?? `Konto ${event.ledgerAccount.id}`)
-                                            : 'ingen. Betaling fungerer ikke før arrangementet er knyttet til en konto.'}
+                                        Arrangementet slettes med alle påmeldingene sine. Har noen betalt, må de
+                                        meldes av først, så de får pengene tilbake.
                                     </p>
-                                    <ConnectEventToLedgerForm
-                                        eventId={event.id}
-                                        currentLedgerAccountId={event.ledgerAccountId}
-                                        ledgerAccounts={ledgerAccounts}
-                                    />
-                                </>}
-                                <EventVisibilityAdmin event={event} doubleLevelVisibility={doubleLevelVisibility} />
-                                {event.takesRegistration && capabilities.canTakeAttendance.authorized &&
-                                    <Link
-                                        className="block p-2 text-center rounded-round bg-surface-raised text-text"
-                                        href={`/events/${formatVevenUri(event.name, event.id)}/attendance`}
-                                    >
-                                        Registrer oppmøte
-                                    </Link>
-                                }
-                                { capabilities.canDestroy.authorized &&
                                     <Form
                                         action={configureAction(destroyEventAction, { params: { id: event.id } })}
                                         navigateOnSuccess="/events"
-                                        submitText="Slett"
+                                        submitText="Slett arrangementet"
                                         submitColor="red"
                                         confirmation={{
                                             confirm: true,
                                             text: 'Er du sikker på at du vil slette dette arrangementet?'
                                         }}
                                     />
-                                }
-                            </SettingsHeaderItemPopUp>
+                                </div>
+                            </DeleteHeaderItemPopUp>
                         )}
                     </div>
                 </span>
                 <aside className="
-                    flex-[1_1_650px]
+                    flex-[1_1_650px] min-w-0 flex flex-col gap-2
                     max-mobile:basis-full
-                    bg-surface-base rounded-round pt-8 px-8 pb-2 flex flex-col gap-4
-                    [&>p]:flex [&>p]:items-center [&>p]:gap-[1em] [&>p]:text-l
-                    [&>p_svg]:size-[1.5em]
                 ">
-                    <p>
-                        <FontAwesomeIcon icon={faCalendar} />
-                        <DateDisplay date={event.eventStart} includeTime />
-                        {' - '}
-                        <DateDisplay date={event.eventEnd} includeTime />
-                    </p>
-                    <p>
-                        <FontAwesomeIcon icon={faLocationDot} />
-                        {event.location}
-                    </p>
-                    {event.hostedByCommittee && <p>
-                        <FontAwesomeIcon icon={faPeopleGroup} />
-                        <span>
-                            Arrangeres av <Link href={`/committees/${event.hostedByCommittee.shortName}`}>
-                                {event.hostedByCommittee.name}
-                            </Link>
-                        </span>
-                    </p>}
-                    {event.takesRegistration ? <>
-                        <p>
-                            <FontAwesomeIcon icon={faUsers} />
-                            {event.numOfRegistrations} / {event.places}
+                    <EventSidebarSection title="Tid og sted">
+                        <p className={iconRowClassName}>
+                            <FontAwesomeIcon icon={faCalendar} />
+                            <span>
+                                <DateDisplay date={event.eventStart} includeTime />
+                                {' – '}
+                                <DateDisplay date={event.eventEnd} includeTime />
+                            </span>
                         </p>
-                        <p>
-                            Påmeldingsstart: <DateDisplay date={event.registrationStart} includeTime />
+                        <p className={iconRowClassName}>
+                            <FontAwesomeIcon icon={faLocationDot} />
+                            <span>{event.location}</span>
                         </p>
-                        <p>
-                            Påmeldingsslutt: <DateDisplay date={event.registrationEnd} includeTime />
-                        </p>
-                        {event.waitingList && <p>
-                            På venteliste: {event.numOnWaitingList}
+                        {event.hostedByCommittee && <p className={iconRowClassName}>
+                            <FontAwesomeIcon icon={faPeopleGroup} />
+                            <span>
+                                Arrangeres av <Link href={`/committees/${event.hostedByCommittee.shortName}`}>
+                                    {event.hostedByCommittee.name}
+                                </Link>
+                            </span>
                         </p>}
-                        <RegistrationUI
+                    </EventSidebarSection>
+
+                    <EventSidebarSection title="Påmelding">
+                        {event.takesRegistration ? <>
+                            <EventInfoRow label="Plasser">{event.numOfRegistrations} / {event.places}</EventInfoRow>
+                            {event.waitingList && (
+                                <EventInfoRow label="På venteliste">{event.numOnWaitingList}</EventInfoRow>
+                            )}
+                            <EventInfoRow label="Påmeldingsstart">
+                                <DateDisplay date={event.registrationStart} includeTime />
+                            </EventInfoRow>
+                            <EventInfoRow label="Påmeldingsslutt">
+                                <DateDisplay date={event.registrationEnd} includeTime />
+                            </EventInfoRow>
+                            {event.bindingRegistration && <p className={iconRowClassName}>
+                                <FontAwesomeIcon icon={faLock} />
+                                <span>Påmeldingen er bindende</span>
+                            </p>}
+                            <RegistrationUI
+                                event={event}
+                                registration={ownRegistration}
+                                dotPunishment={dotPunishment}
+                                capabilities={{
+                                    canRegister: capabilities.canRegister.toJsObject(),
+                                    canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
+                                    canUnregisterAsAdmin: capabilities.canUnregisterAsAdmin.toJsObject(),
+                                }}
+                            />
+                        </> : <p className="text-text-muted">Dette arrangementet tar ikke påmelding.</p>}
+                    </EventSidebarSection>
+
+                    {event.takesPayment && (
+                        <EventPaymentSection
                             event={event}
                             registration={ownRegistration}
-                            dotPunishment={dotPunishment}
+                            userId={session.user?.id ?? null}
                             availableBalance={data.eventPaymentBalance}
                             customerSessionClientSecret={data.eventPaymentCustomerSessionSecret}
-                            capabilities={{
-                                canRegister: capabilities.canRegister.toJsObject(),
-                                canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
-                            }}
+                            capabilities={{ canPay: capabilities.canPay }}
                         />
-                    </> : <p>
-                        <FontAwesomeIcon icon={faExclamation} />
-                        Dette arrangementet tar ikke påmeldinger
-                    </p>}
-
+                    )}
                 </aside>
                 <main className="
                     flex-[999_1_420px]

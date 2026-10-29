@@ -6,6 +6,7 @@ import DateInput from '@/components/UI/DateInput'
 import Slider from '@/components/UI/Slider'
 import NumberInput from '@/components/UI/NumberInput'
 import Form from '@/components/Form/Form'
+import FormSection from '@/components/Form/FormSection'
 import TextInput from '@/components/UI/TextInput'
 import EventTag from '@/components/Event/EventTag'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
@@ -17,7 +18,6 @@ import { formatVevenUri } from '@/lib/urlEncoding'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
 import type { Event, EventLocationMap, EventTag as EventTagT, Committee } from '@/prisma-generated-pn-types'
-import type { ChangeEvent } from 'react'
 
 type PropTypes = {
     event?: Event & { tags: EventTagT[], locationMap: EventLocationMap | null }
@@ -27,134 +27,108 @@ type PropTypes = {
 }
 
 /**
- * If an event is provided, the form will update the event.
- * If no event is provided, the form will create a new event.
- * @param event - The event to update
- * @param eventTags - The tags to choose from
- * @returns
+ * Creates an event, or updates the one given. The visibility levels are only set here when creating:
+ * an existing event has them in the visibility pop-up on its page, where they are saved one at a
+ * time against the stored visibilities.
  */
 export default function CreateOrUpdateEventForm({ event, eventTags, committees }: PropTypes) {
-    const [showRegistrationOptions, setShowRegistrationOptions] = useState(event?.takesRegistration ?? false)
-    const [showPaymentOptions, setShowPaymentOptions] = useState(event?.takesPayment ?? false)
+    const [takesRegistration, setTakesRegistration] = useState(event?.takesRegistration ?? false)
+    const [takesPayment, setTakesPayment] = useState(event?.takesPayment ?? false)
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
     const action = event ? configureAction(updateEventAction, { params: { id: event.id } }) : createEventAction
-    const canSetHostCommittee = committees !== null
-
-    const handleShowRegistration = (changeEvent: ChangeEvent<HTMLInputElement>) => {
-        setShowRegistrationOptions(changeEvent.target.checked)
-    }
 
     return (
-        <div className="min-w-[50vw] p-4">
-            <h1>{event ? 'Endre' : 'Opprett'} arrangement</h1>
-            <Form
-                closePopUpOnSuccess="EditEvent"
-                action={action}
-                submitText={event ? 'Oppdater' : 'Opprett'}
-                refreshOnSuccess
-                navigateOnSuccess={
-                    data => (data?.name ? `/events/${formatVevenUri(data.name, data.id)}` : '/events')
-                }
-            >
+        <Form
+            title={event ? 'Endre arrangement' : 'Nytt arrangement'}
+            className="min-w-[min(80vw,48rem)]"
+            closePopUpOnSuccess="EditEvent"
+            action={action}
+            submitText={event ? 'Oppdater' : 'Opprett'}
+            refreshOnSuccess
+            navigateOnSuccess={
+                data => (data?.name ? `/events/${formatVevenUri(data.name, data.id)}` : '/events')
+            }
+        >
+            <FormSection legend="Om arrangementet" columns={2}>
                 <TextInput label="Navn" name="name" defaultValue={event?.name} />
                 <TextInput label="Sted" name="location" defaultValue={event?.location ?? ''} />
-                <EventLocationInput name="locationMap" defaultValue={event?.locationMap} />
+                <DateInput label="Start" name="eventStart" includeTime defaultValue={event?.eventStart} />
+                <DateInput label="Slutt" name="eventEnd" includeTime defaultValue={event?.eventEnd} />
+                {/*
+                  * Left out when the committees could not be read: offered without the committee
+                  * of the event, the select would submit its first option and clear it.
+                  */}
+                {committees && <SelectNumberPossibleNULL
+                    label="Arrangeres av"
+                    name="hostedByCommitteeId"
+                    options={[
+                        { value: 'NULL', label: 'Ingen komité' },
+                        ...committees.map(committee => ({ value: committee.id, label: committee.name })),
+                    ]}
+                    defaultValue={event?.hostedByCommitteeId ?? 'NULL'}
+                />}
+            </FormSection>
+
+            <FormSection legend="Tagger">
+                <ul className="
+                    m-0 p-0 flex flex-row flex-wrap gap-x-6 list-none
+                    [&_li]:flex [&_li]:items-center [&_li]:z-1
+                    [&_li:hover]:z-2
+                ">
+                    {eventTags.map(tag => (
+                        <li key={tag.id}>
+                            <Checkbox
+                                name="tagIds"
+                                value={tag.id}
+                                defaultChecked={event?.tags.some(eventTag => eventTag.id === tag.id) ?? false}
+                            >
+                                <EventTag eventTag={tag} />
+                            </Checkbox>
+                        </li>
+                    ))}
+                </ul>
+            </FormSection>
+
+            <EventLocationInput name="locationMap" defaultValue={event?.locationMap} />
+
+            <FormSection legend="Synlighet">
                 <SelectString
                     className="max-w-[300px]"
-                    label="Hvem kan se"
+                    label="Hvem kan se arrangementet"
                     name="canBeViewedBy"
                     options={eventCanBeViewedByOptions}
                     defaultValue={event?.canBeViewedBy}
                 />
-                <DateInput label="Start" name="eventStart" includeTime defaultValue={event?.eventStart} />
-                <DateInput label="Slutt" name="eventEnd" includeTime defaultValue={event?.eventEnd} />
-                <ul
-                    className="
-                        mt-[1em] flex flex-row flex-wrap gap-x-[2em] overflow-visible list-none
-                        [&_h2]:flex-[1_1_100%]
-                        [&_li]:flex [&_li]:items-center [&_li]:z-1
-                        [&_li:hover]:z-2
-                        [&_li_input[type=checkbox]]:align-top [&_li_input[type=checkbox]]:mr-[4px]
-                    "
-                >
-                    <h2>Tagger</h2>
-                    {
-                        eventTags.map(tag => (
-                            <li key={tag.id}>
-                                <Checkbox
-                                    name="tagIds"
-                                    value={tag.id}
-                                    defaultChecked={
-                                        event
-                                            ? event.tags.map(tagItem => tagItem.name).includes(tag.name)
-                                            : false
-                                    }
-                                >
-                                    <EventTag eventTag={tag} />
-                                </Checkbox>
-                            </li>
-                        ))
-                    }
-                </ul>
-                <Slider
-                    label="Med påmelding"
-                    name="takesRegistration"
-                    onChange={handleShowRegistration}
-                    defaultChecked={event?.takesRegistration}
-                />
-
-                {/*
-                  * Only when creating: an existing event has both levels in the admin panel on its
-                  * own page, where they are saved one at a time against the stored visibilities.
-                  */}
-                {!event && <div className="flex flex-col gap-[0.5rem]">
-                    <h2>Hvem kan administrere arrangementet?</h2>
-                    <VisibilityMatrixEditor
-                        requirements={adminRequirements}
-                        onChange={setAdminRequirements}
-                    />
-                    <input
-                        type="hidden"
-                        name="visibilityAdminRequirements"
-                        value={JSON.stringify(adminRequirements)}
-                    />
-                    <h2>Hvem kan melde seg på? (tomt betyr alle)</h2>
-                    <VisibilityMatrixEditor
-                        requirements={regularRequirements}
-                        onChange={setRegularRequirements}
-                    />
+                {!event && <>
+                    <p className="m-0 font-medium">Hvem kan administrere arrangementet</p>
+                    <VisibilityMatrixEditor requirements={adminRequirements} onChange={setAdminRequirements} />
+                    <input type="hidden" name="visibilityAdminRequirements" value={JSON.stringify(adminRequirements)} />
+                    <p className="m-0 font-medium">Hvem kan melde seg på (tomt betyr alle)</p>
+                    <VisibilityMatrixEditor requirements={regularRequirements} onChange={setRegularRequirements} />
                     <input
                         type="hidden"
                         name="visibilityRegularRequirements"
                         value={JSON.stringify(regularRequirements)}
                     />
-                </div>}
+                </>}
+            </FormSection>
 
-                {showRegistrationOptions ? <>
+            <FormSection legend="Påmelding" columns={2}>
+                <Slider
+                    label="Med påmelding"
+                    name="takesRegistration"
+                    onChange={changeEvent => setTakesRegistration(changeEvent.target.checked)}
+                    defaultChecked={event?.takesRegistration}
+                />
+                {takesRegistration ? <>
+                    <NumberInput label="Plasser" name="places" defaultValue={event?.places} />
+                    <Slider label="Venteliste" name="waitingList" defaultChecked={event?.waitingList} />
                     <Slider
-                        label="Venteliste"
-                        name="waitingList"
-                        defaultChecked={event?.waitingList}
+                        label="Bindende påmelding"
+                        name="bindingRegistration"
+                        defaultChecked={event?.bindingRegistration}
                     />
-                    <NumberInput
-                        label="Plasser"
-                        name="places"
-                        defaultValue={event?.places}
-                    />
-                    {/*
-                      * Left out when the committees could not be read: offered without the committee
-                      * of the event, the select would submit its first option and clear it.
-                      */}
-                    {canSetHostCommittee && <SelectNumberPossibleNULL
-                        label="Arrangeres av"
-                        name="hostedByCommitteeId"
-                        options={[
-                            { value: 'NULL', label: 'Ingen komité' },
-                            ...committees.map(committee => ({ value: committee.id, label: committee.name })),
-                        ]}
-                        defaultValue={event?.hostedByCommitteeId ?? 'NULL'}
-                    />}
                     <DateInput
                         label="Påmeldingsstart"
                         name="registrationStart"
@@ -170,10 +144,10 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                     <Slider
                         label="Tar betaling"
                         name="takesPayment"
-                        onChange={changeEvent => setShowPaymentOptions(changeEvent.target.checked)}
+                        onChange={changeEvent => setTakesPayment(changeEvent.target.checked)}
                         defaultChecked={event?.takesPayment}
                     />
-                    {showPaymentOptions && <>
+                    {takesPayment && <>
                         <NumberInput
                             label="Pris"
                             name="price"
@@ -193,11 +167,12 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                             includeTime
                         />
                     </>}
-                </> : <>
+                </> : <div hidden>
                     <input type="hidden" name="waitingList" value={FIELD_IS_PRESENT_VALUE} />
+                    <input type="hidden" name="bindingRegistration" value={FIELD_IS_PRESENT_VALUE} />
                     <input type="hidden" name="takesPayment" value={FIELD_IS_PRESENT_VALUE} />
-                </>}
-            </Form>
-        </div>
+                </div>}
+            </FormSection>
+        </Form>
     )
 }

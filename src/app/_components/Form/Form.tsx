@@ -1,8 +1,10 @@
 'use client'
 import { SUCCESS_FEEDBACK_TIME } from './constants'
+import { FormContext, FormInputSlot, flattenChildren, inputName } from './FormContext'
+import FormSection from './FormSection'
 import { PopUpContext } from '@/contexts/PopUp'
 import SubmitButton from '@/components/UI/SubmitButton'
-import React, { Children, useContext, useState } from 'react'
+import React, { Children, isValidElement, useContext, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
@@ -25,55 +27,16 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     buttonClassName?: string,
     disabled?: boolean,
 }
-type InputType = {
-    input: ReactNode,
-    label?: string,
-}
-
-function Input({ input, errors, pending }: { input: ReactNode, errors: ErrorMessage[], pending: boolean }) {
-    return (
-        <span>
-            <div>
-                {input}
-            </div>
-            <p className={`
-                text-accent-red flex flex-col min-h-[1.15em] mb-[3px]
-                ${pending ? 'invisible' : ''}
-            `}>
-                {
-                    errors?.[0]?.message
-                }
-            </p>
-        </span>
-    )
-}
-
-function hasProps(obj: unknown): obj is { props: { name?: string; id?: string } } {
-    return typeof obj === 'object' &&
-        obj !== null && 'props' in obj &&
-        typeof obj.props === 'object'
-        && obj.props !== null
-}
-
-const makeInputArray = (children: ReactNode): InputType[] =>
-    Children.toArray(children).map((child) => {
-        if (typeof child !== 'object' || !child) {
-            return {
-                input: child,
-                label: undefined,
-            }
+/** The names of every input among the children, those inside sections included, so their errors find them. */
+function collectInputNames(children: ReactNode): string[] {
+    return Children.toArray(children).flatMap(child => {
+        if (isValidElement<{ children?: ReactNode }>(child) && child.type === FormSection) {
+            return collectInputNames(flattenChildren(child.props.children))
         }
-        let name: string | undefined = undefined
-        let id: string | undefined = undefined
-        if (hasProps(child)) {
-            if (typeof child.props.name === 'string') name = child.props.name
-            if (typeof child.props.id === 'string') id = child.props.id
-        }
-        return {
-            input: child,
-            label: name || id,
-        }
+        const name = inputName(child)
+        return name ? [name] : []
     })
+}
 
 export default function Form<GiveActionReturn>({
     children,
@@ -99,8 +62,6 @@ export default function Form<GiveActionReturn>({
     const [pending, setPending] = useState(false)
     const PopUpCtx = useContext(PopUpContext)
     const { refresh, push } = useRouter()
-
-    const inputs = makeInputArray(children)
 
     const actionWithError = async (formData: FormData) => {
         setGeneralErrors(undefined)
@@ -141,7 +102,7 @@ export default function Form<GiveActionReturn>({
             return
         }
 
-        const labels = inputs.map(input => input.label)
+        const labels = collectInputNames(children)
         const errorsByLabel: Partial<Record<string, ErrorMessage[]>> = {}
         const unmatchedErrors: ErrorMessage[] = []
         res.error.forEach(error => {
@@ -172,31 +133,37 @@ export default function Form<GiveActionReturn>({
     }
 
     return (
-        <form className={`
-            relative w-full
-            [&>h2]:mb-2
-            ${className}
-        `} {...props} onSubmit={handleSubmit}>
-            {title && <h2>{title}</h2>}
-            {
-                inputs.map(({ input, label }, i) => (
-                    <Input input={input} errors={(label && inputErrors[label]) || []} pending={pending} key={i} />
-                ))
-            }
-            <SubmitButton
-                color={submitColor}
-                success={success}
-                generalErrors={generalErrors}
-                confirmation={confirmation}
-                pending={pending}
-                className={`
-                    ${buttonClassName}
-                    m-0
-                `}
-                disabled={disabled}
-            >
-                {submitText}
-            </SubmitButton>
-        </form>
+        <FormContext.Provider value={{ inputErrors, pending }}>
+            <form className={`
+                relative w-full
+                [&>h2]:mb-2
+                ${className}
+            `} {...props} onSubmit={handleSubmit}>
+                {title && <h2>{title}</h2>}
+                {Children.toArray(children).map((child, index) => {
+                    const name = inputName(child)
+                    return <FormInputSlot
+                        key={index}
+                        input={child}
+                        errors={(name && inputErrors[name]) || []}
+                        pending={pending}
+                    />
+                })}
+                <SubmitButton
+                    color={submitColor}
+                    success={success}
+                    generalErrors={generalErrors}
+                    confirmation={confirmation}
+                    pending={pending}
+                    className={`
+                        ${buttonClassName}
+                        m-0
+                    `}
+                    disabled={disabled}
+                >
+                    {submitText}
+                </SubmitButton>
+            </form>
+        </FormContext.Provider>
     )
 }

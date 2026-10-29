@@ -59,11 +59,13 @@ const organiserSessionOf = (user: UserFiltered) => sessionOf(user, [membersGroup
 async function createEvent({
     places,
     waitingList,
+    bindingRegistration = false,
     registrationStart = new Date(Date.now() - HOUR),
     registrationEnd = new Date(Date.now() + 24 * HOUR),
 }: {
     places: number,
     waitingList: boolean,
+    bindingRegistration?: boolean,
     registrationStart?: Date,
     registrationEnd?: Date,
 }) {
@@ -77,6 +79,7 @@ async function createEvent({
             takesRegistration: true,
             places,
             waitingList,
+            bindingRegistration,
             registrationStart,
             registrationEnd,
             tagIds: [],
@@ -109,6 +112,12 @@ const registerAsAdmin = (user: UserFiltered, eventId: number, session: ReturnTyp
 
 const unregister = (registrationId: number, session: ReturnType<typeof sessionOf>) =>
     eventRegistrationOperations.destroy({
+        params: { registrationId },
+        session,
+    })
+
+const unregisterAsAdmin = (registrationId: number, session: ReturnType<typeof sessionOf>) =>
+    eventRegistrationOperations.destroyAsAdmin({
         params: { registrationId },
         session,
     })
@@ -387,8 +396,71 @@ describe('unregistering from an event', () => {
         await expect(unregister(registration.id, sessionOf(user))).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
         expect(await countRegistrations(eventId, user)).toBe(1)
 
-        await unregister(registration.id, organiserSessionOf(organiser))
+        // Only as an administrator: the ordinary unregistration is of your own registration.
+        await expect(unregister(registration.id, organiserSessionOf(organiser)))
+            .rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+        await unregisterAsAdmin(registration.id, organiserSessionOf(organiser))
         expect(await countRegistrations(eventId, user)).toBe(0)
+    })
+
+    test('unregistering as an administrator takes the admin level of the event', async () => {
+        const eventId = await createEvent({ places: 5, waitingList: true })
+        const user = await createTestUser('unregisterasadminuser')
+        const member = await createTestUser('unregisterasadminmember')
+
+        const registration = await register(user, eventId)
+
+        await expect(unregisterAsAdmin(registration.id, sessionOf(member)))
+            .rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+        expect(await countRegistrations(eventId, user)).toBe(1)
+    })
+})
+
+describe('binding registration', () => {
+    test('a user cannot unregister from a binding registration, but an organiser can remove it', async () => {
+        const eventId = await createEvent({ places: 5, waitingList: true, bindingRegistration: true })
+        const user = await createTestUser('bindingregistered')
+        const organiser = await createTestUser('bindingorganiser')
+
+        const registration = await register(user, eventId)
+
+        await expect(unregister(registration.id, sessionOf(user))).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        expect(await countRegistrations(eventId, user)).toBe(1)
+
+        await unregisterAsAdmin(registration.id, organiserSessionOf(organiser))
+        expect(await countRegistrations(eventId, user)).toBe(0)
+    })
+
+    test('a binding registration holds on the waiting list too', async () => {
+        const eventId = await createEvent({ places: 1, waitingList: true, bindingRegistration: true })
+        const first = await createTestUser('bindingwaitingone')
+        const second = await createTestUser('bindingwaitingtwo')
+
+        await register(first, eventId)
+        const secondRegistration = await register(second, eventId)
+        expect(secondRegistration.onWaitingList).toBe(true)
+
+        await expect(unregister(secondRegistration.id, sessionOf(second)))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        expect(await countRegistrations(eventId, second)).toBe(1)
+    })
+
+    test('an event cannot have binding registration without registration', async () => {
+        await expect(eventOperations.create({
+            data: {
+                name: 'Testarrangement uten påmelding',
+                location: 'Lophtet',
+                eventStart: new Date(Date.now() + 7 * 24 * HOUR),
+                eventEnd: new Date(Date.now() + 7 * 24 * HOUR + 2 * HOUR),
+                canBeViewedBy: 'ALL',
+                takesRegistration: false,
+                waitingList: false,
+                bindingRegistration: true,
+                tagIds: [],
+                visibilityAdminRequirements: [{ conditions: [] }],
+            },
+            bypassAuth: true,
+        })).rejects.toThrow()
     })
 })
 

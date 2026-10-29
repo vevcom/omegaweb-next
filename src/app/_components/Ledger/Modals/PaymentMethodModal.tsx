@@ -52,7 +52,7 @@ export default function PaymentMethodModal({ userId }: PropTypes) {
             customShowButton={(open) => <Button onClick={open} className="self-start">Legg til bankkort</Button>}
         >
             <h3>Legg til bankkort</h3>
-            <div className="w-[min(500px,90vw)] m-6">
+            <div className="w-[min(500px,calc(100svw-3rem))]">
                 <Form action={handleSubmit} submitText="Legg til bankkort">
                     <StripeProvider mode="setup">
                         <StripePayment ref={stripePaymentRef} />
