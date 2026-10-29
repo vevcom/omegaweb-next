@@ -8,23 +8,13 @@ import { admissionAuth } from '@/services/admission/auth'
 import { admissionOperations } from '@/services/admission/operations'
 import { omegaMembershipGroupAuth } from '@/services/groups/omegaMembershipGroups/auth'
 import { admissionDisplayNames, allAdmissions } from '@/services/admission/constants'
-import { OMEGA_MEMBERSHIP_LEVEL_RANKING } from '@/services/groups/constants'
+import { OMEGA_MEMBERSHIP_LEVEL_RANKING, OmegaMembershipLevelConfig } from '@/services/groups/constants'
 import { sexConfig } from '@/services/users/constants'
 import { configureAction } from '@/services/configureAction'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Form from '@/components/Form/Form'
 import NumberInput from '@/components/UI/NumberInput'
 import type { PageOperationArgs } from '@/app/ServerPage'
-import type { OmegaMembershipLevel } from '@/prisma-generated-pn-types'
-
-/**
- * What each step of the ladder is called on this page. Sysken is left out: what a member is called
- * depends on who they are, so it is resolved against the user's sex below.
- */
-const stepNames = {
-    DEN_GEMENE_HOB: 'Den gemene hob',
-    SOELLE: 'Soelle',
-} as const satisfies Partial<Record<OmegaMembershipLevel, string>>
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
@@ -72,9 +62,10 @@ const { page, generateMetadata } = serverPage({
                             `}
                             >
                                 <span>
+                                    {/* A sysken is called by the title of their sex, such as Broder. */}
                                     {level === 'SYSKEN'
                                         ? sexConfig[profile.user.sex ?? 'OTHER'].title
-                                        : stepNames[level]}
+                                        : OmegaMembershipLevelConfig[level].name}
                                 </span>
                                 {level === currentLevel
                                     ? <span className="
