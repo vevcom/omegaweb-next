@@ -32,8 +32,16 @@ import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
+import { displayAmount } from '@/lib/currency/convert'
 import Link from 'next/link'
-import { faCalendar, faExclamation, faLocationDot, faPeopleGroup, faUsers } from '@fortawesome/free-solid-svg-icons'
+import {
+    faCalendar,
+    faDollarSign,
+    faExclamation,
+    faLocationDot,
+    faPeopleGroup,
+    faUsers,
+} from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -313,6 +321,12 @@ const { page, generateMetadata } = serverPage({
                             Arrangeres av <Link href={`/committees/${event.hostedByCommittee.shortName}`}>
                                 {event.hostedByCommittee.name}
                             </Link>
+                        </span>
+                    </p>}
+                    {!!event.price && <p>
+                        <FontAwesomeIcon icon={faDollarSign} />
+                        <span>
+                            {displayAmount(event.price)} kr
                         </span>
                     </p>}
                     {event.takesRegistration ? <>
