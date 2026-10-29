@@ -14,13 +14,23 @@ import { createEventAction, updateEventAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import { configureAction } from '@/services/configureAction'
-import { formatVevenUri } from '@/lib/urlEncoding'
+import { eventHref } from '@/components/Event/Pages/eventPages'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
-import type { Event, EventLocationMap, EventTag as EventTagT, Committee } from '@/prisma-generated-pn-types'
+import type {
+    Event,
+    EventLocationMap,
+    EventTag as EventTagT,
+    Committee,
+    SpecialEventTags,
+} from '@/prisma-generated-pn-types'
 
 type PropTypes = {
     event?: Event & { tags: EventTagT[], locationMap: EventLocationMap | null }
+    /** The event pages to navigate under once saved, which differ between Omega's site and the career site. */
+    basePath: string
+    /** A special tag the event must carry, as on the career site: checked, and not to be unchecked. */
+    lockedTag?: SpecialEventTags | null
     eventTags: EventTagT[]
     /** The committees to choose the host from, or null when they could not be read (they take COMMITTEE_USE). */
     committees: Committee[] | null
@@ -31,7 +41,7 @@ type PropTypes = {
  * an existing event has them in the visibility pop-up on its page, where they are saved one at a
  * time against the stored visibilities.
  */
-export default function CreateOrUpdateEventForm({ event, eventTags, committees }: PropTypes) {
+export default function CreateOrUpdateEventForm({ event, basePath, lockedTag = null, eventTags, committees }: PropTypes) {
     const [takesRegistration, setTakesRegistration] = useState(event?.takesRegistration ?? false)
     const [takesPayment, setTakesPayment] = useState(event?.takesPayment ?? false)
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
@@ -46,9 +56,7 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
             action={action}
             submitText={event ? 'Oppdater' : 'Opprett'}
             refreshOnSuccess
-            navigateOnSuccess={
-                data => (data?.name ? `/events/${formatVevenUri(data.name, data.id)}` : '/events')
-            }
+            navigateOnSuccess={data => (data?.name ? eventHref(basePath, data) : basePath)}
         >
             <FormSection legend="Om arrangementet" columns={2}>
                 <TextInput label="Navn" name="name" defaultValue={event?.name} />
@@ -76,17 +84,25 @@ export default function CreateOrUpdateEventForm({ event, eventTags, committees }
                     [&_li]:flex [&_li]:items-center [&_li]:z-1
                     [&_li:hover]:z-2
                 ">
-                    {eventTags.map(tag => (
-                        <li key={tag.id}>
-                            <Checkbox
-                                name="tagIds"
-                                value={tag.id}
-                                defaultChecked={event?.tags.some(eventTag => eventTag.id === tag.id) ?? false}
-                            >
-                                <EventTag eventTag={tag} />
-                            </Checkbox>
-                        </li>
-                    ))}
+                    {eventTags.map(tag => {
+                        const locked = lockedTag !== null && tag.special === lockedTag
+                        const checked = locked || (event?.tags.some(eventTag => eventTag.id === tag.id) ?? false)
+
+                        return (
+                            <li key={tag.id}>
+                                <Checkbox
+                                    name="tagIds"
+                                    value={tag.id}
+                                    disabled={locked}
+                                    defaultChecked={checked}
+                                >
+                                    <EventTag eventTag={tag} />
+                                </Checkbox>
+                                {/* A disabled checkbox submits nothing, so the locked tag is sent by a hidden field. */}
+                                {locked && <input type="hidden" name="tagIds" value={tag.id} />}
+                            </li>
+                        )
+                    })}
                 </ul>
             </FormSection>
 

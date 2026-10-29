@@ -2,17 +2,19 @@
 import EditableTextField from '@/components/EditableTextField/EditableTextField'
 import { updateEventAction } from '@/services/events/actions'
 import { configureAction } from '@/services/configureAction'
-import { formatVevenUri } from '@/lib/urlEncoding'
+import { eventHref } from '@/components/Event/Pages/eventPages'
 import useEditMode from '@/hooks/useEditMode'
 import type { Event } from '@/prisma-generated-pn-types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     event: Event,
+    /** The event pages the name links under once saved, which differ between Omega's site and the career site. */
+    basePath: string,
     capabilities: CapabilitiesJsObject<'canUpdate'>,
 }
 
-export default function ShowAndEditName({ event, capabilities }: PropTypes) {
+export default function ShowAndEditName({ event, basePath, capabilities }: PropTypes) {
     const editable = useEditMode({ authResult: capabilities.canUpdate })
     const updateAction = configureAction(updateEventAction, { params: { id: event.id } })
 
@@ -20,9 +22,7 @@ export default function ShowAndEditName({ event, capabilities }: PropTypes) {
         <EditableTextField
             formProps={{
                 action: updateAction,
-                navigateOnSuccess: data => (data?.name
-                    ? `/events/${formatVevenUri(data.name, data.id)}`
-                    : '/events'),
+                navigateOnSuccess: data => (data?.name ? eventHref(basePath, data) : basePath),
             }}
             editable={editable}
             inputName="name"

@@ -1,4 +1,4 @@
-import { QueryParams } from '@/lib/queryParams/queryParams'
+import type { EventPagesConfig } from '@/components/Event/Pages/eventPages'
 
 /** Where the career pages, the (careers) route group, live. */
 export const CAREER_PATH = '/career'
@@ -12,22 +12,20 @@ export const CAREERS_SOCIALS = {
 } as const
 
 /**
- * The events page showing the company presentations: the events with the special tag, so the
- * link needs the tag's name.
+ * The company presentations as the career site's event pages: the events carrying the special
+ * tag, in the career site's chrome.
  */
-export function companyPresentationsHref(companyPresentationEventTag: { name: string } | null): string {
-    return `/events?${QueryParams.eventTags.encodeUrl(
-        companyPresentationEventTag ? [companyPresentationEventTag.name] : []
-    )}`
+export const companyPresentationPages: EventPagesConfig = {
+    basePath: `${CAREER_PATH}/company-presentations`,
+    titles: { current: 'Bedriftspresentasjoner', archive: 'Tidligere bedriftspresentasjoner' },
+    lockedTag: 'COMPANY_PRESENTATION',
 }
 
 /** The links of the career site's navigation: the parts of the career pages, then the way to get in touch. */
-export function careerNavLinks(companyPresentationEventTag: { name: string } | null): { name: string, href: string }[] {
-    return [
-        { name: 'Jobbannonser', href: `${CAREER_PATH}/job-ads` },
-        { name: 'Bedriftspresentasjoner', href: companyPresentationsHref(companyPresentationEventTag) },
-        { name: 'Bedrifter', href: `${CAREER_PATH}/companies` },
-        { name: 'Om oss', href: `${CAREER_PATH}/about` },
-        { name: 'Kontakt', href: `mailto:${CAREERS_EMAIL}` },
-    ]
-}
+export const careerNavLinks: { name: string, href: string }[] = [
+    { name: 'Jobbannonser', href: `${CAREER_PATH}/job-ads` },
+    { name: 'Bedriftspresentasjoner', href: companyPresentationPages.basePath },
+    { name: 'Bedrifter', href: `${CAREER_PATH}/companies` },
+    { name: 'Om oss', href: `${CAREER_PATH}/about` },
+    { name: 'Kontakt', href: `mailto:${CAREERS_EMAIL}` },
+]
