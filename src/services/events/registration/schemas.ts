@@ -16,6 +16,7 @@ const paramsFieldSchemas = z.object({
     eventId: z.number().min(0),
     userId: z.number().min(0),
     registrationId: z.number().min(0),
+    quotaId: z.number().min(0),
     registeredById: z.number().min(0),
     type: z.nativeEnum(REGISTRATION_READER_TYPE),
     direction: z.enum(['UP', 'DOWN']),
@@ -44,6 +45,9 @@ const userAndEvent = paramsFieldSchemas.pick({
     eventId: true,
 })
 
+/** The quota is the administrator's to pick; left out, the first with a place takes it. */
+const quotaIdOptional = { quotaId: paramsFieldSchemas.shape.quotaId.optional() }
+
 const registrationId = paramsFieldSchemas.pick({
     registrationId: true,
 })
@@ -70,7 +74,8 @@ export const eventRegistrationSchemas = {
     },
     params: {
         create: userAndEvent,
-        createGuest: eventId,
+        createAsAdmin: userAndEvent.extend(quotaIdOptional),
+        createGuest: eventId.extend(quotaIdOptional),
         readDotPunishmentOfUser: paramsFieldSchemas.pick({
             userId: true,
         }),
@@ -82,6 +87,10 @@ export const eventRegistrationSchemas = {
         move: paramsFieldSchemas.pick({
             registrationId: true,
             direction: true,
+        }),
+        moveToQuota: paramsFieldSchemas.pick({
+            registrationId: true,
+            quotaId: true,
         }),
         setManuallyPaid: registrationId,
         registerAttendance: paramsFieldSchemas.pick({

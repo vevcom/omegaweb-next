@@ -14,7 +14,7 @@ export const eventAdminLevel = Require.permission('EVENT_ADMIN').or().visibility
  * without a message of its own: it only picks which rule applies, and the message of the rule
  * that was checked is the one worth reporting.
  */
-const isPublished = (expected: boolean) => Require.custom<{ published: boolean }>(
+export const isPublished = (expected: boolean) => Require.custom<{ published: boolean }>(
     ({ published }) => (published === expected ? { success: true } : { success: false })
 )
 

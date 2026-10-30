@@ -4,6 +4,9 @@ import { describe, expect, test } from '@jest/globals'
 
 const dayMs = 24 * 60 * 60 * 1000
 
+/** The price sits on the quota the event was created with. */
+const quotaOf = (eventId: number) => prisma.eventRegistrationQuota.findFirstOrThrow({ where: { eventId } })
+
 function eventData(payment: { takesPayment?: boolean, price?: number }) {
     return {
         name: 'Test takes payment',
@@ -27,8 +30,9 @@ describe('events taking payment', () => {
         const event = await eventOperations.create({ data: eventData({ price: 100 }), bypassAuth: true })
 
         await expect(prisma.event.findUniqueOrThrow({ where: { id: event.id } })).resolves.toMatchObject({
-            takesPayment: false, price: null, paymentStart: null, paymentEnd: null,
+            takesPayment: false, paymentStart: null, paymentEnd: null,
         })
+        await expect(quotaOf(event.id)).resolves.toMatchObject({ price: null })
     })
 
     test('an event that takes payment must have a price', async () => {
@@ -44,12 +48,14 @@ describe('events taking payment', () => {
             bypassAuth: true,
         })
         await expect(prisma.event.findUniqueOrThrow({ where: { id: event.id } }))
-            .resolves.toMatchObject({ takesPayment: true, price: 10000 })
+            .resolves.toMatchObject({ takesPayment: true })
+        await expect(quotaOf(event.id)).resolves.toMatchObject({ price: 10000 })
 
         await eventOperations.update({ params: { id: event.id }, data: { takesPayment: false }, bypassAuth: true })
 
         await expect(prisma.event.findUniqueOrThrow({ where: { id: event.id } })).resolves.toMatchObject({
-            takesPayment: false, price: null, paymentStart: null, paymentEnd: null,
+            takesPayment: false, paymentStart: null, paymentEnd: null,
         })
+        await expect(quotaOf(event.id)).resolves.toMatchObject({ price: null })
     })
 })

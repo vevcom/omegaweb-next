@@ -305,6 +305,9 @@ export const eventOperations = {
                         locationMap: mapUpdate,
                     },
                 })
+                if (!takesPayment) {
+                    await tx.eventRegistrationQuota.updateMany({ where: { eventId: params.id }, data: { price: null } })
+                }
                 if (tagIds) {
                     await tx.eventTagEvent.deleteMany({
                         where: {

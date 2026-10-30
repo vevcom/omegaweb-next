@@ -32,9 +32,15 @@ export const expandedLedgerTransactionIncluder = {
             event: { select: { name: true } },
         },
     },
+    // A paid registration holds a place, so its quota, and through it its event, is there to show.
     eventRegistration: {
         include: {
-            event: { select: { name: true, location: true, eventStart: true, eventEnd: true } },
+            quota: {
+                select: {
+                    name: true,
+                    event: { select: { name: true, location: true, eventStart: true, eventEnd: true } },
+                },
+            },
         },
     },
     purchase: {

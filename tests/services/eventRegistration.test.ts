@@ -31,8 +31,12 @@ async function createManualGroup(shortName: string) {
     return group.id
 }
 
-async function createTestUser(username: string) {
-    return userOperations.create({
+/**
+ * A user who is an active member of the members group, unless told otherwise. Promotion from the
+ * waiting list reads memberships from the database, so the session alone is not enough there.
+ */
+async function createTestUser(username: string, { member = true } = {}) {
+    const user = await userOperations.create({
         data: {
             email: `${username}@omega.ntnu.no`,
             firstname: 'Test',
@@ -42,6 +46,12 @@ async function createTestUser(username: string) {
         },
         bypassAuth: true,
     })
+    if (member) {
+        await prisma.membership.create({
+            data: { userId: user.id, groupId: membersGroupId, admin: false, active: true, order: currentOrder },
+        })
+    }
+    return user
 }
 
 function sessionOf(user: UserFiltered, groupIds: number[] = [membersGroupId]) {
@@ -83,7 +93,7 @@ async function createEvent({
             registrationStart,
             registrationEnd,
             tagIds: [],
-            visibilityRegularRequirements: [
+            quotaVisibilityRequirements: [
                 { conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] },
             ],
             visibilityAdminRequirements: [
@@ -128,7 +138,7 @@ const readOfUser = (user: UserFiltered, eventId: number) => eventRegistrationOpe
 })
 
 const countRegistrations = (eventId: number, user?: UserFiltered) => prisma.eventRegistration.count({
-    where: { eventId, userId: user?.id },
+    where: { OR: [{ quota: { eventId } }, { waitingListEventId: eventId }], userId: user?.id },
 })
 
 /** A committee with a linked ledger account, to host a paid event's payments. */
@@ -168,7 +178,7 @@ async function createPaidEvent({ committeeId, ledgerAccountId }: { committeeId: 
             paymentStart: new Date(Date.now() - HOUR),
             paymentEnd: new Date(Date.now() + 24 * HOUR),
             tagIds: [],
-            visibilityRegularRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] }],
+            quotaVisibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] }],
             visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] }],
         },
         bypassAuth: true,
@@ -196,8 +206,8 @@ describe('registering for an event', () => {
 
         const registration = await register(user, eventId)
 
-        expect(registration.onWaitingList).toBe(false)
-        expect(await readOfUser(user, eventId)).toMatchObject({ id: registration.id, onWaitingList: false })
+        expect(registration.state).toBe('IN_QUOTA')
+        expect(await readOfUser(user, eventId)).toMatchObject({ id: registration.id, state: 'IN_QUOTA' })
     })
 
     test('once every place is taken, registrations queue on the waiting list', async () => {
@@ -205,11 +215,11 @@ describe('registering for an event', () => {
         const first = await createTestUser('registerqueueone')
         const second = await createTestUser('registerqueuetwo')
 
-        expect((await register(first, eventId)).onWaitingList).toBe(false)
-        expect((await register(second, eventId)).onWaitingList).toBe(true)
+        expect((await register(first, eventId)).state).toBe('IN_QUOTA')
+        expect((await register(second, eventId)).state).toBe('WAITING_LIST')
 
-        expect(await readOfUser(first, eventId)).toMatchObject({ onWaitingList: false })
-        expect(await readOfUser(second, eventId)).toMatchObject({ onWaitingList: true })
+        expect(await readOfUser(first, eventId)).toMatchObject({ state: 'IN_QUOTA' })
+        expect(await readOfUser(second, eventId)).toMatchObject({ state: 'WAITING_LIST' })
     })
 
     test('an event without a waiting list refuses registrations once full', async () => {
@@ -350,8 +360,26 @@ describe('unregistering from an event', () => {
         await unregister(firstRegistration.id, sessionOf(first))
 
         expect(await readOfUser(first, eventId)).toBeNull()
-        expect(await readOfUser(second, eventId)).toMatchObject({ onWaitingList: false })
-        expect(await readOfUser(third, eventId)).toMatchObject({ onWaitingList: true })
+        expect(await readOfUser(second, eventId)).toMatchObject({ state: 'IN_QUOTA' })
+        expect(await readOfUser(third, eventId)).toMatchObject({ state: 'WAITING_LIST' })
+    })
+
+    test('a freed place skips those on the waiting list who do not pass the quota', async () => {
+        const eventId = await createEvent({ places: 1, waitingList: true })
+        const first = await createTestUser('unregisterskipone')
+        const outsider = await createTestUser('unregisterskipoutsider', { member: false })
+        const third = await createTestUser('unregisterskipthree')
+        const organiser = await createTestUser('unregisterskiporganiser')
+
+        const firstRegistration = await register(first, eventId)
+        // An administrator may queue someone the quota is not open to; the place is never theirs.
+        await registerAsAdmin(outsider, eventId, organiserSessionOf(organiser))
+        await register(third, eventId)
+
+        await unregister(firstRegistration.id, sessionOf(first))
+
+        expect(await readOfUser(outsider, eventId)).toMatchObject({ state: 'WAITING_LIST' })
+        expect(await readOfUser(third, eventId)).toMatchObject({ state: 'IN_QUOTA' })
     })
 
     test('leaving the waiting list leaves the places as they are', async () => {
@@ -366,9 +394,9 @@ describe('unregistering from an event', () => {
 
         await unregister(secondRegistration.id, sessionOf(second))
 
-        expect(await readOfUser(first, eventId)).toMatchObject({ onWaitingList: false })
+        expect(await readOfUser(first, eventId)).toMatchObject({ state: 'IN_QUOTA' })
         expect(await readOfUser(second, eventId)).toBeNull()
-        expect(await readOfUser(third, eventId)).toMatchObject({ onWaitingList: true })
+        expect(await readOfUser(third, eventId)).toMatchObject({ state: 'WAITING_LIST' })
     })
 
     test('a user cannot unregister someone else', async () => {
@@ -388,8 +416,8 @@ describe('unregistering from an event', () => {
         const organiser = await createTestUser('unregisterlateorganiser')
 
         const registration = await register(user, eventId)
-        await prisma.event.update({
-            where: { id: eventId },
+        await prisma.eventRegistrationQuota.updateMany({
+            where: { eventId },
             data: { registrationEnd: new Date(Date.now() - 60 * 1000) },
         })
 
@@ -438,7 +466,7 @@ describe('binding registration', () => {
 
         await register(first, eventId)
         const secondRegistration = await register(second, eventId)
-        expect(secondRegistration.onWaitingList).toBe(true)
+        expect(secondRegistration.state).toBe('WAITING_LIST')
 
         await expect(unregister(secondRegistration.id, sessionOf(second)))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))

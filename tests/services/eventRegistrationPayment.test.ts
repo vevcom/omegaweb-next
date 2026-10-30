@@ -88,7 +88,7 @@ async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number }
             paymentEnd: new Date(now.getTime() + 24 * HOUR),
             hostedByCommitteeId: committeeId,
             tagIds: [],
-            visibilityRegularRequirements: [
+            quotaVisibilityRequirements: [
                 { conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] },
             ],
             visibilityAdminRequirements: [

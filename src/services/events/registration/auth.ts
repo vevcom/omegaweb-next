@@ -1,15 +1,15 @@
-import { regularLevelUnlessDraft } from '@/services/events/auth'
+import { canSeeEvent, eventAdminLevel, isPublished } from '@/services/events/auth'
 import { Require } from '@/auth/authorizer/Require'
-import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
+import type { EventAccess } from '@/services/events/types'
 
 /**
- * The regular level of an event is what it takes to register for it, and its admin level is what it
- * takes to act on the registrations of everyone else. EVENT_ADMIN bypasses both for every event.
- * Both still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`; registering
- * also needs `{ published }`, as no one but its administrators may register for a draft.
+ * Registering takes passing the visibility of one of the event's quotas once it is published, or
+ * administrating the event, which also registers for a draft. Needs `EventAccess` via `.data()`.
  */
-const registerLevel = regularLevelUnlessDraft
-const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'ADMIN' })
+export const canRegister = Require.anyOf(
+    eventAdminLevel,
+    isPublished(true).anyVisibility({ key: 'quotaVisibilities' }),
+)
 
 const eventAdminAsUser = Require.allOf(eventAdminLevel, Require.userId())
 const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
@@ -28,37 +28,36 @@ const ownRegistration = ({ userId }: { userId: number | null }) => (
  * Acting on the registration of a given user: their own, or anyone's for those who administrate the
  * event. A registration with no user behind it is a guest, and only an administrator owns those.
  */
-const registrationOfUser = ({ userId, doubleLevelMatrix }: {
-    userId: number | null,
-    doubleLevelMatrix: DoubleLevelVisibilityMatrix,
-}) => {
-    const admin = eventAdminLevel.data({ visibility: doubleLevelMatrix })
+const registrationOfUser = ({ userId, access }: { userId: number | null, access: EventAccess }) => {
+    const admin = eventAdminLevel.data(access)
     return userId === null ? admin : userIdOrEventAdmin.data({ userId }).or().allOf(admin)
 }
 
 export const eventRegistrationAuth = {
     /**
-     * Registering yourself takes the regular level of the event. Registering as an administrator -
-     * anyone, outside the registration period, past their dots - takes its admin level.
+     * Registering yourself takes a quota of the event. Registering as an administrator - anyone,
+     * into any quota, outside the registration period, past their dots - takes its admin level.
      */
-    create: Require.allOf(registerLevel, Require.userId()),
+    create: Require.allOf(canRegister, Require.userId()),
     createAsAdmin: eventAdminLevel,
     createGuest: eventAdminLevel,
 
     readDotPunishmentOfUser: userIdOrEventAdmin,
     readOfUser: registrationOfUser,
-    readPage: Require.allOf(Require.user(), registerLevel),
+    // Who is registered is shown to those who may see the event and are logged in.
+    readPage: Require.allOf(Require.user(), canSeeEvent),
     readPageDetailed: eventAdminLevel,
 
     updateNotes: registrationOfUser,
     /**
-     * Unregistering yourself, within the registration period and never from a binding registration.
-     * Unregistering as an administrator takes the admin level of the event, and removes anyone at
-     * any time.
+     * Unregistering yourself, within the registration period of your quota and never from a binding
+     * registration. Unregistering as an administrator takes the admin level of the event, and
+     * removes anyone at any time.
      */
     destroy: ownRegistration,
     destroyAsAdmin: eventAdminLevel,
     move: eventAdminLevel,
+    moveToQuota: eventAdminLevel,
     setManuallyPaid: eventAdminLevel,
 
     // Never the registrant's own: marking yourself as shown up would dodge the dots for not showing up.
@@ -72,7 +71,7 @@ export const eventRegistrationAuth = {
 
     // Domain access only: may this session pay for *this* registration - the registrant
     // themselves, or a genuine event admin. Deliberately not eventRegistrationAuth.create
-    // (its registerLevel branch is gated on event visibility, not userId - fine for
+    // (its canRegister branch is gated on event visibility, not userId - fine for
     // "register yourself or someone else", wrong for "spend someone else's ledger balance").
     // Provider/account-ownership rules are not this operation's business - paymentOperations.create
     // and ledgerTransactionOperations.create already own those.

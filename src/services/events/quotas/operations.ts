@@ -5,6 +5,8 @@ import { assertValidQuota, createQuota } from './createQuota'
 import { readEventAccess, readEventIdOfQuota } from '@/services/events/access'
 import { eventQuotaOrder, eventQuotaSummarySelection } from '@/services/events/constants'
 import { lockEvent } from '@/services/events/registration/queue'
+import { promoteToQuota } from '@/services/events/registration/promote'
+import { notifyPromotedFromWaitingList } from '@/services/events/registration/notifyPromotedFromWaitingList'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { visibilityOperations } from '@/services/visibility/operations'
@@ -78,10 +80,11 @@ export const eventQuotaOperations = {
         authorizer: async ({ params, prisma }) => eventQuotaAuth.update.data(
             await readEventAccess(prisma, await readEventIdOfQuota(prisma, params.id))
         ),
+        opensTransaction: true,
         operation: async ({ prisma, params, data }) => {
             const quota = await prisma.eventRegistrationQuota.findUniqueOrThrow({
                 where: { id: params.id },
-                include: { event: { select: { takesPayment: true } } },
+                include: { event: { select: { id: true, name: true, takesPayment: true } } },
             })
             assertValidQuota({
                 registrationStart: data.registrationStart ?? quota.registrationStart,
@@ -89,13 +92,26 @@ export const eventQuotaOperations = {
                 price: data.price ?? quota.price,
             }, quota.event)
 
-            return await prisma.eventRegistrationQuota.update({
-                where: { id: params.id },
-                data: {
-                    ...data,
-                    ...(quota.event.takesPayment ? {} : { price: null }),
-                },
+            const { updated, promoted } = await prisma.$transaction(async tx => {
+                await lockEvent(tx, quota.eventId)
+                const updatedQuota = await tx.eventRegistrationQuota.update({
+                    where: { id: params.id },
+                    data: {
+                        ...data,
+                        ...(quota.event.takesPayment ? {} : { price: null }),
+                    },
+                })
+                // More places go to the first on the waiting list who pass the quota.
+                const promotedRegistrations = updatedQuota.places > quota.places
+                    ? await promoteToQuota(tx, quota.id)
+                    : []
+                return { updated: updatedQuota, promoted: promotedRegistrations }
             })
+
+            if (promoted.length) {
+                await notifyPromotedFromWaitingList(quota.event, promoted)
+            }
+            return updated
         },
     }),
 
