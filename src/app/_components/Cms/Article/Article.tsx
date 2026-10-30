@@ -81,9 +81,7 @@ export default function Article({
                         updateCmsImageAction={actions.updateCoverImageAction}
                         capabilities={capabilities}
                     />
-                    <div className="absolute top-0 left-0 w-full h-full bg-black/30 object-cover">
-
-                    </div>
+                    <div className="absolute top-0 left-0 w-full h-full bg-black/30 object-cover pointer-events-none" ></div>
                     <SlideInOnView direction="bottom">
                         <ChangeName
                             article={article}
