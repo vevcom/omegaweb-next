@@ -97,7 +97,7 @@ const { page, generateMetadata } = serverPage({
                         }
                     }}
                 />
-                <div className='bg-surface-base rounded-b-round border-t border-t-surface-hover'>
+                <div className="bg-surface-base rounded-b-round border-t border-t-surface-hover">
                     <SlideInOnView>
                         <EditNews news={news} doubleLevelVisibility={doubleLevelVisibility}>
                             <div className="
@@ -105,7 +105,7 @@ const { page, generateMetadata } = serverPage({
                                 [&>div>*]:flex-[0_0_min(75%,300px)]
                             ">
                                 <h1>Flere nyheter</h1>
-                                <div className='flex overflow-x-auto gap-2'>
+                                <div className="flex overflow-x-auto gap-2">
                                     <CurrentNews not={news.id} />
                                 </div>
                             </div>

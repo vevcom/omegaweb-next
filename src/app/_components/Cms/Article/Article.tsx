@@ -62,7 +62,8 @@ export default function Article({
             {hideCoverImage ? <></> : (
                 <span className={`
                     ${coverImageClass}
-                    rounded-t-round [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)] relative
+                    rounded-t-round [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)]
+                    relative
                     [&>*:nth-child(3)]:absolute [&>*:nth-child(3)]:left-4 [&>*:nth-child(3)]:bottom-4
                     [&>*:nth-child(3)]:right-4 [&>*:nth-child(3)]:wrap-anywhere
                 `}>
@@ -80,7 +81,7 @@ export default function Article({
                         updateCmsImageAction={actions.updateCoverImageAction}
                         capabilities={capabilities}
                     />
-                    <div className='absolute top-0 left-0 w-full h-full bg-black/30 object-cover'>
+                    <div className="absolute top-0 left-0 w-full h-full bg-black/30 object-cover">
 
                     </div>
                     <SlideInOnView direction="bottom">
@@ -105,7 +106,7 @@ export default function Article({
                     ${noMargin ? '[&>*]:m-0' : `
                         [&>*]:my-4
                         [&>*:last-child]:mb-0
-                        `}
+                    `}
                     ${hideCoverImage && 'rounded-t-round'}
                     ${articleClassName ?? ''}
                 `}
