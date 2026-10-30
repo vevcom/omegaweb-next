@@ -19,29 +19,49 @@ export const eventFieldsToExpose = [
     'location',
     'eventStart',
     'eventEnd',
-    'places',
     'waitingList',
     'bindingRegistration',
-    'registrationStart',
-    'registrationEnd',
     'canBeViewedBy',
-    'takesRegistration',
     'takesPayment',
-    'price',
     'paymentStart',
     'paymentEnd'
 ] as const satisfies (keyof Event)[]
 
-export const eventFilterSelection = {
-    ...createSelection(eventFieldsToExpose),
+/** A quota as the lists and the event page show it, with how many hold one of its places. */
+export const eventQuotaSummarySelection = {
+    id: true,
+    name: true,
+    order: true,
+    places: true,
+    price: true,
+    registrationStart: true,
+    registrationEnd: true,
     _count: {
         select: {
-            eventRegistrations: true,
+            registrations: true,
         },
     },
-} as const
+} as const satisfies Prisma.EventRegistrationQuotaSelect
 
-/** What the lists of events select: the exposed fields, the cover image and the tags. */
+export const eventQuotaOrder = [
+    { order: 'asc' },
+    { id: 'asc' },
+] satisfies Prisma.EventRegistrationQuotaOrderByWithRelationInput[]
+
+export const eventFilterSelection = {
+    ...createSelection(eventFieldsToExpose),
+    quotas: {
+        select: eventQuotaSummarySelection,
+        orderBy: eventQuotaOrder,
+    },
+    _count: {
+        select: {
+            waitingListRegistrations: true,
+        },
+    },
+} as const satisfies Prisma.EventSelect
+
+/** What the lists of events select: the exposed fields, the quotas, the cover image and the tags. */
 export const eventListSelection = {
     ...eventFilterSelection,
     coverImage: {

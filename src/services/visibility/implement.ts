@@ -53,6 +53,85 @@ type ReadVisibilityDoubleLevel<ImplementationParamsSchema extends z.ZodType<unkn
     adminLevel: Prisma.VisibilityGetPayload<{ include: typeof visibilityIncluder }>
 }>
 
+type SingleAuthorizers<ImplementationParamsSchema extends z.ZodType<unknown>> = {
+    readMatrix: (args: {
+        prisma: PrismaPossibleTransaction<false>,
+        params: z.infer<ImplementationParamsSchema>,
+        matrix: VisibilityMatrix,
+    }) => Awaitable<Authorizer>,
+    update: (args: {
+        prisma: PrismaPossibleTransaction<false>,
+        implementationParams: z.infer<ImplementationParamsSchema>,
+        matrix: VisibilityMatrix,
+    }) => Awaitable<Authorizer>,
+}
+
+type ReadVisibility<ImplementationParamsSchema extends z.ZodType<unknown>> = (args: {
+    include: typeof visibilityIncluder,
+    prisma: PrismaPossibleTransaction<false>,
+    implementationParams: z.infer<ImplementationParamsSchema>,
+}) => Promise<Prisma.VisibilityGetPayload<{ include: typeof visibilityIncluder }>>
+
+/**
+ * The operations of one visibility an owning service holds, such as who administrates an event or
+ * who may register through a quota. `emptyMeans` says what an update to no requirements at all is:
+ * 'EVERYONE' lets it through, 'REFUSED' rejects it, for a visibility where that would hand the
+ * resource to everyone.
+ */
+export function implementVisibilityOperations<
+    const ImplementationParamsSchema extends z.ZodType<unknown>
+>({
+    implementationParamsSchema,
+    authorizers,
+    readVisibility,
+    emptyMeans,
+}: {
+    implementationParamsSchema: ImplementationParamsSchema,
+    authorizers: SingleAuthorizers<ImplementationParamsSchema>,
+    readVisibility: ReadVisibility<ImplementationParamsSchema>,
+    emptyMeans: 'EVERYONE' | 'REFUSED',
+}) {
+    const readMatrixInternal = async ({ prisma, params }: {
+        prisma: PrismaPossibleTransaction<false>,
+        params: z.infer<ImplementationParamsSchema>,
+    }): Promise<VisibilityMatrix> => toMatrix(await readVisibility({
+        prisma,
+        implementationParams: params,
+        include: visibilityIncluder,
+    }))
+
+    return {
+        readMatrixInternal,
+        readMatrix: defineOperation({
+            paramsSchema: implementationParamsSchema,
+            authorizer: async ({ params, prisma }) => authorizers.readMatrix({
+                prisma,
+                params,
+                matrix: await readMatrixInternal({ params, prisma }),
+            }),
+            operation: ({ params, prisma }) => readMatrixInternal({ params, prisma }),
+        }),
+        update: visibilityOperations.update.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: async ({ implementationParams, prisma }) => authorizers.update({
+                prisma,
+                implementationParams,
+                matrix: await readMatrixInternal({ params: implementationParams, prisma }),
+            }),
+            ownershipCheck: async ({ params, prisma, implementationParams }) => (await readVisibility({
+                include: visibilityIncluder,
+                prisma,
+                implementationParams,
+            })).id === params.visibilityId,
+            beforeRun: ({ data }) => {
+                if (emptyMeans === 'REFUSED' && data.requirements.length === 0) {
+                    throw new ServiceError('BAD DATA', 'Du må velge hvem som kan administrere')
+                }
+            },
+        }),
+    } as const
+}
+
 export function implementDoubleLevelVisibilityOperations<
     const ImplementationParamsSchema extends z.ZodType<unknown>
 >({
