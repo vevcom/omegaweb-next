@@ -36,6 +36,7 @@ export const eventQuotaSummarySelection = {
     price: true,
     registrationStart: true,
     registrationEnd: true,
+    visibilityId: true,
     _count: {
         select: {
             registrations: true,

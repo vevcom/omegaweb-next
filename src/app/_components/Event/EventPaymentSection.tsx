@@ -8,16 +8,26 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck, faCircleExclamation } from '@fortawesome/free-solid-svg-icons'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
 import type { EventExpanded } from '@/services/events/types'
-import type { EventRegistrationWithWaitingList } from '@/services/events/registration/types'
-
-type OwnRegistration = EventRegistrationWithWaitingList & { ledgerTransactions: { id: number }[] }
+import type { EventRegistrationOfUser } from '@/services/events/registration/types'
 
 /** Where the visitor stands with paying for the event. Only a registration holding a place is paid for. */
-function paymentStatus(registration: OwnRegistration | null) {
+function paymentStatus(registration: EventRegistrationOfUser | null) {
     if (!registration) return 'NOT_REGISTERED'
-    if (registration.onWaitingList) return 'WAITING_LIST'
+    if (registration.state === 'WAITING_LIST') return 'WAITING_LIST'
     if (registration.ledgerTransactions.length > 0 || registration.manuallyPaid) return 'PAID'
     return 'UNPAID'
+}
+
+/** The price of the visitor's quota, or the range over the quotas for someone without a place. */
+function priceText(event: EventExpanded, registration: EventRegistrationOfUser | null) {
+    if (registration?.quota?.price) return displayAmount(registration.quota.price, false)
+    const prices = event.quotas.flatMap(quota => (quota.price === null ? [] : [quota.price]))
+    if (prices.length === 0) return null
+    const lowest = Math.min(...prices)
+    const highest = Math.max(...prices)
+    return lowest === highest
+        ? displayAmount(lowest, false)
+        : `${displayAmount(lowest, false)} – ${displayAmount(highest, false)}`
 }
 
 /**
@@ -34,21 +44,23 @@ export default function EventPaymentSection({
 }: {
     event: EventExpanded,
     /** The visitor's registration, with whether a payment is in effect for it. */
-    registration: OwnRegistration | null,
+    registration: EventRegistrationOfUser | null,
     userId: number | null,
     availableBalance?: number,
     customerSessionClientSecret?: string,
     capabilities: Capabilities<'canPay'>,
 }) {
-    const { price, paymentStart, paymentEnd } = event
+    const { paymentStart, paymentEnd } = event
+    const price = priceText(event, registration)
     if (!event.takesPayment || price === null || !paymentStart || !paymentEnd) return null
 
     const now = new Date()
     const paymentOpen = paymentStart <= now && now <= paymentEnd
     const status = paymentStatus(registration)
+    const ownPrice = registration?.quota?.price ?? null
 
     return <EventSidebarSection title="Betaling">
-        <EventInfoRow label="Pris">{displayAmount(price, false)}</EventInfoRow>
+        <EventInfoRow label="Pris">{price}</EventInfoRow>
         <EventInfoRow label="Betalingsstart"><DateDisplay date={paymentStart} includeTime /></EventInfoRow>
         <EventInfoRow label="Betalingsslutt"><DateDisplay date={paymentEnd} includeTime /></EventInfoRow>
 
@@ -69,11 +81,11 @@ export default function EventPaymentSection({
                 <FontAwesomeIcon icon={faCircleExclamation} />
                 Ikke betalt
             </p>
-            {paymentOpen && userId !== null && capabilities.canPay.authorized && (
+            {paymentOpen && userId !== null && ownPrice !== null && capabilities.canPay.authorized && (
                 <EventPaymentModal
                     eventId={event.id}
                     userId={userId}
-                    price={price}
+                    price={ownPrice}
                     availableBalance={availableBalance}
                     customerSessionClientSecret={customerSessionClientSecret}
                     triggerLabel="Betal nå"

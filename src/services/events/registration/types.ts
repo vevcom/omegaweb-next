@@ -20,6 +20,14 @@ export type EventRegistrationDetailedExpanded = Prisma.EventRegistrationGetPaylo
     select: typeof eventRegistrationSelectionDetailed,
 }>
 
+/** A user's own registration, with its quota when it holds a place and whether a payment is in effect for it. */
+export type EventRegistrationOfUser = Prisma.EventRegistrationGetPayload<{
+    include: {
+        quota: { select: { id: true, name: true, price: true, registrationEnd: true } },
+        ledgerTransactions: { select: { id: true } },
+    },
+}>
+
 /**
  * What the dots of a user hold them back from when registering to an event. A timeout means the user
  * must wait that many minutes past the ordinary registration start of the event.

@@ -49,6 +49,7 @@ import type {
     EventAttendanceScan,
     EventRegistrationExpanded,
     EventRegistrationNotAttended,
+    EventRegistrationOfUser,
 } from './types'
 
 /**
@@ -80,8 +81,14 @@ type Placement = { state: 'IN_QUOTA', quotaId: number } | { state: 'WAITING_LIST
  * held back by their dots, and as `createAsAdmin`, where an administrator of the event registers
  * anyone into the quota they name, at any time, regardless of dots.
  */
+// Spelled out as a union: inferred, the conditional would reduce it to the plain schema, as the
+// one with the quota is assignable to it, and the quota would be lost to the types.
+type CreateParamsSchema =
+    | typeof eventRegistrationSchemas.params.create
+    | typeof eventRegistrationSchemas.params.createAsAdmin
+
 const createRegistration = defineSubOperation({
-    paramsSchema: ({ asAdmin }: { asAdmin: boolean }) => (asAdmin
+    paramsSchema: ({ asAdmin }: { asAdmin: boolean }): CreateParamsSchema => (asAdmin
         ? eventRegistrationSchemas.params.createAsAdmin
         : eventRegistrationSchemas.params.create),
     opensTransaction: true,
@@ -260,18 +267,19 @@ export const eventRegistrationOperations = {
             access: await readEventAccess(prisma, params.eventId),
         }),
         paramsSchema: eventRegistrationSchemas.params.readOfUser,
-        operation: async ({ prisma, params }) => await prisma.eventRegistration.findFirst({
-            where: { userId: params.userId, ...registrationsOfEvent(params.eventId) },
-            include: {
-                quota: { select: { id: true, name: true, price: true } },
-                // Only need to know whether a payment exists and is still in effect, to gate
-                // the "pay for registration" UI once it's already been paid for.
-                ledgerTransactions: {
-                    where: validTransactionFilter,
-                    select: { id: true },
+        operation: async ({ prisma, params }): Promise<EventRegistrationOfUser | null> =>
+            await prisma.eventRegistration.findFirst({
+                where: { userId: params.userId, ...registrationsOfEvent(params.eventId) },
+                include: {
+                    quota: { select: { id: true, name: true, price: true, registrationEnd: true } },
+                    // Only need to know whether a payment exists and is still in effect, to gate
+                    // the "pay for registration" UI once it's already been paid for.
+                    ledgerTransactions: {
+                        where: validTransactionFilter,
+                        select: { id: true },
+                    },
                 },
-            },
-        }),
+            }),
     }),
 
     readPage: defineOperation({
