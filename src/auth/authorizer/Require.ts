@@ -1,10 +1,10 @@
 import { AuthResult } from './AuthResult'
-import { checkVisibility } from '@/auth/visibility/checkVisibility'
-import { visibilityFilter as buildVisibilityFilter } from '@/auth/visibility/visibilityFilter'
+import { checkDoubleLevelVisibility } from '@/auth/visibility/checkVisibility'
+import { doubleLevelVisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { SessionMaybeUser, SessionType, UserGuaranteeOption } from '@/auth/session/Session'
-import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
+import type { DoubleLevelVisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { Permission } from '@/prisma-generated-pn-types'
-import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
+import type { DoubleLevel, DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 
 /** Marks a builder as needing no further data. `Record<string, never>` would be an index
  * signature forcing *every* property to `never`, collapsing `Data & Record<string, never>` to
@@ -12,8 +12,8 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 type NoData = Record<never, never>
 
 /** What a check returns. `PrismaWhereFilter` is `never` for a check that attaches no filter, which
- * is all of them but `.visibilityFilter()`. A chain's filter type is the union of those of its
- * checks, so `never` leaves it as it was. */
+ * is all of them but `.doubleLevelFilter()` and `.filter()`. A chain's filter type is the union of
+ * those of its checks, so `never` leaves it as it was. */
 type RequireCheckResult<PrismaWhereFilter extends object | undefined = never> =
     | { success: true, prismaWhereFilter?: PrismaWhereFilter }
     | { success: false, errorMessage?: string }
@@ -67,7 +67,7 @@ const defaultMessages = {
 
 /** ANDs every check in `group`, short-circuiting on the first failure. On success the result
  * carries the `prismaWhereFilter` of whichever check in the group attached one, wherever in the
- * group it sits - a check added after `.visibilityFilter()` must not drop its filter. Should
+ * group it sits - a check added after `.doubleLevelFilter()` must not drop its filter. Should
  * several checks attach one, the last wins. */
 function evaluateGroup<PrismaWhereFilter extends object | undefined>(
     group: RequireGroup<NoData, PrismaWhereFilter>,
@@ -239,41 +239,48 @@ export class RequireBuilder<
         ))
     }
 
-    /** Whether the session satisfies one level of a double-level visibility matrix. Needs
-     * `{ visibility: DoubleLevelVisibilityMatrix }` via `.data()`. `level` picks which half, and
-     * belongs in auth.ts - fixed per operation, or chosen from the resource's own data - never
-     * left for the caller to pick by supplying "the correct half" in `.data()` instead.
+    /** Whether the session satisfies one level of a double-level visibility matrix, where passing
+     * the admin level passes the regular level too. Needs `{ visibility: DoubleLevelVisibilityMatrix }`
+     * via `.data()`. `level` picks which half, and belongs in auth.ts - fixed per operation, or
+     * chosen from the resource's own data - never left for the caller to pick by supplying "the
+     * correct half" in `.data()` instead.
      *
      * Not `.visibility()`: that name is kept for a resource with a single level, where there is no
      * half to choose. No resource has one yet, so that method does not exist. */
-    levelOfDoubleVisibility(opts: { level: 'regularLevel' | 'adminLevel', errorMessage?: string }):
+    levelOfDoubleVisibility(opts: { level: DoubleLevel, errorMessage?: string }):
         RequireBuilder<Data & { visibility: DoubleLevelVisibilityMatrix }, PrismaWhereFilter, EarlierUser, LastUser> {
         return this.and<{ visibility: DoubleLevelVisibilityMatrix }>(({ session, visibility }) => (
-            checkVisibility(session.memberships, visibility[opts.level])
+            checkDoubleLevelVisibility(session.memberships, visibility, opts.level)
                 ? { success: true }
                 : { success: false, errorMessage: opts.errorMessage }
         ))
     }
 
     /** Always authorized, but attaches a Prisma `where` filter (the second positional argument
-     * `defineOperation`'s `operation` receives) scoping a list query to what's visible - for
-     * listing operations where filtering out invisible rows is correct, not denying the request.
-     * No filter attached when the session holds `bypassPermission`. */
-    visibilityFilter(opts?: { bypassPermission?: Permission | null }):
-        RequireBuilder<Data, PrismaWhereFilter | VisibilityFilter, EarlierUser, LastUser> {
-        return this.and<NoData, VisibilityFilter>(({ session }) => (
-            (opts?.bypassPermission && session.permissions.includes(opts.bypassPermission))
+     * `defineOperation`'s `operation` receives) scoping a list query to the rows whose `level` the
+     * session passes, the list form of `.levelOfDoubleVisibility()` - for listing operations where
+     * filtering out invisible rows is correct, not denying the request. No filter attached when the
+     * session holds `bypassPermission`.
+     *
+     * Not `.visibilityFilter()`, for the same reason as above: no resource has a single level. */
+    doubleLevelFilter(opts: { level: DoubleLevel, bypassPermission?: Permission | null }):
+        RequireBuilder<Data, PrismaWhereFilter | DoubleLevelVisibilityFilter, EarlierUser, LastUser> {
+        return this.and<NoData, DoubleLevelVisibilityFilter>(({ session }) => (
+            (opts.bypassPermission && session.permissions.includes(opts.bypassPermission))
                 ? { success: true }
-                : { success: true, prismaWhereFilter: buildVisibilityFilter(session.memberships) }
+                : { success: true, prismaWhereFilter: doubleLevelVisibilityFilter(session.memberships, opts.level) }
         ))
     }
 
     /** Always authorized, but attaches the Prisma `where` filter `buildFilter` makes from the
-     * session, as `.visibilityFilter()` does for visibility. For a listing operation scoped by a
-     * rule of its own, e.g. the ledger accounts a session owns. */
-    filter<Filter extends object>(buildFilter: (args: { session: SessionMaybeUser }) => Filter):
-        RequireBuilder<Data, PrismaWhereFilter | Filter, EarlierUser, LastUser> {
-        return this.and<NoData, Filter>(({ session }) => ({ success: true, prismaWhereFilter: buildFilter({ session }) }))
+     * session, as `.doubleLevelFilter()` does for visibility. For a listing operation scoped by a
+     * rule of its own, e.g. the ledger accounts a session owns, or one that combines the levels
+     * with the resource's own columns. Give it a `FilterData` type argument like `.ownership()` if
+     * the filter needs data supplied later via `.data()`. */
+    filter<Filter extends object, FilterData extends object = NoData>(
+        buildFilter: (args: { session: SessionMaybeUser } & FilterData) => Filter
+    ): RequireBuilder<Data & FilterData, PrismaWhereFilter | Filter, EarlierUser, LastUser> {
+        return this.and<FilterData, Filter>((args) => ({ success: true, prismaWhereFilter: buildFilter(args) }))
     }
 
     /** Escape hatch for checks that don't fit the other methods. `check` must be synchronous -
@@ -295,7 +302,7 @@ export class RequireBuilder<
     }
 
     /** Starts a new group, OR'd against everything before it, e.g.
-     * `Require.permission('IMAGE_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })`. Takes no
+     * `Require.permission('IMAGE_ADMIN').or().levelOfDoubleVisibility({ level: 'REGULAR' })`. Takes no
      * argument - to OR in an already-built builder, follow it with `.allOf(thatBuilder)` (`allOf`
      * of one builder is just that builder). Leaving it dangling fails the whole chain; see the
      * class doc. `anyOf`/`allOf` are for three-or-more or dynamic composition instead. */
@@ -356,7 +363,7 @@ export class RequireBuilder<
      * failure the messages of the groups are joined.
      *
      * A group that passes without a filter grants unfiltered access, e.g. the admin half of
-     * `Require.permission('X_ADMIN').or().visibilityFilter()`. Only when every group that passes
+     * `Require.permission('X_ADMIN').or().doubleLevelFilter({ level: 'REGULAR' })`. Only when every group that passes
      * attaches a filter is one handed on, and then the first: where they differ that shows less
      * than their union would, never more.
      *

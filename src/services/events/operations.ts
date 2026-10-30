@@ -18,12 +18,10 @@ import { visibilityOperations } from '@/services/visibility/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import {
-    assertAdminLevelIsSubOfRegularLevel,
     implementDoubleLevelVisibilityOperations,
     toMatrix,
     visibilityIncluder
 } from '@/services/visibility/implement'
-import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
 
@@ -119,10 +117,6 @@ export const eventOperations = {
         authorizer: () => eventAuth.create,
         opensTransaction: true,
         operation: async ({ prisma, data, session }) => {
-            assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: { requirements: data.visibilityRegularRequirements },
-                adminLevel: { requirements: data.visibilityAdminRequirements },
-            })
             assertValidEventDates(data)
 
             // The event and everything it owns are created together, so a failure leaves no
@@ -217,7 +211,7 @@ export const eventOperations = {
     readManyCurrent: defineOperation({
         paramsSchema: eventSchemas.params.readManyCurrent,
         authorizer: () => eventAuth.readManyCurrent,
-        operation: async ({ prisma, params }, visibilityWhereFilter): Promise<EventExpanded[]> => {
+        operation: async ({ prisma, params }, prismaWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
                 select: eventListSelection,
                 where: {
@@ -225,7 +219,7 @@ export const eventOperations = {
                         gte: new Date()
                     },
                     eventTagEvents: eventTagSelector(params.tags),
-                    ...visibleEventsFilter(visibilityWhereFilter)
+                    ...prismaWhereFilter
                 },
                 orderBy: {
                     eventStart: 'asc'
@@ -237,7 +231,7 @@ export const eventOperations = {
     readManyArchivedPage: defineOperation({
         paramsSchema: eventSchemas.params.readManyArchivedPage,
         authorizer: () => eventAuth.readManyArchivedPage,
-        operation: async ({ prisma, params }, visibilityWhereFilter): Promise<EventExpanded[]> => {
+        operation: async ({ prisma, params }, prismaWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
                 ...cursorPagingSelection(params.paging.page),
                 where: {
@@ -249,7 +243,7 @@ export const eventOperations = {
                         mode: 'insensitive'
                     },
                     eventTagEvents: eventTagSelector(params.paging.details.tags),
-                    ...visibleEventsFilter(visibilityWhereFilter)
+                    ...prismaWhereFilter
                 },
                 select: eventListSelection,
             })
@@ -266,7 +260,7 @@ export const eventOperations = {
     search: defineOperation({
         paramsSchema: eventSchemas.params.search,
         authorizer: () => eventAuth.search,
-        operation: async ({ prisma, params }, visibilityWhereFilter) => await prisma.event.findMany({
+        operation: async ({ prisma, params }, prismaWhereFilter) => await prisma.event.findMany({
             take: params.limit ?? defaultSearchResultLimit,
             select: {
                 id: true,
@@ -280,7 +274,7 @@ export const eventOperations = {
             },
             where: {
                 name: { contains: params.query, mode: 'insensitive' },
-                ...visibleEventsFilter(visibilityWhereFilter)
+                ...prismaWhereFilter
             },
             orderBy: { eventStart: 'desc' },
         })
@@ -567,23 +561,6 @@ async function readPublished(prisma: PrismaPossibleTransaction<false>, eventId: 
         select: { published: true },
     })
     return event.published
-}
-
-/**
- * The same rule as eventAuth.read, as a filter over a list of events.
- *
- * The visibility filter is undefined only when the session bypasses visibility with EVENT_ADMIN,
- * which administrates every event - hence no filtering at all in that case.
- */
-function visibleEventsFilter(visibilityWhereFilter: VisibilityFilter | undefined): Prisma.EventWhereInput {
-    if (!visibilityWhereFilter) return {}
-    return {
-        OR: [
-            { published: false, visibilityAdmin: visibilityWhereFilter },
-            { published: true, canBeViewedBy: 'ALL' },
-            { published: true, canBeViewedBy: 'CAN_REGISTER', visibilityRegular: visibilityWhereFilter },
-        ]
-    }
 }
 
 type EventDates = {

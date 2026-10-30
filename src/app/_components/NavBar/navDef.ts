@@ -129,7 +129,7 @@ export const navDef: NavItem[] = [
         name: 'Bilder',
         href: '/image-collections',
         icon: faCamera,
-        authorizers: () => [dynamicImageAuth.readCollectionPage],
+        authorizers: () => [dynamicImageAuth.readCollectionPage.data({ onlyAdministrated: false })],
     },
     {
         name: 'Interessegrupper',

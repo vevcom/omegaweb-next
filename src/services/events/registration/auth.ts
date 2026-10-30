@@ -9,7 +9,7 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
  * also needs `{ published }`, as no one but its administrators may register for a draft.
  */
 const registerLevel = regularLevelUnlessDraft
-const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
+const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'ADMIN' })
 
 const eventAdminAsUser = Require.allOf(eventAdminLevel, Require.userId())
 const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
