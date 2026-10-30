@@ -8,22 +8,25 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
  * way of logging in yet, and deletes the fresh user. This is how a user whose Feide
  * email/username no longer matches their migrated user claims that user.
  *
- * The fresh user must have been created by a Feide login and not have completed registration
- * (no credentials, terms not accepted), so a user holding real data - such as a migrated user
- * that a Feide login was linked to by email - can never be deleted, and the target must be
- * unclaimed (no Feide account, no credentials), so an already linked user can never be
- * hijacked. Both checks run inside the transaction that performs the move.
+ * The fresh user must have been created by a Feide login, so a user holding real data - such as
+ * a migrated user that a Feide login was linked to by email - can never be deleted, and the target
+ * must be unclaimed (no Feide account, no credentials), so an already linked user can never be
+ * hijacked. Unless `allowFinishedRegistration` is set, the fresh user must also not have completed
+ * registration (no credentials, terms not accepted): a user claiming their own migrated user may
+ * only shed a duplicate that holds nothing, while an administrator merges duplicates whatever
+ * state they got into. All checks run inside the transaction that performs the move.
  *
  * The fresh user's session dies on its own: the JWT decode requires the user's Feide
  * account to still exist, and it has been moved away.
  */
 export async function moveFeideAccountToUser(
     prisma: PrismaClient,
-    { fromUserId, toUserId, feideAccountId }: {
+    { fromUserId, toUserId, feideAccountId, allowFinishedRegistration = false }: {
         fromUserId: number,
         toUserId: number,
         // When given, the move only happens if this is the Feide account the source user holds.
         feideAccountId?: string,
+        allowFinishedRegistration?: boolean,
     },
 ): Promise<void> {
     if (fromUserId === toUserId) {
@@ -56,7 +59,7 @@ export async function moveFeideAccountToUser(
             )
         }
 
-        if (fromUser.credentials || fromUser.acceptedTerms) {
+        if (!allowFinishedRegistration && (fromUser.credentials || fromUser.acceptedTerms)) {
             throw new ServiceError(
                 'BAD PARAMETERS',
                 'Feide-kontoen kan bare flyttes fra en bruker som ikke har fullført registreringen.'
