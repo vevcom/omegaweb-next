@@ -1,6 +1,7 @@
 'use client'
 import GiveDotPopUp from './GiveDotPopUp'
 import GiveDotsToAbsentees from './GiveDotsToAbsentees'
+import MoveToQuotaForm from './MoveToQuotaForm'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { EventRegistrationPagingProvider, EventRegistrationPagingContext } from '@/contexts/paging/EventRegistrationPaging'
 import UserCard from '@/components/User/UserCard'
@@ -39,7 +40,10 @@ function DetailedTable({
     attendanceTakerId: number | null,
     dotGiverId: number | null,
 }) {
-    const columns = 7 + (event.takesPayment ? 1 : 0) + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
+    const onWaitingList = type === REGISTRATION_READER_TYPE.WAITING_LIST
+    const severalQuotas = event.quotas.length > 1
+    const columns = 7 + (severalQuotas ? 1 : 0) + (event.takesPayment ? 1 : 0)
+        + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
 
     return <EventRegistrationDetailedPagingProvider
         serverRenderedData={[]}
@@ -60,6 +64,7 @@ function DetailedTable({
                 <thead>
                     <tr>
                         <th>Flytt</th>
+                        {severalQuotas && <th>Kvote</th>}
                         <th>Navn</th>
                         <th>E-post</th>
                         <th>Mobil</th>
@@ -82,7 +87,8 @@ function DetailedTable({
                             return <tr key={row.id}>
                                 <td>
                                     <div className="flex gap-1">
-                                        {(['UP', 'DOWN'] as const).map(direction => <Form
+                                        {/* The waiting list is a queue; a place is only given by a freed one or by hand. */}
+                                        {onWaitingList && (['UP', 'DOWN'] as const).map(direction => <Form
                                             key={direction}
                                             action={configureAction(
                                                 moveEventRegistrationAction,
@@ -94,8 +100,14 @@ function DetailedTable({
                                             buttonClassName="w-auto!"
                                             refreshOnSuccess
                                         />)}
+                                        {(onWaitingList || severalQuotas) && <MoveToQuotaForm
+                                            registrationId={row.id}
+                                            currentQuotaId={row.quota?.id ?? null}
+                                            quotas={event.quotas}
+                                        />}
                                     </div>
                                 </td>
+                                {severalQuotas && <td>{row.quota?.name}</td>}
                                 <td>{name}</td>
                                 <td>{row.user ? row.user.email : row.contact?.email}</td>
                                 <td>{row.user ? row.user.mobile : row.contact?.mobile}</td>

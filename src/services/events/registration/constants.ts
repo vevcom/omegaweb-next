@@ -3,8 +3,12 @@ import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
+const quotaSelection = { select: { id: true, name: true } } as const
+
 export const eventRegistrationSelection = {
     id: true,
+    state: true,
+    quota: quotaSelection,
     user: {
         select: {
             ...userCardSelection,
@@ -19,9 +23,9 @@ export const eventRegistrationSelection = {
 } satisfies Prisma.EventRegistrationSelect
 
 /**
- * The order registrations queue in for the places of an event: the ones first in the queue take the
- * places, and the ones past them queue on the waiting list. Ties on `queuedAt` fall back to the id,
- * which makes it a total order that also cursor-pages cleanly.
+ * The order of the waiting list of an event: a freed place goes to the first in it who passes the
+ * quota. Ties on `queuedAt` fall back to the id, which makes it a total order that also cursor-pages
+ * cleanly.
  */
 export const eventRegistrationQueueOrder = [
     { queuedAt: 'asc' },
@@ -30,6 +34,8 @@ export const eventRegistrationQueueOrder = [
 
 export const eventRegistrationSelectionDetailed = {
     id: true,
+    state: true,
+    quota: quotaSelection,
     note: true,
     attendedAt: true,
     manuallyPaid: true,
@@ -69,7 +75,7 @@ export enum REGISTRATION_READER_TYPE {
 
 export const eventRegistrationAttendanceSelection = {
     id: true,
-    eventId: true,
+    state: true,
     attendedAt: true,
     note: true,
     user: {

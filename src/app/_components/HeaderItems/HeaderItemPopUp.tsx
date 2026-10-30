@@ -3,7 +3,19 @@ import PopUp from '@/components/PopUp/PopUp'
 import React from 'react'
 import { FontAwesomeIcon, type FontAwesomeIconProps } from '@fortawesome/react-fontawesome'
 import {
-    faArchive, faCog, faCreditCard, faEye, faPen, faPlus, faQrcode, faQuestionCircle, faTag, faTrash, faUpload, faUsers
+    faArchive,
+    faCog,
+    faCreditCard,
+    faEye,
+    faLayerGroup,
+    faPen,
+    faPlus,
+    faQrcode,
+    faQuestionCircle,
+    faTag,
+    faTrash,
+    faUpload,
+    faUsers,
 } from '@fortawesome/free-solid-svg-icons'
 import type { PropTypes as PopUpProps } from '@/components/PopUp/PopUp'
 
@@ -106,3 +118,6 @@ export const PaymentHeaderItemPopUp = createHeaderItemPopUp(faCreditCard, 18)
  * Component that can be used to show a delete confirmation in a pop up
  */
 export const DeleteHeaderItemPopUp = createHeaderItemPopUp(faTrash, 18)
+
+/** For the quotas of an event. */
+export const QuotasHeaderItemPopUp = createHeaderItemPopUp(faLayerGroup, 18)

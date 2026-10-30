@@ -1,21 +1,18 @@
 'use client'
 import Form from '@/components/Form/Form'
 import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
-import {
-    setEventPublishedAction,
-    updateEventAdminLevelVisibilityAction,
-    updateEventRegularLevelVisibilityAction,
-} from '@/services/events/actions'
+import { setEventPublishedAction, updateEventAdminVisibilityAction } from '@/services/events/actions'
 import { eventAuth } from '@/services/events/auth'
 import { configureAction } from '@/services/configureAction'
-import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
+import type { EventAccess } from '@/services/events/types'
 import type { Event } from '@/prisma-generated-pn-types'
 
 type PropTypes = {
     event: Event,
-    doubleLevelVisibility: DoubleLevelVisibilityMatrix | null,
+    access: EventAccess,
+    /** Whether the admin visibility could be read, so that the editor never saves a fallback over it. */
+    adminVisibilityKnown: boolean,
 }
 
 const sectionClassName = `
@@ -25,30 +22,20 @@ const sectionClassName = `
 `
 
 /**
- * Whether the event is published and its two visibility levels - the tools only those who
- * administrate the event get to see.
+ * Whether the event is published and who administrates it - the tools only those who administrate
+ * the event get to see. Who may register is the quotas' business, in their own pop-up.
  */
-export default function EventVisibilityAdmin({ event, doubleLevelVisibility }: PropTypes) {
-    const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
-
-    const canUpdateRegularVisibility = useAuthorizer({
-        authorizer: eventAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix })
-    }).authorized
+export default function EventVisibilityAdmin({ event, access, adminVisibilityKnown }: PropTypes) {
     const canUpdateAdminVisibility = useAuthorizer({
-        authorizer: eventAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix })
+        authorizer: eventAuth.updateAdminVisibility.data(access)
     }).authorized
     const canSetPublished = useAuthorizer({
-        authorizer: eventAuth.setPublished.data({ visibility: doubleLevelMatrix })
+        authorizer: eventAuth.setPublished.data(access)
     }).authorized
 
     const setPublished = configureAction(setEventPublishedAction, { params: { id: event.id } })
 
-    // The editors are bound to doubleLevelVisibility rather than doubleLevelMatrix on purpose:
-    // saving the fallback would overwrite the real requirements with fabricated ones.
-    const canEditVisibility = doubleLevelVisibility !== null &&
-        (canUpdateRegularVisibility || canUpdateAdminVisibility)
-
-    if (!canEditVisibility && !canSetPublished) return null
+    if (!canUpdateAdminVisibility && !canSetPublished) return null
 
     return <div className="
         flex flex-col gap-4 min-w-[min(80vw,40rem)]
@@ -74,27 +61,14 @@ export default function EventVisibilityAdmin({ event, doubleLevelVisibility }: P
             </div>
         </section>}
 
-        {doubleLevelVisibility && canUpdateRegularVisibility && <section className={sectionClassName}>
-            <h3>Hvem kan melde seg på</h3>
-            <p>Uten krav kan alle melde seg på.</p>
-            <VisibilityAdmin
-                visibility={doubleLevelVisibility.regularLevel}
-                visibilityId={event.visibilityRegularId}
-                updateVisibilityAction={configureAction(
-                    updateEventRegularLevelVisibilityAction,
-                    { implementationParams: { id: event.id } }
-                )}
-            />
-        </section>}
-
-        {doubleLevelVisibility && canUpdateAdminVisibility && <section className={sectionClassName}>
+        {adminVisibilityKnown && canUpdateAdminVisibility && <section className={sectionClassName}>
             <h3>Hvem kan administrere</h3>
             <p>Uten krav kan bare de med rettigheten EVENT_ADMIN administrere arrangementet.</p>
             <VisibilityAdmin
-                visibility={doubleLevelVisibility.adminLevel}
+                visibility={access.adminVisibility}
                 visibilityId={event.visibilityAdminId}
                 updateVisibilityAction={configureAction(
-                    updateEventAdminLevelVisibilityAction,
+                    updateEventAdminVisibilityAction,
                     { implementationParams: { id: event.id } }
                 )}
             />

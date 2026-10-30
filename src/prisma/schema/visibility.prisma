@@ -10,8 +10,8 @@ model Visibility {
   newsArticleAdmin NewsArticle? @relation(name: "NewsArticleAdminVisibility")
   newsArticleRead  NewsArticle? @relation(name: "NewsArticleReadVisibility")
 
-  eventAdmin   Event? @relation(name: "EventAdminVisibility")
-  eventRegular Event? @relation(name: "EventRegularVisibility")
+  eventAdmin             Event?                  @relation(name: "EventAdminVisibility")
+  eventRegistrationQuota EventRegistrationQuota? @relation(name: "EventRegistrationQuotaVisibility")
 
   articleCategoryAdmin   ArticleCategory? @relation(name: "ArticleCategoryAdminVisibility")
   articleCategoryRegular ArticleCategory? @relation(name: "ArticleCategoryRegularVisibility")

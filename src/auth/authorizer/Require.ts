@@ -1,10 +1,10 @@
 import { AuthResult } from './AuthResult'
-import { checkDoubleLevelVisibility } from '@/auth/visibility/checkVisibility'
+import { checkDoubleLevelVisibility, checkVisibility } from '@/auth/visibility/checkVisibility'
 import { doubleLevelVisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { SessionMaybeUser, SessionType, UserGuaranteeOption } from '@/auth/session/Session'
 import type { DoubleLevelVisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { Permission } from '@/prisma-generated-pn-types'
-import type { DoubleLevel, DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
+import type { DoubleLevel, DoubleLevelVisibilityMatrix, VisibilityMatrix } from '@/services/visibility/types'
 
 /** Marks a builder as needing no further data. `Record<string, never>` would be an index
  * signature forcing *every* property to `never`, collapsing `Data & Record<string, never>` to
@@ -239,14 +239,39 @@ export class RequireBuilder<
         ))
     }
 
+    /** Whether the session satisfies a visibility matrix. Needs `{ [key]: VisibilityMatrix }` via
+     * `.data()`, with `key` defaulting to `visibility`; name it when a chain holds more than one, e.g.
+     * `Require.visibility({ key: 'adminVisibility' })`. */
+    visibility<Key extends string = 'visibility'>(opts?: { key?: Key, errorMessage?: string }):
+        RequireBuilder<Data & Record<Key, VisibilityMatrix>, PrismaWhereFilter, EarlierUser, LastUser> {
+        const key = (opts?.key ?? 'visibility') as Key
+        return this.and<Record<Key, VisibilityMatrix>>((args) => (
+            checkVisibility(args.session.memberships, args[key])
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage }
+        ))
+    }
+
+    /** Whether the session satisfies any one of a list of visibility matrices, e.g. any quota of an
+     * event. Needs `{ [key]: VisibilityMatrix[] }` via `.data()`, with `key` defaulting to
+     * `visibilities`. An empty list passes no one. */
+    anyVisibility<Key extends string = 'visibilities'>(opts?: { key?: Key, errorMessage?: string }):
+        RequireBuilder<Data & Record<Key, VisibilityMatrix[]>, PrismaWhereFilter, EarlierUser, LastUser> {
+        const key = (opts?.key ?? 'visibilities') as Key
+        return this.and<Record<Key, VisibilityMatrix[]>>((args) => (
+            args[key].some(visibility => checkVisibility(args.session.memberships, visibility))
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage }
+        ))
+    }
+
     /** Whether the session satisfies one level of a double-level visibility matrix, where passing
      * the admin level passes the regular level too. Needs `{ visibility: DoubleLevelVisibilityMatrix }`
      * via `.data()`. `level` picks which half, and belongs in auth.ts - fixed per operation, or
      * chosen from the resource's own data - never left for the caller to pick by supplying "the
      * correct half" in `.data()` instead.
      *
-     * Not `.visibility()`: that name is kept for a resource with a single level, where there is no
-     * half to choose. No resource has one yet, so that method does not exist. */
+     * A resource with a single level uses `.visibility()` instead. */
     levelOfDoubleVisibility(opts: { level: DoubleLevel, errorMessage?: string }):
         RequireBuilder<Data & { visibility: DoubleLevelVisibilityMatrix }, PrismaWhereFilter, EarlierUser, LastUser> {
         return this.and<{ visibility: DoubleLevelVisibilityMatrix }>(({ session, visibility }) => (
@@ -260,9 +285,8 @@ export class RequireBuilder<
      * `defineOperation`'s `operation` receives) scoping a list query to the rows whose `level` the
      * session passes, the list form of `.levelOfDoubleVisibility()` - for listing operations where
      * filtering out invisible rows is correct, not denying the request. No filter attached when the
-     * session holds `bypassPermission`.
-     *
-     * Not `.visibilityFilter()`, for the same reason as above: no resource has a single level. */
+     * session holds `bypassPermission`. A resource with a single level, or with several, builds its
+     * filter with `.filter()` from `visibilityFilter(session.memberships)`. */
     doubleLevelFilter(opts: { level: DoubleLevel, bypassPermission?: Permission | null }):
         RequireBuilder<Data, PrismaWhereFilter | DoubleLevelVisibilityFilter, EarlierUser, LastUser> {
         return this.and<NoData, DoubleLevelVisibilityFilter>(({ session }) => (

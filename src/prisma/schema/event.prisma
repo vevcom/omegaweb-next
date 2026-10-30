@@ -26,18 +26,15 @@ model Event {
   ledgerAccount       LedgerAccount? @relation(fields: [ledgerAccountId], references: [id])
   ledgerAccountId     Int?
 
-  takesRegistration   Boolean
-  places              Int                 @default(0)
-  registrationStart   DateTime
-  registrationEnd     DateTime
+  // The event takes registration when it has quotas.
+  quotas              EventRegistrationQuota[]
   waitingList         Boolean
+  // Registrations without a place, queueing for one in any quota they pass.
+  waitingListRegistrations EventRegistration[]
   // Registrants cannot unregister themselves. Only those who administrate the event remove a registration.
-  bindingRegistration Boolean             @default(false)
-  eventRegistrations  EventRegistration[]
-  takesPayment        Boolean             @default(false)
-  // Price in øre. Set exactly when the event takes payment.
-  price               Int?
-  // Set exactly when the event takes payment. Separate from the registration period.
+  bindingRegistration Boolean                  @default(false)
+  takesPayment        Boolean                  @default(false)
+  // Set exactly when the event takes payment.
   paymentStart        DateTime?
   paymentEnd          DateTime?
 
@@ -47,10 +44,8 @@ model Event {
 
   published Boolean @default(false)
 
-  visibilityAdmin     Visibility @relation(name: "EventAdminVisibility", fields: [visibilityAdminId], references: [id], onDelete: Restrict)
-  visibilityAdminId   Int        @unique
-  visibilityRegular   Visibility @relation(name: "EventRegularVisibility", fields: [visibilityRegularId], references: [id], onDelete: Restrict)
-  visibilityRegularId Int        @unique
+  visibilityAdmin   Visibility @relation(name: "EventAdminVisibility", fields: [visibilityAdminId], references: [id], onDelete: Restrict)
+  visibilityAdminId Int        @unique
 
   // Legacy from OW basic database
   company     Boolean @default(false) // If a plus one is allowed
@@ -99,20 +94,53 @@ model EventTag {
   updatedAt DateTime @updatedAt
 }
 
+// Quotas fill in `order`: a registrant takes a place in the first open quota they pass with one left.
+model EventRegistrationQuota {
+  id      Int    @id @default(autoincrement())
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int
+  order   Int
+  name    String
+  places  Int
+  // Price in øre. Set exactly when the event takes payment.
+  price   Int?
+
+  registrationStart DateTime
+  registrationEnd   DateTime
+
+  visibility   Visibility @relation(name: "EventRegistrationQuotaVisibility", fields: [visibilityId], references: [id], onDelete: Restrict)
+  visibilityId Int        @unique
+
+  registrations EventRegistration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId, order])
+}
+
+// IN_QUOTA holds a place and relates to its quota; WAITING_LIST queues and relates to its event.
+enum EventRegistrationState {
+  IN_QUOTA
+  WAITING_LIST
+}
+
 model EventRegistration {
-  id        Int             @id @default(autoincrement())
-  event     Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId   Int
-  user      User?           @relation(name: "registration", fields: [userId], references: [id])
-  userId    Int?
-  contact   ContactDetails? @relation(fields: [contactId], references: [id])
-  contactId Int?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  note      String?
-  // Registrations queue for the places of the event by this time, then by id. It is when they
-  // registered until an administrator moves one.
-  queuedAt  DateTime        @default(now())
+  id                 Int                     @id @default(autoincrement())
+  state              EventRegistrationState
+  quota              EventRegistrationQuota? @relation(fields: [quotaId], references: [id], onDelete: Restrict)
+  quotaId            Int?
+  waitingListEvent   Event?                  @relation(fields: [waitingListEventId], references: [id], onDelete: Cascade)
+  waitingListEventId Int?
+  user               User?                   @relation(name: "registration", fields: [userId], references: [id])
+  userId             Int?
+  contact            ContactDetails?         @relation(fields: [contactId], references: [id])
+  contactId          Int?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  note               String?
+  // The waiting list queues by this time, then by id.
+  queuedAt           DateTime                @default(now())
 
   // Null until attendance is taken for the event - after that, null means they did not show up.
   attendedAt               DateTime?
@@ -128,7 +156,8 @@ model EventRegistration {
 
   ledgerTransactions LedgerTransaction[]
 
-  @@unique([eventId, userId])
-  @@index([eventId, queuedAt])
+  @@unique([quotaId, userId])
+  @@unique([waitingListEventId, userId])
+  @@index([waitingListEventId, queuedAt])
   @@index([userId])
 }
