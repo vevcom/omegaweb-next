@@ -45,7 +45,7 @@ const { page, generateMetadata } = serverPage({
         <div>
             <Article
                 capabilities={capabilities}
-                coverImageClass="mobile:rounded-round! mobile:p-0!"
+                coverImageClass="mobile:rounded-t-round! mobile:p-0!"
                 article={data.article}
                 actions={{
                     updateArticleAction: configureAction(

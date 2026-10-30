@@ -15,7 +15,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ capabilities }) => (
         <PageWrapper
             headerItem={
-                <div className="flex items-center gap-[1em]">
+                <div className="flex items-center gap-4">
                     <ArchiveLink href="news/archive" />
                     {
                         capabilities.canCreate.authorized && (

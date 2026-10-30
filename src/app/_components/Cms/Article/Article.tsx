@@ -62,15 +62,15 @@ export default function Article({
             {hideCoverImage ? <></> : (
                 <span className={`
                     ${coverImageClass}
-                    rounded-round [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)] relative
-                    [&>*:nth-child(2)]:absolute [&>*:nth-child(2)]:left-[min(4rem,4vw)] [&>*:nth-child(2)]:bottom-[1em]
-                    [&>*:nth-child(2)]:right-[min(4rem,4vw)] [&>*:nth-child(2)]:wrap-anywhere
+                    rounded-t-round [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)]
+                    relative
+                    [&>*:nth-child(3)]:absolute [&>*:nth-child(3)]:left-4 [&>*:nth-child(3)]:bottom-4
+                    [&>*:nth-child(3)]:right-4 [&>*:nth-child(3)]:wrap-anywhere
                 `}>
                     <CmsImage
                         className="
                             relative w-full h-full
                             after:absolute after:top-0 after:left-0 after:w-full after:h-full after:z-1
-                            after:bg-[linear-gradient(to_bottom,transparent_50%,var(--surface-base))]
                             [&_div]:w-full [&_div]:h-full
                             [&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:w-full [&_img]:h-[min(300px,40vh)]!
                             [&_img]:object-cover
@@ -81,6 +81,7 @@ export default function Article({
                         updateCmsImageAction={actions.updateCoverImageAction}
                         capabilities={capabilities}
                     />
+                    <div className="absolute top-0 left-0 w-full h-full bg-black/30 object-cover pointer-events-none" ></div>
                     <SlideInOnView direction="bottom">
                         <ChangeName
                             article={article}
@@ -97,13 +98,14 @@ export default function Article({
             )}
             <article
                 className={`
-                    [grid-area:article] isolate
+                    [grid-area:article] isolate p-4
                     [&>*]:isolate [&>*]:relative
                     ${styles.article}
                     ${noMargin ? '[&>*]:m-0' : `
-                        [&>*]:my-[2em] [&>*]:mx-[min(4rem,4vw)]
-                        [&>*:last-child]:mb-[1em]
+                        [&>*]:my-4
+                        [&>*:last-child]:mb-0
                     `}
+                    ${hideCoverImage && 'rounded-t-round'}
                     ${articleClassName ?? ''}
                 `}
             >
