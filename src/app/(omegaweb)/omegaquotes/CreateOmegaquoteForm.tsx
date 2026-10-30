@@ -25,6 +25,7 @@ export default function CreateOmegaquoteForm() {
                 )}
                 successCallback={refresh}
                 className="w-[400px]"
+                closePopUpOnSuccess="new_omega_quote"
             >
                 <Textarea
                     name="quote"
