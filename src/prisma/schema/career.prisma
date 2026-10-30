@@ -47,3 +47,16 @@ model Company {
 
   @@index([sponsorTier])
 }
+
+// A department of the team on the career site's about page, with its description and its persons.
+model CareerTeamDepartment {
+  id          Int          @id @default(autoincrement())
+  name        String
+  paragraph   CmsParagraph @relation(fields: [paragraphId], references: [id], onDelete: Restrict)
+  paragraphId Int          @unique
+  order       Int          @unique @default(autoincrement())
+  persons     CmsPerson[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
