@@ -5,7 +5,6 @@ import { careersTeamDepartmentIncluder } from './constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsPersonOperations } from '@/cms/persons/operations'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { ExpandedCareerTeamDepartment } from './types'
@@ -83,26 +82,26 @@ export const careersTeamOperations = {
         paramsSchema: careersTeamSchemas.params.destroyDepartment,
         authorizer: () => careersTeamAuth.destroyDepartment,
         opensTransaction: true,
-        operation: ({ prisma, params }) => prisma.$transaction(async tx => {
-            const persons = await tx.cmsPerson.findMany({
-                where: { careerTeamDepartmentId: params.departmentId },
-                select: { cmsImageId: true },
-            })
-            await tx.cmsPerson.deleteMany({ where: { careerTeamDepartmentId: params.departmentId } })
-            for (const person of persons) {
-                await cmsImageOperations.destroy.internalCall({ params: { cmsImageId: person.cmsImageId }, prisma: tx })
-            }
+        operation: async ({ prisma, params }) => {
+            const cleanup = await prisma.$transaction(async tx => {
+                const personsCleanup = await cmsPersonOperations.destroyAllOfOwnerAndReturnCleanup.internalCall({
+                    prisma: tx,
+                    operationImplementationFields: { owner: { careerTeamDepartmentId: params.departmentId } },
+                })
 
-            // The paragraph is on the department's side of the relation, so it does not cascade.
-            const department = await tx.careerTeamDepartment.delete({
-                where: { id: params.departmentId },
-                select: { paragraphId: true },
+                // The paragraph is on the department's side of the relation, so it does not cascade.
+                const department = await tx.careerTeamDepartment.delete({
+                    where: { id: params.departmentId },
+                    select: { paragraphId: true },
+                })
+                await cmsParagraphOperations.destroy.internalCall({
+                    params: { paragraphId: department.paragraphId },
+                    prisma: tx,
+                })
+                return personsCleanup
             })
-            await cmsParagraphOperations.destroy.internalCall({
-                params: { paragraphId: department.paragraphId },
-                prisma: tx,
-            })
-        }),
+            await cleanup()
+        },
     }),
 
     updateDepartmentParagraph: cmsParagraphOperations.updateContent.implement({
@@ -144,14 +143,8 @@ export const careersTeamOperations = {
         ownershipCheck: ({ params, prisma }) => isTeamPerson(prisma, params.cmsPersonId),
     }),
 
-    updatePersonCmsImage: cmsImageOperations.update.implement({
-        authorizer: () => careersTeamAuth.updatePersonCmsImage,
-        ownershipCheck: async ({ params, prisma }) => {
-            const person = await prisma.cmsPerson.findUnique({
-                where: { cmsImageId: params.cmsImageId },
-                select: { careerTeamDepartmentId: true },
-            })
-            return person !== null && person.careerTeamDepartmentId !== null
-        },
+    updatePersonImage: cmsPersonOperations.updateImage.implement({
+        authorizer: () => careersTeamAuth.updatePersonImage,
+        ownershipCheck: ({ params, prisma }) => isTeamPerson(prisma, params.cmsPersonId),
     }),
 } as const

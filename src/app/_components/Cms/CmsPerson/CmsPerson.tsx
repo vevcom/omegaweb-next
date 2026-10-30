@@ -1,13 +1,14 @@
 import CmsPersonEditor from './CmsPersonEditor'
-import CmsImage from '@/components/Cms/CmsImage/CmsImage'
+import Image from '@/components/Image/Image'
+import StandardImageClient from '@/components/Image/StandardImageClient'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import type {
     DestroyCmsPersonAction,
     ExpandedCmsPerson,
     MoveCmsPersonAction,
     UpdateCmsPersonAction,
+    UpdateCmsPersonImageAction,
 } from '@/cms/persons/types'
-import type { UpdateCmsImageAction } from '@/cms/images/types'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 export type PropTypes = {
@@ -16,9 +17,9 @@ export type PropTypes = {
     canMoveBack: boolean
     canMoveForward: boolean
     updateCmsPersonAction: UpdateCmsPersonAction
+    updateCmsPersonImageAction: UpdateCmsPersonImageAction
     moveCmsPersonAction: MoveCmsPersonAction
     destroyCmsPersonAction: DestroyCmsPersonAction
-    updateCmsImageAction: UpdateCmsImageAction
     capabilities: Capabilities<'canEdit'>
 }
 
@@ -32,9 +33,9 @@ export default function CmsPerson({
     canMoveBack,
     canMoveForward,
     updateCmsPersonAction,
+    updateCmsPersonImageAction,
     moveCmsPersonAction,
     destroyCmsPersonAction,
-    updateCmsImageAction,
     capabilities,
 }: PropTypes) {
     return (
@@ -45,16 +46,25 @@ export default function CmsPerson({
             <div className="
                 [--image-width:100%] aspect-4/5 overflow-hidden bg-surface-hover
                 [&>div]:block [&>div]:size-full
-                [&_img]:size-full [&_img]:object-cover
+                [&_img]:size-full
             ">
-                <CmsImage
-                    cmsImage={cmsPerson.cmsImage}
-                    width={400}
-                    alt={cmsPerson.name}
-                    hideCredit
-                    updateCmsImageAction={updateCmsImageAction}
-                    capabilities={capabilities}
-                />
+                {cmsPerson.image ? (
+                    <Image
+                        image={cmsPerson.image}
+                        width={400}
+                        alt={cmsPerson.name}
+                        hideCredit
+                        className="[&>img]:object-cover"
+                    />
+                ) : (
+                    <StandardImageClient
+                        standardImage="DEFAULT_PROFILE_IMAGE"
+                        width={400}
+                        alt=""
+                        hideCredit
+                        className="[&_img]:object-contain [&_img]:p-[20%]"
+                    />
+                )}
             </div>
             <p className="mt-4 text-m font-semibold leading-snug">{cmsPerson.name}</p>
             <p className="mt-0.5 text-s text-text-muted">{cmsPerson.title}</p>
@@ -74,6 +84,7 @@ export default function CmsPerson({
                 canMoveBack={canMoveBack}
                 canMoveForward={canMoveForward}
                 updateCmsPersonAction={updateCmsPersonAction}
+                updateCmsPersonImageAction={updateCmsPersonImageAction}
                 moveCmsPersonAction={moveCmsPersonAction}
                 destroyCmsPersonAction={destroyCmsPersonAction}
                 capabilities={capabilitiesToJsObject(capabilities)}

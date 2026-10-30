@@ -13,5 +13,5 @@ export const careersTeamAuth = {
     updatePerson: editTeam,
     movePerson: editTeam,
     destroyPerson: editTeam,
-    updatePersonCmsImage: editTeam,
+    updatePersonImage: editTeam,
 } as const

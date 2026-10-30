@@ -11,4 +11,4 @@ export const createCareersTeamPersonAction = makeAction(careersTeamOperations.cr
 export const updateCareersTeamPersonAction = makeAction(careersTeamOperations.updatePerson)
 export const moveCareersTeamPersonAction = makeAction(careersTeamOperations.movePerson)
 export const destroyCareersTeamPersonAction = makeAction(careersTeamOperations.destroyPerson)
-export const updateCareersTeamPersonCmsImageAction = makeAction(careersTeamOperations.updatePersonCmsImage)
+export const updateCareersTeamPersonImageAction = makeAction(careersTeamOperations.updatePersonImage)
