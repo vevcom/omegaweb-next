@@ -17,7 +17,7 @@ export default function CmsParagraph({ cmsParagraph, className, updateCmsParagra
     return (
         <>
             <div className={`
-                w-full relative mb-4
+                w-full relative
                 ${className}
             `}>
                 {cmsParagraph.contentHtml ? (

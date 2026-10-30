@@ -8,10 +8,10 @@ type PropTypes = {
 }
 
 const directionClassNames = {
-    bottom: 'translate-y-[20px]',
-    top: '-translate-y-[20px]',
-    left: '-translate-x-[20px]',
-    right: 'translate-x-[20px]',
+    bottom: 'translate-y-1',
+    top: '-translate-y-1',
+    left: '-translate-x-1',
+    right: 'translate-x-1',
 }
 
 export default function SlideInOnView({ children, direction = 'bottom' }: PropTypes) {

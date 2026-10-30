@@ -53,7 +53,7 @@ export const jobAdPage = (basePath: string) => serverPage({
                         max-mobile:ml-0 max-mobile:mt-2
                     "
                     articleClassName="bg-surface-base rounded-round"
-                    addSectionClassName="mt-2 mx-4 mb-0"
+                    addSectionClassName="mx-4 mb-0"
                     actions={{
                         updateArticleAction: configureAction(
                             updateJobAdArticleAction,
