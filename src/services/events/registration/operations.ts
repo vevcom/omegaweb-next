@@ -427,8 +427,9 @@ export const eventRegistrationOperations = {
             (await registrationOwnerAndAccess(prisma, params.registrationId)).access
         ),
         paramsSchema: eventRegistrationSchemas.params.moveToQuota,
+        dataSchema: eventRegistrationSchemas.data.moveToQuota,
         opensTransaction: true,
-        operation: async ({ prisma, params }) => {
+        operation: async ({ prisma, params, data }) => {
             const { eventId } = await registrationContext(prisma, params.registrationId)
 
             const promoted = await prisma.$transaction(async tx => {
@@ -438,20 +439,20 @@ export const eventRegistrationOperations = {
                     select: { quotaId: true },
                 })
                 const quota = await tx.eventRegistrationQuota.findUniqueOrThrow({
-                    where: { id: params.quotaId },
+                    where: { id: data.quotaId },
                     select: { eventId: true, places: true, _count: { select: { registrations: true } } },
                 })
                 if (quota.eventId !== eventId) {
                     throw new Smorekopp('BAD PARAMETERS', 'Kvoten hører ikke til arrangementet.')
                 }
-                if (registration.quotaId === params.quotaId) return []
+                if (registration.quotaId === data.quotaId) return []
                 if (!hasPlace(quota)) {
                     throw new Smorekopp('BAD PARAMETERS', 'Kvoten er full.')
                 }
 
                 await tx.eventRegistration.update({
                     where: { id: params.registrationId },
-                    data: { state: 'IN_QUOTA', quotaId: params.quotaId, waitingListEventId: null },
+                    data: { state: 'IN_QUOTA', quotaId: data.quotaId, waitingListEventId: null },
                 })
                 return registration.quotaId === null ? [] : await promoteToQuota(tx, registration.quotaId)
             })
