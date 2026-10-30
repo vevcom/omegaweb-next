@@ -7,10 +7,7 @@ import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { articleOperations } from '@/cms/articles/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
-import {
-    assertAdminLevelIsSubOfRegularLevel,
-    implementDoubleLevelVisibilityOperations
-} from '@/services/visibility/implement'
+import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 /** The cover of a category is the cover image of its newest article. */
@@ -63,43 +60,36 @@ export const articleCategoryOperations = {
         authorizer: () => articleCategoryAuth.create,
         dataSchema: articleCategorySchemas.data.create,
         opensTransaction: true,
-        operation: async ({ prisma, data }) => {
-            assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: { requirements: data.visibilityRegularRequirements },
-                adminLevel: { requirements: data.visibilityAdminRequirements },
+        operation: async ({ prisma, data }) => prisma.$transaction(async tx => {
+            const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
+                prisma: tx,
+                data: { requirements: data.visibilityRegularRequirements },
+            })
+            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+                prisma: tx,
+                data: { requirements: data.visibilityAdminRequirements },
             })
 
-            return prisma.$transaction(async tx => {
-                const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
-                    prisma: tx,
-                    data: { requirements: data.visibilityRegularRequirements },
-                })
-                const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
-                    prisma: tx,
-                    data: { requirements: data.visibilityAdminRequirements },
-                })
-
-                return await tx.articleCategory.create({
-                    data: {
-                        name: data.name,
-                        description: data.description,
-                        visibilityRegular: {
-                            connect: {
-                                id: visibilityRegular.id
-                            }
-                        },
-                        visibilityAdmin: {
-                            connect: {
-                                id: visibilityAdmin.id
-                            }
-                        },
+            return await tx.articleCategory.create({
+                data: {
+                    name: data.name,
+                    description: data.description,
+                    visibilityRegular: {
+                        connect: {
+                            id: visibilityRegular.id
+                        }
                     },
-                    include: {
-                        articles: true
+                    visibilityAdmin: {
+                        connect: {
+                            id: visibilityAdmin.id
+                        }
                     },
-                })
+                },
+                include: {
+                    articles: true
+                },
             })
-        }
+        })
     }),
 
     destroy: defineOperation({
@@ -225,8 +215,7 @@ export const articleCategoryOperations = {
         authorizer: () => articleCategoryAuth.readAll,
         operation: async ({ prisma }, prismaWhereFilter) => {
             const categories = await prisma.articleCategory.findMany({
-                // No filter means the session bypasses the regular level with ARTICLE_CATEGORY_ADMIN.
-                where: prismaWhereFilter ? { visibilityRegular: prismaWhereFilter } : undefined,
+                where: prismaWhereFilter,
                 include: {
                     articles: {
                         take: 1,

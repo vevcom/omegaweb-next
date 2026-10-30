@@ -321,15 +321,20 @@ describe('the collections visibility', () => {
         })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
     })
 
-    test('an administrator may not lock themselves out by narrowing the regular level', async () => {
+    test('narrowing the regular level away from the admin level keeps the administrators reading', async () => {
         const collection = await createCollection({ adminLevel: activeIn(groupOne) })
 
-        await expect(dynamicImageOperations.visibility.updateRegularLevel({
+        await dynamicImageOperations.visibility.updateRegularLevel({
             implementationParams: { collectionId: collection.id },
             params: { visibilityId: collection.visibilityRegularId },
             data: activeIn(groupTwo),
             session: sessionInGroups(groupOne),
-        })).rejects.toThrow(new Smorekopp('BAD DATA'))
+        })
+
+        await expect(dynamicImageOperations.readCollection({
+            params: { collectionId: collection.id },
+            session: sessionInGroups(groupOne),
+        })).resolves.toMatchObject({ id: collection.id })
     })
 
     test('the visibility of one collection cannot be changed through another', async () => {
@@ -366,6 +371,14 @@ describe('paging over collections', () => {
 
         expect(ids).toContain(visible.id)
         expect(ids).not.toContain(hidden.id)
+    })
+
+    test('a collection is listed for those who administrate it, whatever its regular level says', async () => {
+        const administrated = await createCollection({ regularLevel: activeIn(groupTwo), adminLevel: activeIn(groupOne) })
+
+        const ids = (await readPage(sessionInGroups(groupOne))).map(collection => collection.id)
+
+        expect(ids).toContain(administrated.id)
     })
 
     test('IMAGE_ADMIN sees every collection', async () => {

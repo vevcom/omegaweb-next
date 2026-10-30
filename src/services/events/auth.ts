@@ -1,14 +1,15 @@
 import { Require } from '@/auth/authorizer/Require'
+import { doubleLevelVisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
-import type { EventCanView } from '@/prisma-generated-pn-types'
+import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 
 /**
  * The admin level of an event decides who may edit and delete it. The regular level decides who
  * may register for it, and who may see it at all when it isn't viewable by everyone. EVENT_ADMIN
  * bypasses both levels for every event.
  */
-const regularLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
-const adminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
+const regularLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'REGULAR' })
+const adminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'ADMIN' })
 
 /**
  * Passes when the event's `published` flag, supplied via `.data()`, is `expected`. It fails
@@ -38,6 +39,15 @@ const isViewableByAll = Require.custom<{ published: boolean, canBeViewedBy: Even
     ({ published, canBeViewedBy }) => (published && canBeViewedBy === 'ALL' ? { success: true } : { success: false })
 )
 
+/** The same rule as `read`, as a filter over a list of events. EVENT_ADMIN lists them unfiltered. */
+const visibleEvents = Require.permission('EVENT_ADMIN').or().filter(({ session }): Prisma.EventWhereInput => ({
+    OR: [
+        { published: false, ...doubleLevelVisibilityFilter(session.memberships, 'ADMIN') },
+        { published: true, canBeViewedBy: 'ALL' },
+        { published: true, canBeViewedBy: 'CAN_REGISTER', ...doubleLevelVisibilityFilter(session.memberships, 'REGULAR') },
+    ],
+}))
+
 export const eventAuth = {
     // A new event has no visibility matrix yet to check. EVENT_CREATE is the only gate here. The
     // creator sets the event's own visibility, which then governs every operation below.
@@ -48,9 +58,9 @@ export const eventAuth = {
     updateAdminLevel: adminLevel,
 
     read: Require.anyOf(isViewableByAll, regularLevelUnlessDraft),
-    readManyCurrent: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
-    readManyArchivedPage: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
-    search: Require.visibilityFilter({ bypassPermission: 'EVENT_ADMIN' }),
+    readManyCurrent: visibleEvents,
+    readManyArchivedPage: visibleEvents,
+    search: visibleEvents,
 
     update: adminLevel,
     connectToLedgerAccount: Require.allOf(adminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
