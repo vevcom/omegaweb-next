@@ -53,6 +53,7 @@ model CmsParagraph {
   Committee           Committee?           @relation(name: "committeeParagraph")
   Ombul               Ombul?
   User                User?
+  careerTeamDepartment CareerTeamDepartment?
 
   committeeParticipation CommitteeParticipationInApplicationPeriod?
 }
@@ -82,6 +83,27 @@ model CmsLink {
   articleSectionId Int?            @unique
 
   committeeParticipation CommitteeParticipationInApplicationPeriod?
+}
+
+// A person shown on a page, with a portrait, a title and a way to reach them. It is not a user, since
+// how a person is presented publicly differs from their account.
+model CmsPerson {
+  id         Int      @id @default(autoincrement())
+  name       String
+  title      String
+  email      String?
+  // An upload in the PERSONIMAGES collection, owned by this person alone.
+  image      Image?   @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  imageId    Int?     @unique
+  // Orders the persons within their owner.
+  order      Int      @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  careerTeamDepartment   CareerTeamDepartment? @relation(fields: [careerTeamDepartmentId], references: [id], onDelete: Restrict)
+  careerTeamDepartmentId Int?
+
+  @@unique([careerTeamDepartmentId, order])
 }
 
 enum Position {
