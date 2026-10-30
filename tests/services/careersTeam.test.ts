@@ -30,7 +30,7 @@ async function createPerson(name: string) {
 async function uploadPortrait(cmsPersonId: number) {
     return await careersTeamOperations.updatePersonImage({
         params: { cmsPersonId },
-        data: { imageFile: new File([pngBuffer], 'portrett.png', { type: 'image/png' }) as globalThis.File },
+        data: { imageFile: new File([pngBuffer], 'portrett.png', { type: 'image/png' }) },
         session: teamEditor,
     })
 }
