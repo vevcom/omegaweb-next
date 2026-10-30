@@ -1,3 +1,4 @@
+import { imageDataFieldSchemas } from '@/services/images/subservice/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -34,10 +35,14 @@ export const cmsPersonSchemas = {
         move: dataFieldSchemas.pick({
             direction: true,
         }),
+        updateImage: imageDataFieldSchemas.pick({
+            imageFile: true,
+        }),
     },
     params: {
         update: cmsPersonId,
         destroy: cmsPersonId,
         move: cmsPersonId,
+        updateImage: cmsPersonId,
     },
 }

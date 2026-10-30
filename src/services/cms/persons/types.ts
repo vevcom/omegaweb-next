@@ -1,10 +1,10 @@
 import type { cmsPersonOperations } from './operations'
-import type { ExpandedCmsImage } from '@/cms/images/types'
 import type { ActionFromSubServiceOperation } from '@/services/actionTypes'
 import type { CmsPerson } from '@/prisma-generated-pn-types'
+import type { ExpandedImage } from '@/services/images/subservice/types'
 
 export type ExpandedCmsPerson = CmsPerson & {
-    cmsImage: ExpandedCmsImage
+    image: ExpandedImage | null
 }
 
 /**
@@ -18,3 +18,4 @@ export type CmsPersonOwner = {
 export type UpdateCmsPersonAction = ActionFromSubServiceOperation<typeof cmsPersonOperations.update>
 export type DestroyCmsPersonAction = ActionFromSubServiceOperation<typeof cmsPersonOperations.destroy>
 export type MoveCmsPersonAction = ActionFromSubServiceOperation<typeof cmsPersonOperations.move>
+export type UpdateCmsPersonImageAction = ActionFromSubServiceOperation<typeof cmsPersonOperations.updateImage>
