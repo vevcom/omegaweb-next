@@ -294,9 +294,12 @@ export const authOperations = {
                 select: { id: true },
             })
 
+            // An administrator merges duplicates however far the duplicate got, so it may have
+            // finished registering. Its credentials and terms go with it.
             await moveFeideAccountToUser(prisma, {
                 fromUserId: fromUser.id,
                 toUserId: toUser.id,
+                allowFinishedRegistration: true,
             })
         }
     }),
