@@ -1,3 +1,6 @@
+-- AlterEnum
+ALTER TYPE "SpecialCollection" ADD VALUE 'PERSONIMAGES';
+
 -- CreateTable
 CREATE TABLE "CareerTeamDepartment" (
     "id" SERIAL NOT NULL,
@@ -16,7 +19,7 @@ CREATE TABLE "CmsPerson" (
     "name" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "email" TEXT,
-    "cmsImageId" INTEGER NOT NULL,
+    "imageId" INTEGER,
     "order" SERIAL NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -32,7 +35,7 @@ CREATE UNIQUE INDEX "CareerTeamDepartment_paragraphId_key" ON "CareerTeamDepartm
 CREATE UNIQUE INDEX "CareerTeamDepartment_order_key" ON "CareerTeamDepartment"("order");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "CmsPerson_cmsImageId_key" ON "CmsPerson"("cmsImageId");
+CREATE UNIQUE INDEX "CmsPerson_imageId_key" ON "CmsPerson"("imageId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "CmsPerson_careerTeamDepartmentId_order_key" ON "CmsPerson"("careerTeamDepartmentId", "order");
@@ -41,7 +44,7 @@ CREATE UNIQUE INDEX "CmsPerson_careerTeamDepartmentId_order_key" ON "CmsPerson"(
 ALTER TABLE "CareerTeamDepartment" ADD CONSTRAINT "CareerTeamDepartment_paragraphId_fkey" FOREIGN KEY ("paragraphId") REFERENCES "CmsParagraph"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CmsPerson" ADD CONSTRAINT "CmsPerson_cmsImageId_fkey" FOREIGN KEY ("cmsImageId") REFERENCES "CmsImage"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "CmsPerson" ADD CONSTRAINT "CmsPerson_imageId_fkey" FOREIGN KEY ("imageId") REFERENCES "Image"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CmsPerson" ADD CONSTRAINT "CmsPerson_careerTeamDepartmentId_fkey" FOREIGN KEY ("careerTeamDepartmentId") REFERENCES "CareerTeamDepartment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

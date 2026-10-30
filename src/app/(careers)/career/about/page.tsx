@@ -17,7 +17,7 @@ import {
     moveCareersTeamPersonAction,
     updateCareersTeamDepartmentParagraphAction,
     updateCareersTeamPersonAction,
-    updateCareersTeamPersonCmsImageAction,
+    updateCareersTeamPersonImageAction,
 } from '@/services/careers/team/actions'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
 import {
@@ -147,7 +147,7 @@ const { page, generateMetadata } = serverPage({
                                     updateCmsPersonAction={updateCareersTeamPersonAction}
                                     moveCmsPersonAction={moveCareersTeamPersonAction}
                                     destroyCmsPersonAction={destroyCareersTeamPersonAction}
-                                    updateCmsImageAction={updateCareersTeamPersonCmsImageAction}
+                                    updateCmsPersonImageAction={updateCareersTeamPersonImageAction}
                                     capabilities={{ canEdit: capabilities.canEditPerson }}
                                 />
                             ))}

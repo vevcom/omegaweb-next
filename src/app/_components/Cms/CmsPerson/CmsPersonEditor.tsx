@@ -2,6 +2,7 @@
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import TextInput from '@/components/UI/TextInput'
+import FileInput from '@/components/UI/FileInput'
 import useEditMode from '@/hooks/useEditMode'
 import { configureAction } from '@/services/configureAction'
 import { useRouter } from 'next/navigation'
@@ -12,6 +13,7 @@ import type {
     ExpandedCmsPerson,
     MoveCmsPersonAction,
     UpdateCmsPersonAction,
+    UpdateCmsPersonImageAction,
 } from '@/cms/persons/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
@@ -20,6 +22,7 @@ type PropTypes = {
     canMoveBack: boolean
     canMoveForward: boolean
     updateCmsPersonAction: UpdateCmsPersonAction
+    updateCmsPersonImageAction: UpdateCmsPersonImageAction
     moveCmsPersonAction: MoveCmsPersonAction
     destroyCmsPersonAction: DestroyCmsPersonAction
     capabilities: CapabilitiesJsObject<'canEdit'>
@@ -36,6 +39,7 @@ export default function CmsPersonEditor({
     canMoveBack,
     canMoveForward,
     updateCmsPersonAction,
+    updateCmsPersonImageAction,
     moveCmsPersonAction,
     destroyCmsPersonAction,
     capabilities,
@@ -86,6 +90,15 @@ export default function CmsPersonEditor({
                         <TextInput name="name" label="Navn" defaultValue={cmsPerson.name} />
                         <TextInput name="title" label="Tittel" defaultValue={cmsPerson.title} />
                         <TextInput name="email" label="E-post" defaultValue={cmsPerson.email ?? ''} />
+                    </Form>
+                    <Form
+                        title="Bilde"
+                        action={configureAction(updateCmsPersonImageAction, params)}
+                        submitText="Last opp bilde"
+                        refreshOnSuccess
+                        closePopUpOnSuccess={popUpKey}
+                    >
+                        <FileInput name="imageFile" label="Portrett" color="primary" />
                     </Form>
                     <Form
                         action={configureAction(destroyCmsPersonAction, params)}
