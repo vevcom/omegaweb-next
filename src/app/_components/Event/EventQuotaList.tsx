@@ -9,6 +9,7 @@ type PropTypes = {
 
 /** One quota reads as plain places; several are listed in fill order, marking the ones open to the viewer. */
 export default function EventQuotaList({ quotas, eligibleQuotaIds }: PropTypes) {
+    if (quotas.length === 0) return null
     if (quotas.length === 1) {
         const [quota] = quotas
         return <EventInfoRow label="Plasser">{quota.numOfRegistrations} / {quota.places}</EventInfoRow>

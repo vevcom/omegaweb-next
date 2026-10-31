@@ -95,7 +95,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
             }), [])
             : []
 
-        const dotPunishment = event.takesRegistration && session.user
+        const dotPunishment = event.variants.length > 0 && session.user
             ? await eventRegistrationOperations.readDotPunishmentOfUser({
                 params: { userId: session.user.id },
             })
@@ -103,7 +103,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
 
         // Per variant: the viewer's registration, the quotas they pass, and whether one has a place.
         const userId = session.user?.id
-        const registrations = event.takesRegistration && userId !== undefined
+        const registrations = event.variants.length > 0 && userId !== undefined
             ? await Promise.all(event.variants.map(variant => eventRegistrationOperations.readOfUser({
                 params: { eventId: event.id, userId, variantId: variant.id },
             })))
@@ -368,11 +368,14 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                         </p>}
                     </EventSidebarSection>
 
-                    {event.takesRegistration ? data.variantViews.map(view => (
-                        view.variant.takesRegistration && <EventSidebarSection
+                    {event.variants.length > 0 ? data.variantViews.map(view => (
+                        <EventSidebarSection
                             key={view.variant.id}
                             title={severalVariants ? `Påmelding: ${view.variant.name}` : 'Påmelding'}
                         >
+                            {!view.variant.takesRegistration && (
+                                <p className="m-0 text-text-muted">Varianten har ingen plasser ennå.</p>
+                            )}
                             <EventQuotaList quotas={view.variant.quotas} eligibleQuotaIds={view.eligibleQuotaIds} />
                             {event.waitingList && (
                                 <EventInfoRow label="På venteliste">{view.variant.numOnWaitingList}</EventInfoRow>
@@ -387,7 +390,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                                 <FontAwesomeIcon icon={faLock} />
                                 <span>Påmeldingen er bindende</span>
                             </p>}
-                            <RegistrationUI
+                            {view.variant.takesRegistration && <RegistrationUI
                                 event={event}
                                 variant={view.variant}
                                 registration={view.registration}
@@ -398,7 +401,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                                     canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
                                     canUnregisterAsAdmin: capabilities.canUnregisterAsAdmin.toJsObject(),
                                 }}
-                            />
+                            />}
                             {view.variant.takesPayment && (
                                 <EventPaymentSection
                                     eventId={event.id}
