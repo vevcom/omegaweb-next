@@ -107,32 +107,4 @@ export const eventVariantOperations = {
             })
         },
     }),
-
-    reorder: defineOperation({
-        paramsSchema: eventVariantSchemas.params.reorder,
-        dataSchema: eventVariantSchemas.data.reorder,
-        authorizer: async ({ params, prisma }) => eventVariantAuth.reorder.data(
-            await readEventAccess(prisma, params.eventId)
-        ),
-        opensTransaction: true,
-        operation: async ({ prisma, params, data }) => {
-            await prisma.$transaction(async tx => {
-                await lockEvent(tx, params.eventId)
-                const variants = await tx.eventVariant.findMany({
-                    where: { eventId: params.eventId },
-                    select: { id: true },
-                })
-                const given = new Set(data.variantIds)
-                if (given.size !== data.variantIds.length || given.size !== variants.length
-                    || !variants.every(variant => given.has(variant.id))) {
-                    throw new ServiceError('BAD PARAMETERS', 'Rekkefølgen må nevne hver variant i arrangementet én gang.')
-                }
-
-                await Promise.all(data.variantIds.map((variantId, order) => tx.eventVariant.update({
-                    where: { id: variantId },
-                    data: { order },
-                })))
-            })
-        },
-    }),
 } as const

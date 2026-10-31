@@ -10,10 +10,6 @@ const dataFieldSchemas = z.object({
     price: z.coerce.number().min(0).transform(val => convertAmount(val)).optional(),
     paymentStart: Zpn.date({ label: 'Betalingsstart' }).optional(),
     paymentEnd: Zpn.date({ label: 'Betalingsslutt' }).optional(),
-    variantIds: Zpn.json({
-        label: 'Rekkefølge',
-        schema: z.array(z.number().int()),
-    }),
 })
 
 const paramsFieldSchemas = z.object({
@@ -43,15 +39,11 @@ export const eventVariantSchemas = {
     data: {
         create: dataFieldSchemas.pick(variantFields),
         update: dataFieldSchemas.pick(variantFields).partial(),
-        reorder: dataFieldSchemas.pick({
-            variantIds: true,
-        }),
     },
     params: {
         readMany: eventId,
         create: eventId,
         update: variantId,
         destroy: variantId,
-        reorder: eventId,
     },
 }

@@ -5,6 +5,8 @@ import TextInput from '@/components/UI/TextInput'
 import NumberInput from '@/components/UI/NumberInput'
 import DateInput from '@/components/UI/DateInput'
 import Slider from '@/components/UI/Slider'
+import Button from '@/components/UI/Button'
+import HorizontalSelector from '@/components/UI/HorizontalSelector'
 import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import {
@@ -17,12 +19,11 @@ import {
 import {
     createEventVariantAction,
     destroyEventVariantAction,
-    reorderEventVariantsAction,
     updateEventVariantAction,
 } from '@/services/events/variants/actions'
 import { configureAction } from '@/services/configureAction'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowDown, faArrowUp } from '@fortawesome/free-solid-svg-icons'
+import { faArrowDown, faArrowUp, faPlus } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
 import type { EventQuotaExpanded } from '@/services/events/quotas/types'
@@ -104,11 +105,29 @@ function VariantFields({ variant }: { variant?: EventVariantExpanded }) {
     </>
 }
 
-function QuotaFields({ quota }: { quota?: EventQuotaExpanded }) {
-    return <>
-        <TextInput label="Navn" name="name" defaultValue={quota?.name} />
-        <NumberInput label="Plasser" name="places" min={0} defaultValue={quota?.places} />
-    </>
+function VariantAdmin({ variant }: { variant: EventVariantExpanded }) {
+    const registered = variant.numOfRegistrations + variant.numOnWaitingList
+
+    return <section className={sectionClassName}>
+        <p>{variant.numOfRegistrations} av {variant.places} plasser er tatt, {variant.numOnWaitingList} venter.</p>
+        <Form
+            key={variant.id}
+            action={configureAction(updateEventVariantAction, { params: { id: variant.id } })}
+            submitText="Lagre"
+            refreshOnSuccess
+        >
+            <FormSection legend="Om varianten" columns={2}>
+                <VariantFields variant={variant} />
+            </FormSection>
+        </Form>
+        {registered === 0 ? <Form
+            action={configureAction(destroyEventVariantAction, { params: { id: variant.id } })}
+            submitText="Fjern varianten"
+            submitColor="red"
+            confirmation={{ confirm: true, text: 'Er du sikker på at du vil fjerne denne varianten?' }}
+            refreshOnSuccess
+        /> : <p>Varianten kan fjernes når ingen er påmeldt den.</p>}
+    </section>
 }
 
 function QuotaAdmin({ quota, index, quotaIds, variantId }: {
@@ -135,7 +154,8 @@ function QuotaAdmin({ quota, index, quotaIds, variantId }: {
             refreshOnSuccess
         >
             <FormSection legend="Om kvoten" columns={2}>
-                <QuotaFields quota={quota} />
+                <TextInput label="Navn" name="name" defaultValue={quota.name} />
+                <NumberInput label="Plasser" name="places" min={0} defaultValue={quota.places} />
             </FormSection>
         </Form>
         <p className="m-0 font-medium">Hvem kan melde seg på gjennom kvoten (tomt betyr alle)</p>
@@ -163,12 +183,14 @@ function QuotaAdmin({ quota, index, quotaIds, variantId }: {
 function NewQuotaForm({ variantId }: { variantId: number }) {
     const [requirements, setRequirements] = useState<VisibilityRequirement[]>([])
     return <Form
+        key={variantId}
         action={configureAction(createEventQuotaAction, { params: { variantId } })}
         submitText="Legg til kvote"
         refreshOnSuccess
     >
         <FormSection legend="Ny kvote" columns={2}>
-            <QuotaFields />
+            <TextInput label="Navn" name="name" />
+            <NumberInput label="Plasser" name="places" min={0} />
         </FormSection>
         <p className="m-0 font-medium">Hvem kan melde seg på gjennom kvoten (tomt betyr alle)</p>
         <VisibilityMatrixEditor requirements={requirements} onChange={setRequirements} />
@@ -176,87 +198,74 @@ function NewQuotaForm({ variantId }: { variantId: number }) {
     </Form>
 }
 
-function VariantAdmin({ eventId, variant, index, variants }: {
-    eventId: number,
-    variant: EventVariantExpanded,
-    index: number,
-    variants: EventVariantExpanded[],
-}) {
-    const registered = variant.numOfRegistrations + variant.numOnWaitingList
-
+function QuotasAdmin({ variant }: { variant: EventVariantExpanded }) {
     return <section className={sectionClassName}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3>{index + 1}. {variant.name}</h3>
-            <ReorderButtons
-                index={index}
-                count={variants.length}
-                reorder={direction => configureAction(reorderEventVariantsAction, { params: { eventId } })({
-                    data: { variantIds: orderAfterMoving(variants.map(other => other.id), index, direction) },
-                })}
-            />
-        </div>
-        <p>{variant.numOfRegistrations} av {variant.places} plasser er tatt, {variant.numOnWaitingList} venter.</p>
-        <Form
-            action={configureAction(updateEventVariantAction, { params: { id: variant.id } })}
-            submitText="Lagre"
-            refreshOnSuccess
-        >
-            <FormSection legend="Om varianten" columns={2}>
-                <VariantFields variant={variant} />
-            </FormSection>
-        </Form>
-
-        <h4 className="m-0 mt-2">Kvoter</h4>
         <p>Kvotene fylles ovenfra. En ledig plass går til den første i køen som passer kvoten.</p>
-        {variant.quotas.map((quota, quotaIndex) => <QuotaAdmin
+        {variant.quotas.map((quota, index) => <QuotaAdmin
             key={quota.id}
             quota={quota}
-            index={quotaIndex}
+            index={index}
             quotaIds={variant.quotas.map(other => other.id)}
             variantId={variant.id}
         />)}
         <NewQuotaForm variantId={variant.id} />
-
-        {registered === 0 ? <Form
-            action={configureAction(destroyEventVariantAction, { params: { id: variant.id } })}
-            submitText="Fjern varianten"
-            submitColor="red"
-            confirmation={{ confirm: true, text: 'Er du sikker på at du vil fjerne denne varianten?' }}
-            refreshOnSuccess
-        /> : <p>Varianten kan fjernes når ingen er påmeldt den.</p>}
     </section>
 }
 
+function NewVariantForm({ eventId }: { eventId: number }) {
+    return <section className={sectionClassName}>
+        <h3>Ny variant</h3>
+        <p>En variant er én måte å delta på, med egen påmeldingsperiode og pris. Den som melder seg på velger variant.</p>
+        <Form
+            action={configureAction(createEventVariantAction, { params: { eventId } })}
+            submitText="Legg til variant"
+            refreshOnSuccess
+        >
+            <FormSection legend="Om varianten" columns={2}>
+                <VariantFields />
+            </FormSection>
+        </Form>
+    </section>
+}
+
+type View = 'VARIANT' | 'QUOTAS'
+
 export default function EventVariantsAdmin({ eventId, variants }: PropTypes) {
+    const [selectedId, setSelectedId] = useState<number | null>(variants[0]?.id ?? null)
+    const [view, setView] = useState<View>('VARIANT')
+    const selected = variants.find(variant => variant.id === selectedId) ?? null
+
     return <div className="
         flex flex-col gap-4 min-w-[min(80vw,48rem)]
         [&>h2]:m-0
     ">
         <h2>Varianter og kvoter</h2>
-        <p className="m-0 text-s text-text-muted">
-            En variant er én måte å delta på, med egen påmeldingsperiode og pris. Den som melder seg på velger
-            variant, og får plass i den første kvoten i varianten de passer som har ledig.
-        </p>
 
-        {variants.map((variant, index) => <VariantAdmin
-            key={variant.id}
-            eventId={eventId}
-            variant={variant}
-            index={index}
-            variants={variants}
-        />)}
-
-        <section className={sectionClassName}>
-            <h3>Ny variant</h3>
-            <Form
-                action={configureAction(createEventVariantAction, { params: { eventId } })}
-                submitText="Legg til variant"
-                refreshOnSuccess
+        <div className="flex flex-wrap items-center gap-2">
+            {variants.length > 0 && <HorizontalSelector
+                name="variant"
+                value={selectedId ?? -1}
+                onChange={setSelectedId}
+                options={variants.map(variant => ({ value: variant.id, label: variant.name }))}
+            />}
+            <Button
+                color={selected ? 'secondary' : 'primary'}
+                onClick={() => setSelectedId(null)}
+                aria-label="Ny variant"
+                className="w-auto! m-0!"
             >
-                <FormSection legend="Om varianten" columns={2}>
-                    <VariantFields />
-                </FormSection>
-            </Form>
-        </section>
+                <FontAwesomeIcon icon={faPlus} />
+            </Button>
+        </div>
+
+        {selected ? <>
+            <HorizontalSelector
+                name="view"
+                value={view}
+                onChange={setView}
+                options={[{ value: 'VARIANT', label: 'Om varianten' }, { value: 'QUOTAS', label: 'Kvoter' }]}
+            />
+            {view === 'VARIANT' ? <VariantAdmin variant={selected} /> : <QuotasAdmin variant={selected} />}
+        </> : <NewVariantForm eventId={eventId} />}
     </div>
 }

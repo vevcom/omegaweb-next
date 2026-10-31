@@ -6,5 +6,4 @@ export const eventVariantAuth = {
     create: eventAdminLevel,
     update: eventAdminLevel,
     destroy: eventAdminLevel,
-    reorder: eventAdminLevel,
 } as const
