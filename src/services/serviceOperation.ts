@@ -156,6 +156,16 @@ export type BeforeRun<
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
 ) => Awaitable<void>
 
+/** Runs once the operation has, for what the owning service does in response, such as refilling places. */
+export type AfterRun<
+    OpensTransaction extends boolean,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    ImplementationParamsSchema extends z.ZodTypeAny | undefined,
+> = (
+    args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
+) => Awaitable<void>
+
 /** The fields the schemas of a sub-operation are built from, required when the sub-operation takes them. */
 type SchemaImplementationFieldsConfig<
     ParamsSchemaImplementationFields extends object | undefined,
@@ -223,6 +233,7 @@ export type ServiceOperationImplementationConfig<
     >,
     ownershipCheck: OwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
     beforeRun?: BeforeRun<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
+    afterRun?: AfterRun<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
 } & SchemaImplementationFieldsConfig<ParamsSchemaImplementationFields, DataSchemaImplementationFields>
     & (OperationImplementationFields extends undefined ?
         object
@@ -577,11 +588,13 @@ export function defineSubOperation<
                     >
                     const operationImplementationFields = await prismaErrorWrapper(() => fieldsOf({ ...args, prisma }))
 
-                    return prismaErrorWrapper(() =>
+                    const result = await prismaErrorWrapper(() =>
                         serviceOperationConfig.operation(
                             operationImplementationFields
                         )({ ...args, prisma, bypassAuth, session }, prismaWhereFilter)
                     )
+                    await prismaErrorWrapper(() => implementationArgs.afterRun?.({ ...args, prisma }))
+                    return result
                 })
         }
 

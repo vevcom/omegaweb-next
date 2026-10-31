@@ -1,11 +1,12 @@
 import { prisma } from '@/prisma/client'
 import { eventOperations } from '@/services/events/operations'
+import { eventVariantOperations } from '@/services/events/variants/operations'
 import { describe, expect, test } from '@jest/globals'
 
 const dayMs = 24 * 60 * 60 * 1000
 
-/** The price sits on the quota the event was created with. */
-const quotaOf = (eventId: number) => prisma.eventRegistrationQuota.findFirstOrThrow({ where: { eventId } })
+/** Payment is the variant's: the one the event was created with. */
+const variantOf = (eventId: number) => prisma.eventVariant.findFirstOrThrow({ where: { eventId } })
 
 function eventData(payment: { takesPayment?: boolean, price?: number }) {
     return {
@@ -25,37 +26,48 @@ function eventData(payment: { takesPayment?: boolean, price?: number }) {
     }
 }
 
-describe('events taking payment', () => {
-    test('an event that takes no payment keeps no price', async () => {
+describe('variants taking payment', () => {
+    test('a variant that takes no payment keeps no price', async () => {
         const event = await eventOperations.create({ data: eventData({ price: 100 }), bypassAuth: true })
 
-        await expect(prisma.event.findUniqueOrThrow({ where: { id: event.id } })).resolves.toMatchObject({
-            takesPayment: false, paymentStart: null, paymentEnd: null,
+        await expect(variantOf(event.id)).resolves.toMatchObject({
+            takesPayment: false, price: null, paymentStart: null, paymentEnd: null,
         })
-        await expect(quotaOf(event.id)).resolves.toMatchObject({ price: null })
     })
 
-    test('an event that takes payment must have a price', async () => {
+    test('a variant that takes payment must have a price', async () => {
         await expect(eventOperations.create({
             data: eventData({ takesPayment: true }),
             bypassAuth: true,
         })).rejects.toThrow()
+
+        const event = await eventOperations.create({ data: eventData({}), bypassAuth: true })
+        const variant = await variantOf(event.id)
+        await expect(eventVariantOperations.update({
+            params: { id: variant.id }, data: { takesPayment: true }, bypassAuth: true,
+        })).rejects.toThrow()
     })
 
-    test('turning payment off clears the price and the payment period', async () => {
-        const event = await eventOperations.create({
-            data: eventData({ takesPayment: true, price: 100 }),
+    test('payment is turned on with its price, and turning it off clears the price and the period', async () => {
+        const event = await eventOperations.create({ data: eventData({}), bypassAuth: true })
+        const variant = await variantOf(event.id)
+
+        await eventVariantOperations.update({
+            params: { id: variant.id },
+            data: {
+                takesPayment: true,
+                price: 100,
+                paymentStart: new Date(Date.now() - dayMs),
+                paymentEnd: new Date(Date.now() + dayMs),
+            },
             bypassAuth: true,
         })
-        await expect(prisma.event.findUniqueOrThrow({ where: { id: event.id } }))
-            .resolves.toMatchObject({ takesPayment: true })
-        await expect(quotaOf(event.id)).resolves.toMatchObject({ price: 10000 })
+        await expect(variantOf(event.id)).resolves.toMatchObject({ takesPayment: true, price: 10000 })
 
-        await eventOperations.update({ params: { id: event.id }, data: { takesPayment: false }, bypassAuth: true })
+        await eventVariantOperations.update({ params: { id: variant.id }, data: { takesPayment: false }, bypassAuth: true })
 
-        await expect(prisma.event.findUniqueOrThrow({ where: { id: event.id } })).resolves.toMatchObject({
-            takesPayment: false, paymentStart: null, paymentEnd: null,
+        await expect(variantOf(event.id)).resolves.toMatchObject({
+            takesPayment: false, price: null, paymentStart: null, paymentEnd: null,
         })
-        await expect(quotaOf(event.id)).resolves.toMatchObject({ price: null })
     })
 })

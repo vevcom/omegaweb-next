@@ -119,5 +119,5 @@ export const PaymentHeaderItemPopUp = createHeaderItemPopUp(faCreditCard, 18)
  */
 export const DeleteHeaderItemPopUp = createHeaderItemPopUp(faTrash, 18)
 
-/** For the quotas of an event. */
-export const QuotasHeaderItemPopUp = createHeaderItemPopUp(faLayerGroup, 18)
+/** For the variants and quotas of an event. */
+export const VariantsHeaderItemPopUp = createHeaderItemPopUp(faLayerGroup, 18)

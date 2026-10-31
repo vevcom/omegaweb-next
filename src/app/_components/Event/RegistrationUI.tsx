@@ -14,26 +14,18 @@ import { configureAction } from '@/services/configureAction'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import type { EventExpanded } from '@/services/events/types'
+import type { EventExpanded, EventVariantSummary } from '@/services/events/types'
 import type { DotPunishment } from '@/services/events/registration/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { EventRegistration } from '@/prisma-generated-pn-types'
 
-/**
- * What the quotas the viewer passes add up to for them: when the first of them opens and the last
- * closes, and whether one that is open has a place left.
- */
+/** Whether the viewer passes a quota of the variant, and whether one they pass has a place left. */
 export type RegistrationEligibility = {
     passesAnyQuota: boolean,
-    opensAt: Date | null,
-    closesAt: Date | null,
     placeAvailable: boolean,
 }
 
-/** What the button needs of the viewer's registration, as read and as returned by registering. */
-type OwnRegistration = Pick<EventRegistration, 'id' | 'state' | 'note'> & {
-    quota?: { registrationEnd: Date } | null,
-}
+type OwnRegistration = Pick<EventRegistration, 'id' | 'state' | 'note'>
 
 enum RegistrationButtonState {
     NOT_REGISTERED = 'NOT_REGISTERED',
@@ -50,25 +42,26 @@ enum RegistrationButtonState {
 
 export default function RegistrationUI({
     event,
+    variant,
     registration,
     dotPunishment,
     eligibility,
     capabilities,
 }: {
-    event: EventExpanded,
+    event: Pick<EventExpanded, 'id' | 'waitingList' | 'bindingRegistration'>,
+    variant: Pick<EventVariantSummary, 'id' | 'registrationStart' | 'registrationEnd' | 'takesRegistration'>,
     registration: OwnRegistration | null,
     dotPunishment: DotPunishment | null,
     eligibility: RegistrationEligibility,
     capabilities: CapabilitiesJsObject<'canRegister' | 'canRegisterAsAdmin' | 'canUnregisterAsAdmin'>,
 }) {
-    if (!event.takesRegistration) {
-        throw new Error('Kan bare vise påmeldingsknapp for arrangement som har påmelding')
+    if (!variant.takesRegistration) {
+        throw new Error('Kan bare vise påmeldingsknapp for en variant som har påmelding')
     }
 
-    // Dots push the start of every quota back for the user, so it is the delayed start of the first
-    // quota they pass that decides when the button opens.
+    // Dots push the start back for the user.
     const delayMs = dotPunishment?.type === 'timeout' ? dotPunishment.punishmentMinutes * 60 * 1000 : 0
-    const registrationStart = eligibility.opensAt ? new Date(eligibility.opensAt.getTime() + delayMs) : null
+    const registrationStart = new Date(variant.registrationStart.getTime() + delayMs)
 
     const getInitialBtnState = (ownRegistration: OwnRegistration | null) => {
         if (ownRegistration) {
@@ -79,14 +72,13 @@ export default function RegistrationUI({
         if (dotPunishment?.type === 'ban') {
             return RegistrationButtonState.BANNED_BY_DOTS
         }
-        // Registering takes passing the visibility of one of the quotas.
-        if (!capabilities.canRegister.authorized || !eligibility.passesAnyQuota || !registrationStart) {
+        if (!capabilities.canRegister.authorized || !eligibility.passesAnyQuota) {
             return RegistrationButtonState.NOT_ALLOWED
         }
         if (registrationStart > new Date()) {
             return RegistrationButtonState.REGISTRATION_NOT_OPEN
         }
-        if (eligibility.closesAt && eligibility.closesAt < new Date()) {
+        if (variant.registrationEnd < new Date()) {
             return RegistrationButtonState.REGISTRATION_CLOSED
         }
         if (!eligibility.placeAvailable) {
@@ -108,7 +100,7 @@ export default function RegistrationUI({
     const { refresh } = useRouter()
 
     useEffect(() => {
-        const timeUntilRegistration = registrationStart ? registrationStart.getTime() - Date.now() : 0
+        const timeUntilRegistration = registrationStart.getTime() - Date.now()
         let timeoutId: ReturnType<typeof setTimeout>
         if (timeUntilRegistration > 0) {
             timeoutId = setTimeout(() => {
@@ -138,6 +130,7 @@ export default function RegistrationUI({
             params: {
                 userId,
                 eventId: event.id,
+                variantId: variant.id,
             }
         })
 
@@ -208,11 +201,10 @@ export default function RegistrationUI({
         btnState === RegistrationButtonState.ON_WAITING_LIST
     const mayRegister = btnState === RegistrationButtonState.NOT_REGISTERED ||
         btnState === RegistrationButtonState.WAITING_LIST_OPEN
-    // A place is given up within the registration period of its quota; the waiting list is left at
-    // any time. A binding registration, or one past the deadline, is only taken back by those who
-    // administrate the event.
-    const deadline = registrationState?.quota?.registrationEnd ?? null
-    const registrationClosed = deadline !== null && deadline < new Date()
+    // A place is given up within the registration period; the waiting list is left at any time. A
+    // binding registration, or one past the deadline, is only taken back by those who administrate
+    // the event.
+    const registrationClosed = registrationState?.state === 'IN_QUOTA' && variant.registrationEnd < new Date()
     const mayUnregister = isRegistered && !event.bindingRegistration && !registrationClosed
 
     const confirmation = () => {
@@ -252,7 +244,7 @@ export default function RegistrationUI({
             {btnState === RegistrationButtonState.NOT_ALLOWED && 'Du kan ikke melde deg på dette arrangementet'}
         </SubmitButton>
 
-        {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && registrationStart && (
+        {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && (
             <p>Påmeldingen åpner om <CountDown referenceDate={registrationStart} /></p>
         )}
 

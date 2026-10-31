@@ -5,7 +5,7 @@ import RegistrationUI from '@/components/Event/RegistrationUI'
 import RegistrationsList from '@/components/Event/RegistrationsList'
 import ManualRegistrationForm from '@/components/Event/ManualRegistrationForm'
 import EventVisibilityAdmin from '@/components/Event/EventVisibilityAdmin'
-import EventQuotasAdmin from '@/components/Event/EventQuotasAdmin'
+import EventVariantsAdmin from '@/components/Event/EventVariantsAdmin'
 import EventQuotaList from '@/components/Event/EventQuotaList'
 import ConnectEventToLedgerForm from '@/components/Event/ConnectEventToLedgerForm'
 import EventPaymentSection from '@/components/Event/EventPaymentSection'
@@ -22,8 +22,8 @@ import {
     DeleteHeaderItemPopUp,
     EditHeaderItemPopUp,
     PaymentHeaderItemPopUp,
-    QuotasHeaderItemPopUp,
     UsersHeaderItemPopUp,
+    VariantsHeaderItemPopUp,
     VisibilityHeaderItemPopUp,
 } from '@/components/HeaderItems/HeaderItemPopUp'
 import HeaderItemLink from '@/components/HeaderItems/HeaderItemLink'
@@ -41,7 +41,7 @@ import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { eventAuth } from '@/services/events/auth'
-import { eventQuotaAuth } from '@/services/events/quotas/auth'
+import { eventVariantAuth } from '@/services/events/variants/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
@@ -52,7 +52,6 @@ import { notFound } from 'next/navigation'
 import { faCalendar, faLocationDot, faLock, faPeopleGroup, faQrcode } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { EventPagesConfig } from './eventPages'
-import type { RegistrationEligibility } from '@/components/Event/RegistrationUI'
 import type { EventAccess } from '@/services/events/types'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -86,7 +85,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
             published: event.published,
             canBeViewedBy: event.canBeViewedBy,
             adminVisibility: adminVisibility ?? EMPTY_VISIBILITY.adminLevel,
-            quotaVisibilities: event.quotas.map(quota => quota.visibility),
+            quotaVisibilities: event.variants.flatMap(variant => variant.quotas.map(quota => quota.visibility)),
         }
 
         const administers = eventAuth.update.data(access).auth(session).authorized
@@ -102,29 +101,25 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
             })
             : null
 
-        const ownRegistration = event.takesRegistration && session.user
-            ? await eventRegistrationOperations.readOfUser({
-                params: { eventId: event.id, userId: session.user.id },
-            })
-            : null
-
-        // The quotas the viewer passes, and what they add up to for the registration button.
-        const eligibleQuotas = event.quotas.filter(quota => checkVisibility(session.memberships, quota.visibility))
-        const now = Date.now()
-        const eligibility: RegistrationEligibility = {
-            passesAnyQuota: eligibleQuotas.length > 0,
-            opensAt: eligibleQuotas.length
-                ? new Date(Math.min(...eligibleQuotas.map(quota => quota.registrationStart.getTime())))
-                : null,
-            closesAt: eligibleQuotas.length
-                ? new Date(Math.max(...eligibleQuotas.map(quota => quota.registrationEnd.getTime())))
-                : null,
-            placeAvailable: eligibleQuotas.some(quota => (
-                quota.registrationStart.getTime() <= now
-                && now <= quota.registrationEnd.getTime()
-                && quota.numOfRegistrations < quota.places
-            )),
-        }
+        // Per variant: the viewer's registration, the quotas they pass, and whether one has a place.
+        const userId = session.user?.id
+        const registrations = event.takesRegistration && userId !== undefined
+            ? await Promise.all(event.variants.map(variant => eventRegistrationOperations.readOfUser({
+                params: { eventId: event.id, userId, variantId: variant.id },
+            })))
+            : event.variants.map(() => null)
+        const variantViews = event.variants.map((variant, index) => {
+            const eligibleQuotas = variant.quotas.filter(quota => checkVisibility(session.memberships, quota.visibility))
+            return {
+                variant,
+                registration: registrations[index],
+                eligibleQuotaIds: session.user ? eligibleQuotas.map(quota => quota.id) : null,
+                eligibility: {
+                    passesAnyQuota: eligibleQuotas.length > 0,
+                    placeAvailable: eligibleQuotas.some(quota => quota.numOfRegistrations < quota.places),
+                },
+            }
+        })
 
         let eventPaymentBalance: number | undefined
         let eventPaymentCustomerSessionSecret: string | undefined
@@ -155,9 +150,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
             adminVisibilityKnown: adminVisibility !== null,
             ledgerAccounts,
             dotPunishment,
-            ownRegistration,
-            eligibleQuotaIds: session.user ? eligibleQuotas.map(quota => quota.id) : null,
-            eligibility,
+            variantViews,
             eventPaymentBalance,
             eventPaymentCustomerSessionSecret,
             notAttended,
@@ -172,7 +165,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
             eventAuth.updateAdminVisibility.data(data.access),
             eventAuth.setPublished.data(data.access),
         ),
-        canUpdateQuotas: eventQuotaAuth.create.data(data.access),
+        canUpdateVariants: eventVariantAuth.create.data(data.access),
         canConnectToLedgerAccount: eventAuth.connectToLedgerAccount.data({
             ...data.access,
             accounts: data.ledgerAccounts.map(account => account.ownership),
@@ -200,9 +193,10 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
     }),
     metadata: (data) => ({ title: data.event.name }),
     render: ({ data, capabilities, session }) => {
-        const { event, tags, committees, access, ledgerAccounts, dotPunishment, ownRegistration } = data
+        const { event, tags, committees, access, ledgerAccounts, dotPunishment } = data
         const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
         const dotGiverId = capabilities.canGiveDots.authorized && session.user ? session.user.id : null
+        const severalVariants = event.variants.length > 1
 
         return (
             <div className="w-full flex flex-wrap items-stretch gap-2">
@@ -280,10 +274,10 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                                 />
                             </VisibilityHeaderItemPopUp>
                         )}
-                        {capabilities.canUpdateQuotas.authorized && (
-                            <QuotasHeaderItemPopUp scale={30} popUpKey="EventQuotas" ariaLabel="Kvoter">
-                                <EventQuotasAdmin event={event} quotas={event.quotas} />
-                            </QuotasHeaderItemPopUp>
+                        {capabilities.canUpdateVariants.authorized && (
+                            <VariantsHeaderItemPopUp scale={30} popUpKey="EventVariants" ariaLabel="Varianter og kvoter">
+                                <EventVariantsAdmin eventId={event.id} variants={event.variants} />
+                            </VariantsHeaderItemPopUp>
                         )}
                         {event.takesRegistration && (
                             capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
@@ -291,7 +285,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                             <UsersHeaderItemPopUp scale={30} popUpKey="Users" ariaLabel="Meld på andre">
                                 <ManualRegistrationForm
                                     eventId={event.id}
-                                    quotas={event.quotas}
+                                    variants={event.variants}
                                     capabilities={{
                                         canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
                                         canRegisterGuest: capabilities.canRegisterGuest.toJsObject(),
@@ -374,43 +368,53 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                         </p>}
                     </EventSidebarSection>
 
-                    <EventSidebarSection title="Påmelding">
-                        {event.takesRegistration ? <>
-                            <EventQuotaList
-                                quotas={event.quotas}
-                                eligibleQuotaIds={data.eligibleQuotaIds}
-                                takesPayment={event.takesPayment}
-                            />
+                    {event.takesRegistration ? data.variantViews.map(view => (
+                        view.variant.takesRegistration && <EventSidebarSection
+                            key={view.variant.id}
+                            title={severalVariants ? `Påmelding: ${view.variant.name}` : 'Påmelding'}
+                        >
+                            <EventQuotaList quotas={view.variant.quotas} eligibleQuotaIds={view.eligibleQuotaIds} />
                             {event.waitingList && (
-                                <EventInfoRow label="På venteliste">{event.numOnWaitingList}</EventInfoRow>
+                                <EventInfoRow label="På venteliste">{view.variant.numOnWaitingList}</EventInfoRow>
                             )}
+                            <EventInfoRow label="Påmeldingsstart">
+                                <DateDisplay date={view.variant.registrationStart} includeTime />
+                            </EventInfoRow>
+                            <EventInfoRow label="Påmeldingsslutt">
+                                <DateDisplay date={view.variant.registrationEnd} includeTime />
+                            </EventInfoRow>
                             {event.bindingRegistration && <p className={iconRowClassName}>
                                 <FontAwesomeIcon icon={faLock} />
                                 <span>Påmeldingen er bindende</span>
                             </p>}
                             <RegistrationUI
                                 event={event}
-                                registration={ownRegistration}
+                                variant={view.variant}
+                                registration={view.registration}
                                 dotPunishment={dotPunishment}
-                                eligibility={data.eligibility}
+                                eligibility={view.eligibility}
                                 capabilities={{
                                     canRegister: capabilities.canRegister.toJsObject(),
                                     canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
                                     canUnregisterAsAdmin: capabilities.canUnregisterAsAdmin.toJsObject(),
                                 }}
                             />
-                        </> : <p className="text-text-muted">Dette arrangementet tar ikke påmelding.</p>}
-                    </EventSidebarSection>
-
-                    {event.takesPayment && (
-                        <EventPaymentSection
-                            event={event}
-                            registration={ownRegistration}
-                            userId={session.user?.id ?? null}
-                            availableBalance={data.eventPaymentBalance}
-                            customerSessionClientSecret={data.eventPaymentCustomerSessionSecret}
-                            capabilities={{ canPay: capabilities.canPay }}
-                        />
+                            {view.variant.takesPayment && (
+                                <EventPaymentSection
+                                    eventId={event.id}
+                                    variant={view.variant}
+                                    registration={view.registration}
+                                    userId={session.user?.id ?? null}
+                                    availableBalance={data.eventPaymentBalance}
+                                    customerSessionClientSecret={data.eventPaymentCustomerSessionSecret}
+                                    capabilities={{ canPay: capabilities.canPay }}
+                                />
+                            )}
+                        </EventSidebarSection>
+                    )) : (
+                        <EventSidebarSection title="Påmelding">
+                            <p className="text-text-muted">Dette arrangementet tar ikke påmelding.</p>
+                        </EventSidebarSection>
                     )}
                 </aside>
                 <main className="

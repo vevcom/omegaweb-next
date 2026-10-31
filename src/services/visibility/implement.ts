@@ -76,7 +76,7 @@ type ReadVisibility<ImplementationParamsSchema extends z.ZodType<unknown>> = (ar
  * The operations of one visibility an owning service holds, such as who administrates an event or
  * who may register through a quota. `emptyMeans` says what an update to no requirements at all is:
  * 'EVERYONE' lets it through, 'REFUSED' rejects it, for a visibility where that would hand the
- * resource to everyone.
+ * resource to everyone. `afterUpdate` runs once a change is saved, for what follows from it.
  */
 export function implementVisibilityOperations<
     const ImplementationParamsSchema extends z.ZodType<unknown>
@@ -85,11 +85,16 @@ export function implementVisibilityOperations<
     authorizers,
     readVisibility,
     emptyMeans,
+    afterUpdate,
 }: {
     implementationParamsSchema: ImplementationParamsSchema,
     authorizers: SingleAuthorizers<ImplementationParamsSchema>,
     readVisibility: ReadVisibility<ImplementationParamsSchema>,
     emptyMeans: 'EVERYONE' | 'REFUSED',
+    afterUpdate?: (args: {
+        prisma: PrismaPossibleTransaction<false>,
+        implementationParams: z.infer<ImplementationParamsSchema>,
+    }) => Awaitable<void>,
 }) {
     const readMatrixInternal = async ({ prisma, params }: {
         prisma: PrismaPossibleTransaction<false>,
@@ -128,6 +133,7 @@ export function implementVisibilityOperations<
                     throw new ServiceError('BAD DATA', 'Du må velge hvem som kan administrere')
                 }
             },
+            afterRun: ({ prisma, implementationParams }) => afterUpdate?.({ prisma, implementationParams }),
         }),
     } as const
 }

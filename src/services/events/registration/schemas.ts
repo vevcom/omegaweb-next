@@ -17,6 +17,7 @@ const paramsFieldSchemas = z.object({
     eventId: z.number().min(0),
     userId: z.number().min(0),
     registrationId: z.number().min(0),
+    variantId: z.number().min(0),
     quotaId: z.number().min(0),
     registeredById: z.number().min(0),
     type: z.nativeEnum(REGISTRATION_READER_TYPE),
@@ -41,13 +42,14 @@ const readPage = readPageInputSchemaObject(
     }),
 )
 
+// Left out, the variant is the event's only one, and the quota the first with a place.
+const variantIdOptional = { variantId: paramsFieldSchemas.shape.variantId.optional() }
+const quotaIdOptional = { quotaId: paramsFieldSchemas.shape.quotaId.optional() }
+
 const userAndEvent = paramsFieldSchemas.pick({
     userId: true,
     eventId: true,
-})
-
-/** The quota is the administrator's to pick; left out, the first with a place takes it. */
-const quotaIdOptional = { quotaId: paramsFieldSchemas.shape.quotaId.optional() }
+}).extend(variantIdOptional)
 
 const registrationId = paramsFieldSchemas.pick({
     registrationId: true,
@@ -56,6 +58,8 @@ const registrationId = paramsFieldSchemas.pick({
 const eventId = paramsFieldSchemas.pick({
     eventId: true,
 })
+
+const eventAndVariant = eventId.extend(variantIdOptional)
 
 export const eventRegistrationSchemas = {
     data: {
@@ -79,7 +83,7 @@ export const eventRegistrationSchemas = {
     params: {
         create: userAndEvent,
         createAsAdmin: userAndEvent.extend(quotaIdOptional),
-        createGuest: eventId.extend(quotaIdOptional),
+        createGuest: eventAndVariant.extend(quotaIdOptional),
         readDotPunishmentOfUser: paramsFieldSchemas.pick({
             userId: true,
         }),
@@ -114,6 +118,6 @@ export const eventRegistrationSchemas = {
             amountFromBalance: true,
             manualFees: true,
             description: true,
-        }),
+        }).extend(variantIdOptional),
     },
 }

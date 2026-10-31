@@ -41,9 +41,12 @@ function DetailedTable({
     dotGiverId: number | null,
 }) {
     const onWaitingList = type === REGISTRATION_READER_TYPE.WAITING_LIST
-    const severalQuotas = event.quotas.length > 1
-    const columns = 7 + (severalQuotas ? 1 : 0) + (event.takesPayment ? 1 : 0)
+    const severalVariants = event.variants.length > 1
+    const severalQuotas = event.variants.some(variant => variant.quotas.length > 1)
+    const columns = 7 + (severalVariants ? 1 : 0) + (severalQuotas ? 1 : 0) + (event.takesPayment ? 1 : 0)
         + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
+    const quotasOfVariant = (variantId: number | undefined) =>
+        event.variants.find(variant => variant.id === variantId)?.quotas ?? []
 
     return <EventRegistrationDetailedPagingProvider
         serverRenderedData={[]}
@@ -64,6 +67,7 @@ function DetailedTable({
                 <thead>
                     <tr>
                         <th>Flytt</th>
+                        {severalVariants && <th>Variant</th>}
                         {severalQuotas && <th>Kvote</th>}
                         <th>Navn</th>
                         <th>E-post</th>
@@ -103,10 +107,11 @@ function DetailedTable({
                                         {(onWaitingList || severalQuotas) && <MoveToQuotaForm
                                             registrationId={row.id}
                                             currentQuotaId={row.quota?.id ?? null}
-                                            quotas={event.quotas}
+                                            quotas={quotasOfVariant(row.quota?.variant.id ?? row.waitingListVariant?.id)}
                                         />}
                                     </div>
                                 </td>
+                                {severalVariants && <td>{row.quota?.variant.name ?? row.waitingListVariant?.name}</td>}
                                 {severalQuotas && <td>{row.quota?.name}</td>}
                                 <td>{name}</td>
                                 <td>{row.user ? row.user.email : row.contact?.email}</td>

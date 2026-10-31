@@ -104,16 +104,17 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
                 [&_h4]:m-0
             ">
                 <h4>Arrangement</h4>
-                <DetailRow label="Navn" value={transaction.eventRegistration.quota.event.name} />
+                <DetailRow label="Navn" value={transaction.eventRegistration.quota.variant.event.name} />
+                <DetailRow label="Variant" value={transaction.eventRegistration.quota.variant.name} />
                 <DetailRow label="Kvote" value={transaction.eventRegistration.quota.name} />
-                {transaction.eventRegistration.quota.event.location && (
-                    <DetailRow label="Sted" value={transaction.eventRegistration.quota.event.location} />
+                {transaction.eventRegistration.quota.variant.event.location && (
+                    <DetailRow label="Sted" value={transaction.eventRegistration.quota.variant.event.location} />
                 )}
                 <DetailRow
                     label="Tidspunkt"
                     value={
-                        `${displayDate(transaction.eventRegistration.quota.event.eventStart)} `
-                        + `– ${displayDate(transaction.eventRegistration.quota.event.eventEnd)}`
+                        `${displayDate(transaction.eventRegistration.quota.variant.event.eventStart)} `
+                        + `– ${displayDate(transaction.eventRegistration.quota.variant.event.eventEnd)}`
                     }
                 />
             </div>

@@ -119,6 +119,10 @@ async function createPayer(username: string) {
         },
         bypassAuth: true,
     })
+    // Seating reads memberships from the database, so the session alone is not enough.
+    await prisma.membership.create({
+        data: { userId: user.id, groupId: membersGroupId, admin: false, active: true, order: currentOrder },
+    })
     const account = await ledgerAccountOperations.read({ params: { userId: user.id }, bypassAuth: true })
     await ledgerMovementOperations.createDeposit({
         params: { ledgerAccountId: account.id, provider: 'MANUAL', funds: STARTING_BALANCE, manualFees: 0 },

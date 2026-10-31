@@ -56,22 +56,22 @@ describe('waiting list promotion on more places', () => {
             bypassAuth: true,
         })
 
-        const quota = await prisma.eventRegistrationQuota.findFirstOrThrow({ where: { eventId: event.id } })
+        const quota = await prisma.eventQuota.findFirstOrThrow({ where: { variant: { eventId: event.id } } })
 
         // Created one by one, since the order of the waiting list is the order of creation.
         await prisma.eventRegistration.create({ data: { state: 'IN_QUOTA', quotaId: quota.id, userId: userIds[0] } })
         await prisma.eventRegistration.create({
-            data: { state: 'WAITING_LIST', waitingListEventId: event.id, userId: userIds[1] },
+            data: { state: 'WAITING_LIST', waitingListVariantId: quota.variantId, userId: userIds[1] },
         })
         await prisma.eventRegistration.create({
             data: {
                 state: 'WAITING_LIST',
-                waitingListEvent: { connect: { id: event.id } },
+                waitingListVariant: { connect: { id: quota.variantId } },
                 contact: { create: { name: 'Test Guest', email: guestEmail } },
             },
         })
         await prisma.eventRegistration.create({
-            data: { state: 'WAITING_LIST', waitingListEventId: event.id, userId: userIds[2] },
+            data: { state: 'WAITING_LIST', waitingListVariantId: quota.variantId, userId: userIds[2] },
         })
 
         notifySpy.mockClear()
@@ -102,7 +102,7 @@ describe('waiting list promotion on more places', () => {
 
         await setPlaces(quota.id, 3)
 
-        await expect(prisma.eventRegistrationQuota.findUniqueOrThrow({ where: { id: quota.id } }))
+        await expect(prisma.eventQuota.findUniqueOrThrow({ where: { id: quota.id } }))
             .resolves.toMatchObject({ places: 3 })
         expect(notifySpy).toHaveBeenCalledTimes(1)
         expect(sentMail).toHaveBeenCalledTimes(1)
@@ -165,7 +165,7 @@ describe('moving registrations in the queue', () => {
             },
             bypassAuth: true,
         })
-        const quota = await prisma.eventRegistrationQuota.findFirstOrThrow({ where: { eventId: event.id } })
+        const quota = await prisma.eventQuota.findFirstOrThrow({ where: { variant: { eventId: event.id } } })
         const queuedAt = new Date('2026-01-01T12:00:00Z')
         const registrations = []
         for (let index = 0; index < userIds.length; index++) {
@@ -173,7 +173,7 @@ describe('moving registrations in the queue', () => {
                 data: {
                     ...(index < places
                         ? { state: 'IN_QUOTA', quotaId: quota.id }
-                        : { state: 'WAITING_LIST', waitingListEventId: event.id }),
+                        : { state: 'WAITING_LIST', waitingListVariantId: quota.variantId }),
                     userId: userIds[index],
                     queuedAt: sameTime ? queuedAt : new Date(queuedAt.getTime() + index * 1000),
                 },
@@ -184,7 +184,7 @@ describe('moving registrations in the queue', () => {
 
     async function queuedUserIds(eventId: number) {
         const registrations = await prisma.eventRegistration.findMany({
-            where: { waitingListEventId: eventId },
+            where: { waitingListVariant: { eventId } },
             orderBy: eventRegistrationQueueOrder,
             select: { userId: true },
         })
@@ -254,7 +254,7 @@ describe('moving registrations in the queue', () => {
 
     test('a manually paid registration is marked and unmarked', async () => {
         const { event, registrations } = await createEventWithQueue()
-        await prisma.event.update({ where: { id: event.id }, data: { takesPayment: true } })
+        await prisma.eventVariant.updateMany({ where: { eventId: event.id }, data: { takesPayment: true } })
         const registrationId = registrations[0].id
 
         await eventRegistrationOperations.setManuallyPaid({

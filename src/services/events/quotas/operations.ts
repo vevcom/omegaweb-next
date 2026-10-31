@@ -1,17 +1,30 @@
 import '@pn-server-only'
 import { eventQuotaAuth } from './auth'
 import { eventQuotaSchemas } from './schemas'
-import { assertValidQuota, createQuota } from './createQuota'
-import { readEventAccess, readEventIdOfQuota } from '@/services/events/access'
+import { createQuota } from './createQuota'
+import { readEventAccess, readEventIdOfQuota, readEventIdOfVariant } from '@/services/events/access'
 import { eventQuotaOrder, eventQuotaSummarySelection } from '@/services/events/constants'
 import { lockEvent } from '@/services/events/registration/queue'
-import { promoteToQuota } from '@/services/events/registration/promote'
-import { notifyPromotedFromWaitingList } from '@/services/events/registration/notifyPromotedFromWaitingList'
+import { fixVariantPlaces, notifyPromoted } from '@/services/events/registration/fixState'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementVisibilityOperations, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { EventQuotaExpanded } from './types'
+import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+
+/** Refills the places of the variant a quota belongs to, after a change to the quota, and tells the promoted. */
+async function refillVariantOfQuota(prisma: PrismaPossibleTransaction<false>, quotaId: number) {
+    const quota = await prisma.eventQuota.findUniqueOrThrow({
+        where: { id: quotaId },
+        select: { variantId: true, variant: { select: { eventId: true } } },
+    })
+    const promoted = await prisma.$transaction(async tx => {
+        await lockEvent(tx, quota.variant.eventId)
+        return await fixVariantPlaces(tx, quota.variantId)
+    })
+    await notifyPromoted(prisma, quota.variant.eventId, promoted)
+}
 
 const visibility = implementVisibilityOperations({
     implementationParamsSchema: eventQuotaSchemas.params.visibility,
@@ -24,26 +37,26 @@ const visibility = implementVisibilityOperations({
         ),
     },
     readVisibility: async ({ prisma, implementationParams, include }) => (
-        await prisma.eventRegistrationQuota.findUniqueOrThrow({
+        await prisma.eventQuota.findUniqueOrThrow({
             where: { id: implementationParams.id },
             select: { visibility: { include } },
         })
     ).visibility,
     emptyMeans: 'EVERYONE',
+    afterUpdate: ({ prisma, implementationParams }) => refillVariantOfQuota(prisma, implementationParams.id),
 })
 
 export const eventQuotaOperations = {
     visibility,
 
-    /** The quotas of an event in fill order, each with who may register through it. */
     readMany: defineOperation({
         paramsSchema: eventQuotaSchemas.params.readMany,
         authorizer: async ({ params, prisma }) => eventQuotaAuth.readMany.data(
-            await readEventAccess(prisma, params.eventId)
+            await readEventAccess(prisma, await readEventIdOfVariant(prisma, params.variantId))
         ),
         operation: async ({ prisma, params }): Promise<EventQuotaExpanded[]> => {
-            const quotas = await prisma.eventRegistrationQuota.findMany({
-                where: { eventId: params.eventId },
+            const quotas = await prisma.eventQuota.findMany({
+                where: { variantId: params.variantId },
                 select: {
                     ...eventQuotaSummarySelection,
                     visibility: { include: visibilityIncluder },
@@ -62,15 +75,18 @@ export const eventQuotaOperations = {
         paramsSchema: eventQuotaSchemas.params.create,
         dataSchema: eventQuotaSchemas.data.create,
         authorizer: async ({ params, prisma }) => eventQuotaAuth.create.data(
-            await readEventAccess(prisma, params.eventId)
+            await readEventAccess(prisma, await readEventIdOfVariant(prisma, params.variantId))
         ),
         opensTransaction: true,
         operation: async ({ prisma, params, data }) => {
-            const event = await prisma.event.findUniqueOrThrow({
-                where: { id: params.eventId },
-                select: { id: true, takesPayment: true },
+            const eventId = await readEventIdOfVariant(prisma, params.variantId)
+            const { quota, promoted } = await prisma.$transaction(async tx => {
+                await lockEvent(tx, eventId)
+                const created = await createQuota(tx, params.variantId, data)
+                return { quota: created, promoted: await fixVariantPlaces(tx, params.variantId) }
             })
-            return await prisma.$transaction(tx => createQuota(tx, event, data))
+            await notifyPromoted(prisma, eventId, promoted)
+            return quota
         },
     }),
 
@@ -82,40 +98,20 @@ export const eventQuotaOperations = {
         ),
         opensTransaction: true,
         operation: async ({ prisma, params, data }) => {
-            const quota = await prisma.eventRegistrationQuota.findUniqueOrThrow({
+            const quota = await prisma.eventQuota.findUniqueOrThrow({
                 where: { id: params.id },
-                include: { event: { select: { id: true, name: true, takesPayment: true } } },
+                select: { variantId: true, variant: { select: { eventId: true } } },
             })
-            assertValidQuota({
-                registrationStart: data.registrationStart ?? quota.registrationStart,
-                registrationEnd: data.registrationEnd ?? quota.registrationEnd,
-                price: data.price ?? quota.price,
-            }, quota.event)
-
             const { updated, promoted } = await prisma.$transaction(async tx => {
-                await lockEvent(tx, quota.eventId)
-                const updatedQuota = await tx.eventRegistrationQuota.update({
-                    where: { id: params.id },
-                    data: {
-                        ...data,
-                        ...(quota.event.takesPayment ? {} : { price: null }),
-                    },
-                })
-                // More places go to the first on the waiting list who pass the quota.
-                const promotedRegistrations = updatedQuota.places > quota.places
-                    ? await promoteToQuota(tx, quota.id)
-                    : []
-                return { updated: updatedQuota, promoted: promotedRegistrations }
+                await lockEvent(tx, quota.variant.eventId)
+                const updatedQuota = await tx.eventQuota.update({ where: { id: params.id }, data })
+                return { updated: updatedQuota, promoted: await fixVariantPlaces(tx, quota.variantId) }
             })
-
-            if (promoted.length) {
-                await notifyPromotedFromWaitingList(quota.event, promoted)
-            }
+            await notifyPromoted(prisma, quota.variant.eventId, promoted)
             return updated
         },
     }),
 
-    /** Removes an empty quota. One holding registrations keeps them until they are moved or unregistered. */
     destroy: defineOperation({
         paramsSchema: eventQuotaSchemas.params.destroy,
         authorizer: async ({ params, prisma }) => eventQuotaAuth.destroy.data(
@@ -123,7 +119,7 @@ export const eventQuotaOperations = {
         ),
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
-            const quota = await prisma.eventRegistrationQuota.findUniqueOrThrow({
+            const quota = await prisma.eventQuota.findUniqueOrThrow({
                 where: { id: params.id },
                 select: { visibilityId: true, _count: { select: { registrations: true } } },
             })
@@ -135,7 +131,7 @@ export const eventQuotaOperations = {
             }
 
             await prisma.$transaction(async tx => {
-                await tx.eventRegistrationQuota.delete({ where: { id: params.id } })
+                await tx.eventQuota.delete({ where: { id: params.id } })
                 await visibilityOperations.destroy.internalCall({
                     prisma: tx,
                     params: { visibilityId: quota.visibilityId },
@@ -144,32 +140,34 @@ export const eventQuotaOperations = {
         },
     }),
 
-    /** Sets the fill order of the quotas of an event. Every quota of the event must be given, once. */
     reorder: defineOperation({
         paramsSchema: eventQuotaSchemas.params.reorder,
         dataSchema: eventQuotaSchemas.data.reorder,
         authorizer: async ({ params, prisma }) => eventQuotaAuth.reorder.data(
-            await readEventAccess(prisma, params.eventId)
+            await readEventAccess(prisma, await readEventIdOfVariant(prisma, params.variantId))
         ),
         opensTransaction: true,
         operation: async ({ prisma, params, data }) => {
-            await prisma.$transaction(async tx => {
-                await lockEvent(tx, params.eventId)
-                const quotas = await tx.eventRegistrationQuota.findMany({
-                    where: { eventId: params.eventId },
+            const eventId = await readEventIdOfVariant(prisma, params.variantId)
+            const promoted = await prisma.$transaction(async tx => {
+                await lockEvent(tx, eventId)
+                const quotas = await tx.eventQuota.findMany({
+                    where: { variantId: params.variantId },
                     select: { id: true },
                 })
                 const given = new Set(data.quotaIds)
                 if (given.size !== data.quotaIds.length || given.size !== quotas.length
                     || !quotas.every(quota => given.has(quota.id))) {
-                    throw new ServiceError('BAD PARAMETERS', 'Rekkefølgen må nevne hver kvote i arrangementet én gang.')
+                    throw new ServiceError('BAD PARAMETERS', 'Rekkefølgen må nevne hver kvote i varianten én gang.')
                 }
 
-                await Promise.all(data.quotaIds.map((quotaId, order) => tx.eventRegistrationQuota.update({
+                await Promise.all(data.quotaIds.map((quotaId, order) => tx.eventQuota.update({
                     where: { id: quotaId },
                     data: { order },
                 })))
+                return await fixVariantPlaces(tx, params.variantId)
             })
+            await notifyPromoted(prisma, eventId, promoted)
         },
     }),
 } as const

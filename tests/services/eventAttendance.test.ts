@@ -23,7 +23,9 @@ async function createTestUser(username: string) {
 }
 
 /** Every registration of an event, holding a place or on its waiting list. */
-const registrationsOf = (eventId: number) => ({ OR: [{ quota: { eventId } }, { waitingListEventId: eventId }] })
+const registrationsOf = (eventId: number) => ({
+    OR: [{ quota: { variant: { eventId } } }, { waitingListVariant: { eventId } }],
+})
 
 async function createTestEvent(name: string, places = 10) {
     return eventOperations.create({

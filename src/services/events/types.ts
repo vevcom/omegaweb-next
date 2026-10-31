@@ -1,4 +1,4 @@
-import type { eventFilterSelection, eventQuotaSummarySelection } from './constants'
+import type { eventFilterSelection, eventQuotaSummarySelection, eventVariantSummarySelection } from './constants'
 import type { eventSchemas } from './schemas'
 import type { ExpandedCmsImage } from '@/cms/images/types'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
@@ -13,21 +13,33 @@ export type EventAccess = {
     quotaVisibilities: VisibilityMatrix[],
 }
 
-export type EventQuotaSummary = Omit<Prisma.EventRegistrationQuotaGetPayload<{
+export type EventQuotaSummary = Omit<Prisma.EventQuotaGetPayload<{
     select: typeof eventQuotaSummarySelection
 }>, '_count'> & {
     numOfRegistrations: number,
 }
 
-/**
- * An event with what its quotas add up to: it takes registration when it has any, its places and
- * registrations are their sums, and its registration period spans theirs.
- */
-export type EventFiltered = Omit<Prisma.EventGetPayload<{
-    select: typeof eventFilterSelection
+/** A variant with what its quotas add up to. It takes registration when a quota of it has places. */
+export type EventVariantSummary = Omit<Prisma.EventVariantGetPayload<{
+    select: typeof eventVariantSummarySelection
 }>, '_count' | 'quotas'> & {
     quotas: EventQuotaSummary[],
     takesRegistration: boolean,
+    places: number,
+    numOfRegistrations: number,
+    numOnWaitingList: number,
+}
+
+/**
+ * An event with what its variants add up to: it takes registration when one of them does, its
+ * places and registrations are their sums, and its registration period spans theirs.
+ */
+export type EventFiltered = Omit<Prisma.EventGetPayload<{
+    select: typeof eventFilterSelection
+}>, 'variants'> & {
+    variants: EventVariantSummary[],
+    takesRegistration: boolean,
+    takesPayment: boolean,
     places: number,
     numOfRegistrations: number,
     numOnWaitingList: number,

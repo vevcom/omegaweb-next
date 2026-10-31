@@ -21,10 +21,8 @@ export const eventFieldsToExpose = [
     'eventEnd',
     'waitingList',
     'bindingRegistration',
+    'allowRegistrationInMultipleVariants',
     'canBeViewedBy',
-    'takesPayment',
-    'paymentStart',
-    'paymentEnd'
 ] as const satisfies (keyof Event)[]
 
 /** A quota as the lists and the event page show it, with how many hold one of its places. */
@@ -33,24 +31,30 @@ export const eventQuotaSummarySelection = {
     name: true,
     order: true,
     places: true,
-    price: true,
-    registrationStart: true,
-    registrationEnd: true,
     visibilityId: true,
     _count: {
         select: {
             registrations: true,
         },
     },
-} as const satisfies Prisma.EventRegistrationQuotaSelect
+} as const satisfies Prisma.EventQuotaSelect
 
 export const eventQuotaOrder = [
     { order: 'asc' },
     { id: 'asc' },
-] satisfies Prisma.EventRegistrationQuotaOrderByWithRelationInput[]
+] satisfies Prisma.EventQuotaOrderByWithRelationInput[]
 
-export const eventFilterSelection = {
-    ...createSelection(eventFieldsToExpose),
+/** A variant with its quotas in fill order and how many wait for a place in it. */
+export const eventVariantSummarySelection = {
+    id: true,
+    name: true,
+    order: true,
+    registrationStart: true,
+    registrationEnd: true,
+    takesPayment: true,
+    price: true,
+    paymentStart: true,
+    paymentEnd: true,
     quotas: {
         select: eventQuotaSummarySelection,
         orderBy: eventQuotaOrder,
@@ -60,9 +64,22 @@ export const eventFilterSelection = {
             waitingListRegistrations: true,
         },
     },
+} as const satisfies Prisma.EventVariantSelect
+
+export const eventVariantOrder = [
+    { order: 'asc' },
+    { id: 'asc' },
+] satisfies Prisma.EventVariantOrderByWithRelationInput[]
+
+export const eventFilterSelection = {
+    ...createSelection(eventFieldsToExpose),
+    variants: {
+        select: eventVariantSummarySelection,
+        orderBy: eventVariantOrder,
+    },
 } as const satisfies Prisma.EventSelect
 
-/** What the lists of events select: the exposed fields, the quotas, the cover image and the tags. */
+/** What the lists of events select: the exposed fields, the variants, the cover image and the tags. */
 export const eventListSelection = {
     ...eventFilterSelection,
     coverImage: {

@@ -28,7 +28,7 @@ import type {
 type PropTypes = {
     event?: Pick<Event,
         'id' | 'name' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'hostedByCommitteeId'
-        | 'waitingList' | 'bindingRegistration' | 'takesPayment' | 'paymentStart' | 'paymentEnd'
+        | 'waitingList' | 'bindingRegistration' | 'allowRegistrationInMultipleVariants'
     > & { tags: EventTagT[], locationMap: EventLocationMap | null }
     /** The event pages to navigate under once saved, which differ between Omega's site and the career site. */
     basePath: string
@@ -40,13 +40,12 @@ type PropTypes = {
 }
 
 /**
- * Creates an event, or updates the one given. Who administrates it, and its first quota - the
- * registration with its places, period, price and who may register - are only set here when
- * creating: an existing event has them in the visibility and quota pop-ups on its page.
+ * Creates an event, or updates the one given. Who administrates it, and its first variant and
+ * quota, are only set here when creating: an existing event has them in the pop-ups on its page.
  */
 export default function CreateOrUpdateEventForm({ event, basePath, lockedTag = null, eventTags, committees }: PropTypes) {
     const [takesRegistration, setTakesRegistration] = useState(false)
-    const [takesPayment, setTakesPayment] = useState(event?.takesPayment ?? false)
+    const [takesPayment, setTakesPayment] = useState(false)
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const [quotaRequirements, setQuotaRequirements] = useState<VisibilityRequirement[]>([])
     const action = event ? configureAction(updateEventAction, { params: { id: event.id } }) : createEventAction
@@ -129,7 +128,8 @@ export default function CreateOrUpdateEventForm({ event, basePath, lockedTag = n
             {event ? (
                 <FormSection legend="Påmelding" columns={2}>
                     <p className="m-0 col-span-full text-s text-text-muted">
-                        Plasser, påmeldingsperiode, pris og hvem som kan melde seg på settes per kvote i kvote-popupen.
+                        Påmeldingsperiode, pris, plasser og hvem som kan melde seg på settes per variant og kvote
+                        i variant-popupen.
                     </p>
                     <Slider label="Venteliste" name="waitingList" defaultChecked={event.waitingList} />
                     <Slider
@@ -138,25 +138,10 @@ export default function CreateOrUpdateEventForm({ event, basePath, lockedTag = n
                         defaultChecked={event.bindingRegistration}
                     />
                     <Slider
-                        label="Tar betaling"
-                        name="takesPayment"
-                        onChange={changeEvent => setTakesPayment(changeEvent.target.checked)}
-                        defaultChecked={event.takesPayment}
+                        label="Plass i flere varianter"
+                        name="allowRegistrationInMultipleVariants"
+                        defaultChecked={event.allowRegistrationInMultipleVariants}
                     />
-                    {takesPayment && <>
-                        <DateInput
-                            label="Betalingsstart"
-                            name="paymentStart"
-                            defaultValue={event.paymentStart ?? undefined}
-                            includeTime
-                        />
-                        <DateInput
-                            label="Betalingsslutt"
-                            name="paymentEnd"
-                            defaultValue={event.paymentEnd ?? undefined}
-                            includeTime
-                        />
-                    </>}
                 </FormSection>
             ) : (
                 <FormSection legend="Påmelding" columns={2}>
@@ -180,7 +165,7 @@ export default function CreateOrUpdateEventForm({ event, basePath, lockedTag = n
                                 value={JSON.stringify(quotaRequirements)}
                             />
                             <p className="m-0 text-s text-text-muted">
-                                Dette blir den første kvoten. Flere kvoter legges til på arrangementets side.
+                                Dette blir den første varianten og kvoten. Flere legges til på arrangementets side.
                             </p>
                         </div>
                         <Slider

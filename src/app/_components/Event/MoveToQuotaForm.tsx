@@ -6,10 +6,10 @@ import { configureAction } from '@/services/configureAction'
 type PropTypes = {
     registrationId: number,
     currentQuotaId: number | null,
+    /** The quotas of the registration's variant. */
     quotas: { id: number, name: string }[],
 }
 
-/** Gives a registration a place in a quota the administrator picks, from the waiting list or another quota. */
 export default function MoveToQuotaForm({ registrationId, currentQuotaId, quotas }: PropTypes) {
     const choices = quotas.filter(quota => quota.id !== currentQuotaId)
     if (choices.length === 0) return null

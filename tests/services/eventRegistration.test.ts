@@ -138,7 +138,7 @@ const readOfUser = (user: UserFiltered, eventId: number) => eventRegistrationOpe
 })
 
 const countRegistrations = (eventId: number, user?: UserFiltered) => prisma.eventRegistration.count({
-    where: { OR: [{ quota: { eventId } }, { waitingListEventId: eventId }], userId: user?.id },
+    where: { OR: [{ quota: { variant: { eventId } } }, { waitingListVariant: { eventId } }], userId: user?.id },
 })
 
 /** A committee with a linked ledger account, to host a paid event's payments. */
@@ -416,7 +416,7 @@ describe('unregistering from an event', () => {
         const organiser = await createTestUser('unregisterlateorganiser')
 
         const registration = await register(user, eventId)
-        await prisma.eventRegistrationQuota.updateMany({
+        await prisma.eventVariant.updateMany({
             where: { eventId },
             data: { registrationEnd: new Date(Date.now() - 60 * 1000) },
         })

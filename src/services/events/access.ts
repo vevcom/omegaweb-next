@@ -11,22 +11,31 @@ export async function readEventAccess(prisma: PrismaPossibleTransaction<false>, 
             published: true,
             canBeViewedBy: true,
             visibilityAdmin: { include: visibilityIncluder },
-            quotas: { select: { visibility: { include: visibilityIncluder } } },
+            variants: { select: { quotas: { select: { visibility: { include: visibilityIncluder } } } } },
         },
     })
     return {
         published: event.published,
         canBeViewedBy: event.canBeViewedBy,
         adminVisibility: toMatrix(event.visibilityAdmin),
-        quotaVisibilities: event.quotas.map(quota => toMatrix(quota.visibility)),
+        quotaVisibilities: event.variants.flatMap(variant => variant.quotas.map(quota => toMatrix(quota.visibility))),
     }
 }
 
-/** The event a quota belongs to. */
-export async function readEventIdOfQuota(prisma: PrismaPossibleTransaction<false>, quotaId: number): Promise<number> {
-    const quota = await prisma.eventRegistrationQuota.findUniqueOrThrow({
-        where: { id: quotaId },
+/** The event a variant belongs to. */
+export async function readEventIdOfVariant(prisma: PrismaPossibleTransaction<false>, variantId: number): Promise<number> {
+    const variant = await prisma.eventVariant.findUniqueOrThrow({
+        where: { id: variantId },
         select: { eventId: true },
     })
-    return quota.eventId
+    return variant.eventId
+}
+
+/** The event a quota belongs to, through its variant. */
+export async function readEventIdOfQuota(prisma: PrismaPossibleTransaction<false>, quotaId: number): Promise<number> {
+    const quota = await prisma.eventQuota.findUniqueOrThrow({
+        where: { id: quotaId },
+        select: { variant: { select: { eventId: true } } },
+    })
+    return quota.variant.eventId
 }

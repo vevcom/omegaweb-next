@@ -2,7 +2,14 @@ import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
 import { readEventAccess } from './access'
-import { defaultSearchResultLimit, eventListSelection, eventQuotaOrder, eventQuotaSummarySelection } from './constants'
+import {
+    defaultSearchResultLimit,
+    eventListSelection,
+    eventQuotaOrder,
+    eventVariantOrder,
+    eventVariantSummarySelection,
+} from './constants'
+import { createVariant } from './variants/createVariant'
 import { createQuota } from './quotas/createQuota'
 import { notificationOperations } from '@/services/notifications/operations'
 import { getLocationMapData } from '@/lib/maps/locationMap'
@@ -22,9 +29,6 @@ import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
 
 const DAY_MS = 1000 * 60 * 60 * 24
-
-/** What an event that does not take payment holds in the payment fields. */
-const unpaid = { paymentStart: null, paymentEnd: null }
 
 const adminVisibility = implementVisibilityOperations({
     implementationParamsSchema: eventSchemas.params.adminVisibility,
@@ -68,25 +72,29 @@ const read = defineOperation({
                 },
                 hostedByCommittee: { select: { id: true, name: true, shortName: true } },
                 ledgerAccount: { select: { id: true, name: true } },
-                quotas: {
+                variants: {
                     select: {
-                        ...eventQuotaSummarySelection,
-                        visibility: { include: visibilityIncluder },
+                        ...eventVariantSummarySelection,
+                        quotas: {
+                            select: {
+                                ...eventVariantSummarySelection.quotas.select,
+                                visibility: { include: visibilityIncluder },
+                            },
+                            orderBy: eventQuotaOrder,
+                        },
                     },
-                    orderBy: eventQuotaOrder,
-                },
-                _count: {
-                    select: {
-                        waitingListRegistrations: true,
-                    },
+                    orderBy: eventVariantOrder,
                 },
             }
         })
 
-        const expanded = withTagsAndQuotaSummary(event)
+        const expanded = withTagsAndVariantSummary(event)
         return {
             ...expanded,
-            quotas: expanded.quotas.map(({ visibility, ...quota }) => ({ ...quota, visibility: toMatrix(visibility) })),
+            variants: expanded.variants.map(variant => ({
+                ...variant,
+                quotas: variant.quotas.map(({ visibility, ...quota }) => ({ ...quota, visibility: toMatrix(visibility) })),
+            })),
         }
     }
 })
@@ -99,13 +107,15 @@ export const eventOperations = {
         authorizer: () => eventAuth.create,
         opensTransaction: true,
         operation: async ({ prisma, data, session }) => {
-            assertValidEventDates(data)
+            if (data.eventStart > data.eventEnd) {
+                throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
+            }
             if (data.takesPayment && !data.takesRegistration) {
                 throw new ServiceError('BAD PARAMETERS', 'Kan ikke ta betaling uten påmelding')
             }
 
             // The event and everything it owns are created together, so a failure leaves no
-            // orphaned paragraph, image, visibility or quota behind.
+            // orphaned paragraph, image, visibility, variant or quota behind.
             const event = await prisma.$transaction(async tx => {
                 const cmsParagraph = await cmsParagraphOperations.create.internalCall({
                     data: {},
@@ -137,10 +147,7 @@ export const eventOperations = {
                         } : undefined,
                         waitingList: data.waitingList,
                         bindingRegistration: data.bindingRegistration,
-                        takesPayment: data.takesPayment,
-                        ...(data.takesPayment
-                            ? { paymentStart: data.paymentStart, paymentEnd: data.paymentEnd }
-                            : unpaid),
+                        allowRegistrationInMultipleVariants: data.allowRegistrationInMultipleVariants,
 
                         createdBy: session?.user ? {
                             connect: {
@@ -172,12 +179,18 @@ export const eventOperations = {
                 })
 
                 if (data.takesRegistration) {
-                    await createQuota(tx, createdEvent, {
+                    const variant = await createVariant(tx, createdEvent.id, {
                         name: 'Påmelding',
-                        places: data.places ?? 0,
-                        price: data.price,
                         registrationStart: data.registrationStart ?? new Date(),
                         registrationEnd: data.registrationEnd ?? new Date(Date.now() + DAY_MS),
+                        takesPayment: data.takesPayment,
+                        price: data.price,
+                        paymentStart: data.paymentStart,
+                        paymentEnd: data.paymentEnd,
+                    })
+                    await createQuota(tx, variant.id, {
+                        name: 'Påmelding',
+                        places: data.places ?? 0,
                         visibilityRequirements: data.quotaVisibilityRequirements,
                     })
                 }
@@ -208,7 +221,7 @@ export const eventOperations = {
                     eventStart: 'asc'
                 }
             })
-            return events.map(withTagsAndQuotaSummary)
+            return events.map(withTagsAndVariantSummary)
         }
     }),
     readManyArchivedPage: defineOperation({
@@ -230,15 +243,14 @@ export const eventOperations = {
                 },
                 select: eventListSelection,
             })
-            return events.map(withTagsAndQuotaSummary)
+            return events.map(withTagsAndVariantSummary)
         }
     }),
 
     /**
      * The event half of the global search: the few events best matching a free text query, for a
      * search box to show while the user types. Both past and coming events are searched, the most
-     * recent ones first, and only the events the session may see at all - the very same
-     * visibility rule as the lists of current and archived events above.
+     * recent ones first, and only the events the session may see at all.
      */
     search: defineOperation({
         paramsSchema: eventSchemas.params.search,
@@ -270,22 +282,11 @@ export const eventOperations = {
         operation: async ({ prisma, params, data: { tagIds, locationMap, ...data } }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
-                include: {
-                    locationMap: true,
-                    quotas: { select: { price: true } },
-                },
+                include: { locationMap: true },
             })
 
-            const takesPayment = data.takesPayment ?? event.takesPayment
-            assertValidEventDates({
-                eventStart: data.eventStart ?? event.eventStart,
-                eventEnd: data.eventEnd ?? event.eventEnd,
-                takesPayment,
-                paymentStart: data.paymentStart ?? event.paymentStart,
-                paymentEnd: data.paymentEnd ?? event.paymentEnd,
-            })
-            if (takesPayment && event.quotas.some(quota => quota.price === null)) {
-                throw new ServiceError('BAD PARAMETERS', 'Alle kvotene må ha en pris når arrangementet tar betaling')
+            if ((data.eventStart ?? event.eventStart) > (data.eventEnd ?? event.eventEnd)) {
+                throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
             }
 
             let mapUpdate: Prisma.EventLocationMapUpdateOneWithoutEventNestedInput | undefined
@@ -301,13 +302,9 @@ export const eventOperations = {
                     where: { id: params.id },
                     data: {
                         ...data,
-                        ...(takesPayment ? {} : unpaid),
                         locationMap: mapUpdate,
                     },
                 })
-                if (!takesPayment) {
-                    await tx.eventRegistrationQuota.updateMany({ where: { eventId: params.id }, data: { price: null } })
-                }
                 if (tagIds) {
                     await tx.eventTagEvent.deleteMany({
                         where: {
@@ -336,8 +333,6 @@ export const eventOperations = {
     /**
      * Links an event to the GROUP ledger account its registrations are paid into, replacing any
      * earlier link.
-     * @param params.id - The event to link
-     * @param data.ledgerAccountId - The account to credit
      */
     connectToLedgerAccount: defineOperation({
         paramsSchema: eventSchemas.params.connectToLedgerAccount,
@@ -375,10 +370,8 @@ export const eventOperations = {
     }),
 
     /**
-     * Publishes an event, or takes it back to being a draft. Which rule `canSeeEvent` applies
-     * follows from this flag, so retracting an event hides it from everyone but those who
-     * administrate it again. Publishing a draft tells the subscribers to new events about it,
-     * those of them who may register through one of its quotas.
+     * Publishes an event, or takes it back to being a draft. Publishing a draft tells the
+     * subscribers to new events about it, those of them who may register through one of its quotas.
      */
     setPublished: defineOperation({
         paramsSchema: eventSchemas.params.setPublished,
@@ -391,15 +384,16 @@ export const eventOperations = {
             })
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
-                include: { quotas: { select: { visibilityId: true } } },
+                include: { variants: { select: { quotas: { select: { visibilityId: true } } } } },
             })
 
             if (data.published && flipped) {
-                // A notification reaches one visibility, so there is one per quota. Those passing
-                // several quotas hear of the event once per quota.
-                const quotaAudiences = event.quotas.map(quota => ({ visibilityId: quota.visibilityId }))
+                // A notification reaches one visibility, so there is one per quota.
+                const quotaAudiences = event.variants.flatMap(variant => variant.quotas.map(quota => ({
+                    visibilityId: quota.visibilityId,
+                })))
                 const everyone = event.canBeViewedBy === 'ALL' ? [{}] : []
-                const audiences = event.quotas.length > 0 ? quotaAudiences : everyone
+                const audiences = quotaAudiences.length > 0 ? quotaAudiences : everyone
                 await Promise.all(audiences.map(audience => notificationOperations.createSpecial.internalCall({
                     params: {
                         special: 'NEW_EVENT',
@@ -424,10 +418,13 @@ export const eventOperations = {
         operation: async ({ prisma, params }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
-                select: { visibilityAdminId: true, quotas: { select: { visibilityId: true } } },
+                select: {
+                    visibilityAdminId: true,
+                    variants: { select: { quotas: { select: { visibilityId: true } } } },
+                },
             })
             const registrationsOfEvent: Prisma.EventRegistrationWhereInput = {
-                OR: [{ quota: { eventId: params.id } }, { waitingListEventId: params.id }],
+                OR: [{ quota: { variant: { eventId: params.id } } }, { waitingListVariant: { eventId: params.id } }],
             }
 
             await prisma.$transaction(async tx => {
@@ -435,8 +432,9 @@ export const eventOperations = {
                 // between this check and the delete.
                 await tx.$queryRaw`
                     SELECT r."id" FROM "EventRegistration" r
-                    LEFT JOIN "EventRegistrationQuota" q ON q."id" = r."quotaId"
-                    WHERE q."eventId" = ${params.id} OR r."waitingListEventId" = ${params.id}
+                    LEFT JOIN "EventQuota" q ON q."id" = r."quotaId"
+                    LEFT JOIN "EventVariant" v ON v."id" = COALESCE(q."variantId", r."waitingListVariantId")
+                    WHERE v."eventId" = ${params.id}
                     FOR UPDATE OF r
                 `
                 const liveTransaction = await tx.ledgerTransaction.findFirst({
@@ -462,7 +460,11 @@ export const eventOperations = {
                         id: params.id
                     }
                 })
-                await Promise.all([event.visibilityAdminId, ...event.quotas.map(quota => quota.visibilityId)].map(
+                const visibilityIds = [
+                    event.visibilityAdminId,
+                    ...event.variants.flatMap(variant => variant.quotas.map(quota => quota.visibilityId)),
+                ]
+                await Promise.all(visibilityIds.map(
                     visibilityId => visibilityOperations.destroy.internalCall({ prisma: tx, params: { visibilityId } })
                 ))
             })
@@ -484,48 +486,66 @@ export const eventOperations = {
 
 type RawQuota = {
     places: number,
-    registrationStart: Date,
-    registrationEnd: Date,
     _count: { registrations: number },
 }
 
-/**
- * Adds up what the quotas of an event give it: whether it takes registration, its places and
- * registrations, and the registration period spanning the quotas'. The waiting list is the event's
- * own.
- */
+type RawVariant<Quota extends RawQuota, VariantRest extends object> = {
+    registrationStart: Date,
+    registrationEnd: Date,
+    takesPayment: boolean,
+    quotas: Quota[],
+    _count: { waitingListRegistrations: number },
+} & VariantRest
+
+/** What the quotas of a variant add up to. */
 function withQuotaSummary<Quota extends RawQuota, Rest extends object>(
-    { _count, quotas, ...event }: { quotas: Quota[], _count: { waitingListRegistrations: number } } & Rest
+    { _count, quotas, ...variant }: { quotas: Quota[], _count: { waitingListRegistrations: number } } & Rest
 ) {
     const summarised = quotas.map(({ _count: quotaCount, ...quota }) => ({
         ...quota,
         numOfRegistrations: quotaCount.registrations,
     }))
-    const span = quotas.reduce<{ start: number, end: number } | null>((current, quota) => ({
-        start: Math.min(current?.start ?? Infinity, quota.registrationStart.getTime()),
-        end: Math.max(current?.end ?? -Infinity, quota.registrationEnd.getTime()),
+    return {
+        ...variant,
+        quotas: summarised,
+        takesRegistration: quotas.some(quota => quota.places > 0),
+        places: quotas.reduce((sum, quota) => sum + quota.places, 0),
+        numOfRegistrations: quotas.reduce((sum, quota) => sum + quota._count.registrations, 0),
+        numOnWaitingList: _count.waitingListRegistrations,
+    }
+}
+
+/** What the variants of an event add up to: whether it takes registration or payment, and its sums and spans. */
+function withVariantSummary<Quota extends RawQuota, VariantRest extends object, Rest extends object>(
+    { variants, ...event }: { variants: RawVariant<Quota, VariantRest>[] } & Rest
+) {
+    const summarised = variants.map(variant => withQuotaSummary(variant))
+    const span = variants.reduce<{ start: number, end: number } | null>((current, variant) => ({
+        start: Math.min(current?.start ?? Infinity, variant.registrationStart.getTime()),
+        end: Math.max(current?.end ?? -Infinity, variant.registrationEnd.getTime()),
     }), null)
 
     return {
         ...event,
-        quotas: summarised,
-        takesRegistration: quotas.length > 0,
-        places: quotas.reduce((sum, quota) => sum + quota.places, 0),
-        numOfRegistrations: quotas.reduce((sum, quota) => sum + quota._count.registrations, 0),
-        numOnWaitingList: _count.waitingListRegistrations,
+        variants: summarised,
+        takesRegistration: summarised.some(variant => variant.takesRegistration),
+        takesPayment: variants.some(variant => variant.takesPayment),
+        places: summarised.reduce((sum, variant) => sum + variant.places, 0),
+        numOfRegistrations: summarised.reduce((sum, variant) => sum + variant.numOfRegistrations, 0),
+        numOnWaitingList: summarised.reduce((sum, variant) => sum + variant.numOnWaitingList, 0),
         registrationStart: span ? new Date(span.start) : null,
         registrationEnd: span ? new Date(span.end) : null,
     }
 }
 
-/** An event as the lists and the event page show it: with its tags and what its quotas add up to. */
-function withTagsAndQuotaSummary<Quota extends RawQuota, Rest extends object>({ eventTagEvents, ...event }: {
-    quotas: Quota[],
-    _count: { waitingListRegistrations: number },
-    eventTagEvents: { tag: EventTag }[],
-} & Rest) {
+function withTagsAndVariantSummary<Quota extends RawQuota, VariantRest extends object, Rest extends object>(
+    { eventTagEvents, ...event }: {
+        variants: RawVariant<Quota, VariantRest>[],
+        eventTagEvents: { tag: EventTag }[],
+    } & Rest
+) {
     return {
-        ...withQuotaSummary(event),
+        ...withVariantSummary(event),
         tags: eventTagEvents.map(eventTagEvent => eventTagEvent.tag),
     }
 }
@@ -540,30 +560,4 @@ function eventTagSelector(tags: string[] | null) {
             }
         }
     } : undefined
-}
-
-type EventDates = {
-    eventStart: Date,
-    eventEnd: Date,
-    takesPayment: boolean,
-    paymentStart?: Date | null,
-    paymentEnd?: Date | null,
-}
-
-/**
- * An event ends after it starts, and one that takes payment has a payment period that ends after
- * it starts. `update` passes the values the event will have after the update, so a partial update
- * is judged as a whole. The registration periods are the quotas' to validate.
- */
-function assertValidEventDates(dates: EventDates) {
-    if (dates.eventStart > dates.eventEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
-    }
-    if (!dates.takesPayment) return
-    if (!dates.paymentStart || !dates.paymentEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet tar betaling')
-    }
-    if (dates.paymentStart > dates.paymentEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Betalingen må jo starte før den slutter')
-    }
 }

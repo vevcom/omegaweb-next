@@ -45,7 +45,7 @@ const visibleEvents = Require.permission('EVENT_ADMIN').or().filter(({ session }
         OR: [
             { visibilityAdmin: passes },
             { published: true, canBeViewedBy: 'ALL' },
-            { published: true, quotas: { some: { visibility: passes } } },
+            { published: true, variants: { some: { quotas: { some: { visibility: passes } } } } },
         ],
     }
 })

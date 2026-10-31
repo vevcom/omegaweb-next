@@ -139,10 +139,10 @@ async function createEvent(
 
     if (registrationCount === 0) return
 
-    const quota = await prisma.eventRegistrationQuota.findFirstOrThrow({
-        where: { eventId: createdEvent.id },
+    const quota = await prisma.eventQuota.findFirstOrThrow({
+        where: { variant: { eventId: createdEvent.id } },
         orderBy: { order: 'asc' },
-        select: { id: true, places: true },
+        select: { id: true, places: true, variantId: true },
     })
     const users = await prisma.user.findMany({
         take: registrationCount,
@@ -155,7 +155,7 @@ async function createEvent(
     await prisma.eventRegistration.createMany({
         data: users.map((user, index) => (index < quota.places
             ? { state: 'IN_QUOTA' as const, quotaId: quota.id, userId: user.id }
-            : { state: 'WAITING_LIST' as const, waitingListEventId: createdEvent.id, userId: user.id }
+            : { state: 'WAITING_LIST' as const, waitingListVariantId: quota.variantId, userId: user.id }
         ))
     })
 }

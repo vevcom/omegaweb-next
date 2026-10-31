@@ -4,7 +4,7 @@ import UserList from '@/components/User/UserList/UserList'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import UserSelectionProvider, { UserSelectionContext } from '@/contexts/UserSelection'
 import TextInput from '@/components/UI/TextInput'
-import { SelectNumberPossibleNULL } from '@/components/UI/Select'
+import { SelectNumber, SelectNumberPossibleNULL } from '@/components/UI/Select'
 import {
     createEventRegistrationAsAdminAction,
     createGuestEventRegistrationAction,
@@ -15,37 +15,45 @@ import type { ActionReturn } from '@/services/actionTypes'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { EventRegistration } from '@/prisma-generated-pn-types'
 
-type Quota = { id: number, name: string }
+type Variant = { id: number, name: string, quotas: { id: number, name: string }[] }
+type Placement = { variantId: number, quotaId: number | undefined }
 
-/** Which quota the administrator puts the registration in. 'NULL' leaves it to the first with a place. */
-function QuotaPicker({ quotas, value, onChange }: {
-    quotas: Quota[],
-    value: number | 'NULL',
-    onChange: (value: number | 'NULL') => void,
-}) {
-    if (quotas.length < 2) return null
-    return <SelectNumberPossibleNULL
-        label="Kvote"
-        name="quotaId"
-        options={[
-            { value: 'NULL', label: 'Første kvote med ledig plass' },
-            ...quotas.map(quota => ({ value: quota.id, label: quota.name })),
-        ]}
-        value={value}
-        onChange={onChange}
-    />
+/** Which variant, and which of its quotas, the administrator puts the registration in. */
+function usePlacement(variants: Variant[]) {
+    const [variantId, setVariantId] = useState(variants[0]?.id)
+    const [quotaId, setQuotaId] = useState<number | 'NULL'>('NULL')
+    const variant = variants.find(candidate => candidate.id === variantId) ?? variants[0]
+    const placement: Placement = { variantId: variant.id, quotaId: quotaId === 'NULL' ? undefined : quotaId }
+
+    const picker = <>
+        {variants.length > 1 && <SelectNumber
+            label="Variant"
+            name="variantId"
+            options={variants.map(candidate => ({ value: candidate.id, label: candidate.name }))}
+            value={variant.id}
+            onChange={value => {
+                setVariantId(value)
+                setQuotaId('NULL')
+            }}
+        />}
+        {variant.quotas.length > 1 && <SelectNumberPossibleNULL
+            label="Kvote"
+            name="quotaId"
+            options={[
+                { value: 'NULL', label: 'Første kvote med ledig plass' },
+                ...variant.quotas.map(quota => ({ value: quota.id, label: quota.name })),
+            ]}
+            value={quotaId}
+            onChange={setQuotaId}
+        />}
+    </>
+    return { placement, picker }
 }
 
-function ManualRegistrationFormInner({
-    eventId,
-    quotas,
-}: {
-    eventId: number,
-    quotas: Quota[],
-}) {
+function ManualRegistrationFormInner({ eventId, variants }: { eventId: number, variants: Variant[] }) {
     const userSelectionContext = useContext(UserSelectionContext)
     if (!userSelectionContext) throw new Error('Fant ikke UserSelectionContext')
-    const [quotaId, setQuotaId] = useState<number | 'NULL'>('NULL')
+    const { placement, picker } = usePlacement(variants)
 
     const action = async (): Promise<ActionReturn<EventRegistration>> => {
         if (!userSelectionContext.user) {
@@ -59,15 +67,9 @@ function ManualRegistrationFormInner({
             }
         }
 
-        return await createEventRegistrationAsAdminAction(
-            {
-                params: {
-                    eventId,
-                    userId: userSelectionContext.user.id,
-                    quotaId: quotaId === 'NULL' ? undefined : quotaId,
-                }
-            }
-        )
+        return await createEventRegistrationAsAdminAction({
+            params: { eventId, userId: userSelectionContext.user.id, ...placement },
+        })
     }
 
     return <Form
@@ -75,38 +77,37 @@ function ManualRegistrationFormInner({
         title="Registrer bruker manuelt"
         action={action}
     >
-        <QuotaPicker quotas={quotas} value={quotaId} onChange={setQuotaId} />
+        {picker}
     </Form>
 }
 
-function GuestRegistrationForm({ eventId, quotas }: { eventId: number, quotas: Quota[] }) {
-    const [quotaId, setQuotaId] = useState<number | 'NULL'>('NULL')
+function GuestRegistrationForm({ eventId, variants }: { eventId: number, variants: Variant[] }) {
+    const { placement, picker } = usePlacement(variants)
 
     return <Form
         submitText="Registrer gjest"
         title="Registrer gjest uten bruker"
-        action={configureAction(createGuestEventRegistrationAction, {
-            params: { eventId, quotaId: quotaId === 'NULL' ? undefined : quotaId },
-        })}
+        action={configureAction(createGuestEventRegistrationAction, { params: { eventId, ...placement } })}
     >
         <TextInput name="name" label="Navn" />
         <TextInput name="note" label="Notat" />
-        <QuotaPicker quotas={quotas} value={quotaId} onChange={setQuotaId} />
+        {picker}
     </Form>
 }
 
 export default function ManualRegistrationForm({
     eventId,
-    quotas,
+    variants,
     capabilities,
 }: {
     eventId: number,
-    /** The quotas of the event in fill order. */
-    quotas: Quota[],
+    variants: Variant[],
     capabilities: CapabilitiesJsObject<'canRegisterAsAdmin' | 'canRegisterGuest'>,
 }) {
+    if (variants.length === 0) return null
+
     return <div className="min-w-[70vw]">
-        {capabilities.canRegisterGuest.authorized && <GuestRegistrationForm eventId={eventId} quotas={quotas} />}
+        {capabilities.canRegisterGuest.authorized && <GuestRegistrationForm eventId={eventId} variants={variants} />}
         {capabilities.canRegisterAsAdmin.authorized && <UserPagingProvider
             serverRenderedData={[]}
             startPage={{
@@ -119,7 +120,7 @@ export default function ManualRegistrationForm({
             }}
         >
             <UserSelectionProvider>
-                <ManualRegistrationFormInner eventId={eventId} quotas={quotas} />
+                <ManualRegistrationFormInner eventId={eventId} variants={variants} />
                 <UserList />
             </UserSelectionProvider>
         </UserPagingProvider>}

@@ -74,15 +74,21 @@ beforeAll(async () => {
             canBeViewedBy: 'ALL',
             waitingList: false,
             visibilityAdmin: { create: { requirements: { create: [{}] } } },
-            quotas: {
+            variants: {
                 create: {
                     order: 0,
                     name: 'Påmelding',
-                    places: 10,
                     registrationStart: new Date(),
                     registrationEnd: new Date(),
-                    visibility: { create: {} },
-                    registrations: { create: [{ state: 'IN_QUOTA', user: { connect: { id: target.id } } }] },
+                    quotas: {
+                        create: {
+                            order: 0,
+                            name: 'Påmelding',
+                            places: 10,
+                            visibility: { create: {} },
+                            registrations: { create: [{ state: 'IN_QUOTA', user: { connect: { id: target.id } } }] },
+                        },
+                    },
                 },
             },
         },
@@ -91,7 +97,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-    await prisma.eventRegistration.deleteMany({ where: { quota: { eventId } } })
+    await prisma.eventRegistration.deleteMany({ where: { quota: { variant: { eventId } } } })
     await prisma.event.delete({ where: { id: eventId } })
     await prisma.user.deleteMany({ where: { username: { in: ['exposure-target', 'exposure-viewer'] } } })
 })
