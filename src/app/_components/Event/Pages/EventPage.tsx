@@ -18,6 +18,7 @@ import DateDisplay from '@/components/Date/Date'
 import CmsImage from '@/components/Cms/CmsImage/CmsImage'
 import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
 import Form from '@/components/Form/Form'
+import DraftBanner from '@/components/UI/DraftBanner'
 import {
     DeleteHeaderItemPopUp,
     EditHeaderItemPopUp,
@@ -200,6 +201,12 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
 
         return (
             <div className="w-full flex flex-wrap items-stretch gap-2">
+                {!event.published && <div className="flex-[0_0_100%]">
+                    <DraftBanner>
+                        Arrangementet er ikke publisert. Bare de som administrerer det ser det. Publiser det under
+                        synlighet.
+                    </DraftBanner>
+                </div>}
                 <span className={`
                     ${styles.coverImage}
                     flex-[0_0_100%] block relative h-[20em]
