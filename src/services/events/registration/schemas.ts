@@ -1,7 +1,7 @@
 import { REGISTRATION_READER_TYPE } from './constants'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Zpn } from '@/lib/fields/zpn'
-import { PaymentProvider } from '@/prisma-generated-pn-types'
+import { PaymentProvider, SpecialEventTags } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -26,6 +26,7 @@ const paramsFieldSchemas = z.object({
     amountFromBalance: z.coerce.number().nonnegative().default(0),
     manualFees: z.coerce.number().nonnegative().default(0),
     description: z.string().optional(),
+    specialTag: z.nativeEnum(SpecialEventTags).optional(),
 })
 
 /**
@@ -88,6 +89,10 @@ export const eventRegistrationSchemas = {
             userId: true,
         }),
         readOfUser: userAndEvent,
+        readUpcomingOfUser: paramsFieldSchemas.pick({
+            userId: true,
+            specialTag: true,
+        }),
         readPage,
         readPageDetailed: readPage,
         updateNotes: registrationId,

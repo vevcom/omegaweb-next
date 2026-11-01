@@ -50,4 +50,5 @@ export const careerNavLinks: { name: string, href: string }[] = [
     { name: 'Bedrifter', href: CAREER_COMPANIES_PATH },
     { name: 'Om oss', href: `${CAREER_PATH}/about` },
     { name: 'Kontakt', href: `mailto:${CAREERS_EMAIL}` },
+    { name: 'Min side', href: `${CAREER_PATH}/profile` },
 ]

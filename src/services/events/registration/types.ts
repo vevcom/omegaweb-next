@@ -3,6 +3,7 @@ import type {
     eventRegistrationNotAttendedSelection,
     eventRegistrationSelectionDetailed,
     eventRegistrationSelection,
+    upcomingEventSelection,
 } from './constants'
 import type { eventRegistrationSchemas } from './schemas'
 import type { ExpandedImage } from '@/services/images/subservice/types'
@@ -74,4 +75,12 @@ export type EventRegistrationNotAttended = Omit<Prisma.EventRegistrationGetPaylo
     user: NonNullable<Prisma.EventRegistrationGetPayload<{
         select: typeof eventRegistrationNotAttendedSelection
     }>['user']>,
+}
+
+/** A registration of a user for an event that has not ended, with the event and the variant it is in. */
+export type UpcomingRegistrationOfUser = {
+    id: number,
+    onWaitingList: boolean,
+    variant: { id: number, name: string },
+    event: Prisma.EventGetPayload<{ select: typeof upcomingEventSelection }>,
 }
