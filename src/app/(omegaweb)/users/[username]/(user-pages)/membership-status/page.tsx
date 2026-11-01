@@ -62,7 +62,6 @@ const { page, generateMetadata } = serverPage({
                             `}
                             >
                                 <span>
-                                    {/* A sysken is called by the title of their sex, such as Broder. */}
                                     {level === 'SYSKEN'
                                         ? sexConfig[profile.user.sex ?? 'OTHER'].title
                                         : OmegaMembershipLevelConfig[level].name}
