@@ -1,0 +1,29 @@
+model CareerTeamDepartment {
+  id          Int                @id @default(autoincrement())
+  name        String
+  paragraph   CmsParagraph       @relation(fields: [paragraphId], references: [id], onDelete: Restrict)
+  paragraphId Int                @unique
+  order       Int                @unique @default(autoincrement())
+  persons     CareerTeamPerson[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CareerTeamPerson {
+  id           Int                  @id @default(autoincrement())
+  department   CareerTeamDepartment @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  departmentId Int
+  name         String
+  title        String
+  email        String?
+  // An upload in the CAREERTEAMIMAGES collection, owned by this person alone.
+  image        Image?               @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  imageId      Int?                 @unique
+  order        Int                  @default(autoincrement())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([departmentId, order])
+}

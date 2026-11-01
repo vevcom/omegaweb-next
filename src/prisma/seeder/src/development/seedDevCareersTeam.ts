@@ -1,4 +1,5 @@
 import { careersTeamOperations } from '@/services/careers/team/operations'
+import { careersTeamPersonOperations } from '@/services/careers/team/persons/operations'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
@@ -66,8 +67,8 @@ export const seedDevCareersTeam = defineSeedOperation(async (prisma: PrismaClien
                 })
                 for (let index = 0; index < department.titles.length; index++) {
                     const title = department.titles[index]
-                    await careersTeamOperations.createPerson({
-                        implementationParams: { departmentId: created.id },
+                    await careersTeamPersonOperations.create({
+                        params: { departmentId: created.id },
                         data: {
                             name: `${department.name} ${index + 1}`,
                             title,

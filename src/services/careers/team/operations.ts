@@ -2,20 +2,11 @@ import '@pn-server-only'
 import { careersTeamAuth } from './auth'
 import { careersTeamSchemas } from './schemas'
 import { careersTeamDepartmentIncluder } from './constants'
+import { destroyPersonsAndReturnCleanup } from './persons/destroyPersons'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import { cmsPersonOperations } from '@/cms/persons/operations'
-import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { ExpandedCareerTeamDepartment } from './types'
-
-async function isTeamPerson(prisma: PrismaPossibleTransaction<boolean>, cmsPersonId: number) {
-    const person = await prisma.cmsPerson.findUniqueOrThrow({
-        where: { id: cmsPersonId },
-        select: { careerTeamDepartmentId: true },
-    })
-    return person.careerTeamDepartmentId !== null
-}
 
 export const careersTeamOperations = {
     readDepartments: defineOperation({
@@ -84,10 +75,7 @@ export const careersTeamOperations = {
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
             const cleanup = await prisma.$transaction(async tx => {
-                const personsCleanup = await cmsPersonOperations.destroyAllOfOwnerAndReturnCleanup.internalCall({
-                    prisma: tx,
-                    operationImplementationFields: { owner: { careerTeamDepartmentId: params.departmentId } },
-                })
+                const personsCleanup = await destroyPersonsAndReturnCleanup(tx, { departmentId: params.departmentId })
 
                 // The paragraph is on the department's side of the relation, so it does not cascade.
                 const department = await tx.careerTeamDepartment.delete({
@@ -112,39 +100,5 @@ export const careersTeamOperations = {
                 select: { id: true },
             })
         ) !== null,
-    }),
-
-    createPerson: cmsPersonOperations.create.implement({
-        implementationParamsSchema: careersTeamSchemas.params.createPerson,
-        authorizer: () => careersTeamAuth.createPerson,
-        ownershipCheck: async ({ implementationParams, prisma }) => (
-            await prisma.careerTeamDepartment.findUnique({
-                where: { id: implementationParams.departmentId },
-                select: { id: true },
-            })
-        ) !== null,
-        operationImplementationFields: ({ implementationParams }) => ({
-            owner: { careerTeamDepartmentId: implementationParams.departmentId },
-        }),
-    }),
-
-    updatePerson: cmsPersonOperations.update.implement({
-        authorizer: () => careersTeamAuth.updatePerson,
-        ownershipCheck: ({ params, prisma }) => isTeamPerson(prisma, params.cmsPersonId),
-    }),
-
-    movePerson: cmsPersonOperations.move.implement({
-        authorizer: () => careersTeamAuth.movePerson,
-        ownershipCheck: ({ params, prisma }) => isTeamPerson(prisma, params.cmsPersonId),
-    }),
-
-    destroyPerson: cmsPersonOperations.destroy.implement({
-        authorizer: () => careersTeamAuth.destroyPerson,
-        ownershipCheck: ({ params, prisma }) => isTeamPerson(prisma, params.cmsPersonId),
-    }),
-
-    updatePersonImage: cmsPersonOperations.updateImage.implement({
-        authorizer: () => careersTeamAuth.updatePersonImage,
-        ownershipCheck: ({ params, prisma }) => isTeamPerson(prisma, params.cmsPersonId),
     }),
 } as const

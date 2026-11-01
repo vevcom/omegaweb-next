@@ -5,27 +5,22 @@ import TextInput from '@/components/UI/TextInput'
 import FileInput from '@/components/UI/FileInput'
 import useEditMode from '@/hooks/useEditMode'
 import { configureAction } from '@/services/configureAction'
+import {
+    destroyCareersTeamPersonAction,
+    moveCareersTeamPersonAction,
+    updateCareersTeamPersonAction,
+    updateCareersTeamPersonImageAction,
+} from '@/services/careers/team/persons/actions'
+import { careersTeamPersonAuth } from '@/services/careers/team/persons/auth'
 import { useRouter } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faArrowRight, faPencil } from '@fortawesome/free-solid-svg-icons'
-import type {
-    DestroyCmsPersonAction,
-    ExpandedCmsPerson,
-    MoveCmsPersonAction,
-    UpdateCmsPersonAction,
-    UpdateCmsPersonImageAction,
-} from '@/cms/persons/types'
-import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
+import type { ExpandedCareerTeamPerson } from '@/services/careers/team/persons/types'
 
 type PropTypes = {
-    cmsPerson: ExpandedCmsPerson
+    person: ExpandedCareerTeamPerson
     canMoveBack: boolean
     canMoveForward: boolean
-    updateCmsPersonAction: UpdateCmsPersonAction
-    updateCmsPersonImageAction: UpdateCmsPersonImageAction
-    moveCmsPersonAction: MoveCmsPersonAction
-    destroyCmsPersonAction: DestroyCmsPersonAction
-    capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
 const controlClassName = `
@@ -34,23 +29,14 @@ const controlClassName = `
     disabled:opacity-30 disabled:cursor-default
 `
 
-export default function CmsPersonEditor({
-    cmsPerson,
-    canMoveBack,
-    canMoveForward,
-    updateCmsPersonAction,
-    updateCmsPersonImageAction,
-    moveCmsPersonAction,
-    destroyCmsPersonAction,
-    capabilities,
-}: PropTypes) {
-    const editable = useEditMode({ authResult: capabilities.canEdit })
+export default function TeamPersonEditor({ person, canMoveBack, canMoveForward }: PropTypes) {
+    const editable = useEditMode({ authorizer: careersTeamPersonAuth.update })
     const { refresh } = useRouter()
-    const popUpKey = `EditCmsPerson${cmsPerson.id}`
-    const params = { params: { cmsPersonId: cmsPerson.id } }
+    const popUpKey = `EditCareersTeamPerson${person.id}`
+    const params = { params: { personId: person.id } }
 
     const move = async (direction: 'UP' | 'DOWN') => {
-        await moveCmsPersonAction(params, { data: { direction } })
+        await moveCareersTeamPersonAction(params, { data: { direction } })
         refresh()
     }
 
@@ -77,23 +63,23 @@ export default function CmsPersonEditor({
                 popUpKey={popUpKey}
                 showButtonClass={controlClassName}
                 showButtonContent={<FontAwesomeIcon icon={faPencil} />}
-                ariaLabel={`Rediger ${cmsPerson.name}`}
+                ariaLabel={`Rediger ${person.name}`}
             >
                 <div className="flex flex-col gap-8 min-w-[min(24rem,80vw)]">
                     <Form
                         title="Rediger person"
-                        action={configureAction(updateCmsPersonAction, params)}
+                        action={configureAction(updateCareersTeamPersonAction, params)}
                         submitText="Lagre"
                         refreshOnSuccess
                         closePopUpOnSuccess={popUpKey}
                     >
-                        <TextInput name="name" label="Navn" defaultValue={cmsPerson.name} />
-                        <TextInput name="title" label="Tittel" defaultValue={cmsPerson.title} />
-                        <TextInput name="email" label="E-post" defaultValue={cmsPerson.email ?? ''} />
+                        <TextInput name="name" label="Navn" defaultValue={person.name} />
+                        <TextInput name="title" label="Tittel" defaultValue={person.title} />
+                        <TextInput name="email" label="E-post" defaultValue={person.email ?? ''} />
                     </Form>
                     <Form
                         title="Bilde"
-                        action={configureAction(updateCmsPersonImageAction, params)}
+                        action={configureAction(updateCareersTeamPersonImageAction, params)}
                         submitText="Last opp bilde"
                         refreshOnSuccess
                         closePopUpOnSuccess={popUpKey}
@@ -101,14 +87,14 @@ export default function CmsPersonEditor({
                         <FileInput name="imageFile" label="Portrett" color="primary" />
                     </Form>
                     <Form
-                        action={configureAction(destroyCmsPersonAction, params)}
+                        action={configureAction(destroyCareersTeamPersonAction, params)}
                         submitText="Fjern person"
                         submitColor="red"
                         refreshOnSuccess
                         closePopUpOnSuccess={popUpKey}
                         confirmation={{
                             confirm: true,
-                            text: `Vil du fjerne ${cmsPerson.name}?`,
+                            text: `Vil du fjerne ${person.name}?`,
                         }}
                     />
                 </div>
