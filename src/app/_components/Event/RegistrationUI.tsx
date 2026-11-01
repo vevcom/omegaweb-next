@@ -11,9 +11,11 @@ import {
     updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
+import { loginHref } from '@/lib/authPaths'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import type { EventExpanded, EventVariantSummary } from '@/services/events/types'
 import type { DotPunishment } from '@/services/events/registration/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
@@ -95,6 +97,8 @@ export default function RegistrationUI({
     const [btnKey, setBtnKey] = useState(1)
 
     const session = useSession()
+
+    const pathname = usePathname()
     // The rest of the page, such as the payment section, is rendered on the server from the
     // registration, so it is refreshed once the registration changes.
     const { refresh } = useRouter()
@@ -116,7 +120,7 @@ export default function RegistrationUI({
     })
 
     if (!session.data) {
-        return <>Logg inn for å melde deg på</>
+        return <Link href={loginHref(pathname)}>Logg inn for å melde deg på</Link>
     }
 
     const userId = session.data.user.id

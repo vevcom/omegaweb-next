@@ -212,7 +212,7 @@ const updateUserLevel = defineOperation({
  */
 const readUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.params.readUserLevel,
-    authorizer: () => omegaMembershipGroupAuth.readUserLevel,
+    authorizer: ({ params }) => omegaMembershipGroupAuth.readUserLevel.data({ userId: params.userId }),
     // Putting a broken membership right goes through updateUserLevel, which opens a transaction.
     opensTransaction: true,
     operation: async ({ prisma, params }): Promise<{ level: OmegaMembershipLevel, order: number }> => {

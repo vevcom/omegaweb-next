@@ -5,6 +5,7 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { UserInvitationTemplate } from '@/lib/email/templates/userInvitation'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import logger from '@/lib/logger'
+import { authUrl } from '@/lib/authPaths'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
 /**
@@ -15,7 +16,7 @@ export async function sendUserInvitationEmail(user: UserBasicWithEmail) {
     try {
         const jwt = generateVerifyEmailJWT(user.id, user.email, userInvitationExpiration)
 
-        const link = `${process.env.WEBSITE_URL}/verify-email?${QueryParams.token.encodeUrl(jwt)}`
+        const link = `${authUrl('OMEGAWEB', 'verifyEmail')}?${QueryParams.token.encodeUrl(jwt)}`
 
         await sendMailOperations.internal.sendSystemMail.internalCall({
             data: {

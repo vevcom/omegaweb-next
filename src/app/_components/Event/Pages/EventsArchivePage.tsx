@@ -8,13 +8,14 @@ import { EventArchivePagingProvider } from '@/contexts/paging/EventArchivePaging
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagAuth } from '@/services/events/tags/auth'
 import { serverPage } from '@/app/ServerPage'
+import { sitePagesPath } from '@/lib/sites'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
 import type { EventPagesConfig } from './eventPages'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
-/** The archive of past events, rendered under `${config.basePath}/archive` on Omega's site and on the career site. */
+/** The archive of past events, rendered under `${path}/archive` on Omega's site and on the career site. */
 export const eventsArchivePage = (config: EventPagesConfig) => serverPage({
     operation: async ({ searchParams }: PageOperationArgs) => {
         const lockedTag = config.lockedTag
@@ -35,7 +36,7 @@ export const eventsArchivePage = (config: EventPagesConfig) => serverPage({
     render: ({ data, capabilities }) => {
         const { pickedTagNames, tagNames, eventTags } = data
         const pickedTags = eventTags.filter(tag => pickedTagNames?.includes(tag.name))
-        const archivePath = `${config.basePath}/archive`
+        const archivePath = `${sitePagesPath(config)}/archive`
 
         return (
             <PageWrapper headerItem={
@@ -69,7 +70,7 @@ export const eventsArchivePage = (config: EventPagesConfig) => serverPage({
                             />
                         )}
                         <Link
-                            href={eventListHref(config.basePath, pickedTagNames)}
+                            href={eventListHref(sitePagesPath(config), pickedTagNames)}
                             className="
                                 text-text
                                 [&_svg]:size-[30px]!
@@ -84,7 +85,7 @@ export const eventsArchivePage = (config: EventPagesConfig) => serverPage({
                     page: 0,
                     pageSize: 12
                 }} details={{ tags: tagNames }}>
-                    <EventArchiveList basePath={config.basePath} />
+                    <EventArchiveList basePath={sitePagesPath(config)} />
                 </EventArchivePagingProvider>
             </PageWrapper>
         )

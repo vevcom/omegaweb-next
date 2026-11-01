@@ -9,7 +9,9 @@ import { searchUsersAction } from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { useGlobalSearch } from '@/contexts/GlobalSearch'
-import { formatVevenUri } from '@/lib/urlEncoding'
+import { eventHref } from '@/components/Event/Pages/eventPages'
+import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
+import { sitePagesPath } from '@/lib/sites'
 import { displayDate } from '@/lib/dates/displayDate'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass, faCalendar, faSpinner, faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -157,7 +159,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
 
     const eventSectionItems: SearchItem[] = useMemo(() => eventResults.map(event => ({
         key: `event-${event.id}`,
-        href: `/events/${formatVevenUri(event.name, event.id)}`,
+        href: eventHref(sitePagesPath(omegaEventPages), event),
         thumb: event.coverImage.image
             ? { type: 'image', image: event.coverImage.image }
             : { type: 'icon', icon: faCalendar },

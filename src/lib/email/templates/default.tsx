@@ -1,5 +1,6 @@
 import '@pn-server-only'
 
+import { siteUrl } from '@/lib/sites'
 import { Html } from '@react-email/components'
 import type { UserBasic } from '@/services/users/types'
 
@@ -18,7 +19,7 @@ export function DefaultEmailTemplate({
     html: string,
     channelName?: string,
 }) {
-    const settingsUrl = `${process.env.WEBSITE_URL}/users/${user.username}/notifications`
+    const settingsUrl = `${siteUrl('OMEGAWEB')}/users/${user.username}/notifications`
     return (
         <Html>
             <div dangerouslySetInnerHTML={{ __html: html }} />

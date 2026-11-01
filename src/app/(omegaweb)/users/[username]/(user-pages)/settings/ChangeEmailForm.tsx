@@ -17,7 +17,7 @@ type PropTypes = {
  */
 export default function ChangeEmailForm({ user }: PropTypes) {
     const [feedback, setFeedback] = useState<string | null>(null)
-    const registerNewEmail = configureAction(registerNewEmailAction, { params: { id: user.id } })
+    const registerNewEmail = configureAction(registerNewEmailAction, { params: { id: user.id, site: 'OMEGAWEB' } })
 
     return (
         <>

@@ -1,15 +1,18 @@
 'use client'
-import LinkOwUserForm from '@/app/(omegaweb)/(auth)/link-ow-user/LinkOwUserForm'
+import LinkOwUserForm from './LinkOwUserForm'
 import { registerNewEmailAction } from '@/services/users/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
 import { QueryParams } from '@/lib/queryParams/queryParams'
+import { authPath } from '@/lib/authPaths'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import type { AuthPagesConfig } from './authPages'
 import type { UserFiltered } from '@/services/users/types'
 
 type PropTypes = {
+    config: AuthPagesConfig,
     user: UserFiltered,
     feideLoginMatch: {
         feideEmail: string,
@@ -26,15 +29,20 @@ const dividerClassName = `
     after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted
 `
 
-export default function EmailRegistrationForm({ user, feideLoginMatch, callbackUrl }: PropTypes) {
+export default function EmailRegistrationForm({ config, user, feideLoginMatch, callbackUrl }: PropTypes) {
     const { push } = useRouter()
 
     const [feedback, setFeedback] = useState<string | null>(null)
 
-    const actionToCall = configureAction(registerNewEmailAction, { params: { id: user.id } })
+    const actionToCall = configureAction(registerNewEmailAction, { params: { id: user.id, site: config.site } })
 
     // Only a trusted Feide email is taken without a verification mail, so that is the one offered.
     const trustedFeideEmail = feideLoginMatch?.feideEmailTrustedAsVerified ? feideLoginMatch.feideEmail : null
+
+    const welcome = <>
+        <h1>Velkommen til {config.siteName}!</h1>
+        {config.accountNotice && <p className="p-2 border-l-3 border-accent-blue">{config.accountNotice}</p>}
+    </>
 
     const emailForm = <>
         <Form
@@ -44,7 +52,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
             successCallback={(data) => {
                 if (data) {
                     if (data.verified) {
-                        push(`/register?${QueryParams.callbackUrl.encodeUrl(callbackUrl)}`)
+                        push(`${authPath(config.site, 'register')}?${QueryParams.callbackUrl.encodeUrl(callbackUrl)}`)
                     } else {
                         setFeedback(`
                             For å bekrefte at dette er din e-post har vi sendt en e-post til ${data.email}.
@@ -75,7 +83,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
 
     if (!feideLoginMatch) {
         return <>
-            <h1>Velkommen til Veven!</h1>
+            {welcome}
             {emailForm}
         </>
     }
@@ -97,7 +105,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
     }
 
     return <>
-        <h1>Velkommen til Veven!</h1>
+        {welcome}
         <p className="p-2 border-l-3 border-accent-blue">
             Vi fant ingen bruker fra gamle Omegaveven med Feide-e-posten din
             ({feideLoginMatch.feideEmail}). Hadde du bruker der, var den trolig registrert med en annen
@@ -108,7 +116,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
         </div>
         <div className={dividerClassName}>eller</div>
         <div className="w-full">
-            <LinkOwUserForm userId={user.id} title="B: Koble til eksisterende bruker" />
+            <LinkOwUserForm site={config.site} userId={user.id} title="B: Koble til eksisterende bruker" />
         </div>
     </>
 }

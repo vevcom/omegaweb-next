@@ -48,6 +48,7 @@ import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
+import { sitePagesPath } from '@/lib/sites'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { faCalendar, faLocationDot, faLock, faPeopleGroup, faQrcode } from '@fortawesome/free-solid-svg-icons'
@@ -61,7 +62,7 @@ const iconRowClassName = `
     [&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-text-muted
 `
 
-/** The page of one event, rendered under `config.basePath` on Omega's site and on the career site. */
+/** The page of one event, rendered under the config's path on Omega's site and on the career site. */
 export const eventPage = (config: EventPagesConfig) => serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ nameAndId: string }>) => {
         const event = await eventOperations.read({
@@ -232,7 +233,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                     `}>
                         <ShowAndEditName
                             event={event}
-                            basePath={config.basePath}
+                            basePath={sitePagesPath(config)}
                             capabilities={{ canUpdate: capabilities.canUpdate.toJsObject() }}
                         />
                         <ul className="
@@ -245,7 +246,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                                     {config.lockedTag ? (
                                         <EventTag eventTag={tag} />
                                     ) : (
-                                        <Link href={eventListHref(config.basePath, [tag.name])}>
+                                        <Link href={eventListHref(sitePagesPath(config), [tag.name])}>
                                             <EventTag eventTag={tag} />
                                         </Link>
                                     )}
@@ -261,7 +262,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                             <EditHeaderItemPopUp scale={30} popUpKey="EditEvent" ariaLabel="Endre arrangementet">
                                 <CreateOrUpdateEventForm
                                     event={event}
-                                    basePath={config.basePath}
+                                    basePath={sitePagesPath(config)}
                                     lockedTag={config.lockedTag}
                                     eventTags={tags}
                                     committees={committees}
@@ -302,7 +303,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                         )}
                         {event.takesRegistration && capabilities.canTakeAttendance.authorized && (
                             <HeaderItemLink
-                                href={`${eventHref(config.basePath, event)}/attendance`}
+                                href={`${eventHref(sitePagesPath(config), event)}/attendance`}
                                 label="Registrer oppmøte"
                                 icon={faQrcode}
                                 iconOnlyScale={30}
@@ -335,7 +336,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                                     </p>
                                     <Form
                                         action={configureAction(destroyEventAction, { params: { id: event.id } })}
-                                        navigateOnSuccess={config.basePath}
+                                        navigateOnSuccess={sitePagesPath(config)}
                                         submitText="Slett arrangementet"
                                         submitColor="red"
                                         confirmation={{

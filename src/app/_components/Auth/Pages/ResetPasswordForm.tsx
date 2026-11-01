@@ -5,15 +5,16 @@ import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 
 type PropTypes = {
-    token: string
+    token: string,
+    loginPath: string,
 }
 
-export default function ResetPasswordForm({ token }: PropTypes) {
+export default function ResetPasswordForm({ token, loginPath }: PropTypes) {
     return <Form
         title="Nullstill passord"
         submitText="Endre passord"
         action={configureAction(resetPasswordAction, { params: { token } })}
-        navigateOnSuccess="/login"
+        navigateOnSuccess={loginPath}
     >
         <TextInput name="password" type="password" label="Passord" />
         <TextInput name="confirmPassword" type="password" label="Bekreft passord" />

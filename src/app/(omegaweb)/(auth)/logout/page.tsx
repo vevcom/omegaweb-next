@@ -1,23 +1,4 @@
-'use client'
+import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/omegaAuthPages'
+import { logoutPage } from '@/components/Auth/Pages/LogoutPage'
 
-import { removeBrowserPushSubscription } from '@/components/PushNotifications/browserPushSubscription'
-import { signOut } from 'next-auth/react'
-import { useEffect, useRef } from 'react'
-
-export default function LogOut() {
-    const loggingOut = useRef(false)
-
-    useEffect(() => {
-        if (loggingOut.current) return
-        loggingOut.current = true
-
-        void removeBrowserPushSubscription()
-            .catch(() => undefined)
-            .finally(() => signOut({
-                redirect: true,
-                callbackUrl: '/'
-            }))
-    }, [])
-
-    return <>Logger ut...</>
-}
+export default logoutPage(omegaAuthPages)
