@@ -1,5 +1,5 @@
 -- AlterEnum
-ALTER TYPE "SpecialCollection" ADD VALUE 'PERSONIMAGES';
+ALTER TYPE "SpecialCollection" ADD VALUE 'CAREERTEAMIMAGES';
 
 -- CreateTable
 CREATE TABLE "CareerTeamDepartment" (
@@ -14,8 +14,9 @@ CREATE TABLE "CareerTeamDepartment" (
 );
 
 -- CreateTable
-CREATE TABLE "CmsPerson" (
+CREATE TABLE "CareerTeamPerson" (
     "id" SERIAL NOT NULL,
+    "departmentId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "email" TEXT,
@@ -23,9 +24,8 @@ CREATE TABLE "CmsPerson" (
     "order" SERIAL NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "careerTeamDepartmentId" INTEGER,
 
-    CONSTRAINT "CmsPerson_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "CareerTeamPerson_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -35,17 +35,17 @@ CREATE UNIQUE INDEX "CareerTeamDepartment_paragraphId_key" ON "CareerTeamDepartm
 CREATE UNIQUE INDEX "CareerTeamDepartment_order_key" ON "CareerTeamDepartment"("order");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "CmsPerson_imageId_key" ON "CmsPerson"("imageId");
+CREATE UNIQUE INDEX "CareerTeamPerson_imageId_key" ON "CareerTeamPerson"("imageId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "CmsPerson_careerTeamDepartmentId_order_key" ON "CmsPerson"("careerTeamDepartmentId", "order");
+CREATE UNIQUE INDEX "CareerTeamPerson_departmentId_order_key" ON "CareerTeamPerson"("departmentId", "order");
 
 -- AddForeignKey
 ALTER TABLE "CareerTeamDepartment" ADD CONSTRAINT "CareerTeamDepartment_paragraphId_fkey" FOREIGN KEY ("paragraphId") REFERENCES "CmsParagraph"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CmsPerson" ADD CONSTRAINT "CmsPerson_imageId_fkey" FOREIGN KEY ("imageId") REFERENCES "Image"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CareerTeamPerson" ADD CONSTRAINT "CareerTeamPerson_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "CareerTeamDepartment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "CmsPerson" ADD CONSTRAINT "CmsPerson_careerTeamDepartmentId_fkey" FOREIGN KEY ("careerTeamDepartmentId") REFERENCES "CareerTeamDepartment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "CareerTeamPerson" ADD CONSTRAINT "CareerTeamPerson_imageId_fkey" FOREIGN KEY ("imageId") REFERENCES "Image"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 

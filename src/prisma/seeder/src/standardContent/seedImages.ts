@@ -10,7 +10,7 @@ import { generateCommitteeLogosCollectionFromConfig } from '@/services/groups/co
 import { generateProfileImagesCollectionFromConfig } from '@/services/users/profileImageCollection'
 import { generateFlairImagesCollectionFromConfig } from '@/services/flairs/flairImageCollection'
 import { generatePromoImagesCollectionFromConfig } from '@/services/promo/promoImageCollection'
-import { generateCmsPersonImagesCollectionFromConfig } from '@/cms/persons/personImageCollection'
+import { generateCareerTeamImagesCollectionFromConfig } from '@/services/careers/team/persons/careerTeamImageCollection'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { StandardStoreFile } from '@/lib/standardStore/files'
 
@@ -79,7 +79,7 @@ export const seedImages = defineSeedOperation(async (prisma: PrismaClient) => {
         generateProfileImagesCollectionFromConfig.internalCall({}),
         generateFlairImagesCollectionFromConfig.internalCall({}),
         generatePromoImagesCollectionFromConfig.internalCall({}),
-        generateCmsPersonImagesCollectionFromConfig.internalCall({}),
+        generateCareerTeamImagesCollectionFromConfig.internalCall({}),
     ])
 
     await Promise.all(

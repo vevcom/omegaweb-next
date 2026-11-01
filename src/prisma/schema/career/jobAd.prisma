@@ -1,0 +1,27 @@
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  INTERNSHIP
+  CONTRACT
+  OTHER
+}
+
+model JobAd {
+  id                  Int          @id @default(autoincrement())
+  article             Article      @relation(fields: [articleId, articleName], references: [id, name], onDelete: Cascade)
+  articleId           Int
+  articleName         String
+  description         String?
+  company             Company      @relation(fields: [companyId], references: [id])
+  companyId           Int
+  type                JobType
+  location            String?
+  applicationDeadline DateTime?
+  active              Boolean      @default(true)
+  rollingDueDate      Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([articleId, articleName])
+}

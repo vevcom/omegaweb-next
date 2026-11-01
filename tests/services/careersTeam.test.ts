@@ -2,7 +2,7 @@ import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { careersTeamOperations } from '@/services/careers/team/operations'
-import { cmsPersonOperations } from '@/cms/persons/operations'
+import { careersTeamPersonOperations } from '@/services/careers/team/persons/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import { File } from 'node:buffer'
 
@@ -20,16 +20,16 @@ const pngBuffer = Buffer.from([
 let departmentId: number
 
 async function createPerson(name: string) {
-    return await careersTeamOperations.createPerson({
-        implementationParams: { departmentId },
+    return await careersTeamPersonOperations.create({
+        params: { departmentId },
         data: { name, title: 'Bedrift', email: '' },
         session: teamEditor,
     })
 }
 
-async function uploadPortrait(cmsPersonId: number) {
-    return await careersTeamOperations.updatePersonImage({
-        params: { cmsPersonId },
+async function uploadPortrait(personId: number) {
+    return await careersTeamPersonOperations.updateImage({
+        params: { personId },
         data: { imageFile: new File([pngBuffer], 'portrett.png', { type: 'image/png' }) },
         session: teamEditor,
     })
@@ -68,10 +68,10 @@ describe('careers team', () => {
 
         const first = await uploadPortrait(person.id)
         const collection = await prisma.imageCollection.findUniqueOrThrow({ where: { id: first.collectionId } })
-        expect(collection.special).toBe('PERSONIMAGES')
+        expect(collection.special).toBe('CAREERTEAMIMAGES')
 
         const second = await uploadPortrait(person.id)
-        const updated = await prisma.cmsPerson.findUniqueOrThrow({ where: { id: person.id } })
+        const updated = await prisma.careerTeamPerson.findUniqueOrThrow({ where: { id: person.id } })
         expect(updated.imageId).toBe(second.id)
         expect(await prisma.image.count({ where: { id: first.id } })).toBe(0)
     })
@@ -81,23 +81,12 @@ describe('careers team', () => {
         await createPerson('Per')
         expect(await readPersonNames()).toEqual(['Kari', 'Lise', 'Ola', 'Per'])
 
-        await careersTeamOperations.movePerson({
-            params: { cmsPersonId: first.id },
+        await careersTeamPersonOperations.move({
+            params: { personId: first.id },
             data: { direction: 'DOWN' },
             session: teamEditor,
         })
         expect(await readPersonNames()).toEqual(['Kari', 'Lise', 'Per', 'Ola'])
-    })
-
-    test('the team cannot change a person that is not on the team', async () => {
-        const stranger = await prisma.cmsPerson.create({ data: { name: 'Fremmed', title: 'Ingen' } })
-        await expect(careersTeamOperations.updatePerson({
-            params: { cmsPersonId: stranger.id },
-            data: { name: 'Endret' },
-            session: teamEditor,
-        })).rejects.toThrow(Smorekopp)
-        await expect(uploadPortrait(stranger.id)).rejects.toThrow(Smorekopp)
-        await cmsPersonOperations.destroy.internalCall({ params: { cmsPersonId: stranger.id } })
     })
 
     test('deleting a department removes its persons, their portraits and its paragraph', async () => {
@@ -110,7 +99,7 @@ describe('careers team', () => {
 
         await careersTeamOperations.destroyDepartment({ params: { departmentId }, session: teamEditor })
 
-        expect(await prisma.cmsPerson.count({ where: { careerTeamDepartmentId: departmentId } })).toBe(0)
+        expect(await prisma.careerTeamPerson.count({ where: { departmentId } })).toBe(0)
         expect(await prisma.image.count({ where: { id: { in: imageIds } } })).toBe(0)
         expect(await prisma.cmsParagraph.count({ where: { id: department.paragraphId } })).toBe(0)
     })

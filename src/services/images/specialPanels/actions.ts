@@ -33,7 +33,7 @@ export const readPromoImagesCollectionAction =
 export const readImagesPageInPromoImagesCollectionAction =
     makeAction(specialImagePanelOperations.promoImages.readPageOfImagesInCollection)
 
-export const readPersonImagesCollectionAction =
-    makeAction(specialImagePanelOperations.personImages.readCollection)
-export const readImagesPageInPersonImagesCollectionAction =
-    makeAction(specialImagePanelOperations.personImages.readPageOfImagesInCollection)
+export const readCareerTeamImagesCollectionAction =
+    makeAction(specialImagePanelOperations.careerTeamImages.readCollection)
+export const readImagesPageInCareerTeamImagesCollectionAction =
+    makeAction(specialImagePanelOperations.careerTeamImages.readPageOfImagesInCollection)

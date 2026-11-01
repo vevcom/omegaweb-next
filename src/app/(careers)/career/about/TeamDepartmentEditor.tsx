@@ -3,6 +3,7 @@ import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import TextInput from '@/components/UI/TextInput'
 import useEditMode from '@/hooks/useEditMode'
+import { configureAction } from '@/services/configureAction'
 import {
     destroyCareersTeamDepartmentAction,
     moveCareersTeamDepartmentAction,
@@ -64,7 +65,7 @@ export default function TeamDepartmentEditor({ department, canMoveUp, canMoveDow
                 <div className="flex flex-col gap-8 min-w-[min(24rem,80vw)]">
                     <Form
                         title="Rediger avdeling"
-                        action={updateCareersTeamDepartmentAction.bind(null, params)}
+                        action={configureAction(updateCareersTeamDepartmentAction, params)}
                         submitText="Lagre"
                         refreshOnSuccess
                         closePopUpOnSuccess={popUpKey}
@@ -72,7 +73,7 @@ export default function TeamDepartmentEditor({ department, canMoveUp, canMoveDow
                         <TextInput name="name" label="Navn" defaultValue={department.name} />
                     </Form>
                     <Form
-                        action={destroyCareersTeamDepartmentAction.bind(null, params)}
+                        action={configureAction(destroyCareersTeamDepartmentAction, params)}
                         submitText="Slett avdeling"
                         submitColor="red"
                         refreshOnSuccess

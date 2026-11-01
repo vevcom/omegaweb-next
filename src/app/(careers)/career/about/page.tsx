@@ -1,6 +1,7 @@
 import AddTeamDepartment from './AddTeamDepartment'
 import AddTeamPerson from './AddTeamPerson'
 import TeamDepartmentEditor from './TeamDepartmentEditor'
+import TeamPerson from './TeamPerson'
 import {
     badgeClassName,
     bandClassName,
@@ -8,17 +9,10 @@ import {
     sectionHeadingClassName,
 } from '@/app/(careers)/_lib/careersClassNames'
 import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
-import CmsPerson from '@/components/Cms/CmsPerson/CmsPerson'
 import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import { careersTeamOperations } from '@/services/careers/team/operations'
 import { careersTeamAuth } from '@/services/careers/team/auth'
-import {
-    destroyCareersTeamPersonAction,
-    moveCareersTeamPersonAction,
-    updateCareersTeamDepartmentParagraphAction,
-    updateCareersTeamPersonAction,
-    updateCareersTeamPersonImageAction,
-} from '@/services/careers/team/actions'
+import { updateCareersTeamDepartmentParagraphAction } from '@/services/careers/team/actions'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
 import {
     readCareersFrontpageSpecialCmsImageAction,
@@ -33,7 +27,6 @@ const { page, generateMetadata } = serverPage({
     operation: () => careersTeamOperations.readDepartments({}),
     capabilities: () => ({
         canEditDepartmentParagraph: careersTeamAuth.updateDepartmentParagraph,
-        canEditPerson: careersTeamAuth.updatePerson,
         canEditSpecialCmsImage: careersFrontpageAuth.updateSpecialCmsImage,
     }),
     metadata: () => ({
@@ -139,16 +132,11 @@ const { page, generateMetadata } = serverPage({
                             max-mobile:grid-cols-2
                         ">
                             {department.persons.map((person, personIndex) => (
-                                <CmsPerson
+                                <TeamPerson
                                     key={person.id}
-                                    cmsPerson={person}
+                                    person={person}
                                     canMoveBack={personIndex > 0}
                                     canMoveForward={personIndex < department.persons.length - 1}
-                                    updateCmsPersonAction={updateCareersTeamPersonAction}
-                                    moveCmsPersonAction={moveCareersTeamPersonAction}
-                                    destroyCmsPersonAction={destroyCareersTeamPersonAction}
-                                    updateCmsPersonImageAction={updateCareersTeamPersonImageAction}
-                                    capabilities={{ canEdit: capabilities.canEditPerson }}
                                 />
                             ))}
                             <AddTeamPerson departmentId={department.id} />

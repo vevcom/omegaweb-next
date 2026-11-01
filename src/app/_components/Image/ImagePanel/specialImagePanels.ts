@@ -12,8 +12,8 @@ import {
     readImagesPageInStandardImagesCollectionAction,
     readPromoImagesCollectionAction,
     readImagesPageInPromoImagesCollectionAction,
-    readPersonImagesCollectionAction,
-    readImagesPageInPersonImagesCollectionAction,
+    readCareerTeamImagesCollectionAction,
+    readImagesPageInCareerTeamImagesCollectionAction,
 } from '@/services/images/specialPanels/actions'
 import type { ActionFromServiceOperation } from '@/services/actionTypes'
 import type { implementSpecialCollection } from '@/services/images/subservice/special/implement'
@@ -57,10 +57,10 @@ export const specialImagePanels = {
         readCollectionAction: readPromoImagesCollectionAction,
         readPageOfImagesInCollectionAction: readImagesPageInPromoImagesCollectionAction,
     },
-    PERSONIMAGES: {
-        auth: specialImagePanelAuth.PERSONIMAGES,
-        readCollectionAction: readPersonImagesCollectionAction,
-        readPageOfImagesInCollectionAction: readImagesPageInPersonImagesCollectionAction,
+    CAREERTEAMIMAGES: {
+        auth: specialImagePanelAuth.CAREERTEAMIMAGES,
+        readCollectionAction: readCareerTeamImagesCollectionAction,
+        readPageOfImagesInCollectionAction: readImagesPageInCareerTeamImagesCollectionAction,
     },
 } as const satisfies Record<SpecialCollection, {
     auth: typeof specialImagePanelAuth[SpecialCollection],

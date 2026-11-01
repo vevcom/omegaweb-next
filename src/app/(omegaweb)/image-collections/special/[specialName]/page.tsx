@@ -16,7 +16,7 @@ const collectionOperations = {
     COMMITTEELOGOS: specialImagePanelOperations.committeeLogos,
     PROFILEIMAGES: specialImagePanelOperations.profileImages,
     PROMOIMAGES: specialImagePanelOperations.promoImages,
-    PERSONIMAGES: specialImagePanelOperations.personImages,
+    CAREERTEAMIMAGES: specialImagePanelOperations.careerTeamImages,
     STANDARDIMAGES: specialImagePanelOperations.standardImages,
 } as const satisfies Record<SpecialCollection, unknown>
 

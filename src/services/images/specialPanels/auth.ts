@@ -4,7 +4,7 @@ import { committeeLogosImagePanelAuth } from '@/services/groups/committees/auth'
 import { profileImagesImagePanelAuth } from '@/services/users/auth'
 import { standardImagesImagePanelAuth } from '@/services/images/standard/auth'
 import { promoImagesImagePanelAuth } from '@/services/promo/auth'
-import { cmsPersonImagesImagePanelAuth } from '@/cms/persons/auth'
+import { careerTeamImagesImagePanelAuth } from '@/services/careers/team/persons/auth'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
 
 /**
@@ -18,5 +18,5 @@ export const specialImagePanelAuth = {
     PROFILEIMAGES: profileImagesImagePanelAuth,
     STANDARDIMAGES: standardImagesImagePanelAuth,
     PROMOIMAGES: promoImagesImagePanelAuth,
-    PERSONIMAGES: cmsPersonImagesImagePanelAuth,
+    CAREERTEAMIMAGES: careerTeamImagesImagePanelAuth,
 } as const satisfies Record<SpecialCollection, unknown>
