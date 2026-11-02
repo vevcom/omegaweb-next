@@ -2,7 +2,7 @@ import UpcomingRegistrationRow from './UpcomingRegistrationRow'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
-import { sitePagesPath } from '@/lib/sites'
+import { eventLinks } from '@/pageKits/events/links'
 import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -21,7 +21,7 @@ const { page, generateMetadata } = serverPage({
             {data.registrations.length === 0 ? (
                 <p>
                     Ingen påmeldinger til kommende arrangementer.{' '}
-                    <Link href={sitePagesPath(omegaEventPages)}>Se hvad der hender</Link>
+                    <Link href={eventLinks(omegaEventPages).list()}>Se hvad der hender</Link>
                 </p>
             ) : (
                 <div className="row-list">
@@ -29,7 +29,7 @@ const { page, generateMetadata } = serverPage({
                         <UpcomingRegistrationRow
                             key={registration.id}
                             registration={registration}
-                            basePath={sitePagesPath(omegaEventPages)}
+                            config={omegaEventPages}
                         />
                     ))}
                 </div>

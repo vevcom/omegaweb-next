@@ -1,5 +1,6 @@
-import { sitePagesPath, sites } from '@/lib/sites'
+import { sites } from '@/lib/sites'
 import { jobAdLinks } from '@/pageKits/jobAds/links'
+import { eventLinks } from '@/pageKits/events/links'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
@@ -48,7 +49,7 @@ export const careersAuthPages: AuthPagesConfig = {
 /** The links of the career site's navigation: the parts of the career pages, then the way to get in touch. */
 export const careerNavLinks: { name: string, href: string }[] = [
     { name: 'Jobbannonser', href: jobAdLinks(careerJobAdPages).list() },
-    { name: 'Bedriftspresentasjoner', href: sitePagesPath(companyPresentationPages) },
+    { name: 'Bedriftspresentasjoner', href: eventLinks(companyPresentationPages).list() },
     { name: 'Bedrifter', href: CAREER_COMPANIES_PATH },
     { name: 'Om oss', href: `${CAREER_PATH}/about` },
     { name: 'Kontakt', href: `mailto:${CAREERS_EMAIL}` },

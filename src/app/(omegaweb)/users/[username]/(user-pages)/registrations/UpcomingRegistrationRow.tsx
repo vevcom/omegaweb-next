@@ -1,25 +1,26 @@
 import Image from '@/components/Image/Image'
-import { eventHref } from '@/pageKits/events/config'
+import { eventLinks } from '@/pageKits/events/links'
 import { osloDateTime } from '@/lib/dates/oslo'
 import Link from 'next/link'
 import type { UpcomingRegistrationOfUser } from '@/services/events/registration/types'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 
 type PropTypes = {
     registration: UpcomingRegistrationOfUser
-    /** The event pages the row links under. */
-    basePath: string
+    /** The event pages the row links into. */
+    config: EventPagesConfig
 }
 
 const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des']
 
 const clockTime = (date: Date) => osloDateTime(date).toFormat('HH:mm')
 
-export default function UpcomingRegistrationRow({ registration, basePath }: PropTypes) {
+export default function UpcomingRegistrationRow({ registration, config }: PropTypes) {
     const { event, variant } = registration
     const start = osloDateTime(event.eventStart)
 
     return (
-        <Link href={eventHref(basePath, event)} className="list-row">
+        <Link href={eventLinks(config).event(event)} className="list-row">
             <div className="list-row-thumb">
                 {event.coverImage.image && (
                     <Image width={200} image={event.coverImage.image} />

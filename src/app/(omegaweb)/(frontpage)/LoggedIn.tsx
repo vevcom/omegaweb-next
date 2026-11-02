@@ -29,8 +29,8 @@ import { withPageSession } from '@/app/ServerPage'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
-import { sitePagesPath } from '@/lib/sites'
 import { jobAdLinks } from '@/pageKits/jobAds/links'
+import { eventLinks } from '@/pageKits/events/links'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
@@ -121,13 +121,13 @@ export default async function LoggedInLandingPage() {
                         </LoggedInSection>
                         <LoggedInSection
                             title="Hvad der hender"
-                            link={sitePagesPath(omegaEventPages)}
+                            link={eventLinks(omegaEventPages).list()}
                             layout="rows"
                             span="half"
                             emptyMessage="Det er for tiden ingen kommende arrangementer"
                         >
                             {events.map((event, key) => (
-                                <EventCard key={key} event={event} basePath={sitePagesPath(omegaEventPages)} />
+                                <EventCard key={key} event={event} config={omegaEventPages} />
                             ))}
                         </LoggedInSection>
                         <LoggedInSection

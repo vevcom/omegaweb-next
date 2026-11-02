@@ -14,15 +14,15 @@ import { createEventAction, updateEventAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import { configureAction } from '@/services/configureAction'
-import { eventHref } from '@/pageKits/events/config'
+import { eventLinks } from '@/pageKits/events/links'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 import type {
     Event,
     EventLocationMap,
     EventTag as EventTagT,
     Committee,
-    SpecialEventTags,
 } from '@/prisma-generated-pn-types'
 
 type PropTypes = {
@@ -30,10 +30,11 @@ type PropTypes = {
         'id' | 'name' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'hostedByCommitteeId'
         | 'waitingList' | 'bindingRegistration' | 'allowRegistrationInMultipleVariants'
     > & { tags: EventTagT[], locationMap: EventLocationMap | null }
-    /** The event pages to navigate under once saved, which differ between Omega's site and the career site. */
-    basePath: string
-    /** A special tag the event must carry, as on the career site: checked, and not to be unchecked. */
-    lockedTag?: SpecialEventTags | null
+    /**
+     * The event pages to navigate into once saved, which differ between Omega's site and the career site.
+     * Under a locked tag the event must carry it: checked, and not to be unchecked.
+     */
+    config: EventPagesConfig
     eventTags: EventTagT[]
     /** The committees to choose the host from, or null when they could not be read (they take COMMITTEE_USE). */
     committees: Committee[] | null
@@ -43,7 +44,9 @@ type PropTypes = {
  * Creates an event, or updates the one given. Who administrates it, and its first variant and
  * quota, are only set here when creating: an existing event has them in the pop-ups on its page.
  */
-export default function CreateOrUpdateEventForm({ event, basePath, lockedTag = null, eventTags, committees }: PropTypes) {
+export default function CreateOrUpdateEventForm({ event, config, eventTags, committees }: PropTypes) {
+    const links = eventLinks(config)
+    const lockedTag = config.lockedTag
     const [takesRegistration, setTakesRegistration] = useState(false)
     const [takesPayment, setTakesPayment] = useState(false)
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
@@ -58,7 +61,7 @@ export default function CreateOrUpdateEventForm({ event, basePath, lockedTag = n
             action={action}
             submitText={event ? 'Oppdater' : 'Opprett'}
             refreshOnSuccess
-            navigateOnSuccess={data => (data?.name ? eventHref(basePath, data) : basePath)}
+            navigateOnSuccess={data => (data?.name ? links.event(data) : links.list())}
         >
             <FormSection legend="Om arrangementet" columns={2}>
                 <TextInput label="Navn" name="name" defaultValue={event?.name} />

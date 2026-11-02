@@ -1,5 +1,3 @@
-import { formatVevenUri } from '@/lib/urlEncoding'
-import { QueryParams } from '@/lib/queryParams/queryParams'
 import type { SitePages } from '@/lib/sites'
 import type { SpecialEventTags } from '@/prisma-generated-pn-types'
 
@@ -16,14 +14,4 @@ export type EventPagesConfig = SitePages & {
      * is no tag filter. null lists every event, filtered by the tags the visitor picks.
      */
     lockedTag: SpecialEventTags | null,
-}
-
-/** The page of one event under `basePath`. */
-export function eventHref(basePath: string, event: { name: string, id: number }): string {
-    return `${basePath}/${formatVevenUri(event.name, event.id)}`
-}
-
-/** A list of events under `basePath`, filtered to the tags named, or unfiltered given none. */
-export function eventListHref(basePath: string, tagNames: string[] | null): string {
-    return tagNames?.length ? `${basePath}?${QueryParams.eventTags.encodeUrl(tagNames)}` : basePath
 }

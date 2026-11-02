@@ -2,7 +2,7 @@ import ContactInfoForm from './ContactInfoForm'
 import ContactorNotifications from './ContactorNotifications'
 import { companyPresentationPages } from '@/app/(careers)/_lib/careersSite'
 import { badgeClassName, sectionHeadingClassName } from '@/app/(careers)/_lib/careersClassNames'
-import { eventHref } from '@/pageKits/events/config'
+import { eventLinks } from '@/pageKits/events/links'
 import { userOperations } from '@/services/users/operations'
 import { dotOperations } from '@/services/dots/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
@@ -10,7 +10,6 @@ import { notificationChannelOperations } from '@/services/notifications/channel/
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { Smorekopp } from '@/services/error'
 import { displayDate } from '@/lib/dates/displayDate'
-import { sitePagesPath } from '@/lib/sites'
 import { authPath } from '@/lib/authPaths'
 import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { serverPage } from '@/app/ServerPage'
@@ -72,14 +71,14 @@ const { page, generateMetadata } = serverPage({
                 {registrations.length === 0 ? (
                     <p className="text-m text-text-muted">
                         Du er ikke påmeldt noen kommende bedriftspresentasjoner.{' '}
-                        <Link href={sitePagesPath(companyPresentationPages)}>Se bedriftspresentasjonene</Link>
+                        <Link href={eventLinks(companyPresentationPages).list()}>Se bedriftspresentasjonene</Link>
                     </p>
                 ) : (
                     <ul className="flex flex-col list-none divide-y divide-careers-line">
                         {registrations.map(registration => (
                             <li key={registration.id} className="flex flex-wrap items-baseline gap-x-4 py-3">
                                 <Link
-                                    href={eventHref(sitePagesPath(companyPresentationPages), registration.event)}
+                                    href={eventLinks(companyPresentationPages).event(registration.event)}
                                     className="text-m font-semibold text-careers-navy"
                                 >
                                     {registration.event.name}
