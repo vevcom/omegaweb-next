@@ -11,8 +11,10 @@ import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
+import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { Require } from '@/auth/authorizer/Require'
 import {
+    faCalendarCheck,
     faCircleDot,
     faHatWizard,
     faIdCard,
@@ -69,6 +71,12 @@ export const userNavDef = {
             icon: faQrcode,
             path: 'omegaid',
             authorizers: ({ userId }) => [omegaIdAuth.generate.data({ userId })],
+        },
+        {
+            name: 'Påmeldinger',
+            icon: faCalendarCheck,
+            path: 'registrations',
+            authorizers: ({ userId }) => [eventRegistrationAuth.readUpcomingOfUser.data({ userId })],
         },
         {
             // The page only ever shows the session user's own account.

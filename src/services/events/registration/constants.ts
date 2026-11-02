@@ -96,6 +96,8 @@ export const upcomingEventSelection = {
     eventStart: true,
     eventEnd: true,
     location: true,
+    coverImage: { select: { image: { include: expandedImageIncluder } } },
+    _count: { select: { variants: true } },
 } as const satisfies Prisma.EventSelect
 
 const upcomingVariantSelection = {
