@@ -1,7 +1,8 @@
 import LoginForm from './LoginForm'
+import { authLinks } from './links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { siteOfPath } from '@/lib/sites'
-import { authPath } from '@/lib/authPaths'
+import { authPagesOfSite } from '@/lib/authPagesOfSite'
 import { serverPage } from '@/app/ServerPage'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -27,19 +28,20 @@ async function pathOfLoginInProgress() {
 }
 
 export function loginPage(config: AuthPagesConfig) {
+    const links = authLinks(config)
     return serverPage({
         allowUnregistered: true,
         operation: async ({ searchParams }: PageOperationArgs) => {
             const error = typeof searchParams.error === 'string' ? searchParams.error : null
             const callbackUrl = QueryParams.callbackUrl.decode(searchParams)
-            if (callbackUrl || !error) return { error, callbackUrl: callbackUrl ?? config.afterLoginPath }
+            if (callbackUrl || !error) return { error, callbackUrl: callbackUrl ?? links.afterLogin() }
 
             const startedOn = await pathOfLoginInProgress()
             if (startedOn && siteOfPath(startedOn) !== config.site) {
-                redirect(`${authPath(siteOfPath(startedOn), 'login')}?${new URLSearchParams({ error })}&${
-                    QueryParams.callbackUrl.encodeUrl(startedOn)}`)
+                const startedOnLinks = authLinks(authPagesOfSite[siteOfPath(startedOn)])
+                redirect(`${startedOnLinks.login(startedOn)}&${new URLSearchParams({ error })}`)
             }
-            return { error, callbackUrl: startedOn ?? config.afterLoginPath }
+            return { error, callbackUrl: startedOn ?? links.afterLogin() }
         },
         metadata: () => ({ title: 'Logg inn' }),
         render: ({ data }) => <LoginForm config={config} callbackUrl={data.callbackUrl} initialError={data.error} />,

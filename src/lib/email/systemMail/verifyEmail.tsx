@@ -3,9 +3,10 @@ import { emailValidationExpiration } from './constants'
 import { generateVerifyEmailJWT } from './verifyEmailToken'
 import { VerifyEmailTemplate } from '@/lib/email/templates/verifyEmail'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
-import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userSchemas } from '@/services/users/schemas'
-import { authUrl } from '@/lib/authPaths'
+import { publicUrl } from '@/lib/sites'
+import { authLinks } from '@/pageKits/auth/links'
+import { authPagesOfSite } from '@/lib/authPagesOfSite'
 import type { Site } from '@/lib/sites'
 import type { UserBasic } from '@/services/users/types'
 
@@ -14,7 +15,7 @@ export async function sendVerifyEmail(user: UserBasic, email: string, site: Site
 
     const jwt = generateVerifyEmailJWT(user.id, parse.email, emailValidationExpiration)
 
-    const link = `${authUrl(site, 'verifyEmail')}?${QueryParams.token.encodeUrl(jwt)}`
+    const link = publicUrl(site, authLinks(authPagesOfSite[site]).verifyEmail(jwt))
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {

@@ -1,4 +1,5 @@
 import type { SitePages } from '@/lib/sites'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { SpecialEventTags } from '@/prisma-generated-pn-types'
 
 /**
@@ -14,4 +15,6 @@ export type EventPagesConfig = SitePages & {
      * is no tag filter. null lists every event, filtered by the tags the visitor picks.
      */
     lockedTag: SpecialEventTags | null,
+    /** The sign in flow of the site, for the login link where an event takes registrations. */
+    auth: AuthPagesConfig,
 }

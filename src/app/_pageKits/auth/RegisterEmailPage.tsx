@@ -1,7 +1,7 @@
 import EmailRegistrationForm from './EmailRegistrationForm'
+import { authLinks } from './links'
 import { Require } from '@/auth/authorizer/Require'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { authPath } from '@/lib/authPaths'
 import { userOperations } from '@/services/users/operations'
 import { authOperations } from '@/services/auth/operations'
 import { serverPage } from '@/app/ServerPage'
@@ -10,17 +10,18 @@ import type { AuthPagesConfig } from './config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function registerEmailPage(config: AuthPagesConfig) {
+    const links = authLinks(config)
     return serverPage({
         allowUnregistered: true,
         operation: async ({ searchParams, session }: PageOperationArgs) => {
-            const callbackUrl = QueryParams.callbackUrl.decode(searchParams) ?? config.afterLoginPath
+            const callbackUrl = QueryParams.callbackUrl.decode(searchParams) ?? links.afterLogin()
             const authResult = Require.user().auth(session)
             if (!authResult.authorized) return notFound()
 
             const updatedUser = await userOperations.read({ params: { id: authResult.session.user.id } })
             if (updatedUser.acceptedTerms) redirect(callbackUrl)
             if (updatedUser.emailVerified) {
-                redirect(`${authPath(config.site, 'register')}?${QueryParams.callbackUrl.encodeUrl(callbackUrl)}`)
+                redirect(links.register(callbackUrl))
             }
 
             const feideLoginMatch = await authOperations.readFeideLoginMatch({

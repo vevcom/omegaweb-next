@@ -3,7 +3,7 @@ import TextInput from '@/UI/TextInput'
 import Button from '@/UI/Button'
 import SubmitButton from '@/UI/SubmitButton'
 import { useSession } from '@/auth/session/useSession'
-import { authPath } from '@/lib/authPaths'
+import { authLinks } from '@/pageKits/auth/links'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -77,7 +77,7 @@ export default function LoginForm({ config, callbackUrl, initialError }: PropTyp
         return <>
             <p>Du er allerede logget inn som {sessionUser.username}.</p>
             <Link href={callbackUrl}>Fortsett</Link>
-            <Link href={authPath(config.site, 'logout')}>Logg ut</Link>
+            <Link href={authLinks(config).logout()}>Logg ut</Link>
         </>
     }
 
@@ -109,7 +109,7 @@ export default function LoginForm({ config, callbackUrl, initialError }: PropTyp
         </Button>
 
         <Link
-            href={authPath(config.site, 'sendResetPasswordEmail')}
+            href={authLinks(config).sendResetPasswordEmail()}
             className="
                 self-start
                 [&>p]:my-4 [&>p]:text-accent-blue [&>p]:text-s

@@ -15,6 +15,7 @@ export function defineLinks<Config extends SitePages, Links>(
 ): (config: Config) => Links {
     return config => {
         const base = sitePagesPath(config)
-        return define((subPath = '', query) => `${base}${subPath}${query ? `?${query}` : ''}`, config)
+        // The root of the site at the root of the app is '', which is no href.
+        return define((subPath = '', query) => `${`${base}${subPath}` || '/'}${query ? `?${query}` : ''}`, config)
     }
 }

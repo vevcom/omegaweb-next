@@ -25,6 +25,17 @@ export const careerJobAdPages: JobAdPagesConfig = {
     companiesPath: CAREER_COMPANIES_PATH,
 }
 
+/** The sign in and sign up flow on the career site: the same account as on Omega's site, landing on the frontpage. */
+export const careersAuthPages: AuthPagesConfig = {
+    site: 'CAREERS',
+    path: '',
+    siteName: 'Contactor',
+    afterLoginPath: '',
+    afterLogoutPath: '',
+    accountNotice: 'Contactor er karrieresiden til linjeforeningen Omega ved NTNU, og brukeren du lager her er en '
+        + 'bruker på Omegas nettsider. Den samme brukeren gjelder både på Contactor og på Omegaveven.',
+}
+
 /**
  * The company presentations as the career site's event pages: the events carrying the special
  * tag, in the career site's chrome.
@@ -34,16 +45,7 @@ export const companyPresentationPages: EventPagesConfig = {
     path: '/company-presentations',
     titles: { current: 'Bedriftspresentasjoner', archive: 'Tidligere bedriftspresentasjoner' },
     lockedTag: 'COMPANY_PRESENTATION',
-}
-
-/** The sign in and sign up flow on the career site: the same account as on Omega's site, landing on the frontpage. */
-export const careersAuthPages: AuthPagesConfig = {
-    site: 'CAREERS',
-    siteName: 'Contactor',
-    afterLoginPath: CAREER_PATH,
-    afterLogoutPath: CAREER_PATH,
-    accountNotice: 'Contactor er karrieresiden til linjeforeningen Omega ved NTNU, og brukeren du lager her er en '
-        + 'bruker på Omegas nettsider. Den samme brukeren gjelder både på Contactor og på Omegaveven.',
+    auth: careersAuthPages,
 }
 
 /** The links of the career site's navigation: the parts of the career pages, then the way to get in touch. */

@@ -11,15 +11,17 @@ import {
     updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
-import { loginHref } from '@/lib/authPaths'
+import { authLinks } from '@/pageKits/auth/links'
+import { eventLinks } from '@/pageKits/events/links'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import type { EventExpanded, EventVariantSummary } from '@/services/events/types'
 import type { DotPunishment } from '@/services/events/registration/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { EventRegistration } from '@/prisma-generated-pn-types'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 
 /** Whether the viewer passes a quota of the variant, and whether one they pass has a place left. */
 export type RegistrationEligibility = {
@@ -43,6 +45,7 @@ enum RegistrationButtonState {
 }
 
 export default function RegistrationUI({
+    config,
     event,
     variant,
     registration,
@@ -50,7 +53,9 @@ export default function RegistrationUI({
     eligibility,
     capabilities,
 }: {
-    event: Pick<EventExpanded, 'id' | 'waitingList' | 'bindingRegistration'>,
+    /** The event pages the registration sits in, whose site's login a visitor is sent to. */
+    config: EventPagesConfig,
+    event: Pick<EventExpanded, 'id' | 'name' | 'waitingList' | 'bindingRegistration'>,
     variant: Pick<EventVariantSummary, 'id' | 'registrationStart' | 'registrationEnd' | 'takesRegistration'>,
     registration: OwnRegistration | null,
     dotPunishment: DotPunishment | null,
@@ -98,7 +103,6 @@ export default function RegistrationUI({
 
     const session = useSession()
 
-    const pathname = usePathname()
     // The rest of the page, such as the payment section, is rendered on the server from the
     // registration, so it is refreshed once the registration changes.
     const { refresh } = useRouter()
@@ -120,7 +124,7 @@ export default function RegistrationUI({
     })
 
     if (!session.data) {
-        return <Link href={loginHref(pathname)}>Logg inn for å melde deg på</Link>
+        return <Link href={authLinks(config.auth).login(eventLinks(config).event(event))}>Logg inn for å melde deg på</Link>
     }
 
     const userId = session.data.user.id

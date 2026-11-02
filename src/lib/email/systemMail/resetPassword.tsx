@@ -3,9 +3,10 @@ import { resetPasswordExpiration } from './constants'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'
 import { generateJWT } from '@/jwt/jwt'
-import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userOperations } from '@/services/users/operations'
-import { authUrl } from '@/lib/authPaths'
+import { publicUrl } from '@/lib/sites'
+import { authLinks } from '@/pageKits/auth/links'
+import { authPagesOfSite } from '@/lib/authPagesOfSite'
 import { z } from 'zod'
 import type { Site } from '@/lib/sites'
 
@@ -23,7 +24,7 @@ export async function sendResetPasswordMail(email: string, site: Site) {
         email: user.email,
     }, resetPasswordExpiration)
 
-    const link = `${authUrl(site, 'resetPasswordForm')}?${QueryParams.token.encodeUrl(jwt)}`
+    const link = publicUrl(site, authLinks(authPagesOfSite[site]).resetPasswordForm(jwt))
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {

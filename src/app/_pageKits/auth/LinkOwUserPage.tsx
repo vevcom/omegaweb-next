@@ -1,7 +1,7 @@
 import ConfirmLinkOwUserForm from './ConfirmLinkOwUserForm'
 import LinkOwUserForm from './LinkOwUserForm'
+import { authLinks } from './links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { authPath } from '@/lib/authPaths'
 import { authOperations } from '@/services/auth/operations'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
@@ -45,7 +45,7 @@ export function linkOwUserPage(config: AuthPagesConfig) {
             return (
                 <ConfirmLinkOwUserForm
                     token={data.token}
-                    loginPath={authPath(config.site, 'login')}
+                    loginPath={authLinks(config).login()}
                     linkRequest={data.linkRequest}
                 />
             )

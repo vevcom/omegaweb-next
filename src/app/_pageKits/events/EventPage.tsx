@@ -399,6 +399,7 @@ export function eventPage(config: EventPagesConfig) {
                                     <span>Påmeldingen er bindende</span>
                                 </p>}
                                 {view.variant.takesRegistration && <RegistrationUI
+                                    config={config}
                                     event={event}
                                     variant={view.variant}
                                     registration={view.registration}

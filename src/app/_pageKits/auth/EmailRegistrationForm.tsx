@@ -4,8 +4,7 @@ import { registerNewEmailAction } from '@/services/users/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
-import { QueryParams } from '@/lib/queryParams/queryParams'
-import { authPath } from '@/lib/authPaths'
+import { authLinks } from '@/pageKits/auth/links'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { AuthPagesConfig } from './config'
@@ -52,7 +51,7 @@ export default function EmailRegistrationForm({ config, user, feideLoginMatch, c
             successCallback={(data) => {
                 if (data) {
                     if (data.verified) {
-                        push(`${authPath(config.site, 'register')}?${QueryParams.callbackUrl.encodeUrl(callbackUrl)}`)
+                        push(authLinks(config).register(callbackUrl))
                     } else {
                         setFeedback(`
                             For å bekrefte at dette er din e-post har vi sendt en e-post til ${data.email}.

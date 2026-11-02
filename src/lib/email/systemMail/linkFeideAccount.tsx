@@ -2,8 +2,9 @@ import '@pn-server-only'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { LinkFeideAccountTemplate } from '@/lib/email/templates/linkFeideAccount'
 import { generateJWT } from '@/jwt/jwt'
-import { QueryParams } from '@/lib/queryParams/queryParams'
-import { authUrl } from '@/lib/authPaths'
+import { publicUrl } from '@/lib/sites'
+import { authLinks } from '@/pageKits/auth/links'
+import { authPagesOfSite } from '@/lib/authPagesOfSite'
 import type { Site } from '@/lib/sites'
 import type { FeideIdentity } from '@/services/auth/types'
 import type { UserBasicWithEmail } from '@/services/users/types'
@@ -31,7 +32,7 @@ export async function sendLinkFeideAccountMail(
         feideEmail: feideIdentity.email,
     }, 60 * 60)
 
-    const link = `${authUrl(site, 'linkOwUser')}?${QueryParams.token.encodeUrl(jwt)}`
+    const link = publicUrl(site, authLinks(authPagesOfSite[site]).linkOwUser(jwt))
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {

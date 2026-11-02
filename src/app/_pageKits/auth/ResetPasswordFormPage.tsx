@@ -1,6 +1,6 @@
 import ResetPasswordForm from './ResetPasswordForm'
+import { authLinks } from './links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { authPath } from '@/lib/authPaths'
 import { authOperations } from '@/services/auth/operations'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import type { AuthPagesConfig } from './config'
@@ -29,7 +29,7 @@ export function resetPasswordFormPage(config: AuthPagesConfig) {
                     <p>Lenken er ugyldig eller utløpt. Be om en ny lenke for å nullstille passordet.</p>
                 </>
             }
-            return <ResetPasswordForm token={data.token} loginPath={authPath(config.site, 'login')} />
+            return <ResetPasswordForm token={data.token} loginPath={authLinks(config).login()} />
         },
     })
 }

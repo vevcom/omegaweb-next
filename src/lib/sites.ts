@@ -24,6 +24,11 @@ export function siteUrl(site: Site): string {
     return `${process.env.WEBSITE_URL}${sites[site].basePath}`
 }
 
+/** An href of a page on `site` as a link from outside the app, in emails and notifications. */
+export function publicUrl(site: Site, href: string): string {
+    return `${siteUrl(site)}${href.slice(sites[site].basePath.length)}`
+}
+
 /**
  * A set of pages served under one path of a site. A page factory's config extends this with what
  * its pages need, and each site declares its config next to its pages.

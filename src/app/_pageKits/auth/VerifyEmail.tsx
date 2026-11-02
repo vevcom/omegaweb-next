@@ -3,7 +3,7 @@ import Form from '@/components/Form/Form'
 import { verifyEmailAction } from '@/services/auth/actions'
 import { configureAction } from '@/services/configureAction'
 import { useSession } from '@/auth/session/useSession'
-import { authPath } from '@/lib/authPaths'
+import { authLinks } from '@/pageKits/auth/links'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { AuthPagesConfig } from './config'
@@ -18,6 +18,7 @@ type VerifiedUser = {
  * not finished registering is sent on to it.
  */
 export default function VerifyEmail({ config, token }: { config: AuthPagesConfig, token: string }) {
+    const links = authLinks(config)
     const session = useSession()
     const [verifiedUser, setVerifiedUser] = useState<VerifiedUser | null>(null)
     const sessionUserId = session.loading ? null : session.session.user?.id ?? null
@@ -30,7 +31,7 @@ export default function VerifyEmail({ config, token }: { config: AuthPagesConfig
                 submitText="Bekreft"
                 successCallback={(user?: VerifiedUser) => user && setVerifiedUser(user)}
                 navigateOnSuccess={(user?: VerifiedUser) => (
-                    user?.id === sessionUserId && !user.acceptedTerms ? authPath(config.site, 'register') : null
+                    user?.id === sessionUserId && !user.acceptedTerms ? links.register() : null
                 )}
             />
         )
@@ -42,7 +43,7 @@ export default function VerifyEmail({ config, token }: { config: AuthPagesConfig
         // not just ask the user to do so. Escpecially since invited users can't login with feide.
         return <>
             <p>E-postadressen er bekreftet.</p>
-            <Link href={authPath(config.site, 'login')}>Logg inn</Link>
+            <Link href={links.login()}>Logg inn</Link>
         </>
     }
 
@@ -50,12 +51,12 @@ export default function VerifyEmail({ config, token }: { config: AuthPagesConfig
         return <>
             <p>E-postadressen er bekreftet.</p>
             <p>Ops, du er visst logget inn som noen andre. Det kan skape litt problemer.</p>
-            <Link href={authPath(config.site, 'logout')}>Logg ut</Link>
+            <Link href={links.logout()}>Logg ut</Link>
         </>
     }
 
     return <>
         <p>E-postadressen er bekreftet.</p>
-        <Link href={config.afterLoginPath}>Fortsett</Link>
+        <Link href={links.afterLogin()}>Fortsett</Link>
     </>
 }

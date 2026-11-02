@@ -6,7 +6,7 @@ import Checkbox from '@/components/UI/Checkbox'
 import { SelectString } from '@/components/UI/Select'
 import TextInput from '@/components/UI/TextInput'
 import { sexConfig } from '@/services/users/constants'
-import { authPath } from '@/lib/authPaths'
+import { authLinks } from '@/pageKits/auth/links'
 import { Sex, type User } from '@/prisma-generated-pn-types'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
@@ -59,7 +59,7 @@ export default function RegistrationForm({ config, userData, callbackUrl }: Prop
                     half-filled form standing.
                 */}
                 <Link
-                    href={authPath(config.site, 'terms')}
+                    href={authLinks(config).terms()}
                     target="_blank"
                     onClick={event => event.stopPropagation()}
                 >vilkårene og personvernerklæringen</Link>

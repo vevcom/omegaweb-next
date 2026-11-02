@@ -1,6 +1,6 @@
 import RegistrationForm from './RegistrationForm'
+import { authLinks } from './links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { authPath } from '@/lib/authPaths'
 import { userOperations } from '@/services/users/operations'
 import { serverPage } from '@/app/ServerPage'
 import { notFound, redirect } from 'next/navigation'
@@ -8,15 +8,16 @@ import type { AuthPagesConfig } from './config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function registerPage(config: AuthPagesConfig) {
+    const links = authLinks(config)
     return serverPage({
         allowUnregistered: true,
         operation: async ({ searchParams, session }: PageOperationArgs) => {
-            const callbackUrl = QueryParams.callbackUrl.decode(searchParams) ?? config.afterLoginPath
+            const callbackUrl = QueryParams.callbackUrl.decode(searchParams) ?? links.afterLogin()
             if (!session.user) notFound()
             const updatedUser = await userOperations.read({ params: { id: session.user.id } })
             if (updatedUser.acceptedTerms) redirect(callbackUrl)
             if (!updatedUser.emailVerified) {
-                redirect(`${authPath(config.site, 'registerEmail')}?${QueryParams.callbackUrl.encodeUrl(callbackUrl)}`)
+                redirect(links.registerEmail(callbackUrl))
             }
             return { updatedUser, callbackUrl }
         },

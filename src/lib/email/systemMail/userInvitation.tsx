@@ -3,9 +3,10 @@ import { userInvitationExpiration } from './constants'
 import { generateVerifyEmailJWT } from './verifyEmailToken'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { UserInvitationTemplate } from '@/lib/email/templates/userInvitation'
-import { QueryParams } from '@/lib/queryParams/queryParams'
 import logger from '@/lib/logger'
-import { authUrl } from '@/lib/authPaths'
+import { publicUrl } from '@/lib/sites'
+import { authLinks } from '@/pageKits/auth/links'
+import { authPagesOfSite } from '@/lib/authPagesOfSite'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
 /**
@@ -16,7 +17,7 @@ export async function sendUserInvitationEmail(user: UserBasicWithEmail) {
     try {
         const jwt = generateVerifyEmailJWT(user.id, user.email, userInvitationExpiration)
 
-        const link = `${authUrl('OMEGAWEB', 'verifyEmail')}?${QueryParams.token.encodeUrl(jwt)}`
+        const link = publicUrl('OMEGAWEB', authLinks(authPagesOfSite.OMEGAWEB).verifyEmail(jwt))
 
         await sendMailOperations.internal.sendSystemMail.internalCall({
             data: {
