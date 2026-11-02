@@ -2,17 +2,16 @@
 import CompanyList from '@/components/Company/CompanyList'
 import TextInput from '@/components/UI/TextInput'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
+import { careerLinks } from '@/app/(careers)/_lib/careerLinks'
 import Link from 'next/link'
 import { useContext } from 'react'
 import type { ChangeEvent } from 'react'
 
 type PropTypes = {
-    /** Where the companies are administered. */
-    companiesHref: string
     className?: string
 }
 
-export default function CompanyChooser({ companiesHref, className }: PropTypes) {
+export default function CompanyChooser({ className }: PropTypes) {
     const companyPagingCtx = useContext(CompanyPagingContext)
 
     if (!companyPagingCtx) {
@@ -35,7 +34,7 @@ export default function CompanyChooser({ companiesHref, className }: PropTypes) 
                     name="name"
                     onChange={handleNameFilter}
                 />
-                <Link href={companiesHref} className="secondary-btn m-0 whitespace-nowrap">
+                <Link href={careerLinks.companies()} className="secondary-btn m-0 whitespace-nowrap">
                     Administrer bedrifter
                 </Link>
             </div>

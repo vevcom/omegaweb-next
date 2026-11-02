@@ -1,6 +1,8 @@
 import CareersWordmark from './CareersWordmark'
 import CareersLoginLink from './CareersLoginLink'
-import { CAREER_PATH, careersAuthPages } from '@/app/(careers)/_lib/careersSite'
+import { careersAuthPages } from '@/app/(careers)/_lib/careersSite'
+import { careerLinks } from '@/app/(careers)/_lib/careerLinks'
+import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import { innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
 import { authLinks } from '@/pageKits/auth/links'
@@ -41,7 +43,7 @@ export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTy
                 min-h-[64px] flex flex-wrap items-center gap-6
                 max-mobile:pb-2
             `}>
-                <Link href={CAREER_PATH} className="mr-auto no-underline" aria-label="Contactor, til forsiden">
+                <Link href={careerLinks.frontpage()} className="mr-auto no-underline" aria-label="Contactor, til forsiden">
                     <CareersWordmark />
                 </Link>
                 <ul className={`
@@ -61,7 +63,7 @@ export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTy
                         max-mobile:ml-0 max-mobile:pl-0 max-mobile:border-l-0
                     ">
                         {showOmegaLink && (
-                            <Link href="/" className={mutedLinkClassName}>
+                            <Link href={omegaLinks.frontpage()} className={mutedLinkClassName}>
                                 <FontAwesomeIcon icon={faArrowLeft} />
                                 <span>Til Omegaveven</span>
                             </Link>

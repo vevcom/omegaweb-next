@@ -34,7 +34,7 @@ export function jobAdsPage(config: JobAdPagesConfig) {
                                     details={{ name: undefined }}
                                 >
                                     <CompanySelectionProvider company={null}>
-                                        <CreateJobAdForm config={config} />
+                                        <CreateJobAdForm />
                                     </CompanySelectionProvider>
                                 </CompanyPagingProvider>
                             </AddHeaderItemPopUp>

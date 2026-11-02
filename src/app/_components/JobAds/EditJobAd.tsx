@@ -127,7 +127,7 @@ export default function EditJobAd({ jobAd, config, children }: PropTypes) {
             </div>
             <div className={columnClassName}>
                 <h3 className={headingClassName}>Arbeidsgiver</h3>
-                <CompanyChooser companiesHref={links.companies()} className="
+                <CompanyChooser className="
                     flex-1 min-h-0
                     max-mobile:max-h-[50vh]
                 " />

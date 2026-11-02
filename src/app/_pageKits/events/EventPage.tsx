@@ -1,5 +1,6 @@
 import styles from './EventPage.module.scss'
 import { eventLinks } from './links'
+import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import ShowAndEditName from '@/components/Event/ShowAndEditName'
 import RegistrationUI from '@/components/Event/RegistrationUI'
 import RegistrationsList from '@/components/Event/RegistrationsList'
@@ -369,7 +370,7 @@ export function eventPage(config: EventPagesConfig) {
                             {event.hostedByCommittee && <p className={iconRowClassName}>
                                 <FontAwesomeIcon icon={faPeopleGroup} />
                                 <span>
-                                    Arrangeres av <Link href={`/committees/${event.hostedByCommittee.shortName}`}>
+                                    Arrangeres av <Link href={omegaLinks.committee(event.hostedByCommittee)}>
                                         {event.hostedByCommittee.name}
                                     </Link>
                                 </span>

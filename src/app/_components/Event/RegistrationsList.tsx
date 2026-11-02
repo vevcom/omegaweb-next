@@ -10,6 +10,7 @@ import {
     EventRegistrationDetailedPagingContext,
 } from '@/contexts/paging/EventRegistrationDetailedPaging'
 import UserDisplayName from '@/components/User/UserDisplayName'
+import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import Slider from '@/components/UI/Slider'
 import Form from '@/components/Form/Form'
 import ContactCard from '@/components/User/ContactCard'
@@ -85,7 +86,7 @@ function DetailedTable({
                         pagingContext={EventRegistrationDetailedPagingContext}
                         loadingInfoWrapper={loadingInfo => <tr><td colSpan={columns}>{loadingInfo}</td></tr>}
                         renderer={row => {
-                            const name = row.user ? <Link href={`/users/${row.user.username}`}>
+                            const name = row.user ? <Link href={omegaLinks.user(row.user)}>
                                 <UserDisplayName user={row.user} width={20} />
                             </Link> : row.contact?.name
                             return <tr key={row.id}>

@@ -11,13 +11,14 @@ import {
 } from './constants'
 import { createVariant } from './variants/createVariant'
 import { createQuota } from './quotas/createQuota'
+import { eventLinks } from '@/pageKits/events/links'
+import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
 import { notificationOperations } from '@/services/notifications/operations'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
-import { formatVevenUri } from '@/lib/urlEncoding'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
@@ -395,7 +396,7 @@ export const eventOperations = {
                     data: {
                         title: `Hvad der hender: ${event.name}`,
                         message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
-                        url: `/events/${formatVevenUri(event.name, event.id)}`,
+                        url: eventLinks(omegaEventPages).event(event),
                         audience: { canRegisterForEventId: event.id },
                     },
                 })

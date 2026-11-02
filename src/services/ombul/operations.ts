@@ -4,11 +4,11 @@ import { ombulSchemas } from './schemas'
 import { ombulStore } from './store'
 import { expandedOmbulIncluder, ombulOrderBy } from './constants'
 import { ombulCoverImageOperations } from './ombulCoverCollection'
+import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import { defineOperation } from '@/services/serviceOperation'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import logger from '@/lib/logger'
-import { formatVevenUri } from '@/lib/urlEncoding'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { File } from 'node:buffer'
 import type { Awaitable } from '@/lib/awaitable'
@@ -96,7 +96,7 @@ export const ombulOperations = {
                 data: {
                     title: 'Ny ombul',
                     message: `Ny ombul er ute! ${ombul.name}`,
-                    url: `/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`,
+                    url: omegaLinks.ombul(ombul),
                     audience: { permission: 'OMBUL_USE' },
                 },
             })

@@ -8,14 +8,8 @@ import Form from '@/components/Form/Form'
 import { SelectString } from '@/components/UI/Select'
 import { jobAdOptions } from '@/services/careers/jobAds/constants'
 import DateInput from '@/components/UI/DateInput'
-import { jobAdLinks } from '@/pageKits/jobAds/links'
-import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
-type PropTypes = {
-    config: JobAdPagesConfig
-}
-
-export default function CreateJobAdForm({ config }: PropTypes) {
+export default function CreateJobAdForm() {
     return (
         <div
             className="
@@ -43,7 +37,7 @@ export default function CreateJobAdForm({ config }: PropTypes) {
                     color="primary"
                 />
             </Form>
-            <CompanyChooser companiesHref={jobAdLinks(config).companies()} className="
+            <CompanyChooser className="
                 mobile:min-h-0 mobile:h-[80vh]
                 max-mobile:max-h-[50vh]
             " />

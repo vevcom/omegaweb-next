@@ -1,9 +1,10 @@
 import '@pn-server-only'
 import { notificationOperations } from '@/services/notifications/operations'
+import { eventLinks } from '@/pageKits/events/links'
+import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import logger from '@/lib/logger'
 import { escapeHtml } from '@/lib/html/escapeHtml'
-import { formatVevenUri } from '@/lib/urlEncoding'
 
 /**
  * Tells the ones whose registrations were promoted from the waiting list of an event to one of its
@@ -34,7 +35,7 @@ export async function notifyPromotedFromWaitingList(
             data: {
                 title,
                 message,
-                url: `/events/${formatVevenUri(event.name, event.id)}`,
+                url: eventLinks(omegaEventPages).event(event),
                 audience: { userIds },
             },
         })

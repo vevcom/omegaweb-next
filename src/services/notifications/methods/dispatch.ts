@@ -4,7 +4,8 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
-import { siteUrl } from '@/lib/sites'
+import { publicUrl } from '@/lib/sites'
+import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import type { NotificationWithChannel } from './types'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
@@ -49,7 +50,7 @@ export async function sendNotificationEmails(
             html: await wrapInHTML(user, parsed.data.text, notification.channel.name),
             list: {
                 unsubscribe: {
-                    url: `${siteUrl('OMEGAWEB')}/users/${user.username}/notifications`,
+                    url: publicUrl('OMEGAWEB', omegaLinks.userNotifications(user)),
                     comment: 'Varslingsinnstillinger'
                 },
             }

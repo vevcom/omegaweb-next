@@ -1,5 +1,6 @@
 import CareersWordmark from './CareersWordmark'
 import { CAREERS_SOCIALS } from '@/app/(careers)/_lib/careersSite'
+import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import { cmsLinkTextClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
 import {
@@ -81,7 +82,7 @@ export default function CareersFooter({ capabilities, showOmegaLink }: PropTypes
                 `}>
                     <span className="text-s text-white/80">© Contactor NTNU</span>
                     {showOmegaLink && (
-                        <Link href="/" className="
+                        <Link href={omegaLinks.frontpage()} className="
                             text-s text-white/80
                             hover:text-white
                         ">Til Omegaveven</Link>

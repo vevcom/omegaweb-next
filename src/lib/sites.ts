@@ -17,16 +17,11 @@ export function siteOfPath(path: string): Site {
 }
 
 /**
- * Where a site is reached from outside, for links in emails and notifications. The career site gets
- * its own origin here once contactor.no proxies to it.
+ * An href of a page on `site` as a link from outside the app, in emails and notifications. The
+ * career site gets its own origin here once contactor.no proxies to it.
  */
-export function siteUrl(site: Site): string {
-    return `${process.env.WEBSITE_URL}${sites[site].basePath}`
-}
-
-/** An href of a page on `site` as a link from outside the app, in emails and notifications. */
 export function publicUrl(site: Site, href: string): string {
-    return `${siteUrl(site)}${href.slice(sites[site].basePath.length)}`
+    return `${process.env.WEBSITE_URL}${href}`
 }
 
 /**

@@ -1,14 +1,9 @@
-import { sites } from '@/lib/sites'
+import { careerLinks } from './careerLinks'
 import { jobAdLinks } from '@/pageKits/jobAds/links'
 import { eventLinks } from '@/pageKits/events/links'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
-
-/** Where the career pages, the (careers) route group, live. */
-export const CAREER_PATH = sites.CAREERS.basePath
-
-export const CAREER_COMPANIES_PATH = `${CAREER_PATH}/companies`
 
 export const CAREERS_EMAIL = 'post@contactor.no'
 
@@ -22,7 +17,6 @@ export const CAREERS_SOCIALS = {
 export const careerJobAdPages: JobAdPagesConfig = {
     site: 'CAREERS',
     path: '/job-ads',
-    companiesPath: CAREER_COMPANIES_PATH,
 }
 
 /** The sign in and sign up flow on the career site: the same account as on Omega's site, landing on the frontpage. */
@@ -52,8 +46,8 @@ export const companyPresentationPages: EventPagesConfig = {
 export const careerNavLinks: { name: string, href: string }[] = [
     { name: 'Jobbannonser', href: jobAdLinks(careerJobAdPages).list() },
     { name: 'Bedriftspresentasjoner', href: eventLinks(companyPresentationPages).list() },
-    { name: 'Bedrifter', href: CAREER_COMPANIES_PATH },
-    { name: 'Om oss', href: `${CAREER_PATH}/about` },
+    { name: 'Bedrifter', href: careerLinks.companies() },
+    { name: 'Om oss', href: careerLinks.about() },
     { name: 'Kontakt', href: `mailto:${CAREERS_EMAIL}` },
-    { name: 'Min side', href: `${CAREER_PATH}/profile` },
+    { name: 'Min side', href: careerLinks.profile() },
 ]

@@ -7,6 +7,7 @@ import {
     simpleNewsArticleRelationsIncluder
 } from './constants'
 import { newsAuth } from './auth'
+import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { visibilityOperations } from '@/services/visibility/operations'
@@ -14,7 +15,6 @@ import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
-import { formatVevenUri } from '@/lib/urlEncoding'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 const visibility = implementDoubleLevelVisibilityOperations({
@@ -207,7 +207,7 @@ export const newsOperations = {
                     data: {
                         title: `Ny nyhetsartikkel: ${news.article.name}`,
                         message: `${news.description ? `${news.description}\n` : ''}Les hele saken på Omegaveven.`,
-                        url: `/news/${formatVevenUri(news.articleName, news.id)}`,
+                        url: omegaLinks.news(news),
                         audience: { visibilityId: news.visibilityRegularId },
                     },
                 })

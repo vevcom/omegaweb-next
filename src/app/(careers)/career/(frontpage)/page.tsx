@@ -1,6 +1,7 @@
 import CareersHeroShape from '@/app/(careers)/career/(frontpage)/CareersHeroShape'
 import UpcomingCompanyPresentations from '@/app/(careers)/career/(frontpage)/UpcomingCompanyPresentations'
-import { CAREER_PATH, companyPresentationPages } from '@/app/(careers)/_lib/careersSite'
+import { companyPresentationPages } from '@/app/(careers)/_lib/careersSite'
+import { careerLinks } from '@/app/(careers)/_lib/careerLinks'
 import { eventLinks } from '@/pageKits/events/links'
 import {
     badgeClassName,
@@ -209,7 +210,7 @@ const { page, generateMetadata } = serverPage({
                                 `}
                                 {...paragraphActions}
                             />
-                            <Link href={`${CAREER_PATH}/about`} className={`
+                            <Link href={careerLinks.about()} className={`
                                 ${buttonClassName}
                                 mt-8 bg-careers-navy text-white
                                 hover:bg-careers-navy-dark
