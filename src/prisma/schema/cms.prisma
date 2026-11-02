@@ -117,6 +117,7 @@ enum SpecialCmsArticle {
   REPORT_PAGE
   NEW_STUDENT_PAGE
   CABIN_PAGE
+  MAIN_REVUE_INFO
 }
 
 model Article {

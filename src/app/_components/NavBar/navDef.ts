@@ -6,6 +6,7 @@ import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
 import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/omegaJobAdPages'
 import { jobAdLinks } from '@/pageKits/jobAds/links'
 import { eventLinks } from '@/pageKits/events/links'
+import { revueLinks } from '@/app/(revue)/_lib/revueSite'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
@@ -16,6 +17,7 @@ import { newsAuth } from '@/services/news/auth'
 import { omegaQuotesAuth } from '@/services/omegaquotes/auth'
 import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
+import { revueAuth } from '@/services/revue/auth'
 import { userAuth } from '@/services/users/auth'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
 import { bulshitAuth } from '@/services/bulshit/auth'
@@ -42,6 +44,7 @@ import {
     faShoppingCart,
     faLock,
     faChartLine,
+    faMasksTheater,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -140,6 +143,12 @@ export const navDef: NavItem[] = [
         href: '/interest-groups',
         icon: faGamepad,
         authorizers: () => [interestGroupAuth.readMany],
+    },
+    {
+        name: 'Omegarevyen',
+        href: revueLinks.frontpage(),
+        icon: faMasksTheater,
+        authorizers: () => [revueAuth.readMainRevueInfo],
     },
     {
         name: 'Hyttebooking',

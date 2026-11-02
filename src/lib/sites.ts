@@ -1,19 +1,22 @@
 import { z } from 'zod'
 
-export const siteSchema = z.enum(['OMEGAWEB', 'CAREERS'])
+export const siteSchema = z.enum(['OMEGAWEB', 'CAREERS', 'REVUE'])
 export type Site = z.infer<typeof siteSchema>
 
-/** The two sites this app serves: Omega's own at the root, and the career site under its base path. */
+/** The sites this app serves: Omega's own at the root, and the career and revue sites under their base paths. */
 export const sites = {
     OMEGAWEB: { basePath: '' },
     CAREERS: { basePath: '/career' },
+    REVUE: { basePath: '/revue' },
 } as const satisfies Record<Site, { basePath: string }>
 
+/** The site a path belongs to: the one whose base path starts it, or Omega's, which serves the rest. */
 export function siteOfPath(path: string): Site {
-    const careerBase = sites.CAREERS.basePath
-    return path === careerBase || path.startsWith(`${careerBase}/`) || path.startsWith(`${careerBase}?`)
-        ? 'CAREERS'
-        : 'OMEGAWEB'
+    const site = siteSchema.options.find(candidate => {
+        const base = sites[candidate].basePath
+        return base !== '' && (path === base || path.startsWith(`${base}/`) || path.startsWith(`${base}?`))
+    })
+    return site ?? 'OMEGAWEB'
 }
 
 /**
