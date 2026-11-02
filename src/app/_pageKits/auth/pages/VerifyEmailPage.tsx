@@ -1,8 +1,8 @@
-import VerifyEmail from './VerifyEmail'
+import VerifyEmail from '@/pageKits/auth/components/VerifyEmail'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
-import type { AuthPagesConfig } from './config'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function verifyEmailPage(config: AuthPagesConfig) {

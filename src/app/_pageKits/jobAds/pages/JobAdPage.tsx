@@ -31,7 +31,7 @@ import {
     faSuitcase,
     faXmarkCircle
 } from '@fortawesome/free-solid-svg-icons'
-import type { JobAdPagesConfig } from './config'
+import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 /** One job ad, rendered under the config's path on both Omega's site and the career site. */

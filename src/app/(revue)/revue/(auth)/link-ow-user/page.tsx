@@ -1,5 +1,5 @@
 import { revueAuthPages } from '@/app/(revue)/_lib/revueSite'
-import { linkOwUserPage } from '@/pageKits/auth/LinkOwUserPage'
+import { linkOwUserPage } from '@/pageKits/auth/pages/LinkOwUserPage'
 
 const { page, generateMetadata } = linkOwUserPage(revueAuthPages)
 

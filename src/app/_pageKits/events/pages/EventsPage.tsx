@@ -1,4 +1,4 @@
-import { eventLinks } from './links'
+import { eventLinks } from '@/pageKits/events/links'
 import CreateOrUpdateEventForm from '@/components/Event/CreateOrUpdateEventForm'
 import TagHeaderItem from '@/components/Event/TagHeaderItem'
 import EventCard from '@/components/Event/EventCard'
@@ -14,7 +14,7 @@ import { committeeOperations } from '@/services/groups/committees/operations'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Link from 'next/link'
-import type { EventPagesConfig } from './config'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 /** The list of coming events, rendered under the config's path on Omega's site and on the career site. */

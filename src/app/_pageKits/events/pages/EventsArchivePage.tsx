@@ -1,4 +1,4 @@
-import { eventLinks } from './links'
+import { eventLinks } from '@/pageKits/events/links'
 import EventArchiveList from '@/components/Event/EventArchiveList'
 import TagHeaderItem from '@/components/Event/TagHeaderItem'
 import EventTag from '@/components/Event/EventTag'
@@ -11,7 +11,7 @@ import { serverPage } from '@/app/ServerPage'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
-import type { EventPagesConfig } from './config'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 /** The archive of past events, rendered under `${path}/archive` on Omega's site and on the career site. */

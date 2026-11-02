@@ -1,4 +1,4 @@
-import { jobAdLinks } from './links'
+import { jobAdLinks } from '@/pageKits/jobAds/links'
 import JobAdInactiveList from '@/components/JobAds/JobAdInactiveList'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { JobAdInactivePagingProvider } from '@/contexts/paging/JobAdInactivePaging'
@@ -6,7 +6,7 @@ import { serverPage } from '@/app/ServerPage'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
-import type { JobAdPagesConfig } from './config'
+import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
 /** The archive of inactive job ads, rendered under `${path}/archive` on both Omega's site and the career site. */
 export function jobAdsArchivePage(config: JobAdPagesConfig) {

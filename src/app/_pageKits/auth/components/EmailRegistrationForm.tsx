@@ -7,7 +7,7 @@ import { configureAction } from '@/services/configureAction'
 import { authLinks } from '@/pageKits/auth/links'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import type { AuthPagesConfig } from './config'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { UserFiltered } from '@/services/users/types'
 
 type PropTypes = {

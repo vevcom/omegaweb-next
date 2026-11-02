@@ -1,5 +1,5 @@
 import { careersAuthPages } from '@/app/(careers)/_lib/careersSite'
-import { registerEmailPage } from '@/pageKits/auth/RegisterEmailPage'
+import { registerEmailPage } from '@/pageKits/auth/pages/RegisterEmailPage'
 
 const { page, generateMetadata } = registerEmailPage(careersAuthPages)
 

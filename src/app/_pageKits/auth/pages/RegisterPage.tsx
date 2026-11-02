@@ -1,10 +1,10 @@
-import RegistrationForm from './RegistrationForm'
-import { authLinks } from './links'
+import RegistrationForm from '@/pageKits/auth/components/RegistrationForm'
+import { authLinks } from '@/pageKits/auth/links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userOperations } from '@/services/users/operations'
 import { serverPage } from '@/app/ServerPage'
 import { notFound, redirect } from 'next/navigation'
-import type { AuthPagesConfig } from './config'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function registerPage(config: AuthPagesConfig) {

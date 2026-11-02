@@ -1,6 +1,6 @@
-import LogOut from './LogOut'
-import { authLinks } from './links'
-import type { AuthPagesConfig } from './config'
+import LogOut from '@/pageKits/auth/components/LogOut'
+import { authLinks } from '@/pageKits/auth/links'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
 export function logoutPage(config: AuthPagesConfig) {
     return function LogoutPage() {

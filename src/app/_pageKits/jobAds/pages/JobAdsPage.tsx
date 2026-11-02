@@ -1,4 +1,4 @@
-import { jobAdLinks } from './links'
+import { jobAdLinks } from '@/pageKits/jobAds/links'
 import CreateJobAdForm from '@/components/JobAds/CreateJobAdForm'
 import CurrentJobAds from '@/components/JobAds/CurrentJobAds'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
@@ -8,7 +8,7 @@ import { CompanyPagingProvider } from '@/contexts/paging/CompanyPaging'
 import CompanySelectionProvider from '@/contexts/CompanySelection'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { serverPage } from '@/app/ServerPage'
-import type { JobAdPagesConfig } from './config'
+import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
 /** The job ads list, rendered under the config's path on both Omega's site and the career site. */
 export function jobAdsPage(config: JobAdPagesConfig) {

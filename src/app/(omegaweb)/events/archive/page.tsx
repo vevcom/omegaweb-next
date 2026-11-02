@@ -1,5 +1,5 @@
 import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
-import { eventsArchivePage } from '@/pageKits/events/EventsArchivePage'
+import { eventsArchivePage } from '@/pageKits/events/pages/EventsArchivePage'
 
 const { page, generateMetadata } = eventsArchivePage(omegaEventPages)
 

@@ -1,8 +1,8 @@
 'use client'
-import { authLinks } from './links'
+import { authLinks } from '@/pageKits/auth/links'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import type { AuthPagesConfig } from './config'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
 type PropTypes = {
     config: AuthPagesConfig,

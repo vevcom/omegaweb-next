@@ -1,11 +1,11 @@
-import ConfirmLinkOwUserForm from './ConfirmLinkOwUserForm'
-import LinkOwUserForm from './LinkOwUserForm'
-import { authLinks } from './links'
+import ConfirmLinkOwUserForm from '@/pageKits/auth/components/ConfirmLinkOwUserForm'
+import LinkOwUserForm from '@/pageKits/auth/components/LinkOwUserForm'
+import { authLinks } from '@/pageKits/auth/links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { authOperations } from '@/services/auth/operations'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
-import type { AuthPagesConfig } from './config'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function linkOwUserPage(config: AuthPagesConfig) {

@@ -1,9 +1,9 @@
-import ResetPasswordForm from './ResetPasswordForm'
-import { authLinks } from './links'
+import ResetPasswordForm from '@/pageKits/auth/components/ResetPasswordForm'
+import { authLinks } from '@/pageKits/auth/links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { authOperations } from '@/services/auth/operations'
 import { serverPage, withFallback } from '@/app/ServerPage'
-import type { AuthPagesConfig } from './config'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function resetPasswordFormPage(config: AuthPagesConfig) {

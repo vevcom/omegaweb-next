@@ -1,12 +1,12 @@
-import LoginForm from './LoginForm'
-import { authLinks } from './links'
+import LoginForm from '@/pageKits/auth/components/LoginForm'
+import { authLinks } from '@/pageKits/auth/links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { siteOfPath } from '@/lib/sites'
 import { authPagesOfSite } from '@/lib/authPagesOfSite'
 import { serverPage } from '@/app/ServerPage'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import type { AuthPagesConfig } from './config'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 /**

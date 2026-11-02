@@ -1,7 +1,7 @@
 import { revueAuthPages, revueLinks } from '@/app/(revue)/_lib/revueSite'
 import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
-import LoginLink from '@/pageKits/auth/LoginLink'
+import LoginLink from '@/pageKits/auth/components/LoginLink'
 import { authLinks } from '@/pageKits/auth/links'
 import Link from 'next/link'
 

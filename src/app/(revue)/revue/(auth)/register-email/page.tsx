@@ -1,5 +1,5 @@
 import { revueAuthPages } from '@/app/(revue)/_lib/revueSite'
-import { registerEmailPage } from '@/pageKits/auth/RegisterEmailPage'
+import { registerEmailPage } from '@/pageKits/auth/pages/RegisterEmailPage'
 
 const { page, generateMetadata } = registerEmailPage(revueAuthPages)
 

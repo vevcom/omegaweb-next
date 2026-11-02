@@ -6,7 +6,7 @@ import { useSession } from '@/auth/session/useSession'
 import { authLinks } from '@/pageKits/auth/links'
 import Link from 'next/link'
 import { useState } from 'react'
-import type { AuthPagesConfig } from './config'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
 type VerifiedUser = {
     id: number,

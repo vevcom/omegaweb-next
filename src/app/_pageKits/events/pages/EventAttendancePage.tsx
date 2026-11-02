@@ -1,4 +1,4 @@
-import { eventLinks } from './links'
+import { eventLinks } from '@/pageKits/events/links'
 import AttendanceScanner from '@/components/Event/AttendanceScanner'
 import AttendanceCountsPill from '@/components/Event/AttendanceCountsPill'
 import { AttendanceCountsProvider } from '@/components/Event/AttendanceCounts'
@@ -10,7 +10,7 @@ import { omegaIdOperations } from '@/services/omegaid/operations'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
-import type { EventPagesConfig } from './config'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 /** Taking attendance at one event, rendered under `${path}/[nameAndId]/attendance` on both sites. */

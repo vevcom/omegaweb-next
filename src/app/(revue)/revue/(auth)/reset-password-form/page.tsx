@@ -1,5 +1,5 @@
 import { revueAuthPages } from '@/app/(revue)/_lib/revueSite'
-import { resetPasswordFormPage } from '@/pageKits/auth/ResetPasswordFormPage'
+import { resetPasswordFormPage } from '@/pageKits/auth/pages/ResetPasswordFormPage'
 
 const { page, generateMetadata } = resetPasswordFormPage(revueAuthPages)
 

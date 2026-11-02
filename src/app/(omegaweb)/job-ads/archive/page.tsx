@@ -1,5 +1,5 @@
 import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/omegaJobAdPages'
-import { jobAdsArchivePage } from '@/pageKits/jobAds/JobAdsArchivePage'
+import { jobAdsArchivePage } from '@/pageKits/jobAds/pages/JobAdsArchivePage'
 
 const { page, generateMetadata } = jobAdsArchivePage(omegaJobAdPages)
 
