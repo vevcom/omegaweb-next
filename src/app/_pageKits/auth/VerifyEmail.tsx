@@ -6,7 +6,7 @@ import { useSession } from '@/auth/session/useSession'
 import { authPath } from '@/lib/authPaths'
 import Link from 'next/link'
 import { useState } from 'react'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 
 type VerifiedUser = {
     id: number,

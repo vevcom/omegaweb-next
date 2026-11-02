@@ -3,7 +3,7 @@ import { QueryParams } from '@/lib/queryParams/queryParams'
 import { authPath } from '@/lib/authPaths'
 import { authOperations } from '@/services/auth/operations'
 import { serverPage, withFallback } from '@/app/ServerPage'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function resetPasswordFormPage(config: AuthPagesConfig) {

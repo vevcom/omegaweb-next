@@ -1,5 +1,5 @@
 import EventTag from './EventTag'
-import { eventListHref } from './Pages/eventPages'
+import { eventListHref } from '@/pageKits/events/config'
 import Form from '@/components/Form/Form'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import TextInput from '@/UI/TextInput'

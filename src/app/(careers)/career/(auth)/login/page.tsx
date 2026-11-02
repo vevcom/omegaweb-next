@@ -1,5 +1,5 @@
 import { careersAuthPages } from '@/app/(careers)/_lib/careersSite'
-import { loginPage } from '@/components/Auth/Pages/LoginPage'
+import { loginPage } from '@/pageKits/auth/LoginPage'
 
 const { page, generateMetadata } = loginPage(careersAuthPages)
 

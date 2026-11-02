@@ -1,7 +1,7 @@
 'use client'
 import SelectedCompany from './SelectedCompany'
 import CompanyChooser from './CompanyChooser'
-import { jobAdHref } from './Pages/jobAdPages'
+import { jobAdLinks } from '@/pageKits/jobAds/links'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
@@ -17,10 +17,11 @@ import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { configureAction } from '@/services/configureAction'
 import { useContext, type ReactNode } from 'react'
 import type { ExpandedJobAd } from '@/services/careers/jobAds/types'
+import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
 type PropTypes = {
     jobAd: ExpandedJobAd
-    basePath: string
+    config: JobAdPagesConfig
     children?: ReactNode
 }
 
@@ -36,7 +37,8 @@ const columnClassName = `
 `
 const headingClassName = 'text-s font-medium uppercase tracking-[0.06em] text-text-muted shrink-0'
 
-export default function EditJobAd({ jobAd, basePath, children }: PropTypes) {
+export default function EditJobAd({ jobAd, config, children }: PropTypes) {
+    const links = jobAdLinks(config)
     const canEdit = useEditMode({
         authorizer: jobAdAuth.update
     })
@@ -65,7 +67,7 @@ export default function EditJobAd({ jobAd, basePath, children }: PropTypes) {
                 ">
                     <Form
                         action={updateAction}
-                        navigateOnSuccess={data => (data ? jobAdHref(basePath, data) : basePath)}
+                        navigateOnSuccess={data => (data ? links.jobAd(data) : links.list())}
                         submitText="Oppdater"
                     >
                         <Textarea
@@ -108,7 +110,7 @@ export default function EditJobAd({ jobAd, basePath, children }: PropTypes) {
                         <div className="mt-4 pt-4 border-t border-surface-hover">
                             <Form
                                 action={configureAction(destroyJobAdAction, { params: { id: jobAd.id } })}
-                                navigateOnSuccess={basePath}
+                                navigateOnSuccess={links.list()}
                                 submitText="Slett annonse"
                                 confirmation={{
                                     confirm: true,
@@ -125,7 +127,7 @@ export default function EditJobAd({ jobAd, basePath, children }: PropTypes) {
             </div>
             <div className={columnClassName}>
                 <h3 className={headingClassName}>Arbeidsgiver</h3>
-                <CompanyChooser className="
+                <CompanyChooser companiesHref={links.companies()} className="
                     flex-1 min-h-0
                     max-mobile:max-h-[50vh]
                 " />

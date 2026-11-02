@@ -1,5 +1,5 @@
 import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/omegaAuthPages'
-import { linkOwUserPage } from '@/components/Auth/Pages/LinkOwUserPage'
+import { linkOwUserPage } from '@/pageKits/auth/LinkOwUserPage'
 
 const { page, generateMetadata } = linkOwUserPage(omegaAuthPages)
 

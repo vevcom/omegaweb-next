@@ -667,7 +667,8 @@ const eslintConfig = defineConfig([
                 'error',
                 {
                     'src/app/_components/**/': 'PASCAL_CASE',
-                    'src/app/!(_components)/**/': 'NEXT_JS_APP_ROUTER_CASE',
+                    'src/app/_pageKits/**/': 'CAMEL_CASE',
+                    'src/app/!(_components|_pageKits)/**/': 'NEXT_JS_APP_ROUTER_CASE',
                     'src/services/**/': 'CAMEL_CASE',
                     'src/contexts/**/': 'CAMEL_CASE',
                     'src/lib/**/': 'CAMEL_CASE',

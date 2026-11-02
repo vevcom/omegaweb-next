@@ -7,7 +7,7 @@ import { authPath } from '@/lib/authPaths'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 import type { FormEvent } from 'react'
 
 type PropTypes = {

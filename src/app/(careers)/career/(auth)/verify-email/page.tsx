@@ -1,5 +1,5 @@
 import { careersAuthPages } from '@/app/(careers)/_lib/careersSite'
-import { verifyEmailPage } from '@/components/Auth/Pages/VerifyEmailPage'
+import { verifyEmailPage } from '@/pageKits/auth/VerifyEmailPage'
 
 const { page, generateMetadata } = verifyEmailPage(careersAuthPages)
 

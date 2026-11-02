@@ -5,7 +5,7 @@ import { authPath } from '@/lib/authPaths'
 import { serverPage } from '@/app/ServerPage'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 /**

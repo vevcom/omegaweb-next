@@ -1,5 +1,5 @@
 import { careersAuthPages } from '@/app/(careers)/_lib/careersSite'
-import { sendResetPasswordEmailPage } from '@/components/Auth/Pages/SendResetPasswordEmailPage'
+import { sendResetPasswordEmailPage } from '@/pageKits/auth/SendResetPasswordEmailPage'
 
 const { page, generateMetadata } = sendResetPasswordEmailPage(careersAuthPages)
 

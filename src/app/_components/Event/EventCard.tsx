@@ -1,5 +1,5 @@
 import SmallEventTag from './SmallEventTag'
-import { eventHref } from './Pages/eventPages'
+import { eventHref } from '@/pageKits/events/config'
 import Image from '@/components/Image/Image'
 import { osloDateTime } from '@/lib/dates/oslo'
 import React from 'react'

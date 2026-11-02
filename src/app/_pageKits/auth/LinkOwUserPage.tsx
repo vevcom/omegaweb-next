@@ -5,7 +5,7 @@ import { authPath } from '@/lib/authPaths'
 import { authOperations } from '@/services/auth/operations'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function linkOwUserPage(config: AuthPagesConfig) {

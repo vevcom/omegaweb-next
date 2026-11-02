@@ -30,6 +30,7 @@ import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { sitePagesPath } from '@/lib/sites'
+import { jobAdLinks } from '@/pageKits/jobAds/links'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
@@ -131,13 +132,13 @@ export default async function LoggedInLandingPage() {
                         </LoggedInSection>
                         <LoggedInSection
                             title="Jobbannonser"
-                            link={sitePagesPath(omegaJobAdPages)}
+                            link={jobAdLinks(omegaJobAdPages).list()}
                             layout="rows"
                             span="half"
                             emptyMessage="Det er for tiden ingen jobbannonser"
                         >
                             {jobAds.map((jobAd, key) => (
-                                <JobAd key={key} jobAd={jobAd} basePath={sitePagesPath(omegaJobAdPages)} />
+                                <JobAd key={key} jobAd={jobAd} config={omegaJobAdPages} />
                             ))}
                         </LoggedInSection>
                         {capabilities.canReadOmbul.authorized && (

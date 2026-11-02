@@ -1,6 +1,6 @@
 import SendResetPasswordEmailForm from './SendResetPasswordEmailForm'
 import { serverPage } from '@/app/ServerPage'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 
 export function sendResetPasswordEmailPage(config: AuthPagesConfig) {
     return serverPage({

@@ -1,4 +1,4 @@
-import type { AuthPagesConfig } from '@/components/Auth/Pages/authPages'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
 /** The sign in and sign up flow of Omega's site: the account's own, landing on the profile. */
 export const omegaAuthPages: AuthPagesConfig = {

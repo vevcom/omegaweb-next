@@ -11,7 +11,7 @@ import { Sex, type User } from '@/prisma-generated-pn-types'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 
 type PropTypes = {
     config: AuthPagesConfig,

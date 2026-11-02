@@ -8,7 +8,7 @@ import { QueryParams } from '@/lib/queryParams/queryParams'
 import { authPath } from '@/lib/authPaths'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 import type { UserFiltered } from '@/services/users/types'
 
 type PropTypes = {

@@ -14,7 +14,7 @@ import { createEventAction, updateEventAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import { configureAction } from '@/services/configureAction'
-import { eventHref } from '@/components/Event/Pages/eventPages'
+import { eventHref } from '@/pageKits/events/config'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
 import type {

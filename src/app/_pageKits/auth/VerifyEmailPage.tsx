@@ -2,7 +2,7 @@ import VerifyEmail from './VerifyEmail'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function verifyEmailPage(config: AuthPagesConfig) {

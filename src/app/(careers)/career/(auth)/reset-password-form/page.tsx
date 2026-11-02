@@ -1,5 +1,5 @@
 import { careersAuthPages } from '@/app/(careers)/_lib/careersSite'
-import { resetPasswordFormPage } from '@/components/Auth/Pages/ResetPasswordFormPage'
+import { resetPasswordFormPage } from '@/pageKits/auth/ResetPasswordFormPage'
 
 const { page, generateMetadata } = resetPasswordFormPage(careersAuthPages)
 

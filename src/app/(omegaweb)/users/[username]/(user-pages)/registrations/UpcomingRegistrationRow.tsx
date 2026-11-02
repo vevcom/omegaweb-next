@@ -1,5 +1,5 @@
 import Image from '@/components/Image/Image'
-import { eventHref } from '@/components/Event/Pages/eventPages'
+import { eventHref } from '@/pageKits/events/config'
 import { osloDateTime } from '@/lib/dates/oslo'
 import Link from 'next/link'
 import type { UpcomingRegistrationOfUser } from '@/services/events/registration/types'

@@ -1,4 +1,4 @@
-import { eventListHref } from './eventPages'
+import { eventListHref } from './config'
 import CreateOrUpdateEventForm from '@/components/Event/CreateOrUpdateEventForm'
 import TagHeaderItem from '@/components/Event/TagHeaderItem'
 import EventCard from '@/components/Event/EventCard'
@@ -15,7 +15,7 @@ import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import { sitePagesPath } from '@/lib/sites'
 import Link from 'next/link'
-import type { EventPagesConfig } from './eventPages'
+import type { EventPagesConfig } from './config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 /** The list of coming events, rendered under the config's path on Omega's site and on the career site. */

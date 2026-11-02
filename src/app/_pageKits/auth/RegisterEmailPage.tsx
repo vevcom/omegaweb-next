@@ -6,7 +6,7 @@ import { userOperations } from '@/services/users/operations'
 import { authOperations } from '@/services/auth/operations'
 import { serverPage } from '@/app/ServerPage'
 import { notFound, redirect } from 'next/navigation'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function registerEmailPage(config: AuthPagesConfig) {

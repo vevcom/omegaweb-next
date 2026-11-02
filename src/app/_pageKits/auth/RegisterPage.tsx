@@ -4,7 +4,7 @@ import { authPath } from '@/lib/authPaths'
 import { userOperations } from '@/services/users/operations'
 import { serverPage } from '@/app/ServerPage'
 import { notFound, redirect } from 'next/navigation'
-import type { AuthPagesConfig } from './authPages'
+import type { AuthPagesConfig } from './config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function registerPage(config: AuthPagesConfig) {

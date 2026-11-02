@@ -1,4 +1,4 @@
-import { eventHref } from './eventPages'
+import { eventHref } from './config'
 import AttendanceScanner from '@/components/Event/AttendanceScanner'
 import AttendanceCountsPill from '@/components/Event/AttendanceCountsPill'
 import { AttendanceCountsProvider } from '@/components/Event/AttendanceCounts'
@@ -11,7 +11,7 @@ import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { serverPage } from '@/app/ServerPage'
 import { sitePagesPath } from '@/lib/sites'
 import { notFound } from 'next/navigation'
-import type { EventPagesConfig } from './eventPages'
+import type { EventPagesConfig } from './config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 /** Taking attendance at one event, rendered under `${path}/[nameAndId]/attendance` on both sites. */

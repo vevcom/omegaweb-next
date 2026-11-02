@@ -30,6 +30,9 @@
       "@pn-server-only": [
         "src/lib/pn-server-only"
       ],
+      "@/pageKits/*": [
+        "src/app/_pageKits/*"
+      ],
       "@/components/*": [
         "src/app/_components/*"
       ],

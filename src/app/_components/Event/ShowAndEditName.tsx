@@ -2,7 +2,7 @@
 import EditableTextField from '@/components/EditableTextField/EditableTextField'
 import { updateEventAction } from '@/services/events/actions'
 import { configureAction } from '@/services/configureAction'
-import { eventHref } from '@/components/Event/Pages/eventPages'
+import { eventHref } from '@/pageKits/events/config'
 import useEditMode from '@/hooks/useEditMode'
 import type { Event } from '@/prisma-generated-pn-types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
