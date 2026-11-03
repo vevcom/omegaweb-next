@@ -294,6 +294,17 @@ export const userOperations = {
         }
     }),
 
+    disconnectStudentCard: defineOperation({
+        paramsSchema: userSchemas.params.disconnectStudentCard,
+        authorizer: ({ params }) => userAuth.disconnectStudentCard.data({ userId: params.id }),
+        operation: async ({ prisma, params }) => {
+            await prisma.user.update({
+                where: { id: params.id },
+                data: { studentCard: null },
+            })
+        }
+    }),
+
     update: defineOperation({
         paramsSchema: userSchemas.params.update,
         dataSchema: userSchemas.data.update,

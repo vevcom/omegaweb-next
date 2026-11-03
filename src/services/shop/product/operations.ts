@@ -71,6 +71,7 @@ export const productOperations = {
                     barcode: params.barcode,
                 },
                 include: {
+                    ...productImageIncluder,
                     ShopProduct: {
                         where: {
                             shopId: params.shopId,

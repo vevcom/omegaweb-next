@@ -1,10 +1,34 @@
+import { ServiceError } from '@/services/error'
 import type { ExpandedLedgerTransaction } from './types'
+import type { ServiceErrorCode } from '@/services/error'
 import type { BalanceRecord } from '@/services/ledger/accounts/types'
 import type { LedgerTransactionState, PaymentState } from '@/prisma-generated-pn-types'
 
 type LedgerTransactionTransition = {
     state: LedgerTransactionState,
     reason?: string,
+    errorCode?: ServiceErrorCode,
+}
+
+/**
+ * Every reason a transaction fails for, with the error code a caller reports it under. Broken
+ * invariants are SERVER ERROR since no input from a user can cause them.
+ */
+export const ledgerTransactionFailures = {
+    frozenAccount: { reason: 'En eller flere kontoer er frossene.', errorCode: 'ACCOUNT FROZEN' },
+    failedPayment: { reason: 'Betaling mislyktes.', errorCode: 'BAD PARAMETERS' },
+    paymentAlreadyUsed: { reason: 'Betalingen er allerede brukt av en annen transaksjon.', errorCode: 'BAD PARAMETERS' },
+    mismatchedSigns: { reason: 'Ugyldige beløp og/eller gebyrer.', errorCode: 'SERVER ERROR' },
+    invalidAmountSum: { reason: 'Ugyldig totalbeløp.', errorCode: 'SERVER ERROR' },
+    insufficientFunds: { reason: 'Ikke nok midler for å utføre transaksjonen.', errorCode: 'INSUFFICIENT FUNDS' },
+    missingFees: { reason: 'Manglende gebyrer.', errorCode: 'SERVER ERROR' },
+    invalidFeesSum: { reason: 'Ugyldig sum av gebyrer.', errorCode: 'SERVER ERROR' },
+} as const satisfies Record<string, { reason: string, errorCode: ServiceErrorCode }>
+
+/** The error code for a failed transaction's stored reason, SERVER ERROR for an unknown one. */
+export function ledgerTransactionFailureErrorCode(reason: string | null): ServiceErrorCode {
+    const failure = Object.values(ledgerTransactionFailures).find(candidate => candidate.reason === reason)
+    return failure?.errorCode ?? 'SERVER ERROR'
 }
 
 type LedgerTransactionRuleContext = {
@@ -62,7 +86,7 @@ function noFrozenAccounts(
 ): LedgerTransactionTransition | null {
     const hasFrozenAccount = transaction.ledgerEntries.some(entry => frozenAccountIds.has(entry.ledgerAccountId))
 
-    if (hasFrozenAccount) return { state: 'FAILED', reason: 'En eller flere kontoer er frossene.' }
+    if (hasFrozenAccount) return { state: 'FAILED', ...ledgerTransactionFailures.frozenAccount }
 
     return null
 }
@@ -76,7 +100,7 @@ function noFailedPayment(
     const okStates: PaymentState[] = ['PENDING', 'PROCESSING', 'SUCCEEDED']
     const hasFailedPayment = transaction.payment && !okStates.includes(transaction.payment.state)
 
-    if (hasFailedPayment) return { state: 'FAILED', reason: 'Betaling mislyktes.' }
+    if (hasFailedPayment) return { state: 'FAILED', ...ledgerTransactionFailures.failedPayment }
 
     return null
 }
@@ -96,7 +120,7 @@ function amountAndFeesHaveSameSigns(
     const validEntries = transaction.ledgerEntries.every(entry => sameSigns(entry.funds, entry.fees))
     const validTransfer = !transaction.payment || sameSigns(transaction.payment.funds, transaction.payment.fees)
 
-    if (!validEntries || !validTransfer) return { state: 'FAILED', reason: 'Ugyldige beløp og/eller gebyrer.' }
+    if (!validEntries || !validTransfer) return { state: 'FAILED', ...ledgerTransactionFailures.mismatchedSigns }
 
     return null
 }
@@ -113,7 +137,7 @@ function validAmountSum(
     const totalLedgerEntryFunds = transaction.ledgerEntries.reduce((sum, entry) => sum + entry.funds, 0)
     const paymentFunds = transaction.payment?.funds ?? 0
 
-    if (totalLedgerEntryFunds !== paymentFunds) return { state: 'FAILED', reason: 'Ugyldig totalbeløp.' }
+    if (totalLedgerEntryFunds !== paymentFunds) return { state: 'FAILED', ...ledgerTransactionFailures.invalidAmountSum }
 
     return null
 }
@@ -131,12 +155,12 @@ function sufficientBalances(
     const debitBalances = debitLedgerAccountIds.map(id => balances[id])
 
     if (debitBalances.some(balance => !balance)) {
-        throw new Error('Missing balance in balance record.')
+        throw new ServiceError('SERVER ERROR', 'Missing balance in balance record.')
     }
 
     const hasNegativeBalance = debitBalances.some(balance => balance.amount < 0 || balance.fees < 0)
 
-    if (hasNegativeBalance) return { state: 'FAILED', reason: 'Ikke nok midler for å utføre transaksjonen.' }
+    if (hasNegativeBalance) return { state: 'FAILED', ...ledgerTransactionFailures.insufficientFunds }
 
     return null
 }
@@ -166,7 +190,7 @@ function noNullFees(
         transaction.ledgerEntries.some(entry => entry.fees === null) ||
         transaction.payment?.fees === null
 
-    if (hasNullFees) return { state: 'FAILED', reason: 'Manglende gebyrer.' }
+    if (hasNullFees) return { state: 'FAILED', ...ledgerTransactionFailures.missingFees }
 
     return null
 }
@@ -182,7 +206,7 @@ function validFeesSum(
     const totalLedgerEntryFees = transaction.ledgerEntries.reduce((sum, entry) => sum + entry.fees!, 0)
     const paymentFees = transaction.payment?.fees ?? 0
 
-    if (totalLedgerEntryFees !== paymentFees) return { state: 'FAILED', reason: 'Ugyldig sum av gebyrer.' }
+    if (totalLedgerEntryFees !== paymentFees) return { state: 'FAILED', ...ledgerTransactionFailures.invalidFeesSum }
 
     return null
 }
