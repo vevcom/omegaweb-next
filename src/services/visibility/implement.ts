@@ -92,7 +92,8 @@ export function implementVisibilityOperations<
     readVisibility: ReadVisibility<ImplementationParamsSchema>,
     emptyMeans: 'EVERYONE' | 'REFUSED',
     afterUpdate?: (args: {
-        prisma: PrismaPossibleTransaction<false>,
+        /** The full client, since the update opens its own transaction and so runs outside any. */
+        prisma: PrismaPossibleTransaction<true>,
         implementationParams: z.infer<ImplementationParamsSchema>,
     }) => Awaitable<void>,
 }) {

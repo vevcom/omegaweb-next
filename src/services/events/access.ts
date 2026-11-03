@@ -1,4 +1,5 @@
 import '@pn-server-only'
+import { ServiceError } from '@/services/error'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { EventAccess } from './types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
@@ -38,4 +39,29 @@ export async function readEventIdOfQuota(prisma: PrismaPossibleTransaction<false
         select: { variant: { select: { eventId: true } } },
     })
     return quota.variant.eventId
+}
+
+/**
+ * An event seen only by those who can register is seen through its quotas, so without any it is
+ * seen by nobody but its administrators. A quota without places will do, which is how an event
+ * for members only, without registration, is kept visible. Refused once the event is published,
+ * or is about to be; a draft is still being set up.
+ */
+export async function assertSeenThroughQuotas(
+    prisma: PrismaPossibleTransaction<false>,
+    eventId: number,
+    state?: { published: boolean },
+) {
+    const event = await prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { published: true, canBeViewedBy: true },
+    })
+    if (!(state?.published ?? event.published) || event.canBeViewedBy !== 'CAN_REGISTER') return
+    if (await prisma.eventQuota.count({ where: { variant: { eventId } } }) === 0) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            'Arrangementet er bare synlig for dem som kan melde seg på, så det må ha minst én kvote. '
+            + 'En kvote uten plasser holder.'
+        )
+    }
 }

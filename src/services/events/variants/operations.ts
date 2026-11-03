@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { eventVariantAuth } from './auth'
 import { eventVariantSchemas } from './schemas'
 import { assertValidVariant, createVariant, unpaidVariant } from './createVariant'
-import { readEventAccess, readEventIdOfVariant } from '@/services/events/access'
+import { assertSeenThroughQuotas, readEventAccess, readEventIdOfVariant } from '@/services/events/access'
 import { eventQuotaOrder, eventVariantOrder, eventVariantSummarySelection } from '@/services/events/constants'
 import { lockEvent, registrationsOfVariant } from '@/services/events/registration/queue'
 import { ServiceError } from '@/services/error'
@@ -104,6 +104,7 @@ export const eventVariantOperations = {
                     prisma: tx,
                     params: { visibilityId: quota.visibilityId },
                 })))
+                await assertSeenThroughQuotas(tx, variant.eventId)
             })
         },
     }),

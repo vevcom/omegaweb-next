@@ -203,8 +203,9 @@ export default function RegistrationUI({
         btnState === RegistrationButtonState.WAITING_LIST_OPEN
     // A place is given up within the registration period; the waiting list is left at any time. A
     // binding registration, or one past the deadline, is only taken back by those who administrate
-    // the event.
-    const registrationClosed = registrationState?.state === 'IN_QUOTA' && variant.registrationEnd < new Date()
+    // the event. The note, though, closes with the deadline for everyone registered.
+    const deadlinePassed = variant.registrationEnd < new Date()
+    const registrationClosed = registrationState?.state === 'IN_QUOTA' && deadlinePassed
     const mayUnregister = isRegistered && !event.bindingRegistration && !registrationClosed
 
     const confirmation = () => {
@@ -293,7 +294,7 @@ export default function RegistrationUI({
             </p>
         )}
 
-        {registrationState && !registrationClosed && <Form
+        {registrationState && !deadlinePassed && <Form
             action={configureAction(
                 updateEventRegistrationNotesAction,
                 { params: { registrationId: registrationState.id } }

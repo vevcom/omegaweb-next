@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { eventQuotaAuth } from './auth'
 import { eventQuotaSchemas } from './schemas'
 import { createQuota } from './createQuota'
-import { readEventAccess, readEventIdOfQuota, readEventIdOfVariant } from '@/services/events/access'
+import { assertSeenThroughQuotas, readEventAccess, readEventIdOfQuota, readEventIdOfVariant } from '@/services/events/access'
 import { eventQuotaOrder, eventQuotaSummarySelection } from '@/services/events/constants'
 import { lockEvent } from '@/services/events/registration/queue'
 import { fixVariantPlaces, notifyPromoted } from '@/services/events/registration/fixState'
@@ -14,7 +14,7 @@ import type { EventQuotaExpanded } from './types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 /** Refills the places of the variant a quota belongs to, after a change to the quota, and tells the promoted. */
-async function refillVariantOfQuota(prisma: PrismaPossibleTransaction<false>, quotaId: number) {
+async function refillVariantOfQuota(prisma: PrismaPossibleTransaction<true>, quotaId: number) {
     const quota = await prisma.eventQuota.findUniqueOrThrow({
         where: { id: quotaId },
         select: { variantId: true, variant: { select: { eventId: true } } },
@@ -121,7 +121,11 @@ export const eventQuotaOperations = {
         operation: async ({ prisma, params }) => {
             const quota = await prisma.eventQuota.findUniqueOrThrow({
                 where: { id: params.id },
-                select: { visibilityId: true, _count: { select: { registrations: true } } },
+                select: {
+                    visibilityId: true,
+                    variant: { select: { eventId: true } },
+                    _count: { select: { registrations: true } },
+                },
             })
             if (quota._count.registrations > 0) {
                 throw new ServiceError(
@@ -136,6 +140,7 @@ export const eventQuotaOperations = {
                     prisma: tx,
                     params: { visibilityId: quota.visibilityId },
                 })
+                await assertSeenThroughQuotas(tx, quota.variant.eventId)
             })
         },
     }),

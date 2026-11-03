@@ -597,6 +597,28 @@ describe('administrating variants and quotas', () => {
 })
 
 describe('who sees an event with quotas', () => {
+    test('an event seen only by those who can register keeps a quota once published', async () => {
+        await expect(createEvent([], { canBeViewedBy: 'CAN_REGISTER' })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+
+        const { eventId: openEvent } = await createEvent([])
+        await expect(eventOperations.update({
+            params: { id: openEvent }, data: { canBeViewedBy: 'CAN_REGISTER' }, bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+
+        // A quota without places is how an event for members only, without registration, is seen.
+        const { eventId, variantId, quotas: [quota] } = await createEventWithQuotas(
+            [{ name: 'Gruppe én', places: 0, visibility: activeIn(groupOne) }],
+            { canBeViewedBy: 'CAN_REGISTER' },
+        )
+        await expect(eventQuotaOperations.destroy({ params: { id: quota.id }, bypassAuth: true }))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        await expect(eventVariantOperations.destroy({ params: { id: variantId }, bypassAuth: true }))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        await eventOperations.update({ params: { id: eventId }, data: { canBeViewedBy: 'ALL' }, bypassAuth: true })
+        await eventVariantOperations.destroy({ params: { id: variantId }, bypassAuth: true })
+        expect(await prisma.eventQuota.findUnique({ where: { id: quota.id } })).toBeNull()
+    })
+
     test('a published event for those who can register is seen by anyone passing a quota', async () => {
         const { eventId } = await createEventWithQuotas(
             [{ name: 'Gruppe én', places: 5, visibility: activeIn(groupOne) }],

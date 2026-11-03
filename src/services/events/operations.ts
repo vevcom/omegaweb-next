@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
-import { readEventAccess } from './access'
+import { assertSeenThroughQuotas, readEventAccess } from './access'
 import {
     defaultSearchResultLimit,
     eventListSelection,
@@ -305,6 +305,7 @@ export const eventOperations = {
                         locationMap: mapUpdate,
                     },
                 })
+                await assertSeenThroughQuotas(tx, params.id)
                 if (tagIds) {
                     await tx.eventTagEvent.deleteMany({
                         where: {
@@ -378,6 +379,7 @@ export const eventOperations = {
         dataSchema: eventSchemas.data.setPublished,
         authorizer: async ({ params, prisma }) => eventAuth.setPublished.data(await readEventAccess(prisma, params.id)),
         operation: async ({ prisma, params, data }) => {
+            if (data.published) await assertSeenThroughQuotas(prisma, params.id, { published: true })
             const { count: flipped } = await prisma.event.updateMany({
                 where: { id: params.id, published: !data.published },
                 data: { published: data.published },
