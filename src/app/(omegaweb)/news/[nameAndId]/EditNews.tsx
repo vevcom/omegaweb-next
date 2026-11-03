@@ -16,7 +16,7 @@ import { formatVevenUri } from '@/lib/urlEncoding'
 import { newsAuth } from '@/services/news/auth'
 import { configureAction } from '@/services/configureAction'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 import type { ExpandedNewsArticle } from '@/services/news/types'
 import type { ReactNode } from 'react'
@@ -32,7 +32,7 @@ type PropTypes = {
  * pass it not: id of article to make sure not to display that article
  */
 export default function EditNews({ news, doubleLevelVisibility, children }: PropTypes) {
-    const { refresh, push } = useRouter()
+    const { refresh, push } = useSiteRouter()
 
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
     const canUpdate = useEditMode({

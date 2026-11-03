@@ -8,6 +8,7 @@ import { searchEventsAction } from '@/services/events/actions'
 import { searchUsersAction } from '@/services/users/actions'
 import { userAuth } from '@/services/users/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useGlobalSearch } from '@/contexts/GlobalSearch'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { displayDate } from '@/lib/dates/displayDate'
@@ -15,7 +16,6 @@ import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass, faCalendar, faSpinner, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
 import type { NavLink } from '@/components/NavBar/navDef'
@@ -82,7 +82,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
     >([])
 
     const inputRef = useRef<HTMLInputElement>(null)
-    const router = useRouter()
+    const router = useSiteRouter()
     const updateDebouncedQuery = useDebounce((value: string) => setDebouncedQuery(value), 300)
 
     const close = () => {

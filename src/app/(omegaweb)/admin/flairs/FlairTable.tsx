@@ -4,7 +4,7 @@ import { configureAction } from '@/services/configureAction'
 import { flairAuth } from '@/services/flairs/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
 import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -104,7 +104,7 @@ type PropTypes = {
 export default function FlairTable({ rows }: PropTypes) {
     const [order, setOrder] = useState(rows)
     const [prevRows, setPrevRows] = useState(rows)
-    const router = useRouter()
+    const router = useSiteRouter()
     const canIncreaseFlairRank = useAuthorizer({ authorizer: flairAuth.increaseRank }).authorized
     const canDecreaseFlairRank = useAuthorizer({ authorizer: flairAuth.decreaseRank }).authorized
 

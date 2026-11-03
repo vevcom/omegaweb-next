@@ -7,10 +7,10 @@ import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
 import { configureAction } from '@/services/configureAction'
 import { useSession } from '@/auth/session/useSession'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 
 export default function CreateOmegaquoteForm() {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
     const session = useSession()
     if (session.loading || !session.session.user) return null
 

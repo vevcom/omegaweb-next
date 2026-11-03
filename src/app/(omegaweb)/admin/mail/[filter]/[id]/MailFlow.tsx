@@ -8,7 +8,7 @@ import {
 import { mailAuth } from '@/services/mail/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -56,7 +56,7 @@ export default function MailFlow({
     data: MailFlowObject,
     groupNames: Record<number, string>,
 }) {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
     const [error, setError] = useState<string | null>(null)
 
     const canDestroyAliasMailingListRelation = useAuthorizer({

@@ -3,11 +3,11 @@
 import { createMailAliasAction } from '@/services/mail/alias/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 
 
 export default function CreateMailAlias() {
-    const { push } = useRouter()
+    const { push } = useSiteRouter()
 
     return <Form
         title="Opprett nytt alias"

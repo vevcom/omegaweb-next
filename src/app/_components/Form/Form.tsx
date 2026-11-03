@@ -4,9 +4,8 @@ import { FormContext, FormInputSlot, flattenChildren, inputName } from './FormCo
 import FormSection from './FormSection'
 import { PopUpContext } from '@/contexts/PopUp'
 import SubmitButton from '@/components/UI/SubmitButton'
-import useSiteContext from '@/hooks/useSiteContext'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import React, { Children, isValidElement, useContext, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
 import type { FormHTMLAttributes, ReactNode, DetailedHTMLProps } from 'react'
@@ -62,8 +61,7 @@ export default function Form<GiveActionReturn>({
     const [success, setSuccess] = useState(false)
     const [pending, setPending] = useState(false)
     const PopUpCtx = useContext(PopUpContext)
-    const { refresh, push } = useRouter()
-    const siteContext = useSiteContext()
+    const { refresh, push } = useSiteRouter()
 
     const actionWithError = async (formData: FormData) => {
         setGeneralErrors(undefined)
@@ -85,10 +83,10 @@ export default function Form<GiveActionReturn>({
                 if (navigateOnSuccess) {
                     // An app path, rendered for the domain the visitor is on.
                     if (typeof navigateOnSuccess === 'string') {
-                        push(siteContext.resolveHref(navigateOnSuccess))
+                        push(navigateOnSuccess)
                     } else if (typeof navigateOnSuccess === 'function') {
                         const x = navigateOnSuccess(res.data)
-                        if (x) push(siteContext.resolveHref(x))
+                        if (x) push(x)
                     }
                 }
             }, SUCCESS_FEEDBACK_TIME)

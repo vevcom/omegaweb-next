@@ -13,7 +13,7 @@ import {
 } from '@/services/articleCategories/actions'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { configureAction } from '@/services/configureAction'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCog } from '@fortawesome/free-solid-svg-icons'
 import type {
@@ -26,7 +26,7 @@ type PropTypes = {
 }
 
 export default function EditCategory({ category }: PropTypes) {
-    const { refresh, push } = useRouter()
+    const { refresh, push } = useSiteRouter()
     const canAddArticle = useAuthorizer({
         authorizer: articleCategoryAuth.addArticleToCategory.data({ visibility: category.visibility })
     }).authorized

@@ -6,13 +6,13 @@ import TextInput from '@/components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { EditModeContext } from '@/contexts/EditMode'
 import { formatVevenUri } from '@/lib/urlEncoding'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useContext, useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
 import type { ExpandedNewsArticle } from '@/services/news/types'
 
 export default function AddNews() {
-    const { push } = useRouter()
+    const { push } = useSiteRouter()
     const editModeCtx = useContext(EditModeContext)
     const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])

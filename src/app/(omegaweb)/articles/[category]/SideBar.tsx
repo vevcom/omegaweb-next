@@ -9,10 +9,10 @@ import { removeArticleFromCategoryAction } from '@/services/articleCategories/ac
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import React, { useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronUp, faX } from '@fortawesome/free-solid-svg-icons'
-import { useRouter } from 'next/navigation'
 import type { ExpandedArticleCategoryWithVisibility } from '@/services/articleCategories/types'
 
 type PropTypes = {
@@ -105,7 +105,7 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
     const canRemoveArticle = useAuthorizer({
         authorizer: articleCategoryAuth.removeArticleFromCategory.data({ visibility: category.visibility })
     }).authorized
-    const { push, refresh } = useRouter()
+    const { push, refresh } = useSiteRouter()
 
     const handleDestroy = async (id: number) => {
         const res = await removeArticleFromCategoryAction(

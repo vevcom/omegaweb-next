@@ -2,7 +2,7 @@
 import UserList from '@/components/User/UserList/UserList'
 import { UserSelectionContext } from '@/contexts/UserSelection'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useContext } from 'react'
 
 /**
@@ -11,7 +11,7 @@ import { useContext } from 'react'
  */
 export default function SelectUserForDots() {
     const userSelection = useContext(UserSelectionContext)
-    const { push } = useRouter()
+    const { push } = useSiteRouter()
 
     if (!userSelection) throw new Error('UserSelectionContext kreves for å velge en bruker for prikker')
 

@@ -5,7 +5,7 @@ import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
 import { authLinks } from '@/pageKits/auth/links'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { UserFiltered } from '@/services/users/types'
@@ -29,7 +29,7 @@ const dividerClassName = `
 `
 
 export default function EmailRegistrationForm({ config, user, feideLoginMatch, callbackUrl }: PropTypes) {
-    const { push } = useRouter()
+    const { push } = useSiteRouter()
 
     const [feedback, setFeedback] = useState<string | null>(null)
 

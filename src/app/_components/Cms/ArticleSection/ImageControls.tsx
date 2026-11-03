@@ -1,6 +1,7 @@
 'use client'
 import useEditMode from '@/hooks/useEditMode'
 import { imageSizeIncrement, maxImageSize, minImageSize } from '@/cms/articleSections/constants'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faChevronLeft,
@@ -8,7 +9,6 @@ import {
     faMaximize,
     faMinimize
 } from '@fortawesome/free-solid-svg-icons'
-import { useRouter } from 'next/navigation'
 import type { ArticleSection } from '@/prisma-generated-pn-types'
 import type { UpdateArticleSectionAction } from '@/cms/articleSections/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
@@ -44,7 +44,7 @@ const sizeButtonStateClassName = (disabled: boolean) => (
 
 export default function ImageControls({ articleSection, className, updateArticleSectionAction, capabilities }: PropTypes) {
     const editable = useEditMode({ authResult: capabilities.canEdit })
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
 
     const moveLeft = async () => {
         await updateArticleSectionAction(

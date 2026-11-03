@@ -14,8 +14,8 @@ import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { orderOptions } from '@/lib/groups/groupOptions'
 import { UsersSelectionContext } from '@/contexts/UsersSelection'
 import { UserSelectionContext } from '@/contexts/UserSelection'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useContext, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCheck, faSort, faSortDown, faSortUp } from '@fortawesome/free-solid-svg-icons'
 import type { UserPagingReturn } from '@/services/users/types'
@@ -111,7 +111,7 @@ export default function UserList({
     const userPaging = useContext(UserPagingContext)
     const usersSelection = useContext(UsersSelectionContext)
     const userSelection = useContext(UserSelectionContext)
-    const router = useRouter()
+    const router = useSiteRouter()
 
     const groupSelected = !!userPaging?.details.selectedGroup
     const partition = userPaging?.details.partition ?? 'activeOmegaStudents'

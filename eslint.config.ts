@@ -10,6 +10,21 @@ import { getDefaultSelectors } from 'eslint-plugin-better-tailwindcss/api/defaul
 // naming-convention rules below instead of flagged as violations.
 const nextSpecialFilenames = '!(page|layout|template|default|loading|error|global-error|not-found)'
 
+// Imports no file makes: relative paths out of its folder, and the Next primitives that SiteLink and
+// useSiteRouter wrap, which resolve an app path for the domain the visitor is on.
+const noRelativeImports = { group: ['../'], message: 'Relative imports are not allowed.' }
+const noNextLink = {
+    name: 'next/link',
+    message: 'Link with SiteLink from @/components/SiteLink/SiteLink, '
+        + 'which resolves the href for the domain the visitor is on.',
+}
+const noNextRouter = {
+    name: 'next/navigation',
+    importNames: ['useRouter'],
+    message: 'Navigate with useSiteRouter from @/hooks/useSiteRouter, '
+        + 'which resolves an app path for the domain the visitor is on.',
+}
+
 const eslintConfig = defineConfig([
     {
         files: ['**/*.{ts,tsx}'],
@@ -550,26 +565,7 @@ const eslintConfig = defineConfig([
                     indent: 4,
                 }
             ],
-            // dissallow relative imports (e.g. '../'), imports from same folder are stil allowed
-            'no-restricted-imports': [
-                'error',
-                {
-                    patterns: [
-                        {
-                            group: ['../'],
-                            message: 'Relative imports are not allowed.'
-                        }
-                    ],
-                    // Every link renders for the domain the visitor is on, through SiteLink.
-                    paths: [
-                        {
-                            name: 'next/link',
-                            message: 'Link with SiteLink from @/components/SiteLink/SiteLink, '
-                                + 'which resolves the href for the domain the visitor is on.'
-                        }
-                    ]
-                }
-            ],
+            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextLink, noNextRouter] }],
             // import statement order
             'import/order': [
                 'warn',
@@ -639,17 +635,14 @@ const eslintConfig = defineConfig([
         // The one place next/link is used: SiteLink wraps it.
         files: ['src/app/_components/SiteLink/SiteLink.tsx'],
         rules: {
-            'no-restricted-imports': [
-                'error',
-                {
-                    patterns: [
-                        {
-                            group: ['../'],
-                            message: 'Relative imports are not allowed.'
-                        }
-                    ]
-                }
-            ],
+            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextRouter] }],
+        }
+    },
+    {
+        // The one place useRouter is used: useSiteRouter wraps it.
+        files: ['src/hooks/useSiteRouter.ts'],
+        rules: {
+            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextLink] }],
         }
     },
     {

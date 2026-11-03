@@ -2,10 +2,10 @@
 import { createMailingListAction } from '@/services/mail/list/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 
 export default function CreateMailingList() {
-    const { push } = useRouter()
+    const { push } = useSiteRouter()
 
     return <Form
         title="Opprett ny e-postliste"

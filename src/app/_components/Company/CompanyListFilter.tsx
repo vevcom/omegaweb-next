@@ -3,9 +3,10 @@ import TextInput from '@/UI/TextInput'
 import { useDebounce } from '@/hooks/useDebounce'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import useSiteContext from '@/hooks/useSiteContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch } from '@fortawesome/free-solid-svg-icons'
-import { usePathname, useRouter } from 'next/navigation'
 import { useContext } from 'react'
 
 type PropTypes = {
@@ -13,8 +14,8 @@ type PropTypes = {
 }
 
 export default function CompanyListFilter({ currentName }: PropTypes) {
-    const { replace } = useRouter()
-    const pathname = usePathname()
+    const { replace } = useSiteRouter()
+    const pathname = useSiteContext().path
     const { setDetails } = useContext(CompanyPagingContext) ?? {
         setDetails: () => {}
     }
