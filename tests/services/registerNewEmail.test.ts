@@ -62,7 +62,7 @@ function changeEmail({ user, feideEmail }: TestUser, { by = user, email = feideE
     permissions?: 'USERS_ADMIN'[],
 }) {
     return userOperations.registerNewEmail({
-        params: { id: user.id },
+        params: { id: user.id, site: 'OMEGAWEB' },
         data: { email, currentPassword },
         session: Session.fromJsObject({ memberships: [], permissions, user: by }),
     })

@@ -1,6 +1,6 @@
+import { jobAdHref } from './Pages/jobAdPages'
 import Image from '@/components/Image/Image'
 import SponsorBadge from '@/components/Company/SponsorBadge'
-import { formatVevenUri } from '@/lib/urlEncoding'
 import { osloDateTime } from '@/lib/dates/oslo'
 import { jobAdType } from '@/services/careers/jobAds/constants'
 import Link from 'next/link'
@@ -19,7 +19,7 @@ export default function JobAd({ jobAd, basePath }: PropTypes) {
 
     return (
         <Link
-            href={`${basePath}/${formatVevenUri(jobAd.articleName, jobAd.id)}`}
+            href={jobAdHref(basePath, jobAd)}
             className="list-row"
         >
             <div className="list-row-thumb">

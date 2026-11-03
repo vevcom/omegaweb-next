@@ -11,6 +11,8 @@ import {
 import PromoBar from './PromoBar'
 import EventCard from '@/app/_components/Event/EventCard'
 import JobAd from '@/components/JobAds/JobAd'
+import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
+import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/omegaJobAdPages'
 import NewsCard from '@/app/(omegaweb)/news/NewsCard'
 import OmbulRow from '@/app/(omegaweb)/ombul/OmbulRow'
 import OmegaquoteRow from '@/app/(omegaweb)/omegaquotes/OmegaquoteRow'
@@ -27,6 +29,7 @@ import { withPageSession } from '@/app/ServerPage'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
+import { sitePagesPath } from '@/lib/sites'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
@@ -117,24 +120,24 @@ export default async function LoggedInLandingPage() {
                         </LoggedInSection>
                         <LoggedInSection
                             title="Hvad der hender"
-                            link="/events"
+                            link={sitePagesPath(omegaEventPages)}
                             layout="rows"
                             span="half"
                             emptyMessage="Det er for tiden ingen kommende arrangementer"
                         >
                             {events.map((event, key) => (
-                                <EventCard key={key} event={event} basePath="/events" />
+                                <EventCard key={key} event={event} basePath={sitePagesPath(omegaEventPages)} />
                             ))}
                         </LoggedInSection>
                         <LoggedInSection
                             title="Jobbannonser"
-                            link="/job-ads"
+                            link={sitePagesPath(omegaJobAdPages)}
                             layout="rows"
                             span="half"
                             emptyMessage="Det er for tiden ingen jobbannonser"
                         >
                             {jobAds.map((jobAd, key) => (
-                                <JobAd key={key} jobAd={jobAd} basePath="/job-ads" />
+                                <JobAd key={key} jobAd={jobAd} basePath={sitePagesPath(omegaJobAdPages)} />
                             ))}
                         </LoggedInSection>
                         {capabilities.canReadOmbul.authorized && (

@@ -1,6 +1,7 @@
-import { CAREER_PATH } from '@/app/(careers)/_lib/careersSite'
-import JobAdsArchivePage from '@/components/JobAds/Pages/JobAdsArchivePage'
+import { careerJobAdPages } from '@/app/(careers)/_lib/careersSite'
+import { jobAdsArchivePage } from '@/components/JobAds/Pages/JobAdsArchivePage'
 
-export default function JobAdsArchive() {
-    return <JobAdsArchivePage basePath={`${CAREER_PATH}/job-ads`} />
-}
+const { page, generateMetadata } = jobAdsArchivePage(careerJobAdPages)
+
+export default page
+export { generateMetadata }

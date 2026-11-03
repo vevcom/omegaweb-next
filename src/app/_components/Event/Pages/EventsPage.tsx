@@ -13,11 +13,12 @@ import { eventAuth } from '@/services/events/auth'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage, withFallback } from '@/app/ServerPage'
+import { sitePagesPath } from '@/lib/sites'
 import Link from 'next/link'
 import type { EventPagesConfig } from './eventPages'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
-/** The list of coming events, rendered under `config.basePath` on Omega's site and on the career site. */
+/** The list of coming events, rendered under the config's path on Omega's site and on the career site. */
 export const eventsPage = (config: EventPagesConfig) => serverPage({
     operation: async ({ searchParams }: PageOperationArgs) => {
         const lockedTag = config.lockedTag
@@ -63,7 +64,7 @@ export const eventsPage = (config: EventPagesConfig) => serverPage({
                                 .map(pickedTag => pickedTag.name)
 
                             return (
-                                <Link key={tag.name} href={eventListHref(config.basePath, remainingTagNames)}>
+                                <Link key={tag.name} href={eventListHref(sitePagesPath(config), remainingTagNames)}>
                                     <EventTag eventTag={tag} />
                                 </Link>
                             )
@@ -75,14 +76,14 @@ export const eventsPage = (config: EventPagesConfig) => serverPage({
                                 eventTags={eventTags}
                                 currentTags={pickedTags}
                                 capabilities={capabilities}
-                                basePath={config.basePath}
+                                basePath={sitePagesPath(config)}
                             />
                         )}
                         {capabilities.canCreate.authorized && (
                             <AddHeaderItemPopUp popUpKey="CreateEventPopUp">
                                 <div className="min-w-[50vw] grid place-content-center">
                                     <CreateOrUpdateEventForm
-                                        basePath={config.basePath}
+                                        basePath={sitePagesPath(config)}
                                         lockedTag={config.lockedTag}
                                         eventTags={eventTags}
                                         committees={committees}
@@ -90,14 +91,14 @@ export const eventsPage = (config: EventPagesConfig) => serverPage({
                                 </div>
                             </AddHeaderItemPopUp>
                         )}
-                        <ArchiveLink href={eventListHref(`${config.basePath}/archive`, pickedTagNames)} />
+                        <ArchiveLink href={eventListHref(`${sitePagesPath(config)}/archive`, pickedTagNames)} />
                     </div>
                 </div>
             }>
                 {currentEvents.length ? (
                     <div className="row-list">
                         {currentEvents.map(event => (
-                            <EventCard event={event} basePath={config.basePath} key={event.id} />
+                            <EventCard event={event} basePath={sitePagesPath(config)} key={event.id} />
                         ))}
                     </div>
                 ) : (

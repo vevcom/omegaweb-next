@@ -19,8 +19,8 @@ const twoDigitHour = (date: Date) => String(osloDateTime(date).hour).padStart(2,
 export default function EventCard({ event, basePath }: PropTypes) {
     const attendanceRatio = event.places > 0 ? event.numOfRegistrations / event.places : 0
     const attendance = `${Math.max(0, Math.min(attendanceRatio, 1)) * 100}%`
-    const from = event.takesRegistration ? event.registrationStart : event.eventStart
-    const to = event.takesRegistration ? event.registrationEnd : event.eventEnd
+    const from = event.registrationStart ?? event.eventStart
+    const to = event.registrationEnd ?? event.eventEnd
 
     return <Link href={eventHref(basePath, event)} className="list-row">
         <div className="list-row-thumb">

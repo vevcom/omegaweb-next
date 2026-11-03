@@ -53,6 +53,7 @@ model CmsParagraph {
   Committee           Committee?           @relation(name: "committeeParagraph")
   Ombul               Ombul?
   User                User?
+  careerTeamDepartment CareerTeamDepartment?
 
   committeeParticipation CommitteeParticipationInApplicationPeriod?
 }

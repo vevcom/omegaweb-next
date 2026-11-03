@@ -5,11 +5,13 @@ import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'
 import { generateJWT } from '@/jwt/jwt'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userOperations } from '@/services/users/operations'
+import { authUrl } from '@/lib/authPaths'
 import { z } from 'zod'
+import type { Site } from '@/lib/sites'
 
 // TODO: This function should not be in lib! It is highly coupled to the project.
 
-export async function sendResetPasswordMail(email: string) {
+export async function sendResetPasswordMail(email: string, site: Site) {
     const emailParsed = z.string().email().parse(email)
 
     const user = await userOperations.readOrNull({ params: { email: emailParsed }, bypassAuth: true })
@@ -21,7 +23,7 @@ export async function sendResetPasswordMail(email: string) {
         email: user.email,
     }, resetPasswordExpiration)
 
-    const link = `${process.env.WEBSITE_URL}/reset-password-form?${QueryParams.token.encodeUrl(jwt)}`
+    const link = `${authUrl(site, 'resetPasswordForm')}?${QueryParams.token.encodeUrl(jwt)}`
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {

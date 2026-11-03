@@ -19,29 +19,67 @@ export const eventFieldsToExpose = [
     'location',
     'eventStart',
     'eventEnd',
-    'places',
     'waitingList',
     'bindingRegistration',
-    'registrationStart',
-    'registrationEnd',
+    'allowRegistrationInMultipleVariants',
     'canBeViewedBy',
-    'takesRegistration',
-    'takesPayment',
-    'price',
-    'paymentStart',
-    'paymentEnd'
 ] as const satisfies (keyof Event)[]
+
+/** A quota as the lists and the event page show it, with how many hold one of its places. */
+export const eventQuotaSummarySelection = {
+    id: true,
+    name: true,
+    order: true,
+    places: true,
+    visibilityId: true,
+    _count: {
+        select: {
+            registrations: true,
+        },
+    },
+} as const satisfies Prisma.EventQuotaSelect
+
+export const eventQuotaOrder = [
+    { order: 'asc' },
+    { id: 'asc' },
+] satisfies Prisma.EventQuotaOrderByWithRelationInput[]
+
+/** A variant with its quotas in fill order and how many wait for a place in it. */
+export const eventVariantSummarySelection = {
+    id: true,
+    name: true,
+    order: true,
+    registrationStart: true,
+    registrationEnd: true,
+    takesPayment: true,
+    price: true,
+    paymentStart: true,
+    paymentEnd: true,
+    quotas: {
+        select: eventQuotaSummarySelection,
+        orderBy: eventQuotaOrder,
+    },
+    _count: {
+        select: {
+            waitingListRegistrations: true,
+        },
+    },
+} as const satisfies Prisma.EventVariantSelect
+
+export const eventVariantOrder = [
+    { order: 'asc' },
+    { id: 'asc' },
+] satisfies Prisma.EventVariantOrderByWithRelationInput[]
 
 export const eventFilterSelection = {
     ...createSelection(eventFieldsToExpose),
-    _count: {
-        select: {
-            eventRegistrations: true,
-        },
+    variants: {
+        select: eventVariantSummarySelection,
+        orderBy: eventVariantOrder,
     },
-} as const
+} as const satisfies Prisma.EventSelect
 
-/** What the lists of events select: the exposed fields, the cover image and the tags. */
+/** What the lists of events select: the exposed fields, the variants, the cover image and the tags. */
 export const eventListSelection = {
     ...eventFilterSelection,
     coverImage: {

@@ -64,20 +64,15 @@ const readCollection = defineOperation({
 
 const readCollectionPage = defineOperation({
     paramsSchema: dynamicImageSchemas.params.readCollectionPage,
-    authorizer: () => dynamicImageAuth.readCollectionPage,
+    authorizer: ({ params }) => dynamicImageAuth.readCollectionPage.data({
+        onlyAdministrated: params.paging.details.showOnlyCollectionsSessionAdministrates,
+    }),
     operation: async ({ prisma, params }, prismaWhereFilter) => {
         const collections = await prisma.imageCollection.findMany({
             ...cursorPagingSelection(params.paging.page),
             where: {
                 ...ownershipCheckWhereCondition(),
-                // The filter is undefined only when the session bypasses visibility with IMAGE_ADMIN,
-                // which also means it administrates every collection - hence no admin filter either.
-                ...(prismaWhereFilter ? {
-                    visibilityRegular: prismaWhereFilter,
-                    ...(params.paging.details.showOnlyCollectionsSessionAdministrates ? {
-                        visibilityAdmin: prismaWhereFilter
-                    } : {})
-                } : {})
+                ...prismaWhereFilter,
             },
             include: expandedImageCollectionIncluder,
             orderBy: [

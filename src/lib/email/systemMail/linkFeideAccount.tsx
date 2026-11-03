@@ -3,6 +3,8 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { LinkFeideAccountTemplate } from '@/lib/email/templates/linkFeideAccount'
 import { generateJWT } from '@/jwt/jwt'
 import { QueryParams } from '@/lib/queryParams/queryParams'
+import { authUrl } from '@/lib/authPaths'
+import type { Site } from '@/lib/sites'
 import type { FeideIdentity } from '@/services/auth/types'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
@@ -14,8 +16,13 @@ import type { UserBasicWithEmail } from '@/services/users/types'
  *
  * @param targetUser - The migrated user the Feide login should be moved to.
  * @param feideIdentity - The Feide identity to move, and the fresh user currently holding it.
+ * @param site - The site the link opens on.
  */
-export async function sendLinkFeideAccountMail(targetUser: UserBasicWithEmail, feideIdentity: FeideIdentity) {
+export async function sendLinkFeideAccountMail(
+    targetUser: UserBasicWithEmail,
+    feideIdentity: FeideIdentity,
+    site: Site,
+) {
     const jwt = generateJWT('linkfeideaccount', {
         sub: targetUser.id,
         feideUserId: feideIdentity.userId,
@@ -24,7 +31,7 @@ export async function sendLinkFeideAccountMail(targetUser: UserBasicWithEmail, f
         feideEmail: feideIdentity.email,
     }, 60 * 60)
 
-    const link = `${process.env.WEBSITE_URL}/link-ow-user?${QueryParams.token.encodeUrl(jwt)}`
+    const link = `${authUrl(site, 'linkOwUser')}?${QueryParams.token.encodeUrl(jwt)}`
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {
