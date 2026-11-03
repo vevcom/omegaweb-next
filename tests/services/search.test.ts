@@ -3,19 +3,41 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { Smorekopp } from '@/services/error'
 import { searchOperations } from '@/services/search/operations'
 import { eventOperations } from '@/services/events/operations'
+import { newsOperations } from '@/services/news/operations'
 import { companyOperations } from '@/services/careers/companies/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
+import type { MembershipFiltered } from '@/services/groups/types'
 
 const COMPANY_NAME = 'Søketest Bedrift AS'
 const OTHER_COMPANY_NAME = 'Søketest Konsern AS'
 
+let currentOrder: number
+let memberGroup: number
+
 const sessionOf = (permissions: Parameters<typeof Session.fromJsObject>[0]['permissions']) =>
     Session.fromJsObject({ user: null, permissions, memberships: [] })
+
+/** An active member of `memberGroup`, holding no permissions at all. */
+const sessionInMemberGroup = () => {
+    const memberships: MembershipFiltered[] = [{ groupId: memberGroup, order: currentOrder, active: true, admin: false }]
+    return Session.fromJsObject({ user: null, permissions: [], memberships })
+}
 
 beforeAll(async () => {
     await Promise.all([COMPANY_NAME, OTHER_COMPANY_NAME].map(name => prisma.company.create({
         data: { name, description: 'En bedrift å søke etter.', logo: { create: {} } },
     })))
+
+    const order = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+    currentOrder = order.order
+    const group = await prisma.group.create({
+        data: {
+            groupType: 'MANUAL_GROUP',
+            order: currentOrder,
+            manualGroup: { create: { name: 'search-test-group', shortName: 'search-test-group' } },
+        },
+    })
+    memberGroup = group.id
 })
 
 describe('the search operation of a service', () => {
@@ -120,5 +142,76 @@ describe('global search', () => {
             session: sessionOf([]),
         })
         expect(sections).toEqual([])
+    })
+})
+
+describe('search respects a provider\'s own visibility filter', () => {
+    test('a restricted, published news article is found by a member, not by anyone else', async () => {
+        const news = await newsOperations.create({
+            data: {
+                name: 'Søketest Nyhet',
+                description: 'En nyhet bare noen kan se.',
+                visibilityRegularRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
+                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
+            },
+            bypassAuth: true,
+        })
+        await newsOperations.setPublished({ params: { id: news.id }, data: { published: true }, bypassAuth: true })
+
+        const { rows: memberRows } = await newsOperations.search({
+            params: { query: 'søketest nyhet' },
+            session: sessionInMemberGroup(),
+        })
+        expect(memberRows.map(row => row.id)).toContain(news.id)
+
+        const { rows: outsiderRows } = await newsOperations.search({
+            params: { query: 'søketest nyhet' },
+            session: sessionOf([]),
+        })
+        expect(outsiderRows.map(row => row.id)).not.toContain(news.id)
+
+        const { rows: adminRows } = await newsOperations.search({
+            params: { query: 'søketest nyhet' },
+            session: sessionOf(['NEWS_ADMIN']),
+        })
+        expect(adminRows.map(row => row.id)).toContain(news.id)
+    })
+
+    test('a restricted, published event is found by a member, not by anyone else', async () => {
+        const HOUR = 60 * 60 * 1000
+        const event = await eventOperations.create({
+            data: {
+                name: 'Søketest Begrenset Arrangement',
+                location: 'Lophtet',
+                eventStart: new Date(Date.now() + 7 * 24 * HOUR),
+                eventEnd: new Date(Date.now() + 7 * 24 * HOUR + 2 * HOUR),
+                canBeViewedBy: 'CAN_REGISTER',
+                takesRegistration: false,
+                waitingList: false,
+                tagIds: [],
+                visibilityRegularRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
+                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
+            },
+            bypassAuth: true,
+        })
+        await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
+
+        const { rows: memberRows } = await eventOperations.search({
+            params: { query: 'søketest begrenset' },
+            session: sessionInMemberGroup(),
+        })
+        expect(memberRows.map(row => row.id)).toContain(event.id)
+
+        const { rows: outsiderRows } = await eventOperations.search({
+            params: { query: 'søketest begrenset' },
+            session: sessionOf([]),
+        })
+        expect(outsiderRows.map(row => row.id)).not.toContain(event.id)
+
+        const { rows: adminRows } = await eventOperations.search({
+            params: { query: 'søketest begrenset' },
+            session: sessionOf(['EVENT_ADMIN']),
+        })
+        expect(adminRows.map(row => row.id)).toContain(event.id)
     })
 })
