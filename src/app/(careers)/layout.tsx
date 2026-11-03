@@ -5,9 +5,8 @@ import { careersTheme } from './_lib/careersTheme'
 import { careerNavLinks } from './_lib/careersSite'
 import { innerClassName } from './_lib/careersClassNames'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
-import { eventTagOperations } from '@/services/events/tags/operations'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
-import { serverLayout, withFallback } from '@/app/ServerPage'
+import { serverLayout } from '@/app/ServerPage'
 import type { Metadata } from 'next'
 
 // The career pages carry Contactor's name, not Omega's, in the tab.
@@ -26,16 +25,11 @@ export const metadata: Metadata = {
  * as the rest of the site.
  */
 export default serverLayout({
-    operation: async () => ({
-        companyPresentationEventTag: await withFallback(
-            eventTagOperations.readSpecial({ params: { special: 'COMPANY_PRESENTATION' } }),
-            null
-        ),
-    }),
+    operation: () => ({}),
     capabilities: () => ({
         canEditSpecialCmsLink: careersFrontpageAuth.updateSpecialCmsLink,
     }),
-    render: ({ data, capabilities, children }) => (
+    render: ({ capabilities, children }) => (
         <div
             className={`
                 min-h-dvh flex flex-col bg-surface-base text-text font-careers-sans [--careers-max-width:1320px]
@@ -48,7 +42,7 @@ export default serverLayout({
             data-tone="light"
         >
             <SiteTheme colors={careersTheme} />
-            <CareersNavBar links={careerNavLinks(data.companyPresentationEventTag)} />
+            <CareersNavBar links={careerNavLinks} />
             <main className={`
                 ${innerClassName}
                 flex-1

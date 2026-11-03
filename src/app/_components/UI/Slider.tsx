@@ -38,7 +38,7 @@ export default function Slider({ label, name, color = 'primary', ...props }: Pro
                 `}
             />
             <div className={`
-                w-[60px] absolute cursor-pointer inset-0 bg-surface-raised transition-all duration-400 rounded-[34px]
+                w-[60px] absolute cursor-pointer inset-0 bg-surface-subtle transition-all duration-400 rounded-[34px]
                 before:absolute before:h-[26px] before:w-[26px] before:left-[4px] before:bottom-[4px] before:bg-white
                 before:transition-all before:duration-400 before:rounded-full
                 peer-checked:before:translate-x-[26px]

@@ -1,6 +1,6 @@
 # Ohma — how to build with this design system
 
-Ohma is the component library of **Sanctus Omega Broderskab** (projectNext). It
+Ohma is the component library of **Sanctus Omega Broderskab** (omegaweb-next). It
 is **fully themed** — four palettes, swapped at runtime — and the UI language is
 Norwegian (bokmål). Write labels, placeholders and helper copy in Norwegian.
 

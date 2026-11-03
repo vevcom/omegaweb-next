@@ -30,6 +30,7 @@ const dataFieldSchemas = z.object({
     paymentEnd: Zpn.date({ label: 'Betalingsslutt' }).optional(),
 
     waitingList: Zpn.checkboxOrBoolean({ label: 'Venteliste' }),
+    bindingRegistration: Zpn.checkboxOrBoolean({ label: 'Bindende påmelding' }).default(false),
 
     tagIds: Zpn.numberListCheckboxFriendly({ label: 'Tagger' }),
 
@@ -68,6 +69,13 @@ const waitingListRefiner = (data: {
 
 const waitingListMessage = 'Kan ikke ha venteliste uten påmelding'
 
+const bindingRegistrationRefiner = (data: {
+    bindingRegistration?: boolean,
+    takesRegistration?: boolean
+}) => (data.takesRegistration || !data.bindingRegistration)
+
+const bindingRegistrationMessage = 'Kan ikke ha bindende påmelding uten påmelding'
+
 const eventFields = {
     name: true,
     location: true,
@@ -83,6 +91,7 @@ const eventFields = {
     registrationEnd: true,
     tagIds: true,
     waitingList: true,
+    bindingRegistration: true,
     takesPayment: true,
     price: true,
     paymentStart: true,
@@ -103,8 +112,12 @@ export const eventSchemas = {
             ...eventFields,
             visibilityAdminRequirements: true,
             visibilityRegularRequirements: true,
-        }).refine(waitingListRefiner, waitingListMessage),
-        update: dataFieldSchemas.pick(eventFields).partial().refine(waitingListRefiner, waitingListMessage),
+        })
+            .refine(waitingListRefiner, waitingListMessage)
+            .refine(bindingRegistrationRefiner, bindingRegistrationMessage),
+        update: dataFieldSchemas.pick(eventFields).partial()
+            .refine(waitingListRefiner, waitingListMessage)
+            .refine(bindingRegistrationRefiner, bindingRegistrationMessage),
         setPublished: dataFieldSchemas.pick({
             published: true,
         }),

@@ -1,10 +1,10 @@
 import EventTag from './EventTag'
+import { eventListHref } from './Pages/eventPages'
 import Form from '@/components/Form/Form'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import TextInput from '@/UI/TextInput'
 import Textarea from '@/UI/Textarea'
 import ColorInput from '@/UI/ColorInput'
-import { QueryParams } from '@/lib/queryParams/queryParams'
 import { destroyEventTagAction, updateEventTagAction, createEventTagAction } from '@/services/events/tags/actions'
 import { configureAction } from '@/services/configureAction'
 import Link from 'next/link'
@@ -15,7 +15,8 @@ type PropTypes = {
     eventTags: EventTagT[]
     capabilities: Capabilities<'canCreateTags' | 'canUpdateTags' | 'canDestroyTags'>
     selectedTags: EventTagT[]
-    page: 'EVENT' | 'EVENT_ARCHIVE'
+    /** The list the tags filter: the events page or its archive. */
+    basePath: string
 }
 
 /**
@@ -28,18 +29,13 @@ export default function EventTagsAdmin({
     eventTags,
     selectedTags,
     capabilities,
-    page
+    basePath
 }: PropTypes) {
-    const baseUrl = page === 'EVENT' ? '/events' : '/events/archive'
-
-    const removeFromUrl = (tag: string) => (selectedTags.length === 1 ?
-        baseUrl :
-        `${baseUrl}?${QueryParams.eventTags.encodeUrl(
-            selectedTags.filter(tagItem => tagItem.name !== tag).map(tagItem => tagItem.name)
-        )}`)
-    const addToUrl = (tag: string) => `${baseUrl}?${QueryParams.eventTags.encodeUrl(
-        [...selectedTags.map(tagItem => tagItem.name), tag]
-    )}`
+    const removeFromUrl = (tag: string) => eventListHref(
+        basePath,
+        selectedTags.filter(tagItem => tagItem.name !== tag).map(tagItem => tagItem.name)
+    )
+    const addToUrl = (tag: string) => eventListHref(basePath, [...selectedTags.map(tagItem => tagItem.name), tag])
     return (
         <div className="max-h-[80svh]">
             <h1>Tagger</h1>

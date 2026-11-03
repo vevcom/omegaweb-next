@@ -26,7 +26,7 @@ pncli-config.json
 /build
 /certs
 
-# the store volume: uploaded files, and the release countdown's settings and git graph
+# the store volume: uploaded files
 /store
 
 # misc

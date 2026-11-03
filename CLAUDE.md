@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Project Next is the website for Sanctus Omega Broderskab, built with Next.js 16, TypeScript, Prisma, and PostgreSQL. The application runs in Docker containers for both development and production.
+Omegaweb Next is the website for Sanctus Omega Broderskab, built with Next.js 16, TypeScript, Prisma, and PostgreSQL. The application runs in Docker containers for both development and production.
 
 ## Development Commands
 
@@ -64,7 +64,7 @@ npm run docker:prisma-studio
 
 Access the container shell:
 ```bash
-docker exec -it -w /workspaces/projectNext pn-dev /bin/bash
+docker exec -it -w /workspaces/omegaweb-next pn-dev /bin/bash
 ```
 
 ## Architecture
@@ -452,10 +452,3 @@ Forms typically use Server Actions with FormData:
 - Test setup in `tests/setup.ts`
 - Use `IGNORE_SERVER_ONLY=true` environment variable when running tests
 - Use full variable names in callbacks. Single-letter identifiers are not allowed, per the ESLint `id-length` rule. Use the domain name itself, such as `group => group.id` or `user => user.id`, as long as there are no collisions.
-
-## Migration from OmegaWeb Basic
-
-The project includes migration tooling from an older system called OmegaWeb Basic:
-- Schema in `src/prisma/owSchema/`, code in `src/prisma/dobbelOmega/`. This is not part of the seeder.
-- Migration command: `npm run docker:dobbelOmega:run`, or `npm run dobbelOmega:run` inside the container.
-- Only relevant for data migration tasks

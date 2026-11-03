@@ -165,6 +165,7 @@ export const eventOperations = {
                             }
                         } : undefined,
                         waitingList: data.waitingList,
+                        bindingRegistration: data.bindingRegistration,
                         takesPayment: data.takesPayment,
                         ...(data.takesPayment
                             ? { price: data.price, paymentStart: data.paymentStart, paymentEnd: data.paymentEnd }

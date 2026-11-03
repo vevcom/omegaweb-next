@@ -9,12 +9,20 @@ import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
  * also needs `{ published }`, as no one but its administrators may register for a draft.
  */
 const registerLevel = regularLevelUnlessDraft
-// Exported for the operations to tell whether the session administrates an event, which lets it
-// unregister anyone after the registration period.
-export const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
+const eventAdminLevel = Require.permission('EVENT_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
 
 const eventAdminAsUser = Require.allOf(eventAdminLevel, Require.userId())
 const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
+
+/**
+ * Acting on your own registration. A guest registration has no user behind it, so it is no one's
+ * own, and only an administrator acts on it.
+ */
+const ownRegistration = ({ userId }: { userId: number | null }) => (
+    userId === null
+        ? Require.custom(() => false, { errorMessage: 'Bare arrangørene kan melde av en gjest.' })
+        : Require.userId().data({ userId })
+)
 
 /**
  * Acting on the registration of a given user: their own, or anyone's for those who administrate the
@@ -43,7 +51,13 @@ export const eventRegistrationAuth = {
     readPageDetailed: eventAdminLevel,
 
     updateNotes: registrationOfUser,
-    destroy: registrationOfUser,
+    /**
+     * Unregistering yourself, within the registration period and never from a binding registration.
+     * Unregistering as an administrator takes the admin level of the event, and removes anyone at
+     * any time.
+     */
+    destroy: ownRegistration,
+    destroyAsAdmin: eventAdminLevel,
     move: eventAdminLevel,
     setManuallyPaid: eventAdminLevel,
 

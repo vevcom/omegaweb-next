@@ -16,10 +16,8 @@ type SeedCompanyConfig = Data<typeof companyOperations.create> & {
 }
 
 /**
- * Omegaweb-basic had no companies and no job ads, so DobbelOmega has nothing to bring
- * across for the career section. Companies were still only ever created by
- * seedDevCompanies, which does not run on a migrating import - leaving a production
- * import with an empty company register and no company to hang a job ad off.
+ * Production has no other source of companies than this seed, since seedDevCompanies only
+ * runs in development, and a job ad needs a company to hang off.
  *
  * These are the sponsors the site already ships logos for. Extend the list as Bedkom
  * signs new ones; the job ads themselves are written in the new site rather than seeded.

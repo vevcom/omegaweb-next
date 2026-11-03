@@ -2,7 +2,7 @@ import { bandClassName, innerClassName } from '@/app/(careers)/_lib/careersClass
 import Link from 'next/link'
 
 type PropTypes = {
-    /** The events page filtered to the company presentations. */
+    /** The company presentations page. */
     eventsHref: string,
 }
 
@@ -27,7 +27,9 @@ export default function UpcomingCompanyPresentations({ eventsHref }: PropTypes) 
                     Kommende bedriftspresentasjoner
                 </span>
                 <span className="flex-1 text-text-muted text-m">Her kommer de neste bedriftspresentasjonene.</span>
-                <Link href={eventsHref} className="text-careers-navy text-m font-semibold">Alle arrangementer →</Link>
+                <Link href={eventsHref} className="text-careers-navy text-m font-semibold">
+                    Alle bedriftspresentasjoner →
+                </Link>
             </div>
         </section>
     )

@@ -20,9 +20,6 @@ COPY src/prisma/schema src/prisma/schema
 COPY prisma.config.ts .
 RUN npx prisma generate
 
-COPY src/prisma/owSchema src/prisma/owSchema
-RUN npm run dobbelOmega:generate
-
 RUN mkdir -p store/images
 
 # Copy remaining files except src
@@ -70,17 +67,13 @@ RUN npm run build
 RUN rm -rf .next/standalone/standard_store standard_store/dev_profile_images
 
 ############################################################
-# The migration/seed toolchain: DobbelOmega and the seeder pull in the whole
-# service layer, so they need the full dependency tree and cannot run against
-# prod's traced subset. This is a separate image rather than extra weight in
-# prod. Also the image the migrate one-shot and the workers run - see "Applying
-# database schema migrations" and "Running DobbelOmega" in README.md.
+# The migration/seed toolchain: the seeder pulls in the whole service layer, so
+# it needs the full dependency tree and cannot run against prod's traced subset.
+# This is a separate image rather than extra weight in prod. It is the image the
+# migrate one-shot and the workers run - see "Applying database schema
+# migrations" in README.md.
 #
-# It has no command of its own: every service built from it sets the one it runs,
-# and so does whoever runs a one-shot job such as DobbelOmega. A default would be
-# whatever a bare `run tools` does, and none of these is safe to start by accident -
-# DobbelOmega resets the database it points at. Without a command the image falls
-# back to the node base image's default, a node prompt.
+# It has no command of its own: every service built from it sets the one it runs.
 FROM base AS tools
 
 ENV NODE_ENV=production
@@ -120,7 +113,7 @@ COPY --from=builder /usr/src/app/standard_store ./standard_store
 COPY .env.default ./.env.default
 
 # Bind mount targets in compose; created here so the image works without them too.
-RUN mkdir -p store/images logs dobbelOmegaManifest
+RUN mkdir -p store/images logs
 
 # 127.0.0.1, not localhost: alpine resolves localhost to ::1 first and the server
 # listens on IPv4 only, so the v6 attempt is refused before v4 is ever tried.

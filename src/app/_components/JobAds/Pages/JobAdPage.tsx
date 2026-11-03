@@ -53,7 +53,7 @@ export const jobAdPage = (basePath: string) => serverPage({
                         max-mobile:ml-0 max-mobile:mt-2
                     "
                     articleClassName="bg-surface-base rounded-round"
-                    addSectionClassName="mt-2 mx-4 mb-0"
+                    addSectionClassName="mx-4 mb-0"
                     actions={{
                         updateArticleAction: configureAction(
                             updateJobAdArticleAction,
@@ -125,12 +125,17 @@ export const jobAdPage = (basePath: string) => serverPage({
                                 <li>
                                     <FontAwesomeIcon icon={faClock} />
                                     <h3>Søknadsfrist</h3>
-                                    <p>
-                                        { jobAd.applicationDeadline ?
-                                            <Date date={jobAd.applicationDeadline} /> :
-                                            'Ingen søknadsfrist satt'
-                                        }
-                                    </p>
+                                    {jobAd.rollingDueDate
+                                        ?
+                                        <p>Løpende frist</p>
+                                        :
+                                        <p>
+                                            {jobAd.applicationDeadline ?
+                                                <Date date={jobAd.applicationDeadline} /> :
+                                                'Ingen søknadsfrist satt'
+                                            }
+                                        </p>
+                                    }
                                 </li>
                                 <li>
                                     <FontAwesomeIcon icon={faNewspaper} />

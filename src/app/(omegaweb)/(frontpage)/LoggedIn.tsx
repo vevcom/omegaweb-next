@@ -123,7 +123,7 @@ export default async function LoggedInLandingPage() {
                             emptyMessage="Det er for tiden ingen kommende arrangementer"
                         >
                             {events.map((event, key) => (
-                                <EventCard key={key} event={event} />
+                                <EventCard key={key} event={event} basePath="/events" />
                             ))}
                         </LoggedInSection>
                         <LoggedInSection

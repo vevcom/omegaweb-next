@@ -1,5 +1,5 @@
 {
-  description = "Project Next development shell";
+  description = "Omegaweb Next development shell";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 

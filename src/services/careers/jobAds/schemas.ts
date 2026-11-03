@@ -13,6 +13,7 @@ const dataFieldSchemas = z.object({
     applicationDeadline: Zpn.date({ label: 'Søknadsfrist' }),
     active: Zpn.checkboxOrBoolean({ label: 'Aktiv' }),
     location: z.string().optional(),
+    rollingDueDate: Zpn.checkboxOrBoolean({ label: 'Løpende' }),
 })
 
 const paramsFieldSchemas = z.object({
@@ -35,6 +36,7 @@ export const jobAdSchemas = {
             type: true,
             applicationDeadline: true,
             location: true,
+            rollingDueDate: true,
         }),
         update: dataFieldSchemas.partial().pick({
             companyId: true,
@@ -43,6 +45,7 @@ export const jobAdSchemas = {
             applicationDeadline: true,
             active: true,
             location: true,
+            rollingDueDate: true,
         }),
     },
     params: {
