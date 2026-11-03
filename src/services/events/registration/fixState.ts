@@ -102,17 +102,29 @@ export async function fixVariantPlaces(tx: Prisma.TransactionClient, variantId: 
         })),
     ])
 
-    const promotedUserIds = promoted.flatMap(registration => (registration.userId === null ? [] : [registration.userId]))
-    if (promotedUserIds.length > 0 && !variant.event.allowRegistrationInMultipleVariants) {
-        await tx.eventRegistration.deleteMany({
-            where: {
-                userId: { in: promotedUserIds },
-                waitingListVariant: { eventId: variant.eventId, id: { not: variantId } },
-            },
-        })
-    }
+    await leaveOtherWaitingLists(tx, { id: variantId, ...variant }, promoted.map(registration => registration.userId))
 
     return promoted.map(({ id, userId, contact }) => ({ id, userId, contact }))
+}
+
+/**
+ * Takes the users off the waiting lists of the event's other variants once they hold a place in
+ * this one, unless the event allows registering for several. For whoever seats them: the
+ * place-fixing pass, and administrators seating someone directly.
+ */
+export async function leaveOtherWaitingLists(
+    tx: Prisma.TransactionClient,
+    variant: { id: number, eventId: number, event: { allowRegistrationInMultipleVariants: boolean } },
+    userIds: (number | null)[],
+) {
+    const seated = userIds.flatMap(userId => (userId === null ? [] : [userId]))
+    if (seated.length === 0 || variant.event.allowRegistrationInMultipleVariants) return
+    await tx.eventRegistration.deleteMany({
+        where: {
+            userId: { in: seated },
+            waitingListVariant: { eventId: variant.eventId, id: { not: variant.id } },
+        },
+    })
 }
 
 /** Tells the ones `fixVariantPlaces` took off the waiting list, once the change is saved. */

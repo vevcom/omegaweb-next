@@ -416,9 +416,74 @@ describe('several variants', () => {
             bypassAuth: true,
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
     })
+    test('seated by an administrator from the waiting list, the user leaves the other waiting lists', async () => {
+        const { eventId, variants: [first, second] } = await createEvent([
+            { name: 'Runde 1', quotas: [{ name: 'Alle', places: 1 }] },
+            { name: 'Runde 2', quotas: [
+                { name: 'Alle', places: 1 },
+                { name: 'Gruppe én', places: 1, visibility: activeIn(groupOne) },
+            ] },
+        ])
+        const fillerOfFirst = await createUser([groupTwo])
+        const fillerOfSecond = await createUser([groupTwo])
+        const user = await createUser([groupTwo])
+        await register(fillerOfFirst, eventId, first.id)
+        await register(fillerOfSecond, eventId, second.id)
+        await register(user, eventId, first.id)
+        const waitingInSecond = await register(user, eventId, second.id)
+        expect(await readOfUser(user, eventId, second.id)).toMatchObject({ state: 'WAITING_LIST' })
+
+        // The reserved quota has a place the user does not pass, which an administrator gives them anyway.
+        await eventRegistrationOperations.moveToQuota({
+            params: { registrationId: waitingInSecond.id },
+            data: { quotaId: second.quotas[1].id },
+            bypassAuth: true,
+        })
+
+        expect(await readOfUser(user, eventId, second.id)).toMatchObject({ state: 'IN_QUOTA', quotaId: second.quotas[1].id })
+        expect(await readOfUser(user, eventId, first.id)).toBeNull()
+    })
+
+    test('seated directly by an administrator in another variant, the user leaves the waiting list', async () => {
+        const { eventId, variants: [first, second] } = await createEvent([
+            { name: 'Runde 1', quotas: [{ name: 'Alle', places: 1 }] },
+            { name: 'Runde 2', quotas: [{ name: 'Gruppe én', places: 1, visibility: activeIn(groupOne) }] },
+        ])
+        const organiser = await createUser([organisers])
+        const filler = await createUser([groupTwo])
+        const user = await createUser([groupTwo])
+        await register(filler, eventId, first.id)
+        await register(user, eventId, first.id)
+        expect(await readOfUser(user, eventId, first.id)).toMatchObject({ state: 'WAITING_LIST' })
+
+        await eventRegistrationOperations.createAsAdmin({
+            params: { userId: user.user.id, eventId, variantId: second.id, quotaId: second.quotas[0].id },
+            session: sessionOf(organiser),
+        })
+
+        expect(await readOfUser(user, eventId, second.id)).toMatchObject({ state: 'IN_QUOTA' })
+        expect(await readOfUser(user, eventId, first.id)).toBeNull()
+    })
 })
 
 describe('administrating variants and quotas', () => {
+    test('moving a registration down is refused when the quota it leaves takes it back', async () => {
+        const { eventId, quotas: [upper, lower] } = await createEventWithQuotas([
+            { name: 'Øverst', places: 1 },
+            { name: 'Nederst', places: 1 },
+        ])
+        const user = await createUser([groupOne])
+        const registration = await register(user, eventId)
+        expect(await readOfUser(user, eventId)).toMatchObject({ quotaId: upper.id })
+
+        await expect(eventRegistrationOperations.moveToQuota({
+            params: { registrationId: registration.id },
+            data: { quotaId: lower.id },
+            bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        expect(await readOfUser(user, eventId)).toMatchObject({ quotaId: upper.id })
+    })
+
     test('variants and quotas are created last in order and read back in it', async () => {
         const { eventId, variants } = await createEvent([
             { name: 'Runde 1', quotas: [{ name: 'Første', places: 1 }, { name: 'Andre', places: 2 }] },

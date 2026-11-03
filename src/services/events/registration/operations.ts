@@ -10,7 +10,7 @@ import {
 } from './constants'
 import { eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
-import { fixVariantPlaces, notifyPromoted } from './fixState'
+import { fixVariantPlaces, leaveOtherWaitingLists, notifyPromoted } from './fixState'
 import {
     lockEvent,
     queuedAhead,
@@ -404,11 +404,22 @@ export const eventRegistrationOperations = {
                 await lockEvent(tx, eventId)
                 const registration = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: { quotaId: true },
+                    select: { quotaId: true, userId: true },
                 })
                 const quota = await tx.eventQuota.findUniqueOrThrow({
                     where: { id: data.quotaId },
-                    select: { variantId: true, places: true, _count: { select: { registrations: true } } },
+                    select: {
+                        variantId: true,
+                        places: true,
+                        _count: { select: { registrations: true } },
+                        variant: {
+                            select: {
+                                id: true,
+                                eventId: true,
+                                event: { select: { allowRegistrationInMultipleVariants: true } },
+                            },
+                        },
+                    },
                 })
                 if (quota.variantId !== variantId) {
                     throw new Smorekopp('BAD PARAMETERS', 'Kvoten hører ikke til varianten.')
@@ -422,7 +433,22 @@ export const eventRegistrationOperations = {
                     where: { id: params.registrationId },
                     data: { state: 'IN_QUOTA', quotaId: data.quotaId, waitingListVariantId: null },
                 })
-                return await fixVariantPlaces(tx, variantId)
+                await leaveOtherWaitingLists(tx, quota.variant, [registration.userId])
+                const promotedByMove = await fixVariantPlaces(tx, variantId)
+
+                // The pass fills the place the registration left, from the quotas after it in order,
+                // and may take the registration itself back. Then the move did nothing.
+                const moved = await tx.eventRegistration.findUniqueOrThrow({
+                    where: { id: params.registrationId },
+                    select: { quotaId: true },
+                })
+                if (moved.quotaId !== data.quotaId) {
+                    throw new Smorekopp(
+                        'BAD PARAMETERS',
+                        'En kvote foran har ledig plass og tar påmeldingen tilbake. Fyll den plassen først.'
+                    )
+                }
+                return promotedByMove
             })
 
             await notifyPromoted(prisma, eventId, promoted)
@@ -853,6 +879,7 @@ async function placeAsAdmin(
     const registration = await tx.eventRegistration.create({
         data: { state: 'IN_QUOTA', quotaId: quota.id, ...registrant },
     })
+    await leaveOtherWaitingLists(tx, variant, ['userId' in registrant ? registrant.userId : null])
     return { registration, promoted: await fixVariantPlaces(tx, variant.id) }
 }
 
