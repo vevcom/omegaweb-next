@@ -24,6 +24,12 @@ const noNextRouter = {
     message: 'Navigate with useSiteRouter from @/hooks/useSiteRouter, '
         + 'which resolves an app path for the domain the visitor is on.',
 }
+const noNextRedirect = {
+    name: 'next/navigation',
+    importNames: ['redirect', 'permanentRedirect'],
+    message: 'Redirect with siteRedirect from @/app/siteContextOfRequest, '
+        + 'which resolves an app path for the domain the request came to.',
+}
 
 const eslintConfig = defineConfig([
     {
@@ -565,7 +571,10 @@ const eslintConfig = defineConfig([
                     indent: 4,
                 }
             ],
-            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextLink, noNextRouter] }],
+            'no-restricted-imports': [
+                'error',
+                { patterns: [noRelativeImports], paths: [noNextLink, noNextRouter, noNextRedirect] },
+            ],
             // import statement order
             'import/order': [
                 'warn',
@@ -635,14 +644,21 @@ const eslintConfig = defineConfig([
         // The one place next/link is used: SiteLink wraps it.
         files: ['src/app/_components/SiteLink/SiteLink.tsx'],
         rules: {
-            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextRouter] }],
+            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextRouter, noNextRedirect] }],
         }
     },
     {
         // The one place useRouter is used: useSiteRouter wraps it.
         files: ['src/hooks/useSiteRouter.ts'],
         rules: {
-            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextLink] }],
+            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextLink, noNextRedirect] }],
+        }
+    },
+    {
+        // The one place redirect is used: siteRedirect wraps it.
+        files: ['src/app/siteContextOfRequest.ts'],
+        rules: {
+            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextLink, noNextRouter] }],
         }
     },
     {

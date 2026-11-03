@@ -7,8 +7,8 @@ import { ServerSession } from '@/auth/session/ServerSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/lib/sites/authPagesOf'
-import { siteContextOfRequest } from '@/app/siteContextOfRequest'
-import { notFound, redirect, unstable_rethrow as unstableRethrow } from 'next/navigation'
+import { siteContextOfRequest, siteRedirect } from '@/app/siteContextOfRequest'
+import { notFound, unstable_rethrow as unstableRethrow } from 'next/navigation'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
 import type { Capabilities, CapabilityAuthorizers, CapabilityKey } from '@/auth/authorizer/capabilities'
@@ -62,7 +62,7 @@ export async function handleServiceError(error: unknown): Promise<Smorekopp> {
     unstableRethrow(error)
     if (!(error instanceof Smorekopp)) throw error
     if (error.errorCode === 'NOT FOUND') notFound()
-    if (error.errorCode === 'UNAUTHENTICATED') redirect(await authUrlWithCallback('login'))
+    if (error.errorCode === 'UNAUTHENTICATED') await siteRedirect(await authPathWithCallback('login'))
     return error
 }
 
@@ -75,18 +75,17 @@ export async function handleServiceError(error: unknown): Promise<Smorekopp> {
  * `allowUnregistered` on {@link serverPage}).
  */
 async function redirectUnregistered(session: ServerPageSession) {
-    if (session.user && !session.user.acceptedTerms) redirect(await authUrlWithCallback('register'))
+    if (session.user && !session.user.acceptedTerms) await siteRedirect(await authPathWithCallback('register'))
 }
 
 /**
  * The given auth page of the site the current page belongs to, with the current page as
- * callbackUrl, so the user lands back where they were once they are through it, rendered for the
- * domain the request came to.
+ * callbackUrl, so the user lands back where they were once they are through it.
  */
-async function authUrlWithCallback(page: 'login' | 'register') {
+async function authPathWithCallback(page: 'login' | 'register') {
     const context = await siteContextOfRequest()
     const links = authLinks(authPagesOf(context.site()))
-    return context.resolveHref(links[page]({ callbackUrl: context.path }))
+    return links[page]({ callbackUrl: context.path })
 }
 
 /**

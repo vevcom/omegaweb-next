@@ -3,6 +3,7 @@ import { CURRENT_PATH_HEADER, SITE_DOMAIN_HEADER } from '@/proxy'
 import { SiteContext } from '@/lib/sites/context'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import type { ResolveHrefOptions } from '@/lib/sites/context'
 
@@ -20,4 +21,9 @@ export const siteContextOfRequest = cache(async (): Promise<SiteContext> => {
 /** An app path as the request being rendered should link or redirect to it, see {@link SiteContext.resolveHref}. */
 export async function siteHref(href: string, options?: ResolveHrefOptions): Promise<string> {
     return (await siteContextOfRequest()).resolveHref(href, options)
+}
+
+/** Sends the request on to an app path, where it is for the domain the request came to. Throws, as Next's redirect does. */
+export async function siteRedirect(href: string, options?: ResolveHrefOptions): Promise<never> {
+    redirect(await siteHref(href, options))
 }

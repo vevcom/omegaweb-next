@@ -14,9 +14,9 @@ import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import UserNavBar from '@/app/(omegaweb)/users/[username]/UserNavBar'
 import UserSettingsNav from '@/app/(omegaweb)/users/[username]/UserSettingsNav'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { siteRedirect } from '@/app/siteContextOfRequest'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSignOut } from '@fortawesome/free-solid-svg-icons'
-import { redirect } from 'next/navigation'
 import React from 'react'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -35,8 +35,7 @@ const labelClassName = 'w-[10em] inline-block font-medium text-accent-blue'
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
         if (params.username === 'me') {
-            if (!session.user) redirect('/login')
-            redirect(`/users/${session.user.username}`) //This throws.
+            await siteRedirect(session.user ? `/users/${session.user.username}` : '/login')
         }
 
         const profile = await userOperations.readProfile({ params: { username: params.username } })

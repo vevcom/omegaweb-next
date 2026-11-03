@@ -5,8 +5,8 @@ import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userOperations } from '@/services/users/operations'
 import { authOperations } from '@/services/auth/operations'
 import { serverPage } from '@/app/ServerPage'
-import { siteHref } from '@/app/siteContextOfRequest'
-import { notFound, redirect } from 'next/navigation'
+import { siteRedirect } from '@/app/siteContextOfRequest'
+import { notFound } from 'next/navigation'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -20,9 +20,9 @@ export function registerEmailPage(config: AuthPagesConfig) {
             if (!authResult.authorized) return notFound()
 
             const updatedUser = await userOperations.read({ params: { id: authResult.session.user.id } })
-            if (updatedUser.acceptedTerms) redirect(await siteHref(callbackUrl))
+            if (updatedUser.acceptedTerms) await siteRedirect(callbackUrl)
             if (updatedUser.emailVerified) {
-                redirect(await siteHref(links.register({ callbackUrl })))
+                await siteRedirect(links.register({ callbackUrl }))
             }
 
             const feideLoginMatch = await authOperations.readFeideLoginMatch({

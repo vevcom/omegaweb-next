@@ -4,9 +4,8 @@ import { QueryParams } from '@/lib/queryParams/queryParams'
 import { Site } from '@/lib/sites/site'
 import { authPagesOf } from '@/lib/sites/authPagesOf'
 import { serverPage } from '@/app/ServerPage'
-import { siteHref } from '@/app/siteContextOfRequest'
+import { siteRedirect } from '@/app/siteContextOfRequest'
 import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -41,7 +40,7 @@ export function loginPage(config: AuthPagesConfig) {
             if (startedOn && Site.ofPath(startedOn) !== Site.of(config.site)) {
                 const startedOnLinks = authLinks(authPagesOf(Site.ofPath(startedOn)))
                 const login = `${startedOnLinks.login({ callbackUrl: startedOn })}&${new URLSearchParams({ error })}`
-                redirect(await siteHref(login))
+                await siteRedirect(login)
             }
             return { error, callbackUrl: startedOn ?? links.afterLogin() }
         },
