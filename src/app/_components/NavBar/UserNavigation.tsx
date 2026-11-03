@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 
 type PropTypes = {
     isLoggedIn: boolean
@@ -13,7 +13,7 @@ type PropTypes = {
 export default function UserNavigation({ isLoggedIn }: PropTypes) {
     const href = isLoggedIn ? '/users/me' : '/login'
 
-    return <Link className="
+    return <SiteLink className="
         opacity-0 w-full h-full absolute top-0 left-0
         hover:cursor-pointer
     " href={href} />

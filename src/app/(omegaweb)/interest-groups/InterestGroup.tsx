@@ -9,7 +9,7 @@ import {
     updateInterestGroupCmsLinkAction
 } from '@/services/groups/interestGroups/actions'
 import { configureAction } from '@/services/configureAction'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGear } from '@fortawesome/free-solid-svg-icons'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
@@ -41,13 +41,13 @@ export default function InterestGroup({ interestGroup, capabilities }: PropTypes
                     </span>
                 )}
                 {capabilities.canAdministrate.authorized && (
-                    <Link
+                    <SiteLink
                         className={administrateClassName}
                         href={`/interest-groups/${interestGroup.id}`}
                         aria-label={`Administrer ${interestGroup.name}`}
                     >
                         <FontAwesomeIcon icon={faGear} />
-                    </Link>
+                    </SiteLink>
                 )}
                 <InterestGroupSettings
                     interestGroupId={interestGroup.id}

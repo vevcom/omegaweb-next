@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { ReactNode } from 'react'
 
 const LAST_UPDATED = '21. oktober 2026'
@@ -468,7 +468,7 @@ export default function TermsArticle() {
 
             <h3>Varsling</h3>
             <p>
-                Opplever du noe som ikke skal skje i Omega, kan du <Link href="/report">varsle her</Link>.
+                Opplever du noe som ikke skal skje i Omega, kan du <SiteLink href="/report">varsle her</SiteLink>.
             </p>
         </article>
     )

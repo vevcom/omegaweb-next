@@ -1,6 +1,6 @@
 import { resolutionForWidth } from '@/lib/images/resolutionForWidth'
 import { imageSourceForResolution, srcSetForImage } from '@/lib/images/imageSource'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCopyright } from '@fortawesome/free-solid-svg-icons'
 import type { ImageResolution } from '@/lib/images/resolutionForWidth'
@@ -121,7 +121,7 @@ export default function Image({
                             text-s ml-[.5em]
                         ">{image.licenseName}</p>
                     ) : (
-                        <Link
+                        <SiteLink
                             href={image.licenseLink}
                             target="_blank"
                             referrerPolicy="no-referrer"
@@ -132,7 +132,7 @@ export default function Image({
                             "
                         >
                             {image.licenseName}
-                        </Link>
+                        </SiteLink>
                     )}
                     <FontAwesomeIcon icon={faCopyright} className="text-text w-[20px]! h-[20px]! m-[.6em]"/>
                 </div>

@@ -1,6 +1,6 @@
 import Image from '@/components/Image/Image'
 import { formatVevenUri } from '@/lib/urlEncoding'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
 type PropTypes = {
@@ -14,7 +14,7 @@ type PropTypes = {
  */
 export default function OmbulRow({ ombul }: PropTypes) {
     return (
-        <Link href={`/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`} className="list-row">
+        <SiteLink href={`/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`} className="list-row">
             <div className="list-row-thumb">
                 <Image
                     disableLinkingToLicense
@@ -37,6 +37,6 @@ export default function OmbulRow({ ombul }: PropTypes) {
             <div className="list-row-meta">
                 <span>{ombul.year}</span>
             </div>
-        </Link>
+        </SiteLink>
     )
 }

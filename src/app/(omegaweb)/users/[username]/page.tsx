@@ -13,9 +13,9 @@ import { serverPage } from '@/app/ServerPage'
 import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import UserNavBar from '@/app/(omegaweb)/users/[username]/UserNavBar'
 import UserSettingsNav from '@/app/(omegaweb)/users/[username]/UserSettingsNav'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSignOut } from '@fortawesome/free-solid-svg-icons'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import React from 'react'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -136,14 +136,14 @@ const { page, generateMetadata } = serverPage({
                                             className="mt-[0.5em]"
                                             key={`${membership.committee.shortName}-${membership.order}`}
                                         >
-                                            <Link href={`/committees/${membership.committee.shortName}`}>
+                                            <SiteLink href={`/committees/${membership.committee.shortName}`}>
                                                 <p className="
                                                     rounded-[0.3em] p-[0.5em] bg-accent-blue text-surface-base
                                                     inline-block
                                                 ">
                                                     {membership.title} i {membership.committee.name}
                                                 </p>
-                                            </Link>
+                                            </SiteLink>
                                         </div>
                                     )}
                                 </div>
@@ -157,7 +157,7 @@ const { page, generateMetadata } = serverPage({
                                     <section className={groupSectionClassName}>
                                         <h2>Komitémedlemskap:</h2>
                                         {committeeMembershipsByOrder.map(membership =>
-                                            <Link
+                                            <SiteLink
                                                 key={`${membership.committee.shortName}-${membership.order}`}
                                                 href={`/committees/${membership.committee.shortName}`}
                                                 className="no-underline group"
@@ -169,7 +169,7 @@ const { page, generateMetadata } = serverPage({
                                                     {membership.title} uudaf {membership.order}´dis orden i{' '}
                                                     {membership.committee.name}
                                                 </p>
-                                            </Link>
+                                            </SiteLink>
                                         )}
                                     </section>
                                 )}
@@ -178,7 +178,7 @@ const { page, generateMetadata } = serverPage({
                                     <section className={groupSectionClassName}>
                                         <h2>Aktive interessegruppemedlemskap:</h2>
                                         {activeInterestGroups.map(membership =>
-                                            <Link
+                                            <SiteLink
                                                 key={`${membership.interestGroup.id}-${membership.order}`}
                                                 href={`/interest-groups/${membership.interestGroup.id}`}
                                                 className="no-underline group"
@@ -190,7 +190,7 @@ const { page, generateMetadata } = serverPage({
                                                     {membership.title} uudaf {membership.order}´dis orden i{' '}
                                                     {membership.interestGroup.name}
                                                 </p>
-                                            </Link>
+                                            </SiteLink>
                                         )}
                                     </section>
                                 )}
@@ -209,12 +209,12 @@ const { page, generateMetadata } = serverPage({
                             <div className="flex flex-col items-center">
                                 <div className="flex flex-col items-center gap-2">
                                     {isOwnProfile && (
-                                        <Link href="/logout">
+                                        <SiteLink href="/logout">
                                             <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
                                                 <FontAwesomeIcon icon={faSignOut} />
                                                 <p className="w-[8em]">Logg ut</p>
                                             </Button>
-                                        </Link>
+                                        </SiteLink>
                                     )}
                                     <UserSettingsNav username={profile.user.username} userId={profile.user.id} />
                                 </div>

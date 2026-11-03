@@ -5,9 +5,9 @@ import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import { userAuth } from '@/services/users/auth'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
 import { serverPage } from '@/app/ServerPage'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronRight, faScroll } from '@fortawesome/free-solid-svg-icons'
-import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -26,7 +26,7 @@ const { page, generateMetadata } = serverPage({
                     </p>
                     <div className="flex flex-row flex-wrap gap-2">
                         {allAdmissions.map(admission => (
-                            <Link
+                            <SiteLink
                                 key={admission}
                                 href={`/admin/admission/${admission}`}
                                 className="
@@ -40,7 +40,7 @@ const { page, generateMetadata } = serverPage({
                                 <FontAwesomeIcon icon={faScroll} className="text-accent-blue text-xl" />
                                 <span className="flex-1 font-light">{admissionDisplayNames[admission]}</span>
                                 <FontAwesomeIcon icon={faChevronRight} className="text-text-muted" />
-                            </Link>
+                            </SiteLink>
                         ))}
                     </div>
                 </section>

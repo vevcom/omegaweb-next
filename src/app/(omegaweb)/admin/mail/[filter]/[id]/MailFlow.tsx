@@ -7,7 +7,7 @@ import {
 } from '@/services/mail/actions'
 import { mailAuth } from '@/services/mail/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -169,7 +169,7 @@ export default function MailFlow({
             <FontAwesomeIcon icon={typeIcons[chip.type]} className="text-text-muted flex-none" />
             {focused
                 ? <span className="text-text no-underline wrap-anywhere">{chip.label}</span>
-                : <Link
+                : <SiteLink
                     className="
                         text-text no-underline wrap-anywhere
                         hover:underline
@@ -177,7 +177,7 @@ export default function MailFlow({
                     href={`/admin/mail/${chip.type}/${chip.id}`}
                 >
                     {chip.label}
-                </Link>
+                </SiteLink>
             }
             {chip.via && chip.via.length > 0 && <span className="text-[0.8rem] text-text-muted italic">
                 via {chip.via.map(viaItem => viaItem.label).join(', ')}

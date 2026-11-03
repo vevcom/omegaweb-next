@@ -1,5 +1,5 @@
 import CollectionCard from './CollectionCard'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { ExpandedImageCollection } from '@/services/images/subservice/types'
 
 type PropTypes = {
@@ -20,8 +20,8 @@ function collectionHref(collection: ExpandedImageCollection): string {
  */
 export default function CollectionCardLink({ collection, className }: PropTypes) {
     return (
-        <Link href={collectionHref(collection)} className={className}>
+        <SiteLink href={collectionHref(collection)} className={className}>
             <CollectionCard collection={collection} />
-        </Link>
+        </SiteLink>
     )
 }

@@ -13,7 +13,7 @@ import { eventAuth } from '@/services/events/auth'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage, withFallback } from '@/app/ServerPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -65,9 +65,9 @@ export function eventsPage(config: EventPagesConfig) {
                                     .map(pickedTag => pickedTag.name)
 
                                 return (
-                                    <Link key={tag.name} href={links.list(remainingTagNames)}>
+                                    <SiteLink key={tag.name} href={links.list(remainingTagNames)}>
                                         <EventTag eventTag={tag} />
-                                    </Link>
+                                    </SiteLink>
                                 )
                             })}
                         </div>

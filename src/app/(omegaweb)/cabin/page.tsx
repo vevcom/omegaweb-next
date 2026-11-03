@@ -15,7 +15,7 @@ import SpecialArticle from '@/cms/SpecialArticle/SpecialArticle'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
 import { serverPage } from '@/app/ServerPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => cabinArticleOperations.read({}),
@@ -24,7 +24,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Heutten' }),
     render: ({ data: article, capabilities }) => (
-        <PageWrapper headerItem={<Link href="/cabin/book">Trykk her for å booke</Link>}>
+        <PageWrapper headerItem={<SiteLink href="/cabin/book">Trykk her for å booke</SiteLink>}>
             <SpecialArticle
                 article={article}
                 capabilities={capabilities}

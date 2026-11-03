@@ -1,12 +1,12 @@
 import Image from '@/components/Image/Image'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { PromoWithImage } from '@/services/promo/types'
 
 // Its own island, same as LoggedInSection, but a single fixed-height banner
 // (14 * $gap = 112px) for the promo an admin has manually scheduled.
 export default function PromoBar({ promo }: { promo: PromoWithImage }) {
     return (
-        <Link
+        <SiteLink
             href={promo.link}
             className="
                 relative block w-full h-28 rounded-round overflow-hidden [color:unset] no-underline
@@ -25,6 +25,6 @@ export default function PromoBar({ promo }: { promo: PromoWithImage }) {
                 <h3 className="text-l font-bold text-white truncate">{promo.title}</h3>
                 <p className="text-s text-white text-ellipsis line-clamp-2">{promo.text}</p>
             </div>
-        </Link>
+        </SiteLink>
     )
 }

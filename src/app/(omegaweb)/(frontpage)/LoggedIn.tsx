@@ -31,9 +31,9 @@ import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import Link from 'next/link'
 
 // ohma.pagePadding(): the promo bar and the islands share the same centred content width.
 const pagePadding = 'w-full max-w-[1200px] mx-auto relative overflow-y-hidden'
@@ -100,9 +100,9 @@ export default async function LoggedInLandingPage() {
                             width={300}
                             tint="white"
                         />
-                        <Link className={scrollDownClassName} href="#firstSection">
+                        <SiteLink className={scrollDownClassName} href="#firstSection">
                             <FontAwesomeIcon icon={faAngleDown} />
-                        </Link>
+                        </SiteLink>
                     </div>
                 </div>
             </div>

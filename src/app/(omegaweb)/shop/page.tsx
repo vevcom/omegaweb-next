@@ -7,9 +7,9 @@ import { shopOperations } from '@/services/shop/shop/operations'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { productAuth } from '@/services/shop/product/auth'
 import { serverPage } from '@/app/ServerPage'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { faArrowRight, faBox, faStore } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import Link from 'next/link'
 
 const { page, generateMetadata } = serverPage({
     operation: () => shopOperations.readMany({}),
@@ -39,7 +39,7 @@ const { page, generateMetadata } = serverPage({
             ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
                     {sortObjectsByName(shops).map(shop => (
-                        <Link
+                        <SiteLink
                             key={shop.id}
                             href={`/shop/${shop.id}`}
                             className="
@@ -70,7 +70,7 @@ const { page, generateMetadata } = serverPage({
                                     group-hover:translate-x-1
                                 " />
                             </span>
-                        </Link>
+                        </SiteLink>
                     ))}
                 </div>
             )}

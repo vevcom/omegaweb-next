@@ -559,6 +559,14 @@ const eslintConfig = defineConfig([
                             group: ['../'],
                             message: 'Relative imports are not allowed.'
                         }
+                    ],
+                    // Every link renders for the domain the visitor is on, through SiteLink.
+                    paths: [
+                        {
+                            name: 'next/link',
+                            message: 'Link with SiteLink from @/components/SiteLink/SiteLink, '
+                                + 'which resolves the href for the domain the visitor is on.'
+                        }
                     ]
                 }
             ],
@@ -625,6 +633,23 @@ const eslintConfig = defineConfig([
                         + 'etc.) instead of a raw <input>. type="hidden" inputs are exempt.'
                 }
             ]
+        }
+    },
+    {
+        // The one place next/link is used: SiteLink wraps it.
+        files: ['src/app/_components/SiteLink/SiteLink.tsx'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            group: ['../'],
+                            message: 'Relative imports are not allowed.'
+                        }
+                    ]
+                }
+            ],
         }
     },
     {

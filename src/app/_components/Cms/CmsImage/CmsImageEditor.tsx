@@ -15,8 +15,8 @@ import PopUpProvider from '@/contexts/PopUp'
 import { useSpecialCollections } from '@/contexts/ClientData'
 import { specialImagePanels } from '@/components/Image/ImagePanel/specialImagePanels'
 import { readImagesPageInDynamicCollectionAction } from '@/services/images/dynamic/actions'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faInfo } from '@fortawesome/free-solid-svg-icons'
 import type { ReadPageOfImagesInCollectionAction } from '@/components/Image/ImagePanel/ImagePanel'
@@ -221,7 +221,7 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                             </DynamicImageCollectionPagingProvider>
                         </div>
                     </div>
-                    <Link
+                    <SiteLink
                         className="
                             absolute w-[10em] btn
                             mobile:-top-[2%] mobile:-right-[2%]
@@ -230,7 +230,7 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                         href="/image-collections/"
                     >
                         Gå til bilder
-                    </Link>
+                    </SiteLink>
                 </div>
             </PopUpProvider>
         </PopUp>

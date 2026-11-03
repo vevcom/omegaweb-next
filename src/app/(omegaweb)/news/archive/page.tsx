@@ -4,9 +4,9 @@ import { OldNewsPagingProvider } from '@/contexts/paging/OldNewsPaging'
 import { newsOperations } from '@/services/news/operations'
 import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import Link from 'next/link'
 import type { PageSizeOldNews } from '@/contexts/paging/OldNewsPaging'
 
 const pageSize: PageSizeOldNews = 20
@@ -27,12 +27,12 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'Nyhetsarkiv' }),
     render: ({ data: serverRendered }) => (
         <PageWrapper headerItem={
-            <Link href="/news" className="
+            <SiteLink href="/news" className="
                 text-text
                 [&_svg]:size-[30px]!
             ">
                 <FontAwesomeIcon icon={faArrowLeft} />
-            </Link>
+            </SiteLink>
         }>
             <OldNewsPagingProvider
                 startPage={{

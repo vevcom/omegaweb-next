@@ -3,12 +3,12 @@ import { increaseFlairRankAction, decreaseFlairRankAction } from '@/services/fla
 import { configureAction } from '@/services/configureAction'
 import { flairAuth } from '@/services/flairs/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowUpRightFromSquare, faGripVertical } from '@fortawesome/free-solid-svg-icons'
-import Link from 'next/link'
 import type { PointerEvent, ReactNode } from 'react'
 
 export type FlairRow = {
@@ -88,10 +88,10 @@ function FlairTableRow({ row, index, canReorder, onDragEnd }: RowPropTypes) {
             <span className={columnClass.colColor} role="cell" style={row.colorStyle}></span>
             <span className={columnClass.colRank} role="cell">{index + 1}</span>
             <span className={columnClass.colLink} role="cell">
-                <Link href={row.editHref}>
+                <SiteLink href={row.editHref}>
                     <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
                     <span className="max-mobile:sr-only">Rediger</span>
-                </Link>
+                </SiteLink>
             </span>
         </Reorder.Item>
     )

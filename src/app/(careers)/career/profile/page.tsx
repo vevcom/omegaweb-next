@@ -12,7 +12,7 @@ import { Smorekopp } from '@/services/error'
 import { displayDate } from '@/lib/dates/displayDate'
 import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { serverPage } from '@/app/ServerPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { NotificationMethodGeneral } from '@/services/notifications/types'
 import type { ReactNode } from 'react'
 
@@ -70,18 +70,18 @@ const { page, generateMetadata } = serverPage({
                 {registrations.length === 0 ? (
                     <p className="text-m text-text-muted">
                         Du er ikke påmeldt noen kommende bedriftspresentasjoner.{' '}
-                        <Link href={companyPresentationLinks.list()}>Se bedriftspresentasjonene</Link>
+                        <SiteLink href={companyPresentationLinks.list()}>Se bedriftspresentasjonene</SiteLink>
                     </p>
                 ) : (
                     <ul className="flex flex-col list-none divide-y divide-careers-line">
                         {registrations.map(registration => (
                             <li key={registration.id} className="flex flex-wrap items-baseline gap-x-4 py-3">
-                                <Link
+                                <SiteLink
                                     href={companyPresentationLinks.event(registration.event)}
                                     className="text-m font-semibold text-careers-navy"
                                 >
                                     {registration.event.name}
-                                </Link>
+                                </SiteLink>
                                 <span className="text-s text-text-muted">
                                     {displayDate(registration.event.eventStart)}
                                     {registration.event.location && ` · ${registration.event.location}`}
@@ -127,7 +127,7 @@ const { page, generateMetadata } = serverPage({
                 )}
             </Section>
 
-            <Link href={careersAuthLinks.logout()} className="self-start text-m text-text-muted">Logg ut</Link>
+            <SiteLink href={careersAuthLinks.logout()} className="self-start text-m text-text-muted">Logg ut</SiteLink>
         </div>
     ),
 })

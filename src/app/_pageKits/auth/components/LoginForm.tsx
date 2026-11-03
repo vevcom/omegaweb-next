@@ -5,8 +5,8 @@ import SubmitButton from '@/UI/SubmitButton'
 import { useSession } from '@/auth/session/useSession'
 import useSiteContext from '@/hooks/useSiteContext'
 import { authLinks } from '@/pageKits/auth/links'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { signIn } from 'next-auth/react'
-import Link from 'next/link'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { FormEvent } from 'react'
@@ -79,8 +79,8 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
     if (sessionUser && !pending && !signedIn) {
         return <>
             <p>Du er allerede logget inn som {sessionUser.username}.</p>
-            <Link href={callbackUrl}>Fortsett</Link>
-            <Link href={authLinks(config).logout()}>Logg ut</Link>
+            <SiteLink href={callbackUrl}>Fortsett</SiteLink>
+            <SiteLink href={authLinks(config).logout()}>Logg ut</SiteLink>
         </>
     }
 
@@ -111,7 +111,7 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
             Logg inn med Feide
         </Button>
 
-        <Link
+        <SiteLink
             href={authLinks(config).sendResetPasswordEmail()}
             className="
                 self-start
@@ -122,7 +122,7 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
             <p>
                 Glemt passord?
             </p>
-        </Link>
+        </SiteLink>
 
         <p className="text-text">
             Er det første gang du logger inn? Da er det bare å logge inn med Feide for å lage en bruker.

@@ -1,5 +1,5 @@
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import Link from 'next/link'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
 
 type PropTypes = {
@@ -18,7 +18,7 @@ export default function HeaderItemLink({ href, label, icon, iconOnlyScale }: Pro
     if (iconOnlyScale) {
         const iconScale = Math.round(iconOnlyScale * 0.55)
         return (
-            <Link
+            <SiteLink
                 href={href}
                 aria-label={label}
                 title={label}
@@ -30,14 +30,14 @@ export default function HeaderItemLink({ href, label, icon, iconOnlyScale }: Pro
                 style={{ width: iconOnlyScale, height: iconOnlyScale }}
             >
                 <FontAwesomeIcon icon={icon} style={{ width: iconScale, height: iconScale }} />
-            </Link>
+            </SiteLink>
         )
     }
 
     return (
-        <Link href={href} className="header-pill-link pr-3.5 pl-5">
+        <SiteLink href={href} className="header-pill-link pr-3.5 pl-5">
             <span>{label}</span>
             <FontAwesomeIcon icon={icon} />
-        </Link>
+        </SiteLink>
     )
 }

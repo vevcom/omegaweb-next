@@ -8,7 +8,7 @@ import { productAuth } from '@/services/shop/product/auth'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import Image from '@/components/Image/Image'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 
 /** The product catalogue across every shop. Which shops sell a product is on its own page. */
 const { page, generateMetadata } = serverPage({
@@ -57,14 +57,14 @@ const { page, generateMetadata } = serverPage({
                             </div>
                         </td>
                         <td>
-                            <Link
+                            <SiteLink
                                 style={{ display: 'contents' }}
                                 aria-label={`Gå til produktsiden for ${product.name}`}
                                 href={`/shop/products/${product.id}`}
                                 passHref
                             >
                                 {product.name}
-                            </Link>
+                            </SiteLink>
                         </td>
                         <td>{product.description}</td>
                         <td>{product.barcode ?? ''}</td>

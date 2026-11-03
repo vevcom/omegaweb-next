@@ -11,7 +11,7 @@ import { serverPage } from '@/app/ServerPage'
 import TextInput from '@/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -44,9 +44,9 @@ const { page, generateMetadata } = serverPage({
                             <td>{license.id}</td>
                             <td>{license.name}</td>
                             <td>
-                                <Link href={license.link}>
+                                <SiteLink href={license.link}>
                                     Til lisens
-                                </Link>
+                                </SiteLink>
                             </td>
                             <td>
                                 <SettingsHeaderItemPopUp popUpKey={`LicenseSettings ${license.id}`}>

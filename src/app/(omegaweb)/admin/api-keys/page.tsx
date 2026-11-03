@@ -6,7 +6,7 @@ import { apiKeyAuth } from '@/services/apiKeys/auth'
 import { serverPage } from '@/app/ServerPage'
 import Date from '@/components/Date/Date'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const popUpKey = 'createApiKey'
@@ -39,7 +39,7 @@ const { page, generateMetadata } = serverPage({
                     </thead>
                     <tbody>
                         {apiKeys.map(apiKey => (
-                            <Link
+                            <SiteLink
                                 href={`/admin/api-keys/${apiKey.name}`}
                                 key={apiKey.id}
                                 passHref
@@ -56,7 +56,7 @@ const { page, generateMetadata } = serverPage({
                                     <td>{apiKey.expiresAt ? <Date date={apiKey.expiresAt} /> : 'Ikke satt'}</td>
                                     <td>{apiKey.active ? 'AKTIV' : 'INAKTIV'}</td>
                                 </tr>
-                            </Link>
+                            </SiteLink>
                         ))}
                     </tbody>
                 </table>

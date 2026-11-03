@@ -8,8 +8,8 @@ import TextInput from '@/components/UI/TextInput'
 import { sexConfig } from '@/services/users/constants'
 import { authLinks } from '@/pageKits/auth/links'
 import { Sex, type User } from '@/prisma-generated-pn-types'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { signIn } from 'next-auth/react'
-import Link from 'next/link'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
@@ -58,11 +58,11 @@ export default function RegistrationForm({ config, userData, callbackUrl }: Prop
                     checkbox as well - hence the stopPropagation. It opens in a new tab to leave the
                     half-filled form standing.
                 */}
-                <Link
+                <SiteLink
                     href={authLinks(config).terms()}
                     target="_blank"
                     onClick={event => event.stopPropagation()}
-                >vilkårene og personvernerklæringen</Link>
+                >vilkårene og personvernerklæringen</SiteLink>
             </span>
         </Checkbox>
     </Form>

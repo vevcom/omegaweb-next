@@ -1,6 +1,6 @@
 'use client'
 import { useNavMenu } from '@/contexts/NavMenu'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 
@@ -9,7 +9,7 @@ export default function HomeLogoLink({ className, children }: { className?: stri
     const { setIsOpen } = useNavMenu()
 
     return (
-        <Link
+        <SiteLink
             className={className}
             href="/"
             aria-label={pathname === '/' ? 'Åpne meny' : 'Gå til hjemmesiden'}
@@ -20,6 +20,6 @@ export default function HomeLogoLink({ className, children }: { className?: stri
             }}
         >
             {children}
-        </Link>
+        </SiteLink>
     )
 }

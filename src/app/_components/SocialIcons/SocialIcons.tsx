@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -10,15 +10,15 @@ import {
 function SocialIcons() {
     return (
         <>
-            <Link href="https://twitter.com/OmegaVevcom" target="_blank">
+            <SiteLink href="https://twitter.com/OmegaVevcom" target="_blank">
                 <FontAwesomeIcon icon={faXTwitter} />
-            </Link>
-            <Link href="https://www.facebook.com/SctOmegaBroderskab/" target="_blank">
+            </SiteLink>
+            <SiteLink href="https://www.facebook.com/SctOmegaBroderskab/" target="_blank">
                 <FontAwesomeIcon icon={faFacebookSquare} />
-            </Link>
-            <Link href="https://www.instagram.com/sctomega/" target="_blank">
+            </SiteLink>
+            <SiteLink href="https://www.instagram.com/sctomega/" target="_blank">
                 <FontAwesomeIcon icon={faInstagram} />
-            </Link>
+            </SiteLink>
         </>
     )
 }

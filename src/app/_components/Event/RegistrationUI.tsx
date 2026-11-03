@@ -13,9 +13,9 @@ import {
 import { configureAction } from '@/services/configureAction'
 import { authLinks } from '@/pageKits/auth/links'
 import { eventLinks } from '@/pageKits/events/links'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { EventExpanded, EventVariantSummary } from '@/services/events/types'
 import type { DotPunishment } from '@/services/events/registration/types'
@@ -125,7 +125,7 @@ export default function RegistrationUI({
 
     if (!session.data) {
         const loginHref = authLinks(config.authPages).login({ callbackUrl: eventLinks(config).event(event) })
-        return <Link href={loginHref}>Logg inn for å melde deg på</Link>
+        return <SiteLink href={loginHref}>Logg inn for å melde deg på</SiteLink>
     }
 
     const userId = session.data.user.id

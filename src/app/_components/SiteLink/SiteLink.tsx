@@ -12,9 +12,9 @@ type PropTypes = Omit<ComponentProps<typeof Link>, 'href'> & {
 
 /**
  * A link to a page of the app, rendered for the domain the visitor is on: site-relative on the
- * page's own domain, by the site's main domain from another site's domain. Pages that may render
- * on more than one domain link with this; Omega's own pages, which only render on its domains, use
- * `Link` as they are.
+ * page's own domain, by the site's main domain from another site's domain. Every link in the app
+ * goes through it, so `next/link` is imported here alone; anything but an app path passes through
+ * as it is.
  */
 export default function SiteLink({ href, toMainDomainServingSite, ...props }: PropTypes) {
     const context = useSiteContext()

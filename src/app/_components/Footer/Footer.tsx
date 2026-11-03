@@ -1,7 +1,7 @@
 import FooterSponsors from './FooterSponsors'
 import SocialIcons from '@/components/SocialIcons/SocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 
 // On mobile every column of the footer stacks and centres.
 const mobileColumnClassName = `
@@ -50,10 +50,10 @@ function Footer() {
                 </p>
                 <p>Org.nr. 890 384 692</p>
                 <p>
-                    <Link href="/terms" className="
+                    <SiteLink href="/terms" className="
                         text-text no-underline
                         hover:underline
-                    ">Vilkår og personvern</Link>
+                    ">Vilkår og personvern</SiteLink>
                 </p>
                 <div>
                     <div className="

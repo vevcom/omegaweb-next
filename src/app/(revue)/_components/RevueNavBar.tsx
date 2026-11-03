@@ -4,7 +4,7 @@ import { revueAuthLinks } from '@/app/(revue)/revue/(auth)/links'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
 import LoginLink from '@/pageKits/auth/components/LoginLink'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 
 type PropTypes = {
     loggedIn: boolean,
@@ -20,12 +20,12 @@ export default function RevueNavBar({ loggedIn }: PropTypes) {
     return (
         <header className="sticky top-0 z-3 bg-surface-raised border-b border-surface-subtle">
             <nav className="w-full max-w-[1100px] mx-auto px-[clamp(1rem,4vw,3rem)] min-h-[64px] flex items-center gap-6">
-                <Link href={revueLinks.frontpage()} className="mr-auto text-xl font-semibold text-text no-underline">
+                <SiteLink href={revueLinks.frontpage()} className="mr-auto text-xl font-semibold text-text no-underline">
                     Omegarevyen
-                </Link>
-                <Link href={omegaLinks.frontpage()} className={linkClassName}>Til Omegaveven</Link>
+                </SiteLink>
+                <SiteLink href={omegaLinks.frontpage()} className={linkClassName}>Til Omegaveven</SiteLink>
                 {loggedIn
-                    ? <Link href={revueAuthLinks.logout()} className={linkClassName}>Logg ut</Link>
+                    ? <SiteLink href={revueAuthLinks.logout()} className={linkClassName}>Logg ut</SiteLink>
                     : <LoginLink config={revueAuthPages} className={linkClassName} />}
                 <div className="
                     size-[40px]

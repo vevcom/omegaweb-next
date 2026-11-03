@@ -11,11 +11,11 @@ import useAuthorizer from '@/hooks/useAuthorizer'
 import { useGlobalSearch } from '@/contexts/GlobalSearch'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { displayDate } from '@/lib/dates/displayDate'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass, faCalendar, faSpinner, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import type { ChangeEvent, KeyboardEvent } from 'react'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
 import type { NavLink } from '@/components/NavBar/navDef'
@@ -287,7 +287,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                                         const index = flatItems.indexOf(item)
                                         return (
                                             <li key={item.key}>
-                                                <Link
+                                                <SiteLink
                                                     href={item.href}
                                                     className={`
                                                         flex items-center gap-2 p-2 rounded-[calc(0.5*var(--gap))]
@@ -326,7 +326,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
                                                             {item.sublabel}
                                                         </span>
                                                     )}
-                                                </Link>
+                                                </SiteLink>
                                             </li>
                                         )
                                     })}

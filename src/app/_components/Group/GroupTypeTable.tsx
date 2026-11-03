@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 
 export type GroupTypeTableRow = {
     /** Stable react key - the group id is the natural choice. */
@@ -72,7 +72,7 @@ export default function GroupTypeTable({
 
                     return (
                         <tr key={row.key}>
-                            <th>{row.href ? <Link href={row.href}>{row.name}</Link> : row.name}</th>
+                            <th>{row.href ? <SiteLink href={row.href}>{row.name}</SiteLink> : row.name}</th>
                             <td className={row.pensioned ? 'text-text-muted' : ''}>
                                 <span className={orderClass}>{row.order}</span>
                                 {behind && (

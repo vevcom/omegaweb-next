@@ -8,9 +8,9 @@ import { EventArchivePagingProvider } from '@/contexts/paging/EventArchivePaging
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { eventTagAuth } from '@/services/events/tags/auth'
 import { serverPage } from '@/app/ServerPage'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import Link from 'next/link'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -54,9 +54,9 @@ export function eventsArchivePage(config: EventPagesConfig) {
                                     .map(pickedTag => pickedTag.name)
 
                                 return (
-                                    <Link key={tag.name} href={links.archive(remainingTagNames)}>
+                                    <SiteLink key={tag.name} href={links.archive(remainingTagNames)}>
                                         <EventTag eventTag={tag} />
-                                    </Link>
+                                    </SiteLink>
                                 )
                             })}
                         </div>
@@ -70,7 +70,7 @@ export function eventsArchivePage(config: EventPagesConfig) {
                                     archive
                                 />
                             )}
-                            <Link
+                            <SiteLink
                                 href={links.list(pickedTagNames)}
                                 className="
                                     text-text
@@ -78,7 +78,7 @@ export function eventsArchivePage(config: EventPagesConfig) {
                                 "
                             >
                                 <FontAwesomeIcon icon={faArrowLeft} />
-                            </Link>
+                            </SiteLink>
                         </div>
                     </div>
                 }>

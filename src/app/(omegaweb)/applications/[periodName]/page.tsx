@@ -35,7 +35,7 @@ import { configureAction } from '@/services/configureAction'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/ServerPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { PageOperationArgs, ServerPageSession } from '@/app/ServerPage'
 
 const periodDateItemClassName = `
@@ -209,16 +209,16 @@ const { page, generateMetadata } = serverPage({
                                         )
                                     }
                                 </PopUp>
-                            ) : <Link href="/login" className="btn m-0!">
+                            ) : <SiteLink href="/login" className="btn m-0!">
                             Logg inn for å søke
-                            </Link>
+                            </SiteLink>
                         }
-                        <Link
+                        <SiteLink
                             href={`/committees/${part.committee.shortName}`}
                             className="secondary-btn m-0!"
                         >
                         Les mer
-                        </Link>
+                        </SiteLink>
                         <CmsLink
                             className="
                                 min-w-0! h-auto!
@@ -341,9 +341,9 @@ const { page, generateMetadata } = serverPage({
                                         text-m
                                         [&_a]:text-inherit [&_a]:no-underline
                                     ">
-                                        <Link href={`/applications/${period.name}/countdown`}>
+                                        <SiteLink href={`/applications/${period.name}/countdown`}>
                                             <CountDown referenceDate={period.endDate} />
-                                        </Link>
+                                        </SiteLink>
                                     </div>
                                 </div>
                             )

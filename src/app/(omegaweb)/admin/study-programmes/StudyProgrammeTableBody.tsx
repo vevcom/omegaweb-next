@@ -5,7 +5,7 @@ import PopUp from '@/components/PopUp/PopUp'
 import { ClassLevelConfig } from '@/services/groups/constants'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { StudyProgramme } from '@/prisma-generated-pn-types'
@@ -24,9 +24,9 @@ export default function StudyProgrammeTableBody({ studyprogrammes }: { studyprog
                     <UpdateStudyProgrammeForm studyProgramme={studyProgramme} />
                 </PopUp></td>}
                 <th>
-                    <Link href={`/admin/study-programmes/${studyProgramme.id}`}>
+                    <SiteLink href={`/admin/study-programmes/${studyProgramme.id}`}>
                         {studyProgramme.name}
-                    </Link>
+                    </SiteLink>
                 </th>
                 <td>{studyProgramme.code}</td>
                 <td>{studyProgramme.instituteCode ?? ''}</td>

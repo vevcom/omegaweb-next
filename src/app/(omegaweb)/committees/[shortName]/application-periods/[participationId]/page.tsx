@@ -1,7 +1,7 @@
 import { committeeParticipationOperations } from '@/services/applications/committeeParticipation/operations'
 import { serverPage } from '@/app/ServerPage'
 import ProfilePicture from '@/components/User/ProfilePicture'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -28,9 +28,9 @@ const { page, generateMetadata } = serverPage({
                                 width={50}
                                 profileImage={application.user.image}
                             />
-                            <Link className="text-black" href={`/users/${application.user.username}`}>
+                            <SiteLink className="text-black" href={`/users/${application.user.username}`}>
                                 <h3>{application.user.firstname} {application.user.lastname}</h3>
-                            </Link>
+                            </SiteLink>
                         </div>
                         <div>
                             <p>{application.text}</p>

@@ -6,7 +6,7 @@ import { omegaLinks } from '@/app/(omegaweb)/links'
 import { innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
 import LoginLink from '@/pageKits/auth/components/LoginLink'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 
@@ -43,19 +43,23 @@ export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTy
                 min-h-[64px] flex flex-wrap items-center gap-6
                 max-mobile:pb-2
             `}>
-                <Link href={careerLinks.frontpage()} className="mr-auto no-underline" aria-label="Contactor, til forsiden">
+                <SiteLink
+                    href={careerLinks.frontpage()}
+                    className="mr-auto no-underline"
+                    aria-label="Contactor, til forsiden"
+                >
                     <CareersWordmark />
-                </Link>
+                </SiteLink>
                 <ul className={`
                     list-none flex items-center gap-6
                     max-mobile:order-3 max-mobile:w-full max-mobile:flex-wrap max-mobile:gap-y-0
                 `}>
                     {links.map(link => (
                         <li key={link.href}>
-                            <Link href={link.href} className={`
+                            <SiteLink href={link.href} className={`
                                 ${linkClassName}
                                 text-careers-navy
-                            `}>{link.name}</Link>
+                            `}>{link.name}</SiteLink>
                         </li>
                     ))}
                     <li className="
@@ -63,13 +67,13 @@ export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTy
                         max-mobile:ml-0 max-mobile:pl-0 max-mobile:border-l-0
                     ">
                         {showOmegaLink && (
-                            <Link href={omegaLinks.frontpage()} className={mutedLinkClassName}>
+                            <SiteLink href={omegaLinks.frontpage()} className={mutedLinkClassName}>
                                 <FontAwesomeIcon icon={faArrowLeft} />
                                 <span>Til Omegaveven</span>
-                            </Link>
+                            </SiteLink>
                         )}
                         {loggedIn
-                            ? <Link href={careersAuthLinks.logout()} className={mutedLinkClassName}>Logg ut</Link>
+                            ? <SiteLink href={careersAuthLinks.logout()} className={mutedLinkClassName}>Logg ut</SiteLink>
                             : <LoginLink config={careersAuthPages} className={mutedLinkClassName} />}
                     </li>
                 </ul>

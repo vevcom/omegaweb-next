@@ -5,7 +5,7 @@ import { notificationChannelOperations } from '@/services/notifications/channel/
 import { notificationChannelAuth } from '@/services/notifications/channel/auth'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -73,7 +73,7 @@ const { page, generateMetadata } = serverPage({
                     </thead>
                     <tbody>
                         {rows.map(({ channel, depth }) => (
-                            <Link
+                            <SiteLink
                                 key={channel.id}
                                 href={`/admin/notification-channels/${channel.id}`}
                                 className="contents no-underline text-inherit"
@@ -108,7 +108,7 @@ const { page, generateMetadata } = serverPage({
                                     </td>
                                     <td className="text-text-muted">{channel.description || '—'}</td>
                                 </tr>
-                            </Link>
+                            </SiteLink>
                         ))}
                     </tbody>
                 </table>

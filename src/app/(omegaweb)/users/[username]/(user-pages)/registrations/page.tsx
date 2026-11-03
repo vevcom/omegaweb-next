@@ -4,7 +4,7 @@ import { omegaEventPages } from '@/app/(omegaweb)/events/config'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { serverPage } from '@/app/ServerPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -21,7 +21,7 @@ const { page, generateMetadata } = serverPage({
             {data.registrations.length === 0 ? (
                 <p>
                     Ingen påmeldinger til kommende arrangementer.{' '}
-                    <Link href={omegaEventLinks.list()}>Se hvad der hender</Link>
+                    <SiteLink href={omegaEventLinks.list()}>Se hvad der hender</SiteLink>
                 </p>
             ) : (
                 <div className="row-list">

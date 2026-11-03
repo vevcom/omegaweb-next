@@ -1,5 +1,5 @@
 import UserDisplayName from '@/components/User/UserDisplayName'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { UserPagingReturn } from '@/services/users/types'
 
 type PropTypes = {
@@ -20,7 +20,7 @@ export default function UserRow({ user, groupSelected = false, href }: PropTypes
             <td>
                 {
                     href ? (
-                        <Link
+                        <SiteLink
                             href={href}
                             prefetch={false}
                             className="
@@ -30,7 +30,7 @@ export default function UserRow({ user, groupSelected = false, href }: PropTypes
                             onClick={event => event.stopPropagation()}
                         >
                             {displayName}
-                        </Link>
+                        </SiteLink>
                     ) : displayName
                 }
             </td>

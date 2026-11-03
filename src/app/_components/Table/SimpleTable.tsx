@@ -1,5 +1,5 @@
 
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { ReactNode } from 'react'
 
 export default function SimpleTable<T extends string[]>({
@@ -21,11 +21,11 @@ export default function SimpleTable<T extends string[]>({
             </tr>
         </thead>
         <tbody>
-            {links ? body.map((row, i) => <Link key={i} href={links[i]}>
+            {links ? body.map((row, i) => <SiteLink key={i} href={links[i]}>
                 <tr>
                     {row.map((item, j) => <td key={j}>{item}</td>)}
                 </tr>
-            </Link>
+            </SiteLink>
             ) : body.map((row, i) => <tr key={i}>
                 {row.map((item, j) => <td key={j}>{item}</td>)}
             </tr>)}

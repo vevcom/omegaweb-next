@@ -11,7 +11,7 @@ import { configureAction } from '@/services/configureAction'
 import { ombulAuth } from '@/services/ombul/auth'
 import { serverPage } from '@/app/ServerPage'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -46,7 +46,7 @@ const { page, generateMetadata } = serverPage({
                         the actions would otherwise be read before the issue they act on. */}
                     <div className="flex flex-row flex-wrap items-center gap-2">
                         <a className="btn m-0!" href={path} download>Last ned</a>
-                        <Link className="secondary-btn m-0!" href={path} target="blank">Åpne i ny fane</Link>
+                        <SiteLink className="secondary-btn m-0!" href={path} target="blank">Åpne i ny fane</SiteLink>
                         <PopUp
                             popUpKey={`OmbulPdfViewer${ombul.id}`}
                             showButtonClass="secondary-btn m-0!"

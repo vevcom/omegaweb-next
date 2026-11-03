@@ -8,8 +8,8 @@ import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import { removeArticleFromCategoryAction } from '@/services/articleCategories/actions'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { formatVevenUri } from '@/lib/urlEncoding'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import React, { useRef, useState } from 'react'
-import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronUp, faX } from '@fortawesome/free-solid-svg-icons'
 import { useRouter } from 'next/navigation'
@@ -127,9 +127,9 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
             {
                 category.articles.map(article => (
                     <li key={article.id}>
-                        <Link href={`/articles/${category.name}/${formatVevenUri(article.name, article.id)}`}>
+                        <SiteLink href={`/articles/${category.name}/${formatVevenUri(article.name, article.id)}`}>
                             {article.name.toUpperCase()}
-                        </Link>
+                        </SiteLink>
                         {
                             canRemoveArticle && (
                                 <button

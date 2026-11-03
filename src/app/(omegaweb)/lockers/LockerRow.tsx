@@ -1,6 +1,6 @@
 import { inferGroupNameIfValid } from '@/lib/groups/inferGroupName'
 import { displayDate } from '@/lib/dates/displayDate'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { LockerWithReservation } from '@/services/lockers/types'
 
 export const lockerRowClassName = `
@@ -33,7 +33,7 @@ export default function LockerRow({ locker }: PropTypes) {
     const endDateText = reservation ? endDateOf(reservation.endDate) : ''
 
     return (
-        <Link
+        <SiteLink
             href={`/lockers/${locker.id}`}
             className={`
                 ${lockerRowClassName}
@@ -52,7 +52,7 @@ export default function LockerRow({ locker }: PropTypes) {
             </span>
             <span className={lockerColumnClassName.group} role="cell">{groupName}</span>
             <span className={lockerColumnClassName.end} role="cell">{endDateText}</span>
-        </Link>
+        </SiteLink>
     )
 }
 
