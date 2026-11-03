@@ -2,7 +2,7 @@ import { Zpn } from '@/lib/fields/zpn'
 import { imageDataFieldSchemas } from '@/services/images/subservice/schemas'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Sex, RelationshipStatus, Theme } from '@/prisma-generated-pn-types'
-import { siteSchema } from '@/lib/sites'
+import { siteNameSchema } from '@/lib/sites/site'
 import { z } from 'zod'
 
 export const userDataFieldSchemas = z.object({
@@ -43,7 +43,7 @@ const groupFilter = z.object({
 
 const paramsFieldSchemas = z.object({
     id: z.number(),
-    site: siteSchema,
+    site: siteNameSchema,
     userId: z.number(),
     username: z.string(),
     email: z.string().trim().toLowerCase(),

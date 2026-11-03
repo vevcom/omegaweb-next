@@ -2,9 +2,9 @@
 //Higher placment in array gives hight priority on where it is placed (ie menu vs. navbar)
 //does not include / or /login (or profile route) as they are always shown and ar special
 import { adminNavAuthorizers } from '@/app/(omegaweb)/admin/adminNavDef'
-import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
-import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/omegaJobAdPages'
-import { sitePagesPath } from '@/lib/sites'
+import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
+import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
+import { revueLinks } from '@/app/(revue)/links'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
@@ -15,6 +15,7 @@ import { newsAuth } from '@/services/news/auth'
 import { omegaQuotesAuth } from '@/services/omegaquotes/auth'
 import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
+import { revueFrontpageAuth } from '@/services/revue/frontpage/auth'
 import { userAuth } from '@/services/users/auth'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
 import { bulshitAuth } from '@/services/bulshit/auth'
@@ -41,6 +42,7 @@ import {
     faShoppingCart,
     faLock,
     faChartLine,
+    faMasksTheater,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -75,7 +77,7 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Jobbannonser',
-        href: sitePagesPath(omegaJobAdPages),
+        href: omegaJobAdLinks.list(),
         icon: faBriefcase,
         authorizers: () => [jobAdAuth.readActive],
     },
@@ -94,7 +96,7 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Hvad der hender',
-        href: sitePagesPath(omegaEventPages),
+        href: omegaEventLinks.list(),
         icon: faCalendar,
         authorizers: () => [eventAuth.readManyCurrent],
     },
@@ -139,6 +141,12 @@ export const navDef: NavItem[] = [
         href: '/interest-groups',
         icon: faGamepad,
         authorizers: () => [interestGroupAuth.readMany],
+    },
+    {
+        name: 'Omegarevyen',
+        href: revueLinks.frontpage(),
+        icon: faMasksTheater,
+        authorizers: () => [revueFrontpageAuth.readMainRevueInfo],
     },
     {
         name: 'Hyttebooking',

@@ -1,5 +1,5 @@
-import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/omegaAuthPages'
-import { registerEmailPage } from '@/components/Auth/Pages/RegisterEmailPage'
+import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
+import { registerEmailPage } from '@/pageKits/auth/pages/RegisterEmailPage'
 
 const { page, generateMetadata } = registerEmailPage(omegaAuthPages)
 

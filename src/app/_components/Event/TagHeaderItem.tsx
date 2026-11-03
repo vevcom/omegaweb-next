@@ -4,20 +4,23 @@ import EventTagsAdmin from '@/components/Event/EventTagsAdmin'
 import React from 'react'
 import type { EventTag } from '@/prisma-generated-pn-types'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 
 type PropTypes = {
     eventTags: EventTag[],
     currentTags: EventTag[]
     capabilities: Capabilities<'canCreateTags' | 'canUpdateTags' | 'canDestroyTags'>
-    /** The list the tags filter: the events page or its archive. */
-    basePath: string
+    config: EventPagesConfig
+    /** Whether the tags filter the archive rather than the coming events. */
+    archive?: boolean
 }
 
 export default function TagHeaderItem({
     eventTags,
     currentTags,
     capabilities,
-    basePath
+    config,
+    archive = false,
 }: PropTypes) {
     return (
         <TagHeasderItemPopUp scale={35} popUpKey="TagEventPopUp">
@@ -26,7 +29,8 @@ export default function TagHeaderItem({
                     capabilities={capabilities}
                     eventTags={eventTags}
                     selectedTags={currentTags}
-                    basePath={basePath}
+                    config={config}
+                    archive={archive}
                 />
             </PopUpProvider>
         </TagHeasderItemPopUp>

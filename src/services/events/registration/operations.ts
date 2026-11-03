@@ -7,6 +7,7 @@ import {
     eventRegistrationSelection,
     maxDotsForNotShowingUp,
     REGISTRATION_READER_TYPE,
+    upcomingRegistrationOfUserSelection,
 } from './constants'
 import { eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
@@ -51,6 +52,7 @@ import type {
     EventRegistrationExpanded,
     EventRegistrationNotAttended,
     EventRegistrationOfUser,
+    UpcomingRegistrationOfUser,
 } from './types'
 
 const readDotPunishmentOfUser = defineOperation({
@@ -253,6 +255,42 @@ export const eventRegistrationOperations = {
                 },
             })
             return registration && { ...registration, variantId: variant.id }
+        },
+    }),
+
+    /**
+     * The registrations of a user for events that have not ended, soonest first. Given a special tag,
+     * only those for events carrying it.
+     */
+    readUpcomingOfUser: defineOperation({
+        authorizer: ({ params }) => eventRegistrationAuth.readUpcomingOfUser.data({ userId: params.userId }),
+        paramsSchema: eventRegistrationSchemas.params.readUpcomingOfUser,
+        operation: async ({ prisma, params }): Promise<UpcomingRegistrationOfUser[]> => {
+            const event: Prisma.EventWhereInput = {
+                eventEnd: { gte: new Date() },
+                ...(params.specialTag && {
+                    eventTagEvents: { some: { tag: { special: params.specialTag } } },
+                }),
+            }
+            const registrations = await prisma.eventRegistration.findMany({
+                where: {
+                    userId: params.userId,
+                    OR: [{ quota: { variant: { event } } }, { waitingListVariant: { event } }],
+                },
+                select: upcomingRegistrationOfUserSelection,
+            })
+            return registrations.map(registration => {
+                const variant = registration.quota?.variant ?? registration.waitingListVariant
+                if (!variant) {
+                    throw new Smorekopp('SERVER ERROR', 'Påmeldingen hører verken til en kvote eller en venteliste.')
+                }
+                return {
+                    id: registration.id,
+                    onWaitingList: registration.state === 'WAITING_LIST',
+                    variant: { id: variant.id, name: variant.name },
+                    event: variant.event,
+                }
+            }).sort((left, right) => left.event.eventStart.getTime() - right.event.eventStart.getTime())
         },
     }),
 

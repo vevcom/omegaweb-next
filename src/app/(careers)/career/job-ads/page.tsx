@@ -1,5 +1,5 @@
-import { careerJobAdPages } from '@/app/(careers)/_lib/careersSite'
-import { jobAdsPage } from '@/components/JobAds/Pages/JobAdsPage'
+import { careerJobAdPages } from '@/app/(careers)/career/job-ads/config'
+import { jobAdsPage } from '@/pageKits/jobAds/pages/JobAdsPage'
 
 const { page, generateMetadata } = jobAdsPage(careerJobAdPages)
 

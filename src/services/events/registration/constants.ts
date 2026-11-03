@@ -88,3 +88,26 @@ export const eventRegistrationAttendanceSelection = {
         },
     },
 } satisfies Prisma.EventRegistrationSelect
+
+/** What a user's list of their coming events shows of each event. */
+export const upcomingEventSelection = {
+    id: true,
+    name: true,
+    eventStart: true,
+    eventEnd: true,
+    location: true,
+    coverImage: { select: { image: { include: expandedImageIncluder } } },
+    _count: { select: { variants: true } },
+} as const satisfies Prisma.EventSelect
+
+const upcomingVariantSelection = {
+    select: { id: true, name: true, event: { select: upcomingEventSelection } },
+} as const
+
+/** A registration with the variant it is in: its quota's for a place, the waiting list's otherwise. */
+export const upcomingRegistrationOfUserSelection = {
+    id: true,
+    state: true,
+    quota: { select: { variant: upcomingVariantSelection } },
+    waitingListVariant: upcomingVariantSelection,
+} as const satisfies Prisma.EventRegistrationSelect

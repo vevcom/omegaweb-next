@@ -152,6 +152,12 @@ export const permissionConfig = {
         category: 'public',
         canBeDefault: false,
     },
+    REVUE_ADMIN: {
+        name: 'Administrer revysiden',
+        description: 'kan administrere artikkelen på revysiden',
+        category: 'public',
+        canBeDefault: false,
+    },
     USERS_ADMIN: {
         name: 'Brukeradministrator',
         description: 'kan lage, oppdatere og slette brukere',

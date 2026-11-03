@@ -1,0 +1,51 @@
+import Image from '@/components/Image/Image'
+import { eventLinks } from '@/pageKits/events/links'
+import { osloDateTime } from '@/lib/dates/oslo'
+import Link from 'next/link'
+import type { UpcomingRegistrationOfUser } from '@/services/events/registration/types'
+import type { EventPagesConfig } from '@/pageKits/events/config'
+
+type PropTypes = {
+    registration: UpcomingRegistrationOfUser
+    /** The event pages the row links into. */
+    config: EventPagesConfig
+}
+
+const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des']
+
+const clockTime = (date: Date) => osloDateTime(date).toFormat('HH:mm')
+
+export default function UpcomingRegistrationRow({ registration, config }: PropTypes) {
+    const { event, variant } = registration
+    const start = osloDateTime(event.eventStart)
+
+    return (
+        <Link href={eventLinks(config).event(event)} className="list-row">
+            <div className="list-row-thumb">
+                {event.coverImage.image && (
+                    <Image width={200} image={event.coverImage.image} />
+                )}
+            </div>
+
+            <div className="list-row-lead">
+                <b>{start.day}</b>
+                <span>{months[start.month - 1]}</span>
+            </div>
+
+            <div className="list-row-main">
+                <h2>{event.name}</h2>
+                <p>
+                    {event._count.variants > 1 && <>{variant.name} · </>}
+                    {registration.onWaitingList
+                        ? <span className="text-accent-orange">På venteliste</span>
+                        : <span className="text-accent-green">Påmeldt</span>}
+                </p>
+            </div>
+
+            <div className="list-row-meta">
+                {event.location && <span>{event.location}</span>}
+                <span>{clockTime(event.eventStart)}–{clockTime(event.eventEnd)}</span>
+            </div>
+        </Link>
+    )
+}

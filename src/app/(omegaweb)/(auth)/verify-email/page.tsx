@@ -1,5 +1,5 @@
-import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/omegaAuthPages'
-import { verifyEmailPage } from '@/components/Auth/Pages/VerifyEmailPage'
+import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
+import { verifyEmailPage } from '@/pageKits/auth/pages/VerifyEmailPage'
 
 const { page, generateMetadata } = verifyEmailPage(omegaAuthPages)
 

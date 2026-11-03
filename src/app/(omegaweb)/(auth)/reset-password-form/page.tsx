@@ -1,5 +1,5 @@
-import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/omegaAuthPages'
-import { resetPasswordFormPage } from '@/components/Auth/Pages/ResetPasswordFormPage'
+import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
+import { resetPasswordFormPage } from '@/pageKits/auth/pages/ResetPasswordFormPage'
 
 const { page, generateMetadata } = resetPasswordFormPage(omegaAuthPages)
 

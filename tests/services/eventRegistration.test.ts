@@ -766,3 +766,47 @@ describe('deleting an event', () => {
         expect(await countRegistrations(eventId, registrant)).toBe(1)
     })
 })
+
+describe('the upcoming registrations of a user', () => {
+    async function tagAsCompanyPresentation(eventId: number) {
+        const tag = await prisma.eventTag.findUniqueOrThrow({ where: { special: 'COMPANY_PRESENTATION' } })
+        await prisma.eventTagEvent.create({ data: { eventId, tagId: tag.id } })
+    }
+
+    test('lists the events the user is registered for, and whether they are on the waiting list', async () => {
+        const fullEventId = await createEvent({ places: 1, waitingList: true })
+        const presentationId = await createEvent({ places: 5, waitingList: false })
+        await tagAsCompanyPresentation(presentationId)
+        const other = await createTestUser('upcomingother')
+        const user = await createTestUser('upcominguser')
+
+        await register(other, fullEventId)
+        await register(user, fullEventId)
+        await register(user, presentationId)
+
+        const all = await eventRegistrationOperations.readUpcomingOfUser({
+            params: { userId: user.id },
+            session: sessionOf(user),
+        })
+        expect(all.map(registration => [registration.event.id, registration.onWaitingList])).toEqual(
+            expect.arrayContaining([[fullEventId, true], [presentationId, false]])
+        )
+        expect(all).toHaveLength(2)
+
+        const presentations = await eventRegistrationOperations.readUpcomingOfUser({
+            params: { userId: user.id, specialTag: 'COMPANY_PRESENTATION' },
+            session: sessionOf(user),
+        })
+        expect(presentations.map(registration => registration.event.id)).toEqual([presentationId])
+    })
+
+    test('a user cannot read the registrations of someone else', async () => {
+        const user = await createTestUser('upcomingreader')
+        const other = await createTestUser('upcomingtarget')
+
+        await expect(eventRegistrationOperations.readUpcomingOfUser({
+            params: { userId: other.id },
+            session: sessionOf(user),
+        })).rejects.toThrow(Smorekopp)
+    })
+})

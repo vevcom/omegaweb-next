@@ -12,6 +12,7 @@ import {
     userProfileSelection
 } from './constants'
 import { userProfileImageOperations } from './profileImageCollection'
+import { Site } from '@/lib/sites/site'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
@@ -446,7 +447,7 @@ export const userOperations = {
                 }
             }
 
-            await sendVerifyEmail(storedUser, data.email, params.site)
+            await sendVerifyEmail(storedUser, data.email, Site.of(params.site))
 
             return {
                 verified: false,

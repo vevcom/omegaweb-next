@@ -5,7 +5,9 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
-import { siteUrl } from '@/lib/sites'
+import { SiteContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { WeeklyDigestNotification } from './types'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
@@ -55,7 +57,7 @@ export async function sendWeeklyEmailDigest(user: UserBasicWithEmail, notificati
             html: await wrapInHTML(user, parsed.data.text),
             list: {
                 unsubscribe: {
-                    url: `${siteUrl('OMEGAWEB')}/users/${user.username}/notifications`,
+                    url: SiteContext.publicUrl(Site.OMEGAWEB, omegaLinks.userNotifications(user)),
                     comment: 'Varslingsinnstillinger'
                 },
             },

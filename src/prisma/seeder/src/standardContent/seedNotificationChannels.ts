@@ -122,6 +122,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             alias: 'vevcom',
         },
         {
+            special: 'CONTACTOR',
             name: 'Contactor',
             description: 'Her kommer det diverse informasjon fra Contactor',
             defaultMethods: {

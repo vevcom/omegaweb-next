@@ -1,5 +1,5 @@
-import { companyPresentationPages } from '@/app/(careers)/_lib/careersSite'
-import { eventPage } from '@/components/Event/Pages/EventPage'
+import { companyPresentationPages } from '@/app/(careers)/career/company-presentations/config'
+import { eventPage } from '@/pageKits/events/pages/EventPage'
 
 const { page, generateMetadata } = eventPage(companyPresentationPages)
 

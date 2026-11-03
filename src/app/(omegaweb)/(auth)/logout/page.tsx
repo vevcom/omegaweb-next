@@ -1,4 +1,4 @@
-import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/omegaAuthPages'
-import { logoutPage } from '@/components/Auth/Pages/LogoutPage'
+import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
+import { logoutPage } from '@/pageKits/auth/pages/LogoutPage'
 
 export default logoutPage(omegaAuthPages)
