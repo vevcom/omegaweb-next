@@ -1,4 +1,4 @@
-import { careerLinks } from '@/app/(careers)/_lib/careerLinks'
+import { careerLinks } from '@/app/(careers)/links'
 import Link from 'next/link'
 
 export default function CareersNotFound() {

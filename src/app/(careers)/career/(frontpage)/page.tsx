@@ -1,7 +1,7 @@
 import CareersHeroShape from '@/app/(careers)/career/(frontpage)/CareersHeroShape'
 import UpcomingCompanyPresentations from '@/app/(careers)/career/(frontpage)/UpcomingCompanyPresentations'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
-import { careerLinks } from '@/app/(careers)/_lib/careerLinks'
+import { careerLinks } from '@/app/(careers)/links'
 import {
     badgeClassName,
     bandClassName,

@@ -1,8 +1,6 @@
+import { careerPages } from './config'
 import { defineLinks } from '@/lib/sites/defineLinks'
 import type { SitePages } from '@/lib/sites/defineLinks'
-
-/** The career site itself, which its own pages are relative to. */
-export const careerPages: SitePages = { site: 'CAREERS', path: '' }
 
 /** The pages of the career site outside its kits. Imports nothing of the site, so the kits can link here too. */
 export type CareerLinks = {

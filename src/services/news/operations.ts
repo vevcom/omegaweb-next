@@ -7,7 +7,7 @@ import {
     simpleNewsArticleRelationsIncluder
 } from './constants'
 import { newsAuth } from './auth'
-import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { visibilityOperations } from '@/services/visibility/operations'

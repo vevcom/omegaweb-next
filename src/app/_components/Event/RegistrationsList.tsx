@@ -10,7 +10,7 @@ import {
     EventRegistrationDetailedPagingContext,
 } from '@/contexts/paging/EventRegistrationDetailedPaging'
 import UserDisplayName from '@/components/User/UserDisplayName'
-import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import Slider from '@/components/UI/Slider'
 import Form from '@/components/Form/Form'
 import ContactCard from '@/components/User/ContactCard'

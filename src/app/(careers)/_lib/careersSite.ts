@@ -1,4 +1,4 @@
-import { careerLinks } from './careerLinks'
+import { careerLinks } from '@/app/(careers)/links'
 import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
 

@@ -1,6 +1,6 @@
 import styles from './EventPage.module.scss'
 import { eventLinks } from '@/pageKits/events/links'
-import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import ShowAndEditName from '@/components/Event/ShowAndEditName'
 import RegistrationUI from '@/components/Event/RegistrationUI'
 import RegistrationsList from '@/components/Event/RegistrationsList'

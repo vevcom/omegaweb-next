@@ -1,6 +1,6 @@
 import CareersWordmark from './CareersWordmark'
 import { CAREERS_SOCIALS } from '@/app/(careers)/_lib/careersSite'
-import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import { cmsLinkTextClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
 import {

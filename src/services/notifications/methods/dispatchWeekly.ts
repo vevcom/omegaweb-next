@@ -7,7 +7,7 @@ import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
 import { SiteContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
-import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { WeeklyDigestNotification } from './types'
 import type { UserBasicWithEmail } from '@/services/users/types'
 

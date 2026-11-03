@@ -4,7 +4,7 @@
 import { adminNavAuthorizers } from '@/app/(omegaweb)/admin/adminNavDef'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
-import { revueLinks } from '@/app/(revue)/_lib/revueSite'
+import { revueLinks } from '@/app/(revue)/links'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'

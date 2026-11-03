@@ -2,7 +2,7 @@
 import CompanyList from '@/components/Company/CompanyList'
 import TextInput from '@/components/UI/TextInput'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
-import { careerLinks } from '@/app/(careers)/_lib/careerLinks'
+import { careerLinks } from '@/app/(careers)/links'
 import Link from 'next/link'
 import { useContext } from 'react'
 import type { ChangeEvent } from 'react'

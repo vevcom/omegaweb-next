@@ -1,4 +1,4 @@
-import { revueLinks } from '@/app/(revue)/_lib/revueSite'
+import { revueLinks } from '@/app/(revue)/links'
 import Link from 'next/link'
 
 export default function RevueNotFound() {
