@@ -12,7 +12,7 @@ type PropTypes = {
 
 const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des']
 
-const twoDigitHour = (date: Date) => String(osloDateTime(date).hour).padStart(2, '0')
+const clockTime = (date: Date) => osloDateTime(date).toFormat('HH:mm')
 
 export default function UpcomingRegistrationRow({ registration, basePath }: PropTypes) {
     const { event, variant } = registration
@@ -43,7 +43,7 @@ export default function UpcomingRegistrationRow({ registration, basePath }: Prop
 
             <div className="list-row-meta">
                 {event.location && <span>{event.location}</span>}
-                <span>{twoDigitHour(event.eventStart)}–{twoDigitHour(event.eventEnd)}</span>
+                <span>{clockTime(event.eventStart)}–{clockTime(event.eventEnd)}</span>
             </div>
         </Link>
     )
