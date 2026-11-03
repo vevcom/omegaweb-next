@@ -64,6 +64,12 @@ export class DomainConfig {
         return this.domains.find(domain => domain.host === host.toLowerCase()) ?? null
     }
 
+    /** The host names of the domains, without their ports, as the dev server takes them in allowedDevOrigins. */
+    hostNames(): string[] {
+        const hostNames = this.domains.map(domain => new URL(domain.origin).hostname)
+        return hostNames.filter((hostName, index) => hostNames.indexOf(hostName) === index)
+    }
+
     /** Whether an origin, such as `https://contactor.no`, is one of the configured domains. */
     hasOrigin(origin: string): boolean {
         return this.domains.some(domain => domain.origin === origin)

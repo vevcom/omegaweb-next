@@ -1,4 +1,5 @@
 import { staticSecurityHeaders } from './src/lib/securityHeaders'
+import { readDomainConfig } from './src/lib/sites/domainConfigFile'
 import path from 'path'
 import type { NextConfig } from 'next'
 
@@ -28,8 +29,9 @@ const nextConfig: NextConfig = {
         },
     },
     turbopack: {},
-    // The dev hosts of the other sites, see sites.example.json; the dev server refuses other origins.
-    allowedDevOrigins: ['career.localhost', 'revue.localhost'],
+    // The dev server refuses requests from hosts other than its own, so it takes the hosts of
+    // sites.json, read once at start like the app's own. Production has no such check to keep in step.
+    allowedDevOrigins: readDomainConfig().hostNames(),
 }
 
 export default nextConfig

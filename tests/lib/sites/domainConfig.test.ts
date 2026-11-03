@@ -1,5 +1,5 @@
 import { DomainConfig } from '@/lib/sites/domainConfig'
-import { readDomainConfig } from '@/lib/sites/loadDomainConfig'
+import { readDomainConfig } from '@/lib/sites/domainConfigFile'
 import { Site } from '@/lib/sites/site'
 import { describe, expect, test } from '@jest/globals'
 import { mkdtempSync, writeFileSync } from 'node:fs'
@@ -27,6 +27,11 @@ describe('DomainConfig', () => {
         expect(config.domainOfHost('Contactor.no')).toMatchObject({ host: 'contactor.no', site: 'CAREERS', main: true })
         expect(config.domainOfHost('localhost:3000')?.site).toBe('OMEGAWEB')
         expect(config.domainOfHost('evil.example')).toBeNull()
+    })
+
+    test('gives the host names without ports, once each, for the dev server', () => {
+        const config = DomainConfig.parse({ ...json, 'localhost:4000': { site: 'OMEGAWEB', protocol: 'http' } })
+        expect(config.hostNames()).toEqual(['omega.ntnu.no', 'contactor.no', 'www.contactor.no', 'localhost'])
     })
 
     test('knows each site\'s main origin, null without domains', () => {
