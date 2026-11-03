@@ -9,17 +9,17 @@ import {
     updateMainRevueInfoSectionAction,
     updateMainRevueInfoSectionsAddPartAction,
     updateMainRevueInfoSectionsRemovePartAction
-} from '@/services/revue/actions'
-import { revueOperations } from '@/services/revue/operations'
+} from '@/services/revue/frontpage/actions'
+import { revueFrontpageOperations } from '@/services/revue/frontpage/operations'
 import SpecialArticle from '@/cms/SpecialArticle/SpecialArticle'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { revueAuth } from '@/services/revue/auth'
+import { revueFrontpageAuth } from '@/services/revue/frontpage/auth'
 import { serverPage } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async () => revueOperations.mainRevueInfo.read({}),
+    operation: async () => revueFrontpageOperations.mainRevueInfo.read({}),
     capabilities: () => ({
-        canEdit: revueAuth.updateMainRevueInfo,
+        canEdit: revueFrontpageAuth.updateMainRevueInfo,
     }),
     // Absolute: the frontpage is the site, so the layout's template would read "Omegarevyen | Omegarevyen".
     metadata: () => ({ title: { absolute: 'Omegarevyen' } }),

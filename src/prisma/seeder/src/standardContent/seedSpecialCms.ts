@@ -6,7 +6,7 @@ import { articleOperations } from '@/cms/articles/operations'
 import { newStudentOperations } from '@/services/newStudent/operations'
 import { reportOperations } from '@/services/report/operations'
 import { cabinArticleOperations } from '@/services/cabin/article/operations'
-import { revueOperations } from '@/services/revue/operations'
+import { revueFrontpageOperations } from '@/services/revue/frontpage/operations'
 import { buildArticleFromConfig, CMS_PARAGRAPHS_DIR } from '@/seeder/src/buildArticleFromConfig'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
@@ -132,7 +132,7 @@ const seedSpecialCmsArticleConfig: Record<SpecialCmsArticle, SeedSpecialArticleC
         ]
     },
     MAIN_REVUE_INFO: {
-        updateOperations: revueOperations.mainRevueInfo.update,
+        updateOperations: revueFrontpageOperations.mainRevueInfo.update,
         name: 'Omegarevyen',
         coverImage: {
             image: { dynamicImageSeededForCmsName: 'ov' },

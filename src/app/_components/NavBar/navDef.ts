@@ -15,7 +15,7 @@ import { newsAuth } from '@/services/news/auth'
 import { omegaQuotesAuth } from '@/services/omegaquotes/auth'
 import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
-import { revueAuth } from '@/services/revue/auth'
+import { revueFrontpageAuth } from '@/services/revue/frontpage/auth'
 import { userAuth } from '@/services/users/auth'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
 import { bulshitAuth } from '@/services/bulshit/auth'
@@ -146,7 +146,7 @@ export const navDef: NavItem[] = [
         name: 'Omegarevyen',
         href: revueLinks.frontpage(),
         icon: faMasksTheater,
-        authorizers: () => [revueAuth.readMainRevueInfo],
+        authorizers: () => [revueFrontpageAuth.readMainRevueInfo],
     },
     {
         name: 'Hyttebooking',
