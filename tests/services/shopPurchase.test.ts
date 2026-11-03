@@ -5,6 +5,7 @@ import { purchaseOperations } from '@/services/shop/purchase/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { userOperations } from '@/services/users/operations'
+import { productOperations } from '@/services/shop/product/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 
 const STARTING_BALANCE = 100_00
@@ -127,7 +128,7 @@ describe('buying with a student card', () => {
         const purchasesBefore = await countPurchases()
 
         await expect(buy(buyer.studentCard, [{ id: chocolateId, quantity: 6 }]))
-            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+            .rejects.toThrow(new Smorekopp('INSUFFICIENT FUNDS'))
 
         expect(await balanceOf(buyer.accountId)).toBe(STARTING_BALANCE)
         expect(await balanceOf(shopAccountId)).toBe(shopBalanceBefore)
@@ -141,7 +142,7 @@ describe('buying with a student card', () => {
 
         expect(result.remainingBalance).toBe(0)
         await expect(buy(buyer.studentCard, [{ id: sodaId, quantity: 1 }]))
-            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+            .rejects.toThrow(new Smorekopp('INSUFFICIENT FUNDS'))
         expect(await balanceOf(buyer.accountId)).toBe(0)
     })
 
@@ -154,6 +155,25 @@ describe('buying with a student card', () => {
 
         expect(await balanceOf(buyer.accountId)).toBe(STARTING_BALANCE)
         expect(await countPurchases()).toBe(purchasesBefore)
+    })
+
+    test('a frozen buyer account is refused as frozen', async () => {
+        const buyer = await createBuyer('purchasefrozen')
+        await prisma.ledgerAccount.update({ where: { id: buyer.accountId }, data: { frozen: true } })
+
+        await expect(buy(buyer.studentCard, [{ id: sodaId, quantity: 1 }]))
+            .rejects.toThrow(new Smorekopp('ACCOUNT FROZEN'))
+
+        expect(await balanceOf(buyer.accountId)).toBe(STARTING_BALANCE)
+    })
+
+    test('the same product twice is refused before anything is charged', async () => {
+        const buyer = await createBuyer('purchaseduplicate')
+
+        await expect(buy(buyer.studentCard, [{ id: sodaId, quantity: 1 }, { id: sodaId, quantity: 1 }]))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+
+        expect(await balanceOf(buyer.accountId)).toBe(STARTING_BALANCE)
     })
 
     test('the owner of the card must be allowed to shop', async () => {
@@ -175,5 +195,21 @@ describe('buying with a student card', () => {
 
         expect(await balanceOf(buyer.accountId)).toBe(STARTING_BALANCE)
         expect(await countPurchases()).toBe(purchasesBefore)
+    })
+})
+
+describe('reading a product by barcode', () => {
+    test('includes its image, so the kiosk can show it', async () => {
+        const barcode = 'purchase-barcode'
+        await prisma.product.update({ where: { id: sodaId }, data: { barcode } })
+
+        const product = await productOperations.readByBarCode({
+            params: { shopId, barcode },
+            session: kioskSession,
+        })
+
+        expect(product.price).toBe(SODA_PRICE)
+        expect(product.image.id).toBe(product.imageId)
+        expect(product.image).toHaveProperty('image')
     })
 })

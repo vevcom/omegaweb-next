@@ -75,7 +75,17 @@ export const errorCodes = [
         name: 'DISSALLOWED',
         httpCode: 403,
         defaultMessage: 'Du har ikke lov til å gjøre dette',
-    }
+    },
+    {
+        name: 'INSUFFICIENT FUNDS',
+        httpCode: 422,
+        defaultMessage: 'Kontoen har ikke nok midler',
+    },
+    {
+        name: 'ACCOUNT FROZEN',
+        httpCode: 422,
+        defaultMessage: 'Kontoen er frosset',
+    },
 ] as const satisfies {
     name: string
     httpCode: number

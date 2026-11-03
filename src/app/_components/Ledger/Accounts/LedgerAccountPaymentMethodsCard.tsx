@@ -1,5 +1,6 @@
 import PaymentMethodList from '@/components/Ledger/Accounts/PaymentMethodList'
 import PaymentMethodModal from '@/components/Ledger/Modals/PaymentMethodModal'
+import DisconnectStudentCardButton from '@/components/Ledger/Accounts/DisconnectStudentCardButton'
 import { userOperations } from '@/services/users/operations'
 import BooleanIndicator from '@/components/UI/BooleanIndicator'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
@@ -39,6 +40,7 @@ export default async function LedgerAccountPaymentMethods({ userId }: Props) {
                 Dette kan gjøres på Kiogeskabet på Lophtet.
             </p>
             <p>Kortnummer: <strong>{hasStudentCard ? user.studentCard : 'ikke registrert'}</strong></p>
+            {hasStudentCard && <DisconnectStudentCardButton userId={userId} />}
         </div>
     </div>
 }
