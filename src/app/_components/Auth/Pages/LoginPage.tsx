@@ -11,7 +11,8 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 /**
  * The callbackUrl NextAuth keeps for the login in progress, as a path. NextAuth sends every sign-in
  * error to Omega's login page, the one it is configured with, so this is how a login started on
- * another site finds its way back there.
+ * another site finds its way back there. Checked like the callbackUrl parameter, since NextAuth
+ * stores whatever starts with a slash, and the continue link skips its own check.
  */
 async function pathOfLoginInProgress() {
     const store = await cookies()
@@ -19,7 +20,7 @@ async function pathOfLoginInProgress() {
     if (!stored) return null
     try {
         const url = new URL(stored, 'http://local.invalid')
-        return `${url.pathname}${url.search}`
+        return QueryParams.callbackUrl.decodeValue(`${url.pathname}${url.search}`)
     } catch {
         return null
     }
