@@ -6,24 +6,32 @@ import {
     eventRegistrationQueueOrder,
     eventRegistrationSelection,
     maxDotsForNotShowingUp,
+    REGISTRATION_READER_TYPE,
 } from './constants'
 import { eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
-import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'
+import { fixVariantPlaces, leaveOtherWaitingLists, notifyPromoted } from './fixState'
 import {
     lockEvent,
     queuedAhead,
     queuedBehind,
-    queuePosition,
     queueSegmentFilter,
-    queueSegments,
+    queueSegmentOrder,
+    registrationsOfEvent,
+    registrationsOfVariant,
+    seatedInEvent,
     untieQueue,
+    waitingInEvent,
+    waitingInVariant,
 } from './queue'
 import { dotOperations } from '@/services/dots/operations'
 import { displayDate } from '@/lib/dates/displayDate'
 import { Smorekopp } from '@/services/error'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
-import { eventOperations } from '@/services/events/operations'
+import { readEventAccess } from '@/services/events/access'
+import { eventQuotaOrder, eventVariantOrder } from '@/services/events/constants'
+import { checkVisibility } from '@/auth/visibility/checkVisibility'
+import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { paymentOperations } from '@/services/ledger/payments/operations'
@@ -32,6 +40,7 @@ import { refundOperations } from '@/services/ledger/refunds/operations'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import type { Prisma } from '@/prisma-generated-pn-types'
+import type { MembershipFiltered } from '@/services/groups/types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type {
@@ -41,12 +50,9 @@ import type {
     EventAttendanceScan,
     EventRegistrationExpanded,
     EventRegistrationNotAttended,
-    EventRegistrationWithWaitingList,
+    EventRegistrationOfUser,
 } from './types'
 
-/**
- * What the dots of a user hold them back from when registering to an event.
- */
 const readDotPunishmentOfUser = defineOperation({
     paramsSchema: eventRegistrationSchemas.params.readDotPunishmentOfUser,
     authorizer: ({ params }) => eventRegistrationAuth.readDotPunishmentOfUser.data({ userId: params.userId }),
@@ -64,91 +70,79 @@ const readDotPunishmentOfUser = defineOperation({
     }
 })
 
+// Spelled out as a union: inferred, the conditional would reduce it to the plain schema, as the
+// one with the quota is assignable to it, and the quota would be lost to the types.
+type CreateParamsSchema =
+    | typeof eventRegistrationSchemas.params.create
+    | typeof eventRegistrationSchemas.params.createAsAdmin
+
 /**
- * Registers a user to an event. Implemented twice below: as `create`, where users register
- * themselves and the registration period and their dots apply, and as `createAsAdmin`, where an
- * administrator of the event registers anyone, at any time, regardless of dots.
+ * Registers a user to a variant of an event. A user registers themselves within the registration
+ * period and held back by their dots; an administrator registers anyone, at any time, into the
+ * quota they name. Either way the registration joins the waiting list and `fixVariantPlaces`
+ * seats it if a place is free, so no one passes those already waiting.
  */
 const createRegistration = defineSubOperation({
-    paramsSchema: () => eventRegistrationSchemas.params.create,
+    paramsSchema: ({ asAdmin }: { asAdmin: boolean }): CreateParamsSchema => (asAdmin
+        ? eventRegistrationSchemas.params.createAsAdmin
+        : eventRegistrationSchemas.params.create),
     opensTransaction: true,
     operation: ({ asAdmin }: { asAdmin: boolean }) =>
-        async ({ prisma, params }): Promise<EventRegistrationWithWaitingList> =>
-            await prisma.$transaction(async tx => {
-                const event = await lockEventOpenForRegistration(tx, params.eventId, asAdmin)
-                await validateDotPunishmentOfRegistration(tx, event.registrationStart, params.userId, asAdmin)
-
-                const registration = await tx.eventRegistration.create({
-                    data: {
-                        user: {
-                            connect: {
-                                id: params.userId,
-                            },
-                        },
-                        event: {
-                            connect: {
-                                id: params.eventId,
-                            },
-                        },
-                    },
-                })
-
-                return {
-                    ...registration,
-                    onWaitingList: event._count.eventRegistrations >= event.places,
+        async ({ prisma, params, session }) => {
+            const { registration, promoted } = await prisma.$transaction(async tx => {
+                await lockEvent(tx, params.eventId)
+                const variant = await resolveVariant(tx, params.eventId, params.variantId)
+                await assertMayJoin(tx, variant, params.userId)
+                const pickedQuotaId = 'quotaId' in params && typeof params.quotaId === 'number' ? params.quotaId : null
+                if (asAdmin) {
+                    return await placeAsAdmin(tx, variant, { userId: params.userId }, pickedQuotaId)
                 }
-            }),
+                assertOpenForUser(variant, session.memberships, await delayOf(tx, params.userId))
+                return await joinVariant(tx, variant, { userId: params.userId })
+            })
+
+            await notifyPromoted(prisma, params.eventId, promoted.filter(other => other.id !== registration.id))
+            return registration
+        },
 })
 
 /**
- * Unregisters. When the registration held a place and someone queued on the waiting list, the
- * first of them takes the place and is told so once the change is saved. The event is locked
- * while the queue changes, so a registration arriving at the same time cannot be skipped.
- * Implemented twice below: as `destroy`, where users unregister themselves, within the registration
- * period and never from a binding registration, and as `destroyAsAdmin`, where an administrator of
- * the event removes any registration at any time.
+ * Unregisters, and lets `fixVariantPlaces` give the freed place on. A user unregisters within the
+ * registration period of the variant and never from a binding registration; an administrator
+ * removes any registration at any time.
  */
 const destroyRegistration = defineSubOperation({
     paramsSchema: () => eventRegistrationSchemas.params.destroy,
     opensTransaction: true,
     operation: ({ asAdmin }: { asAdmin: boolean }) =>
         async ({ prisma, params }) => {
-            const { eventId } = await prisma.eventRegistration.findUniqueOrThrow({
-                where: { id: params.registrationId },
-                select: { eventId: true },
-            })
+            const { eventId, variantId } = await registrationContext(prisma, params.registrationId)
 
             const promoted = await prisma.$transaction(async tx => {
                 await lockEvent(tx, eventId)
                 const registration = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: {
-                        id: true,
-                        eventId: true,
-                        userId: true,
-                        queuedAt: true,
-                        event: {
-                            select: { name: true, places: true, registrationEnd: true, bindingRegistration: true },
-                        },
-                    },
+                    select: { id: true, userId: true, state: true },
                 })
+                const [event, variant] = await Promise.all([
+                    tx.event.findUniqueOrThrow({ where: { id: eventId }, select: { bindingRegistration: true } }),
+                    tx.eventVariant.findUniqueOrThrow({ where: { id: variantId }, select: { registrationEnd: true } }),
+                ])
 
                 if (!asAdmin) {
-                    if (registration.event.bindingRegistration) {
+                    if (event.bindingRegistration) {
                         throw new Smorekopp(
                             'BAD PARAMETERS',
                             'Påmeldingen er bindende. Ta kontakt med arrangørene om du ikke kan komme.'
                         )
                     }
-                    if (registration.event.registrationEnd < new Date()) {
+                    if (registration.state === 'IN_QUOTA' && variant.registrationEnd < new Date()) {
                         throw new Smorekopp(
                             'BAD PARAMETERS',
                             'Du kan ikke melde deg av etter påmeldingsfristen. Ta kontakt med arrangørene.'
                         )
                     }
                 }
-
-                const heldPlace = await queuePosition(tx, registration) < registration.event.places
 
                 // A still-processing attempt (e.g. Stripe checkout open in another tab) needs
                 // handling too, not just an already-SUCCEEDED one.
@@ -187,30 +181,11 @@ const destroyRegistration = defineSubOperation({
                     }
                 }
 
-                await tx.eventRegistration.delete({
-                    where: {
-                        id: params.registrationId,
-                    },
-                })
-                if (!heldPlace) return null
-
-                // The first one past the places, now that this one is gone, has taken its place.
-                const nextInLine = await tx.eventRegistration.findFirst({
-                    where: {
-                        eventId: registration.eventId,
-                    },
-                    skip: registration.event.places - 1,
-                    orderBy: eventRegistrationQueueOrder,
-                    include: {
-                        contact: true,
-                    }
-                })
-                return nextInLine ? { event: { id: registration.eventId, name: registration.event.name }, nextInLine } : null
+                await tx.eventRegistration.delete({ where: { id: params.registrationId } })
+                return await fixVariantPlaces(tx, variantId)
             })
 
-            if (promoted) {
-                await notifyPromotedFromWaitingList(promoted.event, [promoted.nextInLine])
-            }
+            await notifyPromoted(prisma, eventId, promoted)
         },
 })
 
@@ -218,79 +193,57 @@ export const eventRegistrationOperations = {
     create: createRegistration.implement({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.create.data({
             userId: params.userId,
-            ...await eventVisibilityAndPublished(prisma, params.eventId),
+            ...await readEventAccess(prisma, params.eventId),
         }),
         ownershipCheck: () => true,
+        paramsSchemaImplementationFields: { asAdmin: false },
         operationImplementationFields: { asAdmin: false },
     }),
 
     createAsAdmin: createRegistration.implement({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.createAsAdmin.data({
-            visibility: await eventVisibility(prisma, params.eventId),
-        }),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.createAsAdmin.data(
+            await readEventAccess(prisma, params.eventId)
+        ),
         ownershipCheck: () => true,
+        paramsSchemaImplementationFields: { asAdmin: true },
         operationImplementationFields: { asAdmin: true },
     }),
 
     createGuest: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.createGuest.data({
-            visibility: await eventVisibility(prisma, params.eventId)
-        }),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.createGuest.data(
+            await readEventAccess(prisma, params.eventId)
+        ),
         paramsSchema: eventRegistrationSchemas.params.createGuest,
         dataSchema: eventRegistrationSchemas.data.createGuest,
         opensTransaction: true,
-        operation: async ({ prisma, params, data }): Promise<EventRegistrationWithWaitingList> =>
-            await prisma.$transaction(async tx => {
-                const event = await lockEventOpenForRegistration(tx, params.eventId, true)
+        operation: async ({ prisma, params, data }) => {
+            const { registration, promoted } = await prisma.$transaction(async tx => {
+                await lockEvent(tx, params.eventId)
+                const variant = await resolveVariant(tx, params.eventId, params.variantId)
+                const contact = await tx.contactDetails.create({ data: { name: data.name } })
+                return await placeAsAdmin(tx, variant, { contactId: contact.id, note: data.note }, params.quotaId ?? null)
+            })
 
-                const registration = await tx.eventRegistration.create({
-                    data: {
-                        event: {
-                            connect: {
-                                id: params.eventId,
-                            },
-                        },
-                        note: data.note,
-                        contact: {
-                            create: {
-                                name: data.name,
-                            },
-                        },
-                    },
-                })
-
-                return {
-                    ...registration,
-                    onWaitingList: event._count.eventRegistrations >= event.places,
-                }
-            }),
+            await notifyPromoted(prisma, params.eventId, promoted.filter(other => other.id !== registration.id))
+            return registration
+        },
     }),
 
     readDotPunishmentOfUser,
 
-    /**
-     * The registration of one user to one event, or null if that user is not registered. Tells
-     * whether the registration landed on the waiting list, so the one registered can be shown where
-     * they stand.
-     */
+    /** The registration of a user in a variant of an event, or null. */
     readOfUser: defineOperation({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.readOfUser({
             userId: params.userId,
-            doubleLevelMatrix: await eventVisibility(prisma, params.eventId),
+            access: await readEventAccess(prisma, params.eventId),
         }),
         paramsSchema: eventRegistrationSchemas.params.readOfUser,
-        operation: async (
-            { prisma, params }
-        ): Promise<(EventRegistrationWithWaitingList & { ledgerTransactions: { id: number }[] }) | null> => {
-            const registration = await prisma.eventRegistration.findUnique({
-                where: {
-                    eventId_userId: {
-                        eventId: params.eventId,
-                        userId: params.userId,
-                    },
-                },
+        operation: async ({ prisma, params }): Promise<EventRegistrationOfUser | null> => {
+            const variant = await resolveVariant(prisma, params.eventId, params.variantId)
+            const registration = await prisma.eventRegistration.findFirst({
+                where: { userId: params.userId, ...registrationsOfVariant(variant.id) },
                 include: {
-                    event: { select: { places: true } },
+                    quota: { select: { id: true, name: true, variantId: true } },
                     // Only need to know whether a payment exists and is still in effect, to gate
                     // the "pay for registration" UI once it's already been paid for.
                     ledgerTransactions: {
@@ -299,33 +252,24 @@ export const eventRegistrationOperations = {
                     },
                 },
             })
-            if (!registration) return null
-
-            const { event, ...rest } = registration
-            return {
-                ...rest,
-                onWaitingList: await queuePosition(prisma, registration) >= event.places,
-            }
+            return registration && { ...registration, variantId: variant.id }
         },
     }),
 
     readPage: defineOperation({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPage.data(
-            await eventVisibilityAndPublished(prisma, params.paging.details.eventId)
+            await readEventAccess(prisma, params.paging.details.eventId)
         ),
         paramsSchema: eventRegistrationSchemas.params.readPage,
         operation: async ({ prisma, params }): Promise<EventRegistrationExpanded[]> => {
-            const segment = await queueSegmentFilter(prisma, params.paging.details)
-            if (!segment) return []
-
             const defaultImage = await standardImageCollectionOperations.readStandardImage({
                 params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
             })
 
             const registrations = await prisma.eventRegistration.findMany({
                 ...cursorPagingSelection(params.paging.page),
-                where: segment,
-                orderBy: eventRegistrationQueueOrder,
+                where: queueSegmentFilter(params.paging.details),
+                orderBy: queueSegmentOrder(params.paging.details.type),
                 select: eventRegistrationSelection,
             })
 
@@ -337,50 +281,37 @@ export const eventRegistrationOperations = {
     }),
 
     readPageDetailed: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPageDetailed.data({
-            visibility: await eventVisibility(prisma, params.paging.details.eventId)
-        }),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPageDetailed.data(
+            await readEventAccess(prisma, params.paging.details.eventId)
+        ),
         paramsSchema: eventRegistrationSchemas.params.readPageDetailed,
-        operation: async ({ prisma, params }) => {
-            const segment = await queueSegmentFilter(prisma, params.paging.details)
-            if (!segment) return []
-
-            return await prisma.eventRegistration.findMany({
-                ...cursorPagingSelection(params.paging.page),
-                where: segment,
-                orderBy: eventRegistrationQueueOrder,
-                select: eventRegistrationSelectionDetailed,
-            })
-        }
+        operation: async ({ prisma, params }) => await prisma.eventRegistration.findMany({
+            ...cursorPagingSelection(params.paging.page),
+            where: queueSegmentFilter(params.paging.details),
+            orderBy: queueSegmentOrder(params.paging.details.type),
+            select: eventRegistrationSelectionDetailed,
+        }),
     }),
 
     updateNotes: defineOperation({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.updateNotes(
-            await registrationOwnerAndEventVisibility(prisma, params.registrationId)
+            await registrationOwnerAndAccess(prisma, params.registrationId)
         ),
         paramsSchema: eventRegistrationSchemas.params.updateNotes,
         dataSchema: eventRegistrationSchemas.data.updateNotes,
         operation: async ({ prisma, params, data }) => {
-            const registration = await prisma.eventRegistration.findUniqueOrThrow({
-                where: {
-                    id: params.registrationId,
-                },
-                select: {
-                    event: true,
-                },
+            const { variantId } = await registrationContext(prisma, params.registrationId)
+            const variant = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: variantId },
+                select: { registrationEnd: true },
             })
-
-            if (registration.event.registrationEnd < new Date()) {
+            if (variant.registrationEnd < new Date()) {
                 throw new Smorekopp('BAD PARAMETERS', 'Kan ikke endre påmelding etter påmeldingsfristen.')
             }
 
             return await prisma.eventRegistration.update({
-                where: {
-                    id: params.registrationId,
-                },
-                data: {
-                    note: data.note,
-                },
+                where: { id: params.registrationId },
+                data: { note: data.note },
             })
         }
     }),
@@ -397,40 +328,39 @@ export const eventRegistrationOperations = {
     }),
 
     destroyAsAdmin: destroyRegistration.implement({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.destroyAsAdmin.data({
-            visibility: (await registrationOwnerAndEventVisibility(prisma, params.registrationId)).doubleLevelMatrix,
-        }),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.destroyAsAdmin.data(
+            (await registrationOwnerAndAccess(prisma, params.registrationId)).access
+        ),
         ownershipCheck: () => true,
         operationImplementationFields: { asAdmin: true },
     }),
 
-    /**
-     * Moves a registration one step up or down the queue by trading queue times with the
-     * registration next to it. It is silent, even when it carries someone onto the places, since it
-     * mostly corrects queues that came out wrong from the migration.
-     */
+    /** Moves a registration one step up or down the waiting list of its variant by trading queue times. */
     move: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.move.data({
-            visibility: (await registrationOwnerAndEventVisibility(prisma, params.registrationId)).doubleLevelMatrix,
-        }),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.move.data(
+            (await registrationOwnerAndAccess(prisma, params.registrationId)).access
+        ),
         paramsSchema: eventRegistrationSchemas.params.move,
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
-            const { eventId } = await prisma.eventRegistration.findUniqueOrThrow({
-                where: { id: params.registrationId },
-                select: { eventId: true },
-            })
+            const { eventId, variantId } = await registrationContext(prisma, params.registrationId)
 
             await prisma.$transaction(async tx => {
                 await lockEvent(tx, eventId)
                 const registration = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: { id: true, queuedAt: true },
+                    select: { id: true, queuedAt: true, state: true },
                 })
+                if (registration.state !== 'WAITING_LIST') {
+                    throw new Smorekopp('BAD PARAMETERS', 'Bare ventelisten har en kø å flytte i.')
+                }
                 const up = params.direction === 'UP'
 
                 const neighbour = await tx.eventRegistration.findFirst({
-                    where: { eventId, ...(up ? queuedAhead(registration) : queuedBehind(registration)) },
+                    where: {
+                        ...waitingInVariant(variantId),
+                        ...(up ? queuedAhead(registration) : queuedBehind(registration)),
+                    },
                     orderBy: up
                         ? [{ queuedAt: 'desc' }, { id: 'desc' }]
                         : eventRegistrationQueueOrder,
@@ -447,7 +377,7 @@ export const eventRegistrationOperations = {
                 const behind = up ? registration : neighbour
                 // On equal times the id decides, so trading them would change nothing.
                 const times = ahead.queuedAt.getTime() === behind.queuedAt.getTime()
-                    ? await untieQueue(tx, eventId)
+                    ? await untieQueue(tx, variantId)
                     : new Map([[ahead.id, ahead.queuedAt], [behind.id, behind.queuedAt]])
                 await tx.eventRegistration.update({ where: { id: behind.id }, data: { queuedAt: times.get(ahead.id) } })
                 await tx.eventRegistration.update({ where: { id: ahead.id }, data: { queuedAt: times.get(behind.id) } })
@@ -455,20 +385,91 @@ export const eventRegistrationOperations = {
         },
     }),
 
+    /**
+     * Gives a registration a place in a quota of its variant, from the waiting list or from another
+     * quota, and lets `fixVariantPlaces` fill what it left. The administrator is held to the
+     * quota's places, not its visibility.
+     */
+    moveToQuota: defineOperation({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.moveToQuota.data(
+            (await registrationOwnerAndAccess(prisma, params.registrationId)).access
+        ),
+        paramsSchema: eventRegistrationSchemas.params.moveToQuota,
+        dataSchema: eventRegistrationSchemas.data.moveToQuota,
+        opensTransaction: true,
+        operation: async ({ prisma, params, data }) => {
+            const { eventId, variantId } = await registrationContext(prisma, params.registrationId)
+
+            const promoted = await prisma.$transaction(async tx => {
+                await lockEvent(tx, eventId)
+                const registration = await tx.eventRegistration.findUniqueOrThrow({
+                    where: { id: params.registrationId },
+                    select: { quotaId: true, userId: true },
+                })
+                const quota = await tx.eventQuota.findUniqueOrThrow({
+                    where: { id: data.quotaId },
+                    select: {
+                        variantId: true,
+                        places: true,
+                        _count: { select: { registrations: true } },
+                        variant: {
+                            select: {
+                                id: true,
+                                eventId: true,
+                                event: { select: { allowRegistrationInMultipleVariants: true } },
+                            },
+                        },
+                    },
+                })
+                if (quota.variantId !== variantId) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Kvoten hører ikke til varianten.')
+                }
+                if (registration.quotaId === data.quotaId) return []
+                if (quota._count.registrations >= quota.places) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Kvoten er full.')
+                }
+
+                await tx.eventRegistration.update({
+                    where: { id: params.registrationId },
+                    data: { state: 'IN_QUOTA', quotaId: data.quotaId, waitingListVariantId: null },
+                })
+                await leaveOtherWaitingLists(tx, quota.variant, [registration.userId])
+                const promotedByMove = await fixVariantPlaces(tx, variantId)
+
+                // The pass fills the place the registration left, from the quotas after it in order,
+                // and may take the registration itself back. Then the move did nothing.
+                const moved = await tx.eventRegistration.findUniqueOrThrow({
+                    where: { id: params.registrationId },
+                    select: { quotaId: true },
+                })
+                if (moved.quotaId !== data.quotaId) {
+                    throw new Smorekopp(
+                        'BAD PARAMETERS',
+                        'En kvote foran har ledig plass og tar påmeldingen tilbake. Fyll den plassen først.'
+                    )
+                }
+                return promotedByMove
+            })
+
+            await notifyPromoted(prisma, eventId, promoted)
+        },
+    }),
+
     /** For payments made outside the ledger, for example in person. */
     setManuallyPaid: defineOperation({
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.setManuallyPaid.data({
-            visibility: (await registrationOwnerAndEventVisibility(prisma, params.registrationId)).doubleLevelMatrix,
-        }),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.setManuallyPaid.data(
+            (await registrationOwnerAndAccess(prisma, params.registrationId)).access
+        ),
         paramsSchema: eventRegistrationSchemas.params.setManuallyPaid,
         dataSchema: eventRegistrationSchemas.data.setManuallyPaid,
         operation: async ({ prisma, params, data }) => {
-            const { event } = await prisma.eventRegistration.findUniqueOrThrow({
-                where: { id: params.registrationId },
-                select: { event: { select: { takesPayment: true } } },
+            const { variantId } = await registrationContext(prisma, params.registrationId)
+            const variant = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: variantId },
+                select: { takesPayment: true },
             })
-            if (data.manuallyPaid && !event.takesPayment) {
-                throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet tar ikke betaling.')
+            if (data.manuallyPaid && !variant.takesPayment) {
+                throw new Smorekopp('BAD PARAMETERS', 'Denne varianten tar ikke betaling.')
             }
 
             return await prisma.eventRegistration.update({
@@ -486,20 +487,15 @@ export const eventRegistrationOperations = {
     registerAttendance: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.registerAttendance,
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.registerAttendance.data({
-            visibility: await eventVisibility(prisma, params.eventId),
+            ...await readEventAccess(prisma, params.eventId),
             userId: params.registeredById,
         }),
         operation: async ({ prisma, params }): Promise<EventAttendanceScan> => {
-            const existing = await prisma.eventRegistration.findUnique({
-                where: {
-                    eventId_userId: {
-                        eventId: params.eventId,
-                        userId: params.userId,
-                    },
-                },
-                select: {
-                    id: true,
-                },
+            // With a place in several variants, the first one scanned counts.
+            const existing = await prisma.eventRegistration.findFirst({
+                where: { userId: params.userId, ...registrationsOfEvent(params.eventId) },
+                orderBy: [{ state: 'asc' }, { id: 'asc' }],
+                select: { id: true },
             })
 
             if (!existing) {
@@ -528,7 +524,7 @@ export const eventRegistrationOperations = {
         paramsSchema: eventRegistrationSchemas.params.setAttendance,
         dataSchema: eventRegistrationSchemas.data.setAttendance,
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.setAttendance.data({
-            visibility: (await registrationOwnerAndEventVisibility(prisma, params.registrationId)).doubleLevelMatrix,
+            ...(await registrationOwnerAndAccess(prisma, params.registrationId)).access,
             userId: params.registeredById,
         }),
         operation: async ({ prisma, params, data }): Promise<EventAttendanceRegistration> =>
@@ -537,27 +533,23 @@ export const eventRegistrationOperations = {
 
     readAttendanceCounts: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.readAttendanceCounts,
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readAttendanceCounts.data({
-            visibility: await eventVisibility(prisma, params.eventId),
-        }),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readAttendanceCounts.data(
+            await readEventAccess(prisma, params.eventId)
+        ),
         operation: async ({ prisma, params }): Promise<EventAttendanceCounts> =>
             await countAttendance(prisma, params.eventId),
     }),
 
-    /**
-     * The registrations on the places of the event whose user did not show up - the ones dots for
-     * not showing up go to. Guests have no user to give a dot, and the waiting list never had a
-     * place to show up to.
-     */
+    /** The registrations with a place whose user did not show up. Guests have no user to give a dot. */
     readNotAttended: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.readNotAttended,
-        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readNotAttended.data({
-            visibility: await eventVisibility(prisma, params.eventId),
-        }),
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readNotAttended.data(
+            await readEventAccess(prisma, params.eventId)
+        ),
         operation: async ({ prisma, params }): Promise<EventRegistrationNotAttended[]> => {
             const registrations = await prisma.eventRegistration.findMany({
-                where: { ...await notAttendedFilter(prisma, params.eventId), userId: { not: null } },
-                orderBy: eventRegistrationQueueOrder,
+                where: { ...notAttendedFilter(params.eventId), userId: { not: null } },
+                orderBy: queueSegmentOrder(REGISTRATION_READER_TYPE.REGISTRATIONS),
                 select: eventRegistrationNotAttendedSelection,
             })
             return registrations.flatMap(registration => (
@@ -574,7 +566,7 @@ export const eventRegistrationOperations = {
     createDot: dotOperations.internal.createInternal.implement({
         implementationParamsSchema: eventRegistrationSchemas.params.createDot,
         authorizer: async ({ implementationParams, params, prisma }) => eventRegistrationAuth.createDot.data({
-            visibility: await eventVisibility(prisma, implementationParams.eventId),
+            ...await readEventAccess(prisma, implementationParams.eventId),
             userId: params.accuserId,
         }),
         ownershipCheck: async ({ implementationParams, data, prisma }) =>
@@ -593,7 +585,7 @@ export const eventRegistrationOperations = {
         implementationParamsSchema: eventRegistrationSchemas.params.createDotsForNonattendingUsers,
         authorizer: async ({ implementationParams, params, prisma }) =>
             eventRegistrationAuth.createDotsForNonattendingUsers.data({
-                visibility: await eventVisibility(prisma, implementationParams.eventId),
+                ...await readEventAccess(prisma, implementationParams.eventId),
                 userId: params.accuserId,
             }),
         ownershipCheck: async ({ implementationParams, data, prisma }) =>
@@ -603,7 +595,7 @@ export const eventRegistrationOperations = {
                 throw new Smorekopp('BAD DATA', `Kan gi høyst ${maxDotsForNotShowingUp} prikker om gangen.`)
             }
             const eventId = implementationParams.eventId
-            if (!await allRegistered(prisma, eventId, data.userIds, await notAttendedFilter(prisma, eventId))) {
+            if (!await allRegistered(prisma, eventId, data.userIds, notAttendedFilter(eventId))) {
                 throw new Smorekopp('BAD DATA', 'Noen av brukerne møtte opp, eller hadde ikke plass på arrangementet.')
             }
         },
@@ -613,31 +605,26 @@ export const eventRegistrationOperations = {
     }),
 
     /**
-     * Pays for an existing registration: `amountFromBalance` from the payer's ledger balance, the
-     * rest via `provider`, which is only required when the balance doesn't cover the price.
+     * Pays for a registration with a place, at the price of its variant: `amountFromBalance` from
+     * the payer's ledger balance, the rest via `provider`, which is only required when the balance
+     * doesn't cover the price.
      */
     createPayment: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.createPayment,
         authorizer: ({ params }) => eventRegistrationAuth.createPayment.data({ userId: params.userId }),
         opensTransaction: true,
         operation: async ({ prisma, params, session }): Promise<{ payment: ExpandedPayment | null }> => {
-            const registration = await prisma.eventRegistration.findUnique({
-                where: {
-                    eventId_userId: {
-                        eventId: params.eventId,
-                        userId: params.userId,
-                    },
-                },
-                include: { event: true },
+            const variant = await resolveVariant(prisma, params.eventId, params.variantId)
+            const registration = await prisma.eventRegistration.findFirst({
+                where: { userId: params.userId, ...registrationsOfVariant(variant.id) },
             })
 
             if (!registration) {
                 throw new Smorekopp('NOT FOUND', 'Fant ingen påmelding å betale for.')
             }
 
-            const { event } = registration
-
-            if (!event.takesPayment || !event.price) {
+            const funds = variant.price
+            if (!variant.takesPayment || !funds) {
                 throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet krever ikke betaling.')
             }
 
@@ -645,24 +632,25 @@ export const eventRegistrationOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
             }
 
-            // Waiting-list membership is derived from queue position, as in readOfUser. Enforced
-            // here too, since the UI gate doesn't stop a direct call.
-            const position = await queuePosition(prisma, registration)
-            if (position >= event.places) {
+            // Enforced here too, since the UI gate doesn't stop a direct call.
+            if (registration.state === 'WAITING_LIST') {
                 throw new Smorekopp('BAD PARAMETERS', 'Du står på ventelisten og kan ikke betale før du får en plass.')
             }
 
             const now = new Date()
-            if (!event.paymentStart || !event.paymentEnd || now < event.paymentStart || now > event.paymentEnd) {
+            if (!variant.paymentStart || !variant.paymentEnd || now < variant.paymentStart || now > variant.paymentEnd) {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
             }
 
+            const event = await prisma.event.findUniqueOrThrow({
+                where: { id: params.eventId },
+                select: { name: true, ledgerAccountId: true },
+            })
             const destinationAccountId = event.ledgerAccountId
             if (!destinationAccountId) {
                 throw new Smorekopp('SERVER ERROR', 'Arrangementet er ikke knyttet til en konto å betale til.')
             }
 
-            const funds = event.price
             if (params.amountFromBalance > funds) {
                 throw new Smorekopp('BAD PARAMETERS', 'Beløpet fra kontosaldo kan ikke overstige prisen.')
             }
@@ -756,140 +744,175 @@ export const eventRegistrationOperations = {
 } as const
 
 /**
- * The visibility levels of one event - the regular level is what it takes to register for it, the
- * admin level what it takes to act on the registrations of everyone else.
+ * The variant a registration goes to: the one named, which must be the event's, or the event's only
+ * one. With its quotas in fill order and what the event allows.
  */
-async function eventVisibility(prisma: PrismaPossibleTransaction<false>, eventId: number) {
-    return await eventOperations.visibility.readDoubleLevelMatrixInternal({
-        params: { id: eventId },
-        prisma,
-    })
-}
-
-/**
- * The same levels, and whether the event is published: registering for a draft, or reading who is
- * registered to it, takes its admin level until it is published.
- */
-async function eventVisibilityAndPublished(prisma: PrismaPossibleTransaction<false>, eventId: number) {
-    const [visibility, event] = await Promise.all([
-        eventVisibility(prisma, eventId),
-        prisma.event.findUniqueOrThrow({
-            where: { id: eventId },
-            select: { published: true },
-        }),
-    ])
-    return { visibility, published: event.published }
-}
-
-/**
- * The same levels for the event one registration belongs to, together with the user that owns the
- * registration - null for a guest registered by an administrator.
- */
-async function registrationOwnerAndEventVisibility(
-    prisma: PrismaPossibleTransaction<false>,
-    registrationId: number
-) {
-    const registration = await prisma.eventRegistration.findUniqueOrThrow({
-        where: { id: registrationId },
-        select: { userId: true, eventId: true },
-    })
-    return {
-        userId: registration.userId,
-        doubleLevelMatrix: await eventVisibility(prisma, registration.eventId),
-    }
-}
-
-/**
- * Checks the dots of the user registering: they either delay registration or ban it.
- * @param registrationStart - The ordinary registration start of the event. A timeout counts from it.
- * @param userId - The user being registered.
- * @param isAdmin - Admins register on behalf of others, and are not held back by the dots of anyone.
- */
-async function validateDotPunishmentOfRegistration(
-    prisma: Prisma.TransactionClient,
-    registrationStart: Date,
-    userId: number,
-    isAdmin: boolean
-) {
-    if (isAdmin) return
-
-    const punishment = await readDotPunishmentOfUser({
-        params: { userId },
-        prisma,
-        bypassAuth: true,
-    })
-
-    if (punishment.type === 'ban') {
-        throw new Smorekopp('BAD PARAMETERS', 'Du har for mange prikker til å melde deg på arrangementer.')
-    }
-
-    if (punishment.type === 'none') return
-
-    const startForUser = new Date(registrationStart.getTime() + punishment.punishmentMinutes * 60 * 1000)
-
-    if (startForUser > new Date()) {
-        throw new Smorekopp(
-            'BAD PARAMETERS',
-            `Du har prikker og kan derfor først melde deg på ${displayDate(startForUser)}.`
-        )
-    }
-}
-
-/**
- * Locks the event and checks it takes a registration now. Run it in the registering transaction,
- * so two registrations cannot both take the last place.
- * @returns The event, with how many registrations it had before this one.
- */
-async function lockEventOpenForRegistration(
-    tx: Prisma.TransactionClient,
-    eventId: number,
-    isAdmin: boolean
-) {
-    await lockEvent(tx, eventId)
-    const event = await tx.event.findUniqueOrThrow({
-        where: {
-            id: eventId
-        },
-        include: {
-            _count: {
+async function resolveVariant(prisma: PrismaPossibleTransaction<false>, eventId: number, variantId: number | undefined) {
+    const variants = await prisma.eventVariant.findMany({
+        where: { eventId, ...(variantId === undefined ? {} : { id: variantId }) },
+        orderBy: eventVariantOrder,
+        select: {
+            id: true,
+            eventId: true,
+            registrationStart: true,
+            registrationEnd: true,
+            takesPayment: true,
+            price: true,
+            paymentStart: true,
+            paymentEnd: true,
+            event: { select: { waitingList: true, allowRegistrationInMultipleVariants: true } },
+            quotas: {
+                orderBy: eventQuotaOrder,
                 select: {
-                    eventRegistrations: true,
+                    id: true,
+                    places: true,
+                    visibility: { include: visibilityIncluder },
+                    _count: { select: { registrations: true } },
                 },
             },
         },
     })
+    if (variants.length === 0) {
+        throw new Smorekopp(
+            'BAD PARAMETERS',
+            variantId === undefined ? 'Arrangementet har ikke påmelding.' : 'Varianten hører ikke til arrangementet.'
+        )
+    }
+    if (variants.length > 1) {
+        throw new Smorekopp('BAD PARAMETERS', 'Arrangementet har flere varianter. Velg én.')
+    }
+    return variants[0]
+}
 
-    if (!event.takesRegistration) {
+type ResolvedVariant = Awaited<ReturnType<typeof resolveVariant>>
+
+/** A registrant, as a user or as a guest. */
+type Registrant = { userId: number } | { contactId: number, note: string }
+
+/**
+ * One registration per user per variant, and, unless the event allows it, no place in one variant
+ * while holding a place in another. The database holds these per quota and per waiting list, not
+ * across them, so they are checked here, under the event lock.
+ */
+async function assertMayJoin(tx: Prisma.TransactionClient, variant: ResolvedVariant, userId: number) {
+    const existing = await tx.eventRegistration.findFirst({
+        where: { userId, ...registrationsOfVariant(variant.id) },
+        select: { id: true },
+    })
+    if (existing) {
+        throw new Smorekopp('DUPLICATE', 'Brukeren er allerede påmeldt denne varianten av arrangementet.')
+    }
+    if (variant.event.allowRegistrationInMultipleVariants) return
+
+    const seatedElsewhere = await tx.eventRegistration.findFirst({
+        where: { userId, ...seatedInEvent(variant.eventId) },
+        select: { id: true },
+    })
+    if (seatedElsewhere) {
+        throw new Smorekopp('BAD PARAMETERS', 'Brukeren har allerede plass i en annen variant av arrangementet.')
+    }
+}
+
+/** How long the user's dots push the registration start back for them, in milliseconds; bans throw. */
+async function delayOf(tx: Prisma.TransactionClient, userId: number) {
+    const punishment = await readDotPunishmentOfUser({ params: { userId }, prisma: tx, bypassAuth: true })
+    if (punishment.type === 'ban') {
+        throw new Smorekopp('BAD PARAMETERS', 'Du har for mange prikker til å melde deg på arrangementer.')
+    }
+    return punishment.type === 'timeout' ? punishment.punishmentMinutes * 60 * 1000 : 0
+}
+
+/** The variant takes registration, is open now for the user, and has a quota they pass. */
+function assertOpenForUser(variant: ResolvedVariant, memberships: MembershipFiltered[], delayMs: number) {
+    if (!variant.quotas.some(quota => quota.places > 0)) {
         throw new Smorekopp('BAD PARAMETERS', 'Arrangementet har ikke påmelding.')
     }
-
-    if (event.registrationStart > new Date() && !isAdmin) {
-        throw new Smorekopp('BAD PARAMETERS', 'Påmeldingen har ikke åpnet ennå.')
-    }
-
-    if (event.registrationEnd < new Date() && !isAdmin) {
+    const now = Date.now()
+    const opensAt = variant.registrationStart.getTime() + delayMs
+    if (variant.registrationEnd.getTime() < now) {
         throw new Smorekopp('BAD PARAMETERS', 'Påmeldingen er stengt.')
     }
+    if (opensAt > now) {
+        throw new Smorekopp('BAD PARAMETERS', delayMs > 0
+            ? `Du har prikker og kan derfor først melde deg på ${displayDate(new Date(opensAt))}.`
+            : 'Påmeldingen har ikke åpnet ennå.')
+    }
+    if (!variant.quotas.some(quota => checkVisibility(memberships, toMatrix(quota.visibility)))) {
+        throw new Smorekopp('BAD PARAMETERS', 'Ingen av kvotene på arrangementet er åpne for deg.')
+    }
+}
 
-    if (event.places <= event._count.eventRegistrations && !event.waitingList) {
+/**
+ * Joins the waiting list of the variant and lets `fixVariantPlaces` seat the registration if a
+ * place is free. Left waiting at an event without a waiting list, it is refused instead.
+ */
+async function joinVariant(tx: Prisma.TransactionClient, variant: ResolvedVariant, registrant: Registrant) {
+    const created = await tx.eventRegistration.create({
+        data: { state: 'WAITING_LIST', waitingListVariantId: variant.id, ...registrant },
+    })
+    const promoted = await fixVariantPlaces(tx, variant.id)
+    const registration = await tx.eventRegistration.findUniqueOrThrow({ where: { id: created.id } })
+    if (registration.state === 'WAITING_LIST' && !variant.event.waitingList) {
         throw new Smorekopp('BAD PARAMETERS', 'Arrangementet er fullt.')
     }
+    return { registration, promoted }
+}
 
-    return event
+/** An administrator seats the registrant in the quota they name, or the first with a place, regardless of visibility. */
+async function placeAsAdmin(
+    tx: Prisma.TransactionClient,
+    variant: ResolvedVariant,
+    registrant: Registrant,
+    quotaId: number | null,
+) {
+    const hasPlace = (quota: ResolvedVariant['quotas'][number]) => quota._count.registrations < quota.places
+    const named = quotaId === null ? undefined : variant.quotas.find(quota => quota.id === quotaId)
+    if (quotaId !== null && !named) {
+        throw new Smorekopp('BAD PARAMETERS', 'Kvoten hører ikke til varianten.')
+    }
+    if (named && !hasPlace(named)) {
+        throw new Smorekopp('BAD PARAMETERS', 'Kvoten er full.')
+    }
+    const quota = named ?? variant.quotas.find(hasPlace)
+    if (!quota) return await joinVariant(tx, variant, registrant)
+
+    const registration = await tx.eventRegistration.create({
+        data: { state: 'IN_QUOTA', quotaId: quota.id, ...registrant },
+    })
+    await leaveOtherWaitingLists(tx, variant, ['userId' in registrant ? registrant.userId : null])
+    return { registration, promoted: await fixVariantPlaces(tx, variant.id) }
+}
+
+/** The event and variant a registration belongs to, through its quota or its waiting list, and its user. */
+async function registrationContext(prisma: PrismaPossibleTransaction<false>, registrationId: number) {
+    const registration = await prisma.eventRegistration.findUniqueOrThrow({
+        where: { id: registrationId },
+        select: {
+            userId: true,
+            waitingListVariant: { select: { id: true, eventId: true } },
+            quota: { select: { variant: { select: { id: true, eventId: true } } } },
+        },
+    })
+    const variant = registration.quota?.variant ?? registration.waitingListVariant
+    if (!variant) {
+        throw new Smorekopp('SERVER ERROR', 'Påmeldingen hører verken til en kvote eller en venteliste.')
+    }
+    return { userId: registration.userId, eventId: variant.eventId, variantId: variant.id }
+}
+
+async function registrationOwnerAndAccess(prisma: PrismaPossibleTransaction<false>, registrationId: number) {
+    const { userId, eventId } = await registrationContext(prisma, registrationId)
+    return { userId, access: await readEventAccess(prisma, eventId) }
 }
 
 async function countAttendance(
     prisma: PrismaPossibleTransaction<false>,
     eventId: number
 ): Promise<EventAttendanceCounts> {
-    const segments = await queueSegments(prisma, eventId)
-
     const [attended, total, attendedFromWaitingList] = await Promise.all([
-        prisma.eventRegistration.count({ where: { ...segments.places, attendedAt: { not: null } } }),
-        prisma.eventRegistration.count({ where: segments.places }),
-        segments.waitingList
-            ? prisma.eventRegistration.count({ where: { ...segments.waitingList, attendedAt: { not: null } } })
-            : 0,
+        prisma.eventRegistration.count({ where: { ...seatedInEvent(eventId), attendedAt: { not: null } } }),
+        prisma.eventRegistration.count({ where: seatedInEvent(eventId) }),
+        prisma.eventRegistration.count({ where: { ...waitingInEvent(eventId), attendedAt: { not: null } } }),
     ])
 
     return { attended, total, attendedFromWaitingList }
@@ -915,34 +938,24 @@ async function writeAttendance(
     })
 }
 
-/**
- * The registrations on the places of the event that were not shown up to. The waiting list never had
- * a place to show up to.
- */
-async function notAttendedFilter(
-    prisma: PrismaPossibleTransaction<false>,
-    eventId: number
-): Promise<Prisma.EventRegistrationWhereInput> {
-    const { places } = await queueSegments(prisma, eventId)
-    return { ...places, attendedAt: null }
+function notAttendedFilter(eventId: number): Prisma.EventRegistrationWhereInput {
+    return { ...seatedInEvent(eventId), attendedAt: null }
 }
 
-/**
- * Whether every one of the users is registered to the event - what makes a dot for the event
- * theirs to get - with a registration matching `where`, when given. Each user registers once per
- * event, so the count of registrations says it.
- */
+/** Whether every one of the users is registered to the event, with a registration matching `where` when given. */
 async function allRegistered(
     prisma: PrismaPossibleTransaction<false>,
     eventId: number,
     userIds: number[],
-    where: Prisma.EventRegistrationWhereInput = {}
+    where: Prisma.EventRegistrationWhereInput = registrationsOfEvent(eventId)
 ) {
     const uniqueUserIds = Array.from(new Set(userIds))
-    const registered = await prisma.eventRegistration.count({
-        where: { ...where, eventId, userId: { in: uniqueUserIds } },
+    const registered = await prisma.eventRegistration.findMany({
+        where: { ...where, userId: { in: uniqueUserIds } },
+        select: { userId: true },
+        distinct: ['userId'],
     })
-    return registered === uniqueUserIds.length
+    return registered.length === uniqueUserIds.length
 }
 
 async function eventName(prisma: PrismaPossibleTransaction<false>, eventId: number) {

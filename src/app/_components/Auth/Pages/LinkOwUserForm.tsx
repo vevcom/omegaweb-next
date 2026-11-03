@@ -4,20 +4,22 @@ import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { useState } from 'react'
+import type { Site } from '@/lib/sites'
 
 type PropTypes = {
+    site: Site,
     userId: number,
     title?: string,
 }
 
-export default function LinkOwUserForm({ userId, title = 'Koble til gammel bruker' }: PropTypes) {
+export default function LinkOwUserForm({ site, userId, title = 'Koble til gammel bruker' }: PropTypes) {
     const [feedback, setFeedback] = useState('')
 
     return <>
         <Form
             title={title}
             submitText="Send e-post"
-            action={configureAction(sendLinkFeideAccountEmailAction, { params: { userId } })}
+            action={configureAction(sendLinkFeideAccountEmailAction, { params: { userId, site } })}
             successCallback={() => {
                 setFeedback(`
                     Hvis brukeren finnes og ikke allerede er koblet til en innlogging, er det sendt

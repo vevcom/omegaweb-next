@@ -5,7 +5,7 @@ import { QueryParams } from '@/lib/queryParams/queryParams'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch } from '@fortawesome/free-solid-svg-icons'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useContext } from 'react'
 
 type PropTypes = {
@@ -14,11 +14,12 @@ type PropTypes = {
 
 export default function CompanyListFilter({ currentName }: PropTypes) {
     const { replace } = useRouter()
+    const pathname = usePathname()
     const { setDetails } = useContext(CompanyPagingContext) ?? {
         setDetails: () => {}
     }
     const setNameFilter = useDebounce((name: string) => {
-        replace(`/career/companies/?${QueryParams.companyName.encodeUrl(name)}`)
+        replace(`${pathname}?${QueryParams.companyName.encodeUrl(name)}`)
         setDetails({ name })
     }, 300)
     return (

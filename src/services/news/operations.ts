@@ -10,15 +10,11 @@ import { newsAuth } from './auth'
 import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { visibilityOperations } from '@/services/visibility/operations'
-import {
-    assertAdminLevelIsSubOfRegularLevel,
-    implementDoubleLevelVisibilityOperations
-} from '@/services/visibility/implement'
+import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { formatVevenUri } from '@/lib/urlEncoding'
-import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 const visibility = implementDoubleLevelVisibilityOperations({
@@ -56,11 +52,6 @@ export const newsOperations = {
             const { name, description, endDateTime } = data
 
             const backupEndDateTime = new Date(Date.now() + defaultNewsArticleOldCutoff * 24 * 60 * 60 * 1000)
-
-            assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: { requirements: data.visibilityRegularRequirements },
-                adminLevel: { requirements: data.visibilityAdminRequirements },
-            })
 
             return prisma.$transaction(async tx => {
                 const article = await articleOperations.create.internalCall({
@@ -119,11 +110,11 @@ export const newsOperations = {
     }),
     readCurrent: defineOperation({
         authorizer: () => newsAuth.readCurrent,
-        operation: async ({ prisma }, visibilityWhereFilter) => {
+        operation: async ({ prisma }, prismaWhereFilter) => {
             const news = await prisma.newsArticle.findMany({
                 where: {
                     endDateTime: { gte: new Date() },
-                    ...visibleNewsFilter(visibilityWhereFilter),
+                    ...prismaWhereFilter,
                 },
                 orderBy: newsArticleOrdering,
                 include: simpleNewsArticleRelationsIncluder,
@@ -134,11 +125,11 @@ export const newsOperations = {
     readOldPage: defineOperation({
         paramsSchema: newsSchemas.params.readOldPage,
         authorizer: () => newsAuth.readOldPage,
-        operation: async ({ prisma, params }, visibilityWhereFilter) => {
+        operation: async ({ prisma, params }, prismaWhereFilter) => {
             const news = await prisma.newsArticle.findMany({
                 where: {
                     endDateTime: { lt: new Date() },
-                    ...visibleNewsFilter(visibilityWhereFilter),
+                    ...prismaWhereFilter,
                 },
                 ...cursorPagingSelection(params.paging.page),
                 orderBy: newsArticleOrdering,
@@ -243,23 +234,6 @@ export const newsOperations = {
         }
     })
 } as const
-
-/**
- * The same rule as the read authorizer, as a filter over a list of news articles: published ones
- * at the regular level, drafts at the admin level.
- *
- * The visibility filter is undefined only when the session bypasses visibility with NEWS_ADMIN,
- * which administrates every article - hence no filtering at all in that case.
- */
-function visibleNewsFilter(visibilityWhereFilter: VisibilityFilter | undefined): Prisma.NewsArticleWhereInput {
-    if (!visibilityWhereFilter) return {}
-    return {
-        OR: [
-            { published: true, visibilityRegular: visibilityWhereFilter },
-            { published: false, visibilityAdmin: visibilityWhereFilter },
-        ]
-    }
-}
 
 /** Lifts the cover image out of the article, the shape the news lists and cards are built on. */
 function withCoverImage<News extends Prisma.NewsArticleGetPayload<{ include: typeof simpleNewsArticleRelationsIncluder }>>(

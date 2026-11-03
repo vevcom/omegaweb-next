@@ -5,6 +5,7 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
+import { siteUrl } from '@/lib/sites'
 import type { WeeklyDigestNotification } from './types'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
@@ -54,7 +55,7 @@ export async function sendWeeklyEmailDigest(user: UserBasicWithEmail, notificati
             html: await wrapInHTML(user, parsed.data.text),
             list: {
                 unsubscribe: {
-                    url: `${process.env.WEBSITE_URL}/users/${user.username}/notifications`,
+                    url: `${siteUrl('OMEGAWEB')}/users/${user.username}/notifications`,
                     comment: 'Varslingsinnstillinger'
                 },
             },

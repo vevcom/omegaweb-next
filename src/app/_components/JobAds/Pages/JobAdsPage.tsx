@@ -7,9 +7,11 @@ import { CompanyPagingProvider } from '@/contexts/paging/CompanyPaging'
 import CompanySelectionProvider from '@/contexts/CompanySelection'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { serverPage } from '@/app/ServerPage'
+import { sitePagesPath } from '@/lib/sites'
+import type { JobAdPagesConfig } from './jobAdPages'
 
-/** The job ads list, rendered under `basePath` on both Omega's site and the career site. */
-export const jobAdsPage = (basePath: string) => serverPage({
+/** The job ads list, rendered under the config's path on both Omega's site and the career site. */
+export const jobAdsPage = (config: JobAdPagesConfig) => serverPage({
     operation: () => ({}),
     capabilities: () => ({
         canCreate: jobAdAuth.create,
@@ -35,11 +37,11 @@ export const jobAdsPage = (basePath: string) => serverPage({
                             </CompanyPagingProvider>
                         </AddHeaderItemPopUp>
                     )}
-                    <ArchiveLink href={`${basePath}/archive`} />
+                    <ArchiveLink href={`${sitePagesPath(config)}/archive`} />
                 </div>
             }>
             <div className="row-list">
-                <CurrentJobAds basePath={basePath} />
+                <CurrentJobAds basePath={sitePagesPath(config)} />
             </div>
         </PageWrapper>
     ),

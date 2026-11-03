@@ -22,6 +22,7 @@ import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { configureAction } from '@/services/configureAction'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { serverPage } from '@/app/ServerPage'
+import { sitePagesPath } from '@/lib/sites'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faCheckCircle,
@@ -31,10 +32,11 @@ import {
     faSuitcase,
     faXmarkCircle
 } from '@fortawesome/free-solid-svg-icons'
+import type { JobAdPagesConfig } from './jobAdPages'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
-/** One job ad, rendered under `basePath` on both Omega's site and the career site. */
-export const jobAdPage = (basePath: string) => serverPage({
+/** One job ad, rendered under the config's path on both Omega's site and the career site. */
+export const jobAdPage = (config: JobAdPagesConfig) => serverPage({
     operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) =>
         jobAdOperations.read({ params: { id: decodeVevenUriHandleError(params.nameAndId) } }),
     capabilities: () => ({
@@ -173,7 +175,7 @@ export const jobAdPage = (basePath: string) => serverPage({
                 details={{ name: undefined }}
             >
                 <CompanySelectionProvider company={jobAd.company}>
-                    <EditJobAd jobAd={jobAd} basePath={basePath} />
+                    <EditJobAd jobAd={jobAd} basePath={sitePagesPath(config)} />
                 </CompanySelectionProvider>
             </CompanyPagingProvider>
         </div>

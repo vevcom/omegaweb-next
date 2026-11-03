@@ -446,7 +446,7 @@ export const userOperations = {
                 }
             }
 
-            await sendVerifyEmail(storedUser, data.email)
+            await sendVerifyEmail(storedUser, data.email, params.site)
 
             return {
                 verified: false,

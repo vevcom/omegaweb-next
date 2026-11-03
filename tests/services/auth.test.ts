@@ -258,7 +258,7 @@ describe('archived users', () => {
         await archive(user.id)
         const sentMail = recordSentMail()
 
-        await sendResetPasswordMail(user.email)
+        await sendResetPasswordMail(user.email, 'OMEGAWEB')
 
         expect(sentMail).not.toHaveBeenCalled()
     })
@@ -301,7 +301,7 @@ describe('archived users', () => {
         const activeUser = await createMigratedUser('activemigrated', false)
         const sentMail = recordSentMail()
         const claim = (usernameOrEmail: string) => authOperations.sendLinkFeideAccountEmail({
-            params: { userId: feideUser.id },
+            params: { userId: feideUser.id, site: 'OMEGAWEB' },
             data: { usernameOrEmail },
             bypassAuth: true,
         })

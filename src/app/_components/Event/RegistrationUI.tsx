@@ -11,12 +11,23 @@ import {
     updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
+import { loginHref } from '@/lib/authPaths'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import type { EventExpanded } from '@/services/events/types'
-import type { DotPunishment, EventRegistrationWithWaitingList } from '@/services/events/registration/types'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import type { EventExpanded, EventVariantSummary } from '@/services/events/types'
+import type { DotPunishment } from '@/services/events/registration/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
+import type { EventRegistration } from '@/prisma-generated-pn-types'
+
+/** Whether the viewer passes a quota of the variant, and whether one they pass has a place left. */
+export type RegistrationEligibility = {
+    passesAnyQuota: boolean,
+    placeAvailable: boolean,
+}
+
+type OwnRegistration = Pick<EventRegistration, 'id' | 'state' | 'note'>
 
 enum RegistrationButtonState {
     NOT_REGISTERED = 'NOT_REGISTERED',
@@ -33,67 +44,67 @@ enum RegistrationButtonState {
 
 export default function RegistrationUI({
     event,
+    variant,
     registration,
     dotPunishment,
+    eligibility,
     capabilities,
 }: {
-    event: EventExpanded,
-    registration: EventRegistrationWithWaitingList | null,
+    event: Pick<EventExpanded, 'id' | 'waitingList' | 'bindingRegistration'>,
+    variant: Pick<EventVariantSummary, 'id' | 'registrationStart' | 'registrationEnd' | 'takesRegistration'>,
+    registration: OwnRegistration | null,
     dotPunishment: DotPunishment | null,
+    eligibility: RegistrationEligibility,
     capabilities: CapabilitiesJsObject<'canRegister' | 'canRegisterAsAdmin' | 'canUnregisterAsAdmin'>,
 }) {
-    if (!event.takesRegistration) {
-        throw new Error('Kan bare vise påmeldingsknapp for arrangement som har påmelding')
+    if (!variant.takesRegistration) {
+        throw new Error('Kan bare vise påmeldingsknapp for en variant som har påmelding')
     }
 
-    // Dots hold the user back past the registration start of the event, so it is the delayed start
-    // that decides when the button opens - the event opens at event.registrationStart for the rest.
-    const registrationStart = dotPunishment?.type === 'timeout' ?
-        new Date(event.registrationStart.getTime() + dotPunishment.punishmentMinutes * 60 * 1000) :
-        event.registrationStart
+    // Dots push the start back for the user.
+    const delayMs = dotPunishment?.type === 'timeout' ? dotPunishment.punishmentMinutes * 60 * 1000 : 0
+    const registrationStart = new Date(variant.registrationStart.getTime() + delayMs)
 
-    const getInitialBtnState = (ownRegistration: EventRegistrationWithWaitingList | null) => {
+    const getInitialBtnState = (ownRegistration: OwnRegistration | null) => {
         if (ownRegistration) {
-            return ownRegistration.onWaitingList ?
-                RegistrationButtonState.ON_WAITING_LIST :
-                RegistrationButtonState.REGISTERED
+            return ownRegistration.state === 'WAITING_LIST'
+                ? RegistrationButtonState.ON_WAITING_LIST
+                : RegistrationButtonState.REGISTERED
         }
         if (dotPunishment?.type === 'ban') {
             return RegistrationButtonState.BANNED_BY_DOTS
         }
-        // The regular visibility level of the event decides who may register for it at all.
-        if (!capabilities.canRegister.authorized) {
+        if (!capabilities.canRegister.authorized || !eligibility.passesAnyQuota) {
             return RegistrationButtonState.NOT_ALLOWED
         }
         if (registrationStart > new Date()) {
             return RegistrationButtonState.REGISTRATION_NOT_OPEN
         }
-        if (event.numOfRegistrations >= event.places) {
-            if (event.waitingList) {
-                return RegistrationButtonState.WAITING_LIST_OPEN
-            }
-            return RegistrationButtonState.FULL
-        }
-        if (event.registrationEnd < new Date()) {
+        if (variant.registrationEnd < new Date()) {
             return RegistrationButtonState.REGISTRATION_CLOSED
+        }
+        if (!eligibility.placeAvailable) {
+            return event.waitingList ? RegistrationButtonState.WAITING_LIST_OPEN : RegistrationButtonState.FULL
         }
         return RegistrationButtonState.NOT_REGISTERED
     }
 
     const [errorText, setErrorText] = useState('')
-    const [registrationState, setRegistrationState] = useState<EventRegistrationWithWaitingList | null>(registration)
+    const [registrationState, setRegistrationState] = useState<OwnRegistration | null>(registration)
 
     const [btnState, setBtnState] = useState(getInitialBtnState(registration))
     const [btnPending, setBtnPending] = useState(false)
     const [btnKey, setBtnKey] = useState(1)
 
     const session = useSession()
+
+    const pathname = usePathname()
     // The rest of the page, such as the payment section, is rendered on the server from the
     // registration, so it is refreshed once the registration changes.
     const { refresh } = useRouter()
 
     useEffect(() => {
-        const timeUntilRegistration = registrationStart.getTime() - (new Date()).getTime()
+        const timeUntilRegistration = registrationStart.getTime() - Date.now()
         let timeoutId: ReturnType<typeof setTimeout>
         if (timeUntilRegistration > 0) {
             timeoutId = setTimeout(() => {
@@ -109,7 +120,7 @@ export default function RegistrationUI({
     })
 
     if (!session.data) {
-        return <>Logg inn for å melde deg på</>
+        return <Link href={loginHref(pathname)}>Logg inn for å melde deg på</Link>
     }
 
     const userId = session.data.user.id
@@ -123,6 +134,7 @@ export default function RegistrationUI({
             params: {
                 userId,
                 eventId: event.id,
+                variantId: variant.id,
             }
         })
 
@@ -193,9 +205,11 @@ export default function RegistrationUI({
         btnState === RegistrationButtonState.ON_WAITING_LIST
     const mayRegister = btnState === RegistrationButtonState.NOT_REGISTERED ||
         btnState === RegistrationButtonState.WAITING_LIST_OPEN
-    // A binding registration, or one past the deadline, is only taken back by those who administrate
-    // the event.
-    const registrationClosed = event.registrationEnd < new Date()
+    // A place is given up within the registration period; the waiting list is left at any time. A
+    // binding registration, or one past the deadline, is only taken back by those who administrate
+    // the event. The note, though, closes with the deadline for everyone registered.
+    const deadlinePassed = variant.registrationEnd < new Date()
+    const registrationClosed = registrationState?.state === 'IN_QUOTA' && deadlinePassed
     const mayUnregister = isRegistered && !event.bindingRegistration && !registrationClosed
 
     const confirmation = () => {
@@ -284,7 +298,7 @@ export default function RegistrationUI({
             </p>
         )}
 
-        {registrationState && !registrationClosed && <Form
+        {registrationState && !deadlinePassed && <Form
             action={configureAction(
                 updateEventRegistrationNotesAction,
                 { params: { registrationId: registrationState.id } }
