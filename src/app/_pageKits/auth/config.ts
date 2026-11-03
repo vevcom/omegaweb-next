@@ -1,7 +1,7 @@
-import type { SitePages } from '@/lib/sites/defineLinks'
+import type { PagesMount } from '@/lib/sites/defineLinks'
 
-/** How a site renders the sign in and sign up flow. Its pages sit at the site's root, so `path` is ''. */
-export type AuthPagesConfig = SitePages & {
+/** How a site renders the sign in and sign up flow. Its pages sit at the site's root, so `mountPath` is ''. */
+export type AuthPagesConfig = PagesMount & {
     /** What the sign up welcomes the user to. */
     siteName: string,
     /** Where a login lands when there is no page to come back to, relative to the site's root. '' is the frontpage. */

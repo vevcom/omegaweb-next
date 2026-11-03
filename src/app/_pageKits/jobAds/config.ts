@@ -1,7 +1,7 @@
-import type { SitePages } from '@/lib/sites/defineLinks'
+import type { PagesMount } from '@/lib/sites/defineLinks'
 
 /**
- * How a site renders the job ad pages: the current job ads at the config's path, the archive at
- * `${path}/archive` and one job ad at `${path}/[nameAndId]`. Both sites show the same job ads.
+ * How a site renders the job ad pages: the current job ads at the mount path, the archive at
+ * `${mountPath}/archive` and one job ad at `${mountPath}/[nameAndId]`. Both sites show the same job ads.
  */
-export type JobAdPagesConfig = SitePages
+export type JobAdPagesConfig = PagesMount

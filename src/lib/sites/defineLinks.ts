@@ -2,17 +2,18 @@ import { Site } from './site'
 import type { SiteName } from './site'
 
 /**
- * A set of pages served under one path of a site. A page kit's config extends this with what its
- * pages need, and each implementation of the kit declares its config next to its pages. The site
+ * Where a set of pages is mounted in the router: on which site, and at which path under that site's
+ * root. A page kit's config extends this with what its pages need, and each implementation of the
+ * kit declares its config next to its pages; a site's own pages are mounted at its root. The site
  * is carried by name, since a config is plain data that passes to client components.
  */
-export type SitePages = {
+export type PagesMount = {
     site: SiteName,
-    /** Where on the site the pages live, relative to the site's root. */
-    path: string,
+    /** Where under the site's root the pages are mounted. '' for the root itself. */
+    mountPath: string,
 }
 
-/** The href of a page under the kit's path: a sub path, with a query string when given. */
+/** The href of a page under the mount: a sub path, with a query string when given. */
 export type Href = (subPath?: string, query?: string | null) => string
 
 /**
@@ -21,11 +22,11 @@ export type Href = (subPath?: string, query?: string | null) => string
  * the url. A config is plain data and passes to client components, where functions cannot, so
  * components take the config and call the kit's links function themselves.
  */
-export function defineLinks<Config extends SitePages, Links>(
+export function defineLinks<Config extends PagesMount, Links>(
     define: (href: Href, config: Config) => Links,
 ): (config: Config) => Links {
     return config => {
-        const base = Site.of(config.site).pagesPath(config.path)
+        const base = Site.of(config.site).pagesPath(config.mountPath)
         // The root of the site at the root of the app is '', which is no href.
         return define((subPath = '', query) => `${`${base}${subPath}` || '/'}${query ? `?${query}` : ''}`, config)
     }

@@ -124,7 +124,8 @@ export default function RegistrationUI({
     })
 
     if (!session.data) {
-        return <Link href={authLinks(config.auth).login(eventLinks(config).event(event))}>Logg inn for å melde deg på</Link>
+        const loginHref = authLinks(config.authPages).login(eventLinks(config).event(event))
+        return <Link href={loginHref}>Logg inn for å melde deg på</Link>
     }
 
     const userId = session.data.user.id

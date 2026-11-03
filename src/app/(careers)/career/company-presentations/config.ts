@@ -7,8 +7,8 @@ import type { EventPagesConfig } from '@/pageKits/events/config'
  */
 export const companyPresentationPages: EventPagesConfig = {
     site: 'CAREERS',
-    path: '/company-presentations',
+    mountPath: '/company-presentations',
     titles: { current: 'Bedriftspresentasjoner', archive: 'Tidligere bedriftspresentasjoner' },
     lockedTag: 'COMPANY_PRESENTATION',
-    auth: careersAuthPages,
+    authPages: careersAuthPages,
 }

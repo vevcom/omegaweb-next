@@ -1,7 +1,7 @@
 import { omegaPages } from './config'
 import { defineLinks } from '@/lib/sites/defineLinks'
 import { formatVevenUri } from '@/lib/urlEncoding'
-import type { SitePages } from '@/lib/sites/defineLinks'
+import type { PagesMount } from '@/lib/sites/defineLinks'
 
 /** The pages of Omega's site that the kits, the other sites and the services link to. */
 export type OmegaLinks = {
@@ -14,7 +14,7 @@ export type OmegaLinks = {
     omegaquotes: () => string,
 }
 
-export const omegaLinks: OmegaLinks = defineLinks<SitePages, OmegaLinks>(href => ({
+export const omegaLinks: OmegaLinks = defineLinks<PagesMount, OmegaLinks>(href => ({
     frontpage: () => href(),
     committee: committee => href(`/committees/${committee.shortName}`),
     user: user => href(`/users/${user.username}`),

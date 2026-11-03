@@ -3,7 +3,7 @@ import type { AuthPagesConfig } from '@/pageKits/auth/config'
 /** The sign in and sign up flow on the revue site: the same account as on Omega's site, landing on the frontpage. */
 export const revueAuthPages: AuthPagesConfig = {
     site: 'REVUE',
-    path: '',
+    mountPath: '',
     siteName: 'Omegarevyen',
     afterLoginPath: '',
     afterLogoutPath: '',
