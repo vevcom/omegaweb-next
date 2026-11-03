@@ -4,11 +4,10 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 /**
  * Returns a debounced setter that writes a search to the `search` query param, keeping the page's
- * other params. By default the page renders again on the server and filters there. With `shallow`
- * only the URL changes, for pages that filter on the client and read the param with
- * `useSearchParams`, since a server render would reset their client state.
+ * other params. The page reads it back from `searchParams`, whether through `useSearchParams` on
+ * the client or through its own server-rendered `operation`.
  */
-export function useSearchQueryParam({ shallow = false }: { shallow?: boolean } = {}): (search: string) => void {
+export function useSearchQueryParam(): (search: string) => void {
     const { replace } = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
@@ -19,7 +18,6 @@ export function useSearchQueryParam({ shallow = false }: { shallow?: boolean } =
         else params.delete(QueryParams.search.name)
         const query = params.toString()
         const url = query ? `${pathname}?${query}` : pathname
-        if (shallow) window.history.replaceState(null, '', url)
-        else replace(url, { scroll: false })
+        replace(url, { scroll: false })
     }, 300)
 }

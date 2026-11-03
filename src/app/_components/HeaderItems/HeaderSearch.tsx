@@ -9,7 +9,6 @@ import type { ChangeEvent } from 'react'
 type PropTypes = {
     defaultValue: string,
     label?: string,
-    shallow?: boolean,
 }
 
 /**
@@ -17,10 +16,10 @@ type PropTypes = {
  * input in the row. On mobile there is no room for that, so it is an icon pill that opens a
  * full-width input under the others.
  */
-export default function HeaderSearch({ defaultValue, label = 'Søk', shallow }: PropTypes) {
+export default function HeaderSearch({ defaultValue, label = 'Søk' }: PropTypes) {
     const [value, setValue] = useState(defaultValue)
     const [open, setOpen] = useState(defaultValue !== '')
-    const setSearch = useSearchQueryParam({ shallow })
+    const setSearch = useSearchQueryParam()
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         setValue(event.target.value)

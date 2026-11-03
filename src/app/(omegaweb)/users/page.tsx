@@ -19,9 +19,8 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Brukere' }),
     render: ({ data, capabilities }) => (
-        // The list filters on the client, so the search only updates the URL and UserList follows it.
         <UserListFiltersProvider>
-            <PageWrapper fillHeight search={{ value: data.search, label: 'Søk etter navn', shallow: true }} headerItem={
+            <PageWrapper fillHeight search={{ value: data.search, label: 'Søk etter navn' }} headerItem={
                 <div className="
                     flex items-center justify-end w-full gap-2
                     max-mobile:justify-between
