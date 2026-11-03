@@ -1,4 +1,4 @@
-import { defineLinks } from '@/pageKits/defineLinks'
+import { defineLinks } from '@/lib/sites/defineLinks'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import type { AuthPagesConfig } from './config'
 

@@ -1,4 +1,4 @@
-import type { SitePages } from '@/lib/sites'
+import type { SitePages } from '@/lib/sites/sites'
 
 /**
  * How a site renders the job ad pages: the current job ads at the config's path, the archive at

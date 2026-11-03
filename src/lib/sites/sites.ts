@@ -10,21 +10,22 @@ export const sites = {
     REVUE: { basePath: '/revue' },
 } as const satisfies Record<Site, { basePath: string }>
 
+/** The site at the root of the app. Its domains also serve the other sites, under their base paths. */
+export const ROOT_SITE: Site = 'OMEGAWEB'
+
 /** The site a path belongs to: the one whose base path starts it, or Omega's, which serves the rest. */
 export function siteOfPath(path: string): Site {
     const site = siteSchema.options.find(candidate => {
         const base = sites[candidate].basePath
         return base !== '' && (path === base || path.startsWith(`${base}/`) || path.startsWith(`${base}?`))
     })
-    return site ?? 'OMEGAWEB'
+    return site ?? ROOT_SITE
 }
 
-/**
- * An href of a page on `site` as a link from outside the app, in emails and notifications. The
- * career site gets its own origin here once contactor.no proxies to it.
- */
-export function publicUrl(site: Site, href: string): string {
-    return `${process.env.WEBSITE_URL}${href}`
+/** An app path of a page on `site` as the site's own domain serves it: without the site's base path. */
+export function pathOnSite(site: Site, href: string): string {
+    const rest = href.slice(sites[site].basePath.length)
+    return rest === '' || rest.startsWith('?') || rest.startsWith('#') ? `/${rest}` : rest
 }
 
 /**

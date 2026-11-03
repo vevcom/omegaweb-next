@@ -1,5 +1,5 @@
-import { sitePagesPath } from '@/lib/sites'
-import type { SitePages } from '@/lib/sites'
+import { sitePagesPath } from './sites'
+import type { SitePages } from './sites'
 
 /** The href of a page under the kit's path: a sub path, with a query string when given. */
 export type Href = (subPath?: string, query?: string | null) => string

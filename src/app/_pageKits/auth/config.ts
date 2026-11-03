@@ -1,4 +1,4 @@
-import type { SitePages } from '@/lib/sites'
+import type { SitePages } from '@/lib/sites/sites'
 
 /** How a site renders the sign in and sign up flow. Its pages sit at the site's root, so `path` is ''. */
 export type AuthPagesConfig = SitePages & {

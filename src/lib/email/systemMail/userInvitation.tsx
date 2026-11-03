@@ -4,9 +4,9 @@ import { generateVerifyEmailJWT } from './verifyEmailToken'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { UserInvitationTemplate } from '@/lib/email/templates/userInvitation'
 import logger from '@/lib/logger'
-import { publicUrl } from '@/lib/sites'
+import { publicUrl } from '@/lib/sites/domains'
 import { authLinks } from '@/pageKits/auth/links'
-import { authPagesOfSite } from '@/lib/authPagesOfSite'
+import { authPagesOfSite } from '@/lib/sites/authPagesOfSite'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
 /**

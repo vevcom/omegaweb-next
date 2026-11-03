@@ -1,4 +1,4 @@
-import { defineLinks } from '@/pageKits/defineLinks'
+import { defineLinks } from '@/lib/sites/defineLinks'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import type { EventPagesConfig } from './config'

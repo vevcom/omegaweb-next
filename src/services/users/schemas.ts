@@ -2,7 +2,7 @@ import { Zpn } from '@/lib/fields/zpn'
 import { imageDataFieldSchemas } from '@/services/images/subservice/schemas'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Sex, RelationshipStatus, Theme } from '@/prisma-generated-pn-types'
-import { siteSchema } from '@/lib/sites'
+import { siteSchema } from '@/lib/sites/sites'
 import { z } from 'zod'
 
 export const userDataFieldSchemas = z.object({

@@ -5,7 +5,7 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
-import { publicUrl } from '@/lib/sites'
+import { publicUrl } from '@/lib/sites/domains'
 import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import type { WeeklyDigestNotification } from './types'
 import type { UserBasicWithEmail } from '@/services/users/types'

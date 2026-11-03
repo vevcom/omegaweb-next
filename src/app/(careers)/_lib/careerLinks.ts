@@ -1,5 +1,5 @@
-import { defineLinks } from '@/pageKits/defineLinks'
-import type { SitePages } from '@/lib/sites'
+import { defineLinks } from '@/lib/sites/defineLinks'
+import type { SitePages } from '@/lib/sites/sites'
 
 /** The career site itself, which its own pages are relative to. */
 export const careerPages: SitePages = { site: 'CAREERS', path: '' }

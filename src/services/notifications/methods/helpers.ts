@@ -2,7 +2,8 @@ import {
     allNotificationMethodsOff,
     notificationMethodsArray,
 } from '@/services/notifications/constants'
-import { publicUrl, siteOfPath } from '@/lib/sites'
+import { siteOfPath } from '@/lib/sites/sites'
+import { publicUrl } from '@/lib/sites/domains'
 import type { NotificationMethodGeneral } from '@/services/notifications/types'
 import type { UserBasic } from '@/services/users/types'
 

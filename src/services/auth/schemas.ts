@@ -1,5 +1,5 @@
 import { userDataFieldSchemas, userSchemas } from '@/services/users/schemas'
-import { siteSchema } from '@/lib/sites'
+import { siteSchema } from '@/lib/sites/sites'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({

@@ -1,5 +1,5 @@
-import { defineLinks } from '@/pageKits/defineLinks'
-import type { SitePages } from '@/lib/sites'
+import { defineLinks } from '@/lib/sites/defineLinks'
+import type { SitePages } from '@/lib/sites/sites'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
 /** The revue site itself, which its own pages are relative to. */

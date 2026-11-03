@@ -1,6 +1,6 @@
 import '@pn-server-only'
 
-import { publicUrl } from '@/lib/sites'
+import { publicUrl } from '@/lib/sites/domains'
 import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import { Html } from '@react-email/components'
 import type { UserBasic } from '@/services/users/types'

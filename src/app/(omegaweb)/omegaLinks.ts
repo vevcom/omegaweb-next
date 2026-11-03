@@ -1,6 +1,6 @@
-import { defineLinks } from '@/pageKits/defineLinks'
+import { defineLinks } from '@/lib/sites/defineLinks'
 import { formatVevenUri } from '@/lib/urlEncoding'
-import type { SitePages } from '@/lib/sites'
+import type { SitePages } from '@/lib/sites/sites'
 
 /** Omega's site itself, which its own pages are relative to. */
 export const omegaPages: SitePages = { site: 'OMEGAWEB', path: '' }

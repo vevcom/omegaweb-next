@@ -4,11 +4,11 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'
 import { generateJWT } from '@/jwt/jwt'
 import { userOperations } from '@/services/users/operations'
-import { publicUrl } from '@/lib/sites'
+import { publicUrl } from '@/lib/sites/domains'
 import { authLinks } from '@/pageKits/auth/links'
-import { authPagesOfSite } from '@/lib/authPagesOfSite'
+import { authPagesOfSite } from '@/lib/sites/authPagesOfSite'
 import { z } from 'zod'
-import type { Site } from '@/lib/sites'
+import type { Site } from '@/lib/sites/sites'
 
 // TODO: This function should not be in lib! It is highly coupled to the project.
 

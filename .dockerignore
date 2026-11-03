@@ -32,3 +32,6 @@ Dockerfile
 
 # generated prisma client(s)
 generated
+
+# the domains of the sites are mounted at runtime, never baked in
+sites.json
