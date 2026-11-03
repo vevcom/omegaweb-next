@@ -1,13 +1,18 @@
 import CareersWordmark from './CareersWordmark'
+import CareersLoginLink from './CareersLoginLink'
 import { CAREER_PATH } from '@/app/(careers)/_lib/careersSite'
 import { innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
+import { authPath } from '@/lib/authPaths'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 
 type PropTypes = {
     links: { name: string, href: string }[],
+    loggedIn: boolean,
+    /** Whether the visitor has a place on Omega's own site: a member of Omega, not den gemene hob. */
+    showOmegaLink: boolean,
 }
 
 const linkClassName = `
@@ -16,12 +21,19 @@ const linkClassName = `
     hover:no-underline hover:border-careers-accent
 `
 
+const mutedLinkClassName = `
+    ${linkClassName}
+    text-text-muted
+    hover:text-careers-navy
+    [&_svg]:size-[0.8em] [&_svg]:text-inherit
+`
+
 /**
- * The career site's navigation: the wordmark, the links, and the way back to Omega's site. The edit
- * mode switch is there for those who may edit the CMS content of the pages - it renders nothing
- * for everyone else.
+ * The career site's navigation: the wordmark, the links, the way over to Omega's site for its
+ * members, and the login or logout. The edit mode switch is there for those who may edit the CMS
+ * content of the pages - it renders nothing for everyone else.
  */
-export default function CareersNavBar({ links }: PropTypes) {
+export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTypes) {
     return (
         <header className="sticky top-0 z-3 bg-surface-raised border-b border-careers-line">
             <nav className={`
@@ -45,18 +57,18 @@ export default function CareersNavBar({ links }: PropTypes) {
                         </li>
                     ))}
                     <li className="
-                        ml-4 pl-6 border-l border-careers-line
+                        flex items-center gap-6 ml-4 pl-6 border-l border-careers-line
                         max-mobile:ml-0 max-mobile:pl-0 max-mobile:border-l-0
                     ">
-                        <Link href="/" className={`
-                            ${linkClassName}
-                            text-text-muted
-                            hover:text-careers-navy
-                            [&_svg]:size-[0.8em] [&_svg]:text-inherit
-                        `}>
-                            <FontAwesomeIcon icon={faArrowLeft} />
-                            <span>Tilbake til Omegaveven</span>
-                        </Link>
+                        {showOmegaLink && (
+                            <Link href="/" className={mutedLinkClassName}>
+                                <FontAwesomeIcon icon={faArrowLeft} />
+                                <span>Til Omegaveven</span>
+                            </Link>
+                        )}
+                        {loggedIn
+                            ? <Link href={authPath('CAREERS', 'logout')} className={mutedLinkClassName}>Logg ut</Link>
+                            : <CareersLoginLink className={mutedLinkClassName} />}
                     </li>
                 </ul>
                 <div className="

@@ -9,11 +9,12 @@ import { eventRegistrationOperations } from '@/services/events/registration/oper
 import { omegaIdOperations } from '@/services/omegaid/operations'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { serverPage } from '@/app/ServerPage'
+import { sitePagesPath } from '@/lib/sites'
 import { notFound } from 'next/navigation'
 import type { EventPagesConfig } from './eventPages'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
-/** Taking attendance at one event, rendered under `${config.basePath}/[nameAndId]/attendance` on both sites. */
+/** Taking attendance at one event, rendered under `${path}/[nameAndId]/attendance` on both sites. */
 export const eventAttendancePage = (config: EventPagesConfig) => serverPage({
     // readAttendanceCounts is what keeps those not administrating the event off the page.
     operation: async ({ params, session }: PageOperationArgs<{ nameAndId: string }>) => {
@@ -39,7 +40,7 @@ export const eventAttendancePage = (config: EventPagesConfig) => serverPage({
         <AttendanceCountsProvider initialCounts={data.counts}>
             <PageWrapper headerItem={
                 <div className="flex justify-between items-center w-full gap-[1em]">
-                    <BackLink href={eventHref(config.basePath, data.event)} label={data.event.name} />
+                    <BackLink href={eventHref(sitePagesPath(config), data.event)} label={data.event.name} />
                     <AttendanceCountsPill />
                 </div>
             }>

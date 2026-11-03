@@ -15,7 +15,6 @@ export const connectEventToLedgerAccountAction = makeAction(eventOperations.conn
 export const updateEventParagraphContentAction = makeAction(eventOperations.updateParagraphContent)
 export const updateEventCmsCoverImageAction = makeAction(eventOperations.updateCmsCoverImage)
 
-export const updateEventRegularLevelVisibilityAction = makeAction(eventOperations.visibility.updateRegularLevel)
-export const updateEventAdminLevelVisibilityAction = makeAction(eventOperations.visibility.updateAdminLevel)
+export const updateEventAdminVisibilityAction = makeAction(eventOperations.adminVisibility.update)
 
 export const searchEventsAction = makeAction(eventOperations.search)

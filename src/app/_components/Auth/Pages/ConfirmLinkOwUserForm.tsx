@@ -7,6 +7,7 @@ import { useState } from 'react'
 
 type PropTypes = {
     token: string,
+    loginPath: string,
     linkRequest: {
         targetUsername: string,
         feideName: string,
@@ -14,7 +15,7 @@ type PropTypes = {
     },
 }
 
-export default function ConfirmLinkOwUserForm({ token, linkRequest }: PropTypes) {
+export default function ConfirmLinkOwUserForm({ token, loginPath, linkRequest }: PropTypes) {
     const [linked, setLinked] = useState(false)
 
     if (linked) {
@@ -24,7 +25,7 @@ export default function ConfirmLinkOwUserForm({ token, linkRequest }: PropTypes)
                 Feide-innloggingen er nå koblet til den gamle brukeren din.
                 Logg inn med Feide på nytt for å fortsette registreringen.
             </p>
-            <Link href="/login">Til innlogging</Link>
+            <Link href={loginPath}>Til innlogging</Link>
         </>
     }
 

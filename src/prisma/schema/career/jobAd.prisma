@@ -6,12 +6,6 @@ enum JobType {
   OTHER
 }
 
-enum CompanySponsorTier {
-  MAIN
-  SPONSOR
-  NONE
-}
-
 model JobAd {
   id                  Int          @id @default(autoincrement())
   article             Article      @relation(fields: [articleId, articleName], references: [id, name], onDelete: Cascade)
@@ -24,26 +18,10 @@ model JobAd {
   location            String?
   applicationDeadline DateTime?
   active              Boolean      @default(true)
-  rollingDueDate      Boolean      @default(false) 
+  rollingDueDate      Boolean      @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([articleId, articleName])
-}
-
-model Company {
-  id          Int                @id @default(autoincrement())
-  name        String             @unique
-  description String
-  logo        CmsImage           @relation(fields: [logoId], references: [id])
-  logoId      Int                @unique
-  website     String?
-  sponsorTier CompanySponsorTier @default(NONE)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  JobAd     JobAd[]
-
-  @@index([sponsorTier])
 }

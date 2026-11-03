@@ -6,18 +6,20 @@ import Checkbox from '@/components/UI/Checkbox'
 import { SelectString } from '@/components/UI/Select'
 import TextInput from '@/components/UI/TextInput'
 import { sexConfig } from '@/services/users/constants'
+import { authPath } from '@/lib/authPaths'
 import { Sex, type User } from '@/prisma-generated-pn-types'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
+import type { AuthPagesConfig } from './authPages'
 
-export default function RegistrationForm({
-    userData,
-    callbackUrl,
-}: {
+type PropTypes = {
+    config: AuthPagesConfig,
     userData: Pick<User, 'id' | 'username' | 'allergies' | 'sex'>,
     callbackUrl: string,
-}) {
+}
+
+export default function RegistrationForm({ config, userData, callbackUrl }: PropTypes) {
     const [lastPassword, setLastPassword] = useState('')
     const [sexValue, setSexValue] = useState<Sex | undefined>(userData.sex ?? undefined)
 
@@ -47,6 +49,7 @@ export default function RegistrationForm({
             value={sexValue}
             onChange={(e) => setSexValue(e as Sex)} />
         <Checkbox label="Jeg samtykker til å bli tatt bilde av" name="imageConsent" />
+        {config.accountNotice && <p className="p-2 border-l-3 border-accent-blue">{config.accountNotice}</p>}
         <Checkbox name="acceptedTerms">
             <span>
                 Jeg godtar&nbsp;
@@ -56,7 +59,7 @@ export default function RegistrationForm({
                     half-filled form standing.
                 */}
                 <Link
-                    href="/terms"
+                    href={authPath(config.site, 'terms')}
                     target="_blank"
                     onClick={event => event.stopPropagation()}
                 >vilkårene og personvernerklæringen</Link>

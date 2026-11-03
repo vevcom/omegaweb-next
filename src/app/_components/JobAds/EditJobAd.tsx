@@ -1,6 +1,7 @@
 'use client'
 import SelectedCompany from './SelectedCompany'
 import CompanyChooser from './CompanyChooser'
+import { jobAdHref } from './Pages/jobAdPages'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
@@ -14,7 +15,6 @@ import useEditMode from '@/hooks/useEditMode'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { configureAction } from '@/services/configureAction'
-import { formatVevenUri } from '@/lib/urlEncoding'
 import { useContext, type ReactNode } from 'react'
 import type { ExpandedJobAd } from '@/services/careers/jobAds/types'
 
@@ -65,9 +65,7 @@ export default function EditJobAd({ jobAd, basePath, children }: PropTypes) {
                 ">
                     <Form
                         action={updateAction}
-                        navigateOnSuccess={(data) =>
-                            `${basePath}/${data ? formatVevenUri(data.articleName, data.id) : ''}`
-                        }
+                        navigateOnSuccess={data => (data ? jobAdHref(basePath, data) : basePath)}
                         submitText="Oppdater"
                     >
                         <Textarea

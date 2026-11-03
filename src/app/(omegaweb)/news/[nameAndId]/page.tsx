@@ -15,6 +15,7 @@ import {
 } from '@/services/news/actions'
 import { newsOperations } from '@/services/news/operations'
 import SlideInOnView from '@/components/SlideInOnView/SlideInOnView'
+import DraftBanner from '@/components/UI/DraftBanner'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { configureAction } from '@/services/configureAction'
 import { newsAuth } from '@/services/news/auth'
@@ -47,7 +48,10 @@ const { page, generateMetadata } = serverPage({
         const { news, doubleLevelVisibility } = data
 
         return (
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-2">
+                {!news.published && <DraftBanner>
+                    Nyheten er ikke publisert. Bare de som administrerer den ser den. Publiser den nederst på siden.
+                </DraftBanner>}
                 <Article
                     capabilities={capabilities}
                     articleClassName="bg-surface-base grow"

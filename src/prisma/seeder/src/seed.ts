@@ -28,6 +28,7 @@ import { seedCompanies } from './standardContent/seedCompanies'
 import { seedInterestGroups } from './standardContent/seedInterestGroups'
 import { seedDevBulshit } from './development/seedDevBulshit'
 import { seedDevArticleCategories } from './development/seedDevArticleCategories'
+import { seedDevCareersTeam } from './development/seedDevCareersTeam'
 import { createTimedStep } from './timedStep'
 
 /**
@@ -72,6 +73,7 @@ export default async function seed({ devData, logging = true }: { devData: boole
         await step('Seeding development lockers', () => seedDevLockers())
         await step('Seeding development companies', () => seedDevCompanies())
         await step('Seeding development job ads', () => seedDevJobAds())
+        await step('Seeding development careers team', () => seedDevCareersTeam())
         await step('Seeding development shops', () => seedDevShop())
         await step('Seeding development events', () => seedDevEvents())
         await step('Seeding development applications and periods', () => seedDevApplicationsAndPeriods())

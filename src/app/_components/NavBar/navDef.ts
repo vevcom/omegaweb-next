@@ -2,6 +2,9 @@
 //Higher placment in array gives hight priority on where it is placed (ie menu vs. navbar)
 //does not include / or /login (or profile route) as they are always shown and ar special
 import { adminNavAuthorizers } from '@/app/(omegaweb)/admin/adminNavDef'
+import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
+import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/omegaJobAdPages'
+import { sitePagesPath } from '@/lib/sites'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
@@ -72,7 +75,7 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Jobbannonser',
-        href: '/job-ads',
+        href: sitePagesPath(omegaJobAdPages),
         icon: faBriefcase,
         authorizers: () => [jobAdAuth.readActive],
     },
@@ -91,7 +94,7 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Hvad der hender',
-        href: '/events',
+        href: sitePagesPath(omegaEventPages),
         icon: faCalendar,
         authorizers: () => [eventAuth.readManyCurrent],
     },
@@ -129,7 +132,7 @@ export const navDef: NavItem[] = [
         name: 'Bilder',
         href: '/image-collections',
         icon: faCamera,
-        authorizers: () => [dynamicImageAuth.readCollectionPage],
+        authorizers: () => [dynamicImageAuth.readCollectionPage.data({ onlyAdministrated: false })],
     },
     {
         name: 'Interessegrupper',

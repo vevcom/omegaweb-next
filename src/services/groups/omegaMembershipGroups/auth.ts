@@ -7,7 +7,7 @@ export const omegaMembershipGroupAuth = {
     readExpanded: Require.permission('OMEGA_MEMBERSHIP_GROUP_USE'),
     readMembers: requireReadGroupMembers('OMEGA_MEMBERSHIP_GROUP_USE'),
     readMembershipsOfUser: requireReadMembershipsOfUser('OMEGA_MEMBERSHIP_GROUP_USE'),
-    readUserLevel: Require.permission('OMEGA_MEMBERSHIP_GROUP_USE'),
+    readUserLevel: Require.permission('OMEGA_MEMBERSHIP_GROUP_USE').or().userId(),
     inferUserLevel: Require.permission('OMEGA_MEMBERSHIP_GROUP_USE'),
     updateUserLevel: Require.permission('OMEGA_MEMBERSHIP_GROUP_ADMIN'),
     updateUserOrder: Require.permission('OMEGA_MEMBERSHIP_GROUP_ADMIN'),

@@ -1,4 +1,5 @@
 import { userDataFieldSchemas, userSchemas } from '@/services/users/schemas'
+import { siteSchema } from '@/lib/sites'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -10,6 +11,7 @@ const dataFieldSchemas = z.object({
 const paramsFieldSchemas = z.object({
     token: z.string(),
     userId: z.number(),
+    site: siteSchema,
 })
 
 /** The claims of a link Feide account token: who asked, and the Feide identity to move. */
@@ -47,7 +49,8 @@ export const authSchemas = {
         verifyEmail: token,
         verifyResetPasswordToken: token,
         resetPassword: token,
-        sendLinkFeideAccountEmail: userId,
+        sendResetPasswordEmail: paramsFieldSchemas.pick({ site: true }),
+        sendLinkFeideAccountEmail: paramsFieldSchemas.pick({ userId: true, site: true }),
         readFeideLoginMatch: userId,
         verifyLinkFeideAccountToken: token,
         linkFeideAccount: token,
