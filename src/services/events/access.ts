@@ -1,8 +1,10 @@
 import '@pn-server-only'
+import { passesVisibilityWhere } from '@/auth/visibility/passesVisibilityWhere'
 import { ServiceError } from '@/services/error'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { EventAccess } from './types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 
 /** Reads what the rules of eventAuth need to know about an event, for `.data()`. */
 export async function readEventAccess(prisma: PrismaPossibleTransaction<false>, eventId: number): Promise<EventAccess> {
@@ -64,4 +66,24 @@ export async function assertSeenThroughQuotas(
             + 'En kvote uten plasser holder.'
         )
     }
+}
+
+/** What `whoCanRegisterWhere` reads of an event: its quotas with their visibilities. */
+export const whoCanRegisterSelection = {
+    canBeViewedBy: true,
+    variants: { select: { quotas: { select: { visibility: { include: visibilityIncluder } } } } },
+} as const satisfies Prisma.EventSelect
+
+/**
+ * The users who may register for the event, as a filter: those passing a quota. An event without
+ * quotas is open to everyone when it is for all, and to nobody otherwise, since nobody but its
+ * administrators sees it then.
+ */
+export function whoCanRegisterWhere(event: {
+    canBeViewedBy: EventCanView,
+    variants: { quotas: { visibility: Parameters<typeof passesVisibilityWhere>[0] }[] }[],
+}): Prisma.UserWhereInput {
+    const quotas = event.variants.flatMap(variant => variant.quotas)
+    if (quotas.length === 0) return event.canBeViewedBy === 'ALL' ? {} : { id: { in: [] } }
+    return { OR: quotas.map(quota => passesVisibilityWhere(quota.visibility)) }
 }
