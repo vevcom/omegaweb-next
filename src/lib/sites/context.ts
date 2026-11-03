@@ -7,13 +7,18 @@ export type SiteContextData = {
 }
 
 export type ResolveHrefOptions = {
-    /** Reach the page by its site's main domain even where a path would do: the explicit way over to another site. */
-    viaDomain?: boolean,
+    /**
+     * Go by the main domain of the page's site even from a domain that serves it: the explicit way over
+     * to another site, used sparingly. Without it the visitor stays on the domain they are on when it can.
+     */
+    toMainDomainServingSite?: boolean,
 }
 
 const isAppPath = (href: string) => href.startsWith('/') && !href.startsWith('//')
 
-let domainConfig: DomainConfig | null = null
+// On globalThis rather than in module state: the proxy, instrumentation and the routes are bundled
+// apart on the server, each with its own copy of this module, but share the process.
+const store = globalThis as { siteDomainConfig?: DomainConfig }
 
 /**
  * Where a request or a visitor is: on which domain, looking at which page. It holds only those two
@@ -34,7 +39,11 @@ export class SiteContext {
     ) {}
 
     static configure(config: DomainConfig): void {
-        domainConfig = config
+        store.siteDomainConfig = config
+    }
+
+    static isConfigured(): boolean {
+        return store.siteDomainConfig !== undefined
     }
 
     /** The domains in use, for the server to hand over to the browser. */
@@ -43,8 +52,8 @@ export class SiteContext {
     }
 
     private static config(): DomainConfig {
-        if (!domainConfig) throw new Error('SiteContext is not configured with the site domains')
-        return domainConfig
+        if (!store.siteDomainConfig) throw new Error('SiteContext is not configured with the site domains')
+        return store.siteDomainConfig
     }
 
     /**
@@ -68,12 +77,23 @@ export class SiteContext {
     }
 
     /**
-     * An href of a page on `site` as a link from outside the app, in emails and notifications: on the
-     * site's main domain, or on WEBSITE_URL with the base path when the site has no domain.
+     * An href of a page on `site` as a link from outside the app, in emails and notifications: by the
+     * main domain serving it, or on WEBSITE_URL when no domains are configured.
      */
     static publicUrl(site: Site, href: string): string {
-        const origin = SiteContext.config().mainOriginOfSite(site)
-        return origin ? `${origin}${site.pathOn(href)}` : `${process.env.WEBSITE_URL}${href}`
+        return SiteContext.mainDomainUrl(site, href) ?? `${process.env.WEBSITE_URL}${href}`
+    }
+
+    /**
+     * The url of a page on `site` by the main domain serving it: the site's own, or Omega's with the
+     * base path when the site has no domain. Null when neither has one.
+     */
+    private static mainDomainUrl(site: Site, href: string): string | null {
+        const config = SiteContext.config()
+        const origin = config.mainOriginOfSite(site)
+        if (origin) return `${origin}${site.pathOn(href)}`
+        const rootOrigin = config.mainOriginOfSite(Site.root)
+        return rootOrigin ? `${rootOrigin}${href}` : null
     }
 
     toData(): SiteContextData {
@@ -115,22 +135,22 @@ export class SiteContext {
     }
 
     /**
-     * The href to render for an app path such as `/career/job-ads`, seen from here. On the page's own
-     * site the path is site-relative. From an Omega domain another site sits under its base path. From
-     * another site's domain the page is reached by its site's main domain, or by Omega's main domain
-     * with the base path when its site has none. Anything but an app path is left as it is.
+     * The href to render for an app path such as `/career/job-ads`, seen from here. The visitor stays
+     * on the domain they are on whenever it serves the page's site: site-relative on the site's own
+     * domains, under the base path on Omega's. Otherwise, or when asked to go to the main domain, the
+     * page is reached by the main domain serving it. Anything but an app path is left as it is.
      */
     resolveHref(href: string, options: ResolveHrefOptions = {}): string {
         if (!isAppPath(href)) return href
-        const config = SiteContext.config()
         const target = Site.ofPath(href)
-        const onTarget = target.pathOn(href)
-        const targetOrigin = config.mainOriginOfSite(target)
-        if (options.viaDomain && targetOrigin) return `${targetOrigin}${onTarget}`
-        if (target === this.hostSite()) return onTarget
-        if (this.servesBasePaths()) return href
-        if (targetOrigin) return `${targetOrigin}${onTarget}`
-        const rootOrigin = config.mainOriginOfSite(Site.root)
-        return rootOrigin ? `${rootOrigin}${href}` : href
+        if (!options.toMainDomainServingSite && this.serves(target)) {
+            return this.servesBasePaths() ? href : target.pathOn(href)
+        }
+        return SiteContext.mainDomainUrl(target, href) ?? href
+    }
+
+    /** Whether the domain the visitor is on serves the pages of `site`: its own site, or any site on Omega's domains. */
+    serves(site: Site): boolean {
+        return this.servesBasePaths() || this.hostSite() === site
     }
 }

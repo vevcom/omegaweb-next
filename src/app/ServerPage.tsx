@@ -5,12 +5,10 @@ import { Smorekopp } from '@/services/error'
 import { withServiceContext } from '@/services/serviceOperation'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
-import { CURRENT_PATH_HEADER } from '@/proxy'
-import { Site } from '@/lib/sites/site'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/lib/sites/authPagesOf'
+import { siteContextOfRequest } from '@/app/siteContextOfRequest'
 import { notFound, redirect, unstable_rethrow as unstableRethrow } from 'next/navigation'
-import { headers } from 'next/headers'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
 import type { Capabilities, CapabilityAuthorizers, CapabilityKey } from '@/auth/authorizer/capabilities'
@@ -82,14 +80,13 @@ async function redirectUnregistered(session: ServerPageSession) {
 
 /**
  * The given auth page of the site the current page belongs to, with the current page as
- * callbackUrl, so the user lands back where they were once they are through it. The current path
- * comes from the header stamped by the proxy (src/proxy.ts) - a server component cannot read its
- * own URL. Should the header be missing, Omega's page is used, plain.
+ * callbackUrl, so the user lands back where they were once they are through it, rendered for the
+ * domain the request came to.
  */
 async function authUrlWithCallback(page: 'login' | 'register') {
-    const currentPath = (await headers()).get(CURRENT_PATH_HEADER)
-    const links = authLinks(authPagesOf(currentPath ? Site.ofPath(currentPath) : Site.root))
-    return links[page](currentPath ?? undefined)
+    const context = await siteContextOfRequest()
+    const links = authLinks(authPagesOf(context.site()))
+    return context.resolveHref(links[page](context.path))
 }
 
 /**

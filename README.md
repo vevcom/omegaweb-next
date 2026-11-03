@@ -7,7 +7,7 @@ For getting started please refer to our [Getting Started Guide](https://github.c
 
 ## Development
 
-Have the docker deamon running, then run:
+Copy `sites.example.json` to `sites.json`, which maps the development hosts to the sites and is mounted into the stack. Have the docker deamon running, then run:
 
 ```bash
 npm run docker:dev

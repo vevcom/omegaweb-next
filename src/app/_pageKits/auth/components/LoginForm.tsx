@@ -3,6 +3,7 @@ import TextInput from '@/UI/TextInput'
 import Button from '@/UI/Button'
 import SubmitButton from '@/UI/SubmitButton'
 import { useSession } from '@/auth/session/useSession'
+import useSiteContext from '@/hooks/useSiteContext'
 import { authLinks } from '@/pageKits/auth/links'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
@@ -30,8 +31,10 @@ const errorMessages: Record<string, string> = {
     UserArchived: 'Brukeren er arkivert. Ta kontakt med en administrator dersom dette er feil.',
 }
 
-export default function LoginForm({ config, callbackUrl, initialError }: PropTypes) {
+export default function LoginForm({ config, callbackUrl: callbackAppPath, initialError }: PropTypes) {
     const session = useSession()
+    // NextAuth sends the browser there, so it must be a url of the domain the visitor is on.
+    const callbackUrl = useSiteContext().resolveHref(callbackAppPath)
 
     // Feide errors arrive in the url. Credentials errors are kept here, so a new attempt clears them.
     const [error, setError] = useState(initialError)

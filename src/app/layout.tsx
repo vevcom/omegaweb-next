@@ -5,6 +5,9 @@ import PopUpProvider from '@/contexts/PopUp'
 import ClientDataProvider from '@/contexts/ClientData'
 import { PageTitleProvider } from '@/contexts/PageTitle'
 import GlobalSearchProvider from '@/contexts/GlobalSearch'
+import SiteContextProvider from '@/contexts/SiteContextProvider'
+import { SiteContext } from '@/lib/sites/context'
+import { siteContextOfRequest } from '@/app/siteContextOfRequest'
 import { permissionOperations } from '@/services/permissions/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
@@ -61,6 +64,7 @@ type PropTypes = {
  */
 export default async function RootLayout({ children }: PropTypes) {
     const nextAuthSession = await getServerSession(authOptions)
+    const siteContext = await siteContextOfRequest()
 
     const { serverSession, defaultPermissions, standardImages } = await withPageSession(async (session) => {
         const [defaultPermissions_, standardImages_] = await Promise.all([
@@ -80,21 +84,23 @@ export default async function RootLayout({ children }: PropTypes) {
             <body className={inter.className}>
                 <ServiceWorkerRegister />
                 <SessionProvider session={nextAuthSession}>
-                    <ClientDataProvider
-                        session={serverSession.toJsObject()}
-                        defaultPermissions={defaultPermissions}
-                        standardImages={standardImages}
-                    >
-                        <GlobalSearchProvider>
-                            <EditModeProvider>
-                                <PopUpProvider>
-                                    <PageTitleProvider>
-                                        {children}
-                                    </PageTitleProvider>
-                                </PopUpProvider>
-                            </EditModeProvider>
-                        </GlobalSearchProvider>
-                    </ClientDataProvider>
+                    <SiteContextProvider domains={SiteContext.domainsForBrowser()} data={siteContext.toData()}>
+                        <ClientDataProvider
+                            session={serverSession.toJsObject()}
+                            defaultPermissions={defaultPermissions}
+                            standardImages={standardImages}
+                        >
+                            <GlobalSearchProvider>
+                                <EditModeProvider>
+                                    <PopUpProvider>
+                                        <PageTitleProvider>
+                                            {children}
+                                        </PageTitleProvider>
+                                    </PopUpProvider>
+                                </EditModeProvider>
+                            </GlobalSearchProvider>
+                        </ClientDataProvider>
+                    </SiteContextProvider>
                 </SessionProvider>
             </body>
         </html>

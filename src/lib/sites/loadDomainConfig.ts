@@ -12,15 +12,13 @@ export function readDomainConfig(file: string): DomainConfig {
     return DomainConfig.parse(JSON.parse(readFileSync(file, 'utf8')))
 }
 
-let loaded = false
-
 /**
  * Configures SiteContext with sites.json at the app's root, or the file SITES_CONFIG names, once.
- * The server calls it at start (instrumentation.ts) and so does the worker; after that nothing has
- * to think about where the domains come from.
+ * The server calls it at start (instrumentation.ts) and on every request (proxy.ts), the worker at
+ * start; after that nothing has to think about where the domains come from.
  */
 export function loadDomainConfig(): void {
-    if (loaded) return
+    if (SiteContext.isConfigured()) return
     const file = process.env.SITES_CONFIG ?? resolve(process.cwd(), 'sites.json')
     const config = isBuildPhase() ? DomainConfig.parse({}) : readDomainConfig(file)
     if (config.domains.length === 0 && !isBuildPhase()) {
@@ -28,5 +26,4 @@ export function loadDomainConfig(): void {
             + 'with the other sites under their base paths')
     }
     SiteContext.configure(config)
-    loaded = true
 }

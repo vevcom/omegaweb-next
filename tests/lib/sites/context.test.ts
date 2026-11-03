@@ -7,6 +7,7 @@ import type { SiteContextData } from '@/lib/sites/context'
 const withDomains = DomainConfig.parse({
     'omega.ntnu.no': { site: 'OMEGAWEB', main: true },
     'contactor.no': { site: 'CAREERS', main: true },
+    'contactor.com': { site: 'CAREERS' },
 })
 const withoutDomains = DomainConfig.parse({})
 
@@ -60,14 +61,17 @@ describe('SiteContext', () => {
         expect(context.withPath('/career/about').browserPath()).toBe('/about')
     })
 
-    test('makes a public url of a page by its site\'s main domain, or WEBSITE_URL without one', () => {
+    test('makes a public url of a page by the main domain serving it, or WEBSITE_URL without domains', () => {
         expect(SiteContext.publicUrl(Site.CAREERS, '/career/job-ads')).toBe('https://contactor.no/job-ads')
+        expect(SiteContext.publicUrl(Site.REVUE, '/revue')).toBe('https://omega.ntnu.no/revue')
+        SiteContext.configure(withoutDomains)
         expect(SiteContext.publicUrl(Site.REVUE, '/revue')).toBe(`${process.env.WEBSITE_URL}/revue`)
     })
 
     describe('resolveHref', () => {
         const onOmega = SiteContext.fromAppPath('omega.ntnu.no', '/')
         const onCareers = SiteContext.fromAppPath('contactor.no', '/career')
+        const onCareersOther = SiteContext.fromAppPath('contactor.com', '/career')
 
         test('a page of the host\'s own site is site-relative', () => {
             expect(onCareers.resolveHref('/career/job-ads')).toBe('/job-ads')
@@ -81,6 +85,11 @@ describe('SiteContext', () => {
             expect(onOmega.resolveHref('/revue')).toBe('/revue')
         })
 
+        test('a site\'s other domains keep the visitor on them', () => {
+            expect(onCareersOther.resolveHref('/career/job-ads')).toBe('/job-ads')
+            expect(onCareersOther.resolveHref('/committees/x')).toBe('https://omega.ntnu.no/committees/x')
+        })
+
         test('from another site\'s domain a page is reached by its site\'s main domain', () => {
             expect(onCareers.resolveHref('/committees/x')).toBe('https://omega.ntnu.no/committees/x')
             expect(onCareers.resolveHref('/')).toBe('https://omega.ntnu.no/')
@@ -90,17 +99,19 @@ describe('SiteContext', () => {
             expect(onCareers.resolveHref('/revue/login')).toBe('https://omega.ntnu.no/revue/login')
         })
 
-        test('viaDomain goes by the main domain even where a path would do', () => {
-            expect(onOmega.resolveHref('/career', { viaDomain: true })).toBe('https://contactor.no/')
-            expect(onCareers.resolveHref('/', { viaDomain: true })).toBe('https://omega.ntnu.no/')
-            expect(onOmega.resolveHref('/revue', { viaDomain: true })).toBe('/revue')
+        test('toMainDomainServingSite goes by the main domain serving the page, even from a domain that does', () => {
+            const toMain = { toMainDomainServingSite: true }
+            expect(onOmega.resolveHref('/career', toMain)).toBe('https://contactor.no/')
+            expect(onCareers.resolveHref('/', toMain)).toBe('https://omega.ntnu.no/')
+            expect(onOmega.resolveHref('/revue', toMain)).toBe('https://omega.ntnu.no/revue')
+            expect(onCareersOther.resolveHref('/career/job-ads', toMain)).toBe('https://contactor.no/job-ads')
         })
 
         test('without any domains every link is the app path, as before', () => {
             SiteContext.configure(withoutDomains)
             const onLocalhost = SiteContext.fromAppPath('localhost:3000', '/')
             expect(onLocalhost.resolveHref('/career/job-ads')).toBe('/career/job-ads')
-            expect(onLocalhost.resolveHref('/career', { viaDomain: true })).toBe('/career')
+            expect(onLocalhost.resolveHref('/career', { toMainDomainServingSite: true })).toBe('/career')
         })
 
         test('leaves anything but an app path alone', () => {

@@ -28,6 +28,8 @@ const nextConfig: NextConfig = {
         },
     },
     turbopack: {},
+    // The dev hosts of the other sites, see sites.example.json; the dev server refuses other origins.
+    allowedDevOrigins: ['career.localhost', 'revue.localhost'],
 }
 
 export default nextConfig
