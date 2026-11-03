@@ -7,7 +7,6 @@ services:
             target: test
         tty: true # Allows for colorized output
         environment:
-            EMAIL_DOMAIN: omega.ntnu.no
             CI: ${CI:-}
         volumes:
             - ${PROJECT_ROOT:-.}/src:/usr/src/app/src

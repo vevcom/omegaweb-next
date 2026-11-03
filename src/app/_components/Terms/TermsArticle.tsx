@@ -1,4 +1,6 @@
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { SiteContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
 import type { ReactNode } from 'react'
 
 const LAST_UPDATED = '21. oktober 2026'
@@ -24,7 +26,7 @@ function LawLink({ href, children }: { href: string, children: ReactNode }) {
 }
 
 export default function TermsArticle() {
-    const emailDomain = process.env.EMAIL_DOMAIN
+    const emailDomain = SiteContext.mailDomainOf(Site.root)
 
     return (
         <article className="

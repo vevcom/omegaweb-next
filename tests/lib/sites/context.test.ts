@@ -61,11 +61,21 @@ describe('SiteContext', () => {
         expect(context.withPath('/career/about').browserPath()).toBe('/about')
     })
 
-    test('makes a public url of a page by the main domain serving it, or WEBSITE_URL without domains', () => {
+    test('makes a public url of a page by the main domain serving it, and refuses without Omega\'s', () => {
         expect(SiteContext.publicUrl(Site.CAREERS, '/career/job-ads')).toBe('https://contactor.no/job-ads')
         expect(SiteContext.publicUrl(Site.REVUE, '/revue')).toBe('https://omega.ntnu.no/revue')
         SiteContext.configure(withoutDomains)
-        expect(SiteContext.publicUrl(Site.REVUE, '/revue')).toBe(`${process.env.WEBSITE_URL}/revue`)
+        expect(() => SiteContext.publicUrl(Site.REVUE, '/revue')).toThrow()
+    })
+
+    test('puts a site\'s mail on its main domain, or Omega\'s without one, and refuses without Omega\'s', () => {
+        expect(SiteContext.mailDomainOf(Site.CAREERS)).toBe('contactor.no')
+        expect(SiteContext.mailDomainOf(Site.REVUE)).toBe('omega.ntnu.no')
+        expect(SiteContext.mailDomainOf(Site.root)).toBe('omega.ntnu.no')
+        SiteContext.configure(DomainConfig.parse({ 'localhost:3000': { site: 'OMEGAWEB', main: true, protocol: 'http' } }))
+        expect(SiteContext.mailDomainOf(Site.CAREERS)).toBe('localhost')
+        SiteContext.configure(withoutDomains)
+        expect(() => SiteContext.mailDomainOf(Site.root)).toThrow()
     })
 
     describe('resolveHref', () => {

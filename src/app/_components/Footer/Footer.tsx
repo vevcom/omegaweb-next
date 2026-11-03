@@ -2,6 +2,8 @@ import FooterSponsors from './FooterSponsors'
 import SocialIcons from '@/components/SocialIcons/SocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { SiteContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
 
 // On mobile every column of the footer stacks and centres.
 const mobileColumnClassName = `
@@ -19,7 +21,7 @@ const infoClassName = `
 `
 
 function Footer() {
-    const emailDomain = process.env.EMAIL_DOMAIN
+    const emailDomain = SiteContext.mailDomainOf(Site.root)
 
     return (
         <footer className="

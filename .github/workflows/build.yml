@@ -32,6 +32,9 @@ jobs:
           echo "JWT_PUBLIC_KEY=$(base64 -w0 jwt-public.pem)"
         } >> "$GITHUB_ENV"
         rm jwt-private.pem jwt-public.pem
+    # Production refuses to start without the domains of the sites; the development ones stand in.
+    - name: site domains
+      run: cp sites.example.json sites.json
     - name: build
       run: docker compose --env-file .env.default -f docker-compose.prod.yml --profile localdb build
     # localdb stands in for the Dokploy Postgres resource, which lives outside the

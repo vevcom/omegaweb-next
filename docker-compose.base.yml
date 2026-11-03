@@ -36,13 +36,11 @@ services:
             EMAIL_TLS_ALLOW_SELF_SIGNED: ${EMAIL_TLS_ALLOW_SELF_SIGNED}
             EMAIL_USER: ${EMAIL_USER}
             EMAIL_PASSWORD: ${EMAIL_PASSWORD}
-            EMAIL_DOMAIN: ${EMAIL_DOMAIN}
             VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
             VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
             JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
             JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
             JWT_SECRET: ${JWT_SECRET}
-            WEBSITE_URL: ${WEBSITE_URL}
         healthcheck:
             test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
             interval: 10s

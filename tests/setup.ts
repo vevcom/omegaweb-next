@@ -1,4 +1,4 @@
-import { DomainConfig } from '@/lib/sites/domainConfig'
+import { testDomainConfig } from './testDomains'
 import { SiteContext } from '@/lib/sites/context'
 import { jest } from '@jest/globals'
 
@@ -8,5 +8,4 @@ jest.mock('@react-email/render', () => ({
     render: jest.fn().mockImplementation(() => 'Email rendering is disabled during tests.'),
 }))
 
-// Tests run without site domains, whatever sites.json at the repo root says.
-SiteContext.configure(DomainConfig.parse({}))
+SiteContext.configure(testDomainConfig)

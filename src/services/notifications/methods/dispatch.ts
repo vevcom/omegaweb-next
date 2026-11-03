@@ -1,7 +1,7 @@
 import { linkToNotificationPage, replaceSpecialSymbols } from './helpers'
 import { sendMailSchemas } from '@/services/notifications/sendMail/schemas'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
-import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
+import { defaultNotificationAlias } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
 import { SiteContext } from '@/lib/sites/context'
@@ -25,7 +25,7 @@ export async function sendNotificationEmails(
     notification: NotificationWithChannel,
     users: UserBasicWithEmail[]
 ) {
-    const senderAlias = senderAddress ?? DEFAULT_NOTIFICATION_ALIAS
+    const senderAlias = senderAddress ?? defaultNotificationAlias()
 
     const mails = (await Promise.all(users.map(async user => {
         const parsed = sendMailSchemas.data.notificationMail.safeParse({

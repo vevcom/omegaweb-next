@@ -1,5 +1,6 @@
 import { DomainConfig } from '@/lib/sites/domainConfig'
 import { readDomainConfig } from '@/lib/sites/domainConfigFile'
+import { requireOmegaMainDomain } from '@/lib/sites/loadDomainConfig'
 import { Site } from '@/lib/sites/site'
 import { describe, expect, test } from '@jest/globals'
 import { mkdtempSync, writeFileSync } from 'node:fs'
@@ -32,6 +33,13 @@ describe('DomainConfig', () => {
     test('gives the host names without ports, once each, for the dev server', () => {
         const config = DomainConfig.parse({ ...json, 'localhost:4000': { site: 'OMEGAWEB', protocol: 'http' } })
         expect(config.hostNames()).toEqual(['omega.ntnu.no', 'contactor.no', 'www.contactor.no', 'localhost'])
+    })
+
+    test('the app runs only on a config giving Omega\'s site a main domain', () => {
+        expect(requireOmegaMainDomain(DomainConfig.parse(json), 'sites.json').domains).toHaveLength(4)
+        expect(() => requireOmegaMainDomain(DomainConfig.parse({}), 'sites.json')).toThrow(/no main domain/)
+        expect(() => requireOmegaMainDomain(DomainConfig.parse({ 'contactor.no': { site: 'CAREERS', main: true } }), 'x'))
+            .toThrow(/no main domain/)
     })
 
     test('knows each site\'s main origin, null without domains', () => {

@@ -87,10 +87,24 @@ export class SiteContext {
 
     /**
      * An href of a page on `site` as a link from outside the app, in emails and notifications: by the
-     * main domain serving it, or on WEBSITE_URL when no domains are configured.
+     * main domain serving it.
      */
     static publicUrl(site: Site, href: string): string {
-        return SiteContext.mainDomainUrl(site, href) ?? `${process.env.WEBSITE_URL}${href}`
+        const url = SiteContext.mainDomainUrl(site, href)
+        if (!url) throw new Error('sites.json gives Omega\'s site no main domain to link by')
+        return url
+    }
+
+    /**
+     * The domain a site's own mail addresses are on, such as noreply@: the host name of its main
+     * domain, or of Omega's for a site without domains. Omega's own addresses, such as hs@, are on
+     * `mailDomainOf(Site.root)`.
+     */
+    static mailDomainOf(site: Site): string {
+        const config = SiteContext.config()
+        const origin = config.mainOriginOfSite(site) ?? config.mainOriginOfSite(Site.root)
+        if (!origin) throw new Error('sites.json gives Omega\'s site no main domain for its mail addresses')
+        return new URL(origin).hostname
     }
 
     /**

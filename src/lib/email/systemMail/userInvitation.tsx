@@ -23,7 +23,7 @@ export async function sendUserInvitationEmail(user: UserBasicWithEmail) {
         await sendMailOperations.internal.sendSystemMail.internalCall({
             data: {
                 to: user.email,
-                subject: `Invitasjon til ${process.env.EMAIL_DOMAIN}`,
+                subject: `Invitasjon til ${SiteContext.mailDomainOf(Site.root)}`,
                 body: <UserInvitationTemplate user={user} link={link} />,
             },
         })

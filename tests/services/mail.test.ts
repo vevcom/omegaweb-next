@@ -1,3 +1,4 @@
+import { testDomainConfig } from 'tests/testDomains'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
@@ -56,7 +57,7 @@ describe('the domains of the sites are mail domains', () => {
         'omega.ntnu.no': { site: 'OMEGAWEB', main: true },
         'contactor.no': { site: 'CAREERS', main: true },
     }))
-    afterEach(() => SiteContext.configure(DomainConfig.parse({})))
+    afterEach(() => SiteContext.configure(testDomainConfig))
 
     test('an alias may be on a site\'s domain, whatever its case', async () => {
         withSites()
