@@ -56,6 +56,13 @@ describe('DomainConfig', () => {
         expect(inBrowser.domains).toEqual(config.domains)
     })
 
+    test('the example for development names the three dev hosts, each a site\'s main', () => {
+        const config = readDomainConfig(join(process.cwd(), 'sites.example.json'))
+        expect(config.mainOriginOfSite(Site.OMEGAWEB)).toBe('http://localhost:3000')
+        expect(config.mainOriginOfSite(Site.CAREERS)).toBe('http://career.localhost:3000')
+        expect(config.mainOriginOfSite(Site.REVUE)).toBe('http://revue.localhost:3000')
+    })
+
     test('reads a file, and treats a missing file as no domains', () => {
         const dir = mkdtempSync(join(tmpdir(), 'domain-config-'))
         const file = join(dir, 'sites.json')

@@ -33,6 +33,9 @@ export function proxy(request: NextRequest) {
 
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set(SITE_DOMAIN_HEADER, domain)
+    // NextAuth takes its origin from this header before the host, and a client can send it, so it is
+    // pinned to the host checked above.
+    requestHeaders.set('x-forwarded-host', domain)
     requestHeaders.set(CURRENT_PATH_HEADER, isAppWide(pathname) ? browserPath : context.path)
 
     // Uploaded files keep the stricter policy their route sets: a sandbox, so a stored file never runs.
