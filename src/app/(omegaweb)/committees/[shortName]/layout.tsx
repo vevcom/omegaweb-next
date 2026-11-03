@@ -19,7 +19,7 @@ export default serverLayout({
         // editing controls are not offered on any of its pages either.
         canEditCoverImage: Require.allOf(
             committeeAuth.updateArticle.data({ groupId: committee.groupId }),
-            Require.custom(() => !committee.group.pensioned, { errorMessage: 'Komiteen er pensjonert' }),
+            Require.custom(() => !committee.group.pensioned, { errorMessage: 'Komitéen er pensjonert' }),
         ),
     }),
     render: ({ data: { committee, shortNameParam }, capabilities, children }) => (
@@ -35,7 +35,7 @@ export default serverLayout({
                     <PageTitleSetter title={committee.name} />
                     {committee.group.pensioned && (
                         <p className="py-2 px-4 mb-4 rounded-round border border-text-muted text-text-muted">
-                            Denne komiteen er pensjonert. Den har ingen aktive medlemmer, og
+                            Denne komitéen er pensjonert. Den har ingen aktive medlemmer, og
                             innholdet står som det var.
                         </p>
                     )}

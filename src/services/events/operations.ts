@@ -27,6 +27,9 @@ import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
 import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
 
+/** What an event that does not take payment holds in the payment fields. */
+const unpaid = { price: null, paymentStart: null, paymentEnd: null }
+
 const visibility = implementDoubleLevelVisibilityOperations({
     implementationParamsSchema: eventSchemas.params.visibility,
     authorizers: {
@@ -162,9 +165,11 @@ export const eventOperations = {
                             }
                         } : undefined,
                         waitingList: data.waitingList,
-                        price: data.price,
-                        paymentStart: data.paymentStart,
-                        paymentEnd: data.paymentEnd,
+                        bindingRegistration: data.bindingRegistration,
+                        takesPayment: data.takesPayment,
+                        ...(data.takesPayment
+                            ? { price: data.price, paymentStart: data.paymentStart, paymentEnd: data.paymentEnd }
+                            : unpaid),
 
                         createdBy: session?.user ? {
                             connect: {
@@ -294,11 +299,14 @@ export const eventOperations = {
                 include: { locationMap: true },
             })
 
+            const takesPayment = data.takesPayment ?? event.takesPayment
             assertValidEventDates({
                 eventStart: data.eventStart ?? event.eventStart,
                 eventEnd: data.eventEnd ?? event.eventEnd,
                 registrationStart: data.registrationStart ?? event.registrationStart,
                 registrationEnd: data.registrationEnd ?? event.registrationEnd,
+                takesRegistration: data.takesRegistration ?? event.takesRegistration,
+                takesPayment,
                 paymentStart: data.paymentStart ?? event.paymentStart,
                 paymentEnd: data.paymentEnd ?? event.paymentEnd,
                 price: data.price ?? event.price,
@@ -317,6 +325,7 @@ export const eventOperations = {
                     where: { id: params.id },
                     data: {
                         ...data,
+                        ...(takesPayment ? {} : unpaid),
                         locationMap: mapUpdate,
                     },
                 })
@@ -438,7 +447,7 @@ export const eventOperations = {
                         special: 'NEW_EVENT',
                     },
                     data: {
-                        title: `Hva der hender: ${event.name}`,
+                        title: `Hvad der hender: ${event.name}`,
                         message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
                         url: `/events/${formatVevenUri(event.name, event.id)}`,
                         audience: { visibilityId: event.visibilityRegularId },
@@ -582,33 +591,40 @@ type EventDates = {
     eventEnd: Date,
     registrationStart?: Date,
     registrationEnd?: Date,
+    takesRegistration: boolean,
+    takesPayment: boolean,
     paymentStart?: Date | null,
     paymentEnd?: Date | null,
     price?: number | null,
 }
 
 /**
- * An event ends after it starts, its registration and payment periods are each given whole or not
- * at all and end after they start, and an event with a price has a payment period. `update` passes
- * the dates the event will have after the update, so a partial update is judged as a whole.
+ * An event ends after it starts, and its registration period is given whole or not at all and ends
+ * after it starts. An event that takes payment takes registration, has a price and has a payment
+ * period that ends after it starts. `update` passes the values the event will have after the update,
+ * so a partial update is judged as a whole.
  */
 function assertValidEventDates(dates: EventDates) {
     if (dates.eventStart > dates.eventEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Event må jo starte før den slutter')
+        throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
     }
     if (dates.registrationStart && dates.registrationEnd && dates.registrationStart > dates.registrationEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Påmelding må jo starte før den slutter')
+        throw new ServiceError('BAD PARAMETERS', 'Påmeldingen må jo starte før den slutter')
     }
     if (Boolean(dates.registrationStart) !== Boolean(dates.registrationEnd)) {
-        throw new ServiceError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
+        throw new ServiceError('BAD PARAMETERS', 'Enten må begge påmeldingsdatoene være satt, eller ingen av dem')
     }
-    if (dates.paymentStart && dates.paymentEnd && dates.paymentStart > dates.paymentEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Betaling må jo starte før den slutter')
+    if (!dates.takesPayment) return
+    if (!dates.takesRegistration) {
+        throw new ServiceError('BAD PARAMETERS', 'Kan ikke ta betaling uten påmelding')
     }
-    if (Boolean(dates.paymentStart) !== Boolean(dates.paymentEnd)) {
-        throw new ServiceError('BAD PARAMETERS', 'Begge betalingsdatoer må være satt eller ingen')
+    if (!dates.price) {
+        throw new ServiceError('BAD PARAMETERS', 'Et arrangement som tar betaling må ha en pris')
     }
-    if (dates.price && (!dates.paymentStart || !dates.paymentEnd)) {
-        throw new ServiceError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet har en pris')
+    if (!dates.paymentStart || !dates.paymentEnd) {
+        throw new ServiceError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet tar betaling')
+    }
+    if (dates.paymentStart > dates.paymentEnd) {
+        throw new ServiceError('BAD PARAMETERS', 'Betalingen må jo starte før den slutter')
     }
 }

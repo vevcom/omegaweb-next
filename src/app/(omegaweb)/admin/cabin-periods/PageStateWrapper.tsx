@@ -39,7 +39,7 @@ export default function PageStateWrapper({
         {canCreateReleasePeriod &&
             <PopUp
                 popUpKey="CreateNewReleasePeriod"
-                showButtonContent="Ny Slipp Periode"
+                showButtonContent="Nytt slipp"
                 showButtonClass="btn"
             >
                 <ReleasePeriodForm closePopUpOnSuccess="CreateNewReleasePeriod" />
@@ -49,7 +49,7 @@ export default function PageStateWrapper({
         <SimpleTable
             header={[
                 'Slipptidspunkt',
-                'Slipp til dato',
+                'Slipper fram til',
                 'Endre',
                 'Slett',
             ]}
@@ -64,7 +64,7 @@ export default function PageStateWrapper({
                     >
                         <ReleasePeriodForm period={period} closePopUpOnSuccess={`UpdateReleasePeriod${period.id}`} />
                     </PopUp>,
-                period.releaseTime < new Date() ? 'Slipp perioden er publisert.' : canDestroyReleasePeriod &&
+                period.releaseTime < new Date() ? 'Slippet er publisert.' : canDestroyReleasePeriod &&
                     <Form
                         key={period.id}
                         action={configureAction(destroyReleasePeriodAction, {
@@ -74,7 +74,7 @@ export default function PageStateWrapper({
                         submitColor="red"
                         confirmation={{
                             confirm: true,
-                            text: 'Er du sikker på at du vil slette denne slipp perioden?'
+                            text: 'Er du sikker på at du vil slette dette slippet?'
                         }}
                     />
             ])}
@@ -83,7 +83,7 @@ export default function PageStateWrapper({
         {canCreatePricePeriod &&
             <PopUp
                 popUpKey="CreateNewPricePeriod"
-                showButtonContent="Ny Pris Periode"
+                showButtonContent="Ny prisperiode"
                 showButtonClass="btn"
             >
                 <PricePeriodForm closePopUpOnSuccess="CreateNewPricePeriod" />
@@ -92,7 +92,7 @@ export default function PageStateWrapper({
 
         <SimpleTable
             header={[
-                'Start dato',
+                'Startdato',
                 'Endre',
                 'Slett'
             ]}
@@ -106,7 +106,7 @@ export default function PageStateWrapper({
                     >
                         <PricePeriodForm period={period} closePopUpOnSuccess={`UpdatePricePeriod${period.id}`} />
                     </PopUp>,
-                isPricePeriodReleased(period) ? 'Pris perioden er publisert.' : canDestroyPricePeriod &&
+                isPricePeriodReleased(period) ? 'Prisperioden er publisert.' : canDestroyPricePeriod &&
                     <Form
                         key={period.id}
                         action={configureAction(destroyPricePeriodAction, {
@@ -116,8 +116,8 @@ export default function PageStateWrapper({
                         submitColor="red"
                         confirmation={{
                             confirm: true,
-                            // eslint-disable-next-line max-len
-                            text: 'Er du sikker på at du vil slette denne pris perioden? Dette vil slette alle priser forbundet til perioden.'
+                            text: 'Er du sikker på at du vil slette denne prisperioden? '
+                                + 'Dette sletter alle priser knyttet til perioden.'
                         }}
                     />
             ])}

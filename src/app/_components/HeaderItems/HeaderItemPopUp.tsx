@@ -3,7 +3,7 @@ import PopUp from '@/components/PopUp/PopUp'
 import React from 'react'
 import { FontAwesomeIcon, type FontAwesomeIconProps } from '@fortawesome/react-fontawesome'
 import {
-    faArchive, faCog, faEye, faPlus, faQrcode, faQuestionCircle, faTag, faUpload, faUsers
+    faArchive, faCog, faCreditCard, faEye, faPen, faPlus, faQrcode, faQuestionCircle, faTag, faTrash, faUpload, faUsers
 } from '@fortawesome/free-solid-svg-icons'
 import type { PropTypes as PopUpProps } from '@/components/PopUp/PopUp'
 
@@ -91,3 +91,18 @@ export const ArchiveHeaderItemPopUp = createHeaderItemPopUp(faArchive, 40, 'Arki
  * Component that can be used to open a QR code scanner in a pop up
  */
 export const ScanHeaderItemPopUp = createHeaderItemPopUp(faQrcode, 40, 'Skann')
+
+/**
+ * Component that can be used to show the form that edits a page's subject in a pop up
+ */
+export const EditHeaderItemPopUp = createHeaderItemPopUp(faPen, 18)
+
+/**
+ * Component that can be used to show payment settings, such as the account paid into, in a pop up
+ */
+export const PaymentHeaderItemPopUp = createHeaderItemPopUp(faCreditCard, 18)
+
+/**
+ * Component that can be used to show a delete confirmation in a pop up
+ */
+export const DeleteHeaderItemPopUp = createHeaderItemPopUp(faTrash, 18)

@@ -39,7 +39,7 @@ export const imageOperations = {
                     }
                 }
             })
-            if (!collection) throw new ServiceError('NOT FOUND', 'Collection ikke funnet')
+            if (!collection) throw new ServiceError('NOT FOUND', 'Fant ikke samlingen')
 
             const blockingUses = [
                 { name: 'flair', used: collection.images.some(image => image.flair) },

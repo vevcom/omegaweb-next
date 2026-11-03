@@ -14,7 +14,7 @@ type PropTypes = {
     feideLoginMatch: {
         feideEmail: string,
         feideEmailTrustedAsVerified: boolean,
-        createdByFeideLoginOnProjectNext: boolean,
+        createdByFeideLoginOnOmegawebNext: boolean,
     } | null,
     callbackUrl: string,
 }
@@ -38,7 +38,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
 
     const emailForm = <>
         <Form
-            title={feideLoginMatch?.createdByFeideLoginOnProjectNext ? 'A: Opprett ny bruker' : 'Sett e-posten din'}
+            title={feideLoginMatch?.createdByFeideLoginOnOmegawebNext ? 'A: Opprett ny bruker' : 'Sett e-posten din'}
             submitText="Lagre e-post"
             action={actionToCall}
             successCallback={(data) => {
@@ -54,16 +54,16 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
                 }
             }}
         >
-            {feideLoginMatch?.createdByFeideLoginOnProjectNext && <p>
+            {feideLoginMatch?.createdByFeideLoginOnOmegawebNext && <p>
                 Velg dette hvis du aldri hadde bruker på gamle Omegaveven.
             </p>}
             <p>
-                Skriv inn e-posten du vil bruke. Du kan bruke ntnu-e-posten din,
-                men vær oppmerksom på at du mister tilgang til denne når du er ferdig å studere.
+                Skriv inn e-posten du vil bruke. Du kan bruke NTNU-e-posten din,
+                men vær oppmerksom på at du mister tilgangen til den når du er ferdig med å studere.
             </p>
             {trustedFeideEmail ? <p>
-                Feide-e-posten din ({trustedFeideEmail}) er allerede bekreftet, så beholder du den
-                trenger du ikke bekrefte noe. Velger du en annen e-post, sender vi en bekreftelseslenke dit.
+                Feide-e-posten din ({trustedFeideEmail}) er allerede bekreftet. Beholder du den,
+                trenger du ikke å bekrefte noe. Velger du en annen e-post, sender vi en bekreftelseslenke dit.
             </p> : <p>
                 Vi sender en bekreftelseslenke til e-posten du velger.
             </p>}
@@ -80,7 +80,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
         </>
     }
 
-    if (!feideLoginMatch.createdByFeideLoginOnProjectNext) {
+    if (!feideLoginMatch.createdByFeideLoginOnOmegawebNext) {
         return <>
             <h1>Vi fant brukeren din!</h1>
             <p className="p-2 border-l-3 border-accent-blue">
@@ -90,7 +90,7 @@ export default function EmailRegistrationForm({ user, feideLoginMatch, callbackU
                 Alt som hørte til den gamle brukeren din følger med.
             </p>
             <p>
-                Er ikke dette deg? Logg ut og ta kontakt med Vevcom før du fortsetter.
+                Er ikke dette deg? Logg ut og ta kontakt med VevCom før du fortsetter.
             </p>
             {emailForm}
         </>

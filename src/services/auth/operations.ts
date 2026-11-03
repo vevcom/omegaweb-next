@@ -19,7 +19,7 @@ function readLinkFeideAccountClaims(token: string) {
     const claims = linkFeideAccountClaimsSchema.safeParse(verifyJWT(token, 'linkfeideaccount'))
 
     if (!claims.success) {
-        throw new ServiceError('JWT INVALID', 'The JWT does not contain the mandatory fields')
+        throw new ServiceError('JWT INVALID', 'Lenken mangler påkrevd informasjon')
     }
 
     return claims.data
@@ -33,7 +33,7 @@ export const authOperations = {
             const payload = verifyJWT(params.token, 'verifyemail')
 
             if (!payload.sub || !payload.email || !payload.iat) {
-                throw new ServiceError('JWT INVALID', 'The JWT does not contain the mandatory fields')
+                throw new ServiceError('JWT INVALID', 'Lenken mangler påkrevd informasjon')
             }
 
             const userId = Number(payload.sub)
@@ -98,7 +98,7 @@ export const authOperations = {
             const payload = verifyJWT(params.token, 'resetpassword')
 
             if (!payload.sub || !payload.iat) {
-                throw new ServiceError('JWT INVALID', 'The forgot password JWT is not valid')
+                throw new ServiceError('JWT INVALID', 'Lenken for å nullstille passordet er ugyldig')
             }
 
             const userId = Number(payload.sub)
@@ -114,7 +114,7 @@ export const authOperations = {
             })
 
             if (user.credentials && user.credentials?.credentialsUpdatedAt > new Date(payload.iat * 1000)) {
-                throw new ServiceError('JWT INVALID', 'The password has already been changed')
+                throw new ServiceError('JWT INVALID', 'Passordet er allerede endret')
             }
 
             // Tokens issued before the email claim was added carry none.
@@ -162,7 +162,7 @@ export const authOperations = {
                     firstname: true,
                     lastname: true,
                     acceptedTerms: true,
-                    createdByFeideLoginOnProjectNext: true,
+                    createdByFeideLoginOnOmegawebNext: true,
                     credentials: { select: { userId: true } },
                     feideAccount: { select: { id: true, email: true } },
                 },
@@ -170,7 +170,7 @@ export const authOperations = {
 
             if (
                 !feideUser.feideAccount ||
-                !feideUser.createdByFeideLoginOnProjectNext ||
+                !feideUser.createdByFeideLoginOnOmegawebNext ||
                 feideUser.credentials ||
                 feideUser.acceptedTerms
             ) {
@@ -227,7 +227,7 @@ export const authOperations = {
             const user = await prisma.user.findUniqueOrThrow({
                 where: { id: params.userId },
                 select: {
-                    createdByFeideLoginOnProjectNext: true,
+                    createdByFeideLoginOnOmegawebNext: true,
                     feideAccount: { select: { email: true } },
                 },
             })
@@ -239,7 +239,7 @@ export const authOperations = {
             return {
                 feideEmail: user.feideAccount.email,
                 feideEmailTrustedAsVerified: feideEmailDomainsTrustedAsVerified.includes(feideEmailDomain),
-                createdByFeideLoginOnProjectNext: user.createdByFeideLoginOnProjectNext,
+                createdByFeideLoginOnOmegawebNext: user.createdByFeideLoginOnOmegawebNext,
             }
         }
     }),
@@ -294,9 +294,12 @@ export const authOperations = {
                 select: { id: true },
             })
 
+            // An administrator merges duplicates however far the duplicate got, so it may have
+            // finished registering. Its credentials and terms go with it.
             await moveFeideAccountToUser(prisma, {
                 fromUserId: fromUser.id,
                 toUserId: toUser.id,
+                allowFinishedRegistration: true,
             })
         }
     }),

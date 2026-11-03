@@ -15,7 +15,7 @@ export async function notifyPromotedFromWaitingList(
     registrations: { userId: number | null, contact: { email: string | null } | null }[],
 ) {
     const title = 'Opprykk fra venteliste ved Omegas nettsider'
-    const congratulation = 'Gratulerer! Du har rykket opp fra venteliste på arrangementet'
+    const congratulation = 'Gratulerer! Du har rykket opp fra ventelisten på arrangementet'
     const message = `${congratulation} ${event.name}.`
     const mailBody = `${congratulation} ${escapeHtml(event.name)}.`
 

@@ -1,6 +1,8 @@
 import { recordSentMail } from 'tests/utils'
 import { prisma } from '@/prisma/client'
 import { eventOperations } from '@/services/events/operations'
+import { eventRegistrationOperations } from '@/services/events/registration/operations'
+import { eventRegistrationQueueOrder } from '@/services/events/registration/constants'
 import { notificationOperations } from '@/services/notifications/operations'
 import { userOperations } from '@/services/users/operations'
 import { beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
@@ -102,5 +104,147 @@ describe('waiting list promotion on more places', () => {
 
         expect(notifySpy).not.toHaveBeenCalled()
         expect(sentMail).not.toHaveBeenCalled()
+    })
+})
+
+describe('moving registrations in the queue', () => {
+    const userIds: number[] = []
+    const notifySpy = jest.spyOn(notificationOperations.createSpecial, 'internalCall')
+
+    beforeAll(async () => {
+        const users = await Promise.all(['a', 'b', 'c'].map(name => userOperations.create({
+            data: {
+                email: `test-queuemove-${name}@example.com`,
+                firstname: 'Test',
+                lastname: 'User',
+                username: `test-queuemove-${name}`,
+            },
+            bypassAuth: true,
+        })))
+        userIds.push(...users.map(user => user.id))
+    })
+
+    beforeEach(() => {
+        notifySpy.mockReset()
+        notifySpy.mockResolvedValue({ notification: null })
+    })
+
+    /** An event with one place and the users queueing in order, all at the same time when `sameTime`. */
+    async function createEventWithQueue(sameTime = false) {
+        const event = await eventOperations.create({
+            data: {
+                name: 'Test queue moving',
+                location: 'Lophtet',
+                eventStart: new Date(Date.now() + dayMs),
+                eventEnd: new Date(Date.now() + 2 * dayMs),
+                canBeViewedBy: 'ALL',
+                takesRegistration: true,
+                places: 1,
+                waitingList: true,
+                tagIds: [],
+                visibilityAdminRequirements: [{ conditions: [] }],
+            },
+            bypassAuth: true,
+        })
+        const queuedAt = new Date('2026-01-01T12:00:00Z')
+        const registrations = []
+        for (let index = 0; index < userIds.length; index++) {
+            registrations.push(await prisma.eventRegistration.create({
+                data: {
+                    eventId: event.id,
+                    userId: userIds[index],
+                    queuedAt: sameTime ? queuedAt : new Date(queuedAt.getTime() + index * 1000),
+                },
+            }))
+        }
+        return { event, registrations }
+    }
+
+    async function queuedUserIds(eventId: number) {
+        const registrations = await prisma.eventRegistration.findMany({
+            where: { eventId },
+            orderBy: eventRegistrationQueueOrder,
+            select: { userId: true },
+        })
+        return registrations.map(registration => registration.userId)
+    }
+
+    test('moving the first on the waiting list up gives them the place without telling anyone', async () => {
+        const { event, registrations } = await createEventWithQueue()
+
+        await eventRegistrationOperations.move({
+            params: { registrationId: registrations[1].id, direction: 'UP' },
+            bypassAuth: true,
+        })
+
+        expect(await queuedUserIds(event.id)).toEqual([userIds[1], userIds[0], userIds[2]])
+        expect(notifySpy).not.toHaveBeenCalled()
+    })
+
+    test('moving within the waiting list tells no one', async () => {
+        const { event, registrations } = await createEventWithQueue()
+
+        await eventRegistrationOperations.move({
+            params: { registrationId: registrations[1].id, direction: 'DOWN' },
+            bypassAuth: true,
+        })
+
+        expect(await queuedUserIds(event.id)).toEqual([userIds[0], userIds[2], userIds[1]])
+        expect(notifySpy).not.toHaveBeenCalled()
+    })
+
+    test('moves one step when the queue times are equal', async () => {
+        const { event, registrations } = await createEventWithQueue(true)
+
+        await eventRegistrationOperations.move({
+            params: { registrationId: registrations[2].id, direction: 'UP' },
+            bypassAuth: true,
+        })
+        expect(await queuedUserIds(event.id)).toEqual([userIds[0], userIds[2], userIds[1]])
+
+        await eventRegistrationOperations.move({
+            params: { registrationId: registrations[0].id, direction: 'DOWN' },
+            bypassAuth: true,
+        })
+        expect(await queuedUserIds(event.id)).toEqual([userIds[2], userIds[0], userIds[1]])
+    })
+
+    test('cannot move past the ends of the queue', async () => {
+        const { registrations } = await createEventWithQueue()
+
+        await expect(eventRegistrationOperations.move({
+            params: { registrationId: registrations[0].id, direction: 'UP' },
+            bypassAuth: true,
+        })).rejects.toThrow()
+        await expect(eventRegistrationOperations.move({
+            params: { registrationId: registrations[2].id, direction: 'DOWN' },
+            bypassAuth: true,
+        })).rejects.toThrow()
+    })
+
+    test('a registration cannot be marked paid when the event takes no payment', async () => {
+        const { registrations } = await createEventWithQueue()
+
+        await expect(eventRegistrationOperations.setManuallyPaid({
+            params: { registrationId: registrations[0].id }, data: { manuallyPaid: true }, bypassAuth: true,
+        })).rejects.toThrow()
+    })
+
+    test('a manually paid registration is marked and unmarked', async () => {
+        const { event, registrations } = await createEventWithQueue()
+        await prisma.event.update({ where: { id: event.id }, data: { takesPayment: true } })
+        const registrationId = registrations[0].id
+
+        await eventRegistrationOperations.setManuallyPaid({
+            params: { registrationId }, data: { manuallyPaid: true }, bypassAuth: true,
+        })
+        await expect(prisma.eventRegistration.findUniqueOrThrow({ where: { id: registrationId } }))
+            .resolves.toMatchObject({ manuallyPaid: true })
+
+        await eventRegistrationOperations.setManuallyPaid({
+            params: { registrationId }, data: { manuallyPaid: false }, bypassAuth: true,
+        })
+        await expect(prisma.eventRegistration.findUniqueOrThrow({ where: { id: registrationId } }))
+            .resolves.toMatchObject({ manuallyPaid: false })
     })
 })

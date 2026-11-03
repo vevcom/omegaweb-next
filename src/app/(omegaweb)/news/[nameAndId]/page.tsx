@@ -47,10 +47,10 @@ const { page, generateMetadata } = serverPage({
         const { news, doubleLevelVisibility } = data
 
         return (
-            <div className="flex flex-col gap-2 h-full">
+            <div className="flex flex-col">
                 <Article
                     capabilities={capabilities}
-                    articleClassName="bg-surface-base rounded-round overflow-y-auto p-[min(4rem,4vw)] grow mt-2"
+                    articleClassName="bg-surface-base grow"
                     article={news.article}
                     actions={{
                         updateArticleAction: configureAction(
@@ -97,20 +97,21 @@ const { page, generateMetadata } = serverPage({
                         }
                     }}
                 />
-                <SlideInOnView>
-                    <EditNews news={news} doubleLevelVisibility={doubleLevelVisibility}>
-                        <div className="
-                            bg-surface-base rounded-round overflow-y-auto flex flex-col p-[min(4rem,4vw)] min-h-[80px]
-                            [&>div]:flex [&>div]:gap-2 [&>div]:overflow-x-auto [&>div]:snap-x [&>div]:snap-mandatory
-                            [&>div>*]:flex-[0_0_min(75%,300px)] [&>div>*]:snap-start
-                        ">
-                            <h1>Flere nyheter</h1>
-                            <div>
-                                <CurrentNews not={news.id} />
+                <div className="bg-surface-base rounded-b-round border-t border-t-surface-hover">
+                    <SlideInOnView>
+                        <EditNews news={news} doubleLevelVisibility={doubleLevelVisibility}>
+                            <div className="
+                                bg-surface-base rounded-b-round overflow-y-auto flex flex-col p-4 min-h-[80px]
+                                [&>div>*]:flex-[0_0_min(75%,300px)]
+                            ">
+                                <h1>Flere nyheter</h1>
+                                <div className="flex overflow-x-auto gap-2">
+                                    <CurrentNews not={news.id} />
+                                </div>
                             </div>
-                        </div>
-                    </EditNews>
-                </SlideInOnView>
+                        </EditNews>
+                    </SlideInOnView>
+                </div>
             </div>
         )
     },

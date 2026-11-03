@@ -151,7 +151,7 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
                         [&>p:last-child]:text-right
                     "
                 >
-                    <p>Til opplastning: {files.length} {files.length === 1 ? 'fil' : 'filer'}</p>
+                    <p>Til opplasting: {files.length} {files.length === 1 ? 'fil' : 'filer'}</p>
                     <p>Total størrelse: {byteToUnderstandable(files.reduce((acc, file) => acc + file.file.size, 0))}</p>
                     <p>
                         <button className={trashClassName} onClick={handleRemoveAll}>

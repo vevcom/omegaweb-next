@@ -706,7 +706,7 @@ async function readUserPage(
     ]
 
     if (details.groups.length > maxNumberOfGroupsInFilter) {
-        throw new ServiceError('BAD PARAMETERS', 'Too many groups in filter')
+        throw new ServiceError('BAD PARAMETERS', 'For mange grupper i filteret')
     }
     const groupSelection = details.selectedGroup ? [
         getMembershipFilter(details.selectedGroup.groupOrder, details.selectedGroup.groupId)

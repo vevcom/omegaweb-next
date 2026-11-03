@@ -20,7 +20,6 @@ import { seedDevEvents } from './development/seedDevEvents'
 import { seedEventTags } from './standardContent/seedEventTags'
 import { seedCabin } from './standardContent/seedCabin'
 import { seedDevApplicationsAndPeriods } from './development/seedDevApplicationsAndPeriods'
-import { seedArticleCategories } from './standardContent/seedArticleCategories'
 import { seedImages } from './standardContent/seedImages'
 import { seedSpecialCms } from './standardContent/seedSpecialCms'
 import { seedFlairs } from './standardContent/seedFlairs'
@@ -28,6 +27,7 @@ import { seedNews } from './standardContent/seedNews'
 import { seedCompanies } from './standardContent/seedCompanies'
 import { seedInterestGroups } from './standardContent/seedInterestGroups'
 import { seedDevBulshit } from './development/seedDevBulshit'
+import { seedDevArticleCategories } from './development/seedDevArticleCategories'
 import { createTimedStep } from './timedStep'
 
 /**
@@ -41,7 +41,6 @@ export default async function seed({ devData, logging = true }: { devData: boole
         await step('Upserting standard orders', () => seedOrders())
         await step('Upserting standard images', () => seedImages())
         await step('Upserting standard special CMS', () => seedSpecialCms())
-        await step('Upserting standard article categories', () => seedArticleCategories())
         await step('Upserting standard news', () => seedNews())
         await step('Upserting standard companies', () => seedCompanies())
         await step('Upserting standard mail', () => seedMail())
@@ -69,6 +68,7 @@ export default async function seed({ devData, logging = true }: { devData: boole
         await step('Seeding development permissions', () => seedDevPermissions())
         await step('Seeding development omega quotes', () => seedDevOmegaquotes())
         await step('Seeding development news', () => seedDevNews())
+        await step('Seeding development article categories', () => seedDevArticleCategories())
         await step('Seeding development lockers', () => seedDevLockers())
         await step('Seeding development companies', () => seedDevCompanies())
         await step('Seeding development job ads', () => seedDevJobAds())

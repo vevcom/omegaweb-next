@@ -29,7 +29,7 @@ export default function CompanyChooser({ className }: PropTypes) {
             <div className="flex flex-row flex-wrap items-center justify-between gap-2 shrink-0">
                 <TextInput
                     className="flex-[1_1_12em] max-w-[20em] mt-0!"
-                    label="Søk Navn"
+                    label="Søk etter navn"
                     name="name"
                     onChange={handleNameFilter}
                 />

@@ -253,7 +253,7 @@ const readUserLevel = defineOperation({
  * Moves the user's omega membership to the given order, leaving the level it is in alone.
  *
  * The order records when the membership was granted - which order someone was taken up in - and is
- * what the profile reads back as "udaf den n'dis orden". It is set to the order that was current at
+ * what the profile reads back as "uudaf den n'dis orden". It is set to the order that was current at
  * the time, so correcting it is the only way to fix a membership that was granted late, or one
  * carried over from omegaweb basic with the wrong year against it.
  */

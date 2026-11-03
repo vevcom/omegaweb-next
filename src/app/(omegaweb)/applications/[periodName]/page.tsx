@@ -258,10 +258,10 @@ const { page, generateMetadata } = serverPage({
                         {capabilities.canRemoveAllApplicationTexts.authorized && (
                             <>
                                 <p>
-                                    Etter søknadsperioden er over og plasser fordelt anbefales det av
-                                    personvernshensyn å fjerne alle søknadstekster. Dette kan gjøres her. Dette
-                                    sletter ikke historikk om hvem som har søkt og på hva men sletter alle
-                                    søknadstekstene og bytter de ut med en tom tekst: &quot; SLETTET TEKST &quot;.
+                                    Når søknadsperioden er over og plassene er fordelt, anbefaler vi av
+                                    personvernhensyn å fjerne alle søknadstekstene. Det kan gjøres her. Historikken
+                                    over hvem som har søkt på hva, blir ikke slettet, men alle søknadstekstene
+                                    byttes ut med teksten «SLETTET TEKST».
                                 </p>
                                 <Form
                                     action={configureAction(
@@ -284,8 +284,8 @@ const { page, generateMetadata } = serverPage({
                         {capabilities.canDestroyPeriod.authorized && (
                             <>
                                 <p>
-                                    Du kan slette en søknadsperiode dette vil slette alle asosierte søknader,
-                                    men det er anbefalt å heller fjerne alle søknadstekster istedenfor å slette
+                                    Du kan slette søknadsperioden, men da slettes også alle søknadene i den.
+                                    Vi anbefaler heller å fjerne alle søknadstekstene i stedet for å slette
                                     søknadsperioden.
                                 </p>
                                 <Form

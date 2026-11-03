@@ -21,8 +21,8 @@ export const permissionCategories = [
 
 export const permissionConfig = {
     OMEGAQUOTES_USE: {
-        name: 'Bruke OmegaQuotes',
-        description: 'kan lese og skrive OmegaQuotes',
+        name: 'Bruke Omegaquotes',
+        description: 'kan lese og skrive Omegaquotes',
         category: 'omega quotes',
         canBeDefault: true,
     },
@@ -39,19 +39,19 @@ export const permissionConfig = {
         canBeDefault: true,
     },
     OMEGA_MEMBERSHIP_GROUP_USE: {
-        name: 'Les Omega medlemsgrupper',
-        description: 'kan lese Omega medlemsgrupper',
+        name: 'Les Omegas medlemsgrupper',
+        description: 'kan lese Omegas medlemsgrupper',
         category: 'groups',
         canBeDefault: true,
     },
     OMEGA_MEMBERSHIP_GROUP_ADMIN: {
-        name: 'Administrer Omega medlemsgrupper',
+        name: 'Administrer Omegas medlemsgrupper',
         description: 'kan endre hvilken medlemsgruppe en bruker tilhører',
         category: 'groups',
         canBeDefault: false,
     },
     CLASS_USE: {
-        name: 'Les klasse',
+        name: 'Les klasser',
         description: 'kan lese klasser',
         category: 'groups',
         canBeDefault: true,
@@ -63,38 +63,38 @@ export const permissionConfig = {
         canBeDefault: false,
     },
     COMMITTEE_USE: {
-        name: 'Les komite',
-        description: 'kan lese komiteer',
+        name: 'Les komitéer',
+        description: 'kan lese komitéer',
         category: 'groups',
         canBeDefault: true,
     },
     COMMITTEE_ADMIN: {
-        name: 'Administrer komiteer',
-        description: 'kan lage, endre og slette komiteer, og administrere medlemmene i dem',
+        name: 'Administrer komitéer',
+        description: 'kan lage, endre og slette komitéer, og administrere medlemmene i dem',
         category: 'groups',
         canBeDefault: false,
     },
     INTEREST_GROUP_USE: {
-        name: 'Les interessegruppe',
-        description: 'kan lese interessegruppe',
+        name: 'Les interessegrupper',
+        description: 'kan lese interessegrupper',
         category: 'groups',
         canBeDefault: true,
     },
     INTEREST_GROUP_ADMIN: {
-        name: 'Administrere interessegruppe',
-        description: 'Administrere interessegruppe uten å være admin i gruppen. Og lage nye grupper',
+        name: 'Administrer interessegrupper',
+        description: 'kan administrere interessegrupper uten å være admin i gruppen, og lage nye grupper',
         category: 'groups',
         canBeDefault: false,
     },
     STUDY_PROGRAMME_USE: {
-        name: 'Les studieprogram',
-        description: 'kan lese studieprogram',
+        name: 'Les studieprogrammer',
+        description: 'kan lese studieprogrammer',
         category: 'groups',
         canBeDefault: true,
     },
     STUDY_PROGRAMME_ADMIN: {
-        name: 'Administrer studieprogram',
-        description: 'kan lage, endre og slette studieprogram, og administrere medlemmene i dem',
+        name: 'Administrer studieprogrammer',
+        description: 'kan lage, endre og slette studieprogrammer, og administrere medlemmene i dem',
         category: 'groups',
         canBeDefault: false,
     },
@@ -123,31 +123,31 @@ export const permissionConfig = {
         canBeDefault: true,
     },
     OMEGA_ORDER_ADMIN: {
-        name: 'Omega orden administrator',
-        description: 'kan inkrementere omega orden',
+        name: 'Ordenadministrator',
+        description: 'kan inkrementere Omegas orden',
         category: 'diverse admin',
         canBeDefault: false,
     },
     OMEGA_ORDER_USE: {
-        name: 'Les omega orden',
-        description: 'kan lese omega orden',
+        name: 'Les Omegas orden',
+        description: 'kan lese Omegas orden',
         category: 'diverse admin',
         canBeDefault: true,
     },
     FRONTPAGE_ADMIN: {
-        name: 'Frontpage administrator',
-        description: 'kan administrere frontpage',
+        name: 'Forsideadministrator',
+        description: 'kan administrere forsiden',
         category: 'public',
         canBeDefault: false,
     },
     NEW_STUDENT_ADMIN: {
-        name: 'Administrere ny student siden',
-        description: 'kan administrere artikkelen på ny student siden',
+        name: 'Administrer Ny student-siden',
+        description: 'kan administrere artikkelen på Ny student-siden',
         category: 'public',
         canBeDefault: false,
     },
     REPORT_ADMIN: {
-        name: 'Administrere varslingssiden',
+        name: 'Administrer varslingssiden',
         description: 'kan administrere artikkelen på varslingssiden',
         category: 'public',
         canBeDefault: false,
@@ -167,38 +167,38 @@ export const permissionConfig = {
     IMAGE_ADMIN: {
         name: 'Bildeadministrator',
         description: `
-            Kan administrere alle bilder, uavhengig av synelighet - dette er altså en bypass.
+            Kan administrere alle bilder, uavhengig av synlighet. Dette overstyrer altså alle andre regler.
         `,
         category: 'bilder',
         canBeDefault: false,
     },
     IMAGE_CREATE: {
-        name: 'Lage bilde samling',
-        description: 'kan lage bilde samling',
+        name: 'Lage bildesamlinger',
+        description: 'kan lage bildesamlinger',
         category: 'bilder',
         canBeDefault: false,
     },
     EVENT_ADMIN: {
-        name: 'Eventadministrator',
-        description: 'kan lage og administrere events, samt gi prikker for uteblivelse',
+        name: 'Arrangementsadministrator',
+        description: 'kan lage og administrere arrangementer, og gi prikker for uteblivelse',
         category: 'events',
         canBeDefault: false,
     },
     EVENT_CREATE: {
-        name: 'Lage events',
-        description: 'kan lage nye events, men administrerer kun de som egen synlighet gir tilgang til',
+        name: 'Lage arrangementer',
+        description: 'kan lage nye arrangementer, men bare administrere dem synligheten gir tilgang til',
         category: 'events',
         canBeDefault: false,
     },
     NOTIFICATION_ADMIN: {
-        name: 'Notifikasjonsadministrator',
-        description: 'kan lage notifikasjonskanaler og notifikasjoner, samt administrere andres abonnement',
+        name: 'Varslingsadministrator',
+        description: 'kan lage varslingskanaler og varsler, og administrere andres abonnementer',
         category: 'notifikasjoner',
         canBeDefault: false,
     },
     MAIL_USE: {
-        name: 'Sende epost',
-        description: 'kan sende epost',
+        name: 'Sende e-post',
+        description: 'kan sende e-post',
         category: 'mail',
         canBeDefault: false,
     },
@@ -215,14 +215,14 @@ export const permissionConfig = {
         canBeDefault: false,
     },
     ADMISSION_USE: {
-        name: 'Bruke opptakssystem',
+        name: 'Bruke opptakssystemet',
         description: 'kan lage, lese og administrere opptaksprøver',
         category: 'brukere',
         canBeDefault: false,
     },
     APIKEY_ADMIN: {
-        name: 'API nøkkel administrator',
-        description: 'kan administrere API nøkler',
+        name: 'API-nøkkeladministrator',
+        description: 'kan administrere API-nøkler',
         category: 'diverse admin',
         canBeDefault: false,
     },
@@ -234,7 +234,7 @@ export const permissionConfig = {
     },
     LOCKER_ADMIN: {
         name: 'Administrere skap',
-        description: 'kan opprette og slette reservasjoner på veiene av andre samt opprette og slette selve skapene',
+        description: 'kan opprette og slette reservasjoner på vegne av andre, og opprette og slette selve skapene',
         category: 'diverse admin',
         canBeDefault: false,
     },
@@ -257,14 +257,14 @@ export const permissionConfig = {
         canBeDefault: false,
     },
     FLAIR_ADMIN: {
-        name: 'Kappe redigering',
+        name: 'Redigere kapper',
         description: `
             Opprette, endre og gi kapper`,
         category: 'brukere',
         canBeDefault: false,
     },
     SHOP_ADMIN: {
-        name: 'Butikk administrator',
+        name: 'Butikkadministrator',
         description: `
             Kan opprette butikker, se og administrere 
             alle butikker uansett synlighet,
@@ -280,7 +280,7 @@ export const permissionConfig = {
     },
     PURCHASE_ADMIN: {
         name: 'Kan ta betalt i en butikk',
-        description: 'Kan belaste andre brukerkontoer, når de handler i en butikk.',
+        description: 'Kan belaste andre brukerkontoer når de handler i en butikk.',
         category: 'shop',
         canBeDefault: false,
     },
@@ -321,7 +321,7 @@ export const permissionConfig = {
         name: 'Søknadsadministrator',
         description: `
             Lag søknadsperioder, les søknader og administrer/moderere søknader.
-            Komitemedlemmer kan også lese søknader til sin komite.
+            Komitémedlemmer kan også lese søknader til sin komité.
         `,
         category: 'applications',
         canBeDefault: false,
@@ -335,7 +335,7 @@ export const permissionConfig = {
         canBeDefault: true,
     },
     LEDGER_ADMIN: {
-        name: 'Hovedbokadministratør',
+        name: 'Hovedbokadministrator',
         description: `
             Kan opprette overføringer fra/til og endre alle kontoer.
         `,

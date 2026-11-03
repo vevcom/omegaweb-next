@@ -8,6 +8,7 @@ const dataFieldSchemas = z.object({
     note: z.string().max(200, 'Merknader kan ha maks 200 tegn'),
     name: z.string().min(2),
     attended: Zpn.checkboxOrBoolean({ label: 'Møtt' }),
+    manuallyPaid: Zpn.checkboxOrBoolean({ label: 'Betalt' }),
 })
 
 const paramsFieldSchemas = z.object({
@@ -17,6 +18,7 @@ const paramsFieldSchemas = z.object({
     registrationId: z.number().min(0),
     registeredById: z.number().min(0),
     type: z.nativeEnum(REGISTRATION_READER_TYPE),
+    direction: z.enum(['UP', 'DOWN']),
     provider: z.nativeEnum(PaymentProvider).optional(),
     amountFromBalance: z.coerce.number().nonnegative().default(0),
     manualFees: z.coerce.number().nonnegative().default(0),
@@ -62,6 +64,9 @@ export const eventRegistrationSchemas = {
         setAttendance: dataFieldSchemas.pick({
             attended: true,
         }),
+        setManuallyPaid: dataFieldSchemas.pick({
+            manuallyPaid: true,
+        }),
     },
     params: {
         create: userAndEvent,
@@ -74,6 +79,11 @@ export const eventRegistrationSchemas = {
         readPageDetailed: readPage,
         updateNotes: registrationId,
         destroy: registrationId,
+        move: paramsFieldSchemas.pick({
+            registrationId: true,
+            direction: true,
+        }),
+        setManuallyPaid: registrationId,
         registerAttendance: paramsFieldSchemas.pick({
             userId: true,
             eventId: true,

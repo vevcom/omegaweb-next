@@ -67,7 +67,7 @@ export default function EditMailAlias({
             submitColor="red"
             confirmation={{
                 confirm: true,
-                text: 'Sikker på at du vil slette dette aliaset? Dette kan ikke angres.',
+                text: 'Er du sikker på at du vil slette dette aliaset? Dette kan ikke angres.',
             }}
         />}
     </>

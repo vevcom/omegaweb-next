@@ -21,20 +21,20 @@ const { page, generateMetadata } = serverPage({
         canUpdateApiKey: apiKeyAuth.update,
         canDestroyApiKey: apiKeyAuth.destroy,
     }),
-    metadata: () => ({ title: 'API nøkkel' }),
+    metadata: () => ({ title: 'API-nøkkel' }),
     render: ({ data: apiKey, capabilities }) => (
         <PageWrapper>
             <div>
                 <h2>Navn: {apiKey.name}</h2>
-                <i>{apiKey.active ? 'Denne api nøkkelen er aktiv' : 'Denne api nøkkelen er inaktiv'}</i>
+                <i>{apiKey.active ? 'Denne API-nøkkelen er aktiv' : 'Denne API-nøkkelen er inaktiv'}</i>
                 <div className="mt-[2em]">
-                    <p>Utgår: {apiKey.expiresAt ? <Date date={apiKey.expiresAt} /> : 'ingen utløp'}</p>
+                    <p>Utløper: {apiKey.expiresAt ? <Date date={apiKey.expiresAt} /> : 'aldri'}</p>
                     <p>Opprettet: <Date date={apiKey.createdAt} /></p>
                     <p>Sist oppdatert: <Date date={apiKey.updatedAt} /></p>
                 </div>
 
                 <div className="mt-[1em] pt-[1em] border-t-[.3em] border-surface-subtle">
-                    <h2>Endre på nøkkel</h2>
+                    <h2>Endre nøkkelen</h2>
                     {capabilities.canUpdateApiKey.authorized &&
                     <UpdateApiKeyForm id={apiKey.id}>
                         <TextInput name="name" label="Navn" defaultValue={apiKey.name} />
@@ -61,7 +61,7 @@ const { page, generateMetadata } = serverPage({
                         action={configureAction(destroyApiKeyAction, { params: { id: apiKey.id } })}
                         confirmation={{
                             text: 'Er du sikker på at du vil slette denne nøkkelen? ' +
-                                'Heller anbefaler vi å deaktivere den.',
+                                'Vi anbefaler heller å deaktivere den.',
                             confirm: true,
                         }}
                         submitColor="red"

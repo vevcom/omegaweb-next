@@ -17,16 +17,16 @@ export default function StripePayment({ ref }: Props) {
 
     useImperativeHandle(ref, () => ({
         submit: async () => {
-            if (!stripe || !elements) return 'Stripe er ikke initalisert enda.'
+            if (!stripe || !elements) return 'Stripe er ikke initialisert ennå.'
 
             const { error } = await elements.submit()
 
-            if (error) return error.message || 'En feil oppsto når betalingen skulle sendes inn.'
+            if (error) return error.message || 'En feil oppsto da betalingen skulle sendes inn.'
 
             return null
         },
         confirmPayment: async (clientSecret: string) => {
-            if (!stripe || !elements) return 'Stripe ikke initialisert enda.'
+            if (!stripe || !elements) return 'Stripe er ikke initialisert ennå.'
 
             const { error } = await stripe.confirmPayment({
                 clientSecret,
@@ -39,12 +39,12 @@ export default function StripePayment({ ref }: Props) {
                 redirect: 'if_required',
             })
 
-            if (error) return error.message || 'En feil oppsto når betalingen skulle bekreftes.'
+            if (error) return error.message || 'En feil oppsto da betalingen skulle bekreftes.'
 
             return null
         },
         confirmSetup: async (clientSecret: string) => {
-            if (!stripe || !elements) return 'Stripe ikke initialisert enda.'
+            if (!stripe || !elements) return 'Stripe er ikke initialisert ennå.'
 
             const { error } = await stripe.confirmSetup({
                 clientSecret,

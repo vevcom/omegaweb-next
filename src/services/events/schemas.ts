@@ -22,15 +22,17 @@ const dataFieldSchemas = z.object({
 
     takesRegistration: Zpn.checkboxOrBoolean({ label: 'Tar påmelding' }),
     places: z.coerce.number().int().optional(),
-    registrationStart: Zpn.date({ label: 'Påmelding start' }).optional(),
-    registrationEnd: Zpn.date({ label: 'Påmelding slutt' }).optional(),
+    registrationStart: Zpn.date({ label: 'Påmeldingsstart' }).optional(),
+    registrationEnd: Zpn.date({ label: 'Påmeldingsslutt' }).optional(),
+    takesPayment: Zpn.checkboxOrBoolean({ label: 'Tar betaling' }).default(false),
     price: z.coerce.number().min(0).transform(val => convertAmount(val)).optional(),
-    paymentStart: Zpn.date({ label: 'Betaling start' }).optional(),
-    paymentEnd: Zpn.date({ label: 'Betaling slutt' }).optional(),
+    paymentStart: Zpn.date({ label: 'Betalingsstart' }).optional(),
+    paymentEnd: Zpn.date({ label: 'Betalingsslutt' }).optional(),
 
     waitingList: Zpn.checkboxOrBoolean({ label: 'Venteliste' }),
+    bindingRegistration: Zpn.checkboxOrBoolean({ label: 'Bindende påmelding' }).default(false),
 
-    tagIds: Zpn.numberListCheckboxFriendly({ label: 'tags' }),
+    tagIds: Zpn.numberListCheckboxFriendly({ label: 'Tagger' }),
 
     published: Zpn.checkboxOrBoolean({ label: 'Publisert' }),
 
@@ -67,6 +69,13 @@ const waitingListRefiner = (data: {
 
 const waitingListMessage = 'Kan ikke ha venteliste uten påmelding'
 
+const bindingRegistrationRefiner = (data: {
+    bindingRegistration?: boolean,
+    takesRegistration?: boolean
+}) => (data.takesRegistration || !data.bindingRegistration)
+
+const bindingRegistrationMessage = 'Kan ikke ha bindende påmelding uten påmelding'
+
 const eventFields = {
     name: true,
     location: true,
@@ -82,6 +91,8 @@ const eventFields = {
     registrationEnd: true,
     tagIds: true,
     waitingList: true,
+    bindingRegistration: true,
+    takesPayment: true,
     price: true,
     paymentStart: true,
     paymentEnd: true,
@@ -101,8 +112,12 @@ export const eventSchemas = {
             ...eventFields,
             visibilityAdminRequirements: true,
             visibilityRegularRequirements: true,
-        }).refine(waitingListRefiner, waitingListMessage),
-        update: dataFieldSchemas.pick(eventFields).partial().refine(waitingListRefiner, waitingListMessage),
+        })
+            .refine(waitingListRefiner, waitingListMessage)
+            .refine(bindingRegistrationRefiner, bindingRegistrationMessage),
+        update: dataFieldSchemas.pick(eventFields).partial()
+            .refine(waitingListRefiner, waitingListMessage)
+            .refine(bindingRegistrationRefiner, bindingRegistrationMessage),
         setPublished: dataFieldSchemas.pick({
             published: true,
         }),

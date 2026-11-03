@@ -90,7 +90,7 @@ type SeedSpecialArticleConfig = SeedArticleConfig & {
 const seedSpecialCmsArticleConfig: Record<SpecialCmsArticle, SeedSpecialArticleConfig> = {
     REPORT_PAGE: {
         updateOperations: reportOperations.update,
-        name: 'Varslingside',
+        name: 'Varslingsside',
         coverImage: {
             image: { dynamicImageSeededForCmsName: 'ov' },
         },
@@ -104,7 +104,7 @@ const seedSpecialCmsArticleConfig: Record<SpecialCmsArticle, SeedSpecialArticleC
     },
     NEW_STUDENT_PAGE: {
         updateOperations: newStudentOperations.update,
-        name: 'Ny Student',
+        name: 'Ny student',
         coverImage: {
             image: { dynamicImageSeededForCmsName: 'kappemann' },
         },

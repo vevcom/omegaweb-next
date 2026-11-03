@@ -19,7 +19,7 @@ export const cabinPricePeriodOperations = {
             if (currentReleaseDate && currentReleaseDate.releaseUntil >= data.validFrom) {
                 throw new ServiceError(
                     'BAD DATA',
-                    'Kan ikke sette en pris periode til å være gyldig når datoene allerede er sluppet.'
+                    'Kan ikke sette en prisperiode til å være gyldig når datoene allerede er sluppet.'
                 )
             }
 
@@ -31,7 +31,7 @@ export const cabinPricePeriodOperations = {
             })
 
             if (latestPricePeriod && latestPricePeriod.validFrom >= data.validFrom) {
-                throw new ServiceError('BAD DATA', 'Kan ikke sette en pris periode til å være gyldig før en annen periode.')
+                throw new ServiceError('BAD DATA', 'Kan ikke sette en prisperiode til å være gyldig før en annen periode.')
             }
 
             const result = await tx.pricePeriod.create({
@@ -71,7 +71,7 @@ export const cabinPricePeriodOperations = {
             })
 
             if (currentReleasePeriod && pricePeriod.validFrom <= currentReleasePeriod.releaseUntil) {
-                throw new ServiceError('BAD PARAMETERS', 'Kan ikke slette en pris periode som er publisert.')
+                throw new ServiceError('BAD PARAMETERS', 'Kan ikke slette en prisperiode som er publisert.')
             }
 
             return await prisma.pricePeriod.delete({
@@ -149,12 +149,12 @@ export const cabinPricePeriodOperations = {
             })
 
             if (currentReleasePeriod && pricePeriod.validFrom <= currentReleasePeriod.releaseUntil) {
-                throw new ServiceError('BAD PARAMETERS', 'Kan ikke endre en pris periode som er publisert.')
+                throw new ServiceError('BAD PARAMETERS', 'Kan ikke endre en prisperiode som er publisert.')
             }
             if (currentReleasePeriod && data.validFrom <= currentReleasePeriod.releaseUntil) {
                 throw new ServiceError(
                     'BAD DATA',
-                    'Kan ikke sette en pris periode til å være gyldig når datoene allerede er sluppet.'
+                    'Kan ikke sette en prisperiode til å være gyldig når datoene allerede er sluppet.'
                 )
             }
 
@@ -172,7 +172,7 @@ export const cabinPricePeriodOperations = {
             if ((previous && previous.validFrom >= data.validFrom) || (next && next.validFrom <= data.validFrom)) {
                 throw new ServiceError(
                     'BAD DATA',
-                    'Pris perioden må starte etter perioden før den, og før perioden etter den.'
+                    'Prisperioden må starte etter perioden før den, og før perioden etter den.'
                 )
             }
 

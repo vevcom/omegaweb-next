@@ -99,6 +99,12 @@ export default function EditJobAd({ jobAd, basePath, children }: PropTypes) {
                             defaultChecked={jobAd.active}
                             color="primary"
                         />
+                        <Slider
+                            label="Løpende"
+                            name="rollingDueDate"
+                            defaultChecked={jobAd.rollingDueDate}
+                            color="primary"
+                        />
                     </Form>
                     {canDestroy && (
                         <div className="mt-4 pt-4 border-t border-surface-hover">

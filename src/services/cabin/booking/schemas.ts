@@ -15,7 +15,7 @@ const dataFieldSchemas = z.object({
     mobile: z.string().regex(/^\+?\d{4,20}$/, { message: 'Skriv kun tall, uten mellomrom.' }),
     acceptedTerms: Zpn.checkboxOrBoolean({
         label: '',
-        message: 'Du må godta vilkårene for å bruk siden.'
+        message: 'Du må godta vilkårene for å bruke siden.'
     }),
     ledgerAccountId: z.coerce.number().int(),
 })

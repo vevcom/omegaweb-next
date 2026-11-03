@@ -49,7 +49,7 @@ export default function AddNotificationChannel({ channels }: PropTypes) {
         <TextInput name="description" label="Beskrivelse" />
 
         <SelectNumber
-            label="Forelder"
+            label="Overordnet kanal"
             name="parentId"
             options={channels.map(channel => ({ value: channel.id, label: channel.name }))}
             value={selectedParentId}
@@ -66,7 +66,7 @@ export default function AddNotificationChannel({ channels }: PropTypes) {
 
         <NotificationMethodSelector
             formPrefix="defaultMethods"
-            title="Standard metoder"
+            title="Standardmetoder"
             methods={defaultMethods}
             editable={booleanOperationOnMethods(editableMethods, availableMethods, 'AND')}
             onChange={setDefaultMethods}

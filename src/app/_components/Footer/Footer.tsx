@@ -44,11 +44,11 @@ function Footer() {
                     tintAspectRatio={1657.3333 / 210.66667}
                 />
                 <p>
-                Linjeforeningen for Elektronisk Systemdesign
-                og Innovasjon (MTELSYS) og Kybernetikk og
-                Robotikk (MTTK) ved Norges Tekniske-Naturvitenskapelige Universitet (NTNU)
+                Linjeforeningen for Elektronisk systemdesign
+                og innovasjon (MTELSYS) og Kybernetikk og
+                robotikk (MTTK) ved Norges teknisk-naturvitenskapelige universitet (NTNU)
                 </p>
-                <p>Org. Nr. 890 384 692</p>
+                <p>Org.nr. 890 384 692</p>
                 <p>
                     <Link href="/terms" className="
                         text-text no-underline
@@ -82,9 +82,9 @@ function Footer() {
                 </div>
                 <div className={infoClassName}>
                     <p>Adresse:</p>
-                    <p>Sct.Omega Broderskab</p>
+                    <p>Sct. Omega Broderskab</p>
                     <p>NTNU Gløshaugen</p>
-                    <p>Elektro-bygget</p>
+                    <p>Elektrobygget</p>
                     <p>7491 Trondheim</p>
                 </div>
             </div>

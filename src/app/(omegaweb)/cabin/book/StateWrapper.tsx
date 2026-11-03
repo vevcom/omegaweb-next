@@ -192,7 +192,7 @@ export default function StateWrapper({
     }
 
     if (session.loading || !reservationState.checked || !storageKey) {
-        return <>Laster session...</>
+        return <>Laster inn...</>
     }
 
     if (!canBookCabin && !canBookBed) {
@@ -319,7 +319,7 @@ export default function StateWrapper({
                     },
                     {
                         value: 'BED',
-                        label: 'Enkelt seng'
+                        label: 'Enkeltseng'
                     }
                 ]}
                 value={bookingType}

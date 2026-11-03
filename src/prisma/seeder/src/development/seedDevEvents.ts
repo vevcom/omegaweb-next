@@ -61,6 +61,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 registrationStart: today,
                 registrationEnd: tomorrow,
                 waitingList: true,
+                bindingRegistration: true,
                 tagIds: [
                     bedPresTag.id,
                 ],

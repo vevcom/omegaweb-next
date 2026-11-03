@@ -76,7 +76,7 @@ export default function ChannelSettings({
                 <div className="max-w-[350px]">
                     {currentChannelState.special !== 'ROOT' ?
                         <SelectNumber
-                            label="Forelder"
+                            label="Overordnet kanal"
                             name="parentId"
                             options={selectOptions.map(channel => ({ value: channel.id, label: channel.name }))}
                             value={currentChannelState.parentId}
@@ -112,7 +112,7 @@ export default function ChannelSettings({
                     />
                     <NotificationMethodSelector
                         formPrefix="defaultMethods"
-                        title="Standard metoder"
+                        title="Standardmetoder"
                         methods={currentChannelState.defaultMethods}
                         editable={currentChannelState.availableMethods}
                         onChange={(data) => {

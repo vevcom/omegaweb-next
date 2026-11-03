@@ -21,15 +21,15 @@ export const userDataFieldSchemas = z.object({
     theme: z.nativeEnum(Theme),
     password: z.string().max(50).min(12, {
         // eslint-disable-next-line
-        message: 'Passoret må minst ha 12 tegn, en stor og en liten bokstav, et tall, en rune, to emojier, en musikk note, en magisk sopp og en dråpe smørekopp-blod (avsky).'
+        message: 'Passordet må ha minst 12 tegn, en stor og en liten bokstav, et tall, en rune, to emojier, en musikknote, en magisk sopp og en dråpe smørekopp-blod (avsky).'
     }),
     confirmPassword: z.string().max(50).min(12),
     currentPassword: z.string().max(50).optional(),
     imageConsent: Zpn.checkboxOrBoolean({
-        label: 'Accepted images'
+        label: 'Samtykke til bilder'
     }).optional(),
     acceptedTerms: Zpn.checkboxOrBoolean({
-        label: 'Accepted terms',
+        label: 'Godkjente vilkår',
     }).refine(value => value, 'Du må godta vilkårene for å bruke siden.'),
     // Whatever the card reader gives, as is: it is only ever compared to what the reader gives later.
     studentCard: z.string().trim().min(1).max(100),

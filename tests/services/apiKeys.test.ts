@@ -89,8 +89,8 @@ describe('api keys', () => {
 })
 
 describe('api key sessions', () => {
-    const invalidKey = { errorCode: 'INVALID API KEY', errors: [{ message: 'Api nøkkelen er ikke valid' }] }
-    const inactiveKey = { errorCode: 'INVALID API KEY', errors: [{ message: 'Api nøkkelen er utløpt eller deaktivert' }] }
+    const invalidKey = { errorCode: 'INVALID API KEY', errors: [{ message: 'API-nøkkelen er ugyldig' }] }
+    const inactiveKey = { errorCode: 'INVALID API KEY', errors: [{ message: 'API-nøkkelen er utløpt eller deaktivert' }] }
 
     async function createApiKey() {
         const createdApiKey = await apiKeyOperations.create({

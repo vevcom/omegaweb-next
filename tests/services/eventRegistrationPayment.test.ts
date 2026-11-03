@@ -82,6 +82,7 @@ async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number }
             waitingList: false,
             registrationStart: new Date(now.getTime() - HOUR),
             registrationEnd: new Date(now.getTime() + 24 * HOUR),
+            takesPayment: true,
             price: EVENT_PRICE_KRONER,
             paymentStart: new Date(now.getTime() - HOUR),
             paymentEnd: new Date(now.getTime() + 24 * HOUR),

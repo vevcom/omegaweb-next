@@ -11,7 +11,7 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('cabin-booking', session)
         return cabinBookingOperations.readMany({})
     },
-    metadata: () => ({ title: 'Hytte bookinger' }),
+    metadata: () => ({ title: 'Hyttebookinger' }),
     render: ({ data: bookings }) => {
         const displayNames = bookings.map(booking => {
             if (booking.user) {

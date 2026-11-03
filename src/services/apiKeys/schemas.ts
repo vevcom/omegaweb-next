@@ -3,7 +3,7 @@ import { Permission } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
-    name: z.string().min(10, 'minimum lengde 10').max(100, 'maksimum lengde 100'),
+    name: z.string().min(10, 'Minimum lengde er 10 tegn').max(100, 'Maks lengde er 100 tegn'),
     expiresAt: z.coerce.date().optional(),
     active: Zpn.checkboxOrBoolean({ label: 'Aktiv' }),
     permissions: Zpn.enumListCheckboxFriendly({ label: 'Tillatelser', enum: Permission })

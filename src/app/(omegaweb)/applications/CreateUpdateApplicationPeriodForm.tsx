@@ -47,8 +47,8 @@ export default function CreateUpdateApplicationPeriodForm({ committees, period, 
                 includeTime
                 defaultValue={period ? period.endPriorityDate : undefined}
             />
-            <h3>Kommitéer som deltar i søknadsperioden</h3>
-            {period && <p className="text-accent-red">Fjerner man en komité vil det slette alle søknadene til komitéen!</p>}
+            <h3>Komitéer som deltar i søknadsperioden</h3>
+            {period && <p className="text-accent-red">Fjerner du en komité, slettes alle søknadene til komitéen!</p>}
             {
                 committees.map(committee => (
                     <Checkbox

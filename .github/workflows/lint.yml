@@ -24,9 +24,6 @@ jobs:
     - name: Generate PrismaClient
       run: npx prisma generate
 
-    - name: Generate dobbelOmega
-      run: npm run dobbelOmega:generate
-
     - name: lint
       run: npm run lint
 

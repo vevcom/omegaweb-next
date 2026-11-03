@@ -3,7 +3,6 @@ import { ParseError, ServiceError, Smorekopp } from './error'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
 import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
-import { releaseCountdownHoldsBack } from '@/services/releaseCountdown/access'
 import logger from '@/lib/logger'
 import { zfd } from 'zod-form-data'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
@@ -521,10 +520,6 @@ export function defineSubOperation<
                 context,
                 serviceOperationConfig.opensTransaction,
                 async ({ prisma, bypassAuth, session }) => {
-                    if (!bypassAuth && await releaseCountdownHoldsBack(executeOperation)) {
-                        throw new Smorekopp('UNAUTHORIZED', 'Nettsiden er ikke lansert ennå')
-                    }
-
                     // Then, authorize user.
                     // This has to be done after the validation because the
                     // authorizer might use the data to authorize the user.

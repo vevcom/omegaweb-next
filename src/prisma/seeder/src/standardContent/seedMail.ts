@@ -15,7 +15,7 @@ export const seedMail = defineSeedOperation(async (prisma: PrismaClient) => {
 
     const mailingLists = [
         {
-            name: 'Vevcom',
+            name: 'VevCom',
             aliases: [
                 'vevcom',
                 'stripe',

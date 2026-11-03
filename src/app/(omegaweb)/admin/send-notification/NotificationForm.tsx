@@ -24,7 +24,7 @@ export default function NotificationForm({
                 if (data) {
                     setSuccessMessage(`
                         Varslingen er lagt til i køen.
-                        Det kan ta ganske lang tid før alle får varselet
+                        Det kan ta ganske lang tid før alle får varselet.
                     `)
                 }
             }}
@@ -48,8 +48,8 @@ export default function NotificationForm({
             </p>
 
             <p>
-                Dersom du ønsker å gjøre varselet mer personlig kan man bruke brukerinformasjon i varselet.
-                Under er en liste med kommandoer. Dersom det kun er e-post varslingere så kan du skrive i markdown.
+                Vil du gjøre varselet mer personlig, kan du bruke brukerinformasjon i det.
+                Under er en liste med kommandoer. Sendes varselet bare som e-post, kan du skrive i Markdown.
             </p>
             <table>
                 <tr>

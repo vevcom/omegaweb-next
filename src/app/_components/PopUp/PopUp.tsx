@@ -58,6 +58,8 @@ export type PropTypes = {
     showButtonContent?: ReactNode,
     showButtonClass?: string,
     showButtonStyle?: CSSProperties,
+    /** The accessible name of the button that opens the pop-up, for one that shows only an icon. */
+    ariaLabel?: string,
     storeInUrl?: boolean,
     popUpKey: PopUpKeyType
 }
@@ -69,6 +71,7 @@ export default function PopUp({
     showButtonContent,
     showButtonClass,
     showButtonStyle,
+    ariaLabel,
     storeInUrl = false,
 }: PropTypes) {
     const router = useRouter()
@@ -169,6 +172,8 @@ export default function PopUp({
                     ${showButtonClass}
                 `}
                 style={showButtonStyle}
+                aria-label={ariaLabel}
+                title={ariaLabel}
                 onClick={handleOpening}
             >
                 {showButtonContent}

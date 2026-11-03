@@ -11,13 +11,13 @@ export default async function ResetPassword({ searchParams }: PropTypes) {
     if (!token) {
         return <>
             <h1>Ops</h1>
-            <p>Token mangler</p>
+            <p>Lenken er ufullstendig. Be om en ny lenke for å nullstille passordet.</p>
         </>
     }
     const verify = await verifyResetPasswordTokenAction({ params: { token } })
 
     if (!verify.success) {
-        const errorMessage = verify.error?.map(e => e.message).join('\n') ?? 'JWT er ugyldig'
+        const errorMessage = verify.error?.map(e => e.message).join('\n') ?? 'Lenken er ugyldig'
 
         return <>
             <h1>Ops</h1>

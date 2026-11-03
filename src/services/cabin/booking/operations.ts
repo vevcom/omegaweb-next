@@ -156,7 +156,7 @@ async function readBookingProducts(
         include: cabinProductPriceIncluder,
     })
     if (products.length !== bookingProducts.length) {
-        throw new ServiceError('BAD PARAMETERS', 'Kunne ikke finne alle hytta produktene. Duplikater er ikke tillat.')
+        throw new ServiceError('BAD PARAMETERS', 'Kunne ikke finne alle hytteproduktene. Duplikater er ikke tillatt.')
     }
 
     return bookingProducts.map(({ cabinProductId, quantity }) => {
@@ -208,7 +208,7 @@ async function reserve(prisma: PrismaClient, { bookingType, bookingProducts, boo
             prisma: tx,
         })
         if (releasePeriod === null) {
-            throw new ServiceError('SERVER ERROR', 'Hyttebooking siden er ikke tilgjengelig.')
+            throw new ServiceError('SERVER ERROR', 'Hyttebookingsiden er ikke tilgjengelig.')
         }
         // Checked before the dates are held, not first at payment: a reservation that could never
         // be paid for would only block the calendar until it expired.

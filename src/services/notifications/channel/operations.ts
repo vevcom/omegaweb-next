@@ -22,7 +22,7 @@ export const notificationChannelOperations = {
         paramsSchema: notificationChannelSchemas.params.create,
         operation: async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
             if (!validateMethods(params.availableMethods, params.defaultMethods)) {
-                throw new ServiceError('BAD PARAMETERS', 'Default methods cannot exceed available methods.')
+                throw new ServiceError('BAD PARAMETERS', 'Standardmetodene må være blant de tilgjengelige metodene.')
             }
 
             return await prisma.$transaction(async (tx) => {
@@ -130,7 +130,7 @@ export const notificationChannelOperations = {
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => {
             if (!validateMethods(params.availableMethods, params.defaultMethods)) {
-                throw new ServiceError('BAD PARAMETERS', 'Default methods cannot exceed available methods.')
+                throw new ServiceError('BAD PARAMETERS', 'Standardmetodene må være blant de tilgjengelige metodene.')
             }
 
             // Check if the channel is special
@@ -154,7 +154,7 @@ export const notificationChannelOperations = {
                 })
 
                 if (!validateNewParent(params.id, data.parentId, allChannels)) {
-                    throw new ServiceError('BAD PARAMETERS', 'Cannot set parentId in a loop')
+                    throw new ServiceError('BAD PARAMETERS', 'Den overordnede kanalen kan ikke gi en løkke.')
                 }
 
                 updateParentId = true

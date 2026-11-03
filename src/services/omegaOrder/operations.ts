@@ -125,7 +125,7 @@ export const omegaOrderOperations = {
                     order: 'desc'
                 }
             })
-            if (!omegaOrder) throw new ServiceError('NOT FOUND', 'Current Omega Order not found')
+            if (!omegaOrder) throw new ServiceError('NOT FOUND', 'Fant ikke Omegas nåværende orden')
             return omegaOrder
         }
     }),
