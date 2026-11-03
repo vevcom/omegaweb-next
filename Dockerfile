@@ -37,6 +37,8 @@ ENV NODE_ENV=test
 COPY jest.config.ts ./
 # The production secrets test reads the development values from it, as the check itself does in prod.
 COPY .env.default ./
+# A test keeps the example valid, since a developer's sites.json starts as a copy of it.
+COPY sites.example.json ./
 # src and tests are expected to be binded in test
 
 CMD ["npm", "run", "test"]

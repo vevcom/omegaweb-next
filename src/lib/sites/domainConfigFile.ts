@@ -13,7 +13,10 @@ export function domainConfigFile(): string {
     return process.env.SITES_CONFIG ?? resolve(process.cwd(), 'sites.json')
 }
 
-/** The config in `file`, or an empty one when there is no such file, which is how dev without a config and CI run. */
+/**
+ * The config in `file`, or an empty one when there is no such file, which is how the build runs.
+ * Everything else requires Omega's main domain, see loadDomainConfig.
+ */
 export function readDomainConfig(file = domainConfigFile()): DomainConfig {
     if (!existsSync(file)) return DomainConfig.parse({})
     return DomainConfig.parse(JSON.parse(readFileSync(file, 'utf8')))
