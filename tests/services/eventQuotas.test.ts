@@ -328,6 +328,29 @@ describe('refilling places', () => {
         expect(promotedUserIds()).toEqual([outsider.user.id])
     })
 
+    test('fewer places take the last unpaid places back, never a paid one', async () => {
+        const { eventId, quotas: [quota] } = await createEventWithQuotas([{ name: 'Alle', places: 3 }])
+        const first = await createUser([groupOne])
+        const paying = await createUser([groupOne])
+        const last = await createUser([groupOne])
+        await register(first, eventId)
+        const paid = await register(paying, eventId)
+        await register(last, eventId)
+        await prisma.eventRegistration.update({ where: { id: paid.id }, data: { manuallyPaid: true } })
+
+        await eventQuotaOperations.update({ params: { id: quota.id }, data: { places: 2 }, bypassAuth: true })
+        expect(await readOfUser(last, eventId)).toMatchObject({ state: 'WAITING_LIST' })
+
+        await eventQuotaOperations.update({ params: { id: quota.id }, data: { places: 1 }, bypassAuth: true })
+        expect(await readOfUser(first, eventId)).toMatchObject({ state: 'WAITING_LIST' })
+        expect(await readOfUser(paying, eventId)).toMatchObject({ state: 'IN_QUOTA' })
+
+        await expect(eventQuotaOperations.update({ params: { id: quota.id }, data: { places: 0 }, bypassAuth: true }))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        expect(await readOfUser(paying, eventId)).toMatchObject({ state: 'IN_QUOTA' })
+        expect(promotedUserIds()).toEqual([])
+    })
+
     test('more places take the first waiting', async () => {
         const { eventId, quotas: [quota] } = await createEventWithQuotas([{ name: 'Alle', places: 1 }])
         const seated = await createUser([groupOne])

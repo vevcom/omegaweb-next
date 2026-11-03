@@ -3,6 +3,8 @@ import { eventRegistrationQueueOrder } from './constants'
 import { registrationsOfVariant } from './queue'
 import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
+import { Smorekopp } from '@/services/error'
+import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { eventQuotaOrder } from '@/services/events/constants'
 import { membershipFilterSelection } from '@/services/groups/constants'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
@@ -17,7 +19,8 @@ export type PromotedRegistration = {
 
 /**
  * Puts the registrations of a variant where they belong. A quota with more members than places
- * gives up its last ones, who queue again. Then each quota, in fill order, fills its free places
+ * gives up its last ones, who queue again, though never one who has paid for the place: fewer
+ * places than paid members is refused. Then each quota, in fill order, fills its free places
  * from the quotas after it, nearest first, and then from the waiting list, taking the first in
  * queue order who passes it. Someone taken off the waiting list loses their places on the waiting
  * lists of the other variants, unless the event allows registering for several.
@@ -46,6 +49,8 @@ export async function fixVariantPlaces(tx: Prisma.TransactionClient, variantId: 
             quotaId: true,
             state: true,
             queuedAt: true,
+            manuallyPaid: true,
+            ledgerTransactions: { where: validTransactionFilter, select: { id: true }, take: 1 },
             contact: { select: { email: true } },
             user: { select: { memberships: { select: membershipFilterSelection } } },
         },
@@ -59,12 +64,20 @@ export async function fixVariantPlaces(tx: Prisma.TransactionClient, variantId: 
         members: registrations.filter(registration => registration.quotaId === quota.id),
     }))
     const waiting = registrations.filter(registration => registration.state === 'WAITING_LIST')
-    const evicted: Registration[] = []
-    quotas.forEach(quota => {
-        while (quota.members.length > quota.places) {
-            const member = quota.members.pop()
-            if (member) evicted.push(member)
+    const hasPaid = (registration: Registration) =>
+        registration.manuallyPaid || registration.ledgerTransactions.length > 0
+    const evicted = quotas.flatMap(quota => {
+        const over = quota.members.length - quota.places
+        if (over <= 0) return []
+        const leaving = quota.members.filter(member => !hasPaid(member)).slice(-over)
+        if (leaving.length < over) {
+            throw new Smorekopp(
+                'BAD PARAMETERS',
+                'Flere har betalt for plassen sin i kvoten enn plassene den får. Flytt eller meld av noen av dem først.'
+            )
         }
+        quota.members = quota.members.filter(member => !leaving.includes(member))
+        return leaving
     })
     waiting.push(...evicted)
     waiting.sort((first, second) => first.queuedAt.getTime() - second.queuedAt.getTime() || first.id - second.id)

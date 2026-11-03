@@ -53,6 +53,9 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
     ) / 2
 
     const accountEntry = transaction.ledgerEntries.find(entry => entry.ledgerAccountId === accountId)
+    // Through the quota the registration holds a place in, or the waiting list it has fallen back to.
+    const registrationVariant = transaction.eventRegistration?.quota?.variant
+        ?? transaction.eventRegistration?.waitingListVariant
 
     return <div className="w-[min(500px,90vw)] m-6 flex flex-col gap-2">
         <h3>{transactionPurposeNames[transaction.purpose]}</h3>
@@ -98,23 +101,23 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
             </div>
         )}
 
-        {transaction.purpose === 'EVENT_PAYMENT' && transaction.eventRegistration?.quota && (
+        {transaction.purpose === 'EVENT_PAYMENT' && registrationVariant && (
             <div className="
                 mt-2 flex flex-col gap-2
                 [&_h4]:m-0
             ">
                 <h4>Arrangement</h4>
-                <DetailRow label="Navn" value={transaction.eventRegistration.quota.variant.event.name} />
-                <DetailRow label="Variant" value={transaction.eventRegistration.quota.variant.name} />
-                <DetailRow label="Kvote" value={transaction.eventRegistration.quota.name} />
-                {transaction.eventRegistration.quota.variant.event.location && (
-                    <DetailRow label="Sted" value={transaction.eventRegistration.quota.variant.event.location} />
+                <DetailRow label="Navn" value={registrationVariant.event.name} />
+                <DetailRow label="Variant" value={registrationVariant.name} />
+                <DetailRow label="Kvote" value={transaction.eventRegistration?.quota?.name ?? 'På ventelisten'} />
+                {registrationVariant.event.location && (
+                    <DetailRow label="Sted" value={registrationVariant.event.location} />
                 )}
                 <DetailRow
                     label="Tidspunkt"
                     value={
-                        `${displayDate(transaction.eventRegistration.quota.variant.event.eventStart)} `
-                        + `– ${displayDate(transaction.eventRegistration.quota.variant.event.eventEnd)}`
+                        `${displayDate(registrationVariant.event.eventStart)} `
+                        + `– ${displayDate(registrationVariant.event.eventEnd)}`
                     }
                 />
             </div>
