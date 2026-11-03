@@ -4,10 +4,10 @@ import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { useState } from 'react'
-import type { Site } from '@/lib/sites/sites'
+import type { SiteName } from '@/lib/sites/site'
 
 type PropTypes = {
-    site: Site,
+    site: SiteName,
     userId: number,
     title?: string,
 }

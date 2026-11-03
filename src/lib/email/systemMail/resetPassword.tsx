@@ -4,11 +4,11 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'
 import { generateJWT } from '@/jwt/jwt'
 import { userOperations } from '@/services/users/operations'
-import { publicUrl } from '@/lib/sites/domains'
+import { SiteContext } from '@/lib/sites/context'
 import { authLinks } from '@/pageKits/auth/links'
-import { authPagesOfSite } from '@/lib/sites/authPagesOfSite'
+import { authPagesOf } from '@/lib/sites/authPagesOf'
 import { z } from 'zod'
-import type { Site } from '@/lib/sites/sites'
+import type { Site } from '@/lib/sites/site'
 
 // TODO: This function should not be in lib! It is highly coupled to the project.
 
@@ -24,7 +24,7 @@ export async function sendResetPasswordMail(email: string, site: Site) {
         email: user.email,
     }, resetPasswordExpiration)
 
-    const link = publicUrl(site, authLinks(authPagesOfSite[site]).resetPasswordForm(jwt))
+    const link = SiteContext.publicUrl(site, authLinks(authPagesOf(site)).resetPasswordForm(jwt))
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {

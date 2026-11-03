@@ -1,5 +1,16 @@
-import { sitePagesPath } from './sites'
-import type { SitePages } from './sites'
+import { Site } from './site'
+import type { SiteName } from './site'
+
+/**
+ * A set of pages served under one path of a site. A page kit's config extends this with what its
+ * pages need, and each implementation of the kit declares its config next to its pages. The site
+ * is carried by name, since a config is plain data that passes to client components.
+ */
+export type SitePages = {
+    site: SiteName,
+    /** Where on the site the pages live, relative to the site's root. */
+    path: string,
+}
 
 /** The href of a page under the kit's path: a sub path, with a query string when given. */
 export type Href = (subPath?: string, query?: string | null) => string
@@ -14,7 +25,7 @@ export function defineLinks<Config extends SitePages, Links>(
     define: (href: Href, config: Config) => Links,
 ): (config: Config) => Links {
     return config => {
-        const base = sitePagesPath(config)
+        const base = Site.of(config.site).pagesPath(config.path)
         // The root of the site at the root of the app is '', which is no href.
         return define((subPath = '', query) => `${`${base}${subPath}` || '/'}${query ? `?${query}` : ''}`, config)
     }

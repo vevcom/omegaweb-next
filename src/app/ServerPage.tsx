@@ -6,9 +6,9 @@ import { withServiceContext } from '@/services/serviceOperation'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { CURRENT_PATH_HEADER } from '@/proxy'
-import { siteOfPath } from '@/lib/sites/sites'
+import { Site } from '@/lib/sites/site'
 import { authLinks } from '@/pageKits/auth/links'
-import { authPagesOfSite } from '@/lib/sites/authPagesOfSite'
+import { authPagesOf } from '@/lib/sites/authPagesOf'
 import { notFound, redirect, unstable_rethrow as unstableRethrow } from 'next/navigation'
 import { headers } from 'next/headers'
 import { cache } from 'react'
@@ -88,7 +88,7 @@ async function redirectUnregistered(session: ServerPageSession) {
  */
 async function authUrlWithCallback(page: 'login' | 'register') {
     const currentPath = (await headers()).get(CURRENT_PATH_HEADER)
-    const links = authLinks(authPagesOfSite[currentPath ? siteOfPath(currentPath) : 'OMEGAWEB'])
+    const links = authLinks(authPagesOf(currentPath ? Site.ofPath(currentPath) : Site.root))
     return links[page](currentPath ?? undefined)
 }
 

@@ -4,9 +4,10 @@ import { generateVerifyEmailJWT } from './verifyEmailToken'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { UserInvitationTemplate } from '@/lib/email/templates/userInvitation'
 import logger from '@/lib/logger'
-import { publicUrl } from '@/lib/sites/domains'
+import { SiteContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
 import { authLinks } from '@/pageKits/auth/links'
-import { authPagesOfSite } from '@/lib/sites/authPagesOfSite'
+import { authPagesOf } from '@/lib/sites/authPagesOf'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
 /**
@@ -17,7 +18,7 @@ export async function sendUserInvitationEmail(user: UserBasicWithEmail) {
     try {
         const jwt = generateVerifyEmailJWT(user.id, user.email, userInvitationExpiration)
 
-        const link = publicUrl('OMEGAWEB', authLinks(authPagesOfSite.OMEGAWEB).verifyEmail(jwt))
+        const link = SiteContext.publicUrl(Site.OMEGAWEB, authLinks(authPagesOf(Site.OMEGAWEB)).verifyEmail(jwt))
 
         await sendMailOperations.internal.sendSystemMail.internalCall({
             data: {

@@ -1,6 +1,7 @@
 import '@pn-server-only'
 
-import { publicUrl } from '@/lib/sites/domains'
+import { SiteContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
 import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import { Html } from '@react-email/components'
 import type { UserBasic } from '@/services/users/types'
@@ -20,7 +21,7 @@ export function DefaultEmailTemplate({
     html: string,
     channelName?: string,
 }) {
-    const settingsUrl = publicUrl('OMEGAWEB', omegaLinks.userNotifications(user))
+    const settingsUrl = SiteContext.publicUrl(Site.OMEGAWEB, omegaLinks.userNotifications(user))
     return (
         <Html>
             <div dangerouslySetInnerHTML={{ __html: html }} />

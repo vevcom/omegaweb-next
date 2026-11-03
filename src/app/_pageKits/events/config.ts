@@ -1,4 +1,4 @@
-import type { SitePages } from '@/lib/sites/sites'
+import type { SitePages } from '@/lib/sites/defineLinks'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { SpecialEventTags } from '@/prisma-generated-pn-types'
 

@@ -1,8 +1,8 @@
 import LoginForm from '@/pageKits/auth/components/LoginForm'
 import { authLinks } from '@/pageKits/auth/links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
-import { siteOfPath } from '@/lib/sites/sites'
-import { authPagesOfSite } from '@/lib/sites/authPagesOfSite'
+import { Site } from '@/lib/sites/site'
+import { authPagesOf } from '@/lib/sites/authPagesOf'
 import { serverPage } from '@/app/ServerPage'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -37,8 +37,8 @@ export function loginPage(config: AuthPagesConfig) {
             if (callbackUrl || !error) return { error, callbackUrl: callbackUrl ?? links.afterLogin() }
 
             const startedOn = await pathOfLoginInProgress()
-            if (startedOn && siteOfPath(startedOn) !== config.site) {
-                const startedOnLinks = authLinks(authPagesOfSite[siteOfPath(startedOn)])
+            if (startedOn && Site.ofPath(startedOn) !== Site.of(config.site)) {
+                const startedOnLinks = authLinks(authPagesOf(Site.ofPath(startedOn)))
                 redirect(`${startedOnLinks.login(startedOn)}&${new URLSearchParams({ error })}`)
             }
             return { error, callbackUrl: startedOn ?? links.afterLogin() }

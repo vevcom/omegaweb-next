@@ -9,4 +9,7 @@ export async function register() {
         const { assertProductionSecrets } = await import('@/lib/productionSecrets')
         assertProductionSecrets()
     }
+
+    const { loadDomainConfig } = await import('@/lib/sites/loadDomainConfig')
+    loadDomainConfig()
 }
