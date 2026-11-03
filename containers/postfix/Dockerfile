@@ -12,10 +12,11 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSI
 # copy postfix config file template into image
 COPY main.cf.tmpl /etc/postfix/main.cf.tmpl
 COPY pgsql-aliases.cf.tmpl /etc/postfix/pgsql-aliases.cf.tmpl
+COPY pgsql-domains.cf.tmpl /etc/postfix/pgsql-domains.cf.tmpl
 
 # postfix is listening on port 25
 EXPOSE 25
 EXPOSE 587
 
-CMD dockerize -template /etc/postfix/main.cf.tmpl:/etc/postfix/main.cf -template /etc/postfix/pgsql-aliases.cf.tmpl:/etc/postfix/pgsql-aliases.cf postfix start-fg
+CMD dockerize -template /etc/postfix/main.cf.tmpl:/etc/postfix/main.cf -template /etc/postfix/pgsql-aliases.cf.tmpl:/etc/postfix/pgsql-aliases.cf -template /etc/postfix/pgsql-domains.cf.tmpl:/etc/postfix/pgsql-domains.cf postfix start-fg
 

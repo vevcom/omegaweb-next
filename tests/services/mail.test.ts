@@ -5,6 +5,8 @@ import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailAddressExternalOperations } from '@/services/mail/mailAddressExternal/operations'
 import { mailOperations } from '@/services/mail/operations'
+import { DomainConfig } from '@/lib/sites/domainConfig'
+import { SiteContext } from '@/lib/sites/context'
 import { afterEach, describe, expect, test } from '@jest/globals'
 
 // NOTE: This test doesn't check auth, since I think this should be testing in a separate file -Theodor
@@ -44,6 +46,40 @@ describe('alias address validation', () => {
             bypassAuth: true,
         })).rejects.toThrow()
         expect(await prisma.mailAlias.count({ where: { address: { endsWith: '@invalid-domain.com' } } })).toBe(0)
+    })
+})
+
+// ─── The Domains Of The Sites ─────────────────────────────────────────────────
+
+describe('the domains of the sites are mail domains', () => {
+    const withSites = () => SiteContext.configure(DomainConfig.parse({
+        'omega.ntnu.no': { site: 'OMEGAWEB', main: true },
+        'contactor.no': { site: 'CAREERS', main: true },
+    }))
+    afterEach(() => SiteContext.configure(DomainConfig.parse({})))
+
+    test('an alias may be on a site\'s domain, whatever its case', async () => {
+        withSites()
+        const alias = await aliasOperations.create({
+            data: { address: 'test-post@Contactor.no', description: '' },
+            bypassAuth: true,
+        })
+        expect(alias.address).toBe('test-post@Contactor.no')
+    })
+
+    test('the same address is refused once the domain is no longer one of the sites\'', async () => {
+        await expect(aliasOperations.create({
+            data: { address: 'test-post@contactor.no', description: '' },
+            bypassAuth: true,
+        })).rejects.toThrow()
+    })
+
+    test('an external address may not be on a site\'s domain', async () => {
+        withSites()
+        await expect(mailAddressExternalOperations.create({
+            data: { address: 'someone@contactor.no', description: '' },
+            bypassAuth: true,
+        })).rejects.toThrow()
     })
 })
 

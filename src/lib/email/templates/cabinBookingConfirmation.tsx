@@ -17,7 +17,7 @@ export function CabinBookingConfirmationTemplate({
             <p>Hei {firstname},</p>
 
             <p>
-                Takk for bookingen din hos {process.env.WEBSITE_DOMAIN}. Betalingen er mottatt, og bookingen er
+                Takk for bookingen din hos {process.env.EMAIL_DOMAIN}. Betalingen er mottatt, og bookingen er
                 bekreftet.
             </p>
 

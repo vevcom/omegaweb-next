@@ -58,6 +58,11 @@ export class SiteContext {
         return SiteContext.config().mainOriginOfSite(Site.root)
     }
 
+    /** The host names of the configured domains, without ports, such as `contactor.no`. */
+    static hostNames(): string[] {
+        return SiteContext.config().hostNames()
+    }
+
     /** Whether an origin, such as `https://contactor.no`, is one of the configured domains. */
     static isServedOrigin(origin: string): boolean {
         return SiteContext.config().hasOrigin(origin)

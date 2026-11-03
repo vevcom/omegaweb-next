@@ -38,7 +38,7 @@ smtpd_use_tls=no
 #smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
 
 # The domain of the mails
-mydomain = {{ .Env.WEBSITE_DOMAIN }}
+mydomain = {{ .Env.EMAIL_DOMAIN }}
 
 # Dette tror jeg bare gjelder hvis mailen skal hit
 alias_maps = pgsql:/etc/postfix/pgsql-aliases.cf  
@@ -49,6 +49,9 @@ relayhost = {{ .Env.EMAIL_RELAY_HOST }}
 
 # Dette er den viktige pekeren, som sorger for at mail blir videresendt
 virtual_alias_maps = pgsql:/etc/postfix/pgsql-aliases.cf
+
+# The other domains mail is received on: every domain an alias is on, such as the sites' own.
+virtual_alias_domains = pgsql:/etc/postfix/pgsql-domains.cf
 
 # Denne er veldig nyttig til debugging
 maillog_file=/dev/stdout

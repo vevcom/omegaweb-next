@@ -130,11 +130,11 @@ It is separate because the two directions of mail need different things from the
 Deploying it:
 
 1. Create a Dokploy application built from `containers/postfix/`, attached to `dokploy-network` so it can reach the database resource.
-2. Give it `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (the alias lookups read the same database as the app), plus `EMAIL_HOSTNAME`, `WEBSITE_DOMAIN` and `EMAIL_RELAY_HOST`.
-3. Expose port 25 on the host and point the mail domain's MX record at it.
+2. Give it `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (the alias lookups read the same database as the app), plus `EMAIL_DOMAIN`, `EMAIL_HOSTNAME` and `EMAIL_RELAY_HOST`. `EMAIL_HOSTNAME` names the mail server itself and `EMAIL_RELAY_HOST` is where it relays; the app reads neither.
+3. Expose port 25 on the host and point the MX record of every mail domain at it. Postfix receives mail for `EMAIL_DOMAIN` and `EMAIL_HOSTNAME`, and for every other domain an alias is on (`containers/postfix/pgsql-domains.cf.tmpl`). The app allows aliases on the domains in `sites.json`, so a site's domain is received here once it has an alias and an MX record, with no change to this deployment.
 4. Provision a certificate for the mail domain and turn `smtpd_use_tls` back on in `containers/postfix/main.cf.tmpl`. It is `no` there because the old certbot flow lived in the nginx container that this setup removed, and pointing Postfix at cert files that don't exist stops it from starting. Inbound SMTP on a published port should not stay plaintext.
 
-`EMAIL_SERVER` on the stack is unrelated to this Postfix deployment - it points the app at its own outbound provider (e.g. SMTP2GO), configured with `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` and `EMAIL_SECURE`.
+`EMAIL_SERVER` on the stack is unrelated to this Postfix deployment - it points the app at its own outbound provider (e.g. SMTP2GO), configured with `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` and `EMAIL_SECURE`. Senders may be on any domain in `sites.json` as well as `EMAIL_DOMAIN`, so verify every domain mail is sent from at the provider (SPF and DKIM), or it lands in spam.
 
 ## Lint
 
