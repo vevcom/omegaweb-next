@@ -67,7 +67,7 @@ export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTy
                         max-mobile:ml-0 max-mobile:pl-0 max-mobile:border-l-0
                     ">
                         {showOmegaLink && (
-                            <SiteLink href={omegaLinks.frontpage()} className={mutedLinkClassName}>
+                            <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className={mutedLinkClassName}>
                                 <FontAwesomeIcon icon={faArrowLeft} />
                                 <span>Til Omegaveven</span>
                             </SiteLink>

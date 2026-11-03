@@ -82,7 +82,7 @@ export default function CareersFooter({ capabilities, showOmegaLink }: PropTypes
                 `}>
                     <span className="text-s text-white/80">© Contactor NTNU</span>
                     {showOmegaLink && (
-                        <SiteLink href={omegaLinks.frontpage()} className="
+                        <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className="
                             text-s text-white/80
                             hover:text-white
                         ">Til Omegaveven</SiteLink>

@@ -23,7 +23,9 @@ export default function RevueNavBar({ loggedIn }: PropTypes) {
                 <SiteLink href={revueLinks.frontpage()} className="mr-auto text-xl font-semibold text-text no-underline">
                     Omegarevyen
                 </SiteLink>
-                <SiteLink href={omegaLinks.frontpage()} className={linkClassName}>Til Omegaveven</SiteLink>
+                <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className={linkClassName}>
+                    Til Omegaveven
+                </SiteLink>
                 {loggedIn
                     ? <SiteLink href={revueAuthLinks.logout()} className={linkClassName}>Logg ut</SiteLink>
                     : <LoginLink config={revueAuthPages} className={linkClassName} />}

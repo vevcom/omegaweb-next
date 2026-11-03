@@ -19,6 +19,8 @@ import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { omegaAuthLinks } from '@/app/(omegaweb)/(auth)/links'
+import { careerLinks } from '@/app/(careers)/links'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -53,7 +55,7 @@ export default async function LoggedOutLandingPage() {
                         <SiteLink className={`
                             secondary-btn font-medium
                             ${ctaLayout}
-                        `} href="login">Logg inn</SiteLink>
+                        `} href={omegaAuthLinks.login()}>Logg inn</SiteLink>
                         <SiteLink className={`
                             btn font-bold
                             ${ctaLayout}
@@ -61,7 +63,7 @@ export default async function LoggedOutLandingPage() {
                         <SiteLink className={`
                             secondary-btn font-medium
                             ${ctaLayout}
-                        `} href="https://contactor.no">For bedrifter</SiteLink>
+                        `} href={careerLinks.frontpage()} toMainDomainServingSite>For bedrifter</SiteLink>
 
                         <SiteLink className={scrollDownClassName} href="#firstSection">
                             <FontAwesomeIcon icon={faAngleDown} />

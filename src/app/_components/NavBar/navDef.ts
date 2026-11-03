@@ -5,9 +5,11 @@ import { adminNavAuthorizers } from '@/app/(omegaweb)/admin/adminNavDef'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { revueLinks } from '@/app/(revue)/links'
+import { careerLinks } from '@/app/(careers)/links'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
+import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { eventAuth } from '@/services/events/auth'
 import { ombulAuth } from '@/services/ombul/auth'
@@ -32,6 +34,7 @@ import {
     faCalendar,
     faBeer,
     faBriefcase,
+    faSuitcase,
     faGraduationCap,
     faTools,
     faSignature,
@@ -80,6 +83,13 @@ export const navDef: NavItem[] = [
         href: omegaJobAdLinks.list(),
         icon: faBriefcase,
         authorizers: () => [jobAdAuth.readActive],
+    },
+    {
+        name: 'Karriere',
+        href: careerLinks.frontpage(), //purposly notredirectToMainDomain - keeping current domain
+        icon: faSuitcase,
+        authorizers: () => [careersFrontpageAuth.readSpecialCmsParagraph],
+        audience: 'loggedIn',
     },
     {
         name: 'Butikker',
