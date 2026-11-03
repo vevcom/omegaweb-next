@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { getHttpErrorCode, ServiceError, Smorekopp } from '@/services/error'
+import { getHttpErrorCode, ParseError, ServiceError, Smorekopp } from '@/services/error'
 import { ServerSession } from '@/auth/session/ServerSession'
 import logger from '@/lib/logger'
 import type { ServiceOperation } from '@/services/serviceOperation'
@@ -32,13 +32,20 @@ async function apiHandlerGeneric<Return>(req: Request, handle: (session: Session
         const result = await handle(session)
         return createApiResponse(result)
     } catch (error: unknown) {
+        // The body is the only input the client writes, so it gets each field's issue.
+        if (error instanceof ParseError) {
+            return createApiErrorResponse('BAD DATA', error.parseError.error.issues.map(issue => ({
+                path: issue.path,
+                message: issue.message,
+            })))
+        }
         if (error instanceof Smorekopp) {
-            return createApiErrorRespone(error.errorCode, error.errors)
+            return createApiErrorResponse(error.errorCode, error.errors)
         }
         // Anything else is a bug or a failing dependency, Prisma say, whose message is for the log only.
         logger.error('API request failed with an unexpected error:', error)
     }
-    return createApiErrorRespone('UNKNOWN ERROR', 'Noe uventet skjedde')
+    return createApiErrorResponse('UNKNOWN ERROR', 'Noe uventet skjedde')
 }
 
 export function apiHandler<
@@ -79,7 +86,7 @@ export function apiHandler<
         })
 }
 
-function createApiErrorRespone(errorCode: ErrorCode, message: string | ErrorMessage[]) {
+function createApiErrorResponse(errorCode: ErrorCode, message: string | ErrorMessage[]) {
     const errors: ErrorMessage[] = Array.isArray(message) ? message : [{
         message,
     }]

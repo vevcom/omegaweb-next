@@ -178,6 +178,7 @@ export const userSchemas = {
         }),
 
         connectStudentCard: id,
+        disconnectStudentCard: id,
         update: z.union([id, username]),
         updateProfile: username,
         updateBioParagraphContent: paramsFieldSchemas.pick({

@@ -19,6 +19,8 @@ export const userAuth = {
     create: Require.permission('USERS_ADMIN'),
     // A card is connected by the user it belongs to, who scanned it themselves.
     connectStudentCard: Require.userId(),
+    // A user admin can remove a card for someone else, for example one that was lost.
+    disconnectStudentCard: userIdOrUsersAdmin,
     registerNewEmail: userIdOrUsersAdmin,
     updatePassword: userIdOrUsersAdmin,
     update: Require.permission('USERS_ADMIN'),

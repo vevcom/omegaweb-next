@@ -1,6 +1,10 @@
 import '@pn-server-only'
 import { calculateCreditFees, calculateDebitFees } from './calculateFees'
-import { determineTransactionState } from './determineTransactionState'
+import {
+    determineTransactionState,
+    ledgerTransactionFailureErrorCode,
+    ledgerTransactionFailures,
+} from './determineTransactionState'
 import { hasPaymentCompletionHook } from './paymentCompletionHooks'
 import { ledgerTransactionAuth } from './auth'
 import { ledgerTransactionSchemas } from './schemas'
@@ -278,7 +282,7 @@ export const ledgerTransactionOperations = {
                     data: { claimedByTransactionId: params.id },
                 })
                 if (claimed === 0) {
-                    transition = { state: 'FAILED', reason: 'Betalingen er allerede brukt av en annen transaksjon.' }
+                    transition = { state: 'FAILED', ...ledgerTransactionFailures.paymentAlreadyUsed }
                 }
             }
 
@@ -292,7 +296,8 @@ export const ledgerTransactionOperations = {
                 // Requested in the same write as the success, so the payment completion worker only
                 // sees it once the success has committed.
                 data: {
-                    ...transition,
+                    state: transition.state,
+                    reason: transition.reason,
                     ...(transition.state === 'SUCCEEDED' && hasPaymentCompletionHook(transaction.purpose) && {
                         completionHookRequestedAt: new Date(),
                     }),
@@ -351,7 +356,8 @@ export const ledgerTransactionOperations = {
                 entry => (balances[entry.ledgerAccountId]?.amount ?? 0) + entry.funds < 0
             )
             if (hasInsufficientBalance) {
-                throw new ServiceError('BAD PARAMETERS', 'Kontoen har for lav saldo til å utføre transaksjonen.')
+                const { reason, errorCode } = ledgerTransactionFailures.insufficientFunds
+                throw new ServiceError(errorCode, reason)
             }
 
             // Calculate and set fees for the debit entries
@@ -389,7 +395,10 @@ export const ledgerTransactionOperations = {
             // Every transition to FAILED gives its reason (see determineTransactionState), which is the
             // message the caller needs, so the fallback is only a safety net.
             if (transaction.state === 'FAILED') {
-                throw new ServiceError('BAD PARAMETERS', transaction.reason ?? 'Transaksjonen feilet av ukjent årsak.')
+                throw new ServiceError(
+                    ledgerTransactionFailureErrorCode(transaction.reason),
+                    transaction.reason ?? 'Transaksjonen feilet av ukjent årsak.',
+                )
             }
 
             return transaction
