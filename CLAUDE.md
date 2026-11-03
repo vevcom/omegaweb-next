@@ -50,7 +50,7 @@ Create a migration after schema changes. It writes `src/prisma/migrations/<times
 npm run docker:migrate:dev -- --name <name>
 ```
 
-A PR must contain at most one migration per feature or fix it introduces, as long as that work has never reached prod. Iterating on a schema locally before a PR is normal and produces several migrations; squash them into one before opening or updating the PR, by deleting the extra migration folders, resetting the dev database, and regenerating a single migration from the final schema. Once a migration has shipped to prod, it is final and must never be edited, deleted, or squashed; a later change goes in a new migration.
+A PR must contain at most one migration per feature or fix it introduces, as long as that work has never reached prod. The one exception is what Postgres refuses to do in a single transaction, such as using an enum value in the migration that adds it; the second migration then says so in a comment at its top. Iterating on a schema locally before a PR is normal and produces several migrations; squash them into one before opening or updating the PR, by deleting the extra migration folders, resetting the dev database, and regenerating a single migration from the final schema. Once a migration has shipped to prod, it is final and must never be edited, deleted, or squashed; a later change goes in a new migration.
 
 Regenerate Prisma client after schema changes:
 ```bash
