@@ -12,5 +12,6 @@ type PropTypes = {
 /** The login of a site in its navigation, coming back to the page it sits on. */
 export default function LoginLink({ config, className }: PropTypes) {
     const context = useSiteContext()
-    return <Link href={context.resolveHref(authLinks(config).login(context.path))} className={className}>Logg inn</Link>
+    const href = context.resolveHref(authLinks(config).login({ callbackUrl: context.path }))
+    return <Link href={href} className={className}>Logg inn</Link>
 }

@@ -17,7 +17,7 @@ export function registerPage(config: AuthPagesConfig) {
             const updatedUser = await userOperations.read({ params: { id: session.user.id } })
             if (updatedUser.acceptedTerms) redirect(callbackUrl)
             if (!updatedUser.emailVerified) {
-                redirect(links.registerEmail(callbackUrl))
+                redirect(links.registerEmail({ callbackUrl }))
             }
             return { updatedUser, callbackUrl }
         },

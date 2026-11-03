@@ -2,12 +2,16 @@ import { defineLinks } from '@/lib/sites/defineLinks'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import type { AuthPagesConfig } from './config'
 
+export type CallbackOptions = {
+    /** The app path to come back to once through the page. Without it the site's after-login page. */
+    callbackUrl?: string,
+}
+
 export type AuthLinks = {
-    /** The login, coming back to `callbackUrl` once logged in, or landing on the site's after-login page. */
-    login: (callbackUrl?: string) => string,
+    login: (options?: CallbackOptions) => string,
     logout: () => string,
-    register: (callbackUrl?: string) => string,
-    registerEmail: (callbackUrl?: string) => string,
+    register: (options?: CallbackOptions) => string,
+    registerEmail: (options?: CallbackOptions) => string,
     sendResetPasswordEmail: () => string,
     terms: () => string,
     /** The pages reached from an email, carrying its token. */
@@ -19,15 +23,16 @@ export type AuthLinks = {
     afterLogout: () => string,
 }
 
-const callback = (callbackUrl?: string) => (callbackUrl ? QueryParams.callbackUrl.encodeUrl(callbackUrl) : null)
+const callback = (options?: CallbackOptions) =>
+    (options?.callbackUrl ? QueryParams.callbackUrl.encodeUrl(options.callbackUrl) : null)
 const token = (jwt: string) => QueryParams.token.encodeUrl(jwt)
 
 /** The auth pages sit at every site's root. */
 export const authLinks = defineLinks<AuthPagesConfig, AuthLinks>((href, config) => ({
-    login: callbackUrl => href('/login', callback(callbackUrl)),
+    login: options => href('/login', callback(options)),
     logout: () => href('/logout'),
-    register: callbackUrl => href('/register', callback(callbackUrl)),
-    registerEmail: callbackUrl => href('/register-email', callback(callbackUrl)),
+    register: options => href('/register', callback(options)),
+    registerEmail: options => href('/register-email', callback(options)),
     sendResetPasswordEmail: () => href('/send-reset-password-email'),
     terms: () => href('/terms'),
     verifyEmail: jwt => href('/verify-email', token(jwt)),

@@ -86,7 +86,7 @@ async function redirectUnregistered(session: ServerPageSession) {
 async function authUrlWithCallback(page: 'login' | 'register') {
     const context = await siteContextOfRequest()
     const links = authLinks(authPagesOf(context.site()))
-    return context.resolveHref(links[page](context.path))
+    return context.resolveHref(links[page]({ callbackUrl: context.path }))
 }
 
 /**

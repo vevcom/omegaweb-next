@@ -39,7 +39,7 @@ export function loginPage(config: AuthPagesConfig) {
             const startedOn = await pathOfLoginInProgress()
             if (startedOn && Site.ofPath(startedOn) !== Site.of(config.site)) {
                 const startedOnLinks = authLinks(authPagesOf(Site.ofPath(startedOn)))
-                redirect(`${startedOnLinks.login(startedOn)}&${new URLSearchParams({ error })}`)
+                redirect(`${startedOnLinks.login({ callbackUrl: startedOn })}&${new URLSearchParams({ error })}`)
             }
             return { error, callbackUrl: startedOn ?? links.afterLogin() }
         },

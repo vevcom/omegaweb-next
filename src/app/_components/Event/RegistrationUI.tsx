@@ -124,7 +124,7 @@ export default function RegistrationUI({
     })
 
     if (!session.data) {
-        const loginHref = authLinks(config.authPages).login(eventLinks(config).event(event))
+        const loginHref = authLinks(config.authPages).login({ callbackUrl: eventLinks(config).event(event) })
         return <Link href={loginHref}>Logg inn for å melde deg på</Link>
     }
 

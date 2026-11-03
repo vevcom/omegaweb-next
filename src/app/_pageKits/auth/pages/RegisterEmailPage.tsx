@@ -21,7 +21,7 @@ export function registerEmailPage(config: AuthPagesConfig) {
             const updatedUser = await userOperations.read({ params: { id: authResult.session.user.id } })
             if (updatedUser.acceptedTerms) redirect(callbackUrl)
             if (updatedUser.emailVerified) {
-                redirect(links.register(callbackUrl))
+                redirect(links.register({ callbackUrl }))
             }
 
             const feideLoginMatch = await authOperations.readFeideLoginMatch({
