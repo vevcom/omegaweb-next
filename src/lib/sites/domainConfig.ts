@@ -70,11 +70,6 @@ export class DomainConfig {
         return hostNames.filter((hostName, index) => hostNames.indexOf(hostName) === index)
     }
 
-    /** Whether an origin, such as `https://contactor.no`, is one of the configured domains. */
-    hasOrigin(origin: string): boolean {
-        return this.domains.some(domain => domain.origin === origin)
-    }
-
     originsOfSite(site: Site): string[] {
         return this.domains.filter(domain => domain.site === site.name).map(domain => domain.origin)
     }

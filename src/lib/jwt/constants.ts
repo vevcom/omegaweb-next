@@ -8,7 +8,6 @@ export const OmegaJWTAudienceFields = [
     'omegaid',
     'verifyemail',
     'linkfeideaccount',
-    'sessiontransfer',
 ] as const
 
 /**
@@ -21,5 +20,4 @@ export const OmegaJWTAudienceAlgorithms = {
     omegaid: 'ES256',
     verifyemail: 'HS256',
     linkfeideaccount: 'HS256',
-    sessiontransfer: 'HS256',
 } as const satisfies Record<OmegaJWTAudience, Algorithm>

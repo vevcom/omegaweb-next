@@ -4,7 +4,6 @@ import { feideLoginMayLinkByEmail } from './feideEmailLinking'
 import { loginReachesArchivedUser } from './archivedUsers'
 import { compressJwt, decompressJwt } from './jwtCompression'
 import { permissionsMaxAge } from './constants'
-import { userOfTransferRequest } from './sessionTransfer'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
 import FeideProvider from '@/lib/feide/feideProvider'
 import { fetchStudyProgrammeRealmsFromFeide } from '@/lib/feide/api'
@@ -57,16 +56,6 @@ export const authOptions: AuthOptions = {
 
                 return { id: String(userCredentials.userId) }
             }
-        }),
-        // A login another domain hands over, see sessionTransfer.ts.
-        CredentialsProvider({
-            id: 'sso',
-            name: 'Innlogging fra et annet domene',
-            credentials: { ticket: { type: 'text' } },
-            authorize: (credentials, request) => userOfTransferRequest(
-                credentials?.ticket,
-                (request.headers ?? {}) as Record<string, string | undefined>,
-            ),
         }),
         FeideProvider({
             clientId: process.env.FEIDE_CLIENT_ID ?? 'no_id',
@@ -208,9 +197,8 @@ export const authOptions: AuthOptions = {
 
             // The account object will only be available during sign in/up.
             // For other cases we will already have a provider stored in the token
-            // which we can reuse. A login carried over from another domain keeps
-            // how the session there was started.
-            const provider = account?.provider === 'sso' ? user.sessionProvider : account?.provider ?? token.provider
+            // which we can reuse.
+            const provider = account?.provider ?? token.provider
 
             if (provider !== 'credentials' && provider !== 'feide') {
                 throw new Error(`Got unsupported provider. Provider: ${provider}`)

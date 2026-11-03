@@ -50,22 +50,9 @@ export class SiteContext {
         return store.siteDomainConfig !== undefined
     }
 
-    /**
-     * The domain logins are shared through: Omega's main domain. Every login elsewhere is handed to
-     * it, and every other domain asks it for one. Null without domains.
-     */
-    static sessionHubOrigin(): string | null {
-        return SiteContext.config().mainOriginOfSite(Site.root)
-    }
-
     /** The host names of the configured domains, without ports, such as `contactor.no`. */
     static hostNames(): string[] {
         return SiteContext.config().hostNames()
-    }
-
-    /** Whether an origin, such as `https://contactor.no`, is one of the configured domains. */
-    static isServedOrigin(origin: string): boolean {
-        return SiteContext.config().hasOrigin(origin)
     }
 
     /** The domains in use, for the server to hand over to the browser. */
@@ -125,11 +112,6 @@ export class SiteContext {
     /** The same visitor on another page of the app. */
     withPath(path: string): SiteContext {
         return new SiteContext(this.domain, path)
-    }
-
-    /** The origin of the configured domain the visitor is on, or null on a host that is not configured. */
-    origin(): string | null {
-        return this.siteDomain()?.origin ?? null
     }
 
     /** The configured domain the visitor is on, or null on a host that is not configured. */

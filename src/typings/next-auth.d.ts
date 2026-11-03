@@ -5,15 +5,14 @@ import type { MembershipFiltered } from '@/services/groups/types'
 import type { Permission } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
 
-/** How a session was started. A login carried over from another domain keeps the one it began with. */
-type SessionProvider = 'credentials' | 'feide'
-
 declare module 'next-auth' {
-    // The User object is defined in next-auth, and is extended with the properties from UserFiltered.
-    interface User extends Partial<UserFiltered> {
-        /** For a login carried over from another domain: how the session there was started. */
-        sessionProvider?: SessionProvider,
-    }
+    // Normally we dissallow typing with empty objects, but in this case we
+    // need to extend the User object with additional properties. The User
+    // object is defined in next-auth, and we need to extend it with the
+    // properties from UserFiltered. So for this case we allow it.
+    //
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    interface User extends Partial<UserFiltered> {}
 
     interface Session {
         user: UserFiltered,
@@ -24,7 +23,7 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
     interface JWT {
-        provider: SessionProvider,
+        provider: 'credentials' | 'feide',
         user: UserFiltered,
         permissions: Permission[],
         memberships: MembershipFiltered[],
