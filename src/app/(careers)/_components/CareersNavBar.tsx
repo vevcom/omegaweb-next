@@ -1,10 +1,10 @@
 import CareersWordmark from './CareersWordmark'
-import { careersAuthPages } from '@/app/(careers)/_lib/careersSite'
+import { careersAuthPages } from '@/app/(careers)/career/(auth)/config'
+import { careersAuthLinks } from '@/app/(careers)/career/(auth)/links'
 import { careerLinks } from '@/app/(careers)/_lib/careerLinks'
 import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import { innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
-import { authLinks } from '@/pageKits/auth/links'
 import LoginLink from '@/pageKits/auth/components/LoginLink'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -69,7 +69,7 @@ export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTy
                             </Link>
                         )}
                         {loggedIn
-                            ? <Link href={authLinks(careersAuthPages).logout()} className={mutedLinkClassName}>Logg ut</Link>
+                            ? <Link href={careersAuthLinks.logout()} className={mutedLinkClassName}>Logg ut</Link>
                             : <LoginLink config={careersAuthPages} className={mutedLinkClassName} />}
                     </li>
                 </ul>

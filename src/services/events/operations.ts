@@ -11,8 +11,7 @@ import {
 } from './constants'
 import { createVariant } from './variants/createVariant'
 import { createQuota } from './quotas/createQuota'
-import { eventLinks } from '@/pageKits/events/links'
-import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
+import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { notificationOperations } from '@/services/notifications/operations'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
@@ -396,7 +395,7 @@ export const eventOperations = {
                     data: {
                         title: `Hvad der hender: ${event.name}`,
                         message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
-                        url: eventLinks(omegaEventPages).event(event),
+                        url: omegaEventLinks.event(event),
                         audience: { canRegisterForEventId: event.id },
                     },
                 })

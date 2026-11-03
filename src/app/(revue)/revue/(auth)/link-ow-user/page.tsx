@@ -1,4 +1,4 @@
-import { revueAuthPages } from '@/app/(revue)/_lib/revueSite'
+import { revueAuthPages } from '@/app/(revue)/revue/(auth)/config'
 import { linkOwUserPage } from '@/pageKits/auth/pages/LinkOwUserPage'
 
 const { page, generateMetadata } = linkOwUserPage(revueAuthPages)

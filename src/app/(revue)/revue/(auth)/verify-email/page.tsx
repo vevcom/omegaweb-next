@@ -1,4 +1,4 @@
-import { revueAuthPages } from '@/app/(revue)/_lib/revueSite'
+import { revueAuthPages } from '@/app/(revue)/revue/(auth)/config'
 import { verifyEmailPage } from '@/pageKits/auth/pages/VerifyEmailPage'
 
 const { page, generateMetadata } = verifyEmailPage(revueAuthPages)

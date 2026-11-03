@@ -2,8 +2,7 @@ import '@pn-server-only'
 import { jobAdAuth } from './auth'
 import { jobAdSchemas } from './schemas'
 import { activeJobAdOrdering, articleAndCompanyIncluder, simpleArticleAndCompanyIncluder } from './constants'
-import { jobAdLinks } from '@/pageKits/jobAds/links'
-import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/omegaJobAdPages'
+import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { logoIncluder } from '@/services/careers/companies/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
@@ -73,7 +72,7 @@ export const jobAdOperations = {
                 data: {
                     title: `Ny jobbannonse: ${articleName}`,
                     message: `${jobAd.company.name} har lagt ut en ny jobbannonse: ${articleName}`,
-                    url: jobAdLinks(omegaJobAdPages).jobAd({ articleName, id: jobAd.id }),
+                    url: omegaJobAdLinks.jobAd({ articleName, id: jobAd.id }),
                     audience: { permission: 'JOBAD_USE' },
                 },
             })

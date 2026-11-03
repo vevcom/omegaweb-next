@@ -2,10 +2,8 @@
 //Higher placment in array gives hight priority on where it is placed (ie menu vs. navbar)
 //does not include / or /login (or profile route) as they are always shown and ar special
 import { adminNavAuthorizers } from '@/app/(omegaweb)/admin/adminNavDef'
-import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
-import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/omegaJobAdPages'
-import { jobAdLinks } from '@/pageKits/jobAds/links'
-import { eventLinks } from '@/pageKits/events/links'
+import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
+import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { revueLinks } from '@/app/(revue)/_lib/revueSite'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
@@ -79,7 +77,7 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Jobbannonser',
-        href: jobAdLinks(omegaJobAdPages).list(),
+        href: omegaJobAdLinks.list(),
         icon: faBriefcase,
         authorizers: () => [jobAdAuth.readActive],
     },
@@ -98,7 +96,7 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Hvad der hender',
-        href: eventLinks(omegaEventPages).list(),
+        href: omegaEventLinks.list(),
         icon: faCalendar,
         authorizers: () => [eventAuth.readManyCurrent],
     },

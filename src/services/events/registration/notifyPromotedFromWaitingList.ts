@@ -1,7 +1,6 @@
 import '@pn-server-only'
 import { notificationOperations } from '@/services/notifications/operations'
-import { eventLinks } from '@/pageKits/events/links'
-import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
+import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import logger from '@/lib/logger'
 import { escapeHtml } from '@/lib/html/escapeHtml'
@@ -35,7 +34,7 @@ export async function notifyPromotedFromWaitingList(
             data: {
                 title,
                 message,
-                url: eventLinks(omegaEventPages).event(event),
+                url: omegaEventLinks.event(event),
                 audience: { userIds },
             },
         })

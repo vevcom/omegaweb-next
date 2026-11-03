@@ -1,6 +1,6 @@
-import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/omegaAuthPages'
-import { careersAuthPages } from '@/app/(careers)/_lib/careersSite'
-import { revueAuthPages } from '@/app/(revue)/_lib/revueSite'
+import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
+import { careersAuthPages } from '@/app/(careers)/career/(auth)/config'
+import { revueAuthPages } from '@/app/(revue)/revue/(auth)/config'
 import type { Site } from './sites'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 

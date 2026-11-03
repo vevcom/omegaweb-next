@@ -1,4 +1,4 @@
-import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/omegaAuthPages'
+import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
 import { verifyEmailPage } from '@/pageKits/auth/pages/VerifyEmailPage'
 
 const { page, generateMetadata } = verifyEmailPage(omegaAuthPages)

@@ -1,8 +1,9 @@
-import { revueAuthPages, revueLinks } from '@/app/(revue)/_lib/revueSite'
+import { revueLinks } from '@/app/(revue)/_lib/revueSite'
+import { revueAuthPages } from '@/app/(revue)/revue/(auth)/config'
+import { revueAuthLinks } from '@/app/(revue)/revue/(auth)/links'
 import { omegaLinks } from '@/app/(omegaweb)/omegaLinks'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
 import LoginLink from '@/pageKits/auth/components/LoginLink'
-import { authLinks } from '@/pageKits/auth/links'
 import Link from 'next/link'
 
 type PropTypes = {
@@ -24,7 +25,7 @@ export default function RevueNavBar({ loggedIn }: PropTypes) {
                 </Link>
                 <Link href={omegaLinks.frontpage()} className={linkClassName}>Til Omegaveven</Link>
                 {loggedIn
-                    ? <Link href={authLinks(revueAuthPages).logout()} className={linkClassName}>Logg ut</Link>
+                    ? <Link href={revueAuthLinks.logout()} className={linkClassName}>Logg ut</Link>
                     : <LoginLink config={revueAuthPages} className={linkClassName} />}
                 <div className="
                     size-[40px]

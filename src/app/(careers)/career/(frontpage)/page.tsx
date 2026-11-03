@@ -1,8 +1,7 @@
 import CareersHeroShape from '@/app/(careers)/career/(frontpage)/CareersHeroShape'
 import UpcomingCompanyPresentations from '@/app/(careers)/career/(frontpage)/UpcomingCompanyPresentations'
-import { companyPresentationPages } from '@/app/(careers)/_lib/careersSite'
+import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
 import { careerLinks } from '@/app/(careers)/_lib/careerLinks'
-import { eventLinks } from '@/pageKits/events/links'
 import {
     badgeClassName,
     bandClassName,
@@ -127,7 +126,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </section>
 
-                <UpcomingCompanyPresentations eventsHref={eventLinks(companyPresentationPages).list()} />
+                <UpcomingCompanyPresentations eventsHref={companyPresentationLinks.list()} />
 
                 <section id="studieprogrammene" className={`
                     ${bandClassName}

@@ -1,9 +1,6 @@
 import { careerLinks } from './careerLinks'
-import { jobAdLinks } from '@/pageKits/jobAds/links'
-import { eventLinks } from '@/pageKits/events/links'
-import type { EventPagesConfig } from '@/pageKits/events/config'
-import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
-import type { AuthPagesConfig } from '@/pageKits/auth/config'
+import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
+import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
 
 export const CAREERS_EMAIL = 'post@contactor.no'
 
@@ -13,39 +10,10 @@ export const CAREERS_SOCIALS = {
     instagram: 'https://www.instagram.com/contactorntnu/',
 } as const
 
-/** The job ads in the career site's chrome. */
-export const careerJobAdPages: JobAdPagesConfig = {
-    site: 'CAREERS',
-    path: '/job-ads',
-}
-
-/** The sign in and sign up flow on the career site: the same account as on Omega's site, landing on the frontpage. */
-export const careersAuthPages: AuthPagesConfig = {
-    site: 'CAREERS',
-    path: '',
-    siteName: 'Contactor',
-    afterLoginPath: '',
-    afterLogoutPath: '',
-    accountNotice: 'Contactor er karrieresiden til linjeforeningen Omega ved NTNU, og brukeren du lager her er en '
-        + 'bruker på Omegas nettsider. Den samme brukeren gjelder både på Contactor og på Omegaveven.',
-}
-
-/**
- * The company presentations as the career site's event pages: the events carrying the special
- * tag, in the career site's chrome.
- */
-export const companyPresentationPages: EventPagesConfig = {
-    site: 'CAREERS',
-    path: '/company-presentations',
-    titles: { current: 'Bedriftspresentasjoner', archive: 'Tidligere bedriftspresentasjoner' },
-    lockedTag: 'COMPANY_PRESENTATION',
-    auth: careersAuthPages,
-}
-
 /** The links of the career site's navigation: the parts of the career pages, then the way to get in touch. */
 export const careerNavLinks: { name: string, href: string }[] = [
-    { name: 'Jobbannonser', href: jobAdLinks(careerJobAdPages).list() },
-    { name: 'Bedriftspresentasjoner', href: eventLinks(companyPresentationPages).list() },
+    { name: 'Jobbannonser', href: careerJobAdLinks.list() },
+    { name: 'Bedriftspresentasjoner', href: companyPresentationLinks.list() },
     { name: 'Bedrifter', href: careerLinks.companies() },
     { name: 'Om oss', href: careerLinks.about() },
     { name: 'Kontakt', href: `mailto:${CAREERS_EMAIL}` },

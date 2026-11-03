@@ -1,4 +1,4 @@
-import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/omegaAuthPages'
+import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
 import { linkOwUserPage } from '@/pageKits/auth/pages/LinkOwUserPage'
 
 const { page, generateMetadata } = linkOwUserPage(omegaAuthPages)

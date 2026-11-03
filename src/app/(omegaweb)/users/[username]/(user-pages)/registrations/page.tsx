@@ -1,8 +1,8 @@
 import UpcomingRegistrationRow from './UpcomingRegistrationRow'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
-import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
+import { omegaEventPages } from '@/app/(omegaweb)/events/config'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
-import { eventLinks } from '@/pageKits/events/links'
+import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { serverPage } from '@/app/ServerPage'
 import Link from 'next/link'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -21,7 +21,7 @@ const { page, generateMetadata } = serverPage({
             {data.registrations.length === 0 ? (
                 <p>
                     Ingen påmeldinger til kommende arrangementer.{' '}
-                    <Link href={eventLinks(omegaEventPages).list()}>Se hvad der hender</Link>
+                    <Link href={omegaEventLinks.list()}>Se hvad der hender</Link>
                 </p>
             ) : (
                 <div className="row-list">

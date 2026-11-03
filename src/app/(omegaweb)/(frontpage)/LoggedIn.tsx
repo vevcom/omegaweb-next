@@ -11,8 +11,8 @@ import {
 import PromoBar from './PromoBar'
 import EventCard from '@/app/_components/Event/EventCard'
 import JobAd from '@/components/JobAds/JobAd'
-import { omegaEventPages } from '@/app/(omegaweb)/events/omegaEventPages'
-import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/omegaJobAdPages'
+import { omegaEventPages } from '@/app/(omegaweb)/events/config'
+import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/config'
 import NewsCard from '@/app/(omegaweb)/news/NewsCard'
 import OmbulRow from '@/app/(omegaweb)/ombul/OmbulRow'
 import OmegaquoteRow from '@/app/(omegaweb)/omegaquotes/OmegaquoteRow'
@@ -29,8 +29,8 @@ import { withPageSession } from '@/app/ServerPage'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
-import { jobAdLinks } from '@/pageKits/jobAds/links'
-import { eventLinks } from '@/pageKits/events/links'
+import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
+import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Link from 'next/link'
@@ -121,7 +121,7 @@ export default async function LoggedInLandingPage() {
                         </LoggedInSection>
                         <LoggedInSection
                             title="Hvad der hender"
-                            link={eventLinks(omegaEventPages).list()}
+                            link={omegaEventLinks.list()}
                             layout="rows"
                             span="half"
                             emptyMessage="Det er for tiden ingen kommende arrangementer"
@@ -132,7 +132,7 @@ export default async function LoggedInLandingPage() {
                         </LoggedInSection>
                         <LoggedInSection
                             title="Jobbannonser"
-                            link={jobAdLinks(omegaJobAdPages).list()}
+                            link={omegaJobAdLinks.list()}
                             layout="rows"
                             span="half"
                             emptyMessage="Det er for tiden ingen jobbannonser"
