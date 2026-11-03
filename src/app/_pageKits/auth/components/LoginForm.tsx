@@ -6,6 +6,7 @@ import { useSession } from '@/auth/session/useSession'
 import useSiteContext from '@/hooks/useSiteContext'
 import { authLinks } from '@/pageKits/auth/links'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { sessionTransferPaths } from '@/lib/sites/sessionTransferPaths'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
@@ -33,8 +34,10 @@ const errorMessages: Record<string, string> = {
 
 export default function LoginForm({ config, callbackUrl: callbackAppPath, initialError }: PropTypes) {
     const session = useSession()
-    // NextAuth sends the browser there, so it must be a url of the domain the visitor is on.
     const callbackUrl = useSiteContext().resolveHref(callbackAppPath)
+    // Where NextAuth sends the browser once logged in: the hand-over of the login to the hub, which
+    // then goes on to the page.
+    const afterSignIn = sessionTransferPaths.share(callbackAppPath)
 
     // Feide errors arrive in the url. Credentials errors are kept here, so a new attempt clears them.
     const [error, setError] = useState(initialError)
@@ -55,7 +58,7 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
                 username: formData.get('username'),
                 password: formData.get('password'),
                 redirect: false,
-                callbackUrl,
+                callbackUrl: afterSignIn,
             })
 
             if (!result?.ok || result.error) {
@@ -65,7 +68,7 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
 
             setSignedIn(true)
             // A full load, so every server component renders with the new session.
-            window.location.href = result.url ?? callbackUrl
+            window.location.href = result.url ?? afterSignIn
         } catch {
             // NextAuth does not catch a sign-in request that fails on the network.
             setError('Default')
@@ -106,7 +109,7 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
 
         <Button color="secondary" style={{ width: '100%', margin: '0' }} onClick={() => signIn('feide', {
             redirect: true,
-            callbackUrl,
+            callbackUrl: afterSignIn,
         })}>
             Logg inn med Feide
         </Button>

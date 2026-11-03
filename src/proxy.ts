@@ -1,5 +1,5 @@
 import { contentSecurityPolicy } from '@/lib/securityHeaders'
-import { SiteContext } from '@/lib/sites/context'
+import { SiteContext, isAppWidePath } from '@/lib/sites/context'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import { Site } from '@/lib/sites/site'
 import { NextResponse } from 'next/server'
@@ -14,10 +14,6 @@ export const CURRENT_PATH_HEADER = 'x-current-path'
 
 /** The header the proxy stamps the domain the request came to into. With the path, a SiteContext. */
 export const SITE_DOMAIN_HEADER = 'x-site-domain'
-
-/** Paths that are the app's rather than a site's: served alike on every domain, never under a base path. */
-const isAppWide = (pathname: string) =>
-    ['/api/', '/_next/', '/__nextjs', '/store/'].some(prefix => pathname.startsWith(prefix))
 
 export function proxy(request: NextRequest) {
     loadDomainConfig()
@@ -36,7 +32,7 @@ export function proxy(request: NextRequest) {
     // NextAuth takes its origin from this header before the host, and a client can send it, so it is
     // pinned to the host checked above.
     requestHeaders.set('x-forwarded-host', domain)
-    requestHeaders.set(CURRENT_PATH_HEADER, isAppWide(pathname) ? browserPath : context.path)
+    requestHeaders.set(CURRENT_PATH_HEADER, isAppWidePath(pathname) ? browserPath : context.path)
 
     // Uploaded files keep the stricter policy their route sets: a sandbox, so a stored file never runs.
     if (pathname.startsWith('/store/')) {
@@ -61,7 +57,7 @@ export function proxy(request: NextRequest) {
  */
 function siteResponse(request: NextRequest, context: SiteContext, requestHeaders: Headers) {
     const { pathname, search } = request.nextUrl
-    if (context.servesBasePaths() || isAppWide(pathname)) {
+    if (context.servesBasePaths() || isAppWidePath(pathname)) {
         return NextResponse.next({ request: { headers: requestHeaders } })
     }
     if (!Site.ofPath(pathname).isRoot) {

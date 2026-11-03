@@ -16,6 +16,10 @@ export type ResolveHrefOptions = {
 
 const isAppPath = (href: string) => href.startsWith('/') && !href.startsWith('//')
 
+/** Paths that are the app's rather than a site's: served alike on every domain, never under a base path. */
+export const isAppWidePath = (path: string) =>
+    ['/api/', '/_next/', '/__nextjs', '/store/'].some(prefix => path.startsWith(prefix))
+
 // On globalThis rather than in module state: the proxy, instrumentation and the routes are bundled
 // apart on the server, each with its own copy of this module, but share the process.
 const store = globalThis as { siteDomainConfig?: DomainConfig }
@@ -44,6 +48,19 @@ export class SiteContext {
 
     static isConfigured(): boolean {
         return store.siteDomainConfig !== undefined
+    }
+
+    /**
+     * The domain logins are shared through: Omega's main domain. Every login elsewhere is handed to
+     * it, and every other domain asks it for one. Null without domains.
+     */
+    static sessionHubOrigin(): string | null {
+        return SiteContext.config().mainOriginOfSite(Site.root)
+    }
+
+    /** Whether an origin, such as `https://contactor.no`, is one of the configured domains. */
+    static isServedOrigin(origin: string): boolean {
+        return SiteContext.config().hasOrigin(origin)
     }
 
     /** The domains in use, for the server to hand over to the browser. */
@@ -105,6 +122,11 @@ export class SiteContext {
         return new SiteContext(this.domain, path)
     }
 
+    /** The origin of the configured domain the visitor is on, or null on a host that is not configured. */
+    origin(): string | null {
+        return this.siteDomain()?.origin ?? null
+    }
+
     /** The configured domain the visitor is on, or null on a host that is not configured. */
     siteDomain(): SiteDomain | null {
         return SiteContext.config().domainOfHost(this.domain)
@@ -138,10 +160,11 @@ export class SiteContext {
      * The href to render for an app path such as `/career/job-ads`, seen from here. The visitor stays
      * on the domain they are on whenever it serves the page's site: site-relative on the site's own
      * domains, under the base path on Omega's. Otherwise, or when asked to go to the main domain, the
-     * page is reached by the main domain serving it. Anything but an app path is left as it is.
+     * page is reached by the main domain serving it. Anything but a site's page, such as an
+     * external url or an app-wide path like `/api/...`, is left as it is.
      */
     resolveHref(href: string, options: ResolveHrefOptions = {}): string {
-        if (!isAppPath(href)) return href
+        if (!isAppPath(href) || isAppWidePath(href)) return href
         const target = Site.ofPath(href)
         if (!options.toMainDomainServingSite && this.serves(target)) {
             return this.servesBasePaths() ? href : target.pathOn(href)

@@ -18,6 +18,8 @@ export type AuthLinks = {
     verifyEmail: (token: string) => string,
     resetPasswordForm: (token: string) => string,
     linkOwUser: (token: string) => string,
+    /** Where another domain sends a login it hands over, see src/app/api/sso. */
+    sessionTransfer: (options: { ticket: string | null, callbackUrl: string }) => string,
     /** Where a login lands when there is no page to come back to. */
     afterLogin: () => string,
     afterLogout: () => string,
@@ -38,6 +40,8 @@ export const authLinks = defineLinks<AuthPagesConfig, AuthLinks>((href, config) 
     verifyEmail: jwt => href('/verify-email', token(jwt)),
     resetPasswordForm: jwt => href('/reset-password-form', token(jwt)),
     linkOwUser: jwt => href('/link-ow-user', token(jwt)),
+    sessionTransfer: ({ ticket, callbackUrl }) =>
+        href('/sso', new URLSearchParams({ ...(ticket ? { ticket } : {}), callbackUrl }).toString()),
     afterLogin: () => href(config.afterLoginPath),
     afterLogout: () => href(config.afterLogoutPath),
 }))

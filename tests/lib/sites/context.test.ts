@@ -120,5 +120,29 @@ describe('SiteContext', () => {
             expect(onCareers.resolveHref('mailto:post@contactor.no')).toBe('mailto:post@contactor.no')
             expect(onCareers.resolveHref('#top')).toBe('#top')
         })
+
+        test('keeps the app-wide paths on the domain the visitor is on', () => {
+            expect(onCareers.resolveHref('/api/sso/share?callbackUrl=%2F')).toBe('/api/sso/share?callbackUrl=%2F')
+            expect(onCareers.resolveHref('/store/images/cover.webp')).toBe('/store/images/cover.webp')
+        })
+    })
+
+    describe('the domains logins are shared through', () => {
+        test('the hub is Omega\'s main domain, and none without domains', () => {
+            expect(SiteContext.sessionHubOrigin()).toBe('https://omega.ntnu.no')
+            SiteContext.configure(withoutDomains)
+            expect(SiteContext.sessionHubOrigin()).toBeNull()
+        })
+
+        test('knows the configured origins, protocol included', () => {
+            expect(SiteContext.isServedOrigin('https://contactor.com')).toBe(true)
+            expect(SiteContext.isServedOrigin('http://contactor.no')).toBe(false)
+            expect(SiteContext.isServedOrigin('https://evil.example')).toBe(false)
+        })
+
+        test('knows the origin the visitor is on, none on a host that is not configured', () => {
+            expect(SiteContext.fromAppPath('contactor.com', '/career').origin()).toBe('https://contactor.com')
+            expect(SiteContext.fromAppPath('evil.example', '/').origin()).toBeNull()
+        })
     })
 })
