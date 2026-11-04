@@ -1,6 +1,7 @@
 
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { ReactNode } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 export default function SimpleTable<T extends string[]>({
     header,
@@ -9,7 +10,7 @@ export default function SimpleTable<T extends string[]>({
 }: {
     header: T,
     body: { [K in keyof T]: ReactNode }[],
-    links?: T,
+    links?: AppHref[],
 }) {
     return <table className="
         ohma-table

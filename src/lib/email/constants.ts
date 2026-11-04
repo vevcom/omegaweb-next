@@ -1,10 +1,10 @@
 import '@pn-server-only'
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import type SMTPPool from 'nodemailer/lib/smtp-pool'
 
 /** Omega's sender for mail no one is meant to answer, on Omega's mail domain. */
-export const defaultNotificationAlias = () => `noreply@${SiteContext.mailDomainOf(Site.root)}`
+export const defaultNotificationAlias = () => `noreply@${DomainContext.mailDomainOf(Site.root)}`
 
 const port = Number(process.env.EMAIL_PORT) || 587
 const secure = process.env.EMAIL_SECURE === 'true'

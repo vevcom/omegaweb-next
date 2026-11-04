@@ -2,6 +2,7 @@
 import Checkbox from '@/UI/Checkbox'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import type { ChangeEvent } from 'react'
 
 type PropTypes = {
@@ -24,7 +25,7 @@ export default function ToggleShowAdminCollections({
     const { replace } = useSiteRouter()
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-        replace(`/image-collections/?${QueryParams.onlyAdministratedCollections.encodeUrl(event.target.checked)}`)
+        replace(appHref(`/image-collections/?${QueryParams.onlyAdministratedCollections.encodeUrl(event.target.checked)}`))
     }
 
     return (

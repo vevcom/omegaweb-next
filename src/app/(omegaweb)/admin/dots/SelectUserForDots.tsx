@@ -3,6 +3,7 @@ import UserList from '@/components/User/UserList/UserList'
 import { UserSelectionContext } from '@/contexts/UserSelection'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import { useContext } from 'react'
 
 /**
@@ -17,7 +18,7 @@ export default function SelectUserForDots() {
 
     userSelection.onSelection(user => {
         if (!user) return
-        push(`/admin/dots?${QueryParams.userId.encodeUrl(user.id)}`)
+        push(appHref(`/admin/dots?${QueryParams.userId.encodeUrl(user.id)}`))
     })
 
     return <UserList linksToUser={false} />

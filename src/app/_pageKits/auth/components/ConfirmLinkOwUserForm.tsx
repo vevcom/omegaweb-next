@@ -4,10 +4,11 @@ import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { useState } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     token: string,
-    loginPath: string,
+    loginPath: AppHref,
     linkRequest: {
         targetUsername: string,
         feideName: string,

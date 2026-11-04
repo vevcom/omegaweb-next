@@ -2,12 +2,13 @@ import Image from '@/components/Image/Image'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { ReactNode } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     image: ExpandedImage | null,
     title: string,
     children?: ReactNode,
-    href: string,
+    href: AppHref,
     className?: string
 }
 

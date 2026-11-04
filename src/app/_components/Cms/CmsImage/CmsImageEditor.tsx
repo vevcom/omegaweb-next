@@ -16,6 +16,7 @@ import { useSpecialCollections } from '@/contexts/ClientData'
 import { specialImagePanels } from '@/components/Image/ImagePanel/specialImagePanels'
 import { readImagesPageInDynamicCollectionAction } from '@/services/images/dynamic/actions'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { useMemo, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faInfo } from '@fortawesome/free-solid-svg-icons'
@@ -227,7 +228,7 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                             mobile:-top-[2%] mobile:-right-[2%]
                             max-mobile:top-[2%] max-mobile:left-[2%]
                         "
-                        href="/image-collections/"
+                        href={appHref('/image-collections/')}
                     >
                         Gå til bilder
                     </SiteLink>

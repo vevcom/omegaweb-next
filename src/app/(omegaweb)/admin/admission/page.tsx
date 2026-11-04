@@ -6,6 +6,7 @@ import { userAuth } from '@/services/users/auth'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
 import { serverPage } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronRight, faScroll } from '@fortawesome/free-solid-svg-icons'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -28,7 +29,7 @@ const { page, generateMetadata } = serverPage({
                         {allAdmissions.map(admission => (
                             <SiteLink
                                 key={admission}
-                                href={`/admin/admission/${admission}`}
+                                href={appHref(`/admin/admission/${admission}`)}
                                 className="
                                     flex items-center gap-2 flex-[1_1_14rem]
                                     max-mobile:basis-full

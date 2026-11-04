@@ -1,4 +1,5 @@
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLink } from '@fortawesome/free-solid-svg-icons'
 import type { readAllCommitteeParticipationAction } from '@/services/applications/committeeParticipation/actions'
@@ -28,7 +29,7 @@ export function PeriodSection({ period, shortName }: { period: CommitteeParticip
                 kl. {period.endPriorityDate.toLocaleTimeString('en-GB', { timeZone: 'Europe/Oslo' })}
             </td>
             <td className={entriesClassName} >
-                <SiteLink href={`/committees/${shortName}/application-periods/${period.participationId}`} >
+                <SiteLink href={appHref(`/committees/${shortName}/application-periods/${period.participationId}`)} >
                     <FontAwesomeIcon icon={faLink}>
                     </FontAwesomeIcon>
                 </SiteLink>

@@ -7,7 +7,7 @@ import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailAddressExternalOperations } from '@/services/mail/mailAddressExternal/operations'
 import { mailOperations } from '@/services/mail/operations'
 import { DomainConfig } from '@/lib/sites/domainConfig'
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { afterEach, describe, expect, test } from '@jest/globals'
 
 // NOTE: This test doesn't check auth, since I think this should be testing in a separate file -Theodor
@@ -53,11 +53,11 @@ describe('alias address validation', () => {
 // ─── The Domains Of The Sites ─────────────────────────────────────────────────
 
 describe('the domains of the sites are mail domains', () => {
-    const withSites = () => SiteContext.configure(DomainConfig.parse({
+    const withSites = () => DomainContext.configure(DomainConfig.parse({
         'omega.ntnu.no': { site: 'OMEGAWEB', main: true },
         'contactor.no': { site: 'CAREERS', main: true },
     }))
-    afterEach(() => SiteContext.configure(testDomainConfig))
+    afterEach(() => DomainContext.configure(testDomainConfig))
 
     test('an alias may be on a site\'s domain, whatever its case', async () => {
         withSites()

@@ -12,6 +12,7 @@ import TextInput from '@/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { hrefOf } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -44,7 +45,7 @@ const { page, generateMetadata } = serverPage({
                             <td>{license.id}</td>
                             <td>{license.name}</td>
                             <td>
-                                <SiteLink href={license.link}>
+                                <SiteLink href={hrefOf(license.link)}>
                                     Til lisens
                                 </SiteLink>
                             </td>

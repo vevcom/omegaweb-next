@@ -36,6 +36,7 @@ import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs, ServerPageSession } from '@/app/ServerPage'
 
 const periodDateItemClassName = `
@@ -209,12 +210,12 @@ const { page, generateMetadata } = serverPage({
                                         )
                                     }
                                 </PopUp>
-                            ) : <SiteLink href="/login" className="btn m-0!">
+                            ) : <SiteLink href={appHref('/login')} className="btn m-0!">
                             Logg inn for å søke
                             </SiteLink>
                         }
                         <SiteLink
-                            href={`/committees/${part.committee.shortName}`}
+                            href={appHref(`/committees/${part.committee.shortName}`)}
                             className="secondary-btn m-0!"
                         >
                         Les mer
@@ -303,7 +304,7 @@ const { page, generateMetadata } = serverPage({
                                     submitText="Slett søknadsperiode"
                                     closePopUpOnSuccess={`period-${period.name}-settings`}
                                     refreshOnSuccess
-                                    navigateOnSuccess={'/applications'}
+                                    navigateOnSuccess={appHref('/applications')}
                                 />
                             </>
                         )}
@@ -341,7 +342,7 @@ const { page, generateMetadata } = serverPage({
                                         text-m
                                         [&_a]:text-inherit [&_a]:no-underline
                                     ">
-                                        <SiteLink href={`/applications/${period.name}/countdown`}>
+                                        <SiteLink href={appHref(`/applications/${period.name}/countdown`)}>
                                             <CountDown referenceDate={period.endDate} />
                                         </SiteLink>
                                     </div>

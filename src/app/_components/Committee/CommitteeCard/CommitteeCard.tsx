@@ -2,12 +2,13 @@ import CommitteeLogo from '@/components/Committee/CommitteeLogo/CommitteeLogo'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { ReactNode } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     image: ExpandedImage | null,
     title: string,
     children?: ReactNode,
-    href: string
+    href: AppHref
 }
 
 export default function CommitteeCard({ image, title, children, href }: PropTypes) {

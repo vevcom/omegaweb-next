@@ -9,6 +9,7 @@ import { mailAuth } from '@/services/mail/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -174,7 +175,7 @@ export default function MailFlow({
                         text-text no-underline wrap-anywhere
                         hover:underline
                     "
-                    href={`/admin/mail/${chip.type}/${chip.id}`}
+                    href={appHref(`/admin/mail/${chip.type}/${chip.id}`)}
                 >
                     {chip.label}
                 </SiteLink>

@@ -27,8 +27,13 @@ const noNextRouter = {
 const noNextRedirect = {
     name: 'next/navigation',
     importNames: ['redirect', 'permanentRedirect'],
-    message: 'Redirect with siteRedirect from @/app/siteContextOfRequest, '
+    message: 'Redirect with siteRedirect from @/app/domainContextOfRequest, '
         + 'which resolves an app path for the domain the request came to.',
+}
+const noResolvedHrefTagging = {
+    group: ['**/sites/href', '@/lib/sites/href'],
+    importNames: ['domainContextResolvedHref'],
+    message: 'Only DomainContext.resolveHref marks an href as resolved for the domain.',
 }
 
 const eslintConfig = defineConfig([
@@ -573,7 +578,10 @@ const eslintConfig = defineConfig([
             ],
             'no-restricted-imports': [
                 'error',
-                { patterns: [noRelativeImports], paths: [noNextLink, noNextRouter, noNextRedirect] },
+                {
+                    patterns: [noRelativeImports, noResolvedHrefTagging],
+                    paths: [noNextLink, noNextRouter, noNextRedirect],
+                },
             ],
             // import statement order
             'import/order': [
@@ -655,8 +663,18 @@ const eslintConfig = defineConfig([
         }
     },
     {
+        // The one place an href is marked as resolved for the domain.
+        files: ['src/lib/sites/context.ts'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                { patterns: [noRelativeImports], paths: [noNextLink, noNextRouter, noNextRedirect] },
+            ],
+        }
+    },
+    {
         // The one place redirect is used: siteRedirect wraps it.
-        files: ['src/app/siteContextOfRequest.ts'],
+        files: ['src/app/domainContextOfRequest.ts'],
         rules: {
             'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextLink, noNextRouter] }],
         }

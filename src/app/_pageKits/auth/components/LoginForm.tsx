@@ -3,17 +3,18 @@ import TextInput from '@/UI/TextInput'
 import Button from '@/UI/Button'
 import SubmitButton from '@/UI/SubmitButton'
 import { useSession } from '@/auth/session/useSession'
-import useSiteContext from '@/hooks/useSiteContext'
+import useDomainContext from '@/hooks/useDomainContext'
 import { authLinks } from '@/pageKits/auth/links'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { FormEvent } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     config: AuthPagesConfig,
-    callbackUrl: string,
+    callbackUrl: AppHref,
     initialError: string | null,
 }
 
@@ -34,7 +35,7 @@ const errorMessages: Record<string, string> = {
 export default function LoginForm({ config, callbackUrl: callbackAppPath, initialError }: PropTypes) {
     const session = useSession()
     // NextAuth sends the browser there, so it must be a url of the domain the visitor is on.
-    const callbackUrl = useSiteContext().resolveHref(callbackAppPath)
+    const callbackUrl = useDomainContext().resolveHref(callbackAppPath)
 
     // Feide errors arrive in the url. Credentials errors are kept here, so a new attempt clears them.
     const [error, setError] = useState(initialError)
@@ -79,7 +80,7 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
     if (sessionUser && !pending && !signedIn) {
         return <>
             <p>Du er allerede logget inn som {sessionUser.username}.</p>
-            <SiteLink href={callbackUrl}>Fortsett</SiteLink>
+            <SiteLink href={callbackAppPath}>Fortsett</SiteLink>
             <SiteLink href={authLinks(config).logout()}>Logg ut</SiteLink>
         </>
     }

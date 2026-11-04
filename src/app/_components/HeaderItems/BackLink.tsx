@@ -1,9 +1,10 @@
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
-    href: string,
+    href: AppHref,
     label: string,
 }
 

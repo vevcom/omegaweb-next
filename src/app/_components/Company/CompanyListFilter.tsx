@@ -4,7 +4,8 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import useSiteContext from '@/hooks/useSiteContext'
+import useDomainContext from '@/hooks/useDomainContext'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch } from '@fortawesome/free-solid-svg-icons'
 import { useContext } from 'react'
@@ -15,12 +16,12 @@ type PropTypes = {
 
 export default function CompanyListFilter({ currentName }: PropTypes) {
     const { replace } = useSiteRouter()
-    const pathname = useSiteContext().path
+    const pathname = useDomainContext().path
     const { setDetails } = useContext(CompanyPagingContext) ?? {
         setDetails: () => {}
     }
     const setNameFilter = useDebounce((name: string) => {
-        replace(`${pathname}?${QueryParams.companyName.encodeUrl(name)}`)
+        replace(appHref(`${pathname}?${QueryParams.companyName.encodeUrl(name)}`))
         setDetails({ name })
     }, 300)
     return (

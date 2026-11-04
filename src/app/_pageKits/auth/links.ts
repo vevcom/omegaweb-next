@@ -1,26 +1,27 @@
 import { defineLinks } from '@/lib/sites/defineLinks'
 import { QueryParams } from '@/lib/queryParams/queryParams'
+import type { AppHref } from '@/lib/sites/href'
 import type { AuthPagesConfig } from './config'
 
 export type CallbackOptions = {
     /** The app path to come back to once through the page. Without it the site's after-login page. */
-    callbackUrl?: string,
+    callbackUrl?: AppHref,
 }
 
 export type AuthLinks = {
-    login: (options?: CallbackOptions) => string,
-    logout: () => string,
-    register: (options?: CallbackOptions) => string,
-    registerEmail: (options?: CallbackOptions) => string,
-    sendResetPasswordEmail: () => string,
-    terms: () => string,
+    login: (options?: CallbackOptions) => AppHref,
+    logout: () => AppHref,
+    register: (options?: CallbackOptions) => AppHref,
+    registerEmail: (options?: CallbackOptions) => AppHref,
+    sendResetPasswordEmail: () => AppHref,
+    terms: () => AppHref,
     /** The pages reached from an email, carrying its token. */
-    verifyEmail: (token: string) => string,
-    resetPasswordForm: (token: string) => string,
-    linkOwUser: (token: string) => string,
+    verifyEmail: (token: string) => AppHref,
+    resetPasswordForm: (token: string) => AppHref,
+    linkOwUser: (token: string) => AppHref,
     /** Where a login lands when there is no page to come back to. */
-    afterLogin: () => string,
-    afterLogout: () => string,
+    afterLogin: () => AppHref,
+    afterLogout: () => AppHref,
 }
 
 const callback = (options?: CallbackOptions) =>

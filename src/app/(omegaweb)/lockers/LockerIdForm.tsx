@@ -2,6 +2,7 @@
 import Button from '@/components/UI/Button'
 import NumberInput from '@/components/UI/NumberInput'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
@@ -14,7 +15,7 @@ export default function LockerIdForm() {
 
     const goToLocker = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-        if (lockerId) router.push(`/lockers/${lockerId}`)
+        if (lockerId) router.push(appHref(`/lockers/${lockerId}`))
     }
 
     return (

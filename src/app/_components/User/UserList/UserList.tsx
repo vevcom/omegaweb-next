@@ -15,6 +15,7 @@ import { orderOptions } from '@/lib/groups/groupOptions'
 import { UsersSelectionContext } from '@/contexts/UsersSelection'
 import { UserSelectionContext } from '@/contexts/UserSelection'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import { useContext, useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCheck, faSort, faSortDown, faSortUp } from '@fortawesome/free-solid-svg-icons'
@@ -22,6 +23,7 @@ import type { UserPagingReturn } from '@/services/users/types'
 import type { ChangeEvent, MouseEvent, ReactNode } from 'react'
 import type { GroupType } from '@/prisma-generated-pn-types'
 import type { ExpandedGroup, ExpandedGroupsOfAllTypes } from '@/services/groups/types'
+import type { AppHref } from '@/lib/sites/href'
 
 type GroupSelectionType = Exclude<GroupType, 'INTEREST_GROUP' | 'MANUAL_GROUP'>
 
@@ -39,7 +41,7 @@ type PropTypes = {
     /**
      * Where a row leads when `linksToUser` is set. Defaults to the user's profile.
      */
-    userHref?: (user: UserPagingReturn) => string,
+    userHref?: (user: UserPagingReturn) => AppHref,
 }
 
 function getGroupType(groups: ExpandedGroupsOfAllTypes | null, type: GroupType) {
@@ -106,7 +108,7 @@ export default function UserList({
         OMEGA_MEMBERSHIP_GROUP: false
     },
     linksToUser,
-    userHref = user => `/users/${user.username}`,
+    userHref = user => omegaLinks.user(user),
 }: PropTypes) {
     const userPaging = useContext(UserPagingContext)
     const usersSelection = useContext(UsersSelectionContext)

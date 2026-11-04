@@ -1,4 +1,4 @@
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 
 
@@ -11,7 +11,7 @@ export const MailListTypeArray = ['alias', 'mailingList', 'group', 'user', 'mail
  */
 export function validMailAddressDomains(): string[] {
     loadDomainConfig()
-    return SiteContext.hostNames()
+    return DomainContext.hostNames()
 }
 
 /** Whether an address is on one of our mail domains, whatever its case. */

@@ -13,6 +13,8 @@ import { useGlobalSearch } from '@/contexts/GlobalSearch'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { displayDate } from '@/lib/dates/displayDate'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { omegaLinks } from '@/app/(omegaweb)/links'
+import { isAppPath } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass, faCalendar, faSpinner, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -20,6 +22,7 @@ import type { ChangeEvent, KeyboardEvent } from 'react'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
 import type { NavLink } from '@/components/NavBar/navDef'
 import type { ExpandedImage } from '@/services/images/subservice/types'
+import type { AppHref, ExternalHref } from '@/lib/sites/href'
 
 type Category = 'all' | 'navigation' | 'users' | 'events'
 
@@ -29,7 +32,7 @@ type Thumb =
 
 type SearchItem = {
     key: string,
-    href: string,
+    href: AppHref | ExternalHref,
     thumb: Thumb,
     label: string,
     sublabel?: string,
@@ -149,7 +152,7 @@ export default function GlobalSearch({ navItems }: PropTypes) {
 
     const userSectionItems: SearchItem[] = useMemo(() => userResults.map(user => ({
         key: `user-${user.id}`,
-        href: `/users/${user.username}`,
+        href: omegaLinks.user(user),
         thumb: { type: 'image', image: user.image },
         label: `${user.firstname} ${user.lastname}`,
         sublabel: `@${user.username}`,
@@ -205,7 +208,8 @@ export default function GlobalSearch({ navItems }: PropTypes) {
 
     const selectItem = (item: SearchItem) => {
         close()
-        router.push(item.href)
+        if (isAppPath(item.href)) router.push(item.href)
+        else window.location.href = item.href
     }
 
     const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {

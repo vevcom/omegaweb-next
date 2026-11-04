@@ -9,21 +9,22 @@ import { sexConfig } from '@/services/users/constants'
 import { authLinks } from '@/pageKits/auth/links'
 import { Sex, type User } from '@/prisma-generated-pn-types'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import useSiteContext from '@/hooks/useSiteContext'
+import useDomainContext from '@/hooks/useDomainContext'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     config: AuthPagesConfig,
     userData: Pick<User, 'id' | 'username' | 'allergies' | 'sex'>,
-    callbackUrl: string,
+    callbackUrl: AppHref,
 }
 
 export default function RegistrationForm({ config, userData, callbackUrl: callbackAppPath }: PropTypes) {
     const [lastPassword, setLastPassword] = useState('')
     // NextAuth sends the browser there, so it must be a url of the domain the visitor is on.
-    const callbackUrl = useSiteContext().resolveHref(callbackAppPath)
+    const callbackUrl = useDomainContext().resolveHref(callbackAppPath)
     const [sexValue, setSexValue] = useState<Sex | undefined>(userData.sex ?? undefined)
 
     const sexOptions = Object.values(Sex).map(sex => ({

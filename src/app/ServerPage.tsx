@@ -7,7 +7,7 @@ import { ServerSession } from '@/auth/session/ServerSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/lib/sites/authPagesOf'
-import { siteContextOfRequest, siteRedirect } from '@/app/siteContextOfRequest'
+import { domainContextOfRequest, siteRedirect } from '@/app/domainContextOfRequest'
 import { notFound, unstable_rethrow as unstableRethrow } from 'next/navigation'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
@@ -83,7 +83,7 @@ async function redirectUnregistered(session: ServerPageSession) {
  * callbackUrl, so the user lands back where they were once they are through it.
  */
 async function authPathWithCallback(page: 'login' | 'register') {
-    const context = await siteContextOfRequest()
+    const context = await domainContextOfRequest()
     const links = authLinks(authPagesOf(context.site()))
     return links[page]({ callbackUrl: context.path })
 }

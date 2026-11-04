@@ -1,6 +1,7 @@
 import UserDisplayName from './UserDisplayName'
 import ProfilePicture from './ProfilePicture'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { CSSProperties } from 'react'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { UserCard as UserCardData } from '@/services/users/types'
@@ -27,7 +28,7 @@ export default function UserCard({
             [&>div>p]:text-s
             ${className ? className : ''}
         `}
-        href={`/users/${user.username}`}
+        href={appHref(`/users/${user.username}`)}
         style={topFlair ? {
             '--flairColor': `rgb(${topFlair.colorR}, ${topFlair.colorG}, ${topFlair.colorB})`,
         } as CSSProperties : undefined}

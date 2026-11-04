@@ -4,11 +4,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { usePathname } from 'next/navigation'
 import type { IconProp } from '@fortawesome/fontawesome-svg-core'
 import type { ReactNode } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 type SubPageNavBarProps = {
     children?: ReactNode,
     icon?: IconProp,
-    href: string
+    href: AppHref
 }
 
 export function SubPageNavBarItem({ children, icon, href }:SubPageNavBarProps) {

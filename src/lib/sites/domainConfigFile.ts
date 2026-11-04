@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 /**
- * Reading sites.json, apart from configuring SiteContext with it, so next.config.ts takes its dev
+ * Reading sites.json, apart from configuring DomainContext with it, so next.config.ts takes its dev
  * hosts from the same file. Relative imports only, since next.config.ts is compiled without the
  * path aliases.
  */

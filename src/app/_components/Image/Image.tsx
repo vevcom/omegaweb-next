@@ -1,6 +1,7 @@
 import { resolutionForWidth } from '@/lib/images/resolutionForWidth'
 import { imageSourceForResolution, srcSetForImage } from '@/lib/images/imageSource'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { hrefOf } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCopyright } from '@fortawesome/free-solid-svg-icons'
 import type { ImageResolution } from '@/lib/images/resolutionForWidth'
@@ -122,7 +123,7 @@ export default function Image({
                         ">{image.licenseName}</p>
                     ) : (
                         <SiteLink
-                            href={image.licenseLink}
+                            href={hrefOf(image.licenseLink)}
                             target="_blank"
                             referrerPolicy="no-referrer"
                             className="

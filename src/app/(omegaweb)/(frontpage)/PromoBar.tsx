@@ -1,5 +1,6 @@
 import Image from '@/components/Image/Image'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { hrefOf } from '@/lib/sites/href'
 import type { PromoWithImage } from '@/services/promo/types'
 
 // Its own island, same as LoggedInSection, but a single fixed-height banner
@@ -7,7 +8,7 @@ import type { PromoWithImage } from '@/services/promo/types'
 export default function PromoBar({ promo }: { promo: PromoWithImage }) {
     return (
         <SiteLink
-            href={promo.link}
+            href={hrefOf(promo.link)}
             className="
                 relative block w-full h-28 rounded-round overflow-hidden [color:unset] no-underline
                 hover:no-underline

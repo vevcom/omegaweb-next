@@ -1,6 +1,7 @@
 import { inferGroupNameIfValid } from '@/lib/groups/inferGroupName'
 import { displayDate } from '@/lib/dates/displayDate'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { LockerWithReservation } from '@/services/lockers/types'
 
 export const lockerRowClassName = `
@@ -34,7 +35,7 @@ export default function LockerRow({ locker }: PropTypes) {
 
     return (
         <SiteLink
-            href={`/lockers/${locker.id}`}
+            href={appHref(`/lockers/${locker.id}`)}
             className={`
                 ${lockerRowClassName}
                 even:bg-[color-mix(in_srgb,var(--surface-raised),white_3%)]

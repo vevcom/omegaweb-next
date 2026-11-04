@@ -7,6 +7,7 @@ import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEdit
 import { EditModeContext } from '@/contexts/EditMode'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import { useContext, useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
 import type { ExpandedNewsArticle } from '@/services/news/types'
@@ -19,7 +20,7 @@ export default function AddNews() {
 
     const handleCreate = (data?: ExpandedNewsArticle) => {
         editModeCtx?.setEditMode(true)
-        push(`/news/${data ? formatVevenUri(data.articleName, data.id) : ''}`)
+        push(appHref(`/news/${data ? formatVevenUri(data.articleName, data.id) : ''}`))
     }
 
     return (

@@ -3,6 +3,7 @@ import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
 import { updateUserAction } from '@/services/users/actions'
+import { appHref } from '@/lib/sites/href'
 import type { UserBasic } from '@/services/users/types'
 
 type PropTypes = {
@@ -23,7 +24,7 @@ export default function AdminUserSettingsForm({ user }: PropTypes) {
             action={updateUser}
             refreshOnSuccess
             // The page lives under the username, so a new one moves it.
-            navigateOnSuccess={data => (data ? `/users/${data.username}/settings` : null)}
+            navigateOnSuccess={data => (data ? appHref(`/users/${data.username}/settings`) : null)}
         >
             <TextInput label="Fornavn" name="firstname" defaultValue={user.firstname} />
             <TextInput label="Etternavn" name="lastname" defaultValue={user.lastname} />

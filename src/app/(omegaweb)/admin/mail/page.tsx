@@ -1,7 +1,8 @@
-import { siteRedirect } from '@/app/siteContextOfRequest'
+import { siteRedirect } from '@/app/domainContextOfRequest'
+import { appHref } from '@/lib/sites/href'
 
 // The mail admin is split into one page per part (see the admin nav) - the old combined page
 // only forwards to the most central of them.
 export default async function MailSettings() {
-    await siteRedirect('/admin/mail/mailingList')
+    await siteRedirect(appHref('/admin/mail/mailingList'))
 }

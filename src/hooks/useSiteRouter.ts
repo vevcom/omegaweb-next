@@ -1,12 +1,20 @@
 'use client'
-import useSiteContext from './useSiteContext'
-import { SiteContext } from '@/lib/sites/context'
+import useDomainContext from './useDomainContext'
+import { DomainContext } from '@/lib/sites/context'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 import type { ResolveHrefOptions } from '@/lib/sites/context'
+import type { AppHref } from '@/lib/sites/href'
 
-type Router = ReturnType<typeof useRouter>
-type NavigateOptions = Parameters<Router['push']>[1] & ResolveHrefOptions
+type NextRouter = ReturnType<typeof useRouter>
+type NavigateOptions = Parameters<NextRouter['push']>[1] & ResolveHrefOptions
+
+/** Next's router, taking app paths where it takes hrefs. */
+export type SiteRouter = Omit<NextRouter, 'push' | 'replace' | 'prefetch'> & {
+    push: (href: AppHref, options?: NavigateOptions) => void,
+    replace: (href: AppHref, options?: NavigateOptions) => void,
+    prefetch: (href: AppHref, options?: Parameters<NextRouter['prefetch']>[1]) => void,
+}
 
 /**
  * The router for app paths: push, replace and prefetch take one and go where it is for the domain
@@ -14,12 +22,12 @@ type NavigateOptions = Parameters<Router['push']>[1] & ResolveHrefOptions
  * router keeps its identity between renders on the same page, as Next's does, for effects that
  * depend on it.
  */
-export default function useSiteRouter(): Router {
+export default function useSiteRouter(): SiteRouter {
     const router = useRouter()
-    const { domain, path } = useSiteContext()
+    const { domain, path } = useDomainContext()
     return useMemo(() => {
-        const context = SiteContext.fromAppPath(domain, path)
-        const resolve = (href: string, options?: NavigateOptions) =>
+        const context = DomainContext.fromAppPath(domain, path)
+        const resolve = (href: AppHref, options?: NavigateOptions) =>
             context.resolveHref(href, { toMainDomainServingSite: options?.toMainDomainServingSite })
         return {
             ...router,

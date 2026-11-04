@@ -4,6 +4,7 @@ import SimpleTable from '@/app/_components/Table/SimpleTable'
 import { serverPage } from '@/app/ServerPage'
 import { displayDate } from '@/lib/dates/displayDate'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -36,7 +37,7 @@ const { page, generateMetadata } = serverPage({
                         displayDate(booking.end, false),
                         booking.notes ?? ''
                     ])}
-                    links={bookings.map(booking => `/admin/cabin-booking/${booking.id}`)}
+                    links={bookings.map(booking => appHref(`/admin/cabin-booking/${booking.id}`))}
                 />
             </PageWrapper>
         )

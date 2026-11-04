@@ -1,6 +1,7 @@
 import CmsLinkEditor from './CmsLinkEditor'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { hrefOf } from '@/lib/sites/href'
 import type { CmsLink as CmsLinkT } from '@/prisma-generated-pn-types'
 import type { UpdateCmsLinkAction } from '@/cms/links/types'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
@@ -53,7 +54,7 @@ export default function CmsLink({
                     `}>
                         {cmsLink.text}
                     </span>
-                    : <SiteLink href={cmsLink.url} className={buttonClass}>{cmsLink.text}</SiteLink>
+                    : <SiteLink href={hrefOf(cmsLink.url)} className={buttonClass}>{cmsLink.text}</SiteLink>
             }
             <CmsLinkEditor
                 capabilities={capabilitiesToJsObject(capabilities)}

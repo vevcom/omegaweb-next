@@ -25,6 +25,8 @@ import { lockerAuth } from '@/services/lockers/auth'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
 import { Require } from '@/auth/authorizer/Require'
+import { appHref } from '@/lib/sites/href'
+import { externalHref } from '@/lib/sites/href'
 import {
     faGamepad,
     faBook,
@@ -47,13 +49,15 @@ import {
     faChartLine,
     faMasksTheater,
 } from '@fortawesome/free-solid-svg-icons'
+import type { AppHref } from '@/lib/sites/href'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
+import type { ExternalHref } from '@/lib/sites/href'
 
 export type NavItem = {
     name: string,
-    href: string,
+    href: AppHref | ExternalHref,
     icon: IconDefinition,
     /**
      * The authorizers of the page the item points at, and passing **any** of them is enough to be
@@ -74,7 +78,7 @@ export type NavLink = Pick<NavItem, 'name' | 'href' | 'icon'>
 export const navDef: NavItem[] = [
     {
         name: 'Komitéer',
-        href: '/committees',
+        href: appHref('/committees'),
         icon: faBeer,
         authorizers: () => [committeeAuth.readAll],
     },
@@ -93,13 +97,13 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Butikker',
-        href: '/shop',
+        href: appHref('/shop'),
         icon: faShoppingCart,
         authorizers: () => [shopAuth.readMany],
     },
     {
         name: 'Ny student?',
-        href: '/new-student',
+        href: appHref('/new-student'),
         icon: faGraduationCap,
         authorizers: () => [articleCategoryAuth.readAll],
         audience: 'loggedOut',
@@ -112,43 +116,43 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'OmBul',
-        href: '/ombul',
+        href: appHref('/ombul'),
         icon: faBook,
         authorizers: () => [ombulAuth.readLatest],
     },
     {
         name: 'Nyheter',
-        href: '/news',
+        href: appHref('/news'),
         icon: faNewspaper,
         authorizers: () => [newsAuth.readCurrent],
     },
     {
         name: 'Omegaquotes',
-        href: '/omegaquotes',
+        href: appHref('/omegaquotes'),
         icon: faComment,
         authorizers: () => [omegaQuotesAuth.readPage],
     },
     {
         name: 'Bulshit',
-        href: '/bulshit',
+        href: appHref('/bulshit'),
         icon: faPoo,
         authorizers: () => [bulshitAuth.readPage, bulshitAuth.createOwn],
     },
     {
         name: 'Artikler',
-        href: '/articles',
+        href: appHref('/articles'),
         icon: faSignature,
         authorizers: () => [articleCategoryAuth.readAll],
     },
     {
         name: 'Bilder',
-        href: '/image-collections',
+        href: appHref('/image-collections'),
         icon: faCamera,
         authorizers: () => [dynamicImageAuth.readCollectionPage.data({ onlyAdministrated: false })],
     },
     {
         name: 'Interessegrupper',
-        href: '/interest-groups',
+        href: appHref('/interest-groups'),
         icon: faGamepad,
         authorizers: () => [interestGroupAuth.readMany],
     },
@@ -160,31 +164,31 @@ export const navDef: NavItem[] = [
     },
     {
         name: 'Hyttebooking',
-        href: '/cabin',
+        href: appHref('/cabin'),
         icon: faHouseChimneyWindow,
         authorizers: () => [cabinArticleAuth.read],
     },
     {
         name: 'Broedre iitem Systre',
-        href: '/users',
+        href: appHref('/users'),
         icon: faPeopleLine,
         authorizers: () => [userAuth.readPage],
     },
     {
         name: 'Skap',
-        href: '/lockers',
+        href: appHref('/lockers'),
         icon: faLock,
         authorizers: () => [lockerAuth.readPage],
     },
     {
         name: 'Søknadsperioder',
-        href: '/applications',
+        href: appHref('/applications'),
         icon: faIdCard,
         authorizers: () => [applicationPeriodAuth.readAll],
     },
     {
         name: 'Phinans',
-        href: 'https://phinans.com/',
+        href: externalHref('https://phinans.com/'),
         icon: faChartLine,
         // An external site, so nothing here decides who may open it.
         authorizers: () => [Require.nothing()],

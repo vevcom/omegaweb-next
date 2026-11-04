@@ -3,6 +3,7 @@ import useOnNavigation from '@/hooks/useOnNavigation'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import useKeyPress from '@/hooks/useKeyPress'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { Fragment, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -87,7 +88,7 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                                 group.links.map(link => (
                                     <SiteLink
                                         key={link.title}
-                                        href={`/admin/${link.path}`}
+                                        href={appHref(`/admin/${link.path}`)}
                                         className={`
                                             no-underline py-3 px-4 ml-6 transition-colors duration-300
                                             hover:text-accent-blue

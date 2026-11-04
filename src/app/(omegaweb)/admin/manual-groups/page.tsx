@@ -9,6 +9,7 @@ import PopUp from '@/components/PopUp/PopUp'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -78,7 +79,7 @@ const { page, generateMetadata } = serverPage({
                                         </td>
                                     )}
                                     <th>
-                                        <SiteLink href={`/admin/manual-groups/${manualGroup.id}`}>
+                                        <SiteLink href={appHref(`/admin/manual-groups/${manualGroup.id}`)}>
                                             {manualGroup.name}
                                         </SiteLink>
                                     </th>

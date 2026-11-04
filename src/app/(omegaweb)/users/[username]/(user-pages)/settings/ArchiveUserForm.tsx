@@ -2,6 +2,8 @@
 import Form from '@/components/Form/Form'
 import { configureAction } from '@/services/configureAction'
 import { archiveUserAction } from '@/services/users/actions'
+import { appHref } from '@/lib/sites/href'
+import { omegaAuthLinks } from '@/app/(omegaweb)/(auth)/links'
 
 type PropTypes = {
     userId: number,
@@ -19,7 +21,7 @@ export default function ArchiveUserForm({ userId, ownAccount }: PropTypes) {
             action={configureAction(archiveUserAction, { params: { id: userId } })}
             submitText={ownAccount ? 'Arkiver kontoen min' : 'Arkiver brukeren'}
             submitColor="red"
-            navigateOnSuccess={ownAccount ? '/logout' : '/admin/users/archived'}
+            navigateOnSuccess={ownAccount ? omegaAuthLinks.logout() : appHref('/admin/users/archived')}
             confirmation={{
                 confirm: true,
                 text: ownAccount

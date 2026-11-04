@@ -8,6 +8,7 @@ import { createOmbulAction } from '@/services/ombul/actions'
 import Form from '@/components/Form/Form'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import type { Ombul } from '@/prisma-generated-pn-types'
 import type { PropTypesPreview } from './OmbulCover'
@@ -76,7 +77,7 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
     }
 
     const handleCreate = (ombul: Ombul | undefined) => {
-        if (ombul) push(`/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`)
+        if (ombul) push(appHref(`/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`))
         refresh()
     }
 

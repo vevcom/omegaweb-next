@@ -5,10 +5,11 @@ import { withPageSession } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
+import type { AppHref } from '@/lib/sites/href'
 
 type Props = {
     accountId: number,
-    transactionsHref?: string,
+    transactionsHref?: AppHref,
 }
 
 export default async function LedgerAccountTransactionSummary({ accountId, transactionsHref }: Props) {

@@ -21,6 +21,7 @@ import PageTitleSetter from '@/contexts/PageTitleSetter'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { omegaAuthLinks } from '@/app/(omegaweb)/(auth)/links'
 import { careerLinks } from '@/app/(careers)/links'
+import { appHref, externalHref } from '@/lib/sites/href'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -59,13 +60,13 @@ export default async function LoggedOutLandingPage() {
                         <SiteLink className={`
                             btn font-bold
                             ${ctaLayout}
-                        `} href="/new-student">Ny student</SiteLink>
+                        `} href={appHref('/new-student')}>Ny student</SiteLink>
                         <SiteLink className={`
                             secondary-btn font-medium
                             ${ctaLayout}
                         `} href={careerLinks.frontpage()} toMainDomainServingSite>For bedrifter</SiteLink>
 
-                        <SiteLink className={scrollDownClassName} href="#firstSection">
+                        <SiteLink className={scrollDownClassName} href={externalHref('#firstSection')}>
                             <FontAwesomeIcon icon={faAngleDown} />
                         </SiteLink>
                     </div>

@@ -5,9 +5,9 @@ import PopUpProvider from '@/contexts/PopUp'
 import ClientDataProvider from '@/contexts/ClientData'
 import { PageTitleProvider } from '@/contexts/PageTitle'
 import GlobalSearchProvider from '@/contexts/GlobalSearch'
-import SiteContextProvider from '@/contexts/SiteContextProvider'
-import { SiteContext } from '@/lib/sites/context'
-import { siteContextOfRequest } from '@/app/siteContextOfRequest'
+import DomainContextProvider from '@/contexts/DomainContextProvider'
+import { DomainContext } from '@/lib/sites/context'
+import { domainContextOfRequest } from '@/app/domainContextOfRequest'
 import { permissionOperations } from '@/services/permissions/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
@@ -64,7 +64,7 @@ type PropTypes = {
  */
 export default async function RootLayout({ children }: PropTypes) {
     const nextAuthSession = await getServerSession(authOptions)
-    const siteContext = await siteContextOfRequest()
+    const domainContext = await domainContextOfRequest()
 
     const { serverSession, defaultPermissions, standardImages } = await withPageSession(async (session) => {
         const [defaultPermissions_, standardImages_] = await Promise.all([
@@ -84,7 +84,7 @@ export default async function RootLayout({ children }: PropTypes) {
             <body className={inter.className}>
                 <ServiceWorkerRegister />
                 <SessionProvider session={nextAuthSession}>
-                    <SiteContextProvider domains={SiteContext.domainsForBrowser()} data={siteContext.toData()}>
+                    <DomainContextProvider domains={DomainContext.domainsForBrowser()} data={domainContext.toData()}>
                         <ClientDataProvider
                             session={serverSession.toJsObject()}
                             defaultPermissions={defaultPermissions}
@@ -100,7 +100,7 @@ export default async function RootLayout({ children }: PropTypes) {
                                 </EditModeProvider>
                             </GlobalSearchProvider>
                         </ClientDataProvider>
-                    </SiteContextProvider>
+                    </DomainContextProvider>
                 </SessionProvider>
             </body>
         </html>

@@ -9,6 +9,7 @@ import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { UserFiltered } from '@/services/users/types'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     config: AuthPagesConfig,
@@ -18,7 +19,7 @@ type PropTypes = {
         feideEmailTrustedAsVerified: boolean,
         createdByFeideLoginOnOmegawebNext: boolean,
     } | null,
-    callbackUrl: string,
+    callbackUrl: AppHref,
 }
 
 // A rule on each side of the text.

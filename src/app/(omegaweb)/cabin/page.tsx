@@ -16,6 +16,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
 import { serverPage } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => cabinArticleOperations.read({}),
@@ -24,7 +25,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Heutten' }),
     render: ({ data: article, capabilities }) => (
-        <PageWrapper headerItem={<SiteLink href="/cabin/book">Trykk her for å booke</SiteLink>}>
+        <PageWrapper headerItem={<SiteLink href={appHref('/cabin/book')}>Trykk her for å booke</SiteLink>}>
             <SpecialArticle
                 article={article}
                 capabilities={capabilities}

@@ -14,6 +14,7 @@ import {
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { configureAction } from '@/services/configureAction'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCog } from '@fortawesome/free-solid-svg-icons'
 import type {
@@ -44,13 +45,13 @@ export default function EditCategory({ category }: PropTypes) {
     }).authorized
 
     const handleSuccessDestroy = () => {
-        push('/articles')
+        push(appHref('/articles'))
         refresh()
     }
 
     const handleSuccessUpdate = (data: ExpandedArticleCategory | undefined) => {
         if (data) {
-            push(`/articles/${data.name}`)
+            push(appHref(`/articles/${data.name}`))
         }
         refresh()
     }

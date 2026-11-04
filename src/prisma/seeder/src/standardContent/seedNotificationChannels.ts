@@ -2,7 +2,7 @@ import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/
 import { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { NotificationMethod } from '@/prisma-generated-pn-types'
@@ -179,7 +179,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         )
     }
 
-    const domain = SiteContext.mailDomainOf(Site.root)
+    const domain = DomainContext.mailDomainOf(Site.root)
     const DEFAULT_NOTIFCIATION_ALIAS = `noreply@${domain}`
 
     const rChan = channels.find(channel => channel.special === 'ROOT')

@@ -1,7 +1,8 @@
 import { contentSecurityPolicy } from '@/lib/securityHeaders'
-import { SiteContext, isAppWidePath } from '@/lib/sites/context'
+import { DomainContext, isAppWidePath } from '@/lib/sites/context'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import { Site } from '@/lib/sites/site'
+import { appHref } from '@/lib/sites/href'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -12,7 +13,7 @@ import type { NextRequest } from 'next/server'
  */
 export const CURRENT_PATH_HEADER = 'x-current-path'
 
-/** The header the proxy stamps the domain the request came to into. With the path, a SiteContext. */
+/** The header the proxy stamps the domain the request came to into. With the path, a DomainContext. */
 export const SITE_DOMAIN_HEADER = 'x-site-domain'
 
 export function proxy(request: NextRequest) {
@@ -20,10 +21,10 @@ export function proxy(request: NextRequest) {
     const { pathname, search } = request.nextUrl
     const domain = request.headers.get('host') ?? request.nextUrl.host
     const browserPath = pathname + search
-    const context = SiteContext.fromBrowser(domain, browserPath)
+    const context = DomainContext.fromBrowser(domain, browserPath)
 
     // Once domains are configured, a host that is not one of them gets nothing but the healthcheck.
-    if (!context.siteDomain() && SiteContext.domainsForBrowser().length > 0 && pathname !== '/api/health') {
+    if (!context.siteDomain() && DomainContext.domainsForBrowser().length > 0 && pathname !== '/api/health') {
         return new NextResponse(null, { status: 404 })
     }
 
@@ -55,14 +56,14 @@ export function proxy(request: NextRequest) {
  * that reached such a domain unresolved, like contactor.no/career/job-ads, is sent to where it
  * belongs instead. Omega's domains serve every app path as it is.
  */
-function siteResponse(request: NextRequest, context: SiteContext, requestHeaders: Headers) {
+function siteResponse(request: NextRequest, context: DomainContext, requestHeaders: Headers) {
     const { pathname, search } = request.nextUrl
     if (context.servesBasePaths() || isAppWidePath(pathname)) {
         return NextResponse.next({ request: { headers: requestHeaders } })
     }
     if (!Site.ofPath(pathname).isRoot) {
         const appPath = pathname + search
-        const resolved = SiteContext.fromAppPath(context.domain, appPath).resolveHref(appPath)
+        const resolved = DomainContext.fromAppPath(context.domain, appPath).resolveHref(appHref(appPath))
         return NextResponse.redirect(new URL(resolved, request.nextUrl), 308)
     }
     const url = request.nextUrl.clone()

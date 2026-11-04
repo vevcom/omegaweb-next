@@ -1,6 +1,7 @@
 import UserDisplayName from '@/components/User/UserDisplayName'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { UserPagingReturn } from '@/services/users/types'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     user: UserPagingReturn
@@ -9,7 +10,7 @@ type PropTypes = {
      * Makes the name a link to this href. Clicks on it do not propagate, so a clickable
      * row around it does not navigate a second time.
      */
-    href?: string,
+    href?: AppHref,
 }
 
 export default function UserRow({ user, groupSelected = false, href }: PropTypes) {

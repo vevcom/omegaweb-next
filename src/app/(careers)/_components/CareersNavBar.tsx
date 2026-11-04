@@ -9,9 +9,10 @@ import LoginLink from '@/pageKits/auth/components/LoginLink'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import type { AppHref, ExternalHref } from '@/lib/sites/href'
 
 type PropTypes = {
-    links: { name: string, href: string }[],
+    links: { name: string, href: AppHref | ExternalHref }[],
     loggedIn: boolean,
     /** Whether the visitor has a place on Omega's own site: a member of Omega, not den gemene hob. */
     showOmegaLink: boolean,

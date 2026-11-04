@@ -10,6 +10,7 @@ import {
 } from '@/services/groups/interestGroups/actions'
 import { configureAction } from '@/services/configureAction'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGear } from '@fortawesome/free-solid-svg-icons'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
@@ -43,7 +44,7 @@ export default function InterestGroup({ interestGroup, capabilities }: PropTypes
                 {capabilities.canAdministrate.authorized && (
                     <SiteLink
                         className={administrateClassName}
-                        href={`/interest-groups/${interestGroup.id}`}
+                        href={appHref(`/interest-groups/${interestGroup.id}`)}
                         aria-label={`Administrer ${interestGroup.name}`}
                     >
                         <FontAwesomeIcon icon={faGear} />

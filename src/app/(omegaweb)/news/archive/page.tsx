@@ -5,6 +5,7 @@ import { newsOperations } from '@/services/news/operations'
 import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { PageSizeOldNews } from '@/contexts/paging/OldNewsPaging'
@@ -27,7 +28,7 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'Nyhetsarkiv' }),
     render: ({ data: serverRendered }) => (
         <PageWrapper headerItem={
-            <SiteLink href="/news" className="
+            <SiteLink href={appHref('/news')} className="
                 text-text
                 [&_svg]:size-[30px]!
             ">

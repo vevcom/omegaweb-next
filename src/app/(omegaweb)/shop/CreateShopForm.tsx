@@ -3,6 +3,7 @@ import { createShopAction } from '@/services/shop/shop/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
+import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
 
@@ -14,7 +15,7 @@ export default function CreateShopForm() {
         action={createShopAction}
         className="min-w-[50vw]"
         submitText="Lag ny butikk"
-        navigateOnSuccess={shop => (shop ? `/shop/${shop.id}` : '/shop')}
+        navigateOnSuccess={shop => appHref(shop ? `/shop/${shop.id}` : '/shop')}
     >
         <TextInput name="name" label="Butikk" />
         <TextInput name="description" label="Beskrivelse" />

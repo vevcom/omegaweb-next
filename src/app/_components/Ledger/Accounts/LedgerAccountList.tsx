@@ -4,6 +4,7 @@ import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { LedgerAccountPagingProvider, LedgerAccountPagingContext } from '@/contexts/paging/LedgerAccountPaging'
 import { displayAmount } from '@/lib/currency/convert'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 
 export default function LedgerAccountList() {
     return <LedgerAccountPagingProvider
@@ -15,7 +16,7 @@ export default function LedgerAccountList() {
             pagingContext={LedgerAccountPagingContext}
             renderer={account =>
                 <tr key={account.id}>
-                    <td><SiteLink href={`accounts/${account.id}`}>{account.name}</SiteLink></td>
+                    <td><SiteLink href={appHref(`/admin/accounts/${account.id}`)}>{account.name}</SiteLink></td>
                     <td>{displayAmount(account.balance.amount, false)}</td>
                 </tr>
             }

@@ -1,5 +1,5 @@
 import { userBasicSelection } from '@/services/users/constants'
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -49,7 +49,7 @@ export const vapid = {
 }
 
 /** Who push services may contact about the pushes: Omega's web committee. */
-export const vapidSubject = () => `mailto:vevcom@${SiteContext.mailDomainOf(Site.root)}`
+export const vapidSubject = () => `mailto:vevcom@${DomainContext.mailDomainOf(Site.root)}`
 
 export const pushIsConfigured = Boolean(vapid.publicKey && vapid.privateKey)
 

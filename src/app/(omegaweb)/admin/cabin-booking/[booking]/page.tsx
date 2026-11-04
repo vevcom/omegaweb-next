@@ -5,6 +5,7 @@ import { serverPage } from '@/app/ServerPage'
 import { displayDate } from '@/lib/dates/displayDate'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import React from 'react'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -35,14 +36,14 @@ const { page, generateMetadata } = serverPage({
                     {trHelper('Type', booking.type)}
                     {booking.user &&
                         trHelper('Leietaker', <SiteLink
-                            href={`/users/${booking.user.username}`}
+                            href={appHref(`/users/${booking.user.username}`)}
                         >
                             {booking.user.firstname} {booking.user.lastname}
                         </SiteLink>)
                     }
                     {booking.event &&
                         trHelper('Arrangement', <SiteLink
-                            href={`/event/${formatVevenUri(booking.event.name, booking.event.id)}`}
+                            href={appHref(`/event/${formatVevenUri(booking.event.name, booking.event.id)}`)}
                         >
                             {booking.event.name}
                         </SiteLink>)

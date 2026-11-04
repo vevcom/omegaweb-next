@@ -2,8 +2,9 @@ import FooterSponsors from './FooterSponsors'
 import SocialIcons from '@/components/SocialIcons/SocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
+import { appHref } from '@/lib/sites/href'
 
 // On mobile every column of the footer stacks and centres.
 const mobileColumnClassName = `
@@ -21,7 +22,7 @@ const infoClassName = `
 `
 
 function Footer() {
-    const emailDomain = SiteContext.mailDomainOf(Site.root)
+    const emailDomain = DomainContext.mailDomainOf(Site.root)
 
     return (
         <footer className="
@@ -52,7 +53,7 @@ function Footer() {
                 </p>
                 <p>Org.nr. 890 384 692</p>
                 <p>
-                    <SiteLink href="/terms" className="
+                    <SiteLink href={appHref('/terms')} className="
                         text-text no-underline
                         hover:underline
                     ">Vilkår og personvern</SiteLink>

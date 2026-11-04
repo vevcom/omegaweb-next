@@ -33,7 +33,7 @@ export type SiteDomain = {
 }
 
 /**
- * The domains of the sites, as sites.json declares them. Internal to {@link SiteContext}, which is
+ * The domains of the sites, as sites.json declares them. Internal to {@link DomainContext}, which is
  * configured with the one in use and answers every question about hosts and sites from it.
  */
 export class DomainConfig {

@@ -1,19 +1,19 @@
 import '@pn-server-only'
 import { DomainConfig } from './domainConfig'
-import { SiteContext } from './context'
+import { DomainContext } from './context'
 import { domainConfigFile, readDomainConfig } from './domainConfigFile'
 import { Site } from './site'
 import { isBuildPhase } from '@/lib/isBuildPhase'
 
 /**
- * Configures SiteContext with sites.json at the app's root, or the file SITES_CONFIG names, once.
+ * Configures DomainContext with sites.json at the app's root, or the file SITES_CONFIG names, once.
  * The server calls it at start (instrumentation.ts) and on every request (proxy.ts), the worker and
  * the seeder at start; after that nothing has to think about where the domains come from.
  */
 export function loadDomainConfig(): void {
-    if (SiteContext.isConfigured()) return
+    if (DomainContext.isConfigured()) return
     const file = domainConfigFile()
-    SiteContext.configure(isBuildPhase() ? DomainConfig.parse({}) : requireOmegaMainDomain(readDomainConfig(file), file))
+    DomainContext.configure(isBuildPhase() ? DomainConfig.parse({}) : requireOmegaMainDomain(readDomainConfig(file), file))
 }
 
 /**

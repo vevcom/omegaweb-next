@@ -9,6 +9,7 @@ import { configureAction } from '@/services/configureAction'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { serverPage } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 /** One product of the catalogue: what it is, and the shops that sell it. */
@@ -57,7 +58,7 @@ const { page, generateMetadata } = serverPage({
                 </thead>
                 <tbody>
                     {product.ShopProduct.map(shopProduct => <tr key={shopProduct.shopId}>
-                        <td><SiteLink href={`/shop/${shopProduct.shopId}`}>{shopProduct.shop.name}</SiteLink></td>
+                        <td><SiteLink href={appHref(`/shop/${shopProduct.shopId}`)}>{shopProduct.shop.name}</SiteLink></td>
                         <td>{shopProduct.active ? 'AKTIV' : 'INAKTIV'}</td>
                         <td>{displayAmount(shopProduct.price, false)}</td>
                     </tr>)}

@@ -6,6 +6,7 @@ import useKeyPress from '@/hooks/useKeyPress'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import { imageSourceForResolution } from '@/lib/images/imageSource'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { hrefOf } from '@/lib/sites/href'
 import { faChevronRight, faChevronLeft, faX } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useCallback, useState } from 'react'
@@ -111,7 +112,7 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                                 <dd>{
                                     image.licenseLink ?
                                         <SiteLink
-                                            href={image.licenseLink}
+                                            href={hrefOf(image.licenseLink)}
                                             target="_blank"
                                             referrerPolicy="no-referrer"
                                         >

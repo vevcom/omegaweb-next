@@ -3,10 +3,11 @@ import { resetPasswordAction } from '@/services/auth/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     token: string,
-    loginPath: string,
+    loginPath: AppHref,
 }
 
 export default function ResetPasswordForm({ token, loginPath }: PropTypes) {

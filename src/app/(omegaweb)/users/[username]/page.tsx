@@ -14,7 +14,10 @@ import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import UserNavBar from '@/app/(omegaweb)/users/[username]/UserNavBar'
 import UserSettingsNav from '@/app/(omegaweb)/users/[username]/UserSettingsNav'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import { siteRedirect } from '@/app/siteContextOfRequest'
+import { siteRedirect } from '@/app/domainContextOfRequest'
+import { appHref } from '@/lib/sites/href'
+import { omegaLinks } from '@/app/(omegaweb)/links'
+import { omegaAuthLinks } from '@/app/(omegaweb)/(auth)/links'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSignOut } from '@fortawesome/free-solid-svg-icons'
 import React from 'react'
@@ -35,7 +38,7 @@ const labelClassName = 'w-[10em] inline-block font-medium text-accent-blue'
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
         if (params.username === 'me') {
-            await siteRedirect(session.user ? `/users/${session.user.username}` : '/login')
+            await siteRedirect(session.user ? omegaLinks.user(session.user) : omegaAuthLinks.login())
         }
 
         const profile = await userOperations.readProfile({ params: { username: params.username } })
@@ -135,7 +138,7 @@ const { page, generateMetadata } = serverPage({
                                             className="mt-[0.5em]"
                                             key={`${membership.committee.shortName}-${membership.order}`}
                                         >
-                                            <SiteLink href={`/committees/${membership.committee.shortName}`}>
+                                            <SiteLink href={appHref(`/committees/${membership.committee.shortName}`)}>
                                                 <p className="
                                                     rounded-[0.3em] p-[0.5em] bg-accent-blue text-surface-base
                                                     inline-block
@@ -158,7 +161,7 @@ const { page, generateMetadata } = serverPage({
                                         {committeeMembershipsByOrder.map(membership =>
                                             <SiteLink
                                                 key={`${membership.committee.shortName}-${membership.order}`}
-                                                href={`/committees/${membership.committee.shortName}`}
+                                                href={appHref(`/committees/${membership.committee.shortName}`)}
                                                 className="no-underline group"
                                             >
                                                 <p className="
@@ -179,7 +182,7 @@ const { page, generateMetadata } = serverPage({
                                         {activeInterestGroups.map(membership =>
                                             <SiteLink
                                                 key={`${membership.interestGroup.id}-${membership.order}`}
-                                                href={`/interest-groups/${membership.interestGroup.id}`}
+                                                href={appHref(`/interest-groups/${membership.interestGroup.id}`)}
                                                 className="no-underline group"
                                             >
                                                 <p className="
@@ -208,7 +211,7 @@ const { page, generateMetadata } = serverPage({
                             <div className="flex flex-col items-center">
                                 <div className="flex flex-col items-center gap-2">
                                     {isOwnProfile && (
-                                        <SiteLink href="/logout">
+                                        <SiteLink href={appHref('/logout')}>
                                             <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
                                                 <FontAwesomeIcon icon={faSignOut} />
                                                 <p className="w-[8em]">Logg ut</p>

@@ -10,6 +10,7 @@ import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import React, { useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronUp, faX } from '@fortawesome/free-solid-svg-icons'
@@ -113,7 +114,7 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
             { params: { articleId: id } }
         )
         if (!res.success) throw new Error('Kunne ikke slette artikkelen')
-        push(`/articles/${category.name}`)
+        push(appHref(`/articles/${category.name}`))
         refresh()
     }
 
@@ -127,7 +128,7 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
             {
                 category.articles.map(article => (
                     <li key={article.id}>
-                        <SiteLink href={`/articles/${category.name}/${formatVevenUri(article.name, article.id)}`}>
+                        <SiteLink href={appHref(`/articles/${category.name}/${formatVevenUri(article.name, article.id)}`)}>
                             {article.name.toUpperCase()}
                         </SiteLink>
                         {

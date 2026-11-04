@@ -6,6 +6,7 @@ import { PopUpContext } from '@/contexts/PopUp'
 import SubmitButton from '@/components/UI/SubmitButton'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import React, { Children, isValidElement, useContext, useState } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
 import type { FormHTMLAttributes, ReactNode, DetailedHTMLProps } from 'react'
@@ -22,7 +23,7 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     action: ActionFormData<ReturnType>,
     successCallback?: (data?: ReturnType) => void,
     refreshOnSuccess?: boolean,
-    navigateOnSuccess?: string | ((data?: ReturnType) => string | null),
+    navigateOnSuccess?: AppHref | ((data?: ReturnType) => AppHref | null),
     closePopUpOnSuccess?: PopUpKeyType,
     buttonClassName?: string,
     disabled?: boolean,

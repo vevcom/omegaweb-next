@@ -13,6 +13,7 @@ import { mailAuth } from '@/services/mail/auth'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import type { MailingList } from '@/prisma-generated-pn-types'
 import type { MailFlowObject } from '@/services/mail/types'
 
@@ -69,7 +70,7 @@ export default function EditMailAddressExternal({
 
         {canDestroyExternal && <Form
             action={configureAction(destroyMailAddressExternalAction, { params: { id: focusedExternal.id } })}
-            successCallback={() => push('/admin/mail/mailaddressExternal')}
+            successCallback={() => push(appHref('/admin/mail/mailaddressExternal'))}
             submitText="Slett adressen"
             submitColor="red"
             confirmation={{

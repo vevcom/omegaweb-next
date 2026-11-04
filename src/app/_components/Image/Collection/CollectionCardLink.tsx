@@ -1,16 +1,18 @@
 import CollectionCard from './CollectionCard'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { ExpandedImageCollection } from '@/services/images/subservice/types'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     collection: ExpandedImageCollection,
     className?: string,
 }
 
-function collectionHref(collection: ExpandedImageCollection): string {
-    return collection.special
+function collectionHref(collection: ExpandedImageCollection): AppHref {
+    return appHref(collection.special
         ? `/image-collections/special/${encodeURIComponent(collection.special)}`
-        : `/image-collections/dynamic/${encodeURIComponent(collection.name)}`
+        : `/image-collections/dynamic/${encodeURIComponent(collection.name)}`)
 }
 
 /**

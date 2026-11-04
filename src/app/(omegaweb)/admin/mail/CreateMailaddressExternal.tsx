@@ -3,6 +3,7 @@ import { createMailAddressExternalAction } from '@/services/mail/mailAddressExte
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 
 
 export default function CreateMailaddressExternal() {
@@ -14,7 +15,7 @@ export default function CreateMailaddressExternal() {
         action={createMailAddressExternalAction}
         successCallback={data => {
             if (!data) return
-            push(`/admin/mail/mailaddressExternal/${data.id}`)
+            push(appHref(`/admin/mail/mailaddressExternal/${data.id}`))
         }}
     >
         <TextInput label="Adresse" name="address"></TextInput>

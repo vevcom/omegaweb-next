@@ -1,7 +1,8 @@
 import SiteLink from '@/components/SiteLink/SiteLink'
+import type { AppHref, ExternalHref } from '@/lib/sites/href'
 
 type PropTypes = {
-    href: string,
+    href: AppHref | ExternalHref,
     name: string,
 }
 

@@ -1,6 +1,6 @@
 import '@pn-server-only'
 
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import { Html } from '@react-email/components'
 import type { UserBasic } from '@/services/users/types'
@@ -12,7 +12,7 @@ export function UserInvitationTemplate({
     user: UserBasic,
     link: string,
 }) {
-    const domain = SiteContext.mailDomainOf(Site.root)
+    const domain = DomainContext.mailDomainOf(Site.root)
     return (
         <Html>
             <p>Hei {user.firstname},</p>

@@ -1,6 +1,6 @@
 import '@pn-server-only'
 
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import { Html } from '@react-email/components'
 import type { UserBasicWithEmail } from '@/services/users/types'
@@ -17,7 +17,7 @@ export function EmailChangedTemplate({
             <p>Hei {user.firstname},</p>
 
             <p>
-                E-posten til brukeren din ({user.username}) hos {SiteContext.mailDomainOf(Site.root)} er endret
+                E-posten til brukeren din ({user.username}) hos {DomainContext.mailDomainOf(Site.root)} er endret
                 til {newEmail}. Glemt passord-e-poster går dit fra nå av.
             </p>
 

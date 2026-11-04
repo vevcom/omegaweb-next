@@ -7,6 +7,7 @@ import { serverPage } from '@/app/ServerPage'
 import Date from '@/components/Date/Date'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const popUpKey = 'createApiKey'
@@ -40,7 +41,7 @@ const { page, generateMetadata } = serverPage({
                     <tbody>
                         {apiKeys.map(apiKey => (
                             <SiteLink
-                                href={`/admin/api-keys/${apiKey.name}`}
+                                href={appHref(`/admin/api-keys/${apiKey.name}`)}
                                 key={apiKey.id}
                                 passHref
                                 className="contents no-underline text-inherit"

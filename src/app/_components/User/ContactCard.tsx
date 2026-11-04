@@ -1,5 +1,6 @@
 import ProfilePicture from './ProfilePicture'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { externalHref } from '@/lib/sites/href'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
 export default function ContactCard({
@@ -19,7 +20,7 @@ export default function ContactCard({
             [&>div>p]:text-s
             ${className ? className : ''}
         `}
-        href="#"
+        href={externalHref('#')}
     >
         <ProfilePicture profileImage={image} width={60} />
         <h6>{name}</h6>

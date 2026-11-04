@@ -1,9 +1,10 @@
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
-    href: string,
+    href: AppHref,
     label: string,
     icon: IconDefinition,
     /** Shows only the icon, in a square this many pixels wide, with the label as the accessible name. */

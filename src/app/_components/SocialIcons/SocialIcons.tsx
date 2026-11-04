@@ -1,5 +1,6 @@
 import SiteLink from '@/components/SiteLink/SiteLink'
 
+import { externalHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faXTwitter,
@@ -10,13 +11,13 @@ import {
 function SocialIcons() {
     return (
         <>
-            <SiteLink href="https://twitter.com/OmegaVevcom" target="_blank">
+            <SiteLink href={externalHref('https://twitter.com/OmegaVevcom')} target="_blank">
                 <FontAwesomeIcon icon={faXTwitter} />
             </SiteLink>
-            <SiteLink href="https://www.facebook.com/SctOmegaBroderskab/" target="_blank">
+            <SiteLink href={externalHref('https://www.facebook.com/SctOmegaBroderskab/')} target="_blank">
                 <FontAwesomeIcon icon={faFacebookSquare} />
             </SiteLink>
-            <SiteLink href="https://www.instagram.com/sctomega/" target="_blank">
+            <SiteLink href={externalHref('https://www.instagram.com/sctomega/')} target="_blank">
                 <FontAwesomeIcon icon={faInstagram} />
             </SiteLink>
         </>

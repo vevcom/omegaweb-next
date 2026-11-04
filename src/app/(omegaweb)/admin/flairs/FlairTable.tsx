@@ -10,13 +10,14 @@ import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowUpRightFromSquare, faGripVertical } from '@fortawesome/free-solid-svg-icons'
 import type { PointerEvent, ReactNode } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 export type FlairRow = {
     id: number,
     image: ReactNode,
     name: string,
     colorStyle: { backgroundColor: string },
-    editHref: string,
+    editHref: AppHref,
 }
 
 const columnClass = {

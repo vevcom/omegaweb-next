@@ -1,9 +1,10 @@
 import { bandClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     /** The company presentations page. */
-    eventsHref: string,
+    eventsHref: AppHref,
 }
 
 /**

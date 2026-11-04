@@ -4,6 +4,7 @@ import { createMailAliasAction } from '@/services/mail/alias/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 
 
 export default function CreateMailAlias() {
@@ -15,7 +16,7 @@ export default function CreateMailAlias() {
         action={createMailAliasAction}
         successCallback={(data) => {
             if (!data) return
-            push(`/admin/mail/alias/${data.id}`)
+            push(appHref(`/admin/mail/alias/${data.id}`))
         }}
     >
         <TextInput label="Alias" name="address" />

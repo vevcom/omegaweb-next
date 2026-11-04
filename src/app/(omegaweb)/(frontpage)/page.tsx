@@ -5,6 +5,7 @@ import { frontpageAuth } from '@/services/frontpage/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page } = serverPage({
@@ -27,7 +28,7 @@ const { page } = serverPage({
                     <div className="relative">
                         <SiteLink
                             className="absolute top-2 right-2 z-2 secondary-btn"
-                            href={`/?${QueryParams.frontpageVersion.encodeUrl('logged-in')}`}
+                            href={appHref(`/?${QueryParams.frontpageVersion.encodeUrl('logged-in')}`)}
                         >
                             <span>Gå til innlogget forside</span>
                         </SiteLink>
@@ -42,7 +43,7 @@ const { page } = serverPage({
                             capabilities.canEditFrontpage.authorized && (
                                 <SiteLink
                                     className="absolute top-2 right-2 z-2 secondary-btn"
-                                    href={`/?${QueryParams.frontpageVersion.encodeUrl('logged-out')}`}
+                                    href={appHref(`/?${QueryParams.frontpageVersion.encodeUrl('logged-out')}`)}
                                 >
                                     <span>Gå til utlogget forside</span>
                                 </SiteLink>
