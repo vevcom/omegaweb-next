@@ -1,6 +1,7 @@
 'use client'
 import TextInput from '@/UI/TextInput'
 import { useSearchQueryParam } from '@/hooks/useSearchQueryParam'
+import { searchMaxLength } from '@/services/search/constants'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
@@ -37,6 +38,7 @@ export default function HeaderSearch({ defaultValue, label = 'Søk' }: PropTypes
             <TextInput
                 compact
                 name="search"
+                maxLength={searchMaxLength}
                 label={label}
                 value={value}
                 onChange={handleChange}
@@ -67,6 +69,7 @@ export default function HeaderSearch({ defaultValue, label = 'Søk' }: PropTypes
                     <TextInput
                         compact
                         name="search"
+                        maxLength={searchMaxLength}
                         label={label}
                         value={value}
                         onChange={handleChange}

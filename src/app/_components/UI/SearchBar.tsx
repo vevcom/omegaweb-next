@@ -1,6 +1,7 @@
 'use client'
 import TextInput from '@/UI/TextInput'
 import { useSearchQueryParam } from '@/hooks/useSearchQueryParam'
+import { searchMaxLength } from '@/services/search/constants'
 
 type PropTypes = {
     defaultValue: string
@@ -18,6 +19,7 @@ export default function SearchBar({ defaultValue, label = 'Søk' }: PropTypes) {
             <TextInput
                 className="max-w-none! mt-0!"
                 name="search"
+                maxLength={searchMaxLength}
                 type="text"
                 onChange={(event) => setSearch(event.target.value)}
                 defaultValue={defaultValue}

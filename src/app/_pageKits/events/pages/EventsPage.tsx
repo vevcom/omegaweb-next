@@ -48,6 +48,14 @@ export function eventsPage(config: EventPagesConfig) {
         render: ({ data, capabilities }) => {
             const { pickedTagNames, currentEvents, eventTags, committees } = data
             const pickedTags = eventTags.filter(tag => pickedTagNames?.includes(tag.name))
+            const noEvents = search ? (
+                <div className="flex flex-col items-center gap-3 mt-12 text-text-muted">
+                    <FontAwesomeIcon icon={faMagnifyingGlass} className="text-4xl" />
+                    <i>Ingen kommende arrangementer matcher søket</i>
+                </div>
+            ) : (
+                <i>Det er for tiden ingen kommende arrangementer</i>
+            )
 
             return (
                 <PageWrapper headerItem={
@@ -101,9 +109,7 @@ export function eventsPage(config: EventPagesConfig) {
                                 <EventCard event={event} config={config} key={event.id} />
                             ))}
                         </div>
-                    ) : (
-                        <i>Det er for tiden ingen kommende arrangementer</i>
-                    )}
+                    ) : noEvents}
                 </PageWrapper>
             )
         },

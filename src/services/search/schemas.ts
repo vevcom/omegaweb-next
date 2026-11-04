@@ -1,8 +1,8 @@
-import { searchCategoryNames } from './constants'
+import { searchCategoryNames, searchMaxLength } from './constants'
 import { z } from 'zod'
 
 const paramsFieldSchemas = z.object({
-    query: z.string().trim().max(100),
+    query: z.string().trim().max(searchMaxLength),
     limit: z.number().int().min(1)
         .optional(),
     category: z.enum(searchCategoryNames).optional(),

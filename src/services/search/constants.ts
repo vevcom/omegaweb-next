@@ -29,6 +29,8 @@ export const searchCategoryNames = [
 
 export type SearchCategory = typeof searchCategoryNames[number]
 
+/** Longer searches fail the schemas, so search inputs stop here. */
+export const searchMaxLength = 100
 export const defaultSearchResultLimit = 5
 export const singleCategorySearchResultLimit = 20
 
