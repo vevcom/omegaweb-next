@@ -246,8 +246,23 @@ export const imageOperations = {
             if (image.type !== 'RASTER') {
                 throw new ServiceError('BAD PARAMETERS', `Image ${image.id} is an svg and has no variants to process`)
             }
+            let buffer: Buffer
             try {
-                const buffer = await imageStore.readStoredFile(image.fsLocationOriginal)
+                buffer = await imageStore.readStoredFile(image.fsLocationOriginal)
+            } catch (error) {
+                // A store that cannot be reached says nothing about the image, so it costs no
+                // attempt and the image is tried again once its claim goes stale. A missing
+                // original is a ServiceError, and will not come back by waiting.
+                await prisma.image.update({
+                    where: { id: image.id },
+                    data: {
+                        processingAttempts: error instanceof ServiceError ? { increment: 1 } : undefined,
+                        processingError: String(error),
+                    }
+                })
+                return { success: false, error: String(error) }
+            }
+            try {
                 const variants = await createRasterVariants(buffer)
                 const variantLocations = Object.values(variants)
                     .flatMap(variant => (variant ? [variant.fsLocation] : []))

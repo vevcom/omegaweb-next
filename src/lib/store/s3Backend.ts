@@ -4,6 +4,7 @@ import {
     GetObjectCommand,
     HeadObjectCommand,
     ListObjectsV2Command,
+    NoSuchKey,
     PutObjectCommand,
     S3Client,
     S3ServiceException,
@@ -26,6 +27,8 @@ export function createS3Backend(config: StoreS3Config): StoreBackend {
         // Some S3-compatible stores reject the checksums newer SDKs add to every request by default.
         requestChecksumCalculation: 'WHEN_REQUIRED',
         responseChecksumValidation: 'WHEN_REQUIRED',
+        // Without these a store that stops answering holds a connection forever.
+        requestHandler: { connectionTimeout: 5_000, socketTimeout: 30_000 },
     })
     const Bucket = config.bucket
 
@@ -33,7 +36,8 @@ export function createS3Backend(config: StoreS3Config): StoreBackend {
         try {
             return await client.send(new GetObjectCommand({ Bucket, Key: key }))
         } catch (error) {
-            if (isNotFound(error)) return null
+            // Not any 404: a bucket that does not exist gives one too, and must not look like a missing file.
+            if (error instanceof NoSuchKey) return null
             throw error
         }
     }

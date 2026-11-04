@@ -3,10 +3,11 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { imageOperations } from '@/services/images/subservice/operations'
 import { imageStore, referencedImageFiles } from '@/services/images/subservice/imageFiles'
 import { createOrphanDestroyer } from '@/lib/store/orphanDestroyer'
+import { storeBackend } from '@/lib/store/backend'
 import { allowedExtensions } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { imageSourceForResolution, srcSetForImage } from '@/lib/images/imageSource'
-import { beforeEach, describe, expect, test } from '@jest/globals'
+import { beforeEach, describe, expect, jest, test } from '@jest/globals'
 import { access, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { File } from 'node:buffer'
@@ -150,6 +151,25 @@ describe('processImageVariants', () => {
         expect(tinySource).toBe(`/store/images/${image.processedFiles.fsLocationTinySize}`)
         // micro is smaller than tiny, so a missing micro falls back up to tiny instead of down.
         expect(microSource).toBe(`/store/images/${image.processedFiles.fsLocationTinySize}`)
+    })
+
+    test('an unreachable store costs no attempt, but a missing original does', async () => {
+        const { id } = await uploadAndProcessImage('Unprocessed Image')
+        await prisma.processedImageFiles.delete({ where: { imageId: id } })
+        const attempts = async () => (await prisma.image.findUniqueOrThrow({ where: { id } })).processingAttempts
+        const read = jest.spyOn(storeBackend, 'read')
+
+        read.mockRejectedValueOnce(new Error('The store did not answer'))
+        const unreachable = await imageOperations.processImageVariants.internalCall({ prisma, params: { imageId: id } })
+        expect(unreachable.success).toBe(false)
+        expect(await attempts()).toBe(0)
+
+        read.mockResolvedValueOnce(null)
+        const missing = await imageOperations.processImageVariants.internalCall({ prisma, params: { imageId: id } })
+        expect(missing.success).toBe(false)
+        expect(await attempts()).toBe(1)
+
+        read.mockRestore()
     })
 })
 
