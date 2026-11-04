@@ -7,6 +7,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { CompanyPagingProvider } from '@/contexts/paging/CompanyPaging'
 import CompanySelectionProvider from '@/contexts/CompanySelection'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
+import { jobAdOperations } from '@/services/careers/jobAds/operations'
 import { serverPage } from '@/app/ServerPage'
 import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
@@ -14,12 +15,12 @@ import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 export function jobAdsPage(config: JobAdPagesConfig) {
     const links = jobAdLinks(config)
     return serverPage({
-        operation: () => ({}),
+        operation: () => jobAdOperations.readActive({}),
         capabilities: () => ({
             canCreate: jobAdAuth.create,
         }),
         metadata: () => ({ title: 'Jobbannonser' }),
-        render: ({ capabilities }) => (
+        render: ({ data: jobAds, capabilities }) => (
             <PageWrapper
                 headerItem={
                     <div className="flex items-center gap-[1em]">
@@ -43,7 +44,7 @@ export function jobAdsPage(config: JobAdPagesConfig) {
                     </div>
                 }>
                 <div className="row-list">
-                    <CurrentJobAds config={config} />
+                    <CurrentJobAds jobAds={jobAds} config={config} />
                 </div>
             </PageWrapper>
         ),
