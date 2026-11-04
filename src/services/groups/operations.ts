@@ -18,6 +18,7 @@ import { ServiceError } from '@/services/error'
 import { getMembershipFilter } from '@/auth/getMembershipFilter'
 import { invalidateManyUserSessionData, invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
+import { applyReordering } from '@/lib/reordering'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { GroupType } from '@/prisma-generated-pn-types'
 import type {
@@ -89,6 +90,7 @@ export const groupOperations = {
                     user: userPartitions.unarchived,
                 },
                 include: groupMembershipIncluder,
+                orderBy: [{ position: 'asc' }, { userId: 'asc' }],
             })
 
             return memberships.map(membership => ({
@@ -135,13 +137,19 @@ export const groupOperations = {
                 })))
             }
 
+            const { _max: { position: lastPosition } } = await tx.membership.aggregate({
+                where: { groupId: params.groupId, order },
+                _max: { position: true },
+            })
+
             await tx.membership.createMany({
-                data: data.users.map(({ userId, admin }) => ({
+                data: data.users.map(({ userId, admin }, index) => ({
                     groupId: params.groupId,
                     userId,
                     admin,
                     order,
                     active,
+                    position: (lastPosition ?? -1) + 1 + index,
                 })),
                 skipDuplicates: true,
             })
@@ -237,6 +245,33 @@ export const groupOperations = {
     }),
 
     /**
+     * Sets the order the memberships of the given order, or of the group's current one, are listed
+     * in. The list must hold every member `readMembers` lists for that order, inactive ones included.
+     */
+    reorderMembers: defineSubOperation({
+        paramsSchema: () => groupSchemas.params.reorderMembers,
+        dataSchema: () => groupSchemas.data.reorderMembers,
+        opensTransaction: true,
+        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
+            const group = await readGroupOrderAndType(tx, params.groupId)
+            const order = resolveMembershipOrder(group, params.order)
+
+            const memberships = await tx.membership.findMany({
+                where: { groupId: params.groupId, order, user: userPartitions.unarchived },
+                select: { userId: true },
+            })
+            await applyReordering(
+                data.userIds,
+                memberships.map(membership => membership.userId),
+                (userId, position) => tx.membership.update({
+                    where: { userId_groupId_order: { userId, groupId: params.groupId, order } },
+                    data: { position },
+                }),
+            )
+        }),
+    }),
+
+    /**
      * Retires a group instead of migrating it, or brings a retired one back.
      *
      * Pensioning ends the group: every active membership is deactivated, and the group stops counting
@@ -326,6 +361,7 @@ export const groupOperations = {
                     userId: true,
                     admin: true,
                     title: true,
+                    position: true,
                 },
             })
 
@@ -369,6 +405,7 @@ export const groupOperations = {
                         userId: membership.userId,
                         admin: adminOfKeptUser.get(membership.userId) ?? false,
                         title: membership.title,
+                        position: membership.position,
                         order: currentOmegaOrder,
                         active: true,
                     })),

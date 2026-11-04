@@ -9,6 +9,7 @@ import { defineOperation } from '@/services/serviceOperation'
 import {
     implementGroupType,
     implementManualMigrationPerGroup,
+    implementReorderMembersOperation,
     implementSimpleAddRemoveMembersOperation,
 } from '@/services/groups/implementGroupType'
 import { articleRelationsIncluder } from '@/cms/articles/constants'
@@ -17,6 +18,7 @@ import { articleOperations } from '@/cms/articles/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
+import { applyReordering } from '@/lib/reordering'
 import { GroupType } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
@@ -29,6 +31,7 @@ const readAll = defineOperation({
 
         const committees = await prisma.committee.findMany({
             include: committeeLogoIncluder,
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
         })
 
         return committees.map(committee => ({
@@ -218,11 +221,13 @@ const create = defineOperation({
             })
 
             const order = (await omegaOrderOperations.readCurrent({ bypassAuth: true })).order
+            const { _max: { position: lastPosition } } = await tx.committee.aggregate({ _max: { position: true } })
 
             return await tx.committee.create({
                 data: {
                     name: data.name,
                     shortName: data.shortName,
+                    position: (lastPosition ?? -1) + 1,
                     logoImage: logoImage ? {
                         connect: {
                             id: logoImage.id,
@@ -277,6 +282,27 @@ const update = defineOperation({
     }
 })
 
+/**
+ * Sets the order committees are listed in. Pensioned committees are listed apart from the rest, so
+ * they are left out of the list and keep their positions.
+ */
+const reorder = defineOperation({
+    authorizer: () => committeeAuth.reorder,
+    dataSchema: committeeSchemas.data.reorder,
+    opensTransaction: true,
+    operation: async ({ prisma, data }) => await prisma.$transaction(async tx => {
+        const committees = await tx.committee.findMany({
+            where: { group: { pensioned: false } },
+            select: { id: true },
+        })
+        await applyReordering(
+            data.committeeIds,
+            committees.map(committee => committee.id),
+            (id, position) => tx.committee.update({ where: { id }, data: { position } }),
+        )
+    }),
+})
+
 const updateArticle = implementUpdateArticleOperations({
     authorizer: async ({ implementationParams, prisma }) => committeeAuth.updateArticle.data({
         groupId: await readGroupIdOfCommittee(prisma, { shortName: implementationParams.shortName }),
@@ -311,6 +337,13 @@ const memberManagement = implementSimpleAddRemoveMembersOperation({
     },
 })
 
+const memberOrdering = implementReorderMembersOperation({
+    type: GroupType.COMMITTEE,
+    auth: {
+        reorderMembers: ({ groupId }) => committeeAuth.reorderMembers.data({ groupId }),
+    },
+})
+
 const migration = implementManualMigrationPerGroup({
     type: GroupType.COMMITTEE,
     auth: {
@@ -322,6 +355,7 @@ const migration = implementManualMigrationPerGroup({
 export const committeeOperations = {
     create,
     update,
+    reorder,
     updateLogo,
     readAll,
     read,
@@ -332,6 +366,7 @@ export const committeeOperations = {
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,
     setMemberTitle: memberManagement.setMemberTitle,
+    reorderMembers: memberOrdering.reorderMembers,
     migrateGroup: migration.migrateGroup,
     pension: migration.pension,
     readArticle,
