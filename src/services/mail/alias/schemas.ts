@@ -1,7 +1,7 @@
 import { isOwnMailAddress, validMailAddressDomains } from '@/services/mail/constants'
 import { z } from 'zod'
 
-const validAddress = z.string().email().refine(
+const validAddress = z.string().email().toLowerCase().refine(
     isOwnMailAddress,
     () => ({ message: `Domenet er ugyldig. Gyldige domener er: ${validMailAddressDomains().join(', ')}` })
 )

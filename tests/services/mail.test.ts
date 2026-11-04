@@ -59,13 +59,13 @@ describe('the domains of the sites are mail domains', () => {
     }))
     afterEach(() => DomainContext.configure(testDomainConfig))
 
-    test('an alias may be on a site\'s domain, whatever its case', async () => {
+    test('an alias may be on a site\'s domain, and is stored in lowercase as Postfix looks it up', async () => {
         withSites()
         const alias = await aliasOperations.create({
-            data: { address: 'test-post@Contactor.no', description: '' },
+            data: { address: 'Test-Post@Contactor.no', description: '' },
             bypassAuth: true,
         })
-        expect(alias.address).toBe('test-post@Contactor.no')
+        expect(alias.address).toBe('test-post@contactor.no')
     })
 
     test('the same address is refused once the domain is no longer one of the sites\'', async () => {
