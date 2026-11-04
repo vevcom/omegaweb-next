@@ -16,9 +16,17 @@ export type ResolveHrefOptions = {
     toMainDomainServingSite?: boolean,
 }
 
-/** Paths that are the app's rather than a site's: served alike on every domain, never under a base path. */
+const appWidePrefixes = ['/api/', '/_next/', '/__nextjs', '/store/']
+// A file at the app's root, such as /sw.js, /manifest.webmanifest or an icon: a page never has an extension.
+const rootFile = /^\/[^/?#]+\.[a-z0-9]+(?:[?#]|$)/i
+
+/**
+ * Paths that are the app's rather than a site's: served alike on every domain, never under a base
+ * path. The api, Next's own files, the store and the files at the root, which the browser asks for
+ * by their plain path on every domain.
+ */
 export const isAppWidePath = (path: string) =>
-    ['/api/', '/_next/', '/__nextjs', '/store/'].some(prefix => path.startsWith(prefix))
+    appWidePrefixes.some(prefix => path.startsWith(prefix)) || rootFile.test(path)
 
 // On globalThis rather than in module state: the proxy, instrumentation and the routes are bundled
 // apart on the server, each with its own copy of this module, but share the process.

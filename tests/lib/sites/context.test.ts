@@ -136,5 +136,14 @@ describe('DomainContext', () => {
             expect(onCareers.resolveHref(appHref('/api/health'))).toBe('/api/health')
             expect(onCareers.resolveHref(appHref('/store/images/cover.webp'))).toBe('/store/images/cover.webp')
         })
+
+        test('keeps the files at the app\'s root there too, since every domain asks for them by their plain path', () => {
+            expect(onCareers.resolveHref(appHref('/sw.js?cache=off'))).toBe('/sw.js?cache=off')
+            expect(onCareers.resolveHref(appHref('/manifest.webmanifest'))).toBe('/manifest.webmanifest')
+            expect(onCareers.resolveHref(appHref('/icon-192.png'))).toBe('/icon-192.png')
+            // A page is never a file, however it is named.
+            expect(onCareers.resolveHref(appHref('/about'))).toBe('https://omega.ntnu.no/about')
+            expect(onCareers.resolveHref(appHref('/career/job-ads'))).toBe('/job-ads')
+        })
     })
 })
