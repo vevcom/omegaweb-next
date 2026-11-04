@@ -1,6 +1,7 @@
 import CommitteeCard from '@/components/Committee/CommitteeCard/CommitteeCard'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { serverPage } from '@/app/ServerPage'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => committeeOperations.readAll({}),
@@ -20,7 +21,7 @@ const { page, generateMetadata } = serverPage({
                     <CommitteeCard
                         key={committee.id}
                         title={committee.name}
-                        href={`/committees/${committee.shortName}`}
+                        href={omegaLinks.committee(committee)}
                         image={committee.logoImage}
                     />
                 ))}

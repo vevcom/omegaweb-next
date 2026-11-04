@@ -1,4 +1,4 @@
-import { pushDispatch, vapid } from './constants'
+import { pushDispatch, vapid, vapidSubject } from './constants'
 import { replaceSpecialSymbols, truncate } from './helpers'
 import logger from '@/lib/logger'
 import { sendNotification, WebPushError } from 'web-push'
@@ -36,7 +36,7 @@ export async function sendNotificationPushes(notification: NotificationWithChann
             url: notification.url ?? undefined,
         }),
         {
-            vapidDetails: vapid,
+            vapidDetails: { ...vapid, subject: vapidSubject() },
             TTL: pushDispatch.ttlSeconds,
             timeout: pushDispatch.timeoutMs,
             agent: pushServiceAgent,

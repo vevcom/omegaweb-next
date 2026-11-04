@@ -1,8 +1,9 @@
 import HeaderItemLink from './HeaderItemLink'
 import { faArchive } from '@fortawesome/free-solid-svg-icons'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
-    href: string
+    href: AppHref
 }
 
 /** A header item link to a page's archive. */

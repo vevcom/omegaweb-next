@@ -1,7 +1,8 @@
 'use client'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { reportAuth } from '@/services/report/auth'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faShieldHeart } from '@fortawesome/free-solid-svg-icons'
 
@@ -12,7 +13,7 @@ export default function ReportButton() {
 
     return (
         <div className="cursor-pointer">
-            <Link href="/report" className="group flex items-center justify-center size-12">
+            <SiteLink href={appHref('/report')} className="group flex items-center justify-center size-12">
                 <FontAwesomeIcon
                     className="
                         size-5! text-text transition-colors duration-300
@@ -21,7 +22,7 @@ export default function ReportButton() {
                     "
                     icon={faShieldHeart}
                 />
-            </Link>
+            </SiteLink>
         </div>
 
     )

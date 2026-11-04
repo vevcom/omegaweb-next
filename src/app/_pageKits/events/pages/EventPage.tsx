@@ -49,7 +49,7 @@ import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { notFound } from 'next/navigation'
 import { faCalendar, faLocationDot, faLock, faPeopleGroup, faQrcode } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -248,9 +248,9 @@ export function eventPage(config: EventPagesConfig) {
                                         {config.lockedTag ? (
                                             <EventTag eventTag={tag} />
                                         ) : (
-                                            <Link href={links.list([tag.name])}>
+                                            <SiteLink href={links.list([tag.name])}>
                                                 <EventTag eventTag={tag} />
-                                            </Link>
+                                            </SiteLink>
                                         )}
                                     </li>
                                 ))}
@@ -370,9 +370,9 @@ export function eventPage(config: EventPagesConfig) {
                             {event.hostedByCommittee && <p className={iconRowClassName}>
                                 <FontAwesomeIcon icon={faPeopleGroup} />
                                 <span>
-                                    Arrangeres av <Link href={omegaLinks.committee(event.hostedByCommittee)}>
+                                    Arrangeres av <SiteLink href={omegaLinks.committee(event.hostedByCommittee)}>
                                         {event.hostedByCommittee.name}
-                                    </Link>
+                                    </SiteLink>
                                 </span>
                             </p>}
                         </EventSidebarSection>

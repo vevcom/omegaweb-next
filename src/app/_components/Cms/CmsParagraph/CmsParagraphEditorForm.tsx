@@ -4,8 +4,8 @@ import './CustomEditorClasses.scss'
 import Form from '@/components/Form/Form'
 import { configureAction } from '@/services/configureAction'
 import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import type { CmsParagraph } from '@/prisma-generated-pn-types'
 import type { UpdateCmsParagraphAction } from '@/cms/paragraphs/types'
@@ -53,7 +53,7 @@ type PropTypes = {
  * mode; a page whose whole purpose is editing can render it directly.
  */
 export default function CmsParagraphEditorForm({ cmsParagraph, className, updateCmsParagraphAction }: PropTypes) {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
     const [content, setContent] = useState(cmsParagraph.contentMd)
 
     const handleContentChange = (value: string) => {

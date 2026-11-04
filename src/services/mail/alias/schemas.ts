@@ -1,9 +1,9 @@
-import { validMailAddressDomains } from '@/services/mail/constants'
+import { isOwnMailAddress, validMailAddressDomains } from '@/services/mail/constants'
 import { z } from 'zod'
 
-const validAddress = z.string().email().refine(
-    address => validMailAddressDomains.includes(address.split('@')[1].trim()),
-    `Domenet er ugyldig. Gyldige domener er: ${validMailAddressDomains.join(', ')}`
+const validAddress = z.string().email().toLowerCase().refine(
+    isOwnMailAddress,
+    () => ({ message: `Domenet er ugyldig. Gyldige domener er: ${validMailAddressDomains().join(', ')}` })
 )
 
 const dataFieldSchemas = z.object({

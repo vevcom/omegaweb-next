@@ -5,6 +5,7 @@ import { articleCategoryOperations } from '@/services/articleCategories/operatio
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import { appHref } from '@/lib/sites/href'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => articleCategoryOperations.readAll({}),
@@ -27,7 +28,7 @@ const { page, generateMetadata } = serverPage({
                             <ImageCard
                                 key={category.id}
                                 title={category.name}
-                                href={`/articles/${category.name}`}
+                                href={appHref(`/articles/${category.name}`)}
                                 image={category.coverImage}
                             >
                                 {category.description}

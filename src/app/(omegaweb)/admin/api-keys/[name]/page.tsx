@@ -12,6 +12,7 @@ import Date from '@/app/_components/Date/Date'
 import Checkbox from '@/app/_components/UI/Checkbox'
 import { configureAction } from '@/services/configureAction'
 import { serverPage } from '@/app/ServerPage'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -65,7 +66,7 @@ const { page, generateMetadata } = serverPage({
                             confirm: true,
                         }}
                         submitColor="red"
-                        navigateOnSuccess="/admin/api-keys"
+                        navigateOnSuccess={appHref('/admin/api-keys')}
                     />
                     }
                 </div>

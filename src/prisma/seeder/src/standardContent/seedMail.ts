@@ -1,4 +1,6 @@
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
+import { DomainContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 /**
@@ -7,7 +9,7 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
  * through the admin pages, and an alias removed there should stay removed.
  */
 export const seedMail = defineSeedOperation(async (prisma: PrismaClient) => {
-    const DOMAIN = `@${process.env.EMAIL_DOMAIN}`
+    const DOMAIN = `@${DomainContext.mailDomainOf(Site.root)}`
 
     const otherAliases = [
         'noreply',

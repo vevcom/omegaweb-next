@@ -1,7 +1,7 @@
 import Image from '@/components/Image/Image'
 import { eventLinks } from '@/pageKits/events/links'
 import { osloDateTime } from '@/lib/dates/oslo'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { UpcomingRegistrationOfUser } from '@/services/events/registration/types'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 
@@ -20,7 +20,7 @@ export default function UpcomingRegistrationRow({ registration, config }: PropTy
     const start = osloDateTime(event.eventStart)
 
     return (
-        <Link href={eventLinks(config).event(event)} className="list-row">
+        <SiteLink href={eventLinks(config).event(event)} className="list-row">
             <div className="list-row-thumb">
                 {event.coverImage.image && (
                     <Image width={200} image={event.coverImage.image} />
@@ -46,6 +46,6 @@ export default function UpcomingRegistrationRow({ registration, config }: PropTy
                 {event.location && <span>{event.location}</span>}
                 <span>{clockTime(event.eventStart)}–{clockTime(event.eventEnd)}</span>
             </div>
-        </Link>
+        </SiteLink>
     )
 }

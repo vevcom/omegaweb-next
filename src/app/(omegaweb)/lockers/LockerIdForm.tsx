@@ -1,7 +1,8 @@
 'use client'
 import Button from '@/components/UI/Button'
 import NumberInput from '@/components/UI/NumberInput'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
@@ -9,12 +10,12 @@ import type { FormEvent } from 'react'
  * Goes to a locker by its number, for whoever stands in front of one without a working camera.
  */
 export default function LockerIdForm() {
-    const router = useRouter()
+    const router = useSiteRouter()
     const [lockerId, setLockerId] = useState('')
 
     const goToLocker = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-        if (lockerId) router.push(`/lockers/${lockerId}`)
+        if (lockerId) router.push(appHref(`/lockers/${lockerId}`))
     }
 
     return (

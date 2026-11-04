@@ -10,7 +10,7 @@ import {
 } from '@/services/notifications/constants'
 import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
 import { defineOperation } from '@/services/serviceOperation'
-import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
+import { defaultNotificationAlias } from '@/lib/email/constants'
 import { ServiceError } from '@/services/error'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 
@@ -43,7 +43,7 @@ export const notificationChannelOperations = {
                         },
                         mailAlias: {
                             connect: {
-                                address: DEFAULT_NOTIFICATION_ALIAS,
+                                address: defaultNotificationAlias(),
                             }
                         }
                     },

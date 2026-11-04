@@ -2,12 +2,13 @@
 import { linkFeideAccountAction } from '@/services/auth/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { useState } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     token: string,
-    loginPath: string,
+    loginPath: AppHref,
     linkRequest: {
         targetUsername: string,
         feideName: string,
@@ -25,7 +26,7 @@ export default function ConfirmLinkOwUserForm({ token, loginPath, linkRequest }:
                 Feide-innloggingen er nå koblet til den gamle brukeren din.
                 Logg inn med Feide på nytt for å fortsette registreringen.
             </p>
-            <Link href={loginPath}>Til innlogging</Link>
+            <SiteLink href={loginPath}>Til innlogging</SiteLink>
         </>
     }
 

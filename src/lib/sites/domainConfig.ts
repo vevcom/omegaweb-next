@@ -33,7 +33,7 @@ export type SiteDomain = {
 }
 
 /**
- * The domains of the sites, as sites.json declares them. Internal to {@link SiteContext}, which is
+ * The domains of the sites, as sites.json declares them. Internal to {@link DomainContext}, which is
  * configured with the one in use and answers every question about hosts and sites from it.
  */
 export class DomainConfig {
@@ -62,6 +62,12 @@ export class DomainConfig {
     /** The domain a host is, or null for a host that is not configured. */
     domainOfHost(host: string): SiteDomain | null {
         return this.domains.find(domain => domain.host === host.toLowerCase()) ?? null
+    }
+
+    /** The host names of the domains, without their ports, as the dev server takes them in allowedDevOrigins. */
+    hostNames(): string[] {
+        const hostNames = this.domains.map(domain => new URL(domain.origin).hostname)
+        return hostNames.filter((hostName, index) => hostNames.indexOf(hostName) === index)
     }
 
     originsOfSite(site: Site): string[] {

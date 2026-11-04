@@ -1,7 +1,7 @@
 'use client'
+import useDomainContext from '@/hooks/useDomainContext'
 import { authLinks } from '@/pageKits/auth/links'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
 type PropTypes = {
@@ -9,11 +9,8 @@ type PropTypes = {
     className?: string,
 }
 
-/**
- * The login of a site in its navigation, coming back to the page it sits on. The navigation is on
- * every page, so the page to come back to is the one thing it reads from the url.
- */
+/** The login of a site in its navigation, coming back to the page it sits on. */
 export default function LoginLink({ config, className }: PropTypes) {
-    const pathname = usePathname()
-    return <Link href={authLinks(config).login(pathname)} className={className}>Logg inn</Link>
+    const { path } = useDomainContext()
+    return <SiteLink href={authLinks(config).login({ callbackUrl: path })} className={className}>Logg inn</SiteLink>
 }

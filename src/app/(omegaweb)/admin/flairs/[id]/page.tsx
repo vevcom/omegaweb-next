@@ -8,6 +8,7 @@ import { configureAction } from '@/services/configureAction'
 import Flair from '@/components/Flair/Flair'
 import ColorInput from '@/components/UI/ColorInput'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -41,7 +42,7 @@ const { page, generateMetadata } = serverPage({
                 title="Slett flair"
                 submitText="Slett flair"
                 action={configureAction(destroyFlairAction, { params: { flairId: flair.id } })}
-                navigateOnSuccess="/admin/flairs"
+                navigateOnSuccess={appHref('/admin/flairs')}
                 submitColor="red"
                 confirmation={{
                     confirm: true,

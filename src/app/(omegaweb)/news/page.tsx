@@ -5,6 +5,7 @@ import ArchiveLink from '@/components/HeaderItems/ArchiveLink'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { newsAuth } from '@/services/news/auth'
 import { serverPage } from '@/app/ServerPage'
+import { appHref } from '@/lib/sites/href'
 
 const { page, generateMetadata } = serverPage({
     operation: () => ({}),
@@ -16,7 +17,7 @@ const { page, generateMetadata } = serverPage({
         <PageWrapper
             headerItem={
                 <div className="flex items-center gap-4">
-                    <ArchiveLink href="news/archive" />
+                    <ArchiveLink href={appHref('/news/archive')} />
                     {
                         capabilities.canCreate.authorized && (
                             <AddHeaderItemPopUp popUpKey="createNewsPop">

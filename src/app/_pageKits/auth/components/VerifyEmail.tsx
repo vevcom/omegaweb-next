@@ -4,7 +4,7 @@ import { verifyEmailAction } from '@/services/auth/actions'
 import { configureAction } from '@/services/configureAction'
 import { useSession } from '@/auth/session/useSession'
 import { authLinks } from '@/pageKits/auth/links'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
@@ -43,7 +43,7 @@ export default function VerifyEmail({ config, token }: { config: AuthPagesConfig
         // not just ask the user to do so. Escpecially since invited users can't login with feide.
         return <>
             <p>E-postadressen er bekreftet.</p>
-            <Link href={links.login()}>Logg inn</Link>
+            <SiteLink href={links.login()}>Logg inn</SiteLink>
         </>
     }
 
@@ -51,12 +51,12 @@ export default function VerifyEmail({ config, token }: { config: AuthPagesConfig
         return <>
             <p>E-postadressen er bekreftet.</p>
             <p>Ops, du er visst logget inn som noen andre. Det kan skape litt problemer.</p>
-            <Link href={links.logout()}>Logg ut</Link>
+            <SiteLink href={links.logout()}>Logg ut</SiteLink>
         </>
     }
 
     return <>
         <p>E-postadressen er bekreftet.</p>
-        <Link href={links.afterLogin()}>Fortsett</Link>
+        <SiteLink href={links.afterLogin()}>Fortsett</SiteLink>
     </>
 }

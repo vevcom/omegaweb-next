@@ -1,9 +1,9 @@
 import Button from '@/components/UI/Button'
 import { userNavHref, visibleUserNavItems } from '@/app/(omegaweb)/users/[username]/userNavDef'
 import { ServerSession } from '@/auth/session/ServerSession'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faCog } from '@fortawesome/free-solid-svg-icons'
-import Link from 'next/link'
 import type { UserNavSubject } from '@/app/(omegaweb)/users/[username]/userNavDef'
 
 /**
@@ -37,12 +37,12 @@ export default async function UserSettingsNav({ username, userId }: UserNavSubje
             </summary>
             <div className="flex flex-col items-center gap-2">
                 {items.map(item => (
-                    <Link key={item.name} href={userNavHref(username, item)}>
+                    <SiteLink key={item.name} href={userNavHref(username, item)}>
                         <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
                             <FontAwesomeIcon icon={item.icon} />
                             <p className="w-[8em]">{item.name}</p>
                         </Button>
-                    </Link>
+                    </SiteLink>
                 ))}
             </div>
         </details>
