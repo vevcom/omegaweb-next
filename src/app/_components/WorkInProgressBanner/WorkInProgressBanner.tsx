@@ -16,7 +16,7 @@ export default function WorkInProgressBanner({ siteName, currentSiteHref }: Prop
         <aside
             role="note"
             className="
-                flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-3 bg-accent-yellow text-m font-medium
+                flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-3 bg-[#ffc23c] text-m font-medium
                 text-[#1a1a1a] text-center
             "
         >
