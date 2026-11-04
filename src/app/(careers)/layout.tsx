@@ -5,6 +5,8 @@ import { careersTheme } from './_lib/careersTheme'
 import { careerNavLinks } from './_lib/careersSite'
 import { innerClassName } from './_lib/careersClassNames'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
+import WorkInProgressBanner from '@/components/WorkInProgressBanner/WorkInProgressBanner'
+import { externalHref } from '@/lib/sites/href'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { serverLayout, withFallback } from '@/app/ServerPage'
@@ -56,6 +58,7 @@ export default serverLayout({
             data-tone="light"
         >
             <SiteTheme colors={careersTheme} />
+            <WorkInProgressBanner siteName="Contactor" currentSiteHref={externalHref('https://contactor.no')} />
             <CareersNavBar links={careerNavLinks} loggedIn={data.loggedIn} showOmegaLink={data.omegaMember} />
             <main className={`
                 ${innerClassName}
