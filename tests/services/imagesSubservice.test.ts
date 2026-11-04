@@ -153,7 +153,7 @@ describe('processImageVariants', () => {
         expect(microSource).toBe(`/store/images/${image.processedFiles.fsLocationTinySize}`)
     })
 
-    test('an unreachable store costs no attempt, but a missing original does', async () => {
+    test('a store outage costs no attempt, but a missing original does', async () => {
         const { id } = await uploadAndProcessImage('Unprocessed Image')
         await prisma.processedImageFiles.delete({ where: { imageId: id } })
         const attempts = async () => (await prisma.image.findUniqueOrThrow({ where: { id } })).processingAttempts
@@ -163,10 +163,16 @@ describe('processImageVariants', () => {
             return await imageOperations.processImageVariants.internalCall({ prisma, params: { imageId: id } })
         }
         const read = jest.spyOn(storeBackend, 'read')
+        const write = jest.spyOn(storeBackend, 'write')
 
         read.mockRejectedValueOnce(new Error('The store did not answer'))
-        const unreachable = await processClaimed()
-        expect(unreachable.success).toBe(false)
+        const unreadable = await processClaimed()
+        expect(unreadable.success).toBe(false)
+        expect(await attempts()).toBe(0)
+
+        write.mockRejectedValueOnce(new Error('The store did not answer'))
+        const unwritable = await processClaimed()
+        expect(unwritable.success).toBe(false)
         expect(await attempts()).toBe(0)
 
         read.mockResolvedValueOnce(null)
@@ -175,6 +181,7 @@ describe('processImageVariants', () => {
         expect(await attempts()).toBe(1)
 
         read.mockRestore()
+        write.mockRestore()
     })
 })
 

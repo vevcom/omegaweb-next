@@ -15,6 +15,7 @@ import { uniqueCollectionWhere } from './collections'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError, Smorekopp } from '@/services/error'
+import { StoreUnavailableError } from '@/lib/store/implementStore'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import type { StandardImage } from '@/prisma-generated-pn-types'
 
@@ -246,23 +247,8 @@ export const imageOperations = {
             if (image.type !== 'RASTER') {
                 throw new ServiceError('BAD PARAMETERS', `Image ${image.id} is an svg and has no variants to process`)
             }
-            let buffer: Buffer
             try {
-                buffer = await imageStore.readStoredFile(image.fsLocationOriginal)
-            } catch (error) {
-                // A store that cannot be reached says nothing about the image, so the attempt the
-                // claim counted is given back, and the image is tried again once its claim goes
-                // stale. A missing original is a ServiceError, and will not come back by waiting.
-                await prisma.image.update({
-                    where: { id: image.id },
-                    data: {
-                        processingAttempts: error instanceof ServiceError ? undefined : { decrement: 1 },
-                        processingError: String(error),
-                    }
-                })
-                return { success: false, error: String(error) }
-            }
-            try {
+                const buffer = await imageStore.readStoredFile(image.fsLocationOriginal)
                 const variants = await createRasterVariants(buffer)
                 const variantLocations = Object.values(variants)
                     .flatMap(variant => (variant ? [variant.fsLocation] : []))
@@ -295,10 +281,14 @@ export const imageOperations = {
                 })
                 return { success: true }
             } catch (error) {
-                // The attempt was already counted when the worker claimed the image.
+                // A store outage says nothing about the image, so the attempt the claim counted is
+                // given back, and the image is tried again once its claim goes stale.
                 await prisma.image.update({
                     where: { id: image.id },
-                    data: { processingError: String(error) },
+                    data: {
+                        processingAttempts: error instanceof StoreUnavailableError ? { decrement: 1 } : undefined,
+                        processingError: String(error),
+                    }
                 })
                 return { success: false, error: String(error) }
             }

@@ -7,6 +7,17 @@ import { posix } from 'path'
 import type { File } from 'buffer'
 import type { Awaitable } from '@/lib/awaitable'
 
+/** The store itself failed, which says nothing about the file that was being read or written. */
+export class StoreUnavailableError extends Error {
+    constructor(cause: unknown) {
+        super(`The store failed: ${cause}`, { cause })
+    }
+}
+
+function throwStoreUnavailable(cause: unknown): never {
+    throw new StoreUnavailableError(cause)
+}
+
 /**
  * This implements the store and lets a service use the store. The staticStorePrefix is where the service will store
  * its files in the store. The allowedExtentions is used to validate the file type before storing it, and is
@@ -47,7 +58,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
         const ext = storableExtension(buffer, allowedExt)
         const processedBuffer = await prosessor(buffer)
         const fsLocation = `${uuid()}.${ext}`
-        await storeBackend.write(storeKey(fsLocation, dynamicStorePrefix), processedBuffer)
+        await storeBackend.write(storeKey(fsLocation, dynamicStorePrefix), processedBuffer).catch(throwStoreUnavailable)
         return {
             fsLocation,
             ext
@@ -58,7 +69,7 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
         fsLocation: string,
         dynamicStorePrefix?: string
     ): Promise<Buffer> {
-        const content = await storeBackend.read(storeKey(fsLocation, dynamicStorePrefix))
+        const content = await storeBackend.read(storeKey(fsLocation, dynamicStorePrefix)).catch(throwStoreUnavailable)
         if (content === null) {
             throw new ServiceError('NOT FOUND', 'Filen du forsøkte å finne ble ikke funnet')
         }
