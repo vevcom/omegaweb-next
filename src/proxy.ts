@@ -25,7 +25,11 @@ export function proxy(request: NextRequest) {
 
     // Once domains are configured, a host that is not one of them gets nothing but the healthcheck.
     if (!context.siteDomain() && DomainContext.domainsForBrowser().length > 0 && pathname !== '/api/health') {
-        return new NextResponse(null, { status: 404 })
+        // A browser that guesses `www.` in front of a domain is sent to the domain itself.
+        const withoutWww = domain.replace(/^www\./i, '')
+        const siteDomain = withoutWww === domain ? null : DomainContext.fromBrowser(withoutWww, browserPath).siteDomain()
+        if (siteDomain) return NextResponse.redirect(`${siteDomain.origin}${browserPath}`, 308)
+        return new NextResponse('Not found', { status: 404, headers: { 'content-type': 'text/plain' } })
     }
 
     const requestHeaders = new Headers(request.headers)
