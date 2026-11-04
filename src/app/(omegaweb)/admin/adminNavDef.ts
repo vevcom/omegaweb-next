@@ -157,20 +157,20 @@ export const adminNavDef: AdminNavGroup[] = [
         ],
     },
     {
-        header: { icon: faKey, title: 'Tillgangsstyring' },
+        header: { icon: faKey, title: 'Tilgangsstyring' },
         links: [
             {
-                title: 'Gruppe Tilganger',
+                title: 'Gruppetilganger',
                 path: 'group-permissions',
                 authorizers: () => [permissionsAuth.updateGroupPermission],
             },
             {
-                title: 'Standard Tilganger',
+                title: 'Standardtilganger',
                 path: 'default-permissions',
                 authorizers: () => [permissionsAuth.updateDefaultPermissions],
             },
             {
-                title: 'API Nøkler',
+                title: 'API-nøkler',
                 path: 'api-keys',
                 authorizers: () => [apiKeyAuth.readMany],
             },
@@ -180,7 +180,7 @@ export const adminNavDef: AdminNavGroup[] = [
         header: { icon: faPaperPlane, title: 'Varslinger' },
         links: [
             {
-                title: 'Varslingkanaler',
+                title: 'Varslingskanaler',
                 path: 'notification-channels',
                 authorizers: () => [
                     notificationChannelAuth.create,
@@ -195,7 +195,7 @@ export const adminNavDef: AdminNavGroup[] = [
         ],
     },
     {
-        header: { icon: faEnvelopesBulk, title: 'Mailing tjener' },
+        header: { icon: faEnvelopesBulk, title: 'E-posttjener' },
         links: [
             {
                 title: 'Send e-post',

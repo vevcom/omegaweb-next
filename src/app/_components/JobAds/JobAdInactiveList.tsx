@@ -2,19 +2,20 @@
 import JobAd from './JobAd'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { JobAdInactivePagingContext } from '@/contexts/paging/JobAdInactivePaging'
+import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
 type PropTypes = {
-    basePath: string
+    config: JobAdPagesConfig
 }
 
-export default function JobAdInactiveList({ basePath }: PropTypes) {
+export default function JobAdInactiveList({ config }: PropTypes) {
     return (
         <main className="row-list">
             <EndlessScroll
                 loadingInfoClassName="text-text-muted"
                 pagingContext={JobAdInactivePagingContext}
                 renderer={jobAd => (
-                    <JobAd jobAd={jobAd} basePath={basePath} />
+                    <JobAd jobAd={jobAd} config={config} />
                 )} />
         </main>
     )

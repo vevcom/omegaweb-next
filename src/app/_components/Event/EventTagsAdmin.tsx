@@ -1,21 +1,24 @@
 import EventTag from './EventTag'
+import { eventLinks } from '@/pageKits/events/links'
 import Form from '@/components/Form/Form'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import TextInput from '@/UI/TextInput'
 import Textarea from '@/UI/Textarea'
 import ColorInput from '@/UI/ColorInput'
-import { QueryParams } from '@/lib/queryParams/queryParams'
 import { destroyEventTagAction, updateEventTagAction, createEventTagAction } from '@/services/events/tags/actions'
 import { configureAction } from '@/services/configureAction'
 import Link from 'next/link'
 import type { EventTag as EventTagT } from '@/prisma-generated-pn-types'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 
 type PropTypes = {
     eventTags: EventTagT[]
     capabilities: Capabilities<'canCreateTags' | 'canUpdateTags' | 'canDestroyTags'>
     selectedTags: EventTagT[]
-    page: 'EVENT' | 'EVENT_ARCHIVE'
+    config: EventPagesConfig
+    /** Whether the tags filter the archive rather than the coming events. */
+    archive: boolean
 }
 
 /**
@@ -28,18 +31,15 @@ export default function EventTagsAdmin({
     eventTags,
     selectedTags,
     capabilities,
-    page
+    config,
+    archive,
 }: PropTypes) {
-    const baseUrl = page === 'EVENT' ? '/events' : '/events/archive'
-
-    const removeFromUrl = (tag: string) => (selectedTags.length === 1 ?
-        baseUrl :
-        `${baseUrl}?${QueryParams.eventTags.encodeUrl(
-            selectedTags.filter(tagItem => tagItem.name !== tag).map(tagItem => tagItem.name)
-        )}`)
-    const addToUrl = (tag: string) => `${baseUrl}?${QueryParams.eventTags.encodeUrl(
-        [...selectedTags.map(tagItem => tagItem.name), tag]
-    )}`
+    const links = eventLinks(config)
+    const listHref = archive ? links.archive : links.list
+    const removeFromUrl = (tag: string) => listHref(
+        selectedTags.filter(tagItem => tagItem.name !== tag).map(tagItem => tagItem.name)
+    )
+    const addToUrl = (tag: string) => listHref([...selectedTags.map(tagItem => tagItem.name), tag])
     return (
         <div className="max-h-[80svh]">
             <h1>Tagger</h1>

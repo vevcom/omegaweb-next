@@ -9,7 +9,7 @@ const dataFieldSchemas = z.object({
         50, 'Navn kan maks være 50 tegn langt'
     ),
     link: z.string().trim().min(
-        1, 'Link må være minst 1 tegn langt'
+        1, 'Lenken kan ikke være tom'
     ).refine(isSafeLink, safeLinkMessage),
 })
 

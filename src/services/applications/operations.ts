@@ -46,11 +46,11 @@ export const applicationOperations = {
 
             if (Date.now() < committeeParticipation.applicationPeriod.startDate.getTime()) {
                 throw new ServiceError(
-                    'BAD PARAMETERS', 'The application period has not started yet.'
+                    'BAD PARAMETERS', 'Søknadsperioden har ikke startet ennå.'
                 )
             } else if (Date.now() > committeeParticipation.applicationPeriod.endDate.getTime()) {
                 throw new ServiceError(
-                    'BAD PARAMETERS', 'The application period has ended.'
+                    'BAD PARAMETERS', 'Søknadsperioden er over.'
                 )
             }
 
@@ -107,14 +107,14 @@ export const applicationOperations = {
             const { startDate, endDate, endPriorityDate } = application.applicationPeriodCommittee.applicationPeriod
             if (Date.now() < startDate.getTime()) {
                 throw new ServiceError(
-                    'BAD PARAMETERS', 'The application period has not started yet.'
+                    'BAD PARAMETERS', 'Søknadsperioden har ikke startet ennå.'
                 )
             }
 
             if (data.text !== undefined) {
                 if (Date.now() > endDate.getTime()) {
                     throw new ServiceError(
-                        'BAD PARAMETERS', 'The application period has ended.'
+                        'BAD PARAMETERS', 'Søknadsperioden er over.'
                     )
                 }
                 await tx.application.update({
@@ -125,7 +125,7 @@ export const applicationOperations = {
             if (data.priority === undefined) return
             if (Date.now() > endPriorityDate.getTime()) {
                 throw new ServiceError(
-                    'BAD PARAMETERS', 'The priority period has ended.'
+                    'BAD PARAMETERS', 'Prioriteringsfristen er ute.'
                 )
             }
 
@@ -141,7 +141,7 @@ export const applicationOperations = {
 
             if (!otherApplication) {
                 throw new ServiceError(
-                    'BAD PARAMETERS', 'The application is already at the top or bottom of the priority list.'
+                    'BAD PARAMETERS', 'Søknaden er allerede øverst eller nederst i prioriteringslisten.'
                 )
             }
             // Swapped by way of -1: (userId, applicationPeriodId, priority) is unique, so neither
@@ -175,7 +175,7 @@ export const applicationOperations = {
             })
             if (Date.now() > application.applicationPeriodCommittee.applicationPeriod.endDate.getTime()) {
                 throw new ServiceError(
-                    'BAD PARAMETERS', 'The application period has ended.'
+                    'BAD PARAMETERS', 'Søknadsperioden er over.'
                 )
             }
             await tx.application.delete({ where: { id: application.id } })

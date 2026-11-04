@@ -30,7 +30,7 @@ export const cmsParagraphOperations = {
         operation: () => async ({ params, prisma }) => {
             const paragraph = await prisma.cmsParagraph.findUniqueOrThrow({ where: { id: params.paragraphId } })
             if (paragraph.special) {
-                throw new ServiceError('BAD PARAMETERS', 'Special paragraphs cannot be deleted')
+                throw new ServiceError('BAD PARAMETERS', 'Spesielle avsnitt kan ikke slettes')
             }
             await prisma.cmsParagraph.delete({ where: { id: params.paragraphId } })
         }
@@ -52,7 +52,7 @@ export const cmsParagraphOperations = {
         operation: () => async ({ params, prisma, data }) => {
             const paragraph = await prisma.cmsParagraph.findUniqueOrThrow({ where: { id: params.paragraphId } })
             if (paragraph.special) {
-                throw new ServiceError('BAD PARAMETERS', 'Special paragraphs cannot have their meta data updated')
+                throw new ServiceError('BAD PARAMETERS', 'Metadataene til spesielle avsnitt kan ikke endres')
             }
             await prisma.cmsParagraph.update({ where: { id: params.paragraphId }, data })
         }
@@ -63,7 +63,7 @@ export const cmsParagraphOperations = {
         dataSchema: () => cmsParagraphSchemas.data.updateContent,
         operation: () => async ({ params, prisma, data }) => {
             const safeHtml = await markdownToSafeHtml(data.markdown).catch(() => {
-                throw new ServiceError('BAD PARAMETERS', 'Invalid markdown')
+                throw new ServiceError('BAD PARAMETERS', 'Ugyldig Markdown')
             })
             const contentHtml = safeHtml
                 .replace(/<img[^>]*>/g, 'Bilder i markdown er ikke støttet. Bruk det innebygde bildeverktøyet.')
@@ -95,7 +95,7 @@ export const cmsParagraphOperations = {
                     special: true
                 }
             })
-            if (!paragraph) throw new ServiceError('NOT FOUND', 'Paragraph not found')
+            if (!paragraph) throw new ServiceError('NOT FOUND', 'Fant ikke avsnittet')
             if (!paragraph.special) return false
             return params.special.includes(paragraph.special)
         }

@@ -39,7 +39,7 @@ export default function OmegaIdReader({
     const handleScan = async (rawToken: string, showWaiting: () => void): Promise<ScanResult | null> => {
         const token = decompressOmegaId(rawToken)
         if (!token.success) {
-            return { success: false, text: 'Ugyldig QR kode' }
+            return { success: false, text: 'Ugyldig QR-kode' }
         }
         const parse = await parseJWTClient(token.data, publicKey, expiryOffset ?? 100, 'omegaid')
         if (!parse.success) {

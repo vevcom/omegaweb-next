@@ -2,6 +2,7 @@ import { Zpn } from '@/lib/fields/zpn'
 import { imageDataFieldSchemas } from '@/services/images/subservice/schemas'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Sex, RelationshipStatus, Theme } from '@/prisma-generated-pn-types'
+import { siteNameSchema } from '@/lib/sites/site'
 import { z } from 'zod'
 
 export const userDataFieldSchemas = z.object({
@@ -21,15 +22,15 @@ export const userDataFieldSchemas = z.object({
     theme: z.nativeEnum(Theme),
     password: z.string().max(50).min(12, {
         // eslint-disable-next-line
-        message: 'Passoret må minst ha 12 tegn, en stor og en liten bokstav, et tall, en rune, to emojier, en musikk note, en magisk sopp og en dråpe smørekopp-blod (avsky).'
+        message: 'Passordet må ha minst 12 tegn, en stor og en liten bokstav, et tall, en rune, to emojier, en musikknote, en magisk sopp og en dråpe smørekopp-blod (avsky).'
     }),
     confirmPassword: z.string().max(50).min(12),
     currentPassword: z.string().max(50).optional(),
     imageConsent: Zpn.checkboxOrBoolean({
-        label: 'Accepted images'
+        label: 'Samtykke til bilder'
     }).optional(),
     acceptedTerms: Zpn.checkboxOrBoolean({
-        label: 'Accepted terms',
+        label: 'Godkjente vilkår',
     }).refine(value => value, 'Du må godta vilkårene for å bruke siden.'),
     // Whatever the card reader gives, as is: it is only ever compared to what the reader gives later.
     studentCard: z.string().trim().min(1).max(100),
@@ -42,6 +43,7 @@ const groupFilter = z.object({
 
 const paramsFieldSchemas = z.object({
     id: z.number(),
+    site: siteNameSchema,
     userId: z.number(),
     username: z.string(),
     email: z.string().trim().toLowerCase(),
@@ -176,6 +178,7 @@ export const userSchemas = {
         }),
 
         connectStudentCard: id,
+        disconnectStudentCard: id,
         update: z.union([id, username]),
         updateProfile: username,
         updateBioParagraphContent: paramsFieldSchemas.pick({
@@ -183,7 +186,7 @@ export const userSchemas = {
         }),
         updatePassword: id,
         updateTheme: username,
-        registerNewEmail: id,
+        registerNewEmail: paramsFieldSchemas.pick({ id: true, site: true }),
         register: id,
         destroy: id,
         archive: id,

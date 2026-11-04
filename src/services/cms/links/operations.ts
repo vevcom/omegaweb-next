@@ -19,7 +19,7 @@ const create = defineSubOperation({
 const generateSpecialCmsLinkFromConfig = defineSubOperation({
     paramsSchema: () => cmsLinkSchemas.params.generateSpecialCmsLinkFromConfig,
     operation: () => async ({ params: { special } }) => create.internalCall({
-        data: { url: './', text: 'Default text' },
+        data: { url: './', text: 'Lenketekst' },
         operationImplementationFields: { special }
     })
 })
@@ -36,7 +36,7 @@ export const cmsLinkOperations = {
                     id: params.linkId
                 }
             })
-            if (cmsLink.special) throw new ServiceError('BAD PARAMETERS', 'Cannot delete special CMS link')
+            if (cmsLink.special) throw new ServiceError('BAD PARAMETERS', 'Kan ikke slette en spesiell CMS-lenke')
             await prisma.cmsLink.delete({
                 where: {
                     id: params.linkId
@@ -85,7 +85,7 @@ export const cmsLinkOperations = {
                     special: true
                 }
             })
-            if (!link) throw new ServiceError('NOT FOUND', 'Link not found')
+            if (!link) throw new ServiceError('NOT FOUND', 'Fant ikke lenken')
             if (!link.special) return false
             return params.special.includes(link.special)
         }

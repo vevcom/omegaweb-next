@@ -1,5 +1,5 @@
 import { Require } from '@/auth/authorizer/Require'
-import { checkVisibility } from '@/auth/visibility/checkVisibility'
+import { checkDoubleLevelVisibility } from '@/auth/visibility/checkVisibility'
 import { shopAuth } from '@/services/shop/shop/auth'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
@@ -18,7 +18,7 @@ export const purchaseAuth = {
         membershipsOfUser: MembershipFiltered[],
         visibility: DoubleLevelVisibilityMatrix,
     }>(
-        ({ membershipsOfUser, visibility }) => checkVisibility(membershipsOfUser, visibility.regularLevel),
+        ({ membershipsOfUser, visibility }) => checkDoubleLevelVisibility(membershipsOfUser, visibility, 'REGULAR'),
         { errorMessage: 'Eieren av kortet har ikke tilgang til butikken.' }
     ),
 

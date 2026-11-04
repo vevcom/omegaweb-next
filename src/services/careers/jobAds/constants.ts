@@ -7,7 +7,7 @@ import type { Prisma } from '@/prisma-generated-pn-types'
 export const jobAdType = {
     FULL_TIME: { label: 'Heltid' },
     PART_TIME: { label: 'Deltid' },
-    INTERNSHIP: { label: 'Internship' },
+    INTERNSHIP: { label: 'Praksisplass' },
     OTHER: { label: 'Annet' },
     CONTRACT: { label: 'Kontrakt' },
 } satisfies Record<JobType, { label: string }>

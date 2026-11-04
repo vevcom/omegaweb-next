@@ -1,5 +1,7 @@
-import JobAdsArchivePage from '@/components/JobAds/Pages/JobAdsArchivePage'
+import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/config'
+import { jobAdsArchivePage } from '@/pageKits/jobAds/pages/JobAdsArchivePage'
 
-export default function JobAdsArchive() {
-    return <JobAdsArchivePage basePath={'/job-ads'} />
-}
+const { page, generateMetadata } = jobAdsArchivePage(omegaJobAdPages)
+
+export default page
+export { generateMetadata }

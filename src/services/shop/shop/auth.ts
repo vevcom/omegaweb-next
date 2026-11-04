@@ -10,13 +10,13 @@ import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
  * The admin level is exported for the product service: a product sold in one shop alone is that
  * shop's to describe.
  */
-const shopRegularLevel = Require.permission('SHOP_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
-export const shopAdminLevel = Require.permission('SHOP_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
+const shopRegularLevel = Require.permission('SHOP_ADMIN').or().levelOfDoubleVisibility({ level: 'REGULAR' })
+export const shopAdminLevel = Require.permission('SHOP_ADMIN').or().levelOfDoubleVisibility({ level: 'ADMIN' })
 
 export const shopAuth = {
     create: Require.permission('SHOP_ADMIN'),
 
-    readMany: Require.visibilityFilter({ bypassPermission: 'SHOP_ADMIN' }),
+    readMany: Require.doubleLevelFilter({ level: 'REGULAR', bypassPermission: 'SHOP_ADMIN' }),
     read: shopRegularLevel,
 
     readDoubleLevelMatrix: shopRegularLevel,

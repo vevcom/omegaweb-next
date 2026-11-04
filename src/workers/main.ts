@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { workers } from './definitions'
 import { prisma } from '@/prisma-pn-client-instance'
+import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import logger from '@/lib/logger'
 import { writeFile } from 'fs/promises'
 import type { Worker, WorkerName } from './types'
@@ -98,6 +99,7 @@ function isWorkerName(name: string): name is WorkerName {
  * can be given a container of its own by naming it there and leaving it out of the other.
  */
 async function main() {
+    loadDomainConfig()
     const requested = process.argv.slice(2)
     const unknown = requested.filter(name => !isWorkerName(name))
     if (unknown.length > 0) {

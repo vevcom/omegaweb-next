@@ -30,6 +30,7 @@ export default function ImageCard({ image, title, children, href, className }: P
                             disableLinkingToLicense
                             creditPlacement="top"
                             width={240}
+                            sizes="400px"
                             image={image}
                         />
                     )

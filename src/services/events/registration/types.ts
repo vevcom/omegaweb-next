@@ -3,11 +3,12 @@ import type {
     eventRegistrationNotAttendedSelection,
     eventRegistrationSelectionDetailed,
     eventRegistrationSelection,
+    upcomingEventSelection,
 } from './constants'
 import type { eventRegistrationSchemas } from './schemas'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
-import type { EventRegistration, Prisma } from '@/prisma-generated-pn-types'
+import type { Prisma } from '@/prisma-generated-pn-types'
 
 // This type will just make sure that the image is not null
 export type EventRegistrationExpanded = Prisma.EventRegistrationGetPayload<{
@@ -16,17 +17,19 @@ export type EventRegistrationExpanded = Prisma.EventRegistrationGetPayload<{
     image: ExpandedImage
 }
 
-/**
- * A registration together with wether it landed on the waiting list of the event - i.e. wether it
- * queues past the places of the event. See `eventRegistrationQueueOrder` for the queue it is in.
- */
-export type EventRegistrationWithWaitingList = EventRegistration & {
-    onWaitingList: boolean,
-}
-
 export type EventRegistrationDetailedExpanded = Prisma.EventRegistrationGetPayload<{
     select: typeof eventRegistrationSelectionDetailed,
 }>
+
+/** A user's own registration in a variant, with whether a payment is in effect for it. */
+export type EventRegistrationOfUser = Prisma.EventRegistrationGetPayload<{
+    include: {
+        quota: { select: { id: true, name: true, variantId: true } },
+        ledgerTransactions: { select: { id: true } },
+    },
+}> & {
+    variantId: number,
+}
 
 /**
  * What the dots of a user hold them back from when registering to an event. A timeout means the user
@@ -72,4 +75,12 @@ export type EventRegistrationNotAttended = Omit<Prisma.EventRegistrationGetPaylo
     user: NonNullable<Prisma.EventRegistrationGetPayload<{
         select: typeof eventRegistrationNotAttendedSelection
     }>['user']>,
+}
+
+/** A registration of a user for an event that has not ended, with the event and the variant it is in. */
+export type UpcomingRegistrationOfUser = {
+    id: number,
+    onWaitingList: boolean,
+    variant: { id: number, name: string },
+    event: Prisma.EventGetPayload<{ select: typeof upcomingEventSelection }>,
 }

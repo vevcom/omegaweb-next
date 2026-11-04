@@ -3,8 +3,16 @@ import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
+const quotaSelection = {
+    select: { id: true, name: true, variant: { select: { id: true, name: true } } },
+} as const
+const waitingListVariantSelection = { select: { id: true, name: true } } as const
+
 export const eventRegistrationSelection = {
     id: true,
+    state: true,
+    quota: quotaSelection,
+    waitingListVariant: waitingListVariantSelection,
     user: {
         select: {
             ...userCardSelection,
@@ -18,19 +26,20 @@ export const eventRegistrationSelection = {
     }
 } satisfies Prisma.EventRegistrationSelect
 
-/**
- * The order registrations queue in for the places of an event: the ones registered first take the
- * places, and the ones past them queue on the waiting list. The autoincremented id is the order
- * they were registered in, and being unique it is a total order - so it also cursor-pages cleanly.
- */
-export const eventRegistrationQueueOrder = {
-    id: 'asc',
-} as const satisfies Prisma.EventRegistrationOrderByWithRelationInput
+/** Queue order within a quota and on a waiting list. Ties on `queuedAt` fall back to the id. */
+export const eventRegistrationQueueOrder = [
+    { queuedAt: 'asc' },
+    { id: 'asc' },
+] satisfies Prisma.EventRegistrationOrderByWithRelationInput[]
 
 export const eventRegistrationSelectionDetailed = {
     id: true,
+    state: true,
+    quota: quotaSelection,
+    waitingListVariant: waitingListVariantSelection,
     note: true,
     attendedAt: true,
+    manuallyPaid: true,
     user: {
         select: {
             ...userCardSelection,
@@ -67,7 +76,7 @@ export enum REGISTRATION_READER_TYPE {
 
 export const eventRegistrationAttendanceSelection = {
     id: true,
-    eventId: true,
+    state: true,
     attendedAt: true,
     note: true,
     user: {
@@ -79,3 +88,26 @@ export const eventRegistrationAttendanceSelection = {
         },
     },
 } satisfies Prisma.EventRegistrationSelect
+
+/** What a user's list of their coming events shows of each event. */
+export const upcomingEventSelection = {
+    id: true,
+    name: true,
+    eventStart: true,
+    eventEnd: true,
+    location: true,
+    coverImage: { select: { image: { include: expandedImageIncluder } } },
+    _count: { select: { variants: true } },
+} as const satisfies Prisma.EventSelect
+
+const upcomingVariantSelection = {
+    select: { id: true, name: true, event: { select: upcomingEventSelection } },
+} as const
+
+/** A registration with the variant it is in: its quota's for a place, the waiting list's otherwise. */
+export const upcomingRegistrationOfUserSelection = {
+    id: true,
+    state: true,
+    quota: { select: { variant: upcomingVariantSelection } },
+    waitingListVariant: upcomingVariantSelection,
+} as const satisfies Prisma.EventRegistrationSelect

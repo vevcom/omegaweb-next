@@ -32,9 +32,9 @@ const { page, generateMetadata } = serverPage({
             <table className="ohma-table">
                 <thead>
                     <tr>
-                        <th>id</th>
+                        <th>ID</th>
                         <th>Navn</th>
-                        <th>Link</th>
+                        <th>Lenke</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -57,7 +57,7 @@ const { page, generateMetadata } = serverPage({
                                         submitText="Endre"
                                     >
                                         <TextInput name="name" label="Navn" defaultValue={license.name} />
-                                        <TextInput name="link" label="Link" defaultValue={license.link} />
+                                        <TextInput name="link" label="Lenke" defaultValue={license.link} />
                                     </Form>
                                     }
 
@@ -84,7 +84,7 @@ const { page, generateMetadata } = serverPage({
                 refreshOnSuccess
             >
                 <TextInput name="name" label="Navn" />
-                <TextInput name="link" label="Link" />
+                <TextInput name="link" label="Lenke" />
             </Form>
             }
         </div>

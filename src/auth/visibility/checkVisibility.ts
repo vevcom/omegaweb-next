@@ -1,5 +1,5 @@
 import type { MembershipFiltered } from '@/services/groups/types'
-import type { VisibilityMatrix } from '@/services/visibility/types'
+import type { DoubleLevel, DoubleLevelVisibilityMatrix, VisibilityMatrix } from '@/services/visibility/types'
 
 
 export function checkVisibility(memberships: MembershipFiltered[], visibility: VisibilityMatrix): boolean {
@@ -20,4 +20,15 @@ export function checkVisibility(memberships: MembershipFiltered[], visibility: V
             }
         )
     )
+}
+
+/** Whether the memberships pass `level` of a double level visibility. The admin level passes the
+ * regular level too, so an administrator always sees what they administrate. */
+export function checkDoubleLevelVisibility(
+    memberships: MembershipFiltered[],
+    visibility: DoubleLevelVisibilityMatrix,
+    level: DoubleLevel,
+): boolean {
+    if (checkVisibility(memberships, visibility.adminLevel)) return true
+    return level === 'REGULAR' && checkVisibility(memberships, visibility.regularLevel)
 }

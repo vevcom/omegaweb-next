@@ -13,7 +13,7 @@ export default async function ArticleCategory({ params }: PropTypes) {
             [&>p]:border-l [&>p]:border-surface-subtle [&>p]:ml-2 [&>p]:pl-2
         ">
             <h2>{category.toUpperCase()}</h2>
-            <p>Velg en artikel i navigasjonsmenyen</p>
+            <p>Velg en artikkel i navigasjonsmenyen</p>
         </div>
     )
 }

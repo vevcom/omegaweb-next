@@ -10,7 +10,7 @@ const { page, generateMetadata } = serverPage({
         return committeeParticipationOperations.read({ params: { participationId } })
     },
     render: ({ data: applications }) => {
-        if (applications.length === 0) { return 'ingen søknader funnet' }
+        if (applications.length === 0) { return 'Fant ingen søknader' }
         const sortedApplications = [...applications].sort(
             (applicationOne, applicationTwo) => applicationOne.priority - applicationTwo.priority
         )

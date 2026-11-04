@@ -10,6 +10,6 @@ export async function register() {
         assertProductionSecrets()
     }
 
-    const { prepareReleaseCountdown } = await import('@/services/releaseCountdown/prepare')
-    await prepareReleaseCountdown()
+    const { loadDomainConfig } = await import('@/lib/sites/loadDomainConfig')
+    loadDomainConfig()
 }

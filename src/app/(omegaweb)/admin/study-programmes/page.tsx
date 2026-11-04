@@ -34,7 +34,7 @@ const { page, generateMetadata } = serverPage({
                         {capabilities.canEdit.authorized && <th>Rediger</th>}
                         <th>Navn</th>
                         <th>Kode</th>
-                        <th>Institutt kode</th>
+                        <th>Instituttkode</th>
                         <th>Startklasse</th>
                         <th>Lengde på studiet</th>
                         <th>Del av Omega</th>

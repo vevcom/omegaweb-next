@@ -22,10 +22,10 @@ export function hashAndEncrypter(
 ) {
     function getFunctions() {
         if (!salt || !Number(salt)) {
-            throw new ServiceError('SERVER ERROR', 'Serveren manger config')
+            throw new ServiceError('SERVER ERROR', 'Serveren mangler konfigurasjon')
         }
         if (!encryptionKey) {
-            throw new ServiceError('SERVER ERROR', 'Serveren manger config')
+            throw new ServiceError('SERVER ERROR', 'Serveren mangler konfigurasjon')
         }
         const { hash, compare } = hasher(Number(salt))
         const { encrypt, decrypt } = encrypter(encryptionKey, encrypterConfig)

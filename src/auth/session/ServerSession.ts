@@ -36,7 +36,7 @@ export class ServerSession<UserGuarantee extends UserGuaranteeOption> extends Se
         if (!keyAndIdEncoded) return new Session<'NO_USER'>({ user: null, permissions: defaultPermissions, memberships: [] })
         const { id, key } = decodeApiKey(keyAndIdEncoded)
 
-        const INVALID_API_KEY_MESSAGE = 'Api nøkkelen er ikke valid'
+        const INVALID_API_KEY_MESSAGE = 'API-nøkkelen er ugyldig'
 
         let apiKeyFetch
 
@@ -57,7 +57,7 @@ export class ServerSession<UserGuarantee extends UserGuaranteeOption> extends Se
         const success = await apiKeyDecryptAndCompare(key, keyHashEncrypted)
         if (!success) throw new ServiceError('INVALID API KEY', INVALID_API_KEY_MESSAGE)
 
-        if (!active) throw new ServiceError('INVALID API KEY', 'Api nøkkelen er utløpt eller deaktivert')
+        if (!active) throw new ServiceError('INVALID API KEY', 'API-nøkkelen er utløpt eller deaktivert')
 
         return new Session<'NO_USER'>({
             user: null,

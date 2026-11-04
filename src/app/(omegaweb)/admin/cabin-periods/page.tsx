@@ -15,7 +15,7 @@ const { page, generateMetadata } = serverPage({
         ])
         return { releasePeriods, pricePeriods }
     },
-    metadata: () => ({ title: 'Heutte perioder' }),
+    metadata: () => ({ title: 'Heutteperioder' }),
     render: ({ data }) => (
         <PageWrapper>
             <PageStateWrapper

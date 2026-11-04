@@ -1,0 +1,20 @@
+import type { PagesMount } from '@/lib/sites/defineLinks'
+import type { AuthPagesConfig } from '@/pageKits/auth/config'
+import type { SpecialEventTags } from '@/prisma-generated-pn-types'
+
+/**
+ * How a site renders the event pages: the list of coming events at the mount path, its archive
+ * at `${mountPath}/archive`, the page of one event at `${mountPath}/[nameAndId]` and its attendance page.
+ * Omega's site lists every event; the career site lists the company presentations.
+ */
+export type EventPagesConfig = PagesMount & {
+    /** The titles of the list of coming events and of the archive. */
+    titles: { current: string, archive: string },
+    /**
+     * A special tag the pages are fixed to: only events carrying it are listed and found, and there
+     * is no tag filter. null lists every event, filtered by the tags the visitor picks.
+     */
+    lockedTag: SpecialEventTags | null,
+    /** The sign in flow of the site, for the login link where an event takes registrations. */
+    authPages: AuthPagesConfig,
+}

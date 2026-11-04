@@ -7,7 +7,12 @@ const dataFieldSchemas = z.object({
     products: z.array(z.object({
         id: z.number().int(),
         quantity: z.number().int().min(1),
-    })).min(1, 'Du må velge minst ett produkt.'),
+    }))
+        .min(1, 'Du må velge minst ett produkt.')
+        .refine(
+            products => new Set(products.map(product => product.id)).size === products.length,
+            'Hvert produkt kan bare stå én gang. Øk antallet i stedet.',
+        ),
 })
 
 const paramsFieldSchemas = z.object({

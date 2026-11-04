@@ -6,11 +6,11 @@ import { z } from 'zod'
 const dateOrderRefiner = (data: { startDate?: Date, endDate?: Date }) =>
     !data.startDate || !data.endDate || data.startDate <= data.endDate
 
-const dateOrderMessage = 'Til dato kan ikke være før fra dato'
+const dateOrderMessage = 'Til-datoen kan ikke være før fra-datoen'
 
 const dataFieldSchemas = z.object({
-    title: z.string().min(2, 'min length is 2').max(80, 'max length is 80'),
-    text: z.string().min(2, 'min length is 2').max(300, 'max length is 300'),
+    title: z.string().min(2, 'Minimum lengde er 2 tegn').max(80, 'Maks lengde er 80 tegn'),
+    text: z.string().min(2, 'Minimum lengde er 2 tegn').max(300, 'Maks lengde er 300 tegn'),
     link: z.string().min(1, 'Lenken kan ikke være tom').refine(isSafeLink, safeLinkMessage),
     startDate: Zpn.date({ label: 'Fra dato' }),
     endDate: Zpn.date({ label: 'Til dato' }),

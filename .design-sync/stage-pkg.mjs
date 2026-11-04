@@ -2,7 +2,7 @@
 // Builds a self-contained, bundlable component package out of this Next.js
 // app's presentational components, for the claude.ai/design import.
 //
-// Why this exists: projectNext has no library build, and every component
+// Why this exists: omegaweb-next has no library build, and every component
 // styles itself through SCSS modules (`*.module.scss`), which esbuild cannot
 // load. This script performs a *mechanical* transform of the real source:
 //

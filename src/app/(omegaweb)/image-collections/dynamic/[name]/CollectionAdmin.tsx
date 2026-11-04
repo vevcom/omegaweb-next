@@ -152,8 +152,8 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                                     confirmation={{
                                         confirm: true,
                                         text:
-                                            'Er du sikker på at du vil slette samlingen. ' +
-                                            'Dette vil også slette alle bilder i salingen.'
+                                            'Er du sikker på at du vil slette samlingen? ' +
+                                            'Dette sletter også alle bildene i samlingen.'
                                     }}
                                 />
                             )

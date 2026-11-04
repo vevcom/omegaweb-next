@@ -39,7 +39,7 @@ export function assertGroupValidity<
 > {
     const result = checkGroupValidity(group)
     if (!result.valid) {
-        throw new ServiceError('SERVER ERROR', 'Ånei, serveren er i en invalid tilstand. Kontakt en administrator')
+        throw new ServiceError('SERVER ERROR', 'Ånei, serveren er i en ugyldig tilstand. Kontakt en administrator.')
     }
     return result.group
 }

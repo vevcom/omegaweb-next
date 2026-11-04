@@ -1,6 +1,5 @@
 import '@pn-server-only'
 import { visibilityOperations } from './operations'
-import { isSubVisibility } from '@/auth/visibility/isSubVisibility'
 import { ServiceError } from '@/services/error'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
@@ -8,24 +7,6 @@ import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 import type { DoubleLevelVisibilityMatrix, VisibilityMatrix } from './types'
 import type { Awaitable } from '@/lib/awaitable'
-
-/**
- * The admin level must always be a sub-visibility of the regular level - an administrator who
- * cannot even see what they administrate is a broken state. Since either level can be updated on
- * its own, this is asserted on the pair that the update would result in, not on the stored pair.
- *
- * Exported so services that take both levels as part of creating the thing they guard can hold the
- * pair to the same invariant from the start.
- */
-export function assertAdminLevelIsSubOfRegularLevel(resultingMatrix: DoubleLevelVisibilityMatrix): void {
-    if (!isSubVisibility(resultingMatrix.adminLevel, resultingMatrix.regularLevel)) {
-        throw new ServiceError(
-            'BAD DATA',
-            'Alle som kan administrere må også kunne se - det administrative nivået må ' +
-            'være en delmengde av det vanlige nivået.'
-        )
-    }
-}
 
 type Authorizers<
     ImplementationParamsSchema extends z.ZodType<unknown>,
@@ -71,6 +52,92 @@ type ReadVisibilityDoubleLevel<ImplementationParamsSchema extends z.ZodType<unkn
     regularLevel: Prisma.VisibilityGetPayload<{ include: typeof visibilityIncluder }>,
     adminLevel: Prisma.VisibilityGetPayload<{ include: typeof visibilityIncluder }>
 }>
+
+type SingleAuthorizers<ImplementationParamsSchema extends z.ZodType<unknown>> = {
+    readMatrix: (args: {
+        prisma: PrismaPossibleTransaction<false>,
+        params: z.infer<ImplementationParamsSchema>,
+        matrix: VisibilityMatrix,
+    }) => Awaitable<Authorizer>,
+    update: (args: {
+        prisma: PrismaPossibleTransaction<false>,
+        implementationParams: z.infer<ImplementationParamsSchema>,
+        matrix: VisibilityMatrix,
+    }) => Awaitable<Authorizer>,
+}
+
+type ReadVisibility<ImplementationParamsSchema extends z.ZodType<unknown>> = (args: {
+    include: typeof visibilityIncluder,
+    prisma: PrismaPossibleTransaction<false>,
+    implementationParams: z.infer<ImplementationParamsSchema>,
+}) => Promise<Prisma.VisibilityGetPayload<{ include: typeof visibilityIncluder }>>
+
+/**
+ * The operations of one visibility an owning service holds, such as who administrates an event or
+ * who may register through a quota. `emptyMeans` says what an update to no requirements at all is:
+ * 'EVERYONE' lets it through, 'REFUSED' rejects it, for a visibility where that would hand the
+ * resource to everyone. `afterUpdate` runs once a change is saved, for what follows from it.
+ */
+export function implementVisibilityOperations<
+    const ImplementationParamsSchema extends z.ZodType<unknown>
+>({
+    implementationParamsSchema,
+    authorizers,
+    readVisibility,
+    emptyMeans,
+    afterUpdate,
+}: {
+    implementationParamsSchema: ImplementationParamsSchema,
+    authorizers: SingleAuthorizers<ImplementationParamsSchema>,
+    readVisibility: ReadVisibility<ImplementationParamsSchema>,
+    emptyMeans: 'EVERYONE' | 'REFUSED',
+    afterUpdate?: (args: {
+        /** The full client, since the update opens its own transaction and so runs outside any. */
+        prisma: PrismaPossibleTransaction<true>,
+        implementationParams: z.infer<ImplementationParamsSchema>,
+    }) => Awaitable<void>,
+}) {
+    const readMatrixInternal = async ({ prisma, params }: {
+        prisma: PrismaPossibleTransaction<false>,
+        params: z.infer<ImplementationParamsSchema>,
+    }): Promise<VisibilityMatrix> => toMatrix(await readVisibility({
+        prisma,
+        implementationParams: params,
+        include: visibilityIncluder,
+    }))
+
+    return {
+        readMatrixInternal,
+        readMatrix: defineOperation({
+            paramsSchema: implementationParamsSchema,
+            authorizer: async ({ params, prisma }) => authorizers.readMatrix({
+                prisma,
+                params,
+                matrix: await readMatrixInternal({ params, prisma }),
+            }),
+            operation: ({ params, prisma }) => readMatrixInternal({ params, prisma }),
+        }),
+        update: visibilityOperations.update.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: async ({ implementationParams, prisma }) => authorizers.update({
+                prisma,
+                implementationParams,
+                matrix: await readMatrixInternal({ params: implementationParams, prisma }),
+            }),
+            ownershipCheck: async ({ params, prisma, implementationParams }) => (await readVisibility({
+                include: visibilityIncluder,
+                prisma,
+                implementationParams,
+            })).id === params.visibilityId,
+            beforeRun: ({ data }) => {
+                if (emptyMeans === 'REFUSED' && data.requirements.length === 0) {
+                    throw new ServiceError('BAD DATA', 'Du må velge hvem som kan administrere')
+                }
+            },
+            afterRun: ({ prisma, implementationParams }) => afterUpdate?.({ prisma, implementationParams }),
+        }),
+    } as const
+}
 
 export function implementDoubleLevelVisibilityOperations<
     const ImplementationParamsSchema extends z.ZodType<unknown>
@@ -134,12 +201,6 @@ export function implementDoubleLevelVisibilityOperations<
                 prisma,
                 implementationParams,
             })).regularLevel.id === params.visibilityId,
-            beforeRun: async ({ prisma, implementationParams, data }) => assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: { requirements: data.requirements },
-                adminLevel: (await readDoubleLevelMatrixInternal({
-                    params: implementationParams, prisma
-                })).adminLevel
-            })
         }),
         updateAdminLevel: visibilityOperations.update.implement<ImplementationParamsSchema>({
             implementationParamsSchema,
@@ -156,16 +217,10 @@ export function implementDoubleLevelVisibilityOperations<
                 prisma,
                 implementationParams,
             })).adminLevel.id === params.visibilityId,
-            beforeRun: async ({ prisma, implementationParams, data }) => {
+            beforeRun: ({ data }) => {
                 if (data.requirements.length === 0) {
                     throw new ServiceError('BAD DATA', 'Du må velge hvem som kan administrere')
                 }
-                assertAdminLevelIsSubOfRegularLevel({
-                    regularLevel: (await readDoubleLevelMatrixInternal({
-                        params: implementationParams, prisma
-                    })).regularLevel,
-                    adminLevel: { requirements: data.requirements }
-                })
             }
         })
     } as const

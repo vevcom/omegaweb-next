@@ -3,7 +3,6 @@ import { ParseError, ServiceError, Smorekopp } from './error'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
 import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
-import { releaseCountdownHoldsBack } from '@/services/releaseCountdown/access'
 import logger from '@/lib/logger'
 import { zfd } from 'zod-form-data'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
@@ -157,6 +156,16 @@ export type BeforeRun<
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
 ) => Awaitable<void>
 
+/** Runs once the operation has, for what the owning service does in response, such as refilling places. */
+export type AfterRun<
+    OpensTransaction extends boolean,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    ImplementationParamsSchema extends z.ZodTypeAny | undefined,
+> = (
+    args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
+) => Awaitable<void>
+
 /** The fields the schemas of a sub-operation are built from, required when the sub-operation takes them. */
 type SchemaImplementationFieldsConfig<
     ParamsSchemaImplementationFields extends object | undefined,
@@ -224,6 +233,7 @@ export type ServiceOperationImplementationConfig<
     >,
     ownershipCheck: OwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
     beforeRun?: BeforeRun<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
+    afterRun?: AfterRun<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
 } & SchemaImplementationFieldsConfig<ParamsSchemaImplementationFields, DataSchemaImplementationFields>
     & (OperationImplementationFields extends undefined ?
         object
@@ -521,10 +531,6 @@ export function defineSubOperation<
                 context,
                 serviceOperationConfig.opensTransaction,
                 async ({ prisma, bypassAuth, session }) => {
-                    if (!bypassAuth && await releaseCountdownHoldsBack(executeOperation)) {
-                        throw new Smorekopp('UNAUTHORIZED', 'Nettsiden er ikke lansert ennå')
-                    }
-
                     // Then, authorize user.
                     // This has to be done after the validation because the
                     // authorizer might use the data to authorize the user.
@@ -582,11 +588,13 @@ export function defineSubOperation<
                     >
                     const operationImplementationFields = await prismaErrorWrapper(() => fieldsOf({ ...args, prisma }))
 
-                    return prismaErrorWrapper(() =>
+                    const result = await prismaErrorWrapper(() =>
                         serviceOperationConfig.operation(
                             operationImplementationFields
                         )({ ...args, prisma, bypassAuth, session }, prismaWhereFilter)
                     )
+                    await prismaErrorWrapper(() => implementationArgs.afterRun?.({ ...args, prisma }))
+                    return result
                 })
         }
 
