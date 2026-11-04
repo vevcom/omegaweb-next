@@ -16,14 +16,14 @@ export default function WorkInProgressBanner({ siteName, currentSiteHref }: Prop
         <aside
             role="note"
             className="
-                flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-2 bg-surface-raised border-b
-                border-surface-subtle text-s text-text text-center
+                flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-3 bg-accent-yellow text-m font-medium
+                text-[#1a1a1a] text-center
             "
         >
-            <FontAwesomeIcon icon={faTriangleExclamation} className="shrink-0 text-text-muted" />
+            <FontAwesomeIcon icon={faTriangleExclamation} className="shrink-0 text-xl" />
             <span>
                 Denne siden er under arbeid. {siteName} sine nåværende nettsider finner du på{' '}
-                <SiteLink href={currentSiteHref} className="font-medium underline">
+                <SiteLink href={currentSiteHref} className="font-semibold text-inherit underline">
                     {currentSiteHref.replace(/^https?:\/\//, '')}
                 </SiteLink>.
             </span>
