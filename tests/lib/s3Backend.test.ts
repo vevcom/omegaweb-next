@@ -1,5 +1,5 @@
 import { createS3Backend } from '@/lib/store/s3Backend'
-import { NoSuchKey, S3Client, S3ServiceException } from '@aws-sdk/client-s3'
+import { HeadBucketCommand, NoSuchKey, S3Client, S3ServiceException } from '@aws-sdk/client-s3'
 import { afterEach, describe, expect, jest, test } from '@jest/globals'
 
 const backend = createS3Backend({
@@ -36,5 +36,19 @@ describe('s3Backend', () => {
 
         await expect(backend.read('images/file.avif')).rejects.toBe(noSuchBucket)
         await expect(backend.stream('images/file.avif')).rejects.toBe(noSuchBucket)
+        await expect(backend.destroy('images/file.avif')).rejects.toBe(noSuchBucket)
+    })
+
+    test('destroying a missing file in a bucket that exists reports it as missing', async () => {
+        const notFound = new S3ServiceException({
+            name: 'NotFound',
+            $fault: 'client',
+            $metadata: { httpStatusCode: 404 },
+        })
+        jest.spyOn(S3Client.prototype, 'send').mockImplementation(((command: unknown) => (
+            command instanceof HeadBucketCommand ? Promise.resolve({}) : Promise.reject(notFound)
+        )) as never)
+
+        await expect(backend.destroy('images/missing.avif')).resolves.toBe(false)
     })
 })

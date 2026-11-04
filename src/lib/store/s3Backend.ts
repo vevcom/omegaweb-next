@@ -2,6 +2,7 @@ import '@pn-server-only'
 import {
     DeleteObjectCommand,
     GetObjectCommand,
+    HeadBucketCommand,
     HeadObjectCommand,
     ListObjectsV2Command,
     NoSuchKey,
@@ -47,8 +48,11 @@ export function createS3Backend(config: StoreS3Config): StoreBackend {
             await client.send(new HeadObjectCommand({ Bucket, Key: key }))
             return true
         } catch (error) {
-            if (isNotFound(error)) return false
-            throw error
+            if (!isNotFound(error)) throw error
+            // A HEAD reply has no body, so its 404 does not say whether the key or the bucket is
+            // missing. This throws if it is the bucket.
+            await client.send(new HeadBucketCommand({ Bucket }))
+            return false
         }
     }
 
