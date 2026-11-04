@@ -35,6 +35,8 @@ describe('DomainContext', () => {
         expect(context.servesBasePaths()).toBe(true)
         expect(context.browserPath()).toBe('/career/job-ads')
         expect(DomainContext.fromBrowser('omega.ntnu.no', '/events').site()).toBe(Site.OMEGAWEB)
+        expect(DomainContext.fromBrowser('omega.ntnu.no', '/').path).toBe('/')
+        expect(DomainContext.fromBrowser('omega.ntnu.no', '/?a=1').path).toBe('/?a=1')
     })
 
     test('the same page on contactor.no and on omega.ntnu.no/career are different contexts', () => {

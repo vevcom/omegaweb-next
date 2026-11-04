@@ -81,8 +81,7 @@ export class DomainContext {
         const siteDomain = DomainContext.config().domainOfHost(domain)
         const hostSite = siteDomain ? Site.of(siteDomain.site) : Site.root
         const rest = browserPath === '/' ? '' : browserPath.replace(/^\/(?=[?#])/, '')
-        // Omega's root is the app's root, '', which is no href: the page is `/`.
-        return new DomainContext(domain, appHref(hostSite.pagesPath(rest) || '/'))
+        return new DomainContext(domain, appHref(hostSite.isRoot ? browserPath : hostSite.pagesPath(rest)))
     }
 
     /** From the host and a path the app already routes, as the server gets them from the proxy's headers. */
