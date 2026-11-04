@@ -4,8 +4,9 @@ import { FormContext, FormInputSlot, flattenChildren, inputName } from './FormCo
 import FormSection from './FormSection'
 import { PopUpContext } from '@/contexts/PopUp'
 import SubmitButton from '@/components/UI/SubmitButton'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import React, { Children, isValidElement, useContext, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import type { AppHref } from '@/lib/sites/href'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
 import type { FormHTMLAttributes, ReactNode, DetailedHTMLProps } from 'react'
@@ -22,7 +23,7 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     action: ActionFormData<ReturnType>,
     successCallback?: (data?: ReturnType) => void,
     refreshOnSuccess?: boolean,
-    navigateOnSuccess?: string | ((data?: ReturnType) => string | null),
+    navigateOnSuccess?: AppHref | ((data?: ReturnType) => AppHref | null),
     closePopUpOnSuccess?: PopUpKeyType,
     buttonClassName?: string,
     disabled?: boolean,
@@ -61,7 +62,7 @@ export default function Form<GiveActionReturn>({
     const [success, setSuccess] = useState(false)
     const [pending, setPending] = useState(false)
     const PopUpCtx = useContext(PopUpContext)
-    const { refresh, push } = useRouter()
+    const { refresh, push } = useSiteRouter()
 
     const actionWithError = async (formData: FormData) => {
         setGeneralErrors(undefined)
@@ -81,6 +82,7 @@ export default function Form<GiveActionReturn>({
                 setSuccess(false)
                 if (refreshOnSuccess) refresh()
                 if (navigateOnSuccess) {
+                    // An app path, rendered for the domain the visitor is on.
                     if (typeof navigateOnSuccess === 'string') {
                         push(navigateOnSuccess)
                     } else if (typeof navigateOnSuccess === 'function') {

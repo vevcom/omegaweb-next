@@ -8,6 +8,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -34,7 +35,7 @@ const { page, generateMetadata } = serverPage({
                 order: expanded.order,
                 members: expanded.members,
                 pensioned: committee.group.pensioned,
-                href: `/committees/${committee.shortName}/admin`,
+                href: appHref(`/committees/${committee.shortName}/admin`),
             }] : []
         })
 

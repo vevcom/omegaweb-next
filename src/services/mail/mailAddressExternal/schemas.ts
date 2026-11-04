@@ -1,9 +1,9 @@
-import { validMailAddressDomains } from '@/services/mail/constants'
+import { isOwnMailAddress } from '@/services/mail/constants'
 import { z } from 'zod'
 
 const validAddress = z.string().email().min(2).max(50)
     .refine(
-        address => !validMailAddressDomains.includes(address.split('@')[1].trim()),
+        address => !isOwnMailAddress(address),
         'E-postadressen inneholder et forbudt domenenavn.',
     )
 

@@ -1,10 +1,10 @@
 import { linkToNotificationPage, replaceSpecialSymbols } from './helpers'
 import { sendMailSchemas } from '@/services/notifications/sendMail/schemas'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
-import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
+import { defaultNotificationAlias } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { NotificationWithChannel } from './types'
@@ -25,7 +25,7 @@ export async function sendNotificationEmails(
     notification: NotificationWithChannel,
     users: UserBasicWithEmail[]
 ) {
-    const senderAlias = senderAddress ?? DEFAULT_NOTIFICATION_ALIAS
+    const senderAlias = senderAddress ?? defaultNotificationAlias()
 
     const mails = (await Promise.all(users.map(async user => {
         const parsed = sendMailSchemas.data.notificationMail.safeParse({
@@ -51,7 +51,7 @@ export async function sendNotificationEmails(
             html: await wrapInHTML(user, parsed.data.text, notification.channel.name),
             list: {
                 unsubscribe: {
-                    url: SiteContext.publicUrl(Site.OMEGAWEB, omegaLinks.userNotifications(user)),
+                    url: DomainContext.publicUrl(Site.OMEGAWEB, omegaLinks.userNotifications(user)),
                     comment: 'Varslingsinnstillinger'
                 },
             }

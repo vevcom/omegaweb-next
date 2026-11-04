@@ -1,8 +1,8 @@
 'use client'
 import AddParts from '@/cms/AddParts'
 import useEditMode from '@/hooks/useEditMode'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import type { PropTypes as AddPartsPropTypes } from '@/cms/AddParts'
 import type {
     AddPartToArticleSectionAction,
@@ -29,7 +29,7 @@ export default function AddPartToArticleSection({
     capabilities,
     ...props
 }: PropTypes) {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
     const editable = useEditMode({ authResult: capabilities.canEdit })
 
     const handleAdd = useCallback(async (part: ArticleSectionPart) => {

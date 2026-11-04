@@ -3,7 +3,8 @@ import { authLinks } from '@/pageKits/auth/links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { userOperations } from '@/services/users/operations'
 import { serverPage } from '@/app/ServerPage'
-import { notFound, redirect } from 'next/navigation'
+import { siteRedirect } from '@/app/domainContextOfRequest'
+import { notFound } from 'next/navigation'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -15,9 +16,9 @@ export function registerPage(config: AuthPagesConfig) {
             const callbackUrl = QueryParams.callbackUrl.decode(searchParams) ?? links.afterLogin()
             if (!session.user) notFound()
             const updatedUser = await userOperations.read({ params: { id: session.user.id } })
-            if (updatedUser.acceptedTerms) redirect(callbackUrl)
+            if (updatedUser.acceptedTerms) await siteRedirect(callbackUrl)
             if (!updatedUser.emailVerified) {
-                redirect(links.registerEmail(callbackUrl))
+                await siteRedirect(links.registerEmail({ callbackUrl }))
             }
             return { updatedUser, callbackUrl }
         },

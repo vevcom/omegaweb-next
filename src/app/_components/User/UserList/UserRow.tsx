@@ -1,6 +1,7 @@
 import UserDisplayName from '@/components/User/UserDisplayName'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { UserPagingReturn } from '@/services/users/types'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     user: UserPagingReturn
@@ -9,7 +10,7 @@ type PropTypes = {
      * Makes the name a link to this href. Clicks on it do not propagate, so a clickable
      * row around it does not navigate a second time.
      */
-    href?: string,
+    href?: AppHref,
 }
 
 export default function UserRow({ user, groupSelected = false, href }: PropTypes) {
@@ -20,7 +21,7 @@ export default function UserRow({ user, groupSelected = false, href }: PropTypes
             <td>
                 {
                     href ? (
-                        <Link
+                        <SiteLink
                             href={href}
                             prefetch={false}
                             className="
@@ -30,7 +31,7 @@ export default function UserRow({ user, groupSelected = false, href }: PropTypes
                             onClick={event => event.stopPropagation()}
                         >
                             {displayName}
-                        </Link>
+                        </SiteLink>
                     ) : displayName
                 }
             </td>

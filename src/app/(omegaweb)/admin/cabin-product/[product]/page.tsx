@@ -8,7 +8,8 @@ import { serverPage } from '@/app/ServerPage'
 import { displayDate } from '@/lib/dates/displayDate'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
 import { displayAmount } from '@/lib/currency/convert'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { externalHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -43,7 +44,7 @@ const { page, generateMetadata } = serverPage({
                 <p>
                     Her bruker vi en egen syntaks for å skrive tidsintervallet en pris er gyldig i.
                     Syntaksen er inspirert av Cron, men tar bare med de tre siste feltene, siden vi bare bruker datoer.
-                    Les mer her: <Link href="https://crontab.guru/">crontab.guru</Link>.
+                    Les mer her: <SiteLink href={externalHref('https://crontab.guru/')}>crontab.guru</SiteLink>.
                     Siden vi har laget tolkingen selv, er syntaksen litt begrenset.
                     De tre feltene vi støtter, er <i>dag i måneden</i>, <i>måned</i> og <i>ukedag</i>.
                 </p>

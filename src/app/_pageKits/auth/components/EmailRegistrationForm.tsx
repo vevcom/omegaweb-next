@@ -5,10 +5,11 @@ import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
 import { authLinks } from '@/pageKits/auth/links'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { UserFiltered } from '@/services/users/types'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     config: AuthPagesConfig,
@@ -18,7 +19,7 @@ type PropTypes = {
         feideEmailTrustedAsVerified: boolean,
         createdByFeideLoginOnOmegawebNext: boolean,
     } | null,
-    callbackUrl: string,
+    callbackUrl: AppHref,
 }
 
 // A rule on each side of the text.
@@ -29,7 +30,7 @@ const dividerClassName = `
 `
 
 export default function EmailRegistrationForm({ config, user, feideLoginMatch, callbackUrl }: PropTypes) {
-    const { push } = useRouter()
+    const { push } = useSiteRouter()
 
     const [feedback, setFeedback] = useState<string | null>(null)
 
@@ -51,7 +52,7 @@ export default function EmailRegistrationForm({ config, user, feideLoginMatch, c
             successCallback={(data) => {
                 if (data) {
                     if (data.verified) {
-                        push(authLinks(config).register(callbackUrl))
+                        push(authLinks(config).register({ callbackUrl }))
                     } else {
                         setFeedback(`
                             For å bekrefte at dette er din e-post har vi sendt en e-post til ${data.email}.

@@ -4,9 +4,12 @@ import { popUpClassNames } from './popUpClassNames'
 import useKeyPress from '@/hooks/useKeyPress'
 import { InsidePopUpContext, PopUpContext } from '@/contexts/PopUp'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import useDomainContext from '@/hooks/useDomainContext'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useContext, useEffect, useState, useRef, useCallback, useEffectEvent } from 'react'
 import type { ReactNode, CSSProperties, RefObject } from 'react'
 import type { PopUpKeyType } from '@/contexts/PopUp'
@@ -74,9 +77,10 @@ export default function PopUp({
     ariaLabel,
     storeInUrl = false,
 }: PropTypes) {
-    const router = useRouter()
+    const router = useSiteRouter()
     const searchParams = useSearchParams()
-    const pathName = usePathname()
+    // The page as the app routes it, which the router resolves for the domain the visitor is on.
+    const pathName = useDomainContext().path
     const [isOpen, setIsOpen] = useState(() => storeInUrl && searchParams.get('pop-up-key') === String(popUpKey))
 
     const popUpContext = useContext(PopUpContext)
@@ -148,7 +152,7 @@ export default function PopUp({
         const oldUrl = `${pathName}?${searchParams.toString()}`
 
         if (newUrl !== oldUrl) {
-            router.replace(`${pathName}?${params.toString()}`)
+            router.replace(appHref(`${pathName}?${params.toString()}`))
         }
     })
 

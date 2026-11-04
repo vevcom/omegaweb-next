@@ -1,14 +1,15 @@
 'use client'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { usePathname } from 'next/navigation'
-import Link from 'next/link'
 import type { IconProp } from '@fortawesome/fontawesome-svg-core'
 import type { ReactNode } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 type SubPageNavBarProps = {
     children?: ReactNode,
     icon?: IconProp,
-    href: string
+    href: AppHref
 }
 
 export function SubPageNavBarItem({ children, icon, href }:SubPageNavBarProps) {
@@ -22,7 +23,7 @@ export function SubPageNavBarItem({ children, icon, href }:SubPageNavBarProps) {
             last:mb-0
             [&>a]:no-underline
         ">
-            <Link href={href}>
+            <SiteLink href={href}>
                 <div className={`
                     inline-flex items-center justify-center h-[calc(64px-2*var(--gap))] px-2 border-0
                     max-mobile:px-1
@@ -37,7 +38,7 @@ export function SubPageNavBarItem({ children, icon, href }:SubPageNavBarProps) {
                         max-mobile:hidden
                     ">{children}</p>
                 </div>
-            </Link>
+            </SiteLink>
         </div>
     )
 }

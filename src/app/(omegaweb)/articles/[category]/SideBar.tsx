@@ -8,11 +8,12 @@ import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import { removeArticleFromCategoryAction } from '@/services/articleCategories/actions'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { formatVevenUri } from '@/lib/urlEncoding'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import React, { useRef, useState } from 'react'
-import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronUp, faX } from '@fortawesome/free-solid-svg-icons'
-import { useRouter } from 'next/navigation'
 import type { ExpandedArticleCategoryWithVisibility } from '@/services/articleCategories/types'
 
 type PropTypes = {
@@ -105,7 +106,7 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
     const canRemoveArticle = useAuthorizer({
         authorizer: articleCategoryAuth.removeArticleFromCategory.data({ visibility: category.visibility })
     }).authorized
-    const { push, refresh } = useRouter()
+    const { push, refresh } = useSiteRouter()
 
     const handleDestroy = async (id: number) => {
         const res = await removeArticleFromCategoryAction(
@@ -113,7 +114,7 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
             { params: { articleId: id } }
         )
         if (!res.success) throw new Error('Kunne ikke slette artikkelen')
-        push(`/articles/${category.name}`)
+        push(appHref(`/articles/${category.name}`))
         refresh()
     }
 
@@ -127,9 +128,9 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
             {
                 category.articles.map(article => (
                     <li key={article.id}>
-                        <Link href={`/articles/${category.name}/${formatVevenUri(article.name, article.id)}`}>
+                        <SiteLink href={appHref(`/articles/${category.name}/${formatVevenUri(article.name, article.id)}`)}>
                             {article.name.toUpperCase()}
-                        </Link>
+                        </SiteLink>
                         {
                             canRemoveArticle && (
                                 <button

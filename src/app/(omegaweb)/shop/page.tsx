@@ -7,9 +7,10 @@ import { shopOperations } from '@/services/shop/shop/operations'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { productAuth } from '@/services/shop/product/auth'
 import { serverPage } from '@/app/ServerPage'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { faArrowRight, faBox, faStore } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import Link from 'next/link'
 
 const { page, generateMetadata } = serverPage({
     operation: () => shopOperations.readMany({}),
@@ -24,7 +25,7 @@ const { page, generateMetadata } = serverPage({
             headerItem={
                 <div className="flex items-center gap-[1em]">
                     {capabilities.canAdministerProducts.authorized && (
-                        <HeaderItemLink href="/shop/products" label="Produkter" icon={faBox} />
+                        <HeaderItemLink href={appHref('/shop/products')} label="Produkter" icon={faBox} />
                     )}
                     {capabilities.canCreateShop.authorized && (
                         <AddHeaderItemPopUp popUpKey="createShop">
@@ -39,9 +40,9 @@ const { page, generateMetadata } = serverPage({
             ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
                     {sortObjectsByName(shops).map(shop => (
-                        <Link
+                        <SiteLink
                             key={shop.id}
-                            href={`/shop/${shop.id}`}
+                            href={appHref(`/shop/${shop.id}`)}
                             className="
                                 group flex flex-col gap-3 rounded-round bg-surface-raised p-5 text-text no-underline
                                 transition-colors duration-300
@@ -70,7 +71,7 @@ const { page, generateMetadata } = serverPage({
                                     group-hover:translate-x-1
                                 " />
                             </span>
-                        </Link>
+                        </SiteLink>
                     ))}
                 </div>
             )}

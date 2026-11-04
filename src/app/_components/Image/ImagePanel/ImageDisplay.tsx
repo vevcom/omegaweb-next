@@ -5,10 +5,11 @@ import Image from '@/components/Image/Image'
 import useKeyPress from '@/hooks/useKeyPress'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import { imageSourceForResolution } from '@/lib/images/imageSource'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { hrefOf } from '@/lib/sites/href'
 import { faChevronRight, faChevronLeft, faX } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useCallback, useState } from 'react'
-import Link from 'next/link'
 import type { ImageResolution } from '@/lib/images/resolutionForWidth'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
@@ -110,13 +111,13 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                                 <dt>Lisens:</dt>
                                 <dd>{
                                     image.licenseLink ?
-                                        <Link
-                                            href={image.licenseLink}
+                                        <SiteLink
+                                            href={hrefOf(image.licenseLink)}
                                             target="_blank"
                                             referrerPolicy="no-referrer"
                                         >
                                             {image.licenseName}
-                                        </Link>
+                                        </SiteLink>
                                         : 'ingen'
                                 }</dd>
                             </div>

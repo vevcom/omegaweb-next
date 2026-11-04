@@ -3,7 +3,7 @@ import Image from '@/components/Image/Image'
 import SponsorBadge from '@/components/Company/SponsorBadge'
 import { osloDateTime } from '@/lib/dates/oslo'
 import { jobAdType } from '@/services/careers/jobAds/constants'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import type { SimpleJobAd } from '@/services/careers/jobAds/types'
 import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
@@ -19,7 +19,7 @@ export default function JobAd({ jobAd, config }: PropTypes) {
     const deadline = jobAd.applicationDeadline ? osloDateTime(jobAd.applicationDeadline) : null
 
     return (
-        <Link
+        <SiteLink
             href={jobAdLinks(config).jobAd(jobAd)}
             className="list-row"
         >
@@ -61,6 +61,6 @@ export default function JobAd({ jobAd, config }: PropTypes) {
                     <span className="bg-accent-red text-text-inv px-2 rounded-inner font-medium">Inaktiv</span>
                 )}
             </div>
-        </Link>
+        </SiteLink>
     )
 }

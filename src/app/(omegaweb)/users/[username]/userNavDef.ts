@@ -13,6 +13,7 @@ import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { Require } from '@/auth/authorizer/Require'
+import { appHref } from '@/lib/sites/href'
 import {
     faCalendarCheck,
     faCircleDot,
@@ -29,6 +30,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
+import type { AppHref } from '@/lib/sites/href'
 
 /** The user a page is about - everything a page's authorizers are allowed to key off. */
 export type UserNavSubject = {
@@ -176,8 +178,8 @@ export type UserNavGroup = keyof typeof userNavDef
 
 export type UserNavPath = Extract<(typeof userNavDef)[UserNavGroup][number], { path: string }>['path']
 
-export function userNavHref(username: string, item: UserNavItem) {
-    return `/users/${username}${item.path ? `/${item.path}` : ''}`
+export function userNavHref(username: string, item: UserNavItem): AppHref {
+    return appHref(`/users/${username}${item.path ? `/${item.path}` : ''}`)
 }
 
 /**

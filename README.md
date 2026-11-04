@@ -7,7 +7,7 @@ For getting started please refer to our [Getting Started Guide](https://github.c
 
 ## Development
 
-Have the docker deamon running, then run:
+Copy `sites.example.json` to `sites.json`, which maps the development hosts to the sites and is mounted into the stack; the app does not start without it. Have the docker deamon running, then run:
 
 ```bash
 npm run docker:dev
@@ -71,11 +71,12 @@ There is no nginx. Next serves `/store/` itself (`src/app/store/[...path]/route.
 
 1. **Database**: create a Dokploy Postgres resource. Note its internal hostname from the resource's connection tab, and configure its backup schedule there.
 2. **Stack**: create a Dokploy Docker Compose service pointed at this repository (`main`, or whichever branch tracks prod), with the compose path set to `docker-compose.prod.yml`.
-3. Configure the environment variables for the stack (see `.env.default` for the full list and dev-appropriate example values - set real secrets for production). Set `POSTGRES_HOST` to the database resource's internal hostname; `DB_URI` is built from it.
-4. Set `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` as a **build argument**, not only a runtime environment variable. Next bakes it into the build during `next build` to encrypt Server Action IDs, and a runtime env var is not automatically passed to the build - so a build without it generates a fresh random key every time. Because Dokploy rebuilds the image on every deploy, that invalidates any Server Action referenced by a page a client still has open across the deploy ("Failed to find Server Action"). `docker-compose.base.yml` already passes it through under `build.args`, so setting it as a stack environment variable is enough - but it must keep the same value across deploys.
-5. The `store` and `logs` volumes are declared in the compose file, so uploads and logs survive a redeploy without any extra setup. `store` is shared by `omegaweb-next` and `worker` - the worker writes the resized variants and the app serves them back out.
-6. In Dokploy's UI, set the domain on the `omegaweb-next` service. Dokploy injects the Traefik labels itself. A liveness endpoint is available at `/api/health` (also used by the compose healthcheck) if Dokploy asks for one.
-7. Ingress goes through a Cloudflare Tunnel app in Dokploy, which forwards to Dokploy's built-in Traefik; Traefik then routes to `omegaweb-next`. Nothing needs host ports 80/443 opened directly.
+3. Configure the environment variables for the stack (see `.env.default` for the full list and dev-appropriate example values - set real secrets for production). Set `POSTGRES_HOST` to the database resource's internal hostname; `DB_URI` is built from it. Keep `AUTH_TRUST_HOST=true` and `NEXTAUTH_URL` unset, so NextAuth serves every domain in `sites.json` on its own, and register `https://<domain>/api/auth/callback/feide` at Feide for each of them.
+4. **Domains**: create a Dokploy file mount holding the production `sites.json`, in the format of `sites.example.json`: every domain the sites are reached on, `https`, and one main domain per site with domains. Omega's site must have one, since links in mail and Omega's mail addresses go by it. Set `SITES_JSON_PATH` to the file (`../files/sites.json` for a file mount on a Compose service). The app, the worker and the migrate job all mount it, and none of them start without it. A change to it takes a redeploy.
+5. Set `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` as a **build argument**, not only a runtime environment variable. Next bakes it into the build during `next build` to encrypt Server Action IDs, and a runtime env var is not automatically passed to the build - so a build without it generates a fresh random key every time. Because Dokploy rebuilds the image on every deploy, that invalidates any Server Action referenced by a page a client still has open across the deploy ("Failed to find Server Action"). `docker-compose.base.yml` already passes it through under `build.args`, so setting it as a stack environment variable is enough - but it must keep the same value across deploys.
+6. The `store` and `logs` volumes are declared in the compose file, so uploads and logs survive a redeploy without any extra setup. `store` is shared by `omegaweb-next` and `worker` - the worker writes the resized variants and the app serves them back out.
+7. In Dokploy's UI, set the domain on the `omegaweb-next` service. Dokploy injects the Traefik labels itself. A liveness endpoint is available at `/api/health` (also used by the compose healthcheck) if Dokploy asks for one.
+8. Ingress goes through a Cloudflare Tunnel app in Dokploy, which forwards to Dokploy's built-in Traefik; Traefik then routes to `omegaweb-next`. Nothing needs host ports 80/443 opened directly.
 
 Dokploy brings the stack up itself. To deploy by hand on a host that already has `dokploy-network` and the database resource, `npm run docker:prod-deploy` runs the same file detached and without the `localdb` profile.
 
@@ -130,11 +131,11 @@ It is separate because the two directions of mail need different things from the
 Deploying it:
 
 1. Create a Dokploy application built from `containers/postfix/`, attached to `dokploy-network` so it can reach the database resource.
-2. Give it `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (the alias lookups read the same database as the app), plus `EMAIL_HOSTNAME`, `WEBSITE_DOMAIN` and `EMAIL_RELAY_HOST`.
-3. Expose port 25 on the host and point the mail domain's MX record at it.
+2. Give it `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (the alias lookups read the same database as the app), plus `EMAIL_HOSTNAME`, the mail server's own name, and `EMAIL_RELAY_HOST`, where it relays. The app reads neither.
+3. Expose port 25 on the host and point the MX record of every mail domain at it. Postfix receives mail for every domain an alias is on (`containers/postfix/pgsql-domains.cf.tmpl`), and for its own name, `EMAIL_HOSTNAME`. The app only allows aliases on the domains in `sites.json`, so a site's domain is received here once it has an alias and an MX record, with no change to this deployment.
 4. Provision a certificate for the mail domain and turn `smtpd_use_tls` back on in `containers/postfix/main.cf.tmpl`. It is `no` there because the old certbot flow lived in the nginx container that this setup removed, and pointing Postfix at cert files that don't exist stops it from starting. Inbound SMTP on a published port should not stay plaintext.
 
-`EMAIL_SERVER` on the stack is unrelated to this Postfix deployment - it points the app at its own outbound provider (e.g. SMTP2GO), configured with `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` and `EMAIL_SECURE`.
+`EMAIL_SERVER` on the stack is unrelated to this Postfix deployment - it points the app at its own outbound provider (e.g. SMTP2GO), configured with `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` and `EMAIL_SECURE`. Senders may be on any domain in `sites.json`, so verify every domain mail is sent from at the provider (SPF and DKIM), or it lands in spam.
 
 ## Lint
 

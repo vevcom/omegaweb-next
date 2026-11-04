@@ -14,7 +14,8 @@ import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAuth } from '@/services/mail/auth'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import type { MailAddressExternal, MailAlias } from '@/prisma-generated-pn-types'
 import type { ExpandedGroup } from '@/services/groups/types'
 import type { MailFlowObject } from '@/services/mail/types'
@@ -32,7 +33,7 @@ export default function EditMailingList({
     mailAddressExternal: MailAddressExternal[],
     groups: ExpandedGroup[],
 }) {
-    const { push, refresh } = useRouter()
+    const { push, refresh } = useSiteRouter()
 
     const focusedMailingList = data.mailingList.find(list => list.id === id)
     if (!focusedMailingList) throw new Error('Fant ikke e-postlisten')
@@ -115,7 +116,7 @@ export default function EditMailingList({
 
         {canDestroyMailingList && <Form
             action={configureAction(destroyMailingListAction, { params: { id: focusedMailingList.id } })}
-            successCallback={() => push('/admin/mail/mailingList')}
+            successCallback={() => push(appHref('/admin/mail/mailingList'))}
             submitText="Slett e-postlisten"
             submitColor="red"
             confirmation={{

@@ -12,7 +12,7 @@ import {
     updateCareersTeamPersonImageAction,
 } from '@/services/careers/team/persons/actions'
 import { careersTeamPersonAuth } from '@/services/careers/team/persons/auth'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faArrowRight, faPencil } from '@fortawesome/free-solid-svg-icons'
 import type { ExpandedCareerTeamPerson } from '@/services/careers/team/persons/types'
@@ -31,7 +31,7 @@ const controlClassName = `
 
 export default function TeamPersonEditor({ person, canMoveBack, canMoveForward }: PropTypes) {
     const editable = useEditMode({ authorizer: careersTeamPersonAuth.update })
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
     const popUpKey = `EditCareersTeamPerson${person.id}`
     const params = { params: { personId: person.id } }
 

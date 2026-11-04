@@ -3,7 +3,7 @@ import CompanyList from '@/components/Company/CompanyList'
 import TextInput from '@/components/UI/TextInput'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
 import { careerLinks } from '@/app/(careers)/links'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { useContext } from 'react'
 import type { ChangeEvent } from 'react'
 
@@ -34,9 +34,9 @@ export default function CompanyChooser({ className }: PropTypes) {
                     name="name"
                     onChange={handleNameFilter}
                 />
-                <Link href={careerLinks.companies()} className="secondary-btn m-0 whitespace-nowrap">
+                <SiteLink href={careerLinks.companies()} className="secondary-btn m-0 whitespace-nowrap">
                     Administrer bedrifter
-                </Link>
+                </SiteLink>
             </div>
             <div className="
                 flex-1 min-h-0 overflow-y-auto pr-2

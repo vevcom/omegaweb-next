@@ -1,7 +1,8 @@
+import SiteLink from '@/components/SiteLink/SiteLink'
 import React from 'react'
-import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faInbox } from '@fortawesome/free-solid-svg-icons'
+import type { AppHref } from '@/lib/sites/href'
 
 export default function LoggedInSection({
     title,
@@ -12,7 +13,7 @@ export default function LoggedInSection({
     children,
 }: {
     title: string,
-    link: string,
+    link: AppHref,
     /** 'rows' stacks full-width children instead of laying them out as a card grid. */
     layout?: 'grid' | 'rows',
     /** How much of the island row this section claims once there is room for two. */
@@ -41,11 +42,11 @@ export default function LoggedInSection({
             [&>h4]:text-xl [&>h4]:font-bold [&>h4]:font-secondary
         ">
             <h4>{title}</h4>
-            <Link href={link} className="
+            <SiteLink href={link} className="
                 shrink-0 flex items-center h-10 px-4 rounded-inner bg-surface-hover text-ink-strong text-m font-medium
                 whitespace-nowrap no-underline transition-colors duration-300
                 hover:bg-surface-subtle hover:text-ink-strong hover:no-underline
-            ">Se flere</Link>
+            ">Se flere</SiteLink>
         </div>
         <div className={`
             text-m mt-4

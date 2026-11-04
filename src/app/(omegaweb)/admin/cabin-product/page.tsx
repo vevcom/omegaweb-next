@@ -6,6 +6,7 @@ import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { serverPage } from '@/app/ServerPage'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -36,7 +37,7 @@ const { page, generateMetadata } = serverPage({
                     product.type,
                     product.amount.toString()
                 ])}
-                links={products.map(product => `/admin/cabin-product/${product.id}`)}
+                links={products.map(product => appHref(`/admin/cabin-product/${product.id}`))}
             />
         </PageWrapper>
     ),

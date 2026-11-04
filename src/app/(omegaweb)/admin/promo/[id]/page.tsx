@@ -15,6 +15,7 @@ import { promoAuth } from '@/services/promo/auth'
 import { serverPage } from '@/app/ServerPage'
 import { configureAction } from '@/services/configureAction'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -67,7 +68,7 @@ const { page, generateMetadata } = serverPage({
                 title="Slett promo"
                 submitText="Slett promo"
                 action={configureAction(destroyPromoAction, { params: { promoId: promo.id } })}
-                navigateOnSuccess="/admin/promo"
+                navigateOnSuccess={appHref('/admin/promo')}
                 submitColor="red"
                 confirmation={{
                     confirm: true,
