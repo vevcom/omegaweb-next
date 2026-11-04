@@ -60,6 +60,9 @@ jobs:
           projectnext-tools=ghcr.io/vevcom/omegaweb-next-tools:${{ github.event.release.tag_name }}
     - uses: peter-evans/create-pull-request@v7
       with:
+        # GitHub starts no workflows for a pull request made with the default token, so the checks
+        # main requires would never report.
+        token: ${{ secrets.DEPLOY_PR_TOKEN }}
         branch: deploy/${{ github.event.release.tag_name }}
         commit-message: "deploy: ${{ github.event.release.tag_name }} to prod"
         title: "deploy: ${{ github.event.release.tag_name }} to prod"

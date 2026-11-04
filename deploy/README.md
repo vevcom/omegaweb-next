@@ -31,7 +31,7 @@ deploy/
 
 ## Trying it locally
 
-You need the tools from `~/dotfiles/modules/kubernetes.nix` and Docker.
+You need Docker and the tools in the repo's flake, which `nix develop` puts on your path.
 
 ```bash
 ./deploy/k3d/up.sh                 # cluster, CNPG, images, secrets, overlay
@@ -106,9 +106,23 @@ Use `copy`, not `sync`, so deletes never reach the copy.
        --docker-username=<user> --docker-password=<read:packages token>
    ```
 
-6. **Set up GitHub.** Add the secret `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` and the
-   variable `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and keep both GHCR packages private.
-7. **Bootstrap Argo CD** from vivat, as its README describes.
-8. **Move the data.** Stop the Dokploy stack, then `pg_dump` the Dokploy database
-   into the `projectnext-db` cluster with `pg_restore`. Copy the `store` volume to the
-   bucket with `rclone copy <store volume> s3:<bucket>`. Then point DNS at the new box.
+6. **Set up GitHub.** Add the secrets `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` and
+   `DEPLOY_PR_TOKEN`, and the variable `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and keep both
+   GHCR packages private. `DEPLOY_PR_TOKEN` is a token with write access to contents and pull
+   requests on this repo, which `release.yml` opens the deploy pull request with.
+7. **Bootstrap Argo CD** from vivat, as its README describes. Deploy the release Dokploy
+   runs, since the restore below replaces the migration history along with the schema.
+8. **Move the data.** Stop the Dokploy stack and dump its database. The migrate job has
+   already created and seeded the new database, and the workers are running against it, so
+   the restore replaces everything in one transaction. If it fails, nothing has changed.
+
+   ```bash
+   docker exec <dokploy db container> pg_dump -Fc -U <user> <database> > projectnext.dump
+   uri=$(kubectl -n projectnext get secret projectnext-db-app -o jsonpath='{.data.uri}' | base64 -d)
+   kubectl -n projectnext exec -i projectnext-db-1 -c postgres -- \
+       pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction -d "$uri" \
+       < projectnext.dump
+   ```
+
+   Copy the `store` volume to the bucket with `rclone copy <store volume> s3:<bucket>`. Then
+   point DNS at the new box.
