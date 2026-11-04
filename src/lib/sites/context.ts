@@ -58,6 +58,11 @@ export class DomainContext {
         return store.domainConfig !== undefined
     }
 
+    /** The domain a host is an alias of, such as `www.omega.ntnu.no` of `omega.ntnu.no`, or null for no alias. */
+    static domainOfAlias(host: string): SiteDomain | null {
+        return DomainContext.config().domainOfAlias(host)
+    }
+
     /** The host names of the configured domains, without ports, such as `contactor.no`. */
     static hostNames(): string[] {
         return DomainContext.config().hostNames()

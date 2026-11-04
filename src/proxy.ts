@@ -25,10 +25,9 @@ export function proxy(request: NextRequest) {
 
     // Once domains are configured, a host that is not one of them gets nothing but the healthcheck.
     if (!context.siteDomain() && DomainContext.domainsForBrowser().length > 0 && pathname !== '/api/health') {
-        // A browser that guesses `www.` in front of a domain is sent to the domain itself.
-        const withoutWww = domain.replace(/^www\./i, '')
-        const siteDomain = withoutWww === domain ? null : DomainContext.fromBrowser(withoutWww, browserPath).siteDomain()
-        if (siteDomain) return NextResponse.redirect(`${siteDomain.origin}${browserPath}`, 308)
+        const aliased = DomainContext.domainOfAlias(domain)
+        if (aliased) return NextResponse.redirect(`${aliased.origin}${browserPath}`, 308)
+        // A body, so no browser takes the empty answer for a file to download.
         return new NextResponse('Not found', { status: 404, headers: { 'content-type': 'text/plain' } })
     }
 
