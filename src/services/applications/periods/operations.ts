@@ -189,7 +189,7 @@ export const applicationPeriodOperations = {
             })
             if (period.endPriorityDate.getTime() > Date.now()) {
                 throw new ServiceError(
-                    'DISSALLOWED', 'You cannot remove application texts before the end of the priority date.'
+                    'DISSALLOWED', 'Du kan ikke fjerne søknadstekster før prioriteringsfristen er ute.'
                 )
             }
             await prisma.application.updateMany({

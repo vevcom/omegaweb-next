@@ -11,11 +11,11 @@ export default function CreateOrder({ allRequirementsFulfilled }: PropTypes) {
         <Form
             action={createOmegaOrderAction}
             refreshOnSuccess
-            submitText="Inkrementer omega"
+            submitText="Inkrementer Omega"
             submitColor={allRequirementsFulfilled ? 'primary' : 'red'}
             confirmation={{
                 confirm: true,
-                text: 'Dette er en alvorlig operasjon å gjøre, er du sikker på at du vil fortsette?'
+                text: 'Dette er en alvorlig operasjon. Er du sikker på at du vil fortsette?'
             }}
         />
     )

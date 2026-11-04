@@ -87,7 +87,7 @@ export namespace Zpn {
             z.string()
                 .transform((val) => new Date(val))
                 .refine((datetime) => !isNaN(datetime.getTime()), {
-                    message: `${label} er i innvalid`,
+                    message: `${label} er ugyldig`,
                 }),
             z.date()
         ])
@@ -104,7 +104,7 @@ export namespace Zpn {
             } else {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: 'En uventet feil oppsto under parsing av cron uttrykket.',
+                    message: 'En uventet feil oppsto under tolking av cron-uttrykket.',
                 })
             }
         }

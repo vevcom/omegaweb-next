@@ -49,7 +49,7 @@ export const seedCabin = defineSeedOperation(async (prisma: PrismaClient) => {
             ]
         },
         {
-            name: 'Seng (120cm)',
+            name: 'Seng (120 cm)',
             amount: 3,
             type: 'BED',
             CabinProductPrice: [{
@@ -60,7 +60,7 @@ export const seedCabin = defineSeedOperation(async (prisma: PrismaClient) => {
             }]
         },
         {
-            name: 'Køye seng (90cm)',
+            name: 'Køyeseng (90 cm)',
             amount: 14,
             type: 'BED',
             CabinProductPrice: [{

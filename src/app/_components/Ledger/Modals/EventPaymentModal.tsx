@@ -8,6 +8,7 @@ import type { ReactNode } from 'react'
 
 type Props = {
     eventId: number,
+    variantId: number,
     userId: number,
     price: number,
     triggerLabel: ReactNode,
@@ -18,6 +19,7 @@ type Props = {
 
 export default function EventPaymentModal({
     eventId,
+    variantId,
     userId,
     price,
     triggerLabel,
@@ -40,6 +42,7 @@ export default function EventPaymentModal({
                 params: {
                     userId,
                     eventId,
+                    variantId,
                     provider: paymentMethod,
                     amountFromBalance,
                     manualFees: manualFees ?? 0,

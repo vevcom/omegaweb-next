@@ -4,6 +4,7 @@ export const notificationChannelAuth = {
     create: Require.permission('NOTIFICATION_ADMIN'),
     readMany: Require.user(),
     readDefault: Require.user(),
+    readSpecial: Require.user(),
     update: Require.permission('NOTIFICATION_ADMIN'),
     destroy: Require.permission('NOTIFICATION_ADMIN'),
 } as const

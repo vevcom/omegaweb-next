@@ -80,7 +80,7 @@ function detectExtension(content: Buffer): StorableExtension | null {
 
 /**
  * The mime type to construct a File with, for a file read off disk by its extension, or null if no
- * known format is named that way. Used by the standard store and the omegaweb-basic migration, whose
+ * known format is named that way. Used by the standard store.
  * Note that we are not simply doint image/${extension} because that would produce image/jpg for .jpg files,
  * and the store names every jpeg image .jpeg, so that would be wrong.
  * We need to get the canonical mime type for the extension, and the store will then use that to name the file correctly.

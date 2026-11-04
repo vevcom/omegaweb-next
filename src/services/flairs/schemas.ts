@@ -3,7 +3,7 @@ import { imageSchemas } from '@/services/images/subservice/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
-    name: z.string().min(2, 'min length is 2').max(50, 'max length is 50'),
+    name: z.string().min(2, 'Minimum lengde er 2 tegn').max(50, 'Maks lengde er 50 tegn'),
     color: Zpn.colorInput(),
 })
 

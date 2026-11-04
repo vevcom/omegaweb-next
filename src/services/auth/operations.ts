@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { authAuth } from './auth'
 import { authSchemas, linkFeideAccountClaimsSchema } from './schemas'
 import { moveFeideAccountToUser } from './feideAccounts/move'
+import { Site } from '@/lib/sites/site'
 import { userBasicSelection, userPartitions } from '@/services/users/constants'
 import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
 import { sendLinkFeideAccountMail } from '@/lib/email/systemMail/linkFeideAccount'
@@ -19,7 +20,7 @@ function readLinkFeideAccountClaims(token: string) {
     const claims = linkFeideAccountClaimsSchema.safeParse(verifyJWT(token, 'linkfeideaccount'))
 
     if (!claims.success) {
-        throw new ServiceError('JWT INVALID', 'The JWT does not contain the mandatory fields')
+        throw new ServiceError('JWT INVALID', 'Lenken mangler påkrevd informasjon')
     }
 
     return claims.data
@@ -33,7 +34,7 @@ export const authOperations = {
             const payload = verifyJWT(params.token, 'verifyemail')
 
             if (!payload.sub || !payload.email || !payload.iat) {
-                throw new ServiceError('JWT INVALID', 'The JWT does not contain the mandatory fields')
+                throw new ServiceError('JWT INVALID', 'Lenken mangler påkrevd informasjon')
             }
 
             const userId = Number(payload.sub)
@@ -98,7 +99,7 @@ export const authOperations = {
             const payload = verifyJWT(params.token, 'resetpassword')
 
             if (!payload.sub || !payload.iat) {
-                throw new ServiceError('JWT INVALID', 'The forgot password JWT is not valid')
+                throw new ServiceError('JWT INVALID', 'Lenken for å nullstille passordet er ugyldig')
             }
 
             const userId = Number(payload.sub)
@@ -114,7 +115,7 @@ export const authOperations = {
             })
 
             if (user.credentials && user.credentials?.credentialsUpdatedAt > new Date(payload.iat * 1000)) {
-                throw new ServiceError('JWT INVALID', 'The password has already been changed')
+                throw new ServiceError('JWT INVALID', 'Passordet er allerede endret')
             }
 
             // Tokens issued before the email claim was added carry none.
@@ -162,7 +163,7 @@ export const authOperations = {
                     firstname: true,
                     lastname: true,
                     acceptedTerms: true,
-                    createdByFeideLoginOnProjectNext: true,
+                    createdByFeideLoginOnOmegawebNext: true,
                     credentials: { select: { userId: true } },
                     feideAccount: { select: { id: true, email: true } },
                 },
@@ -170,7 +171,7 @@ export const authOperations = {
 
             if (
                 !feideUser.feideAccount ||
-                !feideUser.createdByFeideLoginOnProjectNext ||
+                !feideUser.createdByFeideLoginOnOmegawebNext ||
                 feideUser.credentials ||
                 feideUser.acceptedTerms
             ) {
@@ -205,7 +206,7 @@ export const authOperations = {
                         feideAccountId: feideUser.feideAccount.id,
                         name: `${feideUser.firstname} ${feideUser.lastname}`,
                         email: feideUser.feideAccount.email,
-                    })
+                    }, Site.of(params.site))
                 } catch (err) {
                     logger.error(`Failed to send link feide account mail to user '${targetUser.username}'`, { error: err })
                 }
@@ -227,7 +228,7 @@ export const authOperations = {
             const user = await prisma.user.findUniqueOrThrow({
                 where: { id: params.userId },
                 select: {
-                    createdByFeideLoginOnProjectNext: true,
+                    createdByFeideLoginOnOmegawebNext: true,
                     feideAccount: { select: { email: true } },
                 },
             })
@@ -239,7 +240,7 @@ export const authOperations = {
             return {
                 feideEmail: user.feideAccount.email,
                 feideEmailTrustedAsVerified: feideEmailDomainsTrustedAsVerified.includes(feideEmailDomain),
-                createdByFeideLoginOnProjectNext: user.createdByFeideLoginOnProjectNext,
+                createdByFeideLoginOnOmegawebNext: user.createdByFeideLoginOnOmegawebNext,
             }
         }
     }),
@@ -294,20 +295,24 @@ export const authOperations = {
                 select: { id: true },
             })
 
+            // An administrator merges duplicates however far the duplicate got, so it may have
+            // finished registering. Its credentials and terms go with it.
             await moveFeideAccountToUser(prisma, {
                 fromUserId: fromUser.id,
                 toUserId: toUser.id,
+                allowFinishedRegistration: true,
             })
         }
     }),
 
     sendResetPasswordEmail: defineOperation({
+        paramsSchema: authSchemas.params.sendResetPasswordEmail,
         dataSchema: authSchemas.data.sendResetPasswordEmail,
         authorizer: () => authAuth.sendResetPasswordEmail,
-        operation: ({ data }) => {
+        operation: ({ params, data }) => {
             // Not awaited: the response must not wait on the lookup or the mail server, or how long
             // it takes would tell whether a user has this email. Failures are logged, never thrown.
-            void sendResetPasswordMail(data.email).catch((err: unknown) => {
+            void sendResetPasswordMail(data.email, Site.of(params.site)).catch((err: unknown) => {
                 logger.error(`Failed to send reset password to email '${data.email}'`, { error: err })
             })
 

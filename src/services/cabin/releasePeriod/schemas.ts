@@ -12,7 +12,7 @@ const paramsFieldSchemas = z.object({
 
 const releasesBeforeItsEnd = (data: { releaseTime: Date, releaseUntil: Date }) =>
     dateLessThan(data.releaseTime, data.releaseUntil)
-const releaseMessage = 'Slipp tiden må være før slutten av perioden som slippes.'
+const releaseMessage = 'Slipptiden må være før slutten av perioden som slippes.'
 
 const releasePeriod = dataFieldSchemas.pick({
     releaseTime: true,

@@ -2,6 +2,7 @@ import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { articleCategoryOperations } from '@/services/articleCategories/operations'
+import { seedDevArticleCategories } from '@/prisma/seeder/src/development/seedDevArticleCategories'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
@@ -127,11 +128,16 @@ describe('creating a category', () => {
         expect(await prisma.articleCategory.count({ where: { name: 'Åpen' } })).toBe(0)
     })
 
-    test('refuses an admin level that is not part of the regular level', async () => {
-        await expect(createCategory({
+    test('an admin level outside the regular level is allowed, and its administrators read the category', async () => {
+        const category = await createCategory({
             regularLevel: activeIn(groupOne),
             adminLevel: activeIn(groupTwo),
-        })).rejects.toThrow(Smorekopp)
+        })
+
+        await expect(articleCategoryOperations.read({
+            params: { name: category.name },
+            session: sessionInGroups(groupTwo),
+        })).resolves.toMatchObject({ id: category.id })
     })
 
     test('starts out with the given levels', async () => {
@@ -429,7 +435,17 @@ describe('changing a category and its articles', () => {
     })
 })
 
-describe('seeded categories', () => {
+describe('development seeded categories', () => {
+    beforeAll(async () => {
+        // Twice, since a re-seed must find the categories it made rather than make them again.
+        await seedDevArticleCategories()
+        await seedDevArticleCategories()
+    }, 120 * 1000)
+
+    test('are seeded once', async () => {
+        expect(await prisma.articleCategory.count({ where: { name: 'om omega' } })).toBe(1)
+    })
+
     test('are readable by anyone, but editable only through ARTICLE_CATEGORY_ADMIN', async () => {
         const seeded = await articleCategoryOperations.read({
             params: { name: 'om omega' },

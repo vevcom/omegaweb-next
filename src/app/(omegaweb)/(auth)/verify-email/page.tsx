@@ -1,28 +1,7 @@
-import VerifyEmail from './VerifyEmail'
-import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { QueryParams } from '@/lib/queryParams/queryParams'
-import { serverPage } from '@/app/ServerPage'
-import { notFound } from 'next/navigation'
-import type { PageOperationArgs } from '@/app/ServerPage'
+import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
+import { verifyEmailPage } from '@/pageKits/auth/pages/VerifyEmailPage'
 
-const { page, generateMetadata } = serverPage({
-    allowUnregistered: true,
-    // Only reads the token: opening the link confirms nothing. A mail scanner fetching it ahead of
-    // the user would otherwise confirm the address and use up the token before they click.
-    operation: ({ searchParams }: PageOperationArgs) => {
-        const token = QueryParams.token.decode(searchParams)
-        if (!token) {
-            notFound()
-        }
-        return token
-    },
-    metadata: () => ({ title: 'Bekreft e-post' }),
-    render: ({ data: token }) => (
-        <PageWrapper>
-            <VerifyEmail token={token} />
-        </PageWrapper>
-    ),
-})
+const { page, generateMetadata } = verifyEmailPage(omegaAuthPages)
 
 export default page
 export { generateMetadata }

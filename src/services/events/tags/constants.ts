@@ -3,7 +3,7 @@ import type { SpecialEventTags } from '@/prisma-generated-pn-types'
 export const specialEventTags = {
     COMPANY_PRESENTATION: {
         name: 'Bedpress',
-        description: 'Bedpress',
+        description: 'Bedriftspresentasjon',
         colorR: 255,
         colorG: 0,
         colorB: 0

@@ -4,76 +4,88 @@ import { takeAdvisoryLockOnId } from '@/lib/advisoryLocks'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { EventRegistrationPageDetails } from './types'
 
+export type QueueSpot = { id: number, queuedAt: Date }
+
 /**
  * Locks the registrations of an event for the rest of the transaction. Everything that changes who
- * holds the places of an event - registering, unregistering - takes this lock first, so the queue
- * it reads is the queue it changes.
+ * holds a place takes this lock first, so the places it reads are the places it changes.
  */
 export async function lockEvent(tx: Prisma.TransactionClient, eventId: number) {
     await takeAdvisoryLockOnId(tx, 'eventRegistrations', eventId)
 }
 
-/**
- * How many registrations of the event queue ahead of a registration. The queue is ordered by id,
- * so these are the ones with a lower id. A position below the places of the event is a place.
- */
-export async function queuePosition(
-    prisma: Prisma.TransactionClient,
-    registration: { id: number, eventId: number },
-) {
-    return await prisma.eventRegistration.count({
-        where: {
-            eventId: registration.eventId,
-            id: { lt: registration.id },
-        },
-    })
+export function registrationsOfEvent(eventId: number): Prisma.EventRegistrationWhereInput {
+    return { OR: [{ quota: { variant: { eventId } } }, { waitingListVariant: { eventId } }] }
 }
 
-/**
- * The id of the first registration past the places of an event, or null when there is none. The
- * queue is ordered by id, so ids below it hold places and the rest are on the waiting list.
- */
-export async function firstOnWaitingList(
-    prisma: Prisma.TransactionClient,
-    eventId: number
-): Promise<number | null> {
-    const { places } = await prisma.event.findUniqueOrThrow({
-        where: { id: eventId },
-        select: { places: true },
-    })
-
-    const first = await prisma.eventRegistration.findFirst({
-        where: { eventId },
-        orderBy: eventRegistrationQueueOrder,
-        skip: places,
-        select: { id: true },
-    })
-
-    return first?.id ?? null
+export function registrationsOfVariant(variantId: number): Prisma.EventRegistrationWhereInput {
+    return { OR: [{ quota: { variantId } }, { waitingListVariantId: variantId }] }
 }
 
-/**
- * Narrows to one segment of the registration queue of an event: the registrations that took the
- * places of the event, or the ones queueing on the waiting list past them. The first registration
- * past the places is the boundary, and since the queue is ordered by id, each segment is simply the
- * ids on one side of it.
- *
- * @returns The filter to read the segment with, or null if the segment holds no registrations.
- */
-export async function queueSegmentFilter(
-    prisma: Prisma.TransactionClient,
-    details: EventRegistrationPageDetails
-): Promise<Prisma.EventRegistrationWhereInput | null> {
-    const boundary = await firstOnWaitingList(prisma, details.eventId)
+export function seatedInEvent(eventId: number): Prisma.EventRegistrationWhereInput {
+    return { state: 'IN_QUOTA', quota: { variant: { eventId } } }
+}
 
-    if (details.type === REGISTRATION_READER_TYPE.WAITING_LIST) {
-        if (!boundary) return null
+export function waitingInEvent(eventId: number): Prisma.EventRegistrationWhereInput {
+    return { state: 'WAITING_LIST', waitingListVariant: { eventId } }
+}
 
-        return { eventId: details.eventId, id: { gte: boundary } }
+export function waitingInVariant(variantId: number): Prisma.EventRegistrationWhereInput {
+    return { state: 'WAITING_LIST', waitingListVariantId: variantId }
+}
+
+export function queuedAhead(spot: QueueSpot): Prisma.EventRegistrationWhereInput {
+    return {
+        OR: [
+            { queuedAt: { lt: spot.queuedAt } },
+            { queuedAt: spot.queuedAt, id: { lt: spot.id } },
+        ],
     }
+}
 
-    // Without anyone past the places of the event, every registration took a place.
-    if (!boundary) return { eventId: details.eventId }
+export function queuedBehind(spot: QueueSpot): Prisma.EventRegistrationWhereInput {
+    return {
+        OR: [
+            { queuedAt: { gt: spot.queuedAt } },
+            { queuedAt: spot.queuedAt, id: { gt: spot.id } },
+        ],
+    }
+}
 
-    return { eventId: details.eventId, id: { lt: boundary } }
+/**
+ * Spreads the registrations on the waiting list of a variant that share a queue time a millisecond
+ * apart, keeping their order. Run it under `lockEvent`.
+ */
+export async function untieQueue(tx: Prisma.TransactionClient, variantId: number): Promise<Map<number, Date>> {
+    const registrations = await tx.eventRegistration.findMany({
+        where: waitingInVariant(variantId),
+        orderBy: eventRegistrationQueueOrder,
+        select: { id: true, queuedAt: true },
+    })
+
+    const times = new Map<number, Date>()
+    let previous: Date | null = null
+    for (const registration of registrations) {
+        let queuedAt = registration.queuedAt
+        if (previous && queuedAt.getTime() <= previous.getTime()) {
+            queuedAt = new Date(previous.getTime() + 1)
+            await tx.eventRegistration.update({ where: { id: registration.id }, data: { queuedAt } })
+        }
+        times.set(registration.id, queuedAt)
+        previous = queuedAt
+    }
+    return times
+}
+
+export function queueSegmentFilter(details: EventRegistrationPageDetails): Prisma.EventRegistrationWhereInput {
+    return details.type === REGISTRATION_READER_TYPE.WAITING_LIST
+        ? waitingInEvent(details.eventId)
+        : seatedInEvent(details.eventId)
+}
+
+/** Those with a place list by variant, quota and queue; the waiting lists by variant and queue. */
+export function queueSegmentOrder(type: REGISTRATION_READER_TYPE): Prisma.EventRegistrationOrderByWithRelationInput[] {
+    return type === REGISTRATION_READER_TYPE.WAITING_LIST
+        ? [{ waitingListVariant: { order: 'asc' } }, ...eventRegistrationQueueOrder]
+        : [{ quota: { variant: { order: 'asc' } } }, { quota: { order: 'asc' } }, ...eventRegistrationQueueOrder]
 }

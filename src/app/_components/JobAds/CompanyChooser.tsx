@@ -2,6 +2,7 @@
 import CompanyList from '@/components/Company/CompanyList'
 import TextInput from '@/components/UI/TextInput'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
+import { careerLinks } from '@/app/(careers)/links'
 import Link from 'next/link'
 import { useContext } from 'react'
 import type { ChangeEvent } from 'react'
@@ -29,11 +30,13 @@ export default function CompanyChooser({ className }: PropTypes) {
             <div className="flex flex-row flex-wrap items-center justify-between gap-2 shrink-0">
                 <TextInput
                     className="flex-[1_1_12em] max-w-[20em] mt-0!"
-                    label="Søk Navn"
+                    label="Søk etter navn"
                     name="name"
                     onChange={handleNameFilter}
                 />
-                <Link href="/career/companies" className="secondary-btn m-0 whitespace-nowrap">Administrer bedrifter</Link>
+                <Link href={careerLinks.companies()} className="secondary-btn m-0 whitespace-nowrap">
+                    Administrer bedrifter
+                </Link>
             </div>
             <div className="
                 flex-1 min-h-0 overflow-y-auto pr-2

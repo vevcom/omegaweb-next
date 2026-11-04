@@ -20,9 +20,10 @@ export default function LinkFeideAccountForm() {
             successCallback={() => setFeedback('Feide-innloggingen er flyttet og duplikatbrukeren slettet.')}
         >
             <p>
-                Flytter Feide-innloggingen fra en nyopprettet duplikatbruker (som ikke har
-                fullført registreringen) til en gammel bruker fra Omegaveven som ikke er
-                koblet til noen innlogging, og sletter duplikatbrukeren.
+                Flytter Feide-innloggingen fra en duplikatbruker opprettet ved Feide-innlogging til en
+                gammel bruker fra Omegaveven som ikke er koblet til noen innlogging, og sletter
+                duplikatbrukeren. Det går også om duplikatbrukeren har fullført registreringen; passordet
+                og det den har godtatt slettes med den.
             </p>
             <TextInput label="Brukernavn på duplikatbrukeren" name="fromUsername" />
             <TextInput label="Brukernavn på den gamle brukeren" name="toUsername" />

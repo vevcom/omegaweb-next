@@ -1,81 +1,57 @@
 import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
-import { defaultSearchResultLimit, eventListSelection } from './constants'
-import { eventRegistrationQueueOrder } from './registration/constants'
-import { notifyPromotedFromWaitingList } from './registration/notifyPromotedFromWaitingList'
+import { assertSeenThroughQuotas, readEventAccess } from './access'
+import {
+    defaultSearchResultLimit,
+    eventListSelection,
+    eventQuotaOrder,
+    eventVariantOrder,
+    eventVariantSummarySelection,
+} from './constants'
+import { createVariant } from './variants/createVariant'
+import { createQuota } from './quotas/createQuota'
+import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { notificationOperations } from '@/services/notifications/operations'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
-import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
+import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
-import { formatVevenUri } from '@/lib/urlEncoding'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
-import {
-    assertAdminLevelIsSubOfRegularLevel,
-    implementDoubleLevelVisibilityOperations,
-    toMatrix,
-    visibilityIncluder
-} from '@/services/visibility/implement'
-import type { VisibilityFilter } from '@/auth/visibility/visibilityFilter'
+import { implementVisibilityOperations, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
 
-const visibility = implementDoubleLevelVisibilityOperations({
-    implementationParamsSchema: eventSchemas.params.visibility,
+const DAY_MS = 1000 * 60 * 60 * 24
+
+const adminVisibility = implementVisibilityOperations({
+    implementationParamsSchema: eventSchemas.params.adminVisibility,
     authorizers: {
-        readDoubleLevelMatrix: async ({ params, prisma, doubleLevelMatrix }) =>
-            eventAuth.readDoubleLevelMatrix.data({
-                visibility: doubleLevelMatrix,
-                published: await readPublished(prisma, params.id),
-            }),
-        updateRegularLevel: ({ doubleLevelMatrix }) =>
-            eventAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix }),
-        updateAdminLevel: ({ doubleLevelMatrix }) =>
-            eventAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix })
+        readMatrix: async ({ params, prisma }) => eventAuth.readAdminVisibility.data(
+            await readEventAccess(prisma, params.id)
+        ),
+        update: async ({ implementationParams, prisma }) => eventAuth.updateAdminVisibility.data(
+            await readEventAccess(prisma, implementationParams.id)
+        ),
     },
-    readDoubleLevel: async ({ prisma, implementationParams, include }) => {
-        const event = await prisma.event.findUniqueOrThrow({
+    readVisibility: async ({ prisma, implementationParams, include }) => (
+        await prisma.event.findUniqueOrThrow({
             where: { id: implementationParams.id },
-            include: {
-                visibilityRegular: { include },
-                visibilityAdmin: { include }
-            }
+            select: { visibilityAdmin: { include } },
         })
-        return {
-            regularLevel: event.visibilityRegular,
-            adminLevel: event.visibilityAdmin
-        }
-    }
+    ).visibilityAdmin,
+    emptyMeans: 'REFUSED',
 })
 
 const read = defineOperation({
     paramsSchema: eventSchemas.params.read,
-    authorizer: async ({ params, prisma }) => {
-        const event = await prisma.event.findUniqueOrThrow({
-            where: { id: params.id },
-            select: {
-                published: true,
-                canBeViewedBy: true,
-                visibilityRegular: { include: visibilityIncluder },
-                visibilityAdmin: { include: visibilityIncluder }
-            }
-        })
-        return eventAuth.read.data({
-            published: event.published,
-            canBeViewedBy: event.canBeViewedBy,
-            visibility: {
-                regularLevel: toMatrix(event.visibilityRegular),
-                adminLevel: toMatrix(event.visibilityAdmin)
-            }
-        })
-    },
+    authorizer: async ({ params, prisma }) => eventAuth.read.data(await readEventAccess(prisma, params.id)),
     operation: async ({ prisma, params }) => {
         const event = await prisma.event.findUniqueOrThrow({
             where: {
@@ -96,34 +72,50 @@ const read = defineOperation({
                 },
                 hostedByCommittee: { select: { id: true, name: true, shortName: true } },
                 ledgerAccount: { select: { id: true, name: true } },
-                _count: {
+                variants: {
                     select: {
-                        eventRegistrations: true,
+                        ...eventVariantSummarySelection,
+                        quotas: {
+                            select: {
+                                ...eventVariantSummarySelection.quotas.select,
+                                visibility: { include: visibilityIncluder },
+                            },
+                            orderBy: eventQuotaOrder,
+                        },
                     },
+                    orderBy: eventVariantOrder,
                 },
             }
         })
 
-        return withTagsAndRegistrationCounts(event)
+        const expanded = withTagsAndVariantSummary(event)
+        return {
+            ...expanded,
+            variants: expanded.variants.map(variant => ({
+                ...variant,
+                quotas: variant.quotas.map(({ visibility, ...quota }) => ({ ...quota, visibility: toMatrix(visibility) })),
+            })),
+        }
     }
 })
 
 export const eventOperations = {
-    visibility,
+    adminVisibility,
 
     create: defineOperation({
         dataSchema: eventSchemas.data.create,
         authorizer: () => eventAuth.create,
         opensTransaction: true,
         operation: async ({ prisma, data, session }) => {
-            assertAdminLevelIsSubOfRegularLevel({
-                regularLevel: { requirements: data.visibilityRegularRequirements },
-                adminLevel: { requirements: data.visibilityAdminRequirements },
-            })
-            assertValidEventDates(data)
+            if (data.eventStart > data.eventEnd) {
+                throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
+            }
+            if (data.takesPayment && !data.takesRegistration) {
+                throw new ServiceError('BAD PARAMETERS', 'Kan ikke ta betaling uten påmelding')
+            }
 
             // The event and everything it owns are created together, so a failure leaves no
-            // orphaned paragraph, image or visibilities behind.
+            // orphaned paragraph, image, visibility, variant or quota behind.
             const event = await prisma.$transaction(async tx => {
                 const cmsParagraph = await cmsParagraphOperations.create.internalCall({
                     data: {},
@@ -134,10 +126,6 @@ export const eventOperations = {
                     data: {},
                     prisma: tx,
                     operationImplementationFields: { special: null }
-                })
-                const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
-                    data: { requirements: data.visibilityRegularRequirements },
-                    prisma: tx,
                 })
                 const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
                     data: { requirements: data.visibilityAdminRequirements },
@@ -151,10 +139,6 @@ export const eventOperations = {
                         locationMap: data.locationMap ? { create: getLocationMapData(data.locationMap) } : undefined,
                         eventStart: data.eventStart,
                         eventEnd: data.eventEnd,
-                        takesRegistration: data.takesRegistration,
-                        places: data.places,
-                        registrationStart: data.registrationStart ?? new Date(),
-                        registrationEnd: data.registrationEnd ?? new Date(Date.now() + 1000 * 60 * 60 * 24),
                         canBeViewedBy: data.canBeViewedBy,
                         hostedByCommittee: data.hostedByCommitteeId ? {
                             connect: {
@@ -162,9 +146,8 @@ export const eventOperations = {
                             }
                         } : undefined,
                         waitingList: data.waitingList,
-                        price: data.price,
-                        paymentStart: data.paymentStart,
-                        paymentEnd: data.paymentEnd,
+                        bindingRegistration: data.bindingRegistration,
+                        allowRegistrationInMultipleVariants: data.allowRegistrationInMultipleVariants,
 
                         createdBy: session?.user ? {
                             connect: {
@@ -181,11 +164,6 @@ export const eventOperations = {
                                 id: cmsImage.id
                             }
                         },
-                        visibilityRegular: {
-                            connect: {
-                                id: visibilityRegular.id
-                            }
-                        },
                         visibilityAdmin: {
                             connect: {
                                 id: visibilityAdmin.id
@@ -199,6 +177,23 @@ export const eventOperations = {
                         tagId
                     }))
                 })
+
+                if (data.takesRegistration) {
+                    const variant = await createVariant(tx, createdEvent.id, {
+                        name: 'Påmelding',
+                        registrationStart: data.registrationStart ?? new Date(),
+                        registrationEnd: data.registrationEnd ?? new Date(Date.now() + DAY_MS),
+                        takesPayment: data.takesPayment,
+                        price: data.price,
+                        paymentStart: data.paymentStart,
+                        paymentEnd: data.paymentEnd,
+                    })
+                    await createQuota(tx, variant.id, {
+                        name: 'Påmelding',
+                        places: data.places ?? 0,
+                        visibilityRequirements: data.quotaVisibilityRequirements,
+                    })
+                }
                 return createdEvent
             })
 
@@ -212,7 +207,7 @@ export const eventOperations = {
     readManyCurrent: defineOperation({
         paramsSchema: eventSchemas.params.readManyCurrent,
         authorizer: () => eventAuth.readManyCurrent,
-        operation: async ({ prisma, params }, visibilityWhereFilter): Promise<EventExpanded[]> => {
+        operation: async ({ prisma, params }, prismaWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
                 select: eventListSelection,
                 where: {
@@ -220,19 +215,19 @@ export const eventOperations = {
                         gte: new Date()
                     },
                     eventTagEvents: eventTagSelector(params.tags),
-                    ...visibleEventsFilter(visibilityWhereFilter)
+                    ...prismaWhereFilter
                 },
                 orderBy: {
                     eventStart: 'asc'
                 }
             })
-            return events.map(withTagsAndRegistrationCounts)
+            return events.map(withTagsAndVariantSummary)
         }
     }),
     readManyArchivedPage: defineOperation({
         paramsSchema: eventSchemas.params.readManyArchivedPage,
         authorizer: () => eventAuth.readManyArchivedPage,
-        operation: async ({ prisma, params }, visibilityWhereFilter): Promise<EventExpanded[]> => {
+        operation: async ({ prisma, params }, prismaWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
                 ...cursorPagingSelection(params.paging.page),
                 where: {
@@ -244,24 +239,23 @@ export const eventOperations = {
                         mode: 'insensitive'
                     },
                     eventTagEvents: eventTagSelector(params.paging.details.tags),
-                    ...visibleEventsFilter(visibilityWhereFilter)
+                    ...prismaWhereFilter
                 },
                 select: eventListSelection,
             })
-            return events.map(withTagsAndRegistrationCounts)
+            return events.map(withTagsAndVariantSummary)
         }
     }),
 
     /**
      * The event half of the global search: the few events best matching a free text query, for a
      * search box to show while the user types. Both past and coming events are searched, the most
-     * recent ones first, and only the events the session may see at all - the very same
-     * visibility rule as the lists of current and archived events above.
+     * recent ones first, and only the events the session may see at all.
      */
     search: defineOperation({
         paramsSchema: eventSchemas.params.search,
         authorizer: () => eventAuth.search,
-        operation: async ({ prisma, params }, visibilityWhereFilter) => await prisma.event.findMany({
+        operation: async ({ prisma, params }, prismaWhereFilter) => await prisma.event.findMany({
             take: params.limit ?? defaultSearchResultLimit,
             select: {
                 id: true,
@@ -275,7 +269,7 @@ export const eventOperations = {
             },
             where: {
                 name: { contains: params.query, mode: 'insensitive' },
-                ...visibleEventsFilter(visibilityWhereFilter)
+                ...prismaWhereFilter
             },
             orderBy: { eventStart: 'desc' },
         })
@@ -284,25 +278,16 @@ export const eventOperations = {
     update: defineOperation({
         paramsSchema: eventSchemas.params.update,
         dataSchema: eventSchemas.data.update,
-        authorizer: async ({ params, prisma }) => eventAuth.update.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
-        opensTransaction: true,
+        authorizer: async ({ params, prisma }) => eventAuth.update.data(await readEventAccess(prisma, params.id)),
         operation: async ({ prisma, params, data: { tagIds, locationMap, ...data } }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
                 include: { locationMap: true },
             })
 
-            assertValidEventDates({
-                eventStart: data.eventStart ?? event.eventStart,
-                eventEnd: data.eventEnd ?? event.eventEnd,
-                registrationStart: data.registrationStart ?? event.registrationStart,
-                registrationEnd: data.registrationEnd ?? event.registrationEnd,
-                paymentStart: data.paymentStart ?? event.paymentStart,
-                paymentEnd: data.paymentEnd ?? event.paymentEnd,
-                price: data.price ?? event.price,
-            })
+            if ((data.eventStart ?? event.eventStart) > (data.eventEnd ?? event.eventEnd)) {
+                throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
+            }
 
             let mapUpdate: Prisma.EventLocationMapUpdateOneWithoutEventNestedInput | undefined
             if (locationMap) {
@@ -312,7 +297,7 @@ export const eventOperations = {
                 mapUpdate = { delete: true }
             }
 
-            const { eventUpdate, promotedRegistrations } = await prisma.$transaction(async tx => {
+            return await prisma.$transaction(async tx => {
                 const updatedEvent = await tx.event.update({
                     where: { id: params.id },
                     data: {
@@ -320,6 +305,7 @@ export const eventOperations = {
                         locationMap: mapUpdate,
                     },
                 })
+                await assertSeenThroughQuotas(tx, params.id)
                 if (tagIds) {
                     await tx.eventTagEvent.deleteMany({
                         where: {
@@ -340,47 +326,20 @@ export const eventOperations = {
                         skipDuplicates: true
                     })
                 }
-
-                // More places promote the registrations queueing right past the old ones.
-                const promoted = updatedEvent.places > event.places ? await tx.eventRegistration.findMany({
-                    where: {
-                        eventId: params.id,
-                    },
-                    orderBy: eventRegistrationQueueOrder,
-                    skip: event.places,
-                    take: updatedEvent.places - event.places,
-                    select: {
-                        userId: true,
-                        contact: {
-                            select: {
-                                email: true,
-                            },
-                        },
-                    },
-                }) : []
-
-                return { eventUpdate: updatedEvent, promotedRegistrations: promoted }
+                return updatedEvent
             })
-
-            if (promotedRegistrations.length) {
-                await notifyPromotedFromWaitingList(eventUpdate, promotedRegistrations)
-            }
-
-            return eventUpdate
         }
     }),
 
     /**
      * Links an event to the GROUP ledger account its registrations are paid into, replacing any
      * earlier link.
-     * @param params.id - The event to link
-     * @param data.ledgerAccountId - The account to credit
      */
     connectToLedgerAccount: defineOperation({
         paramsSchema: eventSchemas.params.connectToLedgerAccount,
         dataSchema: eventSchemas.data.connectToLedgerAccount,
         authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedgerAccount.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+            ...await readEventAccess(prisma, params.id),
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
         }),
         operation: async ({ prisma, params, data }) => {
@@ -401,11 +360,9 @@ export const eventOperations = {
 
     updateCmsCoverImage: cmsImageOperations.update.implement({
         implementationParamsSchema: eventSchemas.params.updateCmsCoverImage,
-        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateCmsCoverImage.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({
-                params: { id: implementationParams.eventId }, prisma
-            })
-        }),
+        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateCmsCoverImage.data(
+            await readEventAccess(prisma, implementationParams.eventId)
+        ),
         ownershipCheck: async ({ implementationParams, params }) =>
             (await read({
                 params: { id: implementationParams.eventId },
@@ -414,18 +371,16 @@ export const eventOperations = {
     }),
 
     /**
-     * Publishes an event, or takes it back to being a draft. Which level the read authorizer
-     * demands follows from this flag, so retracting an event hides it from everyone but those who
-     * administrate it again. Publishing a draft tells the subscribers to new events about it, those
-     * of them who may register for it.
+     * Publishes an event, or takes it back to being a draft. Publishing a draft tells the
+     * subscribers to new events about it, those of them who may register through one of its quotas
+     * as the quotas are when the notification is sent.
      */
     setPublished: defineOperation({
         paramsSchema: eventSchemas.params.setPublished,
         dataSchema: eventSchemas.data.setPublished,
-        authorizer: async ({ params, prisma }) => eventAuth.setPublished.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) => eventAuth.setPublished.data(await readEventAccess(prisma, params.id)),
         operation: async ({ prisma, params, data }) => {
+            if (data.published) await assertSeenThroughQuotas(prisma, params.id, { published: true })
             const { count: flipped } = await prisma.event.updateMany({
                 where: { id: params.id, published: !data.published },
                 data: { published: data.published },
@@ -438,10 +393,10 @@ export const eventOperations = {
                         special: 'NEW_EVENT',
                     },
                     data: {
-                        title: `Hva der hender: ${event.name}`,
+                        title: `Hvad der hender: ${event.name}`,
                         message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
-                        url: `/events/${formatVevenUri(event.name, event.id)}`,
-                        audience: { visibilityId: event.visibilityRegularId },
+                        url: omegaEventLinks.event(event),
+                        audience: { canRegisterForEventId: event.id },
                     },
                 })
             }
@@ -452,23 +407,33 @@ export const eventOperations = {
 
     destroy: defineOperation({
         paramsSchema: eventSchemas.params.destroy,
-        authorizer: async ({ params, prisma }) => eventAuth.destroy.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
-        }),
+        authorizer: async ({ params, prisma }) => eventAuth.destroy.data(await readEventAccess(prisma, params.id)),
         opensTransaction: true,
         operation: async ({ prisma, params }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
-                select: { visibilityAdminId: true, visibilityRegularId: true },
+                select: {
+                    visibilityAdminId: true,
+                    variants: { select: { quotas: { select: { visibilityId: true } } } },
+                },
             })
+            const registrationsOfEvent: Prisma.EventRegistrationWhereInput = {
+                OR: [{ quota: { variant: { eventId: params.id } } }, { waitingListVariant: { eventId: params.id } }],
+            }
 
             await prisma.$transaction(async tx => {
-                // Deleting the event cascades to its registrations. Their rows are locked first, as
-                // createPayment does, so no payment can start between this check and the delete.
-                await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE "eventId" = ${params.id} FOR UPDATE`
+                // The registrations are locked first, as createPayment does, so no payment can start
+                // between this check and the delete.
+                await tx.$queryRaw`
+                    SELECT r."id" FROM "EventRegistration" r
+                    LEFT JOIN "EventQuota" q ON q."id" = r."quotaId"
+                    LEFT JOIN "EventVariant" v ON v."id" = COALESCE(q."variantId", r."waitingListVariantId")
+                    WHERE v."eventId" = ${params.id}
+                    FOR UPDATE OF r
+                `
                 const liveTransaction = await tx.ledgerTransaction.findFirst({
                     where: {
-                        eventRegistration: { eventId: params.id },
+                        eventRegistration: registrationsOfEvent,
                         OR: [{ state: 'PENDING' }, validTransactionFilter],
                     },
                     select: { id: true },
@@ -481,30 +446,30 @@ export const eventOperations = {
                     )
                 }
 
+                // Registrations go first: deleting the event cascades to its quotas, which refuse
+                // to go while they hold any.
+                await tx.eventRegistration.deleteMany({ where: registrationsOfEvent })
                 await tx.event.delete({
                     where: {
                         id: params.id
                     }
                 })
-                await visibilityOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { visibilityId: event.visibilityAdminId },
-                })
-                await visibilityOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { visibilityId: event.visibilityRegularId },
-                })
+                const visibilityIds = [
+                    event.visibilityAdminId,
+                    ...event.variants.flatMap(variant => variant.quotas.map(quota => quota.visibilityId)),
+                ]
+                await Promise.all(visibilityIds.map(
+                    visibilityId => visibilityOperations.destroy.internalCall({ prisma: tx, params: { visibilityId } })
+                ))
             })
         }
     }),
 
     updateParagraphContent: cmsParagraphOperations.updateContent.implement({
         implementationParamsSchema: eventSchemas.params.updateParagraphContent,
-        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateParagraphContent.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({
-                params: { id: implementationParams.eventId }, prisma
-            })
-        }),
+        authorizer: async ({ implementationParams, prisma }) => eventAuth.updateParagraphContent.data(
+            await readEventAccess(prisma, implementationParams.eventId)
+        ),
         ownershipCheck: async ({ implementationParams, params }) =>
             (await read({
                 params: { id: implementationParams.eventId },
@@ -513,28 +478,68 @@ export const eventOperations = {
     })
 } as const
 
-/**
- * Replaces the raw count of registrations of an event with the numbers that are exposed: how many
- * took the places of the event, and how many queue on the waiting list past them.
- */
-function withRegistrationCounts<RawEvent extends { places: number, _count: { eventRegistrations: number } }>(
-    { _count, ...event }: RawEvent
+type RawQuota = {
+    places: number,
+    _count: { registrations: number },
+}
+
+type RawVariant<Quota extends RawQuota, VariantRest extends object> = {
+    registrationStart: Date,
+    registrationEnd: Date,
+    takesPayment: boolean,
+    quotas: Quota[],
+    _count: { waitingListRegistrations: number },
+} & VariantRest
+
+/** What the quotas of a variant add up to. */
+function withQuotaSummary<Quota extends RawQuota, Rest extends object>(
+    { _count, quotas, ...variant }: { quotas: Quota[], _count: { waitingListRegistrations: number } } & Rest
 ) {
+    const summarised = quotas.map(({ _count: quotaCount, ...quota }) => ({
+        ...quota,
+        numOfRegistrations: quotaCount.registrations,
+    }))
     return {
-        ...event,
-        numOfRegistrations: Math.min(_count.eventRegistrations, event.places),
-        numOnWaitingList: Math.max(0, _count.eventRegistrations - event.places),
+        ...variant,
+        quotas: summarised,
+        takesRegistration: quotas.some(quota => quota.places > 0),
+        places: quotas.reduce((sum, quota) => sum + quota.places, 0),
+        numOfRegistrations: quotas.reduce((sum, quota) => sum + quota._count.registrations, 0),
+        numOnWaitingList: _count.waitingListRegistrations,
     }
 }
 
-/** An event as the lists and the event page show it: with its tags and its registration counts. */
-function withTagsAndRegistrationCounts<RawEvent extends {
-    places: number,
-    _count: { eventRegistrations: number },
-    eventTagEvents: { tag: EventTag }[],
-}>({ eventTagEvents, ...event }: RawEvent) {
+/** What the variants of an event add up to: whether it takes registration or payment, and its sums and spans. */
+function withVariantSummary<Quota extends RawQuota, VariantRest extends object, Rest extends object>(
+    { variants, ...event }: { variants: RawVariant<Quota, VariantRest>[] } & Rest
+) {
+    const summarised = variants.map(variant => withQuotaSummary(variant))
+    const span = variants.reduce<{ start: number, end: number } | null>((current, variant) => ({
+        start: Math.min(current?.start ?? Infinity, variant.registrationStart.getTime()),
+        end: Math.max(current?.end ?? -Infinity, variant.registrationEnd.getTime()),
+    }), null)
+
     return {
-        ...withRegistrationCounts(event),
+        ...event,
+        variants: summarised,
+        takesRegistration: summarised.some(variant => variant.takesRegistration),
+        takesPayment: variants.some(variant => variant.takesPayment),
+        places: summarised.reduce((sum, variant) => sum + variant.places, 0),
+        numOfRegistrations: summarised.reduce((sum, variant) => sum + variant.numOfRegistrations, 0),
+        numOnWaitingList: summarised.reduce((sum, variant) => sum + variant.numOnWaitingList, 0),
+        registrationStart: span ? new Date(span.start) : null,
+        registrationEnd: span ? new Date(span.end) : null,
+    }
+}
+
+function withTagsAndVariantSummary<Quota extends RawQuota, VariantRest extends object, Rest extends object>(
+    { eventTagEvents, ...event }: {
+        variants: RawVariant<Quota, VariantRest>[],
+        eventTagEvents: { tag: EventTag }[],
+    } & Rest
+) {
+    return {
+        ...withVariantSummary(event),
         tags: eventTagEvents.map(eventTagEvent => eventTagEvent.tag),
     }
 }
@@ -549,66 +554,4 @@ function eventTagSelector(tags: string[] | null) {
             }
         }
     } : undefined
-}
-
-/** Whether one event is published, which decides what its regular level grants (see regularLevelUnlessDraft). */
-async function readPublished(prisma: PrismaPossibleTransaction<false>, eventId: number) {
-    const event = await prisma.event.findUniqueOrThrow({
-        where: { id: eventId },
-        select: { published: true },
-    })
-    return event.published
-}
-
-/**
- * The same rule as eventAuth.read, as a filter over a list of events.
- *
- * The visibility filter is undefined only when the session bypasses visibility with EVENT_ADMIN,
- * which administrates every event - hence no filtering at all in that case.
- */
-function visibleEventsFilter(visibilityWhereFilter: VisibilityFilter | undefined): Prisma.EventWhereInput {
-    if (!visibilityWhereFilter) return {}
-    return {
-        OR: [
-            { published: false, visibilityAdmin: visibilityWhereFilter },
-            { published: true, canBeViewedBy: 'ALL' },
-            { published: true, canBeViewedBy: 'CAN_REGISTER', visibilityRegular: visibilityWhereFilter },
-        ]
-    }
-}
-
-type EventDates = {
-    eventStart: Date,
-    eventEnd: Date,
-    registrationStart?: Date,
-    registrationEnd?: Date,
-    paymentStart?: Date | null,
-    paymentEnd?: Date | null,
-    price?: number | null,
-}
-
-/**
- * An event ends after it starts, its registration and payment periods are each given whole or not
- * at all and end after they start, and an event with a price has a payment period. `update` passes
- * the dates the event will have after the update, so a partial update is judged as a whole.
- */
-function assertValidEventDates(dates: EventDates) {
-    if (dates.eventStart > dates.eventEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Event må jo starte før den slutter')
-    }
-    if (dates.registrationStart && dates.registrationEnd && dates.registrationStart > dates.registrationEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Påmelding må jo starte før den slutter')
-    }
-    if (Boolean(dates.registrationStart) !== Boolean(dates.registrationEnd)) {
-        throw new ServiceError('BAD PARAMETERS', 'Begge registreringsdatoer må være satt eller ingen')
-    }
-    if (dates.paymentStart && dates.paymentEnd && dates.paymentStart > dates.paymentEnd) {
-        throw new ServiceError('BAD PARAMETERS', 'Betaling må jo starte før den slutter')
-    }
-    if (Boolean(dates.paymentStart) !== Boolean(dates.paymentEnd)) {
-        throw new ServiceError('BAD PARAMETERS', 'Begge betalingsdatoer må være satt eller ingen')
-    }
-    if (dates.price && (!dates.paymentStart || !dates.paymentEnd)) {
-        throw new ServiceError('BAD PARAMETERS', 'Betalingsdatoer må settes når arrangementet har en pris')
-    }
 }

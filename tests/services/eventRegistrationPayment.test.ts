@@ -82,12 +82,13 @@ async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number }
             waitingList: false,
             registrationStart: new Date(now.getTime() - HOUR),
             registrationEnd: new Date(now.getTime() + 24 * HOUR),
+            takesPayment: true,
             price: EVENT_PRICE_KRONER,
             paymentStart: new Date(now.getTime() - HOUR),
             paymentEnd: new Date(now.getTime() + 24 * HOUR),
             hostedByCommitteeId: committeeId,
             tagIds: [],
-            visibilityRegularRequirements: [
+            quotaVisibilityRequirements: [
                 { conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] },
             ],
             visibilityAdminRequirements: [
@@ -117,6 +118,10 @@ async function createPayer(username: string) {
             emailVerified: new Date().toISOString(),
         },
         bypassAuth: true,
+    })
+    // Seating reads memberships from the database, so the session alone is not enough.
+    await prisma.membership.create({
+        data: { userId: user.id, groupId: membersGroupId, admin: false, active: true, order: currentOrder },
     })
     const account = await ledgerAccountOperations.read({ params: { userId: user.id }, bypassAuth: true })
     await ledgerMovementOperations.createDeposit({

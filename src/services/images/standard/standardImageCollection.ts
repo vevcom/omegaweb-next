@@ -14,9 +14,9 @@ export const {
         name: 'Standardbilder',
         description: `
             Bilder som er nødvendige for nettsiden.
-            Denne koleksjonen er helt \'statisk\' og skal og kan ikke modifiseres.
-            Dersom et standardbilde (et bilde i denne kolleksjonen) mangler vil bildet genereres ut fra
-            sin statisk bestemte konfigurasjon.
+            Denne samlingen er helt statisk og kan ikke endres.
+            Mangler et standardbilde (et bilde i denne samlingen), genereres det på nytt
+            fra den faste konfigurasjonen.
         `,
     }
 })

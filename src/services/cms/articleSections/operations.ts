@@ -85,7 +85,7 @@ export const articleSectionOperations = {
                 select: { [data.part]: { select: { id: true } } },
             })
             if (!articleSection) {
-                throw new ServiceError('NOT FOUND', 'ArticleSection not found')
+                throw new ServiceError('NOT FOUND', 'Fant ikke artikkelseksjonen')
             }
             if (articleSection[data.part]) {
                 throw new ServiceError('BAD PARAMETERS', `ArticleSection already has ${data.part}`)
@@ -118,7 +118,7 @@ export const articleSectionOperations = {
                 select: { id: true, cmsLink: true, cmsParagraph: true, cmsImage: true },
             })
             if (!articleSection) {
-                throw new ServiceError('NOT FOUND', 'ArticleSection not found')
+                throw new ServiceError('NOT FOUND', 'Fant ikke artikkelseksjonen')
             }
             const part = articleSection[data.part]
             if (!part) {

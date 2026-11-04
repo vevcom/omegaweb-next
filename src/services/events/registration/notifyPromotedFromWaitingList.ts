@@ -1,9 +1,9 @@
 import '@pn-server-only'
 import { notificationOperations } from '@/services/notifications/operations'
+import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import logger from '@/lib/logger'
 import { escapeHtml } from '@/lib/html/escapeHtml'
-import { formatVevenUri } from '@/lib/urlEncoding'
 
 /**
  * Tells the ones whose registrations were promoted from the waiting list of an event to one of its
@@ -15,7 +15,7 @@ export async function notifyPromotedFromWaitingList(
     registrations: { userId: number | null, contact: { email: string | null } | null }[],
 ) {
     const title = 'Opprykk fra venteliste ved Omegas nettsider'
-    const congratulation = 'Gratulerer! Du har rykket opp fra venteliste på arrangementet'
+    const congratulation = 'Gratulerer! Du har rykket opp fra ventelisten på arrangementet'
     const message = `${congratulation} ${event.name}.`
     const mailBody = `${congratulation} ${escapeHtml(event.name)}.`
 
@@ -34,7 +34,7 @@ export async function notifyPromotedFromWaitingList(
             data: {
                 title,
                 message,
-                url: `/events/${formatVevenUri(event.name, event.id)}`,
+                url: omegaEventLinks.event(event),
                 audience: { userIds },
             },
         })

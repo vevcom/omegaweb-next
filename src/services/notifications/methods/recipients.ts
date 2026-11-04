@@ -1,3 +1,5 @@
+import { passesVisibilityWhere } from '@/auth/visibility/passesVisibilityWhere'
+import { whoCanRegisterSelection, whoCanRegisterWhere } from '@/services/events/access'
 import { visibilityIncluder } from '@/services/visibility/implement'
 import { userPartitions } from '@/services/users/constants'
 import type { NotificationMethods } from '@/services/notifications/types'
@@ -19,6 +21,9 @@ export const notificationDispatchIncluder = {
     visibility: {
         include: visibilityIncluder,
     },
+    canRegisterForEvent: {
+        select: whoCanRegisterSelection,
+    },
 } as const satisfies Prisma.NotificationInclude
 
 export type DispatchableNotification = Prisma.NotificationGetPayload<{
@@ -31,10 +36,11 @@ export type DispatchableNotification = Prisma.NotificationGetPayload<{
  * visibility changes in between count. A recipient must
  * 1. be subscribed to the notification's channel with the method enabled,
  * 2. be among the targeted users, when the notification targets anyone,
- * 3. pass the notification's visibility, when it has one. This mirrors checkVisibility
- *    (src/auth/visibility/checkVisibility.ts): every requirement needs some condition met, and
+ * 3. pass the notification's visibility, when it has one, see passesVisibilityWhere,
  * 4. hold the notification's permission, when it has one: as a default permission or through an
- *    active membership of a group holding it, as readPermissionsOfUser resolves permissions.
+ *    active membership of a group holding it, as readPermissionsOfUser resolves permissions, and
+ * 5. be able to register for the event the notification is for, when it is for one, as the event's
+ *    quotas are now, see whoCanRegisterWhere.
  * Archived users receive nothing.
  */
 export function recipientsWhere(
@@ -59,19 +65,8 @@ export function recipientsWhere(
             },
         } : {}),
         AND: [
-            ...(notification.visibility?.requirements ?? []).map(requirement => ({
-                memberships: {
-                    some: {
-                        OR: requirement.conditions.map(condition => (condition.type === 'ACTIVE' ? {
-                            groupId: condition.groupId,
-                            active: true,
-                        } : {
-                            groupId: condition.groupId,
-                            order: condition.order,
-                        })),
-                    },
-                },
-            })),
+            ...(notification.visibility ? [passesVisibilityWhere(notification.visibility)] : []),
+            ...(notification.canRegisterForEvent ? [whoCanRegisterWhere(notification.canRegisterForEvent)] : []),
             ...(permission && !defaultPermissions.includes(permission) ? [{
                 memberships: {
                     some: {

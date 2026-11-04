@@ -1,5 +1,6 @@
 import CareersWordmark from './CareersWordmark'
 import { CAREERS_SOCIALS } from '@/app/(careers)/_lib/careersSite'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import { cmsLinkTextClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
 import {
@@ -13,12 +14,13 @@ import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
     capabilities: Capabilities<'canEditSpecialCmsLink'>,
+    showOmegaLink: boolean,
 }
 
 const headingClassName = 'mb-2 text-s font-semibold tracking-[0.1em] uppercase text-white'
 const textClassName = 'text-white/80 text-m leading-[1.6]'
 
-export default function CareersFooter({ capabilities }: PropTypes) {
+export default function CareersFooter({ capabilities, showOmegaLink }: PropTypes) {
     return (
         <footer className="mt-20 bg-careers-navy">
             <div className={`
@@ -79,10 +81,12 @@ export default function CareersFooter({ capabilities }: PropTypes) {
                     flex justify-between gap-4 py-4
                 `}>
                     <span className="text-s text-white/80">© Contactor NTNU</span>
-                    <Link href="/" className="
-                        text-s text-white/80
-                        hover:text-white
-                    ">Tilbake til Omegaveven</Link>
+                    {showOmegaLink && (
+                        <Link href={omegaLinks.frontpage()} className="
+                            text-s text-white/80
+                            hover:text-white
+                        ">Til Omegaveven</Link>
+                    )}
                 </div>
             </div>
         </footer>

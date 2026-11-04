@@ -38,6 +38,8 @@ const creditPlacementClassName = {
  * @param alt - (optional) the alt text of the image (will be set to image.alt if not provided)
  * @param image - the image to display
  * @param width - the width of the image - this also determines the resolution of the image to display
+ * @param sizes - (optional) the sizes attribute, which defaults to the width. Pass it when CSS
+ * displays the image wider than the width, so the browser loads a sharp enough file.
  * @param resolution - (optional) The resolution inferred from the width may be overrided using
  * this prop, but only do so if strictly necessary. The resolution is used to determine which image
  * file to display. Passing this disables srcset, since overriding resolution is a deliberate
@@ -54,6 +56,7 @@ export default function Image({
     alt,
     image,
     width,
+    sizes,
     resolution: explicitResolution,
     imageContainerClassName,
     creditPlacement = 'bottom',
@@ -95,7 +98,7 @@ export default function Image({
                     alt={alt || image.alt}
                     src={url}
                     srcSet={srcSet}
-                    sizes={srcSet ? `${width}px` : undefined}
+                    sizes={srcSet ? sizes ?? `${width}px` : undefined}
                 />
             )}
             {image.credit && !hideCredit && (

@@ -31,7 +31,7 @@ export function CabinBookingConfirmationTemplate({
 
             <p>
                 Med vennlig hilsen<br/>
-                Hüttecom
+                HeutteCom
             </p>
         </Html>
     )

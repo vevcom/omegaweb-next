@@ -25,9 +25,9 @@ export default function CollectionCard({ collection, className }: PropTypes) {
         `}>
             {
                 collection.coverImage ? (
-                    <Image width={100} image={collection.coverImage} />
+                    <Image width={100} sizes="350px" image={collection.coverImage} />
                 ) : (
-                    <p>Something went wrong</p>
+                    <p>Noe gikk galt</p>
                 )
             }
             {collection.special && <p className="

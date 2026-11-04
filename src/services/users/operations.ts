@@ -12,6 +12,7 @@ import {
     userProfileSelection
 } from './constants'
 import { userProfileImageOperations } from './profileImageCollection'
+import { Site } from '@/lib/sites/site'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
@@ -294,6 +295,17 @@ export const userOperations = {
         }
     }),
 
+    disconnectStudentCard: defineOperation({
+        paramsSchema: userSchemas.params.disconnectStudentCard,
+        authorizer: ({ params }) => userAuth.disconnectStudentCard.data({ userId: params.id }),
+        operation: async ({ prisma, params }) => {
+            await prisma.user.update({
+                where: { id: params.id },
+                data: { studentCard: null },
+            })
+        }
+    }),
+
     update: defineOperation({
         paramsSchema: userSchemas.params.update,
         dataSchema: userSchemas.data.update,
@@ -435,7 +447,7 @@ export const userOperations = {
                 }
             }
 
-            await sendVerifyEmail(storedUser, data.email)
+            await sendVerifyEmail(storedUser, data.email, Site.of(params.site))
 
             return {
                 verified: false,
@@ -706,7 +718,7 @@ async function readUserPage(
     ]
 
     if (details.groups.length > maxNumberOfGroupsInFilter) {
-        throw new ServiceError('BAD PARAMETERS', 'Too many groups in filter')
+        throw new ServiceError('BAD PARAMETERS', 'For mange grupper i filteret')
     }
     const groupSelection = details.selectedGroup ? [
         getMembershipFilter(details.selectedGroup.groupOrder, details.selectedGroup.groupId)

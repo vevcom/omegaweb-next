@@ -24,7 +24,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Heutten' }),
     render: ({ data: article, capabilities }) => (
-        <PageWrapper headerItem={<Link href="/cabin/book">Trykk her for å Booke</Link>}>
+        <PageWrapper headerItem={<Link href="/cabin/book">Trykk her for å booke</Link>}>
             <SpecialArticle
                 article={article}
                 capabilities={capabilities}

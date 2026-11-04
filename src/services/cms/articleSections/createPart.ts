@@ -27,7 +27,7 @@ export const createArticleSectionPart = {
     }),
     cmsLink: async (prisma: Prisma.TransactionClient) => ({
         cmsLink: { connect: { id: (await cmsLinkOperations.create.internalCall({
-            data: { text: 'lenke', url: './' },
+            data: { text: 'Lenke', url: './' },
             prisma,
             operationImplementationFields: { special: null },
         })).id } },

@@ -11,6 +11,12 @@ export const validTransactionFilter = {
     refundOf: null,
 } satisfies Prisma.LedgerTransactionWhereInput
 
+// The variant, and through it the event, a registration's payment is for.
+const eventVariantOfPaymentSelection = {
+    name: true,
+    event: { select: { name: true, location: true, eventStart: true, eventEnd: true } },
+} as const satisfies Prisma.EventVariantSelect
+
 export const expandedLedgerTransactionIncluder = {
     ledgerEntries: true,
     payment: {
@@ -32,9 +38,12 @@ export const expandedLedgerTransactionIncluder = {
             event: { select: { name: true } },
         },
     },
+    // A paid registration holds a place, shown through its quota, or sits on the waiting list of its
+    // variant should it have lost the place after paying.
     eventRegistration: {
         include: {
-            event: { select: { name: true, location: true, eventStart: true, eventEnd: true } },
+            quota: { select: { name: true, variant: { select: eventVariantOfPaymentSelection } } },
+            waitingListVariant: { select: eventVariantOfPaymentSelection },
         },
     },
     purchase: {

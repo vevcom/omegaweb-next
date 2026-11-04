@@ -23,7 +23,7 @@ const mailParts = {
     },
     mailingList: {
         title: 'E-postlister',
-        intro: 'Bindeleddet i mailtjeneren. En e-postliste mottar e-post fra aliasene sine og'
+        intro: 'Bindeleddet i e-posttjeneren. En e-postliste mottar e-post fra aliasene sine og'
             + ' videresender den til grupper, brukere og eksterne adresser.',
         createAuth: () => mailingListAuth.create,
     },

@@ -46,8 +46,8 @@ const { page, generateMetadata } = serverPage({
                 confirmation={{
                     confirm: true,
                     text: `
-                        Er du sikker på at du vil slette flairsen "${flair.name}"?
-                        Dette kan ikke angres, og alle brukere som har denne flairsen vil miste den.
+                        Er du sikker på at du vil slette flairen "${flair.name}"?
+                        Dette kan ikke angres, og alle brukere som har denne flairen, vil miste den.
                     `
                 }}
             />

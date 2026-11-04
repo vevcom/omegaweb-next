@@ -22,6 +22,11 @@ async function createTestUser(username: string) {
     })
 }
 
+/** Every registration of an event, holding a place or on its waiting list. */
+const registrationsOf = (eventId: number) => ({
+    OR: [{ quota: { variant: { eventId } } }, { waitingListVariant: { eventId } }],
+})
+
 async function createTestEvent(name: string, places = 10) {
     return eventOperations.create({
         data: {
@@ -38,7 +43,6 @@ async function createTestEvent(name: string, places = 10) {
             tagIds: [],
             // No conditions is satisfiable by no one, so only EVENT_ADMIN administrates this event.
             visibilityAdminRequirements: [{ conditions: [] }],
-            visibilityRegularRequirements: [],
         },
         bypassAuth: true,
     })
@@ -86,7 +90,7 @@ describe('taking attendance for an event', () => {
         expect(scan.counts).toEqual({ attended: 1, total: 1, attendedFromWaitingList: 0 })
 
         const stored = await prisma.eventRegistration.findFirstOrThrow({
-            where: { eventId: event.id, userId: user.id },
+            where: { userId: user.id, ...registrationsOf(event.id) },
             select: { attendedAt: true, attendanceRegisteredById: true },
         })
         expect(stored.attendedAt).not.toBeNull()
@@ -126,7 +130,7 @@ describe('taking attendance for an event', () => {
 
         await expect(registerAttendance(event.id, stranger.id)).rejects.toThrow(Smorekopp)
 
-        expect(await prisma.eventRegistration.count({ where: { eventId: event.id } })).toBe(0)
+        expect(await prisma.eventRegistration.count({ where: registrationsOf(event.id) })).toBe(0)
     })
 
     test('a guest with no Omega-ID is marked by hand, and clearing it drops who marked them', async () => {
@@ -188,7 +192,7 @@ describe('taking attendance for an event', () => {
         await register(event.id, takesThePlace.id)
         const queued = await register(event.id, onWaitingList.id)
 
-        expect(queued.onWaitingList).toBe(true)
+        expect(queued.state).toBe('WAITING_LIST')
 
         const counts = await eventRegistrationOperations.readAttendanceCounts({
             params: { eventId: event.id },

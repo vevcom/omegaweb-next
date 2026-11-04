@@ -135,7 +135,7 @@ async function applySubscription(
     })
 
     if (!validateMethods(notificationChannel.availableMethods, methods)) {
-        throw new ServiceError('BAD PARAMETERS', 'The methods must a subset of the available methods')
+        throw new ServiceError('BAD PARAMETERS', 'Metodene må være blant de tilgjengelige metodene.')
     }
 
     // Update the relation

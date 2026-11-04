@@ -46,7 +46,7 @@ export type LedgerTransactionPaymentMethod = 'STRIPE' | 'MANUAL'
 
 const paymentMethodNames: Record<LedgerTransactionPaymentMethod, string> = {
     STRIPE: 'Stripe',
-    MANUAL: 'Manuell Betaling',
+    MANUAL: 'Manuell betaling',
 }
 
 export type LedgerTransactionSelection = {
@@ -142,7 +142,7 @@ export default function LedgerTransactionModal({
         if (!clientSecret) return 'Noe gikk galt ved opprettelse av betalingen.'
 
         const current = stripePaymentRef.current
-        if (!current) return 'Noe gikk galt ved innhenting av Stripe.'
+        if (!current) return 'Noe gikk galt da Stripe skulle lastes inn.'
 
         return await current.confirmPayment(clientSecret)
     }
@@ -180,7 +180,7 @@ export default function LedgerTransactionModal({
         popUpKey={popUpKey}
         customShowButton={(open) => <Button onClick={open} color="primary">{triggerLabel}</Button>}
     >
-        <div className="w-[min(500px,90vw)] m-6">
+        <div className="w-[min(500px,calc(100svw-3rem))]">
             <h2>{title}</h2>
 
             <Form

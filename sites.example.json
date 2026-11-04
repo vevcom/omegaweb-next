@@ -1,0 +1,5 @@
+{
+    "localhost:3000": { "site": "OMEGAWEB", "main": true, "protocol": "http" },
+    "career.localhost:3000": { "site": "CAREERS", "main": true, "protocol": "http" },
+    "revue.localhost:3000": { "site": "REVUE", "main": true, "protocol": "http" }
+}

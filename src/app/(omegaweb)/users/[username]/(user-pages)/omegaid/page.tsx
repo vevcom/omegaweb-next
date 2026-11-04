@@ -7,7 +7,7 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
         await getProfileForUserPage(params, 'omegaid', session)
     },
-    metadata: () => ({ title: 'OmegaId' }),
+    metadata: () => ({ title: 'Omega-ID' }),
     render: () => (
         <div className="
             min-h-full flex justify-center items-center p-[1rem] bg-surface-base rounded-round

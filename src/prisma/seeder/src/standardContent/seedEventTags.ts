@@ -10,7 +10,7 @@ export const seedEventTagsConfig = [
     {
         special: 'COMPANY_PRESENTATION',
         name: 'BedPres',
-        description: 'Bedrifts presentasjon',
+        description: 'Bedriftspresentasjon',
         colorR: 255,
         colorG: 0,
         colorB: 0,

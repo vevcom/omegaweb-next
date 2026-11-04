@@ -59,6 +59,7 @@ export default function CommitteeImage({
                     "
                     cmsImage={coverImage}
                     width={600}
+                    sizes="100vw"
                 />
             </div>
             <div className="relative">

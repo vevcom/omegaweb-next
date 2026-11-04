@@ -7,7 +7,9 @@ import { JWT_ISSUER } from '@/lib/jwt/constants'
 import { emailValidationExpiration } from '@/lib/email/systemMail/constants'
 import { decryptAndComparePassword, hashAndEncryptPassword } from '@/auth/passwordHash'
 import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
+import { Site } from '@/lib/sites/site'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
+import { moveFeideAccountToUser } from '@/services/auth/feideAccounts/move'
 import { recordSentMail } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 import { sign } from 'jsonwebtoken'
@@ -257,7 +259,7 @@ describe('archived users', () => {
         await archive(user.id)
         const sentMail = recordSentMail()
 
-        await sendResetPasswordMail(user.email)
+        await sendResetPasswordMail(user.email, Site.OMEGAWEB)
 
         expect(sentMail).not.toHaveBeenCalled()
     })
@@ -276,7 +278,7 @@ describe('archived users', () => {
             data: {
                 username: 'archivedclaimer',
                 email: 'archivedclaimer@stud.ntnu.no',
-                createdByFeideLoginOnProjectNext: true,
+                createdByFeideLoginOnOmegawebNext: true,
                 bioParagraph: { create: {} },
                 ledgerAccount: { create: { type: 'USER' } },
                 feideAccount: { create: {
@@ -300,7 +302,7 @@ describe('archived users', () => {
         const activeUser = await createMigratedUser('activemigrated', false)
         const sentMail = recordSentMail()
         const claim = (usernameOrEmail: string) => authOperations.sendLinkFeideAccountEmail({
-            params: { userId: feideUser.id },
+            params: { userId: feideUser.id, site: 'OMEGAWEB' },
             data: { usernameOrEmail },
             bypassAuth: true,
         })
@@ -310,5 +312,69 @@ describe('archived users', () => {
 
         await claim(activeUser.username)
         expect(sentMail).toHaveBeenCalledWith(expect.objectContaining({ to: activeUser.email }))
+    })
+})
+
+describe('linking a Feide account to a migrated user', () => {
+    /** A duplicate user a Feide login created, which then finished registering with a password. */
+    async function createFinishedDuplicate(username: string) {
+        const user = await prisma.user.create({
+            data: {
+                username,
+                email: `${username}@stud.ntnu.no`,
+                createdByFeideLoginOnOmegawebNext: true,
+                acceptedTerms: new Date(),
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+                feideAccount: { create: {
+                    id: `${username}-sub`,
+                    email: `${username}@stud.ntnu.no`,
+                    expiresAt: new Date(),
+                    issuedAt: new Date(),
+                } },
+            },
+        })
+        await prisma.credentials.create({
+            data: {
+                userId: user.id,
+                username: user.username,
+                email: user.email,
+                passwordHash: await hashAndEncryptPassword(OLD_PASSWORD),
+            },
+        })
+        return user
+    }
+
+    const createMigratedUser = (username: string) => prisma.user.create({
+        data: {
+            username,
+            email: `${username}@omega.ntnu.no`,
+            bioParagraph: { create: {} },
+            ledgerAccount: { create: { type: 'USER' } },
+        },
+    })
+
+    test('a user claiming their migrated user may not shed a duplicate that finished registering', async () => {
+        const duplicate = await createFinishedDuplicate('finishedselfclaim')
+        const migrated = await createMigratedUser('selfclaimtarget')
+
+        await expect(moveFeideAccountToUser(prisma, { fromUserId: duplicate.id, toUserId: migrated.id }))
+            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        expect(await prisma.feideAccount.findUnique({ where: { userId: duplicate.id } })).not.toBeNull()
+    })
+
+    test('an administrator merges a duplicate that finished registering', async () => {
+        const duplicate = await createFinishedDuplicate('finishedadminmerge')
+        const migrated = await createMigratedUser('adminmergetarget')
+
+        await authOperations.adminLinkFeideAccount({
+            data: { fromUsername: duplicate.username, toUsername: migrated.username },
+            bypassAuth: true,
+        })
+
+        const feideAccount = await prisma.feideAccount.findUniqueOrThrow({ where: { id: 'finishedadminmerge-sub' } })
+        expect(feideAccount.userId).toBe(migrated.id)
+        expect(await prisma.user.findUnique({ where: { id: duplicate.id } })).toBeNull()
+        expect(await prisma.credentials.findUnique({ where: { userId: duplicate.id } })).toBeNull()
     })
 })

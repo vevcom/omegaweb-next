@@ -17,11 +17,11 @@ export const cabinReleasePeriodOperations = {
             })
 
             if (latestReleasePeriod && latestReleasePeriod.releaseTime > data.releaseTime) {
-                throw new ServiceError('BAD DATA', 'En ny slippdato må slippes senere den den gjeldene siste slippdatoen.')
+                throw new ServiceError('BAD DATA', 'En ny slippdato må være senere enn den gjeldende siste slippdatoen.')
             }
 
             if (latestReleasePeriod && latestReleasePeriod.releaseUntil >= data.releaseUntil) {
-                throw new ServiceError('BAD DATA', 'Et nytt slipp, må slippe flere datoer enn det forrige slippet.')
+                throw new ServiceError('BAD DATA', 'Et nytt slipp må slippe flere datoer enn det forrige slippet.')
             }
 
             return prisma.releasePeriod.create({

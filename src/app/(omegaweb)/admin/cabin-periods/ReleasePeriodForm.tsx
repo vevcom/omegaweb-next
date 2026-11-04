@@ -18,11 +18,11 @@ export default function ReleasePeriodForm({ period, closePopUpOnSuccess }: PropT
             ? configureAction(updateReleasePeriodAction, { params: { id: period.id } })
             : createReleasePeriodAction
         }
-        submitText={period ? 'Oppdater slipp periode' : 'Lag ny slipp periode'}
+        submitText={period ? 'Oppdater slipp' : 'Lag nytt slipp'}
         refreshOnSuccess
         closePopUpOnSuccess={closePopUpOnSuccess}
     >
-        <DateInput name="releaseTime" label="Slipp dato" defaultValue={period?.releaseTime} />
+        <DateInput name="releaseTime" label="Slippdato" defaultValue={period?.releaseTime} />
         <DateInput name="releaseUntil" label="Slipp inntil dato" defaultValue={period?.releaseUntil} />
     </Form>
 }

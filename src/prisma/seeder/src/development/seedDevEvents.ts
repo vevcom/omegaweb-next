@@ -40,7 +40,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
         where: { omegaMembershipLevel: 'SYSKEN' },
         select: { groupId: true },
     })
-    const visibilityRegularRequirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId: memberGroupId }] }]
+    const quotaVisibilityRequirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId: memberGroupId }] }]
 
     const coverImage = await prisma.image.findUniqueOrThrow({
         where: {
@@ -61,10 +61,11 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 registrationStart: today,
                 registrationEnd: tomorrow,
                 waitingList: true,
+                bindingRegistration: true,
                 tagIds: [
                     bedPresTag.id,
                 ],
-                visibilityRegularRequirements,
+                quotaVisibilityRequirements,
                 visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
             },
             registrationCount: 10,
@@ -81,7 +82,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 registrationStart: today,
                 registrationEnd: tomorrow,
                 tagIds: [],
-                visibilityRegularRequirements,
+                quotaVisibilityRequirements,
                 visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
             },
             registrationCount: 0,
@@ -99,7 +100,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 registrationStart: today,
                 registrationEnd: tomorrow,
                 tagIds: [],
-                visibilityRegularRequirements,
+                quotaVisibilityRequirements,
                 visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
             },
             registrationCount: 70,
@@ -136,6 +137,13 @@ async function createEvent(
         data: { imageId: coverImageId },
     })
 
+    if (registrationCount === 0) return
+
+    const quota = await prisma.eventQuota.findFirstOrThrow({
+        where: { variant: { eventId: createdEvent.id } },
+        orderBy: { order: 'asc' },
+        select: { id: true, places: true, variantId: true },
+    })
     const users = await prisma.user.findMany({
         take: registrationCount,
         select: {
@@ -143,10 +151,11 @@ async function createEvent(
         }
     })
 
+    // The first ones fill the quota, the rest queue on the waiting list.
     await prisma.eventRegistration.createMany({
-        data: users.map(user => ({
-            eventId: createdEvent.id,
-            userId: user.id
-        }))
+        data: users.map((user, index) => (index < quota.places
+            ? { state: 'IN_QUOTA' as const, quotaId: quota.id, userId: user.id }
+            : { state: 'WAITING_LIST' as const, waitingListVariantId: quota.variantId, userId: user.id }
+        ))
     })
 }

@@ -19,7 +19,7 @@ export default function PromoBar({ promo }: { promo: PromoWithImage }) {
                 [&_img]:absolute [&_img]:top-0 [&_img]:left-0 [&_img]:size-full [&_img]:object-cover
                 after:absolute after:inset-0 after:bg-linear-90/srgb after:from-black/85 after:to-transparent after:to-65%
             ">
-                <Image width={1200} image={promo.image} hideCredit hideCopyRight />
+                <Image width={1200} sizes="100vw" image={promo.image} hideCredit hideCopyRight />
             </div>
             <div className="relative h-full flex flex-col justify-center gap-1 py-4 px-6 max-w-[70%]">
                 <h3 className="text-l font-bold text-white truncate">{promo.title}</h3>

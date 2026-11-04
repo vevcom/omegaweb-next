@@ -1,25 +1,26 @@
+import { jobAdLinks } from '@/pageKits/jobAds/links'
 import Image from '@/components/Image/Image'
 import SponsorBadge from '@/components/Company/SponsorBadge'
-import { formatVevenUri } from '@/lib/urlEncoding'
 import { osloDateTime } from '@/lib/dates/oslo'
 import { jobAdType } from '@/services/careers/jobAds/constants'
 import Link from 'next/link'
 import type { SimpleJobAd } from '@/services/careers/jobAds/types'
+import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
 type PropTypes = {
     jobAd: SimpleJobAd
-    /** The job ads page the row links under, which differs between Omega's site and the career site. */
-    basePath: string
+    /** The job ad pages the row links into, which differ between Omega's site and the career site. */
+    config: JobAdPagesConfig
 }
 
 const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des']
 
-export default function JobAd({ jobAd, basePath }: PropTypes) {
+export default function JobAd({ jobAd, config }: PropTypes) {
     const deadline = jobAd.applicationDeadline ? osloDateTime(jobAd.applicationDeadline) : null
 
     return (
         <Link
-            href={`${basePath}/${formatVevenUri(jobAd.articleName, jobAd.id)}`}
+            href={jobAdLinks(config).jobAd(jobAd)}
             className="list-row"
         >
             <div className="list-row-thumb">

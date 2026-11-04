@@ -104,7 +104,7 @@ export const articleOperations = {
                 _max: { order: true },
             })
             if (sections._count._all >= maxSections) {
-                throw new ServiceError('BAD PARAMETERS', `The maximum number of sections is ${maxSections}`)
+                throw new ServiceError('BAD PARAMETERS', `Maks antall seksjoner er ${maxSections}`)
             }
 
             const parts = await Promise.all(articleSectionParts

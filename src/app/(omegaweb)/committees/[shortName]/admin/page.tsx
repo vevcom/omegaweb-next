@@ -97,7 +97,7 @@ const { page, generateMetadata } = serverPage({
                         {
                             capabilities.canEditLogo.authorized && (
                                 <ImageUploader
-                                    title="Endre komitelogo"
+                                    title="Endre komitélogo"
                                     refreshOnSuccess
                                     uploadImageAction={configureAction(
                                         updateCommitteeLogoAction,
