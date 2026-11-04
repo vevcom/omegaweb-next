@@ -2,8 +2,8 @@
 import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import type { ActionReturn } from '@/services/actionTypes'
 import type { CSSProperties, PointerEvent, ReactNode } from 'react'
 
@@ -88,7 +88,7 @@ export default function ReorderableList<Item>({
     const [order, setOrder] = useState(items)
     const [prevItems, setPrevItems] = useState(items)
     const [error, setError] = useState<string | null>(null)
-    const router = useRouter()
+    const router = useSiteRouter()
 
     if (prevItems !== items) {
         setPrevItems(items)
