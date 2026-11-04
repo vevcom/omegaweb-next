@@ -2,17 +2,28 @@ import { Site, siteNameSchema } from './site'
 import { z } from 'zod'
 import type { SiteName } from './site'
 
+const hostSchema = z.string().regex(/^[a-z0-9.-]+(:\d+)?$/i, 'A host name, with its port when it is not the default')
+
 const domainSchema = z.object({
     site: siteNameSchema,
     /** The domain the site is linked by from the other sites. A site with domains has exactly one. */
     main: z.boolean().default(false),
     protocol: z.enum(['https', 'http']).default('https'),
+    /** Hosts that are sent on to this domain, such as its `www.` variant. */
+    aliases: z.array(hostSchema).default([]),
 })
 
-const fileSchema = z.record(
-    z.string().regex(/^[a-z0-9.-]+(:\d+)?$/i, 'A host name, with its port when it is not the default'),
-    domainSchema,
-).superRefine((entries, ctx) => {
+const fileSchema = z.record(hostSchema, domainSchema).superRefine((entries, ctx) => {
+    const hosts = Object.keys(entries).map(host => host.toLowerCase())
+    const aliases = Object.values(entries).flatMap(entry => entry.aliases.map(alias => alias.toLowerCase()))
+    aliases.forEach((alias, index) => {
+        if (hosts.includes(alias) || aliases.indexOf(alias) !== index) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `${alias} is an alias and a domain, or an alias twice; an alias is one domain's only`,
+            })
+        }
+    })
     Site.all.forEach(site => {
         const ofSite = Object.values(entries).filter(entry => entry.site === site.name)
         const mains = ofSite.filter(entry => entry.main).length
@@ -30,6 +41,8 @@ export type SiteDomain = {
     site: SiteName,
     main: boolean,
     origin: string,
+    /** Hosts that are sent on to this domain. */
+    aliases: string[],
 }
 
 /**
@@ -47,6 +60,7 @@ export class DomainConfig {
             site: entry.site,
             main: entry.main,
             origin: `${entry.protocol}://${host.toLowerCase()}`,
+            aliases: entry.aliases.map(alias => alias.toLowerCase()),
         })))
     }
 
@@ -62,6 +76,11 @@ export class DomainConfig {
     /** The domain a host is, or null for a host that is not configured. */
     domainOfHost(host: string): SiteDomain | null {
         return this.domains.find(domain => domain.host === host.toLowerCase()) ?? null
+    }
+
+    /** The domain a host is an alias of, or null for a host that is no alias. */
+    domainOfAlias(host: string): SiteDomain | null {
+        return this.domains.find(domain => domain.aliases.includes(host.toLowerCase())) ?? null
     }
 
     /** The host names of the domains, without their ports, as the dev server takes them in allowedDevOrigins. */

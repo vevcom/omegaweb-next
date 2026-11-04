@@ -25,7 +25,10 @@ export function proxy(request: NextRequest) {
 
     // Once domains are configured, a host that is not one of them gets nothing but the healthcheck.
     if (!context.siteDomain() && DomainContext.domainsForBrowser().length > 0 && pathname !== '/api/health') {
-        return new NextResponse(null, { status: 404 })
+        const aliased = DomainContext.domainOfAlias(domain)
+        if (aliased) return NextResponse.redirect(`${aliased.origin}${browserPath}`, 308)
+        // A body, so no browser takes the empty answer for a file to download.
+        return new NextResponse('Not found', { status: 404, headers: { 'content-type': 'text/plain' } })
     }
 
     const requestHeaders = new Headers(request.headers)
