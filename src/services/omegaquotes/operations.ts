@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { omegaQuotesAuth } from './auth'
 import { omegaquoteSchemas } from './schemas'
 import { omegaQuoteFilterSelection } from './constants'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import { notificationOperations } from '@/services/notifications/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
@@ -30,7 +31,7 @@ export const omegaquoteOperations = {
                 data: {
                     title: 'Ny Omegaquote♪',
                     message: `${results.quote}\n - ${results.author}`,
-                    url: '/omegaquotes',
+                    url: omegaLinks.omegaquotes(),
                     audience: { permission: 'OMEGAQUOTES_USE' },
                 },
             })

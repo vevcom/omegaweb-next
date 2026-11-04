@@ -1,9 +1,11 @@
 import CareersWordmark from './CareersWordmark'
-import CareersLoginLink from './CareersLoginLink'
-import { CAREER_PATH } from '@/app/(careers)/_lib/careersSite'
+import { careersAuthPages } from '@/app/(careers)/career/(auth)/config'
+import { careersAuthLinks } from '@/app/(careers)/career/(auth)/links'
+import { careerLinks } from '@/app/(careers)/links'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import { innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
-import { authPath } from '@/lib/authPaths'
+import LoginLink from '@/pageKits/auth/components/LoginLink'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
@@ -41,7 +43,7 @@ export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTy
                 min-h-[64px] flex flex-wrap items-center gap-6
                 max-mobile:pb-2
             `}>
-                <Link href={CAREER_PATH} className="mr-auto no-underline" aria-label="Contactor, til forsiden">
+                <Link href={careerLinks.frontpage()} className="mr-auto no-underline" aria-label="Contactor, til forsiden">
                     <CareersWordmark />
                 </Link>
                 <ul className={`
@@ -61,14 +63,14 @@ export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTy
                         max-mobile:ml-0 max-mobile:pl-0 max-mobile:border-l-0
                     ">
                         {showOmegaLink && (
-                            <Link href="/" className={mutedLinkClassName}>
+                            <Link href={omegaLinks.frontpage()} className={mutedLinkClassName}>
                                 <FontAwesomeIcon icon={faArrowLeft} />
                                 <span>Til Omegaveven</span>
                             </Link>
                         )}
                         {loggedIn
-                            ? <Link href={authPath('CAREERS', 'logout')} className={mutedLinkClassName}>Logg ut</Link>
-                            : <CareersLoginLink className={mutedLinkClassName} />}
+                            ? <Link href={careersAuthLinks.logout()} className={mutedLinkClassName}>Logg ut</Link>
+                            : <LoginLink config={careersAuthPages} className={mutedLinkClassName} />}
                     </li>
                 </ul>
                 <div className="

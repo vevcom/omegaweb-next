@@ -1,28 +1,29 @@
 import SmallEventTag from './SmallEventTag'
-import { eventHref } from './Pages/eventPages'
+import { eventLinks } from '@/pageKits/events/links'
 import Image from '@/components/Image/Image'
 import { osloDateTime } from '@/lib/dates/oslo'
 import React from 'react'
 import Link from 'next/link'
 import type { EventExpanded } from '@/services/events/types'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 
 type PropTypes = {
     event: EventExpanded
-    /** The event pages the card links under, which differ between Omega's site and the career site. */
-    basePath: string
+    /** The event pages the card links into, which differ between Omega's site and the career site. */
+    config: EventPagesConfig
 }
 
 const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des']
 
 const twoDigitHour = (date: Date) => String(osloDateTime(date).hour).padStart(2, '0')
 
-export default function EventCard({ event, basePath }: PropTypes) {
+export default function EventCard({ event, config }: PropTypes) {
     const attendanceRatio = event.places > 0 ? event.numOfRegistrations / event.places : 0
     const attendance = `${Math.max(0, Math.min(attendanceRatio, 1)) * 100}%`
     const from = event.registrationStart ?? event.eventStart
     const to = event.registrationEnd ?? event.eventEnd
 
-    return <Link href={eventHref(basePath, event)} className="list-row">
+    return <Link href={eventLinks(config).event(event)} className="list-row">
         <div className="list-row-thumb">
             {event.coverImage.image && (
                 <Image width={200} image={event.coverImage.image} />

@@ -44,6 +44,7 @@ export const eventRegistrationAuth = {
 
     readDotPunishmentOfUser: userIdOrEventAdmin,
     readOfUser: registrationOfUser,
+    readUpcomingOfUser: userIdOrEventAdmin,
     // Who is registered is shown to those who may see the event and are logged in.
     readPage: Require.allOf(Require.user(), canSeeEvent),
     readPageDetailed: eventAdminLevel,

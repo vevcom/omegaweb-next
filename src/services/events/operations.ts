@@ -11,13 +11,13 @@ import {
 } from './constants'
 import { createVariant } from './variants/createVariant'
 import { createQuota } from './quotas/createQuota'
+import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { notificationOperations } from '@/services/notifications/operations'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
-import { formatVevenUri } from '@/lib/urlEncoding'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
@@ -372,7 +372,8 @@ export const eventOperations = {
 
     /**
      * Publishes an event, or takes it back to being a draft. Publishing a draft tells the
-     * subscribers to new events about it, those of them who may register through one of its quotas.
+     * subscribers to new events about it, those of them who may register through one of its quotas
+     * as the quotas are when the notification is sent.
      */
     setPublished: defineOperation({
         paramsSchema: eventSchemas.params.setPublished,
@@ -384,29 +385,20 @@ export const eventOperations = {
                 where: { id: params.id, published: !data.published },
                 data: { published: data.published },
             })
-            const event = await prisma.event.findUniqueOrThrow({
-                where: { id: params.id },
-                include: { variants: { select: { quotas: { select: { visibilityId: true } } } } },
-            })
+            const event = await prisma.event.findUniqueOrThrow({ where: { id: params.id } })
 
             if (data.published && flipped) {
-                // A notification reaches one visibility, so there is one per quota.
-                const quotaAudiences = event.variants.flatMap(variant => variant.quotas.map(quota => ({
-                    visibilityId: quota.visibilityId,
-                })))
-                const everyone = event.canBeViewedBy === 'ALL' ? [{}] : []
-                const audiences = quotaAudiences.length > 0 ? quotaAudiences : everyone
-                await Promise.all(audiences.map(audience => notificationOperations.createSpecial.internalCall({
+                await notificationOperations.createSpecial.internalCall({
                     params: {
                         special: 'NEW_EVENT',
                     },
                     data: {
                         title: `Hvad der hender: ${event.name}`,
                         message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
-                        url: `/events/${formatVevenUri(event.name, event.id)}`,
-                        audience,
+                        url: omegaEventLinks.event(event),
+                        audience: { canRegisterForEventId: event.id },
                     },
-                })))
+                })
             }
 
             return event

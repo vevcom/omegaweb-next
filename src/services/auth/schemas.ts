@@ -1,5 +1,5 @@
 import { userDataFieldSchemas, userSchemas } from '@/services/users/schemas'
-import { siteSchema } from '@/lib/sites'
+import { siteNameSchema } from '@/lib/sites/site'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -11,7 +11,7 @@ const dataFieldSchemas = z.object({
 const paramsFieldSchemas = z.object({
     token: z.string(),
     userId: z.number(),
-    site: siteSchema,
+    site: siteNameSchema,
 })
 
 /** The claims of a link Feide account token: who asked, and the Feide identity to move. */

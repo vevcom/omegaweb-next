@@ -1,7 +1,7 @@
 import CareersHeroShape from '@/app/(careers)/career/(frontpage)/CareersHeroShape'
 import UpcomingCompanyPresentations from '@/app/(careers)/career/(frontpage)/UpcomingCompanyPresentations'
-import { CAREER_PATH, companyPresentationPages } from '@/app/(careers)/_lib/careersSite'
-import { sitePagesPath } from '@/lib/sites'
+import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
+import { careerLinks } from '@/app/(careers)/links'
 import {
     badgeClassName,
     bandClassName,
@@ -126,7 +126,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </section>
 
-                <UpcomingCompanyPresentations eventsHref={sitePagesPath(companyPresentationPages)} />
+                <UpcomingCompanyPresentations eventsHref={companyPresentationLinks.list()} />
 
                 <section id="studieprogrammene" className={`
                     ${bandClassName}
@@ -209,7 +209,7 @@ const { page, generateMetadata } = serverPage({
                                 `}
                                 {...paragraphActions}
                             />
-                            <Link href={`${CAREER_PATH}/about`} className={`
+                            <Link href={careerLinks.about()} className={`
                                 ${buttonClassName}
                                 mt-8 bg-careers-navy text-white
                                 hover:bg-careers-navy-dark

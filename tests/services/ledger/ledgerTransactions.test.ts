@@ -81,7 +81,7 @@ describe('ledger transactions', () => {
             await expect(payOutFees(INITIAL_BALANCE.fees)).resolves.toMatchObject({ state: 'SUCCEEDED' })
             // Refused only if the balance counts the first payout, an entry with fees but no funds.
             await expect(payOutFees(1_00)).rejects.toMatchObject({
-                errorCode: 'BAD PARAMETERS',
+                errorCode: 'INSUFFICIENT FUNDS',
                 errors: [{ message: expect.stringContaining('Ikke nok midler') }],
             })
 

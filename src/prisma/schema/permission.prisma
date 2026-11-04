@@ -116,6 +116,9 @@ enum Permission {
   // Report page
   REPORT_ADMIN
 
+  // Revue page
+  REVUE_ADMIN
+
   // Ledger permissions
   LEDGER_ADMIN
   LEDGER_USE

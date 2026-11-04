@@ -109,6 +109,15 @@ export const notificationChannelOperations = {
         })
     }),
 
+    readSpecial: defineOperation({
+        paramsSchema: notificationChannelSchemas.params.readSpecial,
+        authorizer: () => notificationChannelAuth.readSpecial,
+        operation: async ({ prisma, params }) => await prisma.notificationChannel.findUniqueOrThrow({
+            where: { special: params.special },
+            include: availableNotificationMethodIncluder,
+        }),
+    }),
+
     readDefault: defineOperation({
         authorizer: () => notificationChannelAuth.readDefault,
         operation: async ({ prisma }) => await prisma.notificationChannel.findMany({

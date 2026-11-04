@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { authAuth } from './auth'
 import { authSchemas, linkFeideAccountClaimsSchema } from './schemas'
 import { moveFeideAccountToUser } from './feideAccounts/move'
+import { Site } from '@/lib/sites/site'
 import { userBasicSelection, userPartitions } from '@/services/users/constants'
 import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
 import { sendLinkFeideAccountMail } from '@/lib/email/systemMail/linkFeideAccount'
@@ -205,7 +206,7 @@ export const authOperations = {
                         feideAccountId: feideUser.feideAccount.id,
                         name: `${feideUser.firstname} ${feideUser.lastname}`,
                         email: feideUser.feideAccount.email,
-                    }, params.site)
+                    }, Site.of(params.site))
                 } catch (err) {
                     logger.error(`Failed to send link feide account mail to user '${targetUser.username}'`, { error: err })
                 }
@@ -311,7 +312,7 @@ export const authOperations = {
         operation: ({ params, data }) => {
             // Not awaited: the response must not wait on the lookup or the mail server, or how long
             // it takes would tell whether a user has this email. Failures are logged, never thrown.
-            void sendResetPasswordMail(data.email, params.site).catch((err: unknown) => {
+            void sendResetPasswordMail(data.email, Site.of(params.site)).catch((err: unknown) => {
                 logger.error(`Failed to send reset password to email '${data.email}'`, { error: err })
             })
 

@@ -6,9 +6,9 @@ import { withServiceContext } from '@/services/serviceOperation'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { CURRENT_PATH_HEADER } from '@/proxy'
-import { QueryParams } from '@/lib/queryParams/queryParams'
-import { siteOfPath } from '@/lib/sites'
-import { authPath } from '@/lib/authPaths'
+import { Site } from '@/lib/sites/site'
+import { authLinks } from '@/pageKits/auth/links'
+import { authPagesOf } from '@/lib/sites/authPagesOf'
 import { notFound, redirect, unstable_rethrow as unstableRethrow } from 'next/navigation'
 import { headers } from 'next/headers'
 import { cache } from 'react'
@@ -18,7 +18,6 @@ import type { Session } from '@/auth/session/Session'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import type { Awaitable } from '@/lib/awaitable'
-import type { AuthPage } from '@/lib/authPaths'
 
 export type SearchParams = Record<string, string | string[] | undefined>
 
@@ -87,10 +86,10 @@ async function redirectUnregistered(session: ServerPageSession) {
  * comes from the header stamped by the proxy (src/proxy.ts) - a server component cannot read its
  * own URL. Should the header be missing, Omega's page is used, plain.
  */
-async function authUrlWithCallback(page: AuthPage) {
+async function authUrlWithCallback(page: 'login' | 'register') {
     const currentPath = (await headers()).get(CURRENT_PATH_HEADER)
-    if (!currentPath) return authPath('OMEGAWEB', page)
-    return `${authPath(siteOfPath(currentPath), page)}?${QueryParams.callbackUrl.encodeUrl(currentPath)}`
+    const links = authLinks(authPagesOf(currentPath ? Site.ofPath(currentPath) : Site.root))
+    return links[page](currentPath ?? undefined)
 }
 
 /**

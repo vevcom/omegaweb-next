@@ -1,4 +1,5 @@
 import { notificationMethodSchema } from '@/services/notifications/schemas'
+import { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -12,6 +13,7 @@ const paramsFieldSchemas = z.object({
     id: z.number(),
     availableMethods: notificationMethodSchema,
     defaultMethods: notificationMethodSchema,
+    special: z.nativeEnum(SpecialNotificationChannel),
 })
 
 export const notificationChannelSchemas = {
@@ -40,6 +42,9 @@ export const notificationChannelSchemas = {
         }),
         destroy: paramsFieldSchemas.pick({
             id: true,
+        }),
+        readSpecial: paramsFieldSchemas.pick({
+            special: true,
         }),
     },
 }

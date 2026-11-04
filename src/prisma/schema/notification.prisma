@@ -6,6 +6,7 @@ enum SpecialNotificationChannel {
   NEW_JOBAD
   NEW_OMEGAQUOTE
   EVENT_WAITINGLIST_PROMOTION
+  CONTACTOR
 }
 
 model NotificationChannel {
@@ -83,8 +84,9 @@ model Notification {
   // changes after creation count. A user must fulfill all of these to get notified:
   // 1. be subscribed to the channel with the method in question,
   // 2. be in the list of targeted users (an empty list means no restriction),
-  // 3. pass the visibility (null means no restriction), and
-  // 4. hold the permission (null means no restriction).
+  // 3. pass the visibility (null means no restriction),
+  // 4. hold the permission (null means no restriction), and
+  // 5. be able to register for the event (null means no restriction).
   channelId     Int
   channel       NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
   usersTargeted User[]              @relation(name: "NotificationTargets")
@@ -93,6 +95,11 @@ model Notification {
   visibilityId Int?
   visibility   Visibility? @relation(fields: [visibilityId], references: [id], onDelete: Cascade)
   permission   Permission?
+  // Those who may register for the event through one of its quotas, as the quotas are when the
+  // worker sends, or everyone when it is open to all and takes no registration. Deleting the event
+  // takes the notification with it.
+  canRegisterForEventId Int?
+  canRegisterForEvent   Event? @relation(fields: [canRegisterForEventId], references: [id], onDelete: Cascade)
 
   // Dispatch state, written by the notification worker. Null = not yet handled by that method.
   // The claim column lets a dispatch that died mid-send go stale and be retried (see the worker).

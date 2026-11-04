@@ -21,6 +21,7 @@ const dataFieldSchemas = z.object({
         userIds: z.number().array().optional(),
         visibilityId: z.number().optional(),
         permission: z.nativeEnum(Permission).optional(),
+        canRegisterForEventId: z.number().optional(),
     }).optional(),
 })
 
