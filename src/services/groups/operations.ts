@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { assertGroupValidity } from './assertGroupValidity'
-import { assertIsReorderingOf, isGroupPensioned } from './groupChecks'
+import { isGroupPensioned } from './groupChecks'
 import { groupSchemas } from './schemas'
 import {
     groupMembershipIncluder,
@@ -18,6 +18,7 @@ import { ServiceError } from '@/services/error'
 import { getMembershipFilter } from '@/auth/getMembershipFilter'
 import { invalidateManyUserSessionData, invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
+import { applyReordering } from '@/lib/reordering'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { GroupType } from '@/prisma-generated-pn-types'
 import type {
@@ -250,24 +251,24 @@ export const groupOperations = {
     reorderMembers: defineSubOperation({
         paramsSchema: () => groupSchemas.params.reorderMembers,
         dataSchema: () => groupSchemas.data.reorderMembers,
-        operation: () => async ({ prisma, params, data }) => {
-            const group = await readGroupOrderAndType(prisma, params.groupId)
+        opensTransaction: true,
+        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
+            const group = await readGroupOrderAndType(tx, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
 
-            const memberships = await prisma.membership.findMany({
+            const memberships = await tx.membership.findMany({
                 where: { groupId: params.groupId, order, user: userPartitions.unarchived },
                 select: { userId: true },
             })
-            assertIsReorderingOf(data.userIds, memberships.map(membership => membership.userId))
-
-            await prisma.$executeRaw`
-                UPDATE "Membership" SET "position" = reordered."position"
-                FROM unnest(${data.userIds}::int[]) WITH ORDINALITY AS reordered("userId", "position")
-                WHERE "Membership"."groupId" = ${params.groupId}
-                    AND "Membership"."order" = ${order}
-                    AND "Membership"."userId" = reordered."userId"
-            `
-        }
+            await applyReordering(
+                data.userIds,
+                memberships.map(membership => membership.userId),
+                (userId, position) => tx.membership.update({
+                    where: { userId_groupId_order: { userId, groupId: params.groupId, order } },
+                    data: { position },
+                }),
+            )
+        }),
     }),
 
     /**

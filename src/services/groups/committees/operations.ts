@@ -17,7 +17,8 @@ import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { articleOperations } from '@/cms/articles/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { assertGroupNotPensioned, assertIsReorderingOf } from '@/services/groups/groupChecks'
+import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
+import { applyReordering } from '@/lib/reordering'
 import { GroupType } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
@@ -288,19 +289,18 @@ const update = defineOperation({
 const reorder = defineOperation({
     authorizer: () => committeeAuth.reorder,
     dataSchema: committeeSchemas.data.reorder,
-    operation: async ({ prisma, data }) => {
-        const committees = await prisma.committee.findMany({
+    opensTransaction: true,
+    operation: async ({ prisma, data }) => await prisma.$transaction(async tx => {
+        const committees = await tx.committee.findMany({
             where: { group: { pensioned: false } },
             select: { id: true },
         })
-        assertIsReorderingOf(data.committeeIds, committees.map(committee => committee.id))
-
-        await prisma.$executeRaw`
-            UPDATE "Committee" SET "position" = reordered."position"
-            FROM unnest(${data.committeeIds}::int[]) WITH ORDINALITY AS reordered("id", "position")
-            WHERE "Committee"."id" = reordered."id"
-        `
-    }
+        await applyReordering(
+            data.committeeIds,
+            committees.map(committee => committee.id),
+            (id, position) => tx.committee.update({ where: { id }, data: { position } }),
+        )
+    }),
 })
 
 const updateArticle = implementUpdateArticleOperations({

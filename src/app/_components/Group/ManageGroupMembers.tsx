@@ -140,19 +140,10 @@ export default function ManageGroupMembers({
                     buttonClassName="w-[5.5rem]!"
                     submitText="Lagre"
                     submitColor="secondary"
-                    action={formData => {
-                        const title = formData.get('title')
-                        return configureAction(
-                            setMemberTitleAction, { params: { groupId, order: selectedOrder } }
-                        )({
-                            data: {
-                                userId: member.userId,
-                                title: typeof title === 'string' ? title : '',
-                            },
-                        })
-                    }}
+                    action={configureAction(setMemberTitleAction, { params: { groupId, order: selectedOrder } })}
                     refreshOnSuccess
                 >
+                    <input type="hidden" name="userId" value={member.userId} />
                     <TextInput
                         className="w-[12rem]"
                         name="title"
@@ -182,11 +173,12 @@ export default function ManageGroupMembers({
                     <Form
                         submitText={member.admin ? 'Fjern admin' : 'Gjør til admin'}
                         submitColor="secondary"
-                        action={() => configureAction(
-                            setMemberAdminAction, { params: { groupId, order: selectedOrder } }
-                        )({ data: { userId: member.userId, admin: !member.admin } })}
+                        action={configureAction(setMemberAdminAction, { params: { groupId, order: selectedOrder } })}
                         refreshOnSuccess
-                    />
+                    >
+                        <input type="hidden" name="userId" value={member.userId} />
+                        {!member.admin && <input type="hidden" name="admin" value="on" />}
+                    </Form>
                 </span>
             )}
             {removeMembersAction && (
@@ -199,16 +191,16 @@ export default function ManageGroupMembers({
                         <Form
                             submitText="Fjern"
                             submitColor="red"
-                            action={() => configureAction(
-                                removeMembersAction, { params: { groupId, order: selectedOrder } }
-                            )({ data: { userIds: [member.userId] } })}
+                            action={configureAction(removeMembersAction, { params: { groupId, order: selectedOrder } })}
                             refreshOnSuccess
                             confirmation={{
                                 confirm: true,
                                 text: `Fjerne ${member.name} fra gruppen i orden `
                                     + `${selectedOrder}? Medlemskapet blir satt inaktivt.`
                             }}
-                        />
+                        >
+                            <input type="hidden" name="userIds" value={member.userId} />
+                        </Form>
                     )}
                 </span>
             )}

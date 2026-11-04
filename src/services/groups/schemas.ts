@@ -1,4 +1,6 @@
+import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
+import { zfd } from 'zod-form-data'
 import type { MembershipSelectorType } from './types'
 
 const membershipSelectorSchema: z.ZodType<MembershipSelectorType> = z.union([
@@ -12,9 +14,9 @@ const dataFieldSchemas = z.object({
         userId: z.number(),
         admin: z.boolean(),
     })),
-    userIds: z.number().array(),
-    userId: z.number(),
-    admin: z.boolean(),
+    userIds: zfd.repeatable(z.coerce.number().array()),
+    userId: z.coerce.number(),
+    admin: Zpn.checkboxOrBoolean({ label: 'Administrator' }),
     title: z.string().min(1, 'Tittelen kan ikke være tom'),
     pensioned: z.boolean(),
     /**
