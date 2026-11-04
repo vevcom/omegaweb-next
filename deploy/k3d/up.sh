@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Brings the local overlay up on a k3d cluster, for trying the manifests and the
 # images on a workstation. Safe to re-run: it rebuilds the images and re-applies
-# everything. Tear down with `k3d cluster delete projectnext`.
+# everything. Tear down with `k3d cluster delete omegaweb-next`.
 #
 # With --argocd it installs Argo CD instead of applying the overlay and points it at
 # clusters/local in the vivat repo, which deploys the branch of this repo named in
@@ -12,8 +12,8 @@ argocd=false
 [[ ${1:-} == --argocd ]] && argocd=true
 
 cd "$(dirname "$0")/../.."
-cluster=projectnext
-namespace=projectnext
+cluster=omegaweb-next
+namespace=omegaweb-next
 secrets=deploy/k3d/.env.local
 
 k3d cluster list "$cluster" >/dev/null 2>&1 || k3d cluster create --config deploy/k3d/cluster.yaml
@@ -77,7 +77,7 @@ for target in prod tools; do
 done
 
 kubectl create namespace "$namespace" --dry-run=client -o yaml | kubectl apply -f -
-kubectl -n "$namespace" create secret generic projectnext-env --from-env-file="$env_file" \
+kubectl -n "$namespace" create secret generic omegaweb-next-env --from-env-file="$env_file" \
     --dry-run=client -o yaml | kubectl apply -f -
 
 if $argocd; then
@@ -90,7 +90,7 @@ if $argocd; then
     # A rebuilt image keeps its tag, so Argo CD sees nothing to roll out.
     kubectl -n "$namespace" rollout restart deployment
     kubectl -n "$namespace" rollout status deployment --timeout=5m
-    echo "Up at http://projectnext.localhost:8080"
+    echo "Up at http://omegaweb-next.localhost:8080"
     exit
 fi
 
@@ -98,11 +98,11 @@ fi
 # would start before the database accepts connections. It is recreated once the
 # database is ready, which Argo CD also does for a hook job on every sync.
 kubectl apply -k deploy/overlays/local
-kubectl -n "$namespace" wait cluster.postgresql.cnpg.io/projectnext-db --for=condition=Ready --timeout=5m
-kubectl -n "$namespace" delete job projectnext-migrate --ignore-not-found
+kubectl -n "$namespace" wait cluster.postgresql.cnpg.io/omegaweb-next-db --for=condition=Ready --timeout=5m
+kubectl -n "$namespace" delete job omegaweb-next-migrate --ignore-not-found
 kubectl apply -k deploy/overlays/local
-kubectl -n "$namespace" wait job/projectnext-migrate --for=condition=Complete --timeout=10m
+kubectl -n "$namespace" wait job/omegaweb-next-migrate --for=condition=Complete --timeout=10m
 kubectl -n "$namespace" rollout restart deployment
 kubectl -n "$namespace" rollout status deployment --timeout=5m
 
-echo "Up at http://projectnext.localhost:8080"
+echo "Up at http://omegaweb-next.localhost:8080"

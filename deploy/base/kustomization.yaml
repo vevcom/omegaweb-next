@@ -3,7 +3,7 @@ kind: Kustomization
 
 labels:
     - pairs:
-          app.kubernetes.io/part-of: projectnext
+          app.kubernetes.io/part-of: omegaweb-next
 
 resources:
     - database.yaml
@@ -15,7 +15,7 @@ resources:
 # Non-secret settings. Listed after the env secret in every envFrom, so a key here
 # wins over the same key in the secret.
 configMapGenerator:
-    - name: projectnext-config
+    - name: omegaweb-next-config
       # The migrate job in wave -1 reads it too.
       options:
           annotations:

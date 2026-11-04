@@ -1,9 +1,9 @@
-# CloudNativePG creates the projectnext-db-app secret, whose `uri` key every pod
+# CloudNativePG creates the omegaweb-next-db-app secret, whose `uri` key every pod
 # reads as DB_URI.
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-    name: projectnext-db
+    name: omegaweb-next-db
     annotations:
         argocd.argoproj.io/sync-wave: "-3"
 spec:
@@ -11,7 +11,7 @@ spec:
     imageName: ghcr.io/cloudnative-pg/postgresql:16.6
     bootstrap:
         initdb:
-            database: projectnext
-            owner: projectnext
+            database: omegaweb
+            owner: omegaweb
     storage:
         size: 10Gi

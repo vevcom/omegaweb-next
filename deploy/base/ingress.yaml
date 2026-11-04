@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-    name: projectnext
+    name: omegaweb-next
 spec:
     rules:
         - host: placeholder.invalid
@@ -12,6 +12,6 @@ spec:
                     pathType: Prefix
                     backend:
                         service:
-                            name: projectnext
+                            name: omegaweb-next
                             port:
                                 name: http

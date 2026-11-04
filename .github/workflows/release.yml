@@ -56,8 +56,8 @@ jobs:
       working-directory: deploy/overlays/prod
       run: |
         kustomize edit set image \
-          projectnext=ghcr.io/vevcom/omegaweb-next:${{ github.event.release.tag_name }} \
-          projectnext-tools=ghcr.io/vevcom/omegaweb-next-tools:${{ github.event.release.tag_name }}
+          omegaweb-next=ghcr.io/vevcom/omegaweb-next:${{ github.event.release.tag_name }} \
+          omegaweb-next-tools=ghcr.io/vevcom/omegaweb-next-tools:${{ github.event.release.tag_name }}
     - uses: peter-evans/create-pull-request@v7
       with:
         # GitHub starts no workflows for a pull request made with the default token, so the checks

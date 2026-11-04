@@ -7,7 +7,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-    name: projectnext-store
+    name: omegaweb-next-store
     annotations:
         argocd.argoproj.io/sync-wave: "-1"
 spec:

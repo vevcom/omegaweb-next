@@ -2,7 +2,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-    name: projectnext-db
+    name: omegaweb-next-db
 spec:
     storage:
         size: 20Gi
@@ -15,13 +15,13 @@ spec:
     backup:
         retentionPolicy: 30d
         barmanObjectStore:
-            destinationPath: s3://CHANGE-ME/projectnext-db
+            destinationPath: s3://CHANGE-ME/omegaweb-next-db
             endpointURL: https://s3.stack.it.ntnu.no
             # EC2 keys reach every bucket in the OpenStack project, so the store keys do.
             s3Credentials:
                 accessKeyId:
-                    name: projectnext-env
+                    name: omegaweb-next-env
                     key: STORE_S3_ACCESS_KEY_ID
                 secretAccessKey:
-                    name: projectnext-env
+                    name: omegaweb-next-env
                     key: STORE_S3_SECRET_ACCESS_KEY

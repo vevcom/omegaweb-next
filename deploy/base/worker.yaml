@@ -3,35 +3,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: projectnext-worker
+    name: omegaweb-next-worker
 spec:
     replicas: 1
     strategy:
         type: Recreate
     selector:
         matchLabels:
-            app.kubernetes.io/name: projectnext-worker
+            app.kubernetes.io/name: omegaweb-next-worker
     template:
         metadata:
             labels:
-                app.kubernetes.io/name: projectnext-worker
+                app.kubernetes.io/name: omegaweb-next-worker
         spec:
             containers:
                 - name: worker
-                  image: projectnext-tools
+                  image: omegaweb-next-tools
                   command: [./node_modules/.bin/tsx, src/workers/main.ts]
                   envFrom:
                       - secretRef:
-                            name: projectnext-env
+                            name: omegaweb-next-env
                       - configMapRef:
-                            name: projectnext-config
+                            name: omegaweb-next-config
                   env:
                       - name: IGNORE_SERVER_ONLY
                         value: "true"
                       - name: DB_URI
                         valueFrom:
                             secretKeyRef:
-                                name: projectnext-db-app
+                                name: omegaweb-next-db-app
                                 key: uri
                   # The workers rewrite the file every 30 seconds unless a tick is stuck, see
                   # src/workers/main.ts. Failing three times in a row covers the start.

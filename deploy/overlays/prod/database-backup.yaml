@@ -1,9 +1,9 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-    name: projectnext-db-daily
+    name: omegaweb-next-db-daily
 spec:
     schedule: "0 0 3 * * *"
     backupOwnerReference: self
     cluster:
-        name: projectnext-db
+        name: omegaweb-next-db

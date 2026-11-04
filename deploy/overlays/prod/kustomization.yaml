@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: projectnext
+namespace: omegaweb-next
 
 resources:
     - namespace.yaml
@@ -11,7 +11,7 @@ resources:
     - redirect-https.yaml
 
 configMapGenerator:
-    - name: projectnext-config
+    - name: omegaweb-next-config
       behavior: merge
       literals:
           - WEBSITE_URL=https://sctomega.com
@@ -22,10 +22,10 @@ configMapGenerator:
 
 # The tags are bumped by .github/workflows/release.yml through a pull request.
 images:
-    - name: projectnext
+    - name: omegaweb-next
       newName: ghcr.io/vevcom/omegaweb-next
       newTag: v0.0.0
-    - name: projectnext-tools
+    - name: omegaweb-next-tools
       newName: ghcr.io/vevcom/omegaweb-next-tools
       newTag: v0.0.0
 

@@ -35,8 +35,8 @@ You need Docker and the tools in the repo's flake, which `nix develop` puts on y
 
 ```bash
 ./deploy/k3d/up.sh                 # cluster, CNPG, images, secrets, overlay
-open http://projectnext.localhost:8080
-k3d cluster delete projectnext     # tear down
+open http://omegaweb-next.localhost:8080
+k3d cluster delete omegaweb-next     # tear down
 ```
 
 `up.sh` applies the overlay with `kubectl` and does not use Argo CD. To try Argo CD
@@ -44,7 +44,7 @@ itself, push your branch, set it as `targetRevision` in vivat's
 `clusters/local/omegaweb.yaml` and start from a fresh cluster:
 
 ```bash
-k3d cluster delete projectnext
+k3d cluster delete omegaweb-next
 ./deploy/k3d/up.sh --argocd          # Argo CD deploys the pushed branch
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
 kubectl -n argocd port-forward svc/argocd-server 8443:443
@@ -56,14 +56,14 @@ The store is on disk unless `deploy/k3d/.env.local`, which is gitignored, sets t
 ## Secrets
 
 The app's environment lives in Phase. In prod, the Phase operator reads it into the
-`projectnext-env` secret, as set up in `overlays/prod/phase-secret.yaml`, and keeps it in
+`omegaweb-next-env` secret, as set up in `overlays/prod/phase-secret.yaml`, and keeps it in
 sync. Only two secrets are created by hand, once per cluster: the Phase service token the
 operator logs in with, and the pull secret for the private images.
 
 The operator does not restart the app, so after changing a secret in Phase run
-`kubectl -n projectnext rollout restart deployment`.
+`kubectl -n omegaweb-next rollout restart deployment`.
 
-Locally, `up.sh` makes `projectnext-env` from `.env` instead.
+Locally, `up.sh` makes `omegaweb-next-env` from `.env` instead.
 
 ## The store
 
@@ -99,10 +99,10 @@ Use `copy`, not `sync`, so deletes never reach the copy.
    the shell history.
 
    ```bash
-   kubectl create namespace projectnext
+   kubectl create namespace omegaweb-next
    read -s PHASE_TOKEN
-   kubectl -n projectnext create secret generic phase-service-token --from-literal=token="$PHASE_TOKEN"
-   kubectl -n projectnext create secret docker-registry ghcr-pull --docker-server=ghcr.io \
+   kubectl -n omegaweb-next create secret generic phase-service-token --from-literal=token="$PHASE_TOKEN"
+   kubectl -n omegaweb-next create secret docker-registry ghcr-pull --docker-server=ghcr.io \
        --docker-username=<user> --docker-password=<read:packages token>
    ```
 
@@ -117,11 +117,11 @@ Use `copy`, not `sync`, so deletes never reach the copy.
    the restore replaces everything in one transaction. If it fails, nothing has changed.
 
    ```bash
-   docker exec <dokploy db container> pg_dump -Fc -U <user> <database> > projectnext.dump
-   uri=$(kubectl -n projectnext get secret projectnext-db-app -o jsonpath='{.data.uri}' | base64 -d)
-   kubectl -n projectnext exec -i projectnext-db-1 -c postgres -- \
+   docker exec <dokploy db container> pg_dump -Fc -U <user> <database> > omegaweb-next.dump
+   uri=$(kubectl -n omegaweb-next get secret omegaweb-next-db-app -o jsonpath='{.data.uri}' | base64 -d)
+   kubectl -n omegaweb-next exec -i omegaweb-next-db-1 -c postgres -- \
        pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction -d "$uri" \
-       < projectnext.dump
+       < omegaweb-next.dump
    ```
 
    Copy the `store` volume to the bucket with `rclone copy <store volume> s3:<bucket>`. Then

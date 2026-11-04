@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: projectnext
+    name: omegaweb-next
 spec:
     replicas: 2
     strategy:
@@ -9,28 +9,28 @@ spec:
             maxUnavailable: 0
     selector:
         matchLabels:
-            app.kubernetes.io/name: projectnext
+            app.kubernetes.io/name: omegaweb-next
     template:
         metadata:
             labels:
-                app.kubernetes.io/name: projectnext
+                app.kubernetes.io/name: omegaweb-next
         spec:
             containers:
-                - name: projectnext
-                  image: projectnext
+                - name: omegaweb-next
+                  image: omegaweb-next
                   ports:
                       - name: http
                         containerPort: 3000
                   envFrom:
                       - secretRef:
-                            name: projectnext-env
+                            name: omegaweb-next-env
                       - configMapRef:
-                            name: projectnext-config
+                            name: omegaweb-next-config
                   env:
                       - name: DB_URI
                         valueFrom:
                             secretKeyRef:
-                                name: projectnext-db-app
+                                name: omegaweb-next-db-app
                                 key: uri
                   startupProbe:
                       httpGet:
@@ -59,10 +59,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-    name: projectnext
+    name: omegaweb-next
 spec:
     selector:
-        app.kubernetes.io/name: projectnext
+        app.kubernetes.io/name: omegaweb-next
     ports:
         - name: http
           port: 80
