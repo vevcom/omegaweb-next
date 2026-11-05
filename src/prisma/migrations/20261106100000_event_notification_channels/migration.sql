@@ -46,10 +46,12 @@ ADD COLUMN     "infoNotificationChannelId" INTEGER,
 ADD COLUMN     "notificationChannelId" INTEGER;
 
 -- Backfill: every event gets its three channels, without the subscriptions a new channel takes over
--- from its parent.
+-- from its parent. Those registered are subscribed to the info channel, as registering does, so
+-- nobody on a waiting list misses their promotion.
 DO $$
 DECLARE
     event_row RECORD;
+    registrant RECORD;
     parent_channel RECORD;
     channel_id INTEGER;
     info_id INTEGER;
@@ -88,6 +90,20 @@ BEGIN
             'EVENT_INFO', channel_id, methods_id, parent_channel."mailAliasId"
         )
         RETURNING "id" INTO info_id;
+
+        FOR registrant IN
+            SELECT DISTINCT r."userId"
+            FROM "EventRegistration" r
+            LEFT JOIN "EventQuota" q ON q."id" = r."quotaId"
+            JOIN "EventVariant" v ON v."id" = COALESCE(q."variantId", r."waitingListVariantId")
+            WHERE v."eventId" = event_row."id" AND r."userId" IS NOT NULL
+        LOOP
+            INSERT INTO "NotificationMethod" ("email", "emailWeekly", "push")
+            VALUES (true, false, true)
+            RETURNING "id" INTO methods_id;
+            INSERT INTO "NotificationSubscription" ("userId", "channelId", "methodsId", "updatedAt")
+            VALUES (registrant."userId", info_id, methods_id, CURRENT_TIMESTAMP);
+        END LOOP;
 
         INSERT INTO "NotificationMethod" ("email", "emailWeekly", "push")
         VALUES (parent_channel."email", parent_channel."emailWeekly", parent_channel."push")
