@@ -5,6 +5,7 @@ import { careerLinks } from '@/app/(careers)/links'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
+import { CareersSearchButton } from '@/app/(careers)/GlobalSearch'
 import LoginLink from '@/pageKits/auth/components/LoginLink'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -78,6 +79,7 @@ export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTy
                             : <LoginLink config={careersAuthPages} className={mutedLinkClassName} />}
                     </li>
                 </ul>
+                <CareersSearchButton className="size-[40px] text-careers-navy" />
                 <div className="
                     size-[40px]
                     empty:hidden

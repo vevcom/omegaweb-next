@@ -5,9 +5,12 @@ import { careersTheme } from './_lib/careersTheme'
 import { careerNavLinks } from './_lib/careersSite'
 import { innerClassName } from './_lib/careersClassNames'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
+import { CareersGlobalSearch, CareersGlobalSearchProvider } from '@/app/(careers)/GlobalSearch'
 import WorkInProgressBanner from '@/components/WorkInProgressBanner/WorkInProgressBanner'
 import { externalHref } from '@/lib/sites/href'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
+import { searchableCategories } from '@/services/search/constants'
+import { careersSearchCategories } from '@/services/careers/search/constants'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { serverLayout, withFallback } from '@/app/ServerPage'
 import type { LayoutOperationArgs } from '@/app/ServerPage'
@@ -40,6 +43,7 @@ export default serverLayout({
         return {
             loggedIn: session.user !== null,
             omegaMember: level !== null && level.level !== 'DEN_GEMENE_HOB',
+            searchCategories: searchableCategories(careersSearchCategories, session),
         }
     },
     capabilities: () => ({
@@ -58,15 +62,18 @@ export default serverLayout({
             data-tone="light"
         >
             <SiteTheme colors={careersTheme} />
-            <WorkInProgressBanner siteName="Contactor" currentSiteHref={externalHref('https://contactor.no')} />
-            <CareersNavBar links={careerNavLinks} loggedIn={data.loggedIn} showOmegaLink={data.omegaMember} />
-            <main className={`
-                ${innerClassName}
-                flex-1
-            `}>
-                {children}
-            </main>
-            <CareersFooter capabilities={capabilities} showOmegaLink={data.omegaMember} />
+            <CareersGlobalSearchProvider>
+                <CareersGlobalSearch navItems={careerNavLinks} categories={data.searchCategories} />
+                <WorkInProgressBanner siteName="Contactor" currentSiteHref={externalHref('https://contactor.no')} />
+                <CareersNavBar links={careerNavLinks} loggedIn={data.loggedIn} showOmegaLink={data.omegaMember} />
+                <main className={`
+                    ${innerClassName}
+                    flex-1
+                `}>
+                    {children}
+                </main>
+                <CareersFooter capabilities={capabilities} showOmegaLink={data.omegaMember} />
+            </CareersGlobalSearchProvider>
         </div>
     ),
 })

@@ -1,6 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 
-export const searchAuth = {
+export const omegawebSearchAuth = {
     // The search of each category decides whether the session may search it.
     searchAll: Require.nothing(),
 } as const

@@ -1,7 +1,8 @@
 import { Session } from '@/auth/session/Session'
 import { prisma } from '@/prisma-pn-client-instance'
 import { Smorekopp } from '@/services/error'
-import { searchOperations } from '@/services/search/operations'
+import { omegawebSearchOperations } from '@/services/omegawebSearch/operations'
+import { careersSearchOperations } from '@/services/careers/search/operations'
 import { eventOperations } from '@/services/events/operations'
 import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { eventVariantOperations } from '@/services/events/variants/operations'
@@ -67,7 +68,7 @@ describe('the search operation of a service', () => {
     })
 
     test('the global search still needs text to search for', async () => {
-        await expect(searchOperations.searchAll({
+        await expect(omegawebSearchOperations.searchAll({
             params: { query: '  ' },
             session: sessionOf(['COMPANY_USE']),
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
@@ -91,7 +92,7 @@ describe('the search operation of a service', () => {
 
 describe('global search', () => {
     test('finds a company by part of its name, ignoring case', async () => {
-        const sections = await searchOperations.searchAll({
+        const sections = await omegawebSearchOperations.searchAll({
             params: { query: 'søketest bedrift' },
             session: sessionOf(['COMPANY_USE']),
         })
@@ -100,7 +101,7 @@ describe('global search', () => {
     })
 
     test('leaves out the categories the session may not search', async () => {
-        const sections = await searchOperations.searchAll({
+        const sections = await omegawebSearchOperations.searchAll({
             params: { query: 'søketest' },
             session: sessionOf(['COMPANY_USE']),
         })
@@ -139,11 +140,29 @@ describe('global search', () => {
     })
 
     test('a single category the session may not search gives no sections', async () => {
-        const sections = await searchOperations.searchAll({
+        const sections = await omegawebSearchOperations.searchAll({
             params: { query: 'søketest', category: 'companies' },
             session: sessionOf([]),
         })
         expect(sections).toEqual([])
+    })
+
+    test('the career site searches only the categories it has pages for', async () => {
+        const session = sessionOf(['COMPANY_USE', 'JOBAD_USE', 'COMMITTEE_USE', 'USERS_USE'])
+        const careers = await careersSearchOperations.searchAll({ params: { query: 'søketest' }, session })
+        expect(careers.map(section => section.category).sort()).toEqual(['companies', 'jobAds'])
+        expect(careers.find(section => section.category === 'companies')?.results.map(result => result.label).sort())
+            .toEqual([COMPANY_NAME, OTHER_COMPANY_NAME].sort())
+
+        const omega = await omegawebSearchOperations.searchAll({ params: { query: 'søketest' }, session })
+        expect(omega.map(section => section.category)).toContain('committees')
+    })
+
+    test('a category outside the site\'s search is a bad parameter', async () => {
+        await expect(careersSearchOperations.searchAll({
+            params: { query: 'søketest', category: 'committees' },
+            session: sessionOf(['COMMITTEE_USE']),
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
     })
 })
 

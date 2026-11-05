@@ -6,9 +6,10 @@ import { visibleAdminNav } from '@/app/(omegaweb)/admin/adminNavDef'
 import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import NavMenuProvider from '@/contexts/NavMenu'
-import GlobalSearch from '@/UI/GlobalSearch'
+import { OmegaGlobalSearch, OmegaGlobalSearchProvider } from '@/app/(omegaweb)/GlobalSearch'
 import { userOperations } from '@/services/users/operations'
-import { searchCategories, searchCategoryNames } from '@/services/search/constants'
+import { searchableCategories } from '@/services/search/constants'
+import { omegawebSearchCategories } from '@/services/omegawebSearch/constants'
 import { withFallback, withPageSession } from '@/app/ServerPage'
 import { Theme, themes } from '@/lib/theme'
 import { appHref } from '@/lib/sites/href'
@@ -43,9 +44,7 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
         icon: group.header.icon,
         group: group.header.title,
     })))
-    const searchableCategories = searchCategoryNames.filter(
-        category => searchCategories[category].authorizer.auth(serverSession).authorized
-    )
+    const searchCategories = searchableCategories(omegawebSearchCategories, serverSession)
     // Anyone not logged in gets the default theme, which globals.scss already holds.
     const theme = serverSession.user?.theme ?? Theme.STANDARD
 
@@ -54,47 +53,49 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
             min-h-dvh text-text bg-surface-raised bg-linear-125/srgb from-accent-blue/30 from-0% to-surface-base/20 to-70%
         ">
             <SiteTheme colors={themes[theme]} />
-            <GlobalSearch navItems={navItems} adminNavItems={adminNavItems} categories={searchableCategories} />
-            <NavMenuProvider>
-                <div className="
-                    grid grid-cols-[56px_minmax(0,1fr)] grid-rows-[56px_1fr_64px] gap-2 h-dvh max-w-[2560px] mx-auto
-                    [grid-template-areas:'navBar_navBar'_'sideBar_content'_'sideBar_content']
-                    pt-[calc(var(--gap)+env(safe-area-inset-top))] pr-[calc(var(--gap)+env(safe-area-inset-right))]
-                    pb-[calc(var(--gap)+env(safe-area-inset-bottom))] pl-[calc(var(--gap)+env(safe-area-inset-left))]
-                    transition-[grid-template-columns] duration-300 ease-[ease]
-                    mobile:has-[>aside_[data-expanded=true]]:grid-cols-[220px_minmax(0,1fr)]
-                    max-mobile:grid-cols-[minmax(0,1fr)]
-                    max-mobile:[grid-template-areas:'navBar'_'content'_'mobileNavBar']
-                ">
-                    <div className="[grid-area:navBar] col-span-full h-[56px] z-3 rounded-round">
-                        <NavBar
-                            isLoggedIn={navUser !== null}
-                            profileImage={navUser?.image ?? null}
-                            navItems={navItems}
-                        />
-                    </div>
-                    <aside className="
-                        [grid-area:sideBar] h-full w-full z-3
-                        max-mobile:hidden
-                    ">
-                        <DesktopSideBar navItems={navItems} />
-                    </aside>
-                    <main className="[grid-area:content] min-h-0 overflow-hidden rounded-round">
-                        <ScrollArea className="h-full" scrollerClassName="flex flex-col">
-                            {children}
-                        </ScrollArea>
-                    </main>
+            <OmegaGlobalSearchProvider>
+                <OmegaGlobalSearch navItems={navItems} adminNavItems={adminNavItems} categories={searchCategories} />
+                <NavMenuProvider>
                     <div className="
-                        hidden z-3 rounded-round overflow-hidden [grid-area:mobileNavBar]
-                        max-mobile:block max-mobile:h-[64px] max-mobile:w-full
+                        grid grid-cols-[56px_minmax(0,1fr)] grid-rows-[56px_1fr_64px] gap-2 h-dvh max-w-[2560px] mx-auto
+                        [grid-template-areas:'navBar_navBar'_'sideBar_content'_'sideBar_content']
+                        pt-[calc(var(--gap)+env(safe-area-inset-top))] pr-[calc(var(--gap)+env(safe-area-inset-right))]
+                        pb-[calc(var(--gap)+env(safe-area-inset-bottom))] pl-[calc(var(--gap)+env(safe-area-inset-left))]
+                        transition-[grid-template-columns] duration-300 ease-[ease]
+                        mobile:has-[>aside_[data-expanded=true]]:grid-cols-[220px_minmax(0,1fr)]
+                        max-mobile:grid-cols-[minmax(0,1fr)]
+                        max-mobile:[grid-template-areas:'navBar'_'content'_'mobileNavBar']
                     ">
-                        <MobileNavBar
-                            isLoggedIn={navUser !== null}
-                            navItems={navItems}
-                        />
+                        <div className="[grid-area:navBar] col-span-full h-[56px] z-3 rounded-round">
+                            <NavBar
+                                isLoggedIn={navUser !== null}
+                                profileImage={navUser?.image ?? null}
+                                navItems={navItems}
+                            />
+                        </div>
+                        <aside className="
+                            [grid-area:sideBar] h-full w-full z-3
+                            max-mobile:hidden
+                        ">
+                            <DesktopSideBar navItems={navItems} />
+                        </aside>
+                        <main className="[grid-area:content] min-h-0 overflow-hidden rounded-round">
+                            <ScrollArea className="h-full" scrollerClassName="flex flex-col">
+                                {children}
+                            </ScrollArea>
+                        </main>
+                        <div className="
+                            hidden z-3 rounded-round overflow-hidden [grid-area:mobileNavBar]
+                            max-mobile:block max-mobile:h-[64px] max-mobile:w-full
+                        ">
+                            <MobileNavBar
+                                isLoggedIn={navUser !== null}
+                                navItems={navItems}
+                            />
+                        </div>
                     </div>
-                </div>
-            </NavMenuProvider>
+                </NavMenuProvider>
+            </OmegaGlobalSearchProvider>
         </div>
     )
 }

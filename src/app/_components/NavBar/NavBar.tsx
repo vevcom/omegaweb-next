@@ -1,10 +1,10 @@
 import Item from './Item'
 import UserNavigation from './UserNavigation'
 import ReportButton from './ReportButton'
-import SearchButton from './SearchButton'
 import NavBarTitle from './NavBarTitle'
 import HomeLogoLink from './HomeLogoLink'
 import EditModeNavIcon from './EditModeNavIcon'
+import { OmegaSearchButton } from '@/app/(omegaweb)/GlobalSearch'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import ProfilePicture from '@/components/User/ProfilePicture'
@@ -63,7 +63,7 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                     max-mobile:hidden
                 ">
                     <EditModeNavIcon className="[--edit-mode-icon-size:20px] size-12" />
-                    <SearchButton/>
+                    <OmegaSearchButton />
                     <ReportButton/>
                     <div className="
                         btn relative m-0! size-[56px] p-0! flex items-center justify-center rounded-[calc(2*var(--gap))]!
