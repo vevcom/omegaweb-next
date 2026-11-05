@@ -721,8 +721,20 @@ async function assertReadyToPublish(prisma: PrismaPossibleTransaction<false>, ev
             location: true,
             eventStart: true,
             eventEnd: true,
+            canBeViewedBy: true,
             ledgerAccount: { select: { id: true } },
-            variants: { select: { takesPayment: true } },
+            variants: {
+                select: {
+                    name: true,
+                    registrationStart: true,
+                    registrationEnd: true,
+                    takesPayment: true,
+                    price: true,
+                    paymentStart: true,
+                    paymentEnd: true,
+                    quotas: { select: { places: true } },
+                },
+            },
         },
     })
     const access = await readEventAccess(prisma, eventId)

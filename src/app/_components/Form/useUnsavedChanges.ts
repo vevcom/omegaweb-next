@@ -13,18 +13,31 @@ function serialize(formData: FormData) {
  * form would submit, so it covers every input. The observer catches hidden inputs driven by React
  * state, which fire no input event.
  */
-export function useUnsavedChanges(formRef: RefObject<HTMLFormElement | null>, enabled: boolean) {
+export function useUnsavedChanges(
+    formRef: RefObject<HTMLFormElement | null>,
+    enabled: boolean,
+    onValuesChange?: (values: FormData) => void,
+) {
     const [dirty, setDirty] = useState(false)
     const savedRef = useRef('')
+    const onValuesChangeRef = useRef(onValuesChange)
+
+    useEffect(() => {
+        onValuesChangeRef.current = onValuesChange
+    })
 
     const check = useCallback(() => {
-        if (formRef.current) setDirty(serialize(new FormData(formRef.current)) !== savedRef.current)
+        if (!formRef.current) return
+        const values = new FormData(formRef.current)
+        setDirty(serialize(values) !== savedRef.current)
+        onValuesChangeRef.current?.(values)
     }, [formRef])
 
     useEffect(() => {
         const form = formRef.current
         if (!enabled || !form) return undefined
         savedRef.current = serialize(new FormData(form))
+        check()
         const observer = new MutationObserver(check)
         observer.observe(form, { subtree: true, childList: true, attributes: true, attributeFilter: ['value'] })
         form.addEventListener('input', check)

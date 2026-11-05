@@ -4,6 +4,7 @@ import EventSetupForm, { eventSetupTabs } from './EventSetupForm'
 import EventStatistics from './EventStatistics'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import Tabs, { TabPanel } from '@/components/UI/Tabs'
+import { publishProblems } from '@/services/events/publishProblems'
 import { useState } from 'react'
 import type { ComponentProps } from 'react'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
@@ -27,6 +28,12 @@ export default function EventAdmin({ event, capabilities, statistics, ...setup }
     const showRegisterOthers = event.takesRegistration && canRegisterOthers
     const showPublishing = canUpdate || capabilities.canDestroy.authorized
     const [discards, setDiscards] = useState(0)
+    const publishingDot = () => {
+        if (event.published) return { level: 'ok' as const, label: 'Publisert' }
+        return publishProblems({ ...event, adminVisibility: setup.access.adminVisibility }).length > 0
+            ? { level: 'missing' as const, label: 'Noe mangler før det kan publiseres' }
+            : { level: 'warning' as const, label: 'Klart, men ikke publisert' }
+    }
 
     return <div className="min-w-[min(90vw,62rem)] h-[min(85svh,44rem)]">
         <Tabs
@@ -35,7 +42,7 @@ export default function EventAdmin({ event, capabilities, statistics, ...setup }
                 ...(canUpdate ? eventSetupTabs : []),
                 ...(showRegisterOthers ? [{ key: 'others', label: 'Meld på andre' }] : []),
                 ...(statistics ? [{ key: 'statistics', label: 'Statistikk' }] : []),
-                ...(showPublishing ? [{ key: 'publishing', label: 'Publisering' }] : []),
+                ...(showPublishing ? [{ key: 'publishing', label: 'Publisering', dot: publishingDot() }] : []),
             ]}
         >
             {canUpdate && <TabPanel tab={eventSetupTabs.map(tab => tab.key)}>

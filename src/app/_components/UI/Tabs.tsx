@@ -2,9 +2,18 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
+export type TabDot = { level: 'ok' | 'warning' | 'missing', label: string }
+
+const dotClassNames: Record<TabDot['level'], string> = {
+    ok: 'bg-accent-green',
+    warning: 'bg-accent-yellow',
+    missing: 'bg-accent-red',
+}
+
 type TabsContextType = {
     active: string,
     reportErrors: (tab: string, hasErrors: boolean) => void,
+    reportDots: (dots: Record<string, TabDot>) => void,
 }
 
 const TabsContext = createContext<TabsContextType | null>(null)
@@ -15,12 +24,13 @@ export function useTabs() {
     return tabs
 }
 
-export type Tab = { key: string, label: ReactNode }
+export type Tab = { key: string, label: ReactNode, dot?: TabDot }
 
 /**
  * A list of tabs with their panels as children. Panels stay mounted when hidden, so what is typed
  * in one survives moving to another. A panel may hold a whole Form, whose own FormTabs then share
- * this tab list, next to panels with forms of their own.
+ * this tab list, next to panels with forms of their own. A tab can carry a dot for how it stands,
+ * which a panel can also report while its content changes. A refused input turns the dot red.
  */
 export default function Tabs({ tabs, label, children }: {
     tabs: Tab[],
@@ -30,6 +40,7 @@ export default function Tabs({ tabs, label, children }: {
     const [selected, setSelected] = useState(tabs[0]?.key)
     const [erroredTabs, setErroredTabs] = useState<string[]>([])
     const erroredRef = useRef<string[]>([])
+    const [reportedDots, setReportedDots] = useState<Record<string, TabDot>>({})
     const active = tabs.some(tab => tab.key === selected) ? selected : tabs[0]?.key
 
     // Panels report in tab order, so the first one with an error is the one brought forward.
@@ -39,6 +50,10 @@ export default function Tabs({ tabs, label, children }: {
         if (hasErrors && errored.length === 0) setSelected(tab)
         erroredRef.current = hasErrors ? [...errored, tab] : errored.filter(other => other !== tab)
         setErroredTabs(erroredRef.current)
+    }, [])
+
+    const reportDots = useCallback((dots: Record<string, TabDot>) => {
+        setReportedDots(current => (JSON.stringify(current) === JSON.stringify(dots) ? current : dots))
     }, [])
 
     return <div className="
@@ -53,6 +68,9 @@ export default function Tabs({ tabs, label, children }: {
         ">
             {tabs.map(tab => {
                 const isActive = tab.key === active
+                const dot = erroredTabs.includes(tab.key)
+                    ? { level: 'missing' as const, label: 'Noe her ble ikke godtatt' }
+                    : reportedDots[tab.key] ?? tab.dot
                 return <button
                     key={tab.key}
                     type="button"
@@ -70,11 +88,19 @@ export default function Tabs({ tabs, label, children }: {
                     `}
                 >
                     {tab.label}
-                    {erroredTabs.includes(tab.key) && <span className="size-2 rounded-full bg-accent-red" />}
+                    {dot && <span
+                        role="img"
+                        aria-label={dot.label}
+                        title={dot.label}
+                        className={`
+                            size-2.5 shrink-0 rounded-full
+                            ${dotClassNames[dot.level]}
+                        `}
+                    />}
                 </button>
             })}
         </div>
-        <TabsContext.Provider value={{ active, reportErrors }}>
+        <TabsContext.Provider value={{ active, reportErrors, reportDots }}>
             <div className="min-w-0 min-h-0 overflow-y-auto p-1">
                 {children}
             </div>

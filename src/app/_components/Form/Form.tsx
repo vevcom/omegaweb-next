@@ -34,6 +34,8 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     secondarySubmit?: { text: ReactNode, name: string, color?: Colors },
     /** Keeps saving at the bottom of a long form, says whether there is anything to save and offers to discard it. */
     saveBar?: { onDiscard: () => void },
+    /** Told what the form would submit, on mount and on every change. */
+    onValuesChange?: (values: FormData) => void,
 }
 /** The names of every input among the children, those inside sections included, so their errors find them. */
 function collectInputNames(children: ReactNode): string[] {
@@ -64,6 +66,7 @@ export default function Form<GiveActionReturn>({
     disabled,
     secondarySubmit,
     saveBar,
+    onValuesChange,
     ...props
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
@@ -75,7 +78,11 @@ export default function Form<GiveActionReturn>({
     const PopUpCtx = useContext(PopUpContext)
     const { refresh, push } = useSiteRouter()
     const formRef = useRef<HTMLFormElement>(null)
-    const { dirty, markSaved } = useUnsavedChanges(formRef, saveBar !== undefined)
+    const { dirty, markSaved } = useUnsavedChanges(
+        formRef,
+        saveBar !== undefined || onValuesChange !== undefined,
+        onValuesChange,
+    )
 
     const actionWithError = async (formData: FormData) => {
         setGeneralErrors(undefined)

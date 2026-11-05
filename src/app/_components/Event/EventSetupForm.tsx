@@ -15,6 +15,8 @@ import TextInput from '@/components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { updateEventAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
+import { eventSetupChecks, setupTabStatuses } from '@/services/events/publishProblems'
+import { useTabs } from '@/components/UI/Tabs'
 import { configureAction } from '@/services/configureAction'
 import { eventLinks } from '@/pageKits/events/links'
 import { useState } from 'react'
@@ -24,7 +26,10 @@ import type { ActionFormData } from '@/services/actionTypes'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
 import type { EventAccess } from '@/services/events/types'
-import type { Committee, Event, EventLocationMap, EventTag } from '@/prisma-generated-pn-types'
+import type { Committee, Event, EventCanView, EventLocationMap, EventTag } from '@/prisma-generated-pn-types'
+
+/** DateInput submits UTC without saying so, which Date would read as local time. */
+const utcDate = (value: FormDataEntryValue | null) => new Date(`${value as string}Z`)
 
 /** The tabs of the form, for the Tabs around it. */
 export const eventSetupTabs = [
@@ -77,12 +82,28 @@ export default function EventSetupForm({
     const [adminRequirements, setAdminRequirements] = useState(access.adminVisibility.requirements)
     const [waitingList, setWaitingList] = useState(event.waitingList)
     const save: ActionFormData<Event> = configureAction(updateEventAction, { params: { id: event.id } })
+    const { reportDots } = useTabs()
+
+    const checkSetup = (values: FormData) => {
+        const account = values.get('ledgerAccountSelection')
+        reportDots(setupTabStatuses(eventSetupChecks({
+            location: values.get('location') as string | null,
+            eventStart: utcDate(values.get('eventStart')),
+            eventEnd: utcDate(values.get('eventEnd')),
+            canBeViewedBy: (values.get('canBeViewedBy') ?? event.canBeViewedBy) as EventCanView,
+            // An account left unpicked keeps the one the event has, as the save does.
+            ledgerAccount: event.ledgerAccount ?? (account && account !== 'NULL' ? { id: Number(account) } : null),
+            variants,
+            adminVisibility: { requirements: adminRequirements },
+        })))
+    }
 
     return <Form
         action={save}
         submitText="Lagre"
         className="flex flex-col min-h-full"
         saveBar={{ onDiscard }}
+        onValuesChange={checkSetup}
         refreshOnSuccess
         navigateOnSuccess={data => (data?.name ? links.event(data) : null)}
     >
