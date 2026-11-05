@@ -4,6 +4,7 @@ import { jobAdSchemas } from './schemas'
 import { activeJobAdOrdering, articleAndCompanyIncluder, simpleArticleAndCompanyIncluder } from './constants'
 import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { logoIncluder } from '@/services/careers/companies/constants'
+import { jobAdLinks } from '@/pageKits/jobAds/links'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { articleOperations } from '@/cms/articles/operations'
@@ -11,6 +12,8 @@ import { notificationOperations } from '@/services/notifications/operations'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { implementSearchOperation } from '@/services/search/implement'
 import type { ExpandedJobAd, SimpleJobAd } from './types'
+import type { SearchFindArgs } from '@/services/search/implement'
+import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
 const read = defineOperation({
     paramsSchema: jobAdSchemas.params.read,
@@ -109,9 +112,10 @@ export const jobAdOperations = {
             }))
         }
     }),
+    /** The search for a site's job ad pages: the same matches on both sites, linking to the site's own. */
     search: implementSearchOperation({
         authorizer: () => jobAdAuth.search,
-        find: ({ prisma, query, take }) => prisma.jobAd.findMany({
+        find: ({ prisma, query, take }: SearchFindArgs<undefined, JobAdPagesConfig>) => prisma.jobAd.findMany({
             take,
             where: {
                 OR: [
@@ -127,9 +131,9 @@ export const jobAdOperations = {
                 company: { select: { name: true } },
             },
         }),
-        toSearchResult: jobAd => ({
+        toSearchResult: (jobAd, config) => ({
             key: `job-ad-${jobAd.id}`,
-            href: omegaJobAdLinks.jobAd({ articleName: jobAd.article.name, id: jobAd.id }),
+            href: jobAdLinks(config).jobAd({ articleName: jobAd.article.name, id: jobAd.id }),
             label: jobAd.article.name,
             sublabel: jobAd.active ? jobAd.company.name : `${jobAd.company.name} (utløpt)`,
             image: null,

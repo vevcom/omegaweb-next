@@ -11,6 +11,7 @@ import {
 import { createVariant } from './variants/createVariant'
 import { createQuota } from './quotas/createQuota'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
+import { eventLinks } from '@/pageKits/events/links'
 import { notificationOperations } from '@/services/notifications/operations'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
@@ -27,6 +28,8 @@ import { validTransactionFilter } from '@/services/ledger/transactions/constants
 import { implementVisibilityOperations, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
+import type { SearchFindArgs } from '@/services/search/implement'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 
 const DAY_MS = 1000 * 60 * 60 * 24
 
@@ -256,9 +259,12 @@ export const eventOperations = {
      * events are searched, and only the events the session may see at all - the very same
      * visibility rule as the lists of current and archived events above.
      */
+    /** The search for a site's event pages: under a locked tag only the events carrying it, linking to those pages. */
     search: implementSearchOperation({
         authorizer: () => eventAuth.search,
-        find: ({ prisma, query, take, prismaWhereFilter }) => prisma.event.findMany({
+        find: ({
+            prisma, query, take, prismaWhereFilter, config
+        }: SearchFindArgs<Prisma.EventWhereInput, EventPagesConfig>) => prisma.event.findMany({
             take,
             select: {
                 id: true,
@@ -272,13 +278,14 @@ export const eventOperations = {
             },
             where: {
                 name: { contains: query, mode: 'insensitive' },
+                eventTagEvents: config.lockedTag ? { some: { tag: { special: config.lockedTag } } } : undefined,
                 ...prismaWhereFilter
             },
             orderBy: { eventStart: 'desc' },
         }),
-        toSearchResult: event => ({
+        toSearchResult: (event, config) => ({
             key: `event-${event.id}`,
-            href: omegaEventLinks.event(event),
+            href: eventLinks(config).event(event),
             label: event.name,
             sublabel: displayDate(event.eventStart, false),
             image: event.coverImage.image,

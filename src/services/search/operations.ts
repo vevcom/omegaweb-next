@@ -1,9 +1,9 @@
 import '@pn-server-only'
 import { searchSchemas } from './schemas'
 import { defaultSearchResultLimit, singleCategorySearchResultLimit } from './constants'
-import { searchProviders } from './providers'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { Smorekopp } from '@/services/error'
+import type { SearchCategory } from './constants'
 import type { SearchAllFields, SearchSection } from './types'
 
 export const searchOperations = {
@@ -13,17 +13,21 @@ export const searchOperations = {
      * session may not search is left out rather than failing the whole search.
      */
     searchAll: defineSubOperation({
-        paramsSchema: ({ categories }: SearchAllFields) => searchSchemas.params.searchAll.refine(
-            params => !params.category || categories.includes(params.category),
+        paramsSchema: ({ providers }: SearchAllFields) => searchSchemas.params.searchAll.refine(
+            params => !params.category || params.category in providers,
             { message: 'Kategorien finnes ikke i dette søket.', path: ['category'] },
         ),
-        operation: ({ categories }: SearchAllFields) => async ({ params }) => {
-            const searched = params.category ? [params.category] : categories
+        operation: ({ providers }: SearchAllFields) => async ({ params }) => {
+            const searched = Object.entries(providers)
+                .filter(([category]) => !params.category || category === params.category)
+                .map(([category, provider]) => ({ category: category as SearchCategory, provider }))
             const limit = params.category ? singleCategorySearchResultLimit : defaultSearchResultLimit
 
-            const sections = await Promise.all(searched.map(async (category): Promise<SearchSection | null> => {
+            const sections = await Promise.all(searched.map(async ({
+                category, provider
+            }): Promise<SearchSection | null> => {
                 try {
-                    const { searchResults } = await searchProviders[category]({ params: { query: params.query, limit } })
+                    const { searchResults } = await provider({ params: { query: params.query, limit } })
                     return { category, results: searchResults }
                 } catch (error) {
                     if (
