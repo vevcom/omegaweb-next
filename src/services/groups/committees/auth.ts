@@ -10,6 +10,7 @@ export const committeeAuth = {
     update: Require.permission('COMMITTEE_ADMIN'),
     reorder: Require.permission('COMMITTEE_ADMIN'),
     readAll: Require.permission('COMMITTEE_USE'),
+    search: Require.permission('COMMITTEE_USE'),
     read: Require.permission('COMMITTEE_USE'),
     readMembers: requireReadManagedGroupMembers('COMMITTEE_USE'),
     readMembershipsOfUser: requireReadMembershipsOfUser('COMMITTEE_USE'),

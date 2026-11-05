@@ -21,6 +21,8 @@ import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { applyReordering } from '@/lib/reordering'
 import { GroupType } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
+import { implementSearchOperation } from '@/services/search/implement'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -39,6 +41,38 @@ const readAll = defineOperation({
             logoImage: committee.logoImage ?? defaultCommitteeLogo
         }))
     }
+})
+
+const search = implementSearchOperation({
+    authorizer: () => committeeAuth.search,
+    find: async ({ prisma, query, take }) => {
+        const defaultCommitteeLogo = await readDefaultCommitteeLogo()
+
+        const committees = await prisma.committee.findMany({
+            take,
+            where: {
+                OR: [
+                    { name: { contains: query, mode: 'insensitive' } },
+                    { shortName: { contains: query, mode: 'insensitive' } },
+                ],
+            },
+            include: committeeLogoIncluder,
+            // The order the admins set, which the committees page keeps and the global search shows.
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+        })
+
+        return committees.map(committee => ({
+            ...committee,
+            logoImage: committee.logoImage ?? defaultCommitteeLogo
+        }))
+    },
+    toSearchResult: committee => ({
+        key: `committee-${committee.id}`,
+        href: omegaLinks.committee(committee),
+        label: committee.name,
+        sublabel: committee.group.pensioned ? 'Pensjonert' : undefined,
+        image: committee.logoImage,
+    }),
 })
 
 const read = defineOperation({
@@ -358,6 +392,7 @@ export const committeeOperations = {
     reorder,
     updateLogo,
     readAll,
+    search,
     read,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,

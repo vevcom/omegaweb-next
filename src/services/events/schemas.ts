@@ -3,6 +3,7 @@ import { Zpn } from '@/lib/fields/zpn'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { convertAmount } from '@/lib/currency/convert'
 import { visibilityRequirementsSchema } from '@/services/visibility/schemas'
+import { searchMaxLength } from '@/services/search/constants'
 import { EventCanView } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
@@ -55,10 +56,7 @@ const dataFieldSchemas = z.object({
 const paramsFieldSchemas = z.object({
     id: z.number(),
     eventId: z.number(),
-    query: z.string().trim().min(1).max(100),
-    limit: z.number().int().min(1).max(25)
-        .optional(),
-    name: z.string().max(100).optional(),
+    name: z.string().trim().max(searchMaxLength).optional(),
     tags: z.array(z.string()).nullable(),
 })
 
@@ -129,6 +127,7 @@ export const eventSchemas = {
         read: eventId,
         readManyCurrent: paramsFieldSchemas.pick({
             tags: true,
+            name: true,
         }),
         readManyArchivedPage: readPageInputSchemaObject(
             paramsFieldSchemas.pick({
@@ -139,10 +138,6 @@ export const eventSchemas = {
                 tags: true,
             }),
         ),
-        search: paramsFieldSchemas.pick({
-            query: true,
-            limit: true,
-        }),
         update: eventId,
         updateCmsCoverImage: eventImplementationId,
         setPublished: eventId,

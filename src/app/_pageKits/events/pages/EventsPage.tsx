@@ -14,6 +14,8 @@ import { committeeOperations } from '@/services/groups/committees/operations'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -27,16 +29,19 @@ export function eventsPage(config: EventPagesConfig) {
                 : null
             // The tags the visitor picked, which there are none of under a locked tag.
             const pickedTagNames = lockedTag ? null : QueryParams.eventTags.decode(searchParams)
+            const search = QueryParams.search.decode(searchParams) ?? ''
 
             const [currentEvents, eventTags, committees] = await Promise.all([
-                eventOperations.readManyCurrent({ params: { tags: lockedTag ? [lockedTag.name] : pickedTagNames } }),
+                eventOperations.readManyCurrent({
+                    params: { tags: lockedTag ? [lockedTag.name] : pickedTagNames, name: search || undefined }
+                }),
                 eventTagOperations.readAll({}),
                 // Only used to populate the "hosting committee" picker of the form creating events; a
                 // session without COMMITTEE_USE gets no picker rather than losing the whole page.
                 withFallback(committeeOperations.readAll({}), null),
             ])
 
-            return { pickedTagNames, currentEvents, eventTags, committees }
+            return { pickedTagNames, search, currentEvents, eventTags, committees }
         },
         capabilities: () => ({
             canUpdateTags: eventTagAuth.update,
@@ -46,11 +51,19 @@ export function eventsPage(config: EventPagesConfig) {
         }),
         metadata: () => ({ title: config.titles.current }),
         render: ({ data, capabilities }) => {
-            const { pickedTagNames, currentEvents, eventTags, committees } = data
+            const { pickedTagNames, search, currentEvents, eventTags, committees } = data
             const pickedTags = eventTags.filter(tag => pickedTagNames?.includes(tag.name))
+            const noEvents = search ? (
+                <div className="flex flex-col items-center gap-3 mt-12 text-text-muted">
+                    <FontAwesomeIcon icon={faMagnifyingGlass} className="text-4xl" />
+                    <i>Ingen kommende arrangementer matcher søket</i>
+                </div>
+            ) : (
+                <i>Det er for tiden ingen kommende arrangementer</i>
+            )
 
             return (
-                <PageWrapper headerItem={
+                <PageWrapper search={{ value: search, label: 'Søk etter arrangement' }} headerItem={
                     <div className="flex justify-between items-center w-full gap-[1em]">
                         <div className="
                             flex items-center gap-[1em]
@@ -65,7 +78,7 @@ export function eventsPage(config: EventPagesConfig) {
                                     .map(pickedTag => pickedTag.name)
 
                                 return (
-                                    <SiteLink key={tag.name} href={links.list(remainingTagNames)}>
+                                    <SiteLink key={tag.name} href={links.list(remainingTagNames, search)}>
                                         <EventTag eventTag={tag} />
                                     </SiteLink>
                                 )
@@ -78,6 +91,7 @@ export function eventsPage(config: EventPagesConfig) {
                                     currentTags={pickedTags}
                                     capabilities={capabilities}
                                     config={config}
+                                    search={search}
                                 />
                             )}
                             {capabilities.canCreate.authorized && (
@@ -91,7 +105,7 @@ export function eventsPage(config: EventPagesConfig) {
                                     </div>
                                 </AddHeaderItemPopUp>
                             )}
-                            <ArchiveLink href={links.archive(pickedTagNames)} />
+                            <ArchiveLink href={links.archive(pickedTagNames, search)} />
                         </div>
                     </div>
                 }>
@@ -101,9 +115,7 @@ export function eventsPage(config: EventPagesConfig) {
                                 <EventCard event={event} config={config} key={event.id} />
                             ))}
                         </div>
-                    ) : (
-                        <i>Det er for tiden ingen kommende arrangementer</i>
-                    )}
+                    ) : noEvents}
                 </PageWrapper>
             )
         },

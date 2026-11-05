@@ -15,6 +15,7 @@ import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
+import { implementSearchOperation } from '@/services/search/implement'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 const visibility = implementDoubleLevelVisibilityOperations({
@@ -137,6 +138,28 @@ export const newsOperations = {
             })
             return news.map(withCoverImage)
         }
+    }),
+    search: implementSearchOperation({
+        authorizer: () => newsAuth.search,
+        find: async ({ prisma, query, take, prismaWhereFilter }) => {
+            const news = await prisma.newsArticle.findMany({
+                take,
+                where: {
+                    article: { name: { contains: query, mode: 'insensitive' } },
+                    ...prismaWhereFilter,
+                },
+                orderBy: newsArticleOrdering,
+                include: simpleNewsArticleRelationsIncluder,
+            })
+            return news.map(withCoverImage)
+        },
+        toSearchResult: news => ({
+            key: `news-${news.id}`,
+            href: omegaLinks.news({ articleName: news.article.name, id: news.id }),
+            label: news.article.name,
+            sublabel: news.published ? undefined : 'Utkast',
+            image: news.coverImage,
+        }),
     }),
     read: defineOperation({
         paramsSchema: newsSchemas.params.read,

@@ -19,6 +19,7 @@ type PropTypes = {
     config: EventPagesConfig
     /** Whether the tags filter the archive rather than the coming events. */
     archive: boolean
+    search?: string
 }
 
 /**
@@ -33,13 +34,15 @@ export default function EventTagsAdmin({
     capabilities,
     config,
     archive,
+    search,
 }: PropTypes) {
     const links = eventLinks(config)
     const listHref = archive ? links.archive : links.list
     const removeFromUrl = (tag: string) => listHref(
-        selectedTags.filter(tagItem => tagItem.name !== tag).map(tagItem => tagItem.name)
+        selectedTags.filter(tagItem => tagItem.name !== tag).map(tagItem => tagItem.name),
+        search,
     )
-    const addToUrl = (tag: string) => listHref([...selectedTags.map(tagItem => tagItem.name), tag])
+    const addToUrl = (tag: string) => listHref([...selectedTags.map(tagItem => tagItem.name), tag], search)
     return (
         <div className="max-h-[80svh]">
             <h1>Tagger</h1>

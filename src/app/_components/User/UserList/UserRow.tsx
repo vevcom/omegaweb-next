@@ -1,4 +1,5 @@
 import UserDisplayName from '@/components/User/UserDisplayName'
+import ProfilePicture from '@/components/User/ProfilePicture'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { UserPagingReturn } from '@/services/users/types'
 import type { AppHref } from '@/lib/sites/href'
@@ -15,33 +16,45 @@ type PropTypes = {
 
 export default function UserRow({ user, groupSelected = false, href }: PropTypes) {
     const displayName = <UserDisplayName width={16} user={user} />
+    // A phone has no room for the other columns, so their values go on a line under the name.
+    const details = [`@${user.username}`, user.class, user.studyProgramme].filter(Boolean).join(' · ')
 
     return (
         <>
             <td>
-                {
-                    href ? (
-                        <SiteLink
-                            href={href}
-                            prefetch={false}
-                            className="
-                                block text-inherit
-                                hover:no-underline
-                            "
-                            onClick={event => event.stopPropagation()}
-                        >
-                            {displayName}
-                        </SiteLink>
-                    ) : displayName
-                }
+                <div className="flex items-center gap-3">
+                    <ProfilePicture profileImage={user.image} width={36} className="size-9 shrink-0" />
+                    <div className="min-w-0">
+                        {
+                            href ? (
+                                <SiteLink
+                                    href={href}
+                                    prefetch={false}
+                                    className="
+                                        block text-inherit
+                                        hover:no-underline
+                                    "
+                                    onClick={event => event.stopPropagation()}
+                                >
+                                    {displayName}
+                                </SiteLink>
+                            ) : displayName
+                        }
+                        <span className="
+                            hidden
+                            max-mobile:block
+                            text-s text-text-muted
+                        ">{details}</span>
+                    </div>
+                </div>
             </td>
-            <td>{user.username}</td>
-            <td>{user.studyProgramme}</td>
-            <td>{user.class}</td>
+            <td className="max-mobile:hidden">{user.username}</td>
+            <td className="max-mobile:hidden">{user.studyProgramme}</td>
+            <td className="max-mobile:hidden">{user.class}</td>
             {
                 groupSelected && (<>
-                    <td>{user.selectedGroupInfo?.title}</td>
-                    <td>{user.selectedGroupInfo?.admin ? 'Ja' : 'Nei'}</td>
+                    <td className="max-mobile:hidden">{user.selectedGroupInfo?.title}</td>
+                    <td className="max-mobile:hidden">{user.selectedGroupInfo?.admin ? 'Ja' : 'Nei'}</td>
                 </>)
             }
         </>

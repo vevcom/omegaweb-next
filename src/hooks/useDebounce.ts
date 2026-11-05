@@ -13,6 +13,10 @@ export function useDebounce<T>(func: (param: T) => void, timeout: number): (para
         latestFunc.current = func
     }, [func])
 
+    useEffect(() => () => {
+        if (timer.current) clearTimeout(timer.current)
+    }, [])
+
     return useCallback((param: T) => {
         if (timer.current) clearTimeout(timer.current)
         timer.current = setTimeout(() => {

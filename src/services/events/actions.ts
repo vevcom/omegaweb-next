@@ -17,4 +17,3 @@ export const updateEventCmsCoverImageAction = makeAction(eventOperations.updateC
 
 export const updateEventAdminVisibilityAction = makeAction(eventOperations.adminVisibility.update)
 
-export const searchEventsAction = makeAction(eventOperations.search)

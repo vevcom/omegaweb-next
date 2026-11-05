@@ -1,6 +1,7 @@
 'use client'
 import Button from '@/components/UI/Button'
 import { SelectNumber, SelectString } from '@/components/UI/Select'
+import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import { useGroups } from '@/contexts/ClientData'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { describeMatrix } from '@/auth/visibility/describeVisibility'
@@ -112,10 +113,11 @@ export default function VisibilityMatrixEditor({ requirements, onChange }: PropT
                                     </div>
                                     {
                                         requirement.conditions.map((condition, conditionIndex) => (
-                                            <div className="flex gap-[0.5em] items-end" key={conditionIndex}>
-                                                <SelectNumber
+                                            <div className="flex flex-wrap gap-[0.5em] items-end" key={conditionIndex}>
+                                                <SearchableDropdown
                                                     name={`req-${requirementIndex}-cond-${conditionIndex}-group`}
                                                     label="Gruppe"
+                                                    className="basis-full"
                                                     value={condition.groupId}
                                                     options={groupOptions}
                                                     onChange={groupId => handleConditionGroupChange(
