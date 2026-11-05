@@ -188,6 +188,7 @@ export default function CreateOrUpdateEventForm({ event, config, eventTags, comm
                             <NumberInput label="Pris" name="price" min={0} />
                             <DateInput label="Betalingsstart" name="paymentStart" includeTime />
                             <DateInput label="Betalingsslutt" name="paymentEnd" includeTime />
+                            <Slider label="Flytt ubetalte bakerst på ventelisten" name="requeueUnpaidRegistrations" />
                         </>}
                     </> : <div hidden>
                         <input type="hidden" name="waitingList" value={FIELD_IS_PRESENT_VALUE} />

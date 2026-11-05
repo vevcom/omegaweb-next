@@ -101,6 +101,11 @@ function VariantFields({ variant }: { variant?: EventVariantExpanded }) {
                 defaultValue={variant?.paymentEnd ?? undefined}
                 includeTime
             />
+            <Slider
+                label="Flytt ubetalte bakerst på ventelisten"
+                name="requeueUnpaidRegistrations"
+                defaultChecked={variant?.requeueUnpaidRegistrations}
+            />
         </>}
     </>
 }

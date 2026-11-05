@@ -1,8 +1,10 @@
+import { recordSentMail } from 'tests/utils'
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
+import { requeueNextUnpaidRegistration } from '@/services/events/registration/requeueUnpaid'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { userOperations } from '@/services/users/operations'
@@ -255,6 +257,195 @@ describe('paying for an event', () => {
             })
 
             await expect(pay(waiting, eventId)).rejects.toThrow(Smorekopp)
+        })
+    })
+
+    describe('requeueing unpaid registrations', () => {
+        const requeueAllDue = async () => {
+            while (await requeueNextUnpaidRegistration()) { /* until nothing is due */ }
+        }
+
+        const stateOf = async (registrationId: number) => (await prisma.eventRegistration.findUniqueOrThrow({
+            where: { id: registrationId },
+            select: { state: true },
+        })).state
+
+        const setCreatedLongAgo = (registrationId: number) => prisma.eventRegistration.update({
+            where: { id: registrationId },
+            data: { createdAt: new Date(Date.now() - 3 * HOUR) },
+        })
+
+        async function createExpiredEvent(name: string, { enabled = true }: { enabled?: boolean } = {}) {
+            const eventId = await createPaidEvent({ ledgerAccountId: committeeAccountId })
+            await prisma.event.update({ where: { id: eventId }, data: { waitingList: true } })
+            await prisma.eventQuota.updateMany({ where: { variant: { eventId } }, data: { places: 1 } })
+
+            const seated = await createPayer(`${name}seated`)
+            const waiting = await createPayer(`${name}waiting`)
+            const seatedRegistration = await eventRegistrationOperations.create({
+                params: { userId: seated.id, eventId },
+                session: sessionOf(seated),
+            })
+            const waitingRegistration = await eventRegistrationOperations.create({
+                params: { userId: waiting.id, eventId },
+                session: sessionOf(waiting),
+            })
+            await setCreatedLongAgo(seatedRegistration.id)
+            await prisma.eventVariant.updateMany({
+                where: { eventId },
+                data: {
+                    paymentStart: new Date(Date.now() - 2 * HOUR),
+                    paymentEnd: new Date(Date.now() - HOUR),
+                    requeueUnpaidRegistrations: enabled,
+                },
+            })
+            return { eventId, seated, waiting, seatedRegistration, waitingRegistration }
+        }
+
+        test('leaves everyone alone when the variant has not asked for it', async () => {
+            const { seatedRegistration } = await createExpiredEvent('requeueoff', { enabled: false })
+
+            await requeueAllDue()
+
+            expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
+        })
+
+        test('swaps the unpaid with the next in line, who then gets 24 hours', async () => {
+            const sentMail = recordSentMail()
+            const { seatedRegistration, waitingRegistration } = await createExpiredEvent('requeueon')
+
+            await requeueAllDue()
+
+            expect(await stateOf(seatedRegistration.id)).toBe('WAITING_LIST')
+            expect(await stateOf(waitingRegistration.id)).toBe('IN_QUOTA')
+            expect(sentMail).toHaveBeenCalledWith(expect.objectContaining({ to: 'requeueonseated@omega.ntnu.no' }))
+
+            await prisma.eventRegistration.update({
+                where: { id: waitingRegistration.id },
+                data: { promotedAt: new Date(Date.now() - 25 * HOUR) },
+            })
+            await requeueAllDue()
+
+            expect(await stateOf(waitingRegistration.id)).toBe('WAITING_LIST')
+            expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
+        })
+
+        test('goes behind everyone already waiting', async () => {
+            const { eventId, seatedRegistration, waitingRegistration } = await createExpiredEvent('requeueback')
+            const lastRegistration = await prisma.eventRegistration.create({
+                data: {
+                    state: 'WAITING_LIST',
+                    userId: (await createPayer('requeuebacklast')).id,
+                    waitingListVariantId: (await prisma.eventVariant.findFirstOrThrow({ where: { eventId } })).id,
+                },
+            })
+
+            await requeueAllDue()
+
+            const queue = await prisma.eventRegistration.findMany({
+                where: { id: { in: [seatedRegistration.id, lastRegistration.id] } },
+                orderBy: { queuedAt: 'asc' },
+                select: { id: true },
+            })
+            expect(await stateOf(waitingRegistration.id)).toBe('IN_QUOTA')
+            expect(queue.map(registration => registration.id)).toEqual([lastRegistration.id, seatedRegistration.id])
+        })
+
+        test('leaves them seated when no one is waiting', async () => {
+            const { seatedRegistration, waitingRegistration } = await createExpiredEvent('requeuealone')
+            const sentMail = recordSentMail()
+            await prisma.eventRegistration.delete({ where: { id: waitingRegistration.id } })
+
+            await requeueAllDue()
+
+            expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
+            expect(sentMail).not.toHaveBeenCalled()
+        })
+
+        test('leaves them seated when no one waiting may take the place', async () => {
+            const { waiting, seatedRegistration, waitingRegistration } = await createExpiredEvent('requeuebarred')
+            const sentMail = recordSentMail()
+            await prisma.membership.deleteMany({ where: { userId: waiting.id } })
+
+            await requeueAllDue()
+
+            expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
+            expect(await stateOf(waitingRegistration.id)).toBe('WAITING_LIST')
+            expect(sentMail).not.toHaveBeenCalled()
+        })
+
+        test('keeps those who paid, and those paying right now', async () => {
+            const { eventId, seated, seatedRegistration } = await createExpiredEvent('requeuepaid')
+            await prisma.eventVariant.updateMany({
+                where: { eventId },
+                data: { paymentEnd: new Date(Date.now() + HOUR) },
+            })
+            await eventRegistrationOperations.createPayment({
+                params: { userId: seated.id, eventId, amountFromBalance: EVENT_PRICE_ORE },
+                session: payerSessionOf(seated),
+            })
+            await prisma.eventVariant.updateMany({
+                where: { eventId },
+                data: { paymentEnd: new Date(Date.now() - HOUR) },
+            })
+
+            await requeueAllDue()
+            expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
+
+            await prisma.ledgerTransaction.updateMany({
+                where: { eventRegistrationId: seatedRegistration.id },
+                data: { state: 'PENDING' },
+            })
+            await requeueAllDue()
+            expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
+            await prisma.ledgerTransaction.updateMany({
+                where: { eventRegistrationId: seatedRegistration.id },
+                data: { state: 'SUCCEEDED' },
+            })
+        })
+
+        test('keeps those marked paid, guests and those who joined after the period', async () => {
+            const { seatedRegistration, waitingRegistration } = await createExpiredEvent('requeuekept')
+            const { quotaId } = await prisma.eventRegistration.findUniqueOrThrow({
+                where: { id: seatedRegistration.id },
+                select: { quotaId: true },
+            })
+            await prisma.eventRegistration.update({
+                where: { id: seatedRegistration.id },
+                data: { manuallyPaid: true },
+            })
+            await requeueAllDue()
+            expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
+
+            const contact = await prisma.contactDetails.create({
+                data: { name: 'Gjest', email: 'requeuekeptguest@example.com' },
+            })
+            const guest = await prisma.eventRegistration.create({
+                data: {
+                    state: 'IN_QUOTA',
+                    quotaId,
+                    createdAt: new Date(Date.now() - 3 * HOUR),
+                    contactId: contact.id,
+                },
+            })
+            await requeueAllDue()
+            expect(await stateOf(guest.id)).toBe('IN_QUOTA')
+
+            const lateJoiner = await prisma.eventRegistration.create({
+                data: { state: 'IN_QUOTA', quotaId, userId: (await createPayer('requeuekeptlate')).id },
+            })
+            await requeueAllDue()
+            expect(await stateOf(lateJoiner.id)).toBe('IN_QUOTA')
+            expect(await stateOf(waitingRegistration.id)).toBe('WAITING_LIST')
+        })
+
+        test('leaves the places alone once the event has started', async () => {
+            const { eventId, seatedRegistration } = await createExpiredEvent('requeuestarted')
+            await prisma.event.update({ where: { id: eventId }, data: { eventStart: new Date(Date.now() - HOUR) } })
+
+            await requeueAllDue()
+
+            expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
         })
     })
 })
