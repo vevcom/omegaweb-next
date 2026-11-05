@@ -1,10 +1,15 @@
--- AlterEnum
--- Replaced rather than added to, since the backfill below uses the new values in the same transaction.
-CREATE TYPE "NotificationChannelPurpose_new" AS ENUM ('SPECIAL', 'MANUAL', 'EVENT', 'EVENT_INFO', 'EVENT_GENERAL');
-ALTER TABLE "NotificationChannel" ALTER COLUMN "purpose" TYPE "NotificationChannelPurpose_new" USING ("purpose"::text::"NotificationChannelPurpose_new");
-ALTER TYPE "NotificationChannelPurpose" RENAME TO "NotificationChannelPurpose_old";
-ALTER TYPE "NotificationChannelPurpose_new" RENAME TO "NotificationChannelPurpose";
-DROP TYPE "NotificationChannelPurpose_old";
+-- CreateEnum
+CREATE TYPE "NotificationChannelPurpose" AS ENUM ('SPECIAL', 'MANUAL', 'EVENT', 'EVENT_INFO', 'EVENT_GENERAL');
+
+-- AlterTable
+-- Every channel so far is either special or made on the admin pages, so the purpose follows from
+-- whether it is special.
+ALTER TABLE "NotificationChannel" ADD COLUMN "purpose" "NotificationChannelPurpose";
+
+UPDATE "NotificationChannel"
+SET "purpose" = CASE WHEN "special" IS NULL THEN 'MANUAL' ELSE 'SPECIAL' END::"NotificationChannelPurpose";
+
+ALTER TABLE "NotificationChannel" ALTER COLUMN "purpose" SET NOT NULL;
 
 -- The waiting list promotions move to the channels of the events, so that special channel goes. Its
 -- subscriptions and notifications cascade with it, the method rows they point to do not.
