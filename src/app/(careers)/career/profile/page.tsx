@@ -4,6 +4,7 @@ import { careersAuthLinks } from '@/app/(careers)/career/(auth)/links'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
 import { badgeClassName, sectionHeadingClassName } from '@/app/(careers)/_lib/careersClassNames'
 import { userOperations } from '@/services/users/operations'
+import { ClassLevelConfig } from '@/services/groups/constants'
 import { dotOperations } from '@/services/dots/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { notificationChannelOperations } from '@/services/notifications/channel/operations'
@@ -38,8 +39,9 @@ const { page, generateMetadata } = serverPage({
         if (!session.user) throw new Smorekopp('UNAUTHENTICATED')
         const userId = session.user.id
 
-        const [user, registrations, dots, channel, subscriptions] = await Promise.all([
+        const [user, profile, registrations, dots, channel, subscriptions] = await Promise.all([
             userOperations.read({ params: { id: userId } }),
+            userOperations.readProfile({ params: { username: session.user.username } }),
             eventRegistrationOperations.readUpcomingOfUser({
                 params: { userId, specialTag: 'COMPANY_PRESENTATION' },
             }),
@@ -49,10 +51,10 @@ const { page, generateMetadata } = serverPage({
         ])
         const subscription = subscriptions.find(candidate => candidate.channelId === channel.id)
 
-        return { user, registrations, dots, channel, subscription }
+        return { user, profile, registrations, dots, channel, subscription }
     },
     metadata: () => ({ title: 'Min side' }),
-    render: ({ data: { user, registrations, dots, channel, subscription } }) => (
+    render: ({ data: { user, profile, registrations, dots, channel, subscription } }) => (
         <div className="flex flex-col gap-8 max-w-3xl py-16">
             <div>
                 <span className={`
@@ -93,6 +95,26 @@ const { page, generateMetadata } = serverPage({
                         ))}
                     </ul>
                 )}
+            </Section>
+
+            <Section title="Studie">
+                <dl className="
+                    grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-m
+                    [&>dt]:text-text-muted
+                ">
+                    <dt>Klasse</dt>
+                    <dd>{profile.class ? ClassLevelConfig[profile.class.level].name : 'Ingen klasse registrert'}</dd>
+                    <dt>Studieprogram</dt>
+                    <dd>
+                        {profile.groups.activeStudyProgrammes.length === 0
+                            ? 'Ingen studieprogram registrert'
+                            : profile.groups.activeStudyProgrammes.map(({ studyProgramme }) => (
+                                <span key={studyProgramme.id} className="block">
+                                    {studyProgramme.name} ({studyProgramme.code})
+                                </span>
+                            ))}
+                    </dd>
+                </dl>
             </Section>
 
             <Section title="Kontaktinfo og mat">

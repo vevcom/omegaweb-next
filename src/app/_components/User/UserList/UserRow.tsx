@@ -1,5 +1,6 @@
 import UserDisplayName from '@/components/User/UserDisplayName'
 import ProfilePicture from '@/components/User/ProfilePicture'
+import { ClassLevelConfig } from '@/services/groups/constants'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { UserPagingReturn } from '@/services/users/types'
 import type { AppHref } from '@/lib/sites/href'
@@ -50,7 +51,9 @@ export default function UserRow({ user, groupSelected = false, href }: PropTypes
             </td>
             <td className="max-mobile:hidden">{user.username}</td>
             <td className="max-mobile:hidden">{user.studyProgramme}</td>
-            <td className="max-mobile:hidden">{user.class}</td>
+            <td className="max-mobile:hidden">
+                {user.class && (ClassLevelConfig[user.class].year ?? ClassLevelConfig[user.class].name)}
+            </td>
             {
                 groupSelected && (<>
                     <td className="max-mobile:hidden">{user.selectedGroupInfo?.title}</td>
