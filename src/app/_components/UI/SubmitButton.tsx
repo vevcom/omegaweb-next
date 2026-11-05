@@ -200,6 +200,8 @@ export default function SubmitButton({
                 <button
                     ref={realSubmitRef}
                     type="submit"
+                    name={name}
+                    value={value}
                     onClick={onClick}
                     disabled={disabled}
                     aria-hidden="true"

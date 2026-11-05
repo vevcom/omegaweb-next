@@ -55,18 +55,20 @@ export default function CreateNotificationForm({
                 Under er en liste med kommandoer. Sendes varselet bare som e-post, kan du skrive i Markdown.
             </p>
             <table>
-                <tr>
-                    <th>%n</th>
-                    <td>Fornavn</td>
-                </tr>
-                <tr>
-                    <th>%N</th>
-                    <td>Fullt navn</td>
-                </tr>
-                <tr>
-                    <th>%u</th>
-                    <td>Brukernavn</td>
-                </tr>
+                <tbody>
+                    <tr>
+                        <th>%n</th>
+                        <td>Fornavn</td>
+                    </tr>
+                    <tr>
+                        <th>%N</th>
+                        <td>Fullt navn</td>
+                    </tr>
+                    <tr>
+                        <th>%u</th>
+                        <td>Brukernavn</td>
+                    </tr>
+                </tbody>
             </table>
         </Form>
         {successMessage && <p>{successMessage}</p>}

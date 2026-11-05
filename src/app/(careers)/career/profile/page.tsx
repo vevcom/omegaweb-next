@@ -116,7 +116,6 @@ const { page, generateMetadata } = serverPage({
             </Section>
 
             <Section title="E-post fra Contactor">
-                <p className="mb-4 text-m text-text-muted">{channel.description}</p>
                 <UpdateNotificationSubscription
                     userId={user.id}
                     channel={channel}

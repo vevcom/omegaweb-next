@@ -1,4 +1,5 @@
 'use client'
+import { treeConnectorClassName } from './constants'
 import Form from '@/components/Form/Form'
 import NotificationMethodCheckboxes from '@/components/NotificationMethodSelector/NotificationMethodCheckboxes'
 import { updateNotificationSubscriptionAction } from '@/services/notifications/subscription/actions'
@@ -7,10 +8,6 @@ import { configureAction } from '@/services/configureAction'
 import type { ExpandedNotificationChannel, NotificationMethodGeneral } from '@/services/notifications/types'
 
 export type SubscribableChannel = Pick<ExpandedNotificationChannel, 'id' | 'name' | 'description' | 'availableMethods'>
-
-export const treeConnectorClassName = `
-    inline-block size-[0.6em] mr-[0.6em] shrink-0 border-l-2 border-b-2 border-text-muted
-`
 
 /**
  * The user's subscription to one channel: a method per checkbox, saved for the channel alone or

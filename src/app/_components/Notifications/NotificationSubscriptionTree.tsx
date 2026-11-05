@@ -1,4 +1,5 @@
-import UpdateNotificationSubscription, { treeConnectorClassName } from './UpdateNotificationSubscription'
+import UpdateNotificationSubscription from './UpdateNotificationSubscription'
+import { treeConnectorClassName } from './constants'
 import { countChildren } from '@/services/notifications/channels/subservice/helpers'
 import type { SubscribableChannel } from './UpdateNotificationSubscription'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
