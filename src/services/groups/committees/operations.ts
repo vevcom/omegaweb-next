@@ -57,7 +57,8 @@ const search = implementSearchOperation({
                 ],
             },
             include: committeeLogoIncluder,
-            orderBy: [{ group: { pensioned: 'asc' } }, { name: 'asc' }],
+            // The order the admins set, which the committees page keeps and the global search shows.
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
         })
 
         return committees.map(committee => ({
