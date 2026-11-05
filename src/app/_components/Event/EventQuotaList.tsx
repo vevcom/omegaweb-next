@@ -1,4 +1,5 @@
 import EventInfoRow from './EventInfoRow'
+import EventQuotaBar from './EventQuotaBar'
 import type { EventQuotaSummary } from '@/services/events/types'
 
 type PropTypes = {
@@ -12,7 +13,10 @@ export default function EventQuotaList({ quotas, eligibleQuotaIds }: PropTypes) 
     if (quotas.length === 0) return null
     if (quotas.length === 1) {
         const [quota] = quotas
-        return <EventInfoRow label="Plasser">{quota.numOfRegistrations} / {quota.places}</EventInfoRow>
+        return <>
+            <EventInfoRow label="Plasser">{quota.numOfRegistrations} / {quota.places}</EventInfoRow>
+            <EventQuotaBar taken={quota.numOfRegistrations} places={quota.places} />
+        </>
     }
 
     return <>
@@ -33,6 +37,7 @@ export default function EventQuotaList({ quotas, eligibleQuotaIds }: PropTypes) 
                         </span>
                         <span>{quota.numOfRegistrations} / {quota.places}</span>
                     </div>
+                    <EventQuotaBar taken={quota.numOfRegistrations} places={quota.places} />
                     {eligibleQuotaIds && (
                         <div className={eligible ? 'text-s text-accent-green' : 'text-s text-text-muted'}>
                             {eligible ? 'Åpen for deg' : 'Ikke for deg'}

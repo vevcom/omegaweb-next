@@ -11,14 +11,14 @@ import type { EventAccess } from '@/services/events/types'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 
 type PropTypes = {
-    event: Parameters<typeof publishProblems>[0] & { id: number, published: boolean },
+    event: Omit<Parameters<typeof publishProblems>[0], 'adminVisibility'> & { id: number, published: boolean },
     access: EventAccess,
     config: EventPagesConfig,
     capabilities: CapabilitiesJsObject<'canDestroy'>,
 }
 
 const sectionClassName = `
-    flex flex-col gap-3 p-4 rounded-round layer
+    flex flex-col gap-3 p-4 rounded-round bg-surface-raised
     [&>h3]:m-0 [&>h3]:text-l [&>h3]:font-bold
     [&>p]:m-0
 `
@@ -27,7 +27,7 @@ const sectionClassName = `
 export default function EventPublishing({ event, access, config, capabilities }: PropTypes) {
     const canSetPublished = useAuthorizer({ authorizer: eventAuth.setPublished.data(access) }).authorized
     const setPublished = configureAction(setEventPublishedAction, { params: { id: event.id } })
-    const problems = publishProblems(event)
+    const problems = publishProblems({ ...event, adminVisibility: access.adminVisibility })
 
     return <div className="flex flex-col gap-4 min-w-0">
         <h2 className="m-0">Publisering</h2>

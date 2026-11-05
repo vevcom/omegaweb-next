@@ -126,11 +126,9 @@ async function createEvent(
     const createdEvent = await eventOperations.create({ data: event })
 
     // Events are created as drafts, and a draft is visible only to those who administrate it - so
-    // the seeded ones are published to make them show up in the development environment.
-    await eventOperations.setPublished({
-        params: { id: createdEvent.id },
-        data: { published: true },
-    })
+    // the seeded ones are published to make them show up in the development environment. Directly,
+    // since they are administrated by permission only, which the operation refuses.
+    await prisma.event.update({ where: { id: createdEvent.id }, data: { published: true } })
 
     await prisma.cmsImage.update({
         where: { id: createdEvent.coverImageId },

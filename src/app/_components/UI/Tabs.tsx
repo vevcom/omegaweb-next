@@ -42,9 +42,9 @@ export default function Tabs({ tabs, label, children }: {
     }, [])
 
     return <div className="
-        grid gap-4 w-full
-        mobile:grid-cols-[12rem_minmax(0,1fr)]
-        max-mobile:grid-cols-[minmax(0,1fr)]
+        grid gap-4 w-full h-full min-h-0
+        mobile:grid-cols-[12rem_minmax(0,1fr)] mobile:grid-rows-[minmax(0,1fr)]
+        max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:grid-rows-[auto_minmax(0,1fr)]
     ">
         <div role="tablist" aria-label={label} aria-orientation="vertical" className="
             flex gap-1 min-w-0 p-2 rounded-inner bg-surface-raised
@@ -75,7 +75,7 @@ export default function Tabs({ tabs, label, children }: {
             })}
         </div>
         <TabsContext.Provider value={{ active, reportErrors }}>
-            <div className="min-w-0 p-1">
+            <div className="min-w-0 min-h-0 overflow-y-auto p-1">
                 {children}
             </div>
         </TabsContext.Provider>

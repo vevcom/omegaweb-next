@@ -85,7 +85,7 @@ export default function EventAdmin({
             && { key: 'publishing', label: 'Publisering' },
     ]
 
-    return <div className="min-w-[min(90vw,62rem)]">
+    return <div className="min-w-[min(90vw,62rem)] h-[min(85svh,44rem)]">
         <Tabs tabs={tabs.filter(tab => tab !== false)} label="Administrer arrangementet">
             {capabilities.canUpdate.authorized && <TabPanel tab={['about', 'rules']}>
                 <Form
@@ -176,7 +176,7 @@ export default function EventAdmin({
             </TabPanel>}
 
             {capabilities.canUpdateVariants.authorized && <TabPanel tab="registration">
-                <EventVariantsAdmin eventId={event.id} variants={event.variants} />
+                <EventVariantsAdmin eventId={event.id} variants={event.variants} waitingList={event.waitingList} />
             </TabPanel>}
 
             {event.takesPayment && capabilities.canUpdate.authorized && <TabPanel tab="payment">

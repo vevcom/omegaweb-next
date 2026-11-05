@@ -4,6 +4,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import { eventVariantOperations } from '@/services/events/variants/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { userOperations } from '@/services/users/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 
 const HOUR = 60 * 60 * 1000
@@ -79,8 +80,63 @@ describe('creating an event from a name', () => {
         expect(event.eventEnd.getTime()).toBeGreaterThan(Date.now())
     })
 
-    test('is refused with no one to administrate it', async () => {
+    test('is refused with no user or host to administrate it', async () => {
         await expect(eventOperations.create({ data: { name: 'Ingen admin' }, session: creator }))
+            .rejects.toThrow(Smorekopp)
+    })
+})
+
+describe('a draft with no host', () => {
+    async function createByUser(username: string) {
+        const user = await userOperations.create({
+            data: {
+                email: `${username}@omega.ntnu.no`,
+                firstname: 'Test',
+                lastname: 'Testesen',
+                username,
+                emailVerified: new Date().toISOString(),
+            },
+            bypassAuth: true,
+        })
+        const session = Session.fromJsObject({ user, permissions: ['EVENT_CREATE'], memberships: [] })
+        const event = await eventOperations.create({ data: { name: 'Uten vert' }, session })
+        return { event, session }
+    }
+
+    test('is its creator\'s alone', async () => {
+        const { event, session } = await createByUser('draftcreator')
+        const { session: other } = await createByUser('draftother')
+
+        await expect(eventOperations.update({ params: { id: event.id }, data: { name: 'Nytt navn' }, session }))
+            .resolves.toMatchObject({ name: 'Nytt navn' })
+        await expect(eventOperations.update({ params: { id: event.id }, data: { name: 'Ikke mitt' }, session: other }))
+            .rejects.toThrow(Smorekopp)
+        await expect(eventOperations.read({ params: { id: event.id }, session: other })).rejects.toThrow(Smorekopp)
+    })
+
+    test('stays on its creator\'s list of events', async () => {
+        const { event, session } = await createByUser('draftlister')
+
+        const listed = await eventOperations.readManyCurrent({ params: { tags: null }, session })
+
+        expect(listed.map(current => current.id)).toContain(event.id)
+    })
+
+    test('cannot be published until someone administrates it', async () => {
+        const { event } = await createByUser('draftnoadmin')
+        await fillIn(event.id)
+
+        await expect(setPublished(event.id)).rejects.toThrow('BAD PARAMETERS')
+    })
+
+    test('is taken over by a host chosen later, and then left to them once published', async () => {
+        const { event, session } = await createByUser('draftadopted')
+        await fillIn(event.id)
+
+        await eventOperations.update({ params: { id: event.id }, data: { hostedByCommitteeId: committeeId }, session })
+        await expect(setPublished(event.id)).resolves.toMatchObject({ published: true })
+
+        await expect(eventOperations.update({ params: { id: event.id }, data: { name: 'For sent' }, session }))
             .rejects.toThrow(Smorekopp)
     })
 })

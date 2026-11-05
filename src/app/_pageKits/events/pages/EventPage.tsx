@@ -81,6 +81,7 @@ export function eventPage(config: EventPagesConfig) {
                 published: event.published,
                 canBeViewedBy: event.canBeViewedBy,
                 adminVisibility: adminVisibility ?? EMPTY_VISIBILITY.adminLevel,
+                creatorId: event.createdById,
                 quotaVisibilities: event.variants.flatMap(variant => variant.quotas.map(quota => quota.visibility)),
             }
 

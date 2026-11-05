@@ -2,19 +2,17 @@
 import { SelectNumberPossibleNULL } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
-import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { useSession } from '@/auth/session/useSession'
 import { createEventAction } from '@/services/events/actions'
 import { eventLinks } from '@/pageKits/events/links'
 import { useState } from 'react'
-import type { VisibilityRequirement } from '@/services/visibility/types'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { Committee, EventTag } from '@/prisma-generated-pn-types'
 
 /**
- * Creates a draft from as little as a name. The rest is filled in on the event's page, and is
- * checked when it is published. The host committee administrates the draft, so only without one
- * must the creator say who does. Otherwise no one but EVENT_ADMIN could open it.
+ * Creates a draft from nothing but a name. The rest is filled in on the event's page, and is
+ * checked when it is published. The creator's own committee is offered as the host, which then
+ * administrates the draft. Without one the draft is the creator's alone until it gets one.
  */
 export default function CreateEventForm({ config, eventTags, committees }: {
     /** The event pages to navigate into once created. Under a locked tag the event must carry it. */
@@ -31,12 +29,11 @@ export default function CreateEventForm({ config, eventTags, committees }: {
     )))
     const [hostId, setHostId] = useState<number | 'NULL'>()
     const host = hostId ?? ownCommittee?.id ?? 'NULL'
-    const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
     const lockedTag = eventTags.find(tag => config.lockedTag !== null && tag.special === config.lockedTag)
 
     return <Form
         title="Nytt arrangement"
-        className="min-w-[min(80vw,32rem)]"
+        className="min-w-[min(80vw,28rem)]"
         action={createEventAction}
         submitText="Opprett utkast"
         navigateOnSuccess={data => (data?.name ? links.event(data) : links.list())}
@@ -52,11 +49,6 @@ export default function CreateEventForm({ config, eventTags, committees }: {
             value={host}
             onChange={setHostId}
         />}
-        {host === 'NULL' && <div className="flex flex-col gap-2 mb-2">
-            <p className="m-0 font-medium">Hvem kan administrere arrangementet</p>
-            <VisibilityMatrixEditor requirements={adminRequirements} onChange={setAdminRequirements} />
-            <input type="hidden" name="visibilityAdminRequirements" value={JSON.stringify(adminRequirements)} />
-        </div>}
         {lockedTag && <input type="hidden" name="tagIds" value={lockedTag.id} />}
     </Form>
 }

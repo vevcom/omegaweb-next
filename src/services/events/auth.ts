@@ -5,9 +5,19 @@ import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 
 /**
  * The admin visibility of an event decides who may change it, its quotas and its registrations.
- * EVENT_ADMIN bypasses it for every event. Needs `{ adminVisibility }` supplied via `.data()`.
+ * EVENT_ADMIN bypasses it for every event. The creator holds a draft until it is published, which
+ * takes someone to administrate it, since a draft from just a name has no one else. Needs
+ * `{ adminVisibility, published, creatorId }` supplied via `.data()`.
  */
-export const eventAdminLevel = Require.permission('EVENT_ADMIN').or().visibility({ key: 'adminVisibility' })
+const isCreatorOfDraft = Require.custom<{ published: boolean, creatorId: number | null }>(
+    ({ session, published, creatorId }) => !published && creatorId !== null && session.user?.id === creatorId
+)
+
+export const eventAdminLevel = Require.anyOf(
+    Require.permission('EVENT_ADMIN'),
+    Require.visibility({ key: 'adminVisibility' }),
+    isCreatorOfDraft,
+)
 
 /**
  * Passes when the event's `published` flag, supplied via `.data()`, is `expected`. It fails
@@ -44,6 +54,7 @@ const visibleEvents = Require.permission('EVENT_ADMIN').or().filter(({ session }
     return {
         OR: [
             { visibilityAdmin: passes },
+            ...(session.user ? [{ published: false, createdById: session.user.id }] : []),
             { published: true, canBeViewedBy: 'ALL' },
             { published: true, variants: { some: { quotas: { some: { visibility: passes } } } } },
         ],

@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
 import { assertSeenThroughQuotas, readEventAccess } from './access'
-import { publishProblems } from './publishProblems'
+import { hasNoAdministrators, publishProblems } from './publishProblems'
 import {
     eventListSelection,
     eventQuotaOrder,
@@ -40,6 +40,9 @@ const DAY_MS = 1000 * 60 * 60 * 24
 // so a draft stays on the current list and publishProblems sees them as unset until someone sets them.
 // Make the columns nullable if drafts ever need to show that they have no time.
 const UNSET_EVENT_TIME_OFFSET_MS = 7 * DAY_MS
+
+// Administers nothing, so a draft from just a name is its creator's until someone is chosen.
+const NO_ADMINISTRATORS = [{ conditions: [] }]
 
 const adminVisibility = implementVisibilityOperations({
     implementationParamsSchema: eventSchemas.params.adminVisibility,
@@ -130,8 +133,13 @@ export const eventOperations = {
                 throw new ServiceError('BAD PARAMETERS', 'Kan ikke ta betaling uten påmelding')
             }
 
+            if (!data.visibilityAdminRequirements && !data.hostedByCommitteeId && !session?.user) {
+                throw new ServiceError('BAD PARAMETERS', 'Velg hvem som arrangerer eller kan administrere arrangementet')
+            }
             const adminRequirements = data.visibilityAdminRequirements
-                ?? await hostCommitteeAdminRequirements(prisma, data.hostedByCommitteeId)
+                ?? (data.hostedByCommitteeId
+                    ? await hostCommitteeAdminRequirements(prisma, data.hostedByCommitteeId)
+                    : NO_ADMINISTRATORS)
 
             // The event and everything it owns are created together, so a failure leaves no
             // orphaned paragraph, image, visibility, variant or quota behind.
@@ -352,6 +360,10 @@ export const eventOperations = {
                     })),
                     skipDuplicates: true
                 })
+            }
+
+            if (data.hostedByCommitteeId) {
+                await adoptHostAsAdministrators(prisma, params.id, event.visibilityAdminId, data.hostedByCommitteeId)
             }
 
             if (notifyAboutChange) {
@@ -603,11 +615,8 @@ function eventTagSelector(tags: string[] | null) {
 /** The host committee's active members administrate the event, which stays right as the committee changes. */
 async function hostCommitteeAdminRequirements(
     prisma: PrismaPossibleTransaction<false>,
-    committeeId: number | null | undefined,
+    committeeId: number,
 ) {
-    if (!committeeId) {
-        throw new ServiceError('BAD PARAMETERS', 'Velg hvem som arrangerer eller kan administrere arrangementet')
-    }
     const { groupId } = await prisma.committee.findUniqueOrThrow({
         where: { id: committeeId },
         select: { groupId: true },
@@ -626,6 +635,22 @@ async function assertReadyToPublish(prisma: PrismaPossibleTransaction<false>, ev
             variants: { select: { takesPayment: true } },
         },
     })
-    const problems = publishProblems(event)
+    const access = await readEventAccess(prisma, eventId)
+    const problems = publishProblems({ ...event, adminVisibility: access.adminVisibility })
     if (problems.length > 0) throw new ServiceError('BAD PARAMETERS', problems.join(' '))
+}
+
+/** A host chosen after the draft was created takes over, unless someone already administrates the event. */
+async function adoptHostAsAdministrators(
+    prisma: PrismaPossibleTransaction<false>,
+    eventId: number,
+    visibilityId: number,
+    committeeId: number,
+) {
+    const access = await readEventAccess(prisma, eventId)
+    if (!hasNoAdministrators(access.adminVisibility)) return
+    await visibilityOperations.update.internalCall({
+        params: { visibilityId },
+        data: { requirements: await hostCommitteeAdminRequirements(prisma, committeeId) },
+    })
 }
