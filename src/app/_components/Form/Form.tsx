@@ -159,35 +159,38 @@ export default function Form<GiveActionReturn>({
                         pending={pending}
                     />
                 })}
-                <SubmitButton
-                    color={submitColor}
-                    success={success && submitter === 'primary'}
-                    generalErrors={generalErrors}
-                    confirmation={confirmation}
-                    pending={pending && submitter === 'primary'}
-                    className={`
-                        ${buttonClassName}
-                        m-0
-                    `}
-                    disabled={disabled || (pending && submitter !== 'primary')}
-                >
-                    {submitText}
-                </SubmitButton>
-                {secondarySubmit && <SubmitButton
-                    color={secondarySubmit.color ?? 'secondary'}
-                    success={success && submitter === 'secondary'}
-                    confirmation={confirmation}
-                    pending={pending && submitter === 'secondary'}
-                    className={`
-                        ${buttonClassName}
-                        m-0
-                    `}
-                    disabled={disabled || (pending && submitter !== 'secondary')}
-                    name={secondarySubmit.name}
-                    value="on"
-                >
-                    {secondarySubmit.text}
-                </SubmitButton>}
+                {/* The two buttons stay together, on one line wherever there is room for both. */}
+                <div className={secondarySubmit ? 'flex flex-wrap items-start gap-x-2' : 'contents'}>
+                    <SubmitButton
+                        color={submitColor}
+                        success={success && submitter === 'primary'}
+                        generalErrors={generalErrors}
+                        confirmation={confirmation}
+                        pending={pending && submitter === 'primary'}
+                        className={`
+                            ${buttonClassName}
+                            m-0
+                        `}
+                        disabled={disabled || (pending && submitter !== 'primary')}
+                    >
+                        {submitText}
+                    </SubmitButton>
+                    {secondarySubmit && <SubmitButton
+                        color={secondarySubmit.color ?? 'secondary'}
+                        success={success && submitter === 'secondary'}
+                        confirmation={confirmation}
+                        pending={pending && submitter === 'secondary'}
+                        className={`
+                            ${buttonClassName}
+                            m-0
+                        `}
+                        disabled={disabled || (pending && submitter !== 'secondary')}
+                        name={secondarySubmit.name}
+                        value="on"
+                    >
+                        {secondarySubmit.text}
+                    </SubmitButton>}
+                </div>
             </form>
         </FormContext.Provider>
     )
