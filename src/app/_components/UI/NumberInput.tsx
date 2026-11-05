@@ -65,9 +65,12 @@ export default function NumberInput({
                 id={inputId}
                 type="number"
                 className={`
-                    peer w-full border-2 border-transparent rounded-inner outline-0 text-m
-                    leading-[calc(var(--text-m)*1.25)] pt-6 px-4 pb-2 transition-[border-color,background-color]
-                    duration-300 z-1
+                    peer w-full border border-surface-subtle
+                    focus:ring-3 focus:ring-accent-blue/25
+                    rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] pt-6 px-4 pb-2.5
+                    transition-[border-color,background-color,box-shadow] duration-300 z-1 [appearance:textfield]
+                    [&::-webkit-inner-spin-button]:appearance-none
+                    [&::-webkit-outer-spin-button]:appearance-none
                     placeholder:opacity-0
                     ${colorClassNames[color].field}
                     ${backgroundClassNames[background]}

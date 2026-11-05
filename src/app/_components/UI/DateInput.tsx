@@ -58,21 +58,21 @@ export default function DateInput({
         <div
             className={
                 `
-                    flex flex-col gap-2 mt-2 w-full max-w-[320px]
+                    relative mt-2 w-full max-w-[320px]
                     ${colorClassNames[color]}
                     ${className}
                 `
             }
         >
-            <label htmlFor={inputId} className="text-s text-text-muted">{label}</label>
             <input
                 onChange={setUtc}
                 defaultValue={defaultValueTransformedLocal}
                 type={includeTime ? 'datetime-local' : 'date'}
                 className={`
-                    scheme-dark w-full border-2 border-transparent rounded-inner h-14 p-4
-                    leading-[calc(var(--text-m)*1.25)] text-m text-ink-strong transition-[border-color,background-color]
-                    duration-300
+                    scheme-dark w-full border border-surface-subtle
+                    focus:ring-3 focus:ring-accent-blue/25
+                    rounded-inner h-14 pt-6 pb-1 px-4 leading-[calc(var(--text-m)*1.25)] text-m text-ink-strong
+                    transition-[border-color,background-color,box-shadow] duration-300
                     focus:outline-0 focus:border-accent-blue
                     [&::-webkit-calendar-picker-indicator]:cursor-pointer
                     [&::-webkit-calendar-picker-indicator]:rounded-[calc(var(--gap)/2)]
@@ -85,6 +85,9 @@ export default function DateInput({
                 id={inputId}
                 name={`${props.name}Local`}
             />
+            <label htmlFor={inputId} className="
+                absolute left-4 top-2 text-[length:calc(var(--text-s)*0.85)] text-text-muted pointer-events-none
+            ">{label}</label>
             <input
                 defaultValue={defaultValueTransformedUtc}
                 {...props}

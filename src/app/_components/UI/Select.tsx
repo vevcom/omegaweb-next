@@ -87,9 +87,10 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                     id={selectId}
                     name={name}
                     className={`
-                        peer appearance-none relative w-full flex items-center border-2 border-transparent rounded-inner
-                        outline-0 text-m leading-[calc(var(--text-m)*1.25)] text-left pt-6 pr-10 pb-2 pl-4
-                        transition-[border-color,background-color] duration-300 cursor-pointer
+                        peer appearance-none relative w-full flex items-center border border-surface-subtle
+                        focus:ring-3 focus:ring-accent-blue/25
+                        rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] text-left pt-6 pr-10 pb-2.5 pl-4
+                        transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                         disabled:cursor-not-allowed disabled:opacity-60
                         [&_option]:bg-surface-raised [&_option]:text-text
                         ${colorClassNames[color].field}
