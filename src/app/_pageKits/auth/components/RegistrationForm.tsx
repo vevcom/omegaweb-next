@@ -46,12 +46,14 @@ export default function RegistrationForm({ config, userData, callbackUrl: callba
         <TextInput label="Allergier / diett" name="allergies" defaultValue={userData.allergies ?? ''} />
         <TextInput type="password" label="Passord" name="password" onChange={(e) => { setLastPassword(e.target.value) }} />
         <TextInput type="password" label="Gjenta passord" name="confirmPassword" />
-        <SelectString
-            label="Kjønn"
-            name="sex"
-            options={sexOptions}
-            value={sexValue}
-            onChange={(e) => setSexValue(e as Sex)} />
+        {config.asksSex && (
+            <SelectString
+                label="Kjønn"
+                name="sex"
+                options={sexOptions}
+                value={sexValue}
+                onChange={(e) => setSexValue(e as Sex)} />
+        )}
         <Checkbox label="Jeg samtykker til å bli tatt bilde av" name="imageConsent" />
         {config.accountNotice && <p className="p-2 border-l-3 border-accent-blue">{config.accountNotice}</p>}
         <Checkbox name="acceptedTerms">

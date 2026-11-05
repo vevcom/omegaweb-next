@@ -9,4 +9,6 @@ export type AuthPagesConfig = PagesMount & {
     afterLogoutPath: string,
     /** Explains during sign up where else the account is used. null on the account's own site. */
     accountNotice: string | null,
+    /** Whether sign up asks the user's sex, which Omega's own site does and a site for companies has no use for. */
+    asksSex: boolean,
 }
