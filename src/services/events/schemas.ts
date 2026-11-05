@@ -9,7 +9,8 @@ import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
     name: z.string().min(5, 'Navnet må være minst 5 tegn').max(70, 'Navnet må være maks 70 tegn'),
-    location: z.string().min(2, 'Stedet må være minst 2 tegn').max(100, 'Stedet må være maks 100 tegn'),
+    location: z.string().min(2, 'Stedet må være minst 2 tegn').max(100, 'Stedet må være maks 100 tegn')
+        .or(z.literal('').transform(() => null)),
     locationMap: Zpn.json({ label: 'Kart', schema: locationMapSchema.nullable() }).optional(),
     order: z.coerce.number().int().optional(),
     eventStart: Zpn.date({ label: 'Starttid' }),
@@ -115,6 +116,16 @@ export const eventSchemas = {
             quotaVisibilityRequirements: true,
             visibilityAdminRequirements: true,
         })
+            .partial({
+                location: true,
+                eventStart: true,
+                eventEnd: true,
+                canBeViewedBy: true,
+                tagIds: true,
+                waitingList: true,
+                takesRegistration: true,
+                visibilityAdminRequirements: true,
+            })
             .refine(waitingListRefiner, waitingListMessage)
             .refine(bindingRegistrationRefiner, bindingRegistrationMessage),
         update: dataFieldSchemas.pick({ ...eventFields, notifyAboutChange: true }).partial(),

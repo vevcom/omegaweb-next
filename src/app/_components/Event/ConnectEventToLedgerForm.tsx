@@ -32,7 +32,6 @@ export default function ConnectEventToLedgerForm({ eventId, ledgerAccount, ledge
                 action={configureAction(connectEventToLedgerAccountAction, { params: { id: eventId } })}
                 submitText="Knytt til konto"
                 refreshOnSuccess
-                closePopUpOnSuccess="EventLedgerAccount"
             >
                 <SelectNumber
                     name="ledgerAccountId"

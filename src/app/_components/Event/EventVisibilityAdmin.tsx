@@ -1,15 +1,13 @@
 'use client'
-import Form from '@/components/Form/Form'
 import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
-import { setEventPublishedAction, updateEventAdminVisibilityAction } from '@/services/events/actions'
+import { updateEventAdminVisibilityAction } from '@/services/events/actions'
 import { eventAuth } from '@/services/events/auth'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import type { EventAccess } from '@/services/events/types'
-import type { Event } from '@/prisma-generated-pn-types'
 
 type PropTypes = {
-    event: Event,
+    event: { id: number, visibilityAdminId: number },
     access: EventAccess,
     /** Whether the admin visibility could be read, so that the editor never saves a fallback over it. */
     adminVisibilityKnown: boolean,
@@ -22,44 +20,20 @@ const sectionClassName = `
 `
 
 /**
- * Whether the event is published and who administrates it - the tools only those who administrate
- * the event get to see. Who may register is the quotas' business, in their own pop-up.
+ * Who administrates the event. Who may register is the quotas' business.
  */
 export default function EventVisibilityAdmin({ event, access, adminVisibilityKnown }: PropTypes) {
     const canUpdateAdminVisibility = useAuthorizer({
         authorizer: eventAuth.updateAdminVisibility.data(access)
     }).authorized
-    const canSetPublished = useAuthorizer({
-        authorizer: eventAuth.setPublished.data(access)
-    }).authorized
 
-    const setPublished = configureAction(setEventPublishedAction, { params: { id: event.id } })
-
-    if (!canUpdateAdminVisibility && !canSetPublished) return null
+    if (!canUpdateAdminVisibility) return null
 
     return <div className="
         flex flex-col gap-4 min-w-[min(80vw,40rem)]
         [&>h2]:m-0
     ">
-        <h2>Synlighet</h2>
-
-        {canSetPublished && <section className={sectionClassName}>
-            <h3>Publisering</h3>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <p className="m-0">
-                    {event.published
-                        ? 'Arrangementet er publisert.'
-                        : 'Arrangementet er et utkast som bare administratorene ser.'}
-                </p>
-                <Form
-                    action={() => setPublished({ data: { published: !event.published } })}
-                    refreshOnSuccess
-                    submitText={event.published ? 'Avpubliser' : 'Publiser'}
-                    submitColor={event.published ? 'red' : 'green'}
-                    className="w-auto!"
-                />
-            </div>
-        </section>}
+        <h2>Tilgang</h2>
 
         {adminVisibilityKnown && canUpdateAdminVisibility && <section className={sectionClassName}>
             <h3>Hvem kan administrere</h3>

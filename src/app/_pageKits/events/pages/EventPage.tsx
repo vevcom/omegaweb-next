@@ -4,38 +4,24 @@ import { omegaLinks } from '@/app/(omegaweb)/links'
 import ShowAndEditName from '@/components/Event/ShowAndEditName'
 import RegistrationUI from '@/components/Event/RegistrationUI'
 import RegistrationsList from '@/components/Event/RegistrationsList'
-import ManualRegistrationForm from '@/components/Event/ManualRegistrationForm'
-import EventVisibilityAdmin from '@/components/Event/EventVisibilityAdmin'
-import EventVariantsAdmin from '@/components/Event/EventVariantsAdmin'
+import EventAdmin from '@/components/Event/EventAdmin'
 import EventQuotaList from '@/components/Event/EventQuotaList'
-import ConnectEventToLedgerForm from '@/components/Event/ConnectEventToLedgerForm'
 import EventPaymentSection from '@/components/Event/EventPaymentSection'
 import EventSidebarSection from '@/components/Event/EventSidebarSection'
 import EventInfoRow from '@/components/Event/EventInfoRow'
 import EventNotificationsAdmin from '@/components/Event/EventNotificationsAdmin'
 import NotificationSubscriptionTree from '@/components/Notifications/NotificationSubscriptionTree'
 import EventLocationMap from '@/components/Event/EventLocationMap'
-import CreateOrUpdateEventForm from '@/components/Event/CreateOrUpdateEventForm'
 import EventTag from '@/components/Event/EventTag'
 import DateDisplay from '@/components/Date/Date'
 import CmsImage from '@/components/Cms/CmsImage/CmsImage'
 import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
-import Form from '@/components/Form/Form'
 import DraftBanner from '@/components/UI/DraftBanner'
-import {
-    DeleteHeaderItemPopUp,
-    EditHeaderItemPopUp,
-    NotificationHeaderItemPopUp,
-    PaymentHeaderItemPopUp,
-    UsersHeaderItemPopUp,
-    VariantsHeaderItemPopUp,
-    VisibilityHeaderItemPopUp,
-} from '@/components/HeaderItems/HeaderItemPopUp'
+import { AdminHeaderItemPopUp, NotificationHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import HeaderItemLink from '@/components/HeaderItems/HeaderItemLink'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import {
-    destroyEventAction,
     updateEventCmsCoverImageAction,
     updateEventParagraphContentAction
 } from '@/services/events/actions'
@@ -53,6 +39,7 @@ import { eventNotificationAuth } from '@/services/events/notifications/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { Require } from '@/auth/authorizer/Require'
+import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { notFound } from 'next/navigation'
@@ -226,7 +213,7 @@ export function eventPage(config: EventPagesConfig) {
                     {!event.published && <div className="flex-[0_0_100%]">
                         <DraftBanner>
                             Arrangementet er ikke publisert. Bare de som administrerer det ser det. Publiser det under
-                            synlighet.
+                            Administrer.
                         </DraftBanner>
                     </div>}
                     <span className={`
@@ -279,47 +266,31 @@ export function eventPage(config: EventPagesConfig) {
                             ${styles.overlay}
                             absolute top-2 right-2 z-1 flex flex-wrap justify-end gap-2
                         `}>
-                            {capabilities.canUpdate.authorized && (
-                                <EditHeaderItemPopUp scale={30} popUpKey="EditEvent" ariaLabel="Endre arrangementet">
-                                    <CreateOrUpdateEventForm
-                                        event={event}
-                                        config={config}
-                                        eventTags={tags}
-                                        committees={committees}
-                                    />
-                                </EditHeaderItemPopUp>
-                            )}
-                            {capabilities.canUpdateVisibility.authorized && (
-                                <VisibilityHeaderItemPopUp
-                                    scale={30}
-                                    popUpKey="EventVisibility"
-                                    ariaLabel="Synlighet og publisering"
-                                >
-                                    <EventVisibilityAdmin
+                            {(capabilities.canUpdate.authorized || capabilities.canUpdateVariants.authorized
+                                || capabilities.canUpdateVisibility.authorized || capabilities.canDestroy.authorized
+                                || capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
+                            ) && (
+                                <AdminHeaderItemPopUp popUpKey="EventAdmin">
+                                    <EventAdmin
                                         event={event}
                                         access={access}
                                         adminVisibilityKnown={data.adminVisibilityKnown}
+                                        config={config}
+                                        eventTags={tags}
+                                        committees={committees}
+                                        ledgerAccounts={
+                                            capabilities.canConnectToLedgerAccount.authorized ? ledgerAccounts : []
+                                        }
+                                        capabilities={capabilitiesToJsObject({
+                                            canUpdate: capabilities.canUpdate,
+                                            canUpdateVisibility: capabilities.canUpdateVisibility,
+                                            canUpdateVariants: capabilities.canUpdateVariants,
+                                            canDestroy: capabilities.canDestroy,
+                                            canRegisterAsAdmin: capabilities.canRegisterAsAdmin,
+                                            canRegisterGuest: capabilities.canRegisterGuest,
+                                        })}
                                     />
-                                </VisibilityHeaderItemPopUp>
-                            )}
-                            {capabilities.canUpdateVariants.authorized && (
-                                <VariantsHeaderItemPopUp scale={30} popUpKey="EventVariants" ariaLabel="Varianter og kvoter">
-                                    <EventVariantsAdmin eventId={event.id} variants={event.variants} />
-                                </VariantsHeaderItemPopUp>
-                            )}
-                            {event.takesRegistration && (
-                                capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
-                            ) && (
-                                <UsersHeaderItemPopUp scale={30} popUpKey="Users" ariaLabel="Meld på andre">
-                                    <ManualRegistrationForm
-                                        eventId={event.id}
-                                        variants={event.variants}
-                                        capabilities={{
-                                            canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
-                                            canRegisterGuest: capabilities.canRegisterGuest.toJsObject(),
-                                        }}
-                                    />
-                                </UsersHeaderItemPopUp>
+                                </AdminHeaderItemPopUp>
                             )}
                             {capabilities.canCreateNotification.authorized && (
                                 <NotificationHeaderItemPopUp scale={30} popUpKey="EventNotifications" ariaLabel="Varsle">
@@ -331,46 +302,8 @@ export function eventPage(config: EventPagesConfig) {
                                     href={links.attendance(event)}
                                     label="Registrer oppmøte"
                                     icon={faQrcode}
-                                    iconOnlyScale={30}
+                                    iconOnlyScale={40}
                                 />
-                            )}
-                            {event.takesPayment && capabilities.canConnectToLedgerAccount.authorized && (
-                                <PaymentHeaderItemPopUp
-                                    scale={30}
-                                    popUpKey="EventLedgerAccount"
-                                    ariaLabel="Konto for betaling"
-                                >
-                                    <ConnectEventToLedgerForm
-                                        eventId={event.id}
-                                        ledgerAccount={event.ledgerAccount}
-                                        ledgerAccounts={ledgerAccounts}
-                                    />
-                                </PaymentHeaderItemPopUp>
-                            )}
-                            {capabilities.canDestroy.authorized && (
-                                <DeleteHeaderItemPopUp scale={30} popUpKey="DestroyEvent" ariaLabel="Slett arrangementet">
-                                    <div className="
-                                        flex flex-col gap-4 min-w-[min(80vw,28rem)]
-                                        [&>h2]:m-0
-                                        [&>p]:m-0
-                                    ">
-                                        <h2>Slett arrangementet</h2>
-                                        <p>
-                                            Arrangementet slettes med alle påmeldingene sine. Har noen betalt, må de
-                                            meldes av først, så de får pengene tilbake.
-                                        </p>
-                                        <Form
-                                            action={configureAction(destroyEventAction, { params: { id: event.id } })}
-                                            navigateOnSuccess={links.list()}
-                                            submitText="Slett arrangementet"
-                                            submitColor="red"
-                                            confirmation={{
-                                                confirm: true,
-                                                text: 'Er du sikker på at du vil slette dette arrangementet?'
-                                            }}
-                                        />
-                                    </div>
-                                </DeleteHeaderItemPopUp>
                             )}
                         </div>
                     </span>

@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
 import { assertSeenThroughQuotas, readEventAccess } from './access'
+import { publishProblems } from './publishProblems'
 import {
     eventListSelection,
     eventQuotaOrder,
@@ -15,7 +16,7 @@ import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { eventLinks } from '@/pageKits/events/links'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
 import { reserveId } from '@/lib/reserveId'
@@ -34,6 +35,11 @@ import type { SearchFindArgs } from '@/services/search/implement'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 
 const DAY_MS = 1000 * 60 * 60 * 24
+
+// ponytail: a new event has no time yet, and the database requires one. Start and end both land here,
+// so a draft stays on the current list and publishProblems sees them as unset until someone sets them.
+// Make the columns nullable if drafts ever need to show that they have no time.
+const UNSET_EVENT_TIME_OFFSET_MS = 7 * DAY_MS
 
 const adminVisibility = implementVisibilityOperations({
     implementationParamsSchema: eventSchemas.params.adminVisibility,
@@ -115,12 +121,17 @@ export const eventOperations = {
         authorizer: () => eventAuth.create,
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data, session }) => {
-            if (data.eventStart > data.eventEnd) {
+            const eventStart = data.eventStart ?? new Date(Date.now() + UNSET_EVENT_TIME_OFFSET_MS)
+            const eventEnd = data.eventEnd ?? eventStart
+            if (eventStart > eventEnd) {
                 throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
             }
             if (data.takesPayment && !data.takesRegistration) {
                 throw new ServiceError('BAD PARAMETERS', 'Kan ikke ta betaling uten påmelding')
             }
+
+            const adminRequirements = data.visibilityAdminRequirements
+                ?? await hostCommitteeAdminRequirements(prisma, data.hostedByCommitteeId)
 
             // The event and everything it owns are created together, so a failure leaves no
             // orphaned paragraph, image, visibility, variant or quota behind.
@@ -135,7 +146,7 @@ export const eventOperations = {
                 operationImplementationFields: { special: null }
             })
             const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
-                data: { requirements: data.visibilityAdminRequirements },
+                data: { requirements: adminRequirements },
                 prisma,
             })
             const id = await reserveId(prisma, 'Event')
@@ -152,11 +163,11 @@ export const eventOperations = {
                     name: data.name,
                     location: data.location,
                     locationMap: data.locationMap ? { create: getLocationMapData(data.locationMap) } : undefined,
-                    eventStart: data.eventStart,
-                    eventEnd: data.eventEnd,
-                    canBeViewedBy: data.canBeViewedBy,
+                    eventStart,
+                    eventEnd,
+                    canBeViewedBy: data.canBeViewedBy ?? 'ALL',
                     hostedByCommitteeId: data.hostedByCommitteeId ?? undefined,
-                    waitingList: data.waitingList,
+                    waitingList: data.waitingList ?? false,
                     bindingRegistration: data.bindingRegistration,
                     allowRegistrationInMultipleVariants: data.allowRegistrationInMultipleVariants,
                     createdById: session?.user?.id,
@@ -167,7 +178,7 @@ export const eventOperations = {
                 }
             })
             await prisma.eventTagEvent.createMany({
-                data: data.tagIds.map(tagId => ({
+                data: (data.tagIds ?? []).map(tagId => ({
                     eventId: createdEvent.id,
                     tagId
                 }))
@@ -410,7 +421,10 @@ export const eventOperations = {
         authorizer: async ({ params, prisma }) => eventAuth.setPublished.data(await readEventAccess(prisma, params.id)),
         transaction: 'RUNS_IN',
         operation: async ({ prisma, params, data }) => {
-            if (data.published) await assertSeenThroughQuotas(prisma, params.id, { published: true })
+            if (data.published) {
+                await assertSeenThroughQuotas(prisma, params.id, { published: true })
+                await assertReadyToPublish(prisma, params.id)
+            }
             const { count: flipped } = await prisma.event.updateMany({
                 where: { id: params.id, published: !data.published },
                 data: { published: data.published },
@@ -584,4 +598,34 @@ function eventTagSelector(tags: string[] | null) {
             }
         }
     } : undefined
+}
+
+/** The host committee's active members administrate the event, which stays right as the committee changes. */
+async function hostCommitteeAdminRequirements(
+    prisma: PrismaPossibleTransaction<false>,
+    committeeId: number | null | undefined,
+) {
+    if (!committeeId) {
+        throw new ServiceError('BAD PARAMETERS', 'Velg hvem som arrangerer eller kan administrere arrangementet')
+    }
+    const { groupId } = await prisma.committee.findUniqueOrThrow({
+        where: { id: committeeId },
+        select: { groupId: true },
+    })
+    return [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }]
+}
+
+async function assertReadyToPublish(prisma: PrismaPossibleTransaction<false>, eventId: number) {
+    const event = await prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: {
+            location: true,
+            eventStart: true,
+            eventEnd: true,
+            ledgerAccount: { select: { id: true } },
+            variants: { select: { takesPayment: true } },
+        },
+    })
+    const problems = publishProblems(event)
+    if (problems.length > 0) throw new ServiceError('BAD PARAMETERS', problems.join(' '))
 }

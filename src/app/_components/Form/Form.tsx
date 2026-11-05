@@ -2,6 +2,7 @@
 import { SUCCESS_FEEDBACK_TIME } from './constants'
 import { FormContext, FormInputSlot, flattenChildren, inputName } from './FormContext'
 import FormSection from './FormSection'
+import FormTab from './FormTab'
 import { PopUpContext } from '@/contexts/PopUp'
 import SubmitButton from '@/components/UI/SubmitButton'
 import useSiteRouter from '@/hooks/useSiteRouter'
@@ -33,7 +34,7 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
 /** The names of every input among the children, those inside sections included, so their errors find them. */
 function collectInputNames(children: ReactNode): string[] {
     return Children.toArray(children).flatMap(child => {
-        if (isValidElement<{ children?: ReactNode }>(child) && child.type === FormSection) {
+        if (isValidElement<{ children?: ReactNode }>(child) && (child.type === FormSection || child.type === FormTab)) {
             return collectInputNames(flattenChildren(child.props.children))
         }
         const name = inputName(child)
@@ -151,6 +152,7 @@ export default function Form<GiveActionReturn>({
             `} {...props} onSubmit={handleSubmit}>
                 {title && <h2>{title}</h2>}
                 {Children.toArray(children).map((child, index) => {
+                    if (isValidElement(child) && child.type === FormTab) return child
                     const name = inputName(child)
                     return <FormInputSlot
                         key={index}
