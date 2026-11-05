@@ -7,7 +7,7 @@ import { userOperations } from '@/services/users/operations'
 import { ClassLevelConfig } from '@/services/groups/constants'
 import { dotOperations } from '@/services/dots/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
-import { notificationChannelOperations } from '@/services/notifications/channel/operations'
+import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { Smorekopp } from '@/services/error'
 import { displayDate } from '@/lib/dates/displayDate'
@@ -46,7 +46,7 @@ const { page, generateMetadata } = serverPage({
                 params: { userId, specialTag: 'COMPANY_PRESENTATION' },
             }),
             dotOperations.readForUser({ params: { userId, onlyActive: true } }),
-            notificationChannelOperations.readSpecial({ params: { special: 'CONTACTOR' } }),
+            contactorNotificationChannel.readChannel({}),
             notificationSubscriptionOperations.read({ params: { userId } }),
         ])
         const subscription = subscriptions.find(candidate => candidate.channelId === channel.id)

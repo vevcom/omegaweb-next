@@ -1,6 +1,8 @@
 import ChannelSettings from './ChannelSettings'
-import { notificationChannelOperations } from '@/services/notifications/channel/operations'
-import { notificationChannelAuth } from '@/services/notifications/channel/auth'
+import SpecialChannelInfo from './SpecialChannelInfo'
+import { dynamicNotificationOperations } from '@/services/notifications/dynamic/operations'
+import { specialNotificationOperations } from '@/services/notifications/special/operations'
+import { dynamicNotificationAuth } from '@/services/notifications/dynamic/auth'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
@@ -11,10 +13,12 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ currentId: string }>) => {
         authorizeAdminPage('notification-channels', session)
 
-        const [channels, mailAliases] = await Promise.all([
-            notificationChannelOperations.readMany({}),
+        const [special, dynamic, mailAliases] = await Promise.all([
+            specialNotificationOperations.readManyChannels({}),
+            dynamicNotificationOperations.readManyChannels({}),
             aliasOperations.readMany({}),
         ])
+        const channels = [...special, ...dynamic]
 
         const currentId = Number(params.currentId)
         const selected = channels.find(channel => channel.id === currentId)
@@ -26,11 +30,13 @@ const { page, generateMetadata } = serverPage({
         return { channels, mailAliases, selected }
     },
     capabilities: () => ({
-        canUpdateChannel: notificationChannelAuth.update,
-        canDestroyChannel: notificationChannelAuth.destroy,
+        canUpdateChannel: dynamicNotificationAuth.updateChannel,
+        canDestroyChannel: dynamicNotificationAuth.destroyChannel,
     }),
     metadata: (data) => ({ title: data.selected.name }),
-    render: ({ data, capabilities }) => (
+    render: ({ data, capabilities }) => (data.selected.special ? (
+        <SpecialChannelInfo channel={data.selected} />
+    ) : (
         <ChannelSettings
             channels={data.channels}
             currentChannel={data.selected}
@@ -40,7 +46,7 @@ const { page, generateMetadata } = serverPage({
                 canDestroy: capabilities.canDestroyChannel.toJsObject(),
             }}
         />
-    ),
+    )),
 })
 
 export default page

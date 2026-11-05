@@ -1,4 +1,4 @@
-import type { availableNotificationMethodIncluder } from './channel/constants'
+import type { availableNotificationMethodIncluder } from './subservice/constants'
 import type { notificationMethodsArray, notificationMethodTypes } from './constants'
 import type { Notification, NotificationMethod, Prisma } from '@/prisma-generated-pn-types'
 

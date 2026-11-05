@@ -5,7 +5,9 @@ import { eventOperations } from '@/services/events/operations'
 import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { eventVariantOperations } from '@/services/events/variants/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
-import { notificationOperations } from '@/services/notifications/operations'
+import {
+    waitingListPromotionNotificationChannel
+} from '@/services/events/registration/waitingListPromotionNotificationChannel'
 import { userOperations } from '@/services/users/operations'
 import { beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import type { MembershipFiltered } from '@/services/groups/types'
@@ -26,7 +28,7 @@ let groupTwo: number
 let organisers: number
 let userCounter = 0
 
-const notifySpy = jest.spyOn(notificationOperations.createSpecial, 'internalCall')
+const notifySpy = jest.spyOn(waitingListPromotionNotificationChannel.internalOperations.createNotification, 'internalCall')
 
 async function createManualGroup(shortName: string) {
     const group = await prisma.group.create({
@@ -142,9 +144,7 @@ const readOfUser = (testUser: TestUser, eventId: number, variantId?: number) => 
     bypassAuth: true,
 })
 
-const promotedUserIds = () => notifySpy.mock.calls.flatMap(([call]) => (
-    call.params.special === 'EVENT_WAITINGLIST_PROMOTION' ? call.data.audience?.userIds ?? [] : []
-))
+const promotedUserIds = () => notifySpy.mock.calls.flatMap(([call]) => call.data.audience?.userIds ?? [])
 
 beforeAll(async () => {
     currentOrder = (await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })).order

@@ -1,22 +1,26 @@
 import '@pn-server-only'
-import { notificationChannelAuth } from './auth'
-import { notificationChannelSchemas } from './schemas'
+import { notificationSchemas } from './schemas'
 import { availableNotificationMethodIncluder } from './constants'
 import { methodsAreEqual, validateMethods, validateNewParent } from './helpers'
 import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
 import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineSubOperation } from '@/services/serviceOperation'
 import { defaultNotificationAlias } from '@/lib/email/constants'
 import { ServiceError } from '@/services/error'
-import type { ExpandedNotificationChannel } from '@/services/notifications/types'
+import type { Prisma } from '@/prisma-generated-pn-types'
+import type { ExpandedNotificationChannel, NotificationResult } from '@/services/notifications/types'
 
-export const notificationChannelOperations = {
-    create: defineOperation({
-        authorizer: () => notificationChannelAuth.create,
-        dataSchema: notificationChannelSchemas.data.create,
+/**
+ * The notification channels and the notifications sent in them. A channel is owned by the system
+ * that implements these: the special channels by the code, through their config, and the rest by the
+ * dynamic system of the admin pages.
+ */
+export const notificationOperations = {
+    createChannel: defineSubOperation({
+        dataSchema: () => notificationSchemas.data.createChannel,
+        paramsSchema: () => notificationSchemas.params.createChannel,
         opensTransaction: true,
-        paramsSchema: notificationChannelSchemas.params.create,
-        operation: async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> =>
+        operation: () => async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> =>
             await prisma.$transaction(async (tx) => {
                 const channel = await tx.notificationChannel.create({
                     data: {
@@ -90,52 +94,34 @@ export const notificationChannelOperations = {
             }),
     }),
 
-    readMany: defineOperation({
-        authorizer: () => notificationChannelAuth.readMany,
-        operation: async ({ prisma }) => await prisma.notificationChannel.findMany({
-            include: availableNotificationMethodIncluder,
-        })
+    /** The channels the implementing system owns, as its `where` picks them out. */
+    readManyChannels: defineSubOperation({
+        operation: ({ where }: { where: Prisma.NotificationChannelWhereInput }) =>
+            async ({ prisma }): Promise<ExpandedNotificationChannel[]> => await prisma.notificationChannel.findMany({
+                where,
+                include: availableNotificationMethodIncluder,
+            }),
     }),
 
-    readSpecial: defineOperation({
-        paramsSchema: notificationChannelSchemas.params.readSpecial,
-        authorizer: () => notificationChannelAuth.readSpecial,
-        operation: async ({ prisma, params }) => await prisma.notificationChannel.findUniqueOrThrow({
-            where: { special: params.special },
-            include: availableNotificationMethodIncluder,
-        }),
-    }),
-
-    update: defineOperation({
-        authorizer: () => notificationChannelAuth.update,
-        dataSchema: notificationChannelSchemas.data.update,
-        paramsSchema: notificationChannelSchemas.params.update,
+    updateChannel: defineSubOperation({
+        dataSchema: () => notificationSchemas.data.updateChannel,
+        paramsSchema: () => notificationSchemas.params.updateChannel,
         opensTransaction: true,
-        operation: async ({ prisma, data, params }) => {
-            // Check if the channel is special
+        operation: () => async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
             const channel = await prisma.notificationChannel.findUniqueOrThrow({
                 where: {
                     id: params.id,
                 },
                 select: {
-                    special: true,
                     availableMethods: true,
                 }
             })
 
-            let updateParentId = false
-
-            // Not allowed to change the parent of ROOT
-            if (channel.special !== 'ROOT') {
-                const allChannels = await notificationChannelOperations.readMany({
-                    bypassAuth: true,
-                })
-
-                if (!validateNewParent(params.id, data.parentId, allChannels)) {
-                    throw new ServiceError('BAD PARAMETERS', 'Den overordnede kanalen kan ikke gi en løkke.')
-                }
-
-                updateParentId = true
+            const allChannels = await prisma.notificationChannel.findMany({
+                include: availableNotificationMethodIncluder,
+            })
+            if (!validateNewParent(params.id, data.parentId, allChannels)) {
+                throw new ServiceError('BAD PARAMETERS', 'Den overordnede kanalen kan ikke gi en løkke.')
             }
 
             return await prisma.$transaction(async (tx) => {
@@ -155,7 +141,7 @@ export const notificationChannelOperations = {
                     data: {
                         name: data.name,
                         description: data.description,
-                        ...(updateParentId ? { parent: { connect: { id: data.parentId } } } : {}),
+                        parent: { connect: { id: data.parentId } },
                         mailAlias: {
                             connect: {
                                 id: data.mailAliasId,
@@ -169,29 +155,24 @@ export const notificationChannelOperations = {
     }),
 
     /**
-     * Deletes a channel with its subscriptions and the notifications sent in it. Special channels are
-     * used by the code and cannot be deleted, and a channel's children must be moved or deleted first.
+     * Deletes a channel with its subscriptions and the notifications sent in it. A channel's children
+     * must be moved or deleted first.
      */
-    destroy: defineOperation({
-        authorizer: () => notificationChannelAuth.destroy,
-        paramsSchema: notificationChannelSchemas.params.destroy,
+    destroyChannel: defineSubOperation({
+        paramsSchema: () => notificationSchemas.params.destroyChannel,
         opensTransaction: true,
-        operation: async ({ prisma, params }) => prisma.$transaction(async (tx) => {
+        operation: () => async ({ prisma, params }) => prisma.$transaction(async (tx) => {
             const channel = await tx.notificationChannel.findUniqueOrThrow({
                 where: {
                     id: params.id,
                 },
                 select: {
-                    special: true,
                     availableMethodsId: true,
                     subscriptions: { select: { methodsId: true } },
                     _count: { select: { children: true } },
                 },
             })
 
-            if (channel.special) {
-                throw new ServiceError('BAD PARAMETERS', 'Spesielle kanaler kan ikke slettes.')
-            }
             if (channel._count.children > 0) {
                 throw new ServiceError('BAD PARAMETERS', 'Kanalen har underkanaler. Flytt eller slett dem først.')
             }
@@ -214,5 +195,62 @@ export const notificationChannelOperations = {
                 },
             })
         }),
+    }),
+
+    /**
+     * Creates a notification in a channel. Nothing is sent here: the notification worker picks it up,
+     * resolves who should receive it at that point (channel subscriptions ∩ targeted users ∩
+     * visibility ∩ permission ∩ who can register for the event, see methods/recipients.ts) and
+     * dispatches it through the channel's available methods.
+     *
+     * @param data - The notification, optionally restricted to an audience of users, a visibility, a
+     * permission and those who can register for an event.
+     * @returns The created notification.
+     */
+    createNotification: defineSubOperation({
+        paramsSchema: () => notificationSchemas.params.createNotification,
+        dataSchema: () => notificationSchemas.data.createNotification,
+        operation: () => async ({ prisma, params, data }): Promise<NotificationResult> => {
+            // This prevents notifications from being created - and later dispatched by the
+            // notification worker - during seeding.
+            if (process.env.IGNORE_SERVER_ONLY) {
+                return { notification: null }
+            }
+
+            const notification = await prisma.notification.create({
+                data: {
+                    title: data.title,
+                    message: data.message,
+                    url: data.url,
+                    channel: {
+                        connect: {
+                            id: params.channelId,
+                        },
+                    },
+                    ...(data.audience?.userIds && data.audience.userIds.length > 0 ? {
+                        usersTargeted: {
+                            connect: data.audience.userIds.map(userId => ({ id: userId })),
+                        },
+                    } : {}),
+                    ...(data.audience?.visibilityId ? {
+                        visibility: {
+                            connect: {
+                                id: data.audience.visibilityId,
+                            },
+                        },
+                    } : {}),
+                    permission: data.audience?.permission,
+                    ...(data.audience?.canRegisterForEventId ? {
+                        canRegisterForEvent: {
+                            connect: {
+                                id: data.audience.canRegisterForEventId,
+                            },
+                        },
+                    } : {}),
+                }
+            })
+
+            return { notification }
+        }
     }),
 } as const

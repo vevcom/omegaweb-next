@@ -3,7 +3,8 @@ import { SelectNumber } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
-import { createNotificationAction } from '@/services/notifications/actions'
+import { createDynamicNotificationAction } from '@/services/notifications/dynamic/actions'
+import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 
@@ -14,12 +15,15 @@ export default function NotificationForm({
     channels: ExpandedNotificationChannel[]
 }) {
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
+    const [channelId, setChannelId] = useState(channels[0]?.id)
+
+    if (channelId === undefined) return <p>Det finnes ingen dynamiske kanaler å sende varsler i.</p>
 
     return <>
         <Form
             submitText="Send varsel"
             className="w-full"
-            action={createNotificationAction}
+            action={configureAction(createDynamicNotificationAction, { params: { channelId } })}
             successCallback={data => {
                 if (data) {
                     setSuccessMessage(`
@@ -31,6 +35,8 @@ export default function NotificationForm({
         >
             <SelectNumber
                 name="channelId"
+                value={channelId}
+                onChange={setChannelId}
                 options={channels.map(channel => ({
                     value: channel.id,
                     label: channel.name,

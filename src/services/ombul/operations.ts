@@ -4,10 +4,10 @@ import { ombulSchemas } from './schemas'
 import { ombulStore } from './store'
 import { expandedOmbulIncluder, ombulOrderBy } from './constants'
 import { ombulCoverImageOperations } from './ombulCoverCollection'
+import { newOmbulNotificationChannel } from './newOmbulNotificationChannel'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { defineOperation } from '@/services/serviceOperation'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import { notificationOperations } from '@/services/notifications/operations'
 import logger from '@/lib/logger'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { File } from 'node:buffer'
@@ -89,10 +89,7 @@ export const ombulOperations = {
                 })
             }))
 
-            await notificationOperations.createSpecial.internalCall({
-                params: {
-                    special: 'NEW_OMBUL',
-                },
+            await newOmbulNotificationChannel.internalOperations.createNotification.internalCall({
                 data: {
                     title: 'Ny ombul',
                     message: `Ny ombul er ute! ${ombul.name}`,

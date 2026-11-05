@@ -1,0 +1,166 @@
+import '@pn-server-only'
+import { notificationOperations } from '@/services/notifications/subservice/operations'
+import { notificationSchemas } from '@/services/notifications/subservice/schemas'
+import { availableNotificationMethodIncluder } from '@/services/notifications/subservice/constants'
+import { specialNotificationAuth } from '@/services/notifications/special/auth'
+import { allNotificationMethodsOn } from '@/services/notifications/constants'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import { DomainContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
+import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
+import type { ExpandedNotificationChannel, NotificationMethodGeneral } from '@/services/notifications/types'
+
+export type SpecialNotificationChannelConfig = {
+    name: string,
+    description: string,
+    availableMethods: NotificationMethodGeneral,
+    /** The local part of the channel's mail alias on the root site's mail domain. The noreply alias when left out. */
+    alias?: string,
+}
+
+/**
+ * A notification channel the code sends in, owned by the service that implements it. It is what its
+ * config says and nothing on the site changes it: it is created from the config when first read and
+ * brought in line with it by the seeder. Notifications are only created in it from server code.
+ * Users subscribe to it like any other channel, and dynamic channels may be put under it.
+ */
+export function implementSpecialNotificationChannel({
+    special,
+    config,
+}: {
+    special: SpecialNotificationChannel,
+    config: SpecialNotificationChannelConfig,
+}) {
+    const generateChannelFromConfig = defineSubOperation({
+        operation: () => async ({ prisma }): Promise<ExpandedNotificationChannel> => {
+            const mailAlias = { connect: { address: aliasAddress(config.alias) } }
+            const existing = await prisma.notificationChannel.findUnique({
+                where: { special },
+                select: { availableMethodsId: true },
+            })
+            if (existing) {
+                await prisma.notificationMethod.update({
+                    where: { id: existing.availableMethodsId },
+                    data: config.availableMethods,
+                })
+                return prisma.notificationChannel.update({
+                    where: { special },
+                    data: {
+                        name: config.name,
+                        description: config.description,
+                        mailAlias,
+                        ...(special === 'ROOT' ? {} : { parent: { connect: { id: await readRootId(prisma) } } }),
+                    },
+                    include: availableNotificationMethodIncluder,
+                })
+            }
+
+            if (special === 'ROOT') return createRootChannel(prisma, config)
+
+            return prisma.notificationChannel.create({
+                data: {
+                    special,
+                    name: config.name,
+                    description: config.description,
+                    availableMethods: { create: config.availableMethods },
+                    parent: { connect: { id: await readRootId(prisma) } },
+                    mailAlias,
+                },
+                include: availableNotificationMethodIncluder,
+            })
+        }
+    })
+
+    /** The channel, created from the config when it does not exist yet. */
+    const readChannelInternal = async (
+        { prisma }: { prisma: PrismaPossibleTransaction<false> }
+    ): Promise<ExpandedNotificationChannel> => {
+        const channel = await prisma.notificationChannel.findUnique({
+            where: { special },
+            include: availableNotificationMethodIncluder,
+        })
+        return channel ?? await generateChannelFromConfig.internalCall({ prisma })
+    }
+
+    const readChannel = defineOperation({
+        authorizer: () => specialNotificationAuth.readChannel,
+        operation: async ({ prisma }) => readChannelInternal({ prisma }),
+    })
+
+    const createNotification = defineSubOperation({
+        dataSchema: () => notificationSchemas.data.createNotification,
+        operation: () => async ({ prisma, data }) => notificationOperations.createNotification.internalCall({
+            params: {
+                channelId: (await readChannelInternal({ prisma })).id,
+            },
+            data,
+        })
+    })
+
+    return {
+        special,
+        internalOperations: {
+            createNotification,
+        },
+        readChannel,
+        readChannelInternal,
+        generateChannelFromConfig,
+    } as const
+}
+
+export type SpecialNotificationChannelImplementation = ReturnType<typeof implementSpecialNotificationChannel>
+
+/** Every other special channel sits right under the root, which is created on demand too. */
+export const rootNotificationChannel = implementSpecialNotificationChannel({
+    special: 'ROOT',
+    config: {
+        name: 'Alle varslinger',
+        description: 'Denne kanalen styrer alle varslinger',
+        availableMethods: allNotificationMethodsOn,
+    },
+})
+
+async function readRootId(prisma: PrismaPossibleTransaction<false>): Promise<number> {
+    return (await rootNotificationChannel.readChannelInternal({ prisma })).id
+}
+
+function aliasAddress(alias: string | undefined): string {
+    return `${alias ?? 'noreply'}@${DomainContext.mailDomainOf(Site.root)}`
+}
+
+async function createRootChannel(
+    prisma: PrismaPossibleTransaction<false>,
+    config: SpecialNotificationChannelConfig,
+): Promise<ExpandedNotificationChannel> {
+    // The root is its own parent, so its id has to be known before it is inserted. Taking it from
+    // the sequence (rather than guessing max(id) + 1) reserves it, so a later autoincremented
+    // insert can never be handed the same id.
+    // The table is qualified with the same schema the prisma adapter is given (see client.ts): the
+    // adapter qualifies its own queries but leaves search_path alone, so an unqualified name in raw
+    // SQL resolves against public - which is not where the tables are in e.g. the test schemas.
+    const schema = (process.env.DB_SCHEMA ?? 'public').replace(/"/g, '""')
+    const [{ id }] = await prisma.$queryRaw<{ id: bigint }[]>`
+        SELECT nextval(pg_get_serial_sequence(${`"${schema}"."NotificationChannel"`}, 'id')) AS id
+    `
+
+    // Scalar foreign keys throughout, since parentId cannot be given as a connect - the parent
+    // does not exist until this very insert - and prisma will not mix scalar keys with nested writes.
+    const [availableMethods, mailAlias] = await Promise.all([
+        prisma.notificationMethod.create({ data: config.availableMethods }),
+        prisma.mailAlias.findUniqueOrThrow({ where: { address: aliasAddress(config.alias) } }),
+    ])
+
+    return prisma.notificationChannel.create({
+        data: {
+            id: Number(id),
+            parentId: Number(id),
+            name: config.name,
+            description: config.description,
+            special: 'ROOT',
+            availableMethodsId: availableMethods.id,
+            mailAliasId: mailAlias.id,
+        },
+        include: availableNotificationMethodIncluder,
+    })
+}

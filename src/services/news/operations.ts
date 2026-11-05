@@ -7,9 +7,9 @@ import {
     simpleNewsArticleRelationsIncluder
 } from './constants'
 import { newsAuth } from './auth'
+import { newNewsArticleNotificationChannel } from './newNewsArticleNotificationChannel'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { articleOperations } from '@/cms/articles/operations'
-import { notificationOperations } from '@/services/notifications/operations'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import { defineOperation } from '@/services/serviceOperation'
@@ -223,10 +223,7 @@ export const newsOperations = {
             })
 
             if (data.published && !previous.published) {
-                await notificationOperations.createSpecial.internalCall({
-                    params: {
-                        special: 'NEW_NEWS_ARTICLE',
-                    },
+                await newNewsArticleNotificationChannel.internalOperations.createNotification.internalCall({
                     data: {
                         title: `Ny nyhetsartikkel: ${news.article.name}`,
                         message: `${news.description ? `${news.description}\n` : ''}Les hele saken på Omegaveven.`,

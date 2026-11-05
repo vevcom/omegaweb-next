@@ -10,9 +10,9 @@ import {
 } from './constants'
 import { createVariant } from './variants/createVariant'
 import { createQuota } from './quotas/createQuota'
+import { newEventNotificationChannel } from './newEventNotificationChannel'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { eventLinks } from '@/pageKits/events/links'
-import { notificationOperations } from '@/services/notifications/operations'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
@@ -405,10 +405,7 @@ export const eventOperations = {
             const event = await prisma.event.findUniqueOrThrow({ where: { id: params.id } })
 
             if (data.published && flipped) {
-                await notificationOperations.createSpecial.internalCall({
-                    params: {
-                        special: 'NEW_EVENT',
-                    },
+                await newEventNotificationChannel.internalOperations.createNotification.internalCall({
                     data: {
                         title: `Hvad der hender: ${event.name}`,
                         message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,

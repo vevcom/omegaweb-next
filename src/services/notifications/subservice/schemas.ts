@@ -1,5 +1,5 @@
 import { internalPathMessage, isInternalPath } from '@/lib/fields/safeLink'
-import { Permission, SpecialNotificationChannel } from '@/prisma-generated-pn-types'
+import { Permission } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 export const notificationMethodSchema = z.object({
@@ -9,7 +9,10 @@ export const notificationMethodSchema = z.object({
 })
 
 const dataFieldSchemas = z.object({
-    channelId: z.coerce.number().min(1),
+    name: z.string().min(2),
+    description: z.string(),
+    parentId: z.coerce.number().min(1),
+    mailAliasId: z.coerce.number().min(1),
     title: z.string().min(2),
     message: z.string().min(10),
     url: z.string().trim().max(2048)
@@ -26,19 +29,25 @@ const dataFieldSchemas = z.object({
 })
 
 const paramsFieldSchemas = z.object({
-    special: z.nativeEnum(SpecialNotificationChannel),
+    id: z.number(),
+    channelId: z.coerce.number().min(1),
+    availableMethods: notificationMethodSchema,
 })
 
 export const notificationSchemas = {
     data: {
-        create: dataFieldSchemas.pick({
-            channelId: true,
-            title: true,
-            message: true,
-            url: true,
-            audience: true,
+        createChannel: dataFieldSchemas.pick({
+            name: true,
+            description: true,
+            parentId: true,
         }),
-        createSpecial: dataFieldSchemas.pick({
+        updateChannel: dataFieldSchemas.pick({
+            name: true,
+            description: true,
+            parentId: true,
+            mailAliasId: true,
+        }),
+        createNotification: dataFieldSchemas.pick({
             title: true,
             message: true,
             url: true,
@@ -46,8 +55,18 @@ export const notificationSchemas = {
         }),
     },
     params: {
-        createSpecial: paramsFieldSchemas.pick({
-            special: true,
+        createChannel: paramsFieldSchemas.pick({
+            availableMethods: true,
+        }),
+        updateChannel: paramsFieldSchemas.pick({
+            id: true,
+            availableMethods: true,
+        }),
+        destroyChannel: paramsFieldSchemas.pick({
+            id: true,
+        }),
+        createNotification: paramsFieldSchemas.pick({
+            channelId: true,
         }),
     },
 }

@@ -9,9 +9,8 @@ import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { permissionsAuth } from '@/services/permissions/auth'
 import { apiKeyAuth } from '@/services/apiKeys/auth'
-import { notificationAuth } from '@/services/notifications/auth'
 import { sendMailAuth } from '@/services/notifications/sendMail/auth'
-import { notificationChannelAuth } from '@/services/notifications/channel/auth'
+import { dynamicNotificationAuth } from '@/services/notifications/dynamic/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
@@ -183,14 +182,14 @@ export const adminNavDef: AdminNavGroup[] = [
                 title: 'Varslingskanaler',
                 path: 'notification-channels',
                 authorizers: () => [
-                    notificationChannelAuth.create,
-                    notificationChannelAuth.update,
+                    dynamicNotificationAuth.createChannel,
+                    dynamicNotificationAuth.updateChannel,
                 ],
             },
             {
                 title: 'Send varsel',
                 path: 'send-notification',
-                authorizers: () => [notificationAuth.create],
+                authorizers: () => [dynamicNotificationAuth.createNotification],
             },
         ],
     },

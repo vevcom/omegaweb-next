@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { notificationOperations } from '@/services/notifications/operations'
+import { waitingListPromotionNotificationChannel } from './waitingListPromotionNotificationChannel'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import logger from '@/lib/logger'
@@ -27,10 +27,7 @@ export async function notifyPromotedFromWaitingList(
     ))
 
     if (userIds.length) {
-        await notificationOperations.createSpecial.internalCall({
-            params: {
-                special: 'EVENT_WAITINGLIST_PROMOTION',
-            },
+        await waitingListPromotionNotificationChannel.internalOperations.createNotification.internalCall({
             data: {
                 title,
                 message,

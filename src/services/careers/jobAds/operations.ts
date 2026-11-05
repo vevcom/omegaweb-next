@@ -2,13 +2,13 @@ import '@pn-server-only'
 import { jobAdAuth } from './auth'
 import { jobAdSchemas } from './schemas'
 import { activeJobAdOrdering, articleAndCompanyIncluder, simpleArticleAndCompanyIncluder } from './constants'
+import { newJobAdNotificationChannel } from './newJobAdNotificationChannel'
 import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { logoIncluder } from '@/services/careers/companies/constants'
 import { jobAdLinks } from '@/pageKits/jobAds/links'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { articleOperations } from '@/cms/articles/operations'
-import { notificationOperations } from '@/services/notifications/operations'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
 import { implementSearchOperation } from '@/services/search/implement'
 import type { ExpandedJobAd, SimpleJobAd } from './types'
@@ -69,10 +69,7 @@ export const jobAdOperations = {
                 })
             })
 
-            await notificationOperations.createSpecial.internalCall({
-                params: {
-                    special: 'NEW_JOBAD',
-                },
+            await newJobAdNotificationChannel.internalOperations.createNotification.internalCall({
                 data: {
                     title: `Ny jobbannonse: ${articleName}`,
                     message: `${jobAd.company.name} har lagt ut en ny jobbannonse: ${articleName}`,

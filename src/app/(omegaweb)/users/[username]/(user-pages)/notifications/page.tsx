@@ -1,6 +1,7 @@
 import NotificationSettings from './NotificationSettings'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
-import { notificationChannelOperations } from '@/services/notifications/channel/operations'
+import { dynamicNotificationOperations } from '@/services/notifications/dynamic/operations'
+import { specialNotificationOperations } from '@/services/notifications/special/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { browserPushSubscriptionAuth } from '@/services/notifications/browserPushSubscription/auth'
 import { pushIsConfigured, vapid } from '@/services/notifications/methods/constants'
@@ -12,8 +13,9 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
         const { profile } = await getProfileForUserPage(params, 'notifications', session)
 
-        const [channels, subscriptions] = await Promise.all([
-            notificationChannelOperations.readMany({}),
+        const [special, dynamic, subscriptions] = await Promise.all([
+            specialNotificationOperations.readManyChannels({}),
+            dynamicNotificationOperations.readManyChannels({}),
             notificationSubscriptionOperations.read({
                 params: {
                     userId: profile.user.id
@@ -21,7 +23,7 @@ const { page, generateMetadata } = serverPage({
             }),
         ])
 
-        return { profile, channels, subscriptions }
+        return { profile, channels: [...special, ...dynamic], subscriptions }
     },
     capabilities: (data) => ({
         canManagePushDevice: browserPushSubscriptionAuth.create.data({ userId: data.profile.user.id }),
