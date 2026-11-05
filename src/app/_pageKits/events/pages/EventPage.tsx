@@ -7,7 +7,7 @@ import RegistrationsList from '@/components/Event/RegistrationsList'
 import EventAdmin from '@/components/Event/EventAdmin'
 import EventQuotaList from '@/components/Event/EventQuotaList'
 import EventPaymentSection from '@/components/Event/EventPaymentSection'
-import EventSidebarSection from '@/components/Event/EventSidebarSection'
+import EventSection from '@/components/Event/EventSection'
 import EventInfoRow from '@/components/Event/EventInfoRow'
 import EventNotificationsAdmin from '@/components/Event/EventNotificationsAdmin'
 import NotificationSubscriptionTree from '@/components/Notifications/NotificationSubscriptionTree'
@@ -304,17 +304,17 @@ export function eventPage(config: EventPagesConfig) {
                             )}
                         </div>
                     </span>
-                    <aside className="
-                        flex-[1_1_650px] min-w-0 flex flex-col gap-2
-                        max-mobile:basis-full
+                    <div className="
+                        grid gap-2 w-full grid-cols-[minmax(0,1fr)]
+                        mobile:grid-cols-[minmax(0,1fr)_22rem] mobile:grid-rows-[auto_1fr]
                     ">
-                        <EventSidebarSection title="Tid og sted">
+                        <EventSection title="Tid og sted">
                             <p className={iconRowClassName}>
                                 <FontAwesomeIcon icon={faCalendar} />
                                 <span>
-                                    <DateDisplay date={event.eventStart} includeTime />
+                                    <DateDisplay date={event.eventStart} includeSeconds={false} />
                                     {' – '}
-                                    <DateDisplay date={event.eventEnd} includeTime />
+                                    <DateDisplay date={event.eventEnd} includeSeconds={false} />
                                 </span>
                             </p>
                             <p className={iconRowClassName}>
@@ -329,91 +329,91 @@ export function eventPage(config: EventPagesConfig) {
                                     </SiteLink>
                                 </span>
                             </p>}
-                        </EventSidebarSection>
-
-                        {event.variants.length > 0 ? data.variantViews.map(view => (
-                            <EventSidebarSection
-                                key={view.variant.id}
-                                title={severalVariants ? `Påmelding: ${view.variant.name}` : 'Påmelding'}
-                            >
-                                {!view.variant.takesRegistration && (
-                                    <p className="m-0 text-text-muted">Varianten har ingen plasser ennå.</p>
-                                )}
-                                <EventQuotaList quotas={view.variant.quotas} eligibleQuotaIds={view.eligibleQuotaIds} />
-                                {event.waitingList && (
-                                    <EventInfoRow label="På venteliste">{view.variant.numOnWaitingList}</EventInfoRow>
-                                )}
-                                <EventInfoRow label="Påmeldingsstart">
-                                    <DateDisplay date={view.variant.registrationStart} includeTime />
-                                </EventInfoRow>
-                                <EventInfoRow label="Påmeldingsslutt">
-                                    <DateDisplay date={view.variant.registrationEnd} includeTime />
-                                </EventInfoRow>
-                                {event.bindingRegistration && <p className={iconRowClassName}>
-                                    <FontAwesomeIcon icon={faLock} />
-                                    <span>Påmeldingen er bindende</span>
-                                </p>}
-                                {view.variant.takesRegistration && <RegistrationUI
-                                    config={config}
-                                    event={event}
-                                    variant={view.variant}
-                                    registration={view.registration}
-                                    dotPunishment={dotPunishment}
-                                    eligibility={view.eligibility}
-                                    capabilities={{
-                                        canRegister: capabilities.canRegister.toJsObject(),
-                                        canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
-                                        canUnregisterAsAdmin: capabilities.canUnregisterAsAdmin.toJsObject(),
-                                    }}
-                                />}
-                                {view.variant.takesPayment && (
-                                    <EventPaymentSection
-                                        eventId={event.id}
+                        </EventSection>
+                        <aside className="
+                            flex flex-col gap-2 min-w-0
+                            mobile:col-start-2 mobile:row-start-1 mobile:row-span-2
+                        ">
+                            {event.variants.length > 0 ? data.variantViews.map(view => (
+                                <EventSection
+                                    key={view.variant.id}
+                                    title={severalVariants ? view.variant.name : 'Påmelding'}
+                                >
+                                    {!view.variant.takesRegistration && (
+                                        <p className="m-0 text-text-muted">Varianten har ingen plasser ennå.</p>
+                                    )}
+                                    <EventQuotaList quotas={view.variant.quotas} eligibleQuotaIds={view.eligibleQuotaIds} />
+                                    {event.waitingList && (
+                                        <EventInfoRow label="På venteliste">{view.variant.numOnWaitingList}</EventInfoRow>
+                                    )}
+                                    <EventInfoRow label="Påmeldingsstart">
+                                        <DateDisplay date={view.variant.registrationStart} includeSeconds={false} />
+                                    </EventInfoRow>
+                                    <EventInfoRow label="Påmeldingsslutt">
+                                        <DateDisplay date={view.variant.registrationEnd} includeSeconds={false} />
+                                    </EventInfoRow>
+                                    {event.bindingRegistration && <p className={iconRowClassName}>
+                                        <FontAwesomeIcon icon={faLock} />
+                                        <span>Påmeldingen er bindende</span>
+                                    </p>}
+                                    {view.variant.takesRegistration && <RegistrationUI
+                                        config={config}
+                                        event={event}
                                         variant={view.variant}
                                         registration={view.registration}
-                                        userId={session.user?.id ?? null}
-                                        availableBalance={data.eventPaymentBalance}
-                                        customerSessionClientSecret={data.eventPaymentCustomerSessionSecret}
-                                        capabilities={{ canPay: capabilities.canPay }}
-                                    />
-                                )}
-                            </EventSidebarSection>
-                        )) : (
-                            <EventSidebarSection title="Påmelding">
-                                <p className="text-text-muted">Dette arrangementet tar ikke påmelding.</p>
-                            </EventSidebarSection>
-                        )}
+                                        dotPunishment={dotPunishment}
+                                        eligibility={view.eligibility}
+                                        capabilities={{
+                                            canRegister: capabilities.canRegister.toJsObject(),
+                                            canRegisterAsAdmin: capabilities.canRegisterAsAdmin.toJsObject(),
+                                            canUnregisterAsAdmin: capabilities.canUnregisterAsAdmin.toJsObject(),
+                                        }}
+                                    />}
+                                    {view.variant.takesPayment && (
+                                        <EventPaymentSection
+                                            eventId={event.id}
+                                            variant={view.variant}
+                                            registration={view.registration}
+                                            userId={session.user?.id ?? null}
+                                            availableBalance={data.eventPaymentBalance}
+                                            customerSessionClientSecret={data.eventPaymentCustomerSessionSecret}
+                                            capabilities={{ canPay: capabilities.canPay }}
+                                        />
+                                    )}
+                                </EventSection>
+                            )) : (
+                                <EventSection title="Påmelding">
+                                    <p className="text-text-muted">Dette arrangementet tar ikke påmelding.</p>
+                                </EventSection>
+                            )}
 
-                        {session.user && (
-                            <EventSidebarSection title="Varslinger">
-                                <NotificationSubscriptionTree
-                                    userId={session.user.id}
-                                    channels={data.channelsOfEvent}
-                                    subscriptions={data.subscriptions}
-                                />
-                            </EventSidebarSection>
-                        )}
-                    </aside>
-                    <main className="
-                        flex-[999_1_420px]
-                        max-mobile:basis-full
-                        min-w-0 p-4 bg-surface-base rounded-round
-                    ">
-                        <CmsParagraph
-                            capabilities={{ canEdit: capabilities.canEditCmsParagraph }}
-                            cmsParagraph={event.paragraph}
-                            updateCmsParagraphAction={
-                                configureAction(
-                                    updateEventParagraphContentAction,
-                                    { implementationParams: { eventId: event.id } }
-                                )
-                            }
-                        />
-                        {event.locationMap && <section aria-label="Kart til arrangementet">
-                            <h2>Her finner du oss</h2>
-                            <EventLocationMap locationMap={event.locationMap} />
-                        </section>}
-                    </main>
+                            {session.user && (
+                                <EventSection title="Varslinger">
+                                    <NotificationSubscriptionTree
+                                        userId={session.user.id}
+                                        channels={data.channelsOfEvent}
+                                        subscriptions={data.subscriptions}
+                                    />
+                                </EventSection>
+                            )}
+                        </aside>
+                        <main className="min-w-0 p-4 bg-surface-base rounded-round">
+                            <CmsParagraph
+                                capabilities={{ canEdit: capabilities.canEditCmsParagraph }}
+                                cmsParagraph={event.paragraph}
+                                updateCmsParagraphAction={
+                                    configureAction(
+                                        updateEventParagraphContentAction,
+                                        { implementationParams: { eventId: event.id } }
+                                    )
+                                }
+                            />
+                            {event.locationMap && <section aria-label="Kart til arrangementet">
+                                <h2>Her finner du oss</h2>
+                                <EventLocationMap locationMap={event.locationMap} />
+                            </section>}
+                        </main>
+                    </div>
 
                     {event.takesRegistration && capabilities.canReadRegistrations.authorized && (
                         <div className="
