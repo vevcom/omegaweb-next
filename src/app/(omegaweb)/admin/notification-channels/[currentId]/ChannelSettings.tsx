@@ -6,7 +6,6 @@ import TextInput from '@/components/UI/TextInput'
 import { SelectNumber } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
 import {
     destroyNotificationChannelAction,
     updateNotificationChannelAction
@@ -48,11 +47,6 @@ export default function ChannelSettings({
                     params: {
                         id: currentChannelState.id,
                         availableMethods: currentChannelState.availableMethods,
-                        defaultMethods: booleanOperationOnMethods(
-                            currentChannelState.defaultMethods,
-                            currentChannelState.availableMethods,
-                            'AND'
-                        )
                     }
                 })}
                 submitText="Lagre"
@@ -111,19 +105,6 @@ export default function ChannelSettings({
                             })
                         }}
                     />
-                    <NotificationMethodSelector
-                        formPrefix="defaultMethods"
-                        title="Standardmetoder"
-                        methods={currentChannelState.defaultMethods}
-                        editable={currentChannelState.availableMethods}
-                        onChange={(data) => {
-                            setCurrentChannel({
-                                ...currentChannelState,
-                                defaultMethods: data,
-                            })
-                        }}
-                    />
-
                 </div>
 
 

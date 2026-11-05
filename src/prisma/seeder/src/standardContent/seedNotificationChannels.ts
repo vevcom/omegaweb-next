@@ -1,4 +1,4 @@
-import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
+import { allNotificationMethodsOn } from '@/services/notifications/constants'
 import { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
@@ -11,7 +11,6 @@ type ChannelInfo = {
     special?: SpecialNotificationChannel
     name: string
     description: string
-    defaultMethods: Omit<NotificationMethod, 'id'>
     availableMethods: Omit<NotificationMethod, 'id'>
     alias?: string
 }
@@ -29,61 +28,42 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             special: 'ROOT',
             name: 'Alle varslinger',
             description: 'Denne kanalen styrer alle varslinger',
-            defaultMethods: allNotificationMethodsOn,
             availableMethods: allNotificationMethodsOn,
         },
         {
             special: 'NEW_EVENT',
             name: 'Nytt arrangement',
             description: 'Varslinger om nye arrangementer',
-            defaultMethods: {
-                email: false,
-                emailWeekly: true,
-                push: false,
-            },
             availableMethods: allNotificationMethodsOn,
         },
         {
             special: 'NEW_OMBUL',
             name: 'Ny ombul',
             description: 'Varsling når det kommer ny ombul',
-            defaultMethods: allNotificationMethodsOff,
             availableMethods: allNotificationMethodsOn,
         },
         {
             special: 'NEW_NEWS_ARTICLE',
             name: 'Ny nyhetsartikkel',
             description: 'Varslinger om nye nyhetsartikler',
-            defaultMethods: allNotificationMethodsOff,
             availableMethods: allNotificationMethodsOn,
         },
         {
             special: 'NEW_JOBAD',
             name: 'Ny jobbannonse',
             description: 'Varslinger om nye jobbannonser',
-            defaultMethods: {
-                email: false,
-                emailWeekly: true,
-                push: false,
-            },
             availableMethods: allNotificationMethodsOn,
         },
         {
             special: 'NEW_OMEGAQUOTE',
             name: 'Ny Omegaquote',
             description: 'Varslinger om nye Omegaquotes',
-            defaultMethods: allNotificationMethodsOff,
             availableMethods: allNotificationMethodsOn,
         },
         {
             special: 'EVENT_WAITINGLIST_PROMOTION',
             name: 'Opprykk fra venteliste',
             description: 'Varsling ved opprykk fra venteliste',
-            defaultMethods: {
-                email: true,
-                emailWeekly: false,
-                push: false,
-            },
             availableMethods: {
                 email: true,
                 emailWeekly: false,
@@ -93,33 +73,18 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         {
             name: 'Informasjon fra HS',
             description: 'Varsling når Hovedstyret vil gi ut informasjon',
-            defaultMethods: {
-                email: true,
-                emailWeekly: false,
-                push: false,
-            },
             availableMethods: allNotificationMethodsOn,
             alias: 'hs',
         },
         {
             name: 'Merch',
             description: 'Her kommer det varslinger om Omega Merch fra BlaestCom',
-            defaultMethods: {
-                email: true,
-                emailWeekly: false,
-                push: false,
-            },
             availableMethods: allNotificationMethodsOn,
             alias: 'bleast',
         },
         {
             name: 'Driftsstatus',
             description: 'Her kommer det varslinger dersom noe på veven ikke fungerer, eller ved planlagt vedlikehold',
-            defaultMethods: {
-                email: true,
-                emailWeekly: false,
-                push: false,
-            },
             availableMethods: allNotificationMethodsOn,
             alias: 'vevcom',
         },
@@ -127,11 +92,6 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             special: 'CONTACTOR',
             name: 'Contactor',
             description: 'Her kommer det diverse informasjon fra Contactor',
-            defaultMethods: {
-                email: true,
-                emailWeekly: false,
-                push: false,
-            },
             availableMethods: allNotificationMethodsOn,
             alias: 'contactor',
         },
@@ -139,11 +99,6 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             name: 'Mat på Gløshaugen',
             description: `Her kommer informasjon om når det er vafler på Lophtet eller 
                           noe annen mat i området rundt El-bygget`,
-            defaultMethods: {
-                email: true,
-                emailWeekly: false,
-                push: false,
-            },
             availableMethods: {
                 email: true,
                 emailWeekly: false,
@@ -153,11 +108,6 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         {
             name: 'Diverse',
             description: 'Her kommer informasjon som ellers ikke passer inn i kategoriene',
-            defaultMethods: {
-                email: true,
-                emailWeekly: false,
-                push: false,
-            },
             availableMethods: allNotificationMethodsOn,
         },
     ]
@@ -208,9 +158,6 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
                 availableMethods: {
                     create: channel.availableMethods,
                 },
-                defaultMethods: {
-                    create: channel.defaultMethods,
-                },
                 special: channel.special,
                 parent: {
                     connect: {
@@ -241,8 +188,7 @@ async function createRootChannel(prisma: PrismaClient, rChan: ChannelInfo, mailA
 
     // Scalar foreign keys throughout, since parentId cannot be given as a connect - the parent
     // does not exist until this very insert - and prisma will not mix scalar keys with nested writes.
-    const [defaultMethods, availableMethods, mailAlias] = await Promise.all([
-        prisma.notificationMethod.create({ data: rChan.defaultMethods }),
+    const [availableMethods, mailAlias] = await Promise.all([
         prisma.notificationMethod.create({ data: rChan.availableMethods }),
         prisma.mailAlias.findUniqueOrThrow({ where: { address: mailAliasAddress } }),
     ])
@@ -254,7 +200,6 @@ async function createRootChannel(prisma: PrismaClient, rChan: ChannelInfo, mailA
             name: rChan.name,
             description: rChan.description,
             special: 'ROOT',
-            defaultMethodsId: defaultMethods.id,
             availableMethodsId: availableMethods.id,
             mailAliasId: mailAlias.id,
         }

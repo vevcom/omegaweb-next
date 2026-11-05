@@ -18,8 +18,6 @@ model NotificationChannel {
   parent      NotificationChannel         @relation(name: "parent", fields: [parentId], references: [id])
   children    NotificationChannel[]       @relation(name: "parent")
 
-  defaultMethodsId   Int
-  defaultMethods     NotificationMethod @relation(name: "defaultMethods", fields: [defaultMethodsId], references: [id])
   availableMethodsId Int
   availableMethods   NotificationMethod @relation(name: "availableMethods", fields: [availableMethodsId], references: [id])
 
@@ -36,7 +34,6 @@ model NotificationMethod {
   emailWeekly Boolean @default(false)
   push        Boolean @default(false)
 
-  channelDefault   NotificationChannel[]      @relation(name: "defaultMethods")
   channelAvailable NotificationChannel[]      @relation(name: "availableMethods")
   subscriptions    NotificationSubscription[]
 }

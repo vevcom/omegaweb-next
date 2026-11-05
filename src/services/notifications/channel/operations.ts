@@ -3,11 +3,7 @@ import { notificationChannelAuth } from './auth'
 import { notificationChannelSchemas } from './schemas'
 import { availableNotificationMethodIncluder } from './constants'
 import { methodsAreEqual, validateMethods, validateNewParent } from './helpers'
-import {
-    allNotificationMethodsOff,
-    allNotificationMethodsOn,
-    notificationMethodsArray,
-} from '@/services/notifications/constants'
+import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
 import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
 import { defineOperation } from '@/services/serviceOperation'
 import { defaultNotificationAlias } from '@/lib/email/constants'
@@ -20,12 +16,8 @@ export const notificationChannelOperations = {
         dataSchema: notificationChannelSchemas.data.create,
         opensTransaction: true,
         paramsSchema: notificationChannelSchemas.params.create,
-        operation: async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
-            if (!validateMethods(params.availableMethods, params.defaultMethods)) {
-                throw new ServiceError('BAD PARAMETERS', 'Standardmetodene må være blant de tilgjengelige metodene.')
-            }
-
-            return await prisma.$transaction(async (tx) => {
+        operation: async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> =>
+            await prisma.$transaction(async (tx) => {
                 const channel = await tx.notificationChannel.create({
                     data: {
                         name: data.name,
@@ -38,9 +30,6 @@ export const notificationChannelOperations = {
                         availableMethods: {
                             create: params.availableMethods,
                         },
-                        defaultMethods: {
-                            create: params.defaultMethods,
-                        },
                         mailAlias: {
                             connect: {
                                 address: defaultNotificationAlias(),
@@ -50,12 +39,8 @@ export const notificationChannelOperations = {
                     include: availableNotificationMethodIncluder,
                 })
 
-                if (validateMethods(allNotificationMethodsOff, params.defaultMethods)) {
-                    return channel
-                }
-
                 // Whoever subscribes to the parent is subscribed to the new channel too, with the
-                // default methods they already have on for the parent.
+                // methods they have on for the parent, as far as the new channel offers them.
                 const parentSubscriptions = await tx.notificationSubscription.findMany({
                     where: {
                         channelId: data.parentId
@@ -70,7 +55,11 @@ export const notificationChannelOperations = {
                 await Promise.all(parentSubscriptions
                     .map(subscription => ({
                         ...subscription,
-                        subscriptionMethods: booleanOperationOnMethods(subscription.methods, channel.defaultMethods, 'AND')
+                        subscriptionMethods: booleanOperationOnMethods(
+                            subscription.methods,
+                            channel.availableMethods,
+                            'AND',
+                        ),
                     }))
                     .filter(subscription =>
                         !validateMethods(
@@ -98,8 +87,7 @@ export const notificationChannelOperations = {
                 )
 
                 return channel
-            })
-        }
+            }),
     }),
 
     readMany: defineOperation({
@@ -118,30 +106,12 @@ export const notificationChannelOperations = {
         }),
     }),
 
-    readDefault: defineOperation({
-        authorizer: () => notificationChannelAuth.readDefault,
-        operation: async ({ prisma }) => await prisma.notificationChannel.findMany({
-            where: {
-                defaultMethods: {
-                    OR: notificationMethodsArray.map(method => ({
-                        [method]: true
-                    }))
-                }
-            },
-            include: availableNotificationMethodIncluder,
-        })
-    }),
-
     update: defineOperation({
         authorizer: () => notificationChannelAuth.update,
         dataSchema: notificationChannelSchemas.data.update,
         paramsSchema: notificationChannelSchemas.params.update,
         opensTransaction: true,
         operation: async ({ prisma, data, params }) => {
-            if (!validateMethods(params.availableMethods, params.defaultMethods)) {
-                throw new ServiceError('BAD PARAMETERS', 'Standardmetodene må være blant de tilgjengelige metodene.')
-            }
-
             // Check if the channel is special
             const channel = await prisma.notificationChannel.findUniqueOrThrow({
                 where: {
@@ -150,7 +120,6 @@ export const notificationChannelOperations = {
                 select: {
                     special: true,
                     availableMethods: true,
-                    defaultMethods: true,
                 }
             })
 
@@ -176,15 +145,6 @@ export const notificationChannelOperations = {
                             id: channel.availableMethods.id,
                         },
                         data: params.availableMethods,
-                    })
-                }
-
-                if (!methodsAreEqual(params.defaultMethods, channel.defaultMethods)) {
-                    await tx.notificationMethod.update({
-                        where: {
-                            id: channel.defaultMethods.id,
-                        },
-                        data: params.defaultMethods,
                     })
                 }
 
@@ -224,7 +184,6 @@ export const notificationChannelOperations = {
                 select: {
                     special: true,
                     availableMethodsId: true,
-                    defaultMethodsId: true,
                     subscriptions: { select: { methodsId: true } },
                     _count: { select: { children: true } },
                 },
@@ -249,7 +208,6 @@ export const notificationChannelOperations = {
                     id: {
                         in: [
                             channel.availableMethodsId,
-                            channel.defaultMethodsId,
                             ...channel.subscriptions.map(subscription => subscription.methodsId),
                         ],
                     },

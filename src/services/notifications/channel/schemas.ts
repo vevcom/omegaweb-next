@@ -12,7 +12,6 @@ const dataFieldSchemas = z.object({
 const paramsFieldSchemas = z.object({
     id: z.number(),
     availableMethods: notificationMethodSchema,
-    defaultMethods: notificationMethodSchema,
     special: z.nativeEnum(SpecialNotificationChannel),
 })
 
@@ -33,12 +32,10 @@ export const notificationChannelSchemas = {
     params: {
         create: paramsFieldSchemas.pick({
             availableMethods: true,
-            defaultMethods: true,
         }),
         update: paramsFieldSchemas.pick({
             id: true,
             availableMethods: true,
-            defaultMethods: true,
         }),
         destroy: paramsFieldSchemas.pick({
             id: true,

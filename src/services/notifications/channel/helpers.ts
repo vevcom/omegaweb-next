@@ -1,17 +1,12 @@
 import { notificationMethodsArray } from '@/services/notifications/constants'
 import type { ExpandedNotificationChannel, NotificationMethodGeneral } from '@/services/notifications/types'
 
-/**
- * Validates the available notification methods against the default methods.
- * @param availableMethods - The available notification methods.
- * @param defaultMethods - The default notification methods.
- * @returns A boolean indicating whether the available methods are valid.
- */
+/** Whether every method on in `methods` is on in `availableMethods` too. */
 export function validateMethods(
     availableMethods: NotificationMethodGeneral,
-    defaultMethods: NotificationMethodGeneral
+    methods: NotificationMethodGeneral
 ): boolean {
-    return notificationMethodsArray.every(method => availableMethods[method] || !defaultMethods[method])
+    return notificationMethodsArray.every(method => availableMethods[method] || !methods[method])
 }
 
 export function methodsAreEqual(lhs: NotificationMethodGeneral, rhs: NotificationMethodGeneral): boolean {
