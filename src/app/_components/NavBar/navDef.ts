@@ -89,11 +89,10 @@ export const navDef: NavItem[] = [
         authorizers: () => [jobAdAuth.readActive],
     },
     {
-        name: 'Karriere',
-        href: careerLinks.frontpage(), //purposly notredirectToMainDomain - keeping current domain
-        icon: faSuitcase,
-        authorizers: () => [careersFrontpageAuth.readSpecialCmsParagraph],
-        audience: 'loggedIn',
+        name: 'Hvad der hender',
+        href: omegaEventLinks.list(),
+        icon: faCalendar,
+        authorizers: () => [eventAuth.readManyCurrent],
     },
     {
         name: 'Butikker',
@@ -109,10 +108,11 @@ export const navDef: NavItem[] = [
         audience: 'loggedOut',
     },
     {
-        name: 'Hvad der hender',
-        href: omegaEventLinks.list(),
-        icon: faCalendar,
-        authorizers: () => [eventAuth.readManyCurrent],
+        name: 'Karriere',
+        href: careerLinks.frontpage(), //purposly notredirectToMainDomain - keeping current domain
+        icon: faSuitcase,
+        authorizers: () => [careersFrontpageAuth.readSpecialCmsParagraph],
+        audience: 'loggedIn',
     },
     {
         name: 'OmBul',
