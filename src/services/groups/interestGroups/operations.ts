@@ -16,6 +16,7 @@ import { implementUpdateArticleSectionOperations } from '@/cms/articleSections/i
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { articleSectionOperations } from '@/cms/articleSections/operations'
 import { implementSearchOperation } from '@/services/search/implement'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 const commonGroupOperations = implementGroupType({
@@ -113,7 +114,7 @@ export const interestGroupOperations = {
         }),
         toSearchResult: interestGroup => ({
             key: `interest-group-${interestGroup.id}`,
-            href: `/interest-groups/${interestGroup.id}`,
+            href: omegaLinks.interestGroup(interestGroup),
             label: interestGroup.name,
             sublabel: interestGroup.group.pensioned ? 'Pensjonert' : undefined,
             image: null,

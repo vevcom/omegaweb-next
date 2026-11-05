@@ -11,7 +11,7 @@ import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { implementSearchOperation } from '@/services/search/implement'
-import { QueryParams } from '@/lib/queryParams/queryParams'
+import { careerLinks } from '@/app/(careers)/links'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { SponsorCompany } from './types'
 
@@ -70,7 +70,7 @@ export const companyOperations = {
         // A company has no page of its own, so the result opens the company list filtered to it.
         toSearchResult: company => ({
             key: `company-${company.id}`,
-            href: `/career/companies?${QueryParams.companyName.encodeUrl(company.name)}`,
+            href: careerLinks.companies(company.name),
             label: company.name,
             image: company.logo.image,
         }),

@@ -3,6 +3,8 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { Smorekopp } from '@/services/error'
 import { searchOperations } from '@/services/search/operations'
 import { eventOperations } from '@/services/events/operations'
+import { eventQuotaOperations } from '@/services/events/quotas/operations'
+import { eventVariantOperations } from '@/services/events/variants/operations'
 import { newsOperations } from '@/services/news/operations'
 import { companyOperations } from '@/services/careers/companies/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
@@ -189,8 +191,25 @@ describe('search respects a provider\'s own visibility filter', () => {
                 takesRegistration: false,
                 waitingList: false,
                 tagIds: [],
-                visibilityRegularRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
-                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
+                visibilityAdminRequirements: [{ conditions: [] }],
+            },
+            bypassAuth: true,
+        })
+        const variant = await eventVariantOperations.create({
+            params: { eventId: event.id },
+            data: {
+                name: 'Påmelding',
+                registrationStart: new Date(Date.now() - HOUR),
+                registrationEnd: new Date(Date.now() + 24 * HOUR),
+            },
+            bypassAuth: true,
+        })
+        await eventQuotaOperations.create({
+            params: { variantId: variant.id },
+            data: {
+                name: 'Medlemmer',
+                places: 10,
+                visibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
             },
             bypassAuth: true,
         })

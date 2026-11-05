@@ -22,6 +22,7 @@ import { applyReordering } from '@/lib/reordering'
 import { GroupType } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { implementSearchOperation } from '@/services/search/implement'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -66,7 +67,7 @@ const search = implementSearchOperation({
     },
     toSearchResult: committee => ({
         key: `committee-${committee.id}`,
-        href: `/committees/${committee.shortName}`,
+        href: omegaLinks.committee(committee),
         label: committee.name,
         sublabel: committee.group.pensioned ? 'Pensjonert' : undefined,
         image: committee.logoImage,

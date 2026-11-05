@@ -11,6 +11,7 @@ import { userOperations } from '@/services/users/operations'
 import { searchCategories, searchCategoryNames } from '@/services/search/constants'
 import { withFallback, withPageSession } from '@/app/ServerPage'
 import { Theme, themes } from '@/lib/theme'
+import { appHref } from '@/lib/sites/href'
 import type { ReactNode } from 'react'
 
 type PropTypes = {
@@ -38,7 +39,7 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
     const navItems = visibleNavItems(serverSession)
     const adminNavItems = visibleAdminNav(serverSession).flatMap(group => group.links.map(link => ({
         name: link.title,
-        href: `/admin/${link.path}`,
+        href: appHref(`/admin/${link.path}`),
         icon: group.header.icon,
         group: group.header.title,
     })))
