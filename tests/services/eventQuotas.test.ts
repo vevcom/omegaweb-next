@@ -1,13 +1,11 @@
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
+import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { eventOperations } from '@/services/events/operations'
 import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { eventVariantOperations } from '@/services/events/variants/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
-import {
-    waitingListPromotionNotificationChannel
-} from '@/services/events/registration/waitingListPromotionNotificationChannel'
 import { userOperations } from '@/services/users/operations'
 import { beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import type { MembershipFiltered } from '@/services/groups/types'
@@ -28,7 +26,7 @@ let groupTwo: number
 let organisers: number
 let userCounter = 0
 
-const notifySpy = jest.spyOn(waitingListPromotionNotificationChannel.internalOperations.createNotification, 'internalCall')
+const notifySpy = jest.spyOn(eventNotificationOperations.internal.createInfoNotification, 'internalCall')
 
 async function createManualGroup(shortName: string) {
     const group = await prisma.group.create({
@@ -144,7 +142,10 @@ const readOfUser = (testUser: TestUser, eventId: number, variantId?: number) => 
     bypassAuth: true,
 })
 
-const promotedUserIds = () => notifySpy.mock.calls.flatMap(([call]) => call.data.audience?.userIds ?? [])
+// The audience may be given as JSON from a form, which the promotions never do.
+const promotedUserIds = () => notifySpy.mock.calls.flatMap(([call]) => (
+    typeof call.data.audience === 'object' ? call.data.audience.userIds ?? [] : []
+))
 
 beforeAll(async () => {
     currentOrder = (await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })).order

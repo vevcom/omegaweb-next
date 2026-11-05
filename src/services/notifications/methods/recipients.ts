@@ -24,6 +24,9 @@ export const notificationDispatchIncluder = {
     canRegisterForEvent: {
         select: whoCanRegisterSelection,
     },
+    registeredForEvent: {
+        select: { id: true },
+    },
 } as const satisfies Prisma.NotificationInclude
 
 export type DispatchableNotification = Prisma.NotificationGetPayload<{
@@ -40,7 +43,9 @@ export type DispatchableNotification = Prisma.NotificationGetPayload<{
  * 4. hold the notification's permission, when it has one: as a default permission or through an
  *    active membership of a group holding it, as readPermissionsOfUser resolves permissions, and
  * 5. be able to register for the event the notification is for, when it is for one, as the event's
- *    quotas are now, see whoCanRegisterWhere.
+ *    quotas are now, see whoCanRegisterWhere, and
+ * 6. be registered for the event the notification is for, when it is for one, on a place or
+ *    waiting for one, as the registrations are now.
  * Archived users receive nothing.
  */
 export function recipientsWhere(
@@ -67,6 +72,7 @@ export function recipientsWhere(
         AND: [
             ...(notification.visibility ? [passesVisibilityWhere(notification.visibility)] : []),
             ...(notification.canRegisterForEvent ? [whoCanRegisterWhere(notification.canRegisterForEvent)] : []),
+            ...(notification.registeredForEvent ? [registeredForEventWhere(notification.registeredForEvent.id)] : []),
             ...(permission && !defaultPermissions.includes(permission) ? [{
                 memberships: {
                     some: {
@@ -76,5 +82,16 @@ export function recipientsWhere(
                 },
             }] : []),
         ],
+    }
+}
+
+/** The users registered for the event, on a place or waiting for one. */
+function registeredForEventWhere(eventId: number): Prisma.UserWhereInput {
+    return {
+        EventRegistration: {
+            some: {
+                OR: [{ quota: { variant: { eventId } } }, { waitingListVariant: { eventId } }],
+            },
+        },
     }
 }

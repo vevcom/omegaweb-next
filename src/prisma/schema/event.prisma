@@ -39,11 +39,21 @@ model Event {
 
   published Boolean @default(false)
 
-  // The notifications sent to those who may register, resolved against the quotas when they are sent.
+  // The notifications sent to those who may register, or are registered, resolved when they are sent.
   notificationsToWhoCanRegister Notification[]
+  notificationsToRegistered     Notification[] @relation(name: "NotificationRegisteredForEvent")
 
   visibilityAdmin   Visibility @relation(name: "EventAdminVisibility", fields: [visibilityAdminId], references: [id], onDelete: Restrict)
   visibilityAdminId Int        @unique
+
+  // The event's own channel sits under the EVENT channel. The info channel under it is for what the
+  // registered need to know, which they are subscribed to as they register; the general one is for the rest.
+  notificationChannel          NotificationChannel @relation(name: "EventNotificationChannel", fields: [notificationChannelId], references: [id], onDelete: Restrict)
+  notificationChannelId        Int                 @unique
+  infoNotificationChannel      NotificationChannel @relation(name: "EventInfoNotificationChannel", fields: [infoNotificationChannelId], references: [id], onDelete: Restrict)
+  infoNotificationChannelId    Int                 @unique
+  generalNotificationChannel   NotificationChannel @relation(name: "EventGeneralNotificationChannel", fields: [generalNotificationChannelId], references: [id], onDelete: Restrict)
+  generalNotificationChannelId Int                 @unique
 
   // Legacy from OW basic database
   company     Boolean @default(false) // If a plus one is allowed

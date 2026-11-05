@@ -10,7 +10,7 @@ import {
 } from './constants'
 import { createVariant } from './variants/createVariant'
 import { createQuota } from './quotas/createQuota'
-import { newEventNotificationChannel } from './newEventNotificationChannel'
+import { eventNotificationOperations } from './notifications/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { eventLinks } from '@/pageKits/events/links'
 import { getLocationMapData } from '@/lib/maps/locationMap'
@@ -18,9 +18,11 @@ import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
+import { reserveId } from '@/lib/reserveId'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
+import { availableNotificationMethodIncluder } from '@/services/notifications/channels/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementSearchOperation } from '@/services/search/implement'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
@@ -75,6 +77,8 @@ const read = defineOperation({
                 },
                 hostedByCommittee: { select: { id: true, name: true, shortName: true } },
                 ledgerAccount: { select: { id: true, name: true } },
+                infoNotificationChannel: { include: availableNotificationMethodIncluder },
+                generalNotificationChannel: { include: availableNotificationMethodIncluder },
                 variants: {
                     select: {
                         ...eventVariantSummarySelection,
@@ -134,44 +138,32 @@ export const eventOperations = {
                     data: { requirements: data.visibilityAdminRequirements },
                     prisma: tx,
                 })
+                const id = await reserveId(tx, 'Event')
+                const channels = await eventNotificationOperations.internal.createChannels.internalCall({
+                    prisma: tx,
+                    params: { eventId: id },
+                    data: { name: data.name },
+                })
 
+                // Scalar foreign keys, since prisma will not take an explicit id along with nested connects.
                 const createdEvent = await tx.event.create({
                     data: {
+                        id,
                         name: data.name,
                         location: data.location,
                         locationMap: data.locationMap ? { create: getLocationMapData(data.locationMap) } : undefined,
                         eventStart: data.eventStart,
                         eventEnd: data.eventEnd,
                         canBeViewedBy: data.canBeViewedBy,
-                        hostedByCommittee: data.hostedByCommitteeId ? {
-                            connect: {
-                                id: data.hostedByCommitteeId
-                            }
-                        } : undefined,
+                        hostedByCommitteeId: data.hostedByCommitteeId ?? undefined,
                         waitingList: data.waitingList,
                         bindingRegistration: data.bindingRegistration,
                         allowRegistrationInMultipleVariants: data.allowRegistrationInMultipleVariants,
-
-                        createdBy: session?.user ? {
-                            connect: {
-                                id: session.user.id
-                            }
-                        } : undefined,
-                        paragraph: {
-                            connect: {
-                                id: cmsParagraph.id
-                            }
-                        },
-                        coverImage: {
-                            connect: {
-                                id: cmsImage.id
-                            }
-                        },
-                        visibilityAdmin: {
-                            connect: {
-                                id: visibilityAdmin.id
-                            }
-                        }
+                        createdById: session?.user?.id,
+                        cmsParagraphId: cmsParagraph.id,
+                        coverImageId: cmsImage.id,
+                        visibilityAdminId: visibilityAdmin.id,
+                        ...channels,
                     }
                 })
                 await tx.eventTagEvent.createMany({
@@ -292,11 +284,12 @@ export const eventOperations = {
         }),
     }),
 
+    /** Updates an event. The registered are told of the change in its info channel when asked to. */
     update: defineOperation({
         paramsSchema: eventSchemas.params.update,
         dataSchema: eventSchemas.data.update,
         authorizer: async ({ params, prisma }) => eventAuth.update.data(await readEventAccess(prisma, params.id)),
-        operation: async ({ prisma, params, data: { tagIds, locationMap, ...data } }) => {
+        operation: async ({ prisma, params, data: { tagIds, locationMap, notifyAboutChange, ...data } }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
                 include: { locationMap: true },
@@ -314,8 +307,8 @@ export const eventOperations = {
                 mapUpdate = { delete: true }
             }
 
-            return await prisma.$transaction(async tx => {
-                const updatedEvent = await tx.event.update({
+            const updatedEvent = await prisma.$transaction(async tx => {
+                const updated = await tx.event.update({
                     where: { id: params.id },
                     data: {
                         ...data,
@@ -343,8 +336,23 @@ export const eventOperations = {
                         skipDuplicates: true
                     })
                 }
-                return updatedEvent
+                return updated
             })
+
+            if (notifyAboutChange) {
+                await eventNotificationOperations.internal.createInfoNotification.internalCall({
+                    params: { channelId: updatedEvent.infoNotificationChannelId },
+                    data: {
+                        title: `Endring i ${updatedEvent.name}`,
+                        message: `${updatedEvent.name} er endret. `
+                            + `🕓 ${displayDate(updatedEvent.eventStart)}, 📍 ${updatedEvent.location}. `
+                            + 'Se arrangementets side for detaljene.',
+                        url: omegaEventLinks.event(updatedEvent),
+                        audience: { registeredForEventId: updatedEvent.id },
+                    },
+                })
+            }
+            return updatedEvent
         }
     }),
 
@@ -389,8 +397,8 @@ export const eventOperations = {
 
     /**
      * Publishes an event, or takes it back to being a draft. Publishing a draft tells the
-     * subscribers to new events about it, those of them who may register through one of its quotas
-     * as the quotas are when the notification is sent.
+     * subscribers to the event's own channel about it, those of them who may register through one
+     * of its quotas as the quotas are when the notification is sent.
      */
     setPublished: defineOperation({
         paramsSchema: eventSchemas.params.setPublished,
@@ -405,7 +413,8 @@ export const eventOperations = {
             const event = await prisma.event.findUniqueOrThrow({ where: { id: params.id } })
 
             if (data.published && flipped) {
-                await newEventNotificationChannel.internalOperations.createNotification.internalCall({
+                await eventNotificationOperations.internal.createOwnNotification.internalCall({
+                    params: { channelId: event.notificationChannelId },
                     data: {
                         title: `Hvad der hender: ${event.name}`,
                         message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
@@ -428,6 +437,9 @@ export const eventOperations = {
                 where: { id: params.id },
                 select: {
                     visibilityAdminId: true,
+                    notificationChannelId: true,
+                    infoNotificationChannelId: true,
+                    generalNotificationChannelId: true,
                     variants: { select: { quotas: { select: { visibilityId: true } } } },
                 },
             })
@@ -468,6 +480,7 @@ export const eventOperations = {
                         id: params.id
                     }
                 })
+                await eventNotificationOperations.internal.destroyChannels.internalCall({ prisma: tx, params: event })
                 const visibilityIds = [
                     event.visibilityAdminId,
                     ...event.variants.flatMap(variant => variant.quotas.map(quota => quota.visibilityId)),

@@ -2,9 +2,14 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { manualNotificationChannelOperations } from '@/services/notifications/channels/manual/operations'
 import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
 import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
+import { eventNotificationChannel } from '@/services/events/eventNotificationChannel'
+import { eventNotificationOperations } from '@/services/events/notifications/operations'
+import { eventOperations } from '@/services/events/operations'
+import { eventRegistrationOperations } from '@/services/events/registration/operations'
+import { userOperations } from '@/services/users/operations'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 import { Smorekopp } from '@/services/error'
-import { afterEach, describe, expect, test } from '@jest/globals'
+import { afterAll, afterEach, beforeAll, describe, expect, jest, test } from '@jest/globals'
 
 const createdChannelIds: number[] = []
 
@@ -98,5 +103,148 @@ describe('the special and the manual notification channels', () => {
             parentId: before.parentId,
             availableMethods: before.availableMethods,
         })
+    })
+})
+
+describe('the channels an event owns', () => {
+    const HOUR = 60 * 60 * 1000
+    let eventId: number
+    let userId: number
+    const infoSpy = jest.spyOn(eventNotificationOperations.internal.createInfoNotification, 'internalCall')
+
+    const readChannelsOfEvent = async (id: number) => {
+        const event = await prisma.event.findUniqueOrThrow({
+            where: { id },
+            select: {
+                notificationChannel: { include: { availableMethods: true } },
+                infoNotificationChannel: { include: { availableMethods: true } },
+                generalNotificationChannel: { include: { availableMethods: true } },
+            },
+        })
+        return [event.notificationChannel, event.infoNotificationChannel, event.generalNotificationChannel]
+    }
+
+    beforeAll(async () => {
+        const event = await eventOperations.create({
+            data: {
+                name: 'Event with channels',
+                location: 'Here',
+                eventStart: new Date(Date.now() + HOUR),
+                eventEnd: new Date(Date.now() + 2 * HOUR),
+                canBeViewedBy: 'ALL',
+                takesRegistration: true,
+                places: 5,
+                takesPayment: true,
+                price: 100,
+                paymentStart: new Date(),
+                paymentEnd: new Date(Date.now() + HOUR),
+                waitingList: false,
+                tagIds: [],
+                visibilityAdminRequirements: [{ conditions: [] }],
+            },
+            bypassAuth: true,
+        })
+        eventId = event.id
+        const user = await userOperations.create({
+            data: {
+                email: 'channel-registrant@omega.ntnu.no',
+                firstname: 'Kanal',
+                lastname: 'Testesen',
+                username: 'channelregistrant',
+                emailVerified: new Date().toISOString(),
+            },
+            bypassAuth: true,
+        })
+        userId = user.id
+    })
+
+    afterAll(async () => {
+        await prisma.user.delete({ where: { id: userId } })
+    })
+
+    afterEach(() => {
+        infoSpy.mockClear()
+    })
+
+    test('an event is made with its three channels under the EVENT channel', async () => {
+        const [own, info, general] = await readChannelsOfEvent(eventId)
+        const parent = await eventNotificationChannel.readChannel({ bypassAuth: true })
+
+        expect(own).toMatchObject({ purpose: 'EVENT', parentId: parent.id })
+        expect(info).toMatchObject({ purpose: 'EVENT_INFO', parentId: own.id })
+        expect(general).toMatchObject({ purpose: 'EVENT_GENERAL', parentId: own.id })
+        expect(info.availableMethods.emailWeekly).toBe(false)
+        expect(general.availableMethods).toMatchObject(parent.availableMethods)
+    })
+
+    test('registering subscribes to the info channel with every method it offers', async () => {
+        await eventRegistrationOperations.createAsAdmin({ params: { userId, eventId }, bypassAuth: true })
+        const [, info] = await readChannelsOfEvent(eventId)
+        const subscription = await prisma.notificationSubscription.findUniqueOrThrow({
+            where: { userId_channelId: { userId, channelId: info.id } },
+            include: { methods: true },
+        })
+        expect(subscription.methods).toMatchObject({ email: true, emailWeekly: false, push: true })
+    })
+
+    test('the manual system reaches none of them', async () => {
+        const [, info] = await readChannelsOfEvent(eventId)
+        const disallowed = new Smorekopp('DISSALLOWED')
+
+        await expect(manualNotificationChannelOperations.destroy({
+            params: { id: info.id },
+            bypassAuth: true,
+        })).rejects.toThrow(disallowed)
+        await expect(manualNotificationChannelOperations.createNotification({
+            params: { channelId: info.id },
+            data: { title: 'Not sent', message: 'This should never be created.' },
+            bypassAuth: true,
+        })).rejects.toThrow(disallowed)
+    })
+
+    test('the organisers send in the general channel, and in no other channel of the event', async () => {
+        const [, info, general] = await readChannelsOfEvent(eventId)
+        const data = { title: 'To the registered', message: 'A message.', audience: { registeredForEventId: eventId } }
+
+        await expect(eventNotificationOperations.createNotification({
+            implementationParams: { eventId },
+            params: { channelId: general.id },
+            data,
+            bypassAuth: true,
+        })).resolves.toEqual({ notification: null })
+        await expect(eventNotificationOperations.createNotification({
+            implementationParams: { eventId },
+            params: { channelId: info.id },
+            data,
+            bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('DISSALLOWED'))
+    })
+
+    test('a payment reminder goes to those holding an unpaid place, in the info channel', async () => {
+        await eventNotificationOperations.createPaymentReminder({ params: { eventId }, bypassAuth: true })
+        const [, info] = await readChannelsOfEvent(eventId)
+        expect(infoSpy).toHaveBeenCalledTimes(1)
+        expect(infoSpy).toHaveBeenCalledWith(expect.objectContaining({
+            params: { channelId: info.id },
+            data: expect.objectContaining({ audience: { userIds: [userId] } }),
+        }))
+
+        const registration = await prisma.eventRegistration.findFirstOrThrow({ where: { userId } })
+        await eventRegistrationOperations.setManuallyPaid({
+            params: { registrationId: registration.id },
+            data: { manuallyPaid: true },
+            bypassAuth: true,
+        })
+        await expect(eventNotificationOperations.createPaymentReminder({
+            params: { eventId },
+            bypassAuth: true,
+        })).resolves.toEqual({ notification: null })
+        expect(infoSpy).toHaveBeenCalledTimes(1)
+    })
+
+    test('deleting the event takes its channels with it', async () => {
+        const channelIds = (await readChannelsOfEvent(eventId)).map(channel => channel.id)
+        await eventOperations.destroy({ params: { id: eventId }, bypassAuth: true })
+        expect(await prisma.notificationChannel.count({ where: { id: { in: channelIds } } })).toBe(0)
     })
 })

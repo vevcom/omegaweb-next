@@ -1,18 +1,20 @@
 // What a channel exists for, which is to say which system owns it: the special channels are the
-// code's, the manual ones are made on the admin pages.
+// code's, the manual ones are made on the admin pages, and an event owns three (see event.prisma).
 enum NotificationChannelPurpose {
   SPECIAL
   MANUAL
+  EVENT
+  EVENT_INFO
+  EVENT_GENERAL
 }
 
 enum SpecialNotificationChannel {
   ROOT
-  NEW_EVENT
+  EVENT
   NEW_OMBUL
   NEW_NEWS_ARTICLE
   NEW_JOBAD
   NEW_OMEGAQUOTE
-  EVENT_WAITINGLIST_PROMOTION
   CONTACTOR
 }
 
@@ -34,6 +36,10 @@ model NotificationChannel {
 
   subscriptions NotificationSubscription[]
   notifications Notification[]
+
+  event        Event? @relation(name: "EventNotificationChannel")
+  eventInfo    Event? @relation(name: "EventInfoNotificationChannel")
+  eventGeneral Event? @relation(name: "EventGeneralNotificationChannel")
 }
 
 model NotificationMethod {
@@ -90,8 +96,9 @@ model Notification {
   // 1. be subscribed to the channel with the method in question,
   // 2. be in the list of targeted users (an empty list means no restriction),
   // 3. pass the visibility (null means no restriction),
-  // 4. hold the permission (null means no restriction), and
-  // 5. be able to register for the event (null means no restriction).
+  // 4. hold the permission (null means no restriction),
+  // 5. be able to register for the event (null means no restriction), and
+  // 6. be registered for the event (null means no restriction), on a place or waiting for one.
   channelId     Int
   channel       NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
   usersTargeted User[]              @relation(name: "NotificationTargets")
@@ -105,6 +112,8 @@ model Notification {
   // takes the notification with it.
   canRegisterForEventId Int?
   canRegisterForEvent   Event? @relation(fields: [canRegisterForEventId], references: [id], onDelete: Cascade)
+  registeredForEventId  Int?
+  registeredForEvent    Event? @relation(name: "NotificationRegisteredForEvent", fields: [registeredForEventId], references: [id], onDelete: Cascade)
 
   // Dispatch state, written by the notification worker. Null = not yet handled by that method.
   // The claim column lets a dispatch that died mid-send go stale and be retried (see the worker).

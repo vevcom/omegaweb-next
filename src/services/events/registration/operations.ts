@@ -29,6 +29,7 @@ import { dotOperations } from '@/services/dots/operations'
 import { displayDate } from '@/lib/dates/displayDate'
 import { Smorekopp } from '@/services/error'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
+import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { readEventAccess } from '@/services/events/access'
 import { eventQuotaOrder, eventVariantOrder } from '@/services/events/constants'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
@@ -96,11 +97,15 @@ const createRegistration = defineSubOperation({
                 const variant = await resolveVariant(tx, params.eventId, params.variantId)
                 await assertMayJoin(tx, variant, params.userId)
                 const pickedQuotaId = 'quotaId' in params && typeof params.quotaId === 'number' ? params.quotaId : null
-                if (asAdmin) {
-                    return await placeAsAdmin(tx, variant, { userId: params.userId }, pickedQuotaId)
-                }
-                assertOpenForUser(variant, session.memberships, await delayOf(tx, params.userId))
-                return await joinVariant(tx, variant, { userId: params.userId })
+                if (!asAdmin) assertOpenForUser(variant, session.memberships, await delayOf(tx, params.userId))
+                const placed = asAdmin
+                    ? await placeAsAdmin(tx, variant, { userId: params.userId }, pickedQuotaId)
+                    : await joinVariant(tx, variant, { userId: params.userId })
+                await eventNotificationOperations.internal.subscribeToInfoChannel.internalCall({
+                    prisma: tx,
+                    params: { eventId: params.eventId, userId: params.userId },
+                })
+                return placed
             })
 
             await notifyPromoted(prisma, params.eventId, promoted.filter(other => other.id !== registration.id))

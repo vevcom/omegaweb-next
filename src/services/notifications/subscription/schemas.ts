@@ -10,6 +10,7 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     userId: z.number(),
+    channelId: z.number(),
 })
 
 const subscriptionUser = paramsFieldSchemas.pick({
@@ -25,5 +26,9 @@ export const notificationSubscriptionSchemas = {
     params: {
         read: subscriptionUser,
         update: subscriptionUser,
+        subscribeByDefault: paramsFieldSchemas.pick({
+            userId: true,
+            channelId: true,
+        }),
     },
 }

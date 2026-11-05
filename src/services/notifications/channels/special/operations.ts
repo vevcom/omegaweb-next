@@ -2,10 +2,7 @@ import '@pn-server-only'
 import { specialNotificationChannelAuth } from './auth'
 import { notificationChannelOperations } from '@/services/notifications/channels/subservice/operations'
 import { rootNotificationChannel } from '@/services/notifications/channels/rootNotificationChannel'
-import { newEventNotificationChannel } from '@/services/events/newEventNotificationChannel'
-import {
-    waitingListPromotionNotificationChannel
-} from '@/services/events/registration/waitingListPromotionNotificationChannel'
+import { eventNotificationChannel } from '@/services/events/eventNotificationChannel'
 import { newOmbulNotificationChannel } from '@/services/ombul/newOmbulNotificationChannel'
 import { newNewsArticleNotificationChannel } from '@/services/news/newNewsArticleNotificationChannel'
 import { newJobAdNotificationChannel } from '@/services/careers/jobAds/newJobAdNotificationChannel'
@@ -27,12 +24,11 @@ export const specialNotificationChannelOperations = {
 
     channels: {
         ROOT: rootNotificationChannel,
-        NEW_EVENT: newEventNotificationChannel,
+        EVENT: eventNotificationChannel,
         NEW_OMBUL: newOmbulNotificationChannel,
         NEW_NEWS_ARTICLE: newNewsArticleNotificationChannel,
         NEW_JOBAD: newJobAdNotificationChannel,
         NEW_OMEGAQUOTE: newOmegaquoteNotificationChannel,
-        EVENT_WAITINGLIST_PROMOTION: waitingListPromotionNotificationChannel,
         CONTACTOR: contactorNotificationChannel,
     } satisfies Record<SpecialNotificationChannel, SpecialNotificationChannelImplementation>,
 } as const

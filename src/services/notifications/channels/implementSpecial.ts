@@ -5,6 +5,7 @@ import { availableNotificationMethodIncluder } from './subservice/constants'
 import { specialNotificationChannelAuth } from './special/auth'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { DomainContext } from '@/lib/sites/context'
+import { reserveId } from '@/lib/reserveId'
 import { Site } from '@/lib/sites/site'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
@@ -135,16 +136,8 @@ async function createRootChannel(
     prisma: PrismaPossibleTransaction<false>,
     config: SpecialNotificationChannelConfig,
 ): Promise<ExpandedNotificationChannel> {
-    // The root is its own parent, so its id has to be known before it is inserted. Taking it from
-    // the sequence (rather than guessing max(id) + 1) reserves it, so a later autoincremented
-    // insert can never be handed the same id.
-    // The table is qualified with the same schema the prisma adapter is given (see client.ts): the
-    // adapter qualifies its own queries but leaves search_path alone, so an unqualified name in raw
-    // SQL resolves against public - which is not where the tables are in e.g. the test schemas.
-    const schema = (process.env.DB_SCHEMA ?? 'public').replace(/"/g, '""')
-    const [{ id }] = await prisma.$queryRaw<{ id: bigint }[]>`
-        SELECT nextval(pg_get_serial_sequence(${`"${schema}"."NotificationChannel"`}, 'id')) AS id
-    `
+    // The root is its own parent, so its id has to be known before it is inserted.
+    const id = await reserveId(prisma, 'NotificationChannel')
 
     // Scalar foreign keys throughout, since parentId cannot be given as a connect - the parent
     // does not exist until this very insert - and prisma will not mix scalar keys with nested writes.
@@ -155,8 +148,8 @@ async function createRootChannel(
 
     return prisma.notificationChannel.create({
         data: {
-            id: Number(id),
-            parentId: Number(id),
+            id,
+            parentId: id,
             name: config.name,
             description: config.description,
             purpose: 'SPECIAL',

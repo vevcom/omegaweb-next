@@ -3,12 +3,13 @@ import { implementSpecialNotificationChannel } from '@/services/notifications/ch
 import { rootNotificationChannel } from '@/services/notifications/channels/rootNotificationChannel'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 
-export const newEventNotificationChannel = implementSpecialNotificationChannel({
-    special: 'NEW_EVENT',
+/** The channel every event's own channels sit under. Nothing is sent in it directly. */
+export const eventNotificationChannel = implementSpecialNotificationChannel({
+    special: 'EVENT',
     parent: rootNotificationChannel,
     config: {
-        name: 'Nytt arrangement',
-        description: 'Varslinger om nye arrangementer',
+        name: 'Arrangementer',
+        description: 'Nye arrangementer, og det som skjer med dem du er meldt på',
         availableMethods: allNotificationMethodsOn,
     },
 })

@@ -5,7 +5,7 @@ import { notificationSubscriptionSchemas } from './schemas'
 import { validateMethods } from '@/services/notifications/channels/subservice/helpers'
 import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
 import { availableNotificationMethodIncluder } from '@/services/notifications/channels/subservice/constants'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { Subscription } from './types'
@@ -40,6 +40,36 @@ export const notificationSubscriptionOperations = {
             }
         ),
     }),
+
+    internal: {
+        /**
+         * Subscribes a user to a channel with every method it offers, for a system that signs its
+         * users up as a default, such as an event its registrants. A subscription they have already
+         * is left as it is.
+         */
+        subscribeByDefault: defineSubOperation({
+            paramsSchema: () => notificationSubscriptionSchemas.params.subscribeByDefault,
+            operation: () => async ({ prisma, params }): Promise<void> => {
+                const existing = await prisma.notificationSubscription.findUnique({
+                    where: { userId_channelId: params },
+                    select: { id: true },
+                })
+                if (existing) return
+
+                const channel = await prisma.notificationChannel.findUniqueOrThrow({
+                    where: { id: params.channelId },
+                    include: availableNotificationMethodIncluder,
+                })
+                await prisma.notificationSubscription.create({
+                    data: {
+                        user: { connect: { id: params.userId } },
+                        channel: { connect: { id: params.channelId } },
+                        methods: { create: channel.availableMethods },
+                    },
+                })
+            },
+        }),
+    },
 } as const
 
 /**

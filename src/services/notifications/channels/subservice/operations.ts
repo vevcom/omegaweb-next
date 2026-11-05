@@ -13,87 +13,71 @@ import type { ExpandedNotificationChannel, NotificationResult } from '@/services
 /**
  * The notification channels and the notifications sent in them. A channel is owned by the system
  * that implements these, which its purpose names: the special channels by the code, through their
- * config, the manual ones by the admin pages.
+ * config, the manual ones by the admin pages, and an event's by that event.
  */
 export const notificationChannelOperations = {
+    /**
+     * Creates a channel under its parent. Whoever subscribes to the parent is subscribed to the new
+     * channel too, with the methods they have on for the parent, as far as the new channel offers
+     * them. One nested write, so it runs atomically whether or not the caller is in a transaction.
+     */
     create: defineSubOperation({
         dataSchema: () => notificationChannelSchemas.data.create,
         paramsSchema: () => notificationChannelSchemas.params.create,
-        opensTransaction: true,
         operation: ({ purpose }: { purpose: NotificationChannelPurpose }) =>
-            async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> =>
-                await prisma.$transaction(async (tx) => {
-                    const channel = await tx.notificationChannel.create({
-                        data: {
-                            purpose,
-                            name: data.name,
-                            description: data.description,
-                            parent: {
-                                connect: {
-                                    id: data.parentId,
-                                }
-                            },
-                            availableMethods: {
-                                create: params.availableMethods,
-                            },
-                            mailAlias: {
-                                connect: {
-                                    address: defaultNotificationAlias(),
-                                }
-                            }
-                        },
-                        include: availableNotificationMethodIncluder,
-                    })
-
-                    // Whoever subscribes to the parent is subscribed to the new channel too, with the
-                    // methods they have on for the parent, as far as the new channel offers them.
-                    const parentSubscriptions = await tx.notificationSubscription.findMany({
-                        where: {
-                            channelId: data.parentId
-                        },
-                        include: {
-                            methods: {
-                                select: allNotificationMethodsOn,
-                            }
+            async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
+                const parentSubscriptions = await prisma.notificationSubscription.findMany({
+                    where: {
+                        channelId: data.parentId
+                    },
+                    include: {
+                        methods: {
+                            select: allNotificationMethodsOn,
                         }
-                    })
+                    }
+                })
 
-                    await Promise.all(parentSubscriptions
-                        .map(subscription => ({
-                            ...subscription,
-                            subscriptionMethods: booleanOperationOnMethods(
-                                subscription.methods,
-                                channel.availableMethods,
-                                'AND',
-                            ),
-                        }))
-                        .filter(subscription =>
-                            !validateMethods(
-                                allNotificationMethodsOff,
-                                subscription.subscriptionMethods
-                            )
-                        )
-                        .map(subscription => tx.notificationSubscription.create({
-                            data: {
+                const subscriptions = parentSubscriptions
+                    .map(subscription => ({
+                        userId: subscription.userId,
+                        methods: booleanOperationOnMethods(subscription.methods, params.availableMethods, 'AND'),
+                    }))
+                    .filter(subscription => !validateMethods(allNotificationMethodsOff, subscription.methods))
+
+                return await prisma.notificationChannel.create({
+                    data: {
+                        purpose,
+                        name: data.name,
+                        description: data.description,
+                        parent: {
+                            connect: {
+                                id: data.parentId,
+                            }
+                        },
+                        availableMethods: {
+                            create: params.availableMethods,
+                        },
+                        mailAlias: {
+                            connect: {
+                                address: defaultNotificationAlias(),
+                            }
+                        },
+                        subscriptions: {
+                            create: subscriptions.map(subscription => ({
                                 user: {
                                     connect: {
                                         id: subscription.userId,
                                     },
                                 },
-                                channel: {
-                                    connect: {
-                                        id: channel.id,
-                                    },
-                                },
                                 methods: {
-                                    create: subscription.subscriptionMethods
-                                }
-                            }
-                        }))
-                    )
-
-                    return channel
-                }),
+                                    create: subscription.methods,
+                                },
+                            })),
+                        },
+                    },
+                    include: availableNotificationMethodIncluder,
+                })
+            },
     }),
 
     /** The channels the implementing system owns, as its `where` picks them out. */
@@ -158,13 +142,13 @@ export const notificationChannelOperations = {
 
     /**
      * Deletes a channel with its subscriptions and the notifications sent in it. A channel's children
-     * must be moved or deleted first.
+     * must be moved or deleted first. The method rows the channel and its subscriptions point to do
+     * not cascade, so they go after it: run it in a transaction where that must hold.
      */
     destroy: defineSubOperation({
         paramsSchema: () => notificationChannelSchemas.params.destroy,
-        opensTransaction: true,
-        operation: () => async ({ prisma, params }) => prisma.$transaction(async (tx) => {
-            const channel = await tx.notificationChannel.findUniqueOrThrow({
+        operation: () => async ({ prisma, params }) => {
+            const channel = await prisma.notificationChannel.findUniqueOrThrow({
                 where: {
                     id: params.id,
                 },
@@ -179,14 +163,12 @@ export const notificationChannelOperations = {
                 throw new ServiceError('BAD PARAMETERS', 'Kanalen har underkanaler. Flytt eller slett dem først.')
             }
 
-            // The subscriptions and notifications cascade with the channel, but the method rows they and
-            // the channel point to do not.
-            await tx.notificationChannel.delete({
+            await prisma.notificationChannel.delete({
                 where: {
                     id: params.id,
                 },
             })
-            await tx.notificationMethod.deleteMany({
+            await prisma.notificationMethod.deleteMany({
                 where: {
                     id: {
                         in: [
@@ -196,17 +178,18 @@ export const notificationChannelOperations = {
                     },
                 },
             })
-        }),
+        },
     }),
 
     /**
      * Creates a notification in a channel. Nothing is sent here: the notification worker picks it up,
      * resolves who should receive it at that point (channel subscriptions ∩ targeted users ∩
-     * visibility ∩ permission ∩ who can register for the event, see methods/recipients.ts) and
+     * visibility ∩ permission ∩ who can register for, or is registered for, the event, see
+     * methods/recipients.ts) and
      * dispatches it through the channel's available methods.
      *
      * @param data - The notification, optionally restricted to an audience of users, a visibility, a
-     * permission and those who can register for an event.
+     * permission, those who can register for an event and those registered for one.
      * @returns The created notification.
      */
     createNotification: defineSubOperation({
@@ -246,6 +229,13 @@ export const notificationChannelOperations = {
                         canRegisterForEvent: {
                             connect: {
                                 id: data.audience.canRegisterForEventId,
+                            },
+                        },
+                    } : {}),
+                    ...(data.audience?.registeredForEventId ? {
+                        registeredForEvent: {
+                            connect: {
+                                id: data.audience.registeredForEventId,
                             },
                         },
                     } : {}),

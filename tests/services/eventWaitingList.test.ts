@@ -1,12 +1,10 @@
 import { recordSentMail } from 'tests/utils'
 import { prisma } from '@/prisma/client'
+import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { eventOperations } from '@/services/events/operations'
 import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { eventRegistrationQueueOrder } from '@/services/events/registration/constants'
-import {
-    waitingListPromotionNotificationChannel
-} from '@/services/events/registration/waitingListPromotionNotificationChannel'
 import { userOperations } from '@/services/users/operations'
 import { beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 
@@ -15,9 +13,7 @@ const guestEmail = 'guest@example.com'
 
 describe('waiting list promotion on more places', () => {
     const userIds: number[] = []
-    const notifySpy = jest.spyOn(
-        waitingListPromotionNotificationChannel.internalOperations.createNotification, 'internalCall'
-    )
+    const notifySpy = jest.spyOn(eventNotificationOperations.internal.createInfoNotification, 'internalCall')
     let sentMail: ReturnType<typeof recordSentMail>
 
     beforeAll(async () => {
@@ -128,9 +124,7 @@ describe('waiting list promotion on more places', () => {
 
 describe('moving registrations in the queue', () => {
     const userIds: number[] = []
-    const notifySpy = jest.spyOn(
-        waitingListPromotionNotificationChannel.internalOperations.createNotification, 'internalCall'
-    )
+    const notifySpy = jest.spyOn(eventNotificationOperations.internal.createInfoNotification, 'internalCall')
 
     beforeAll(async () => {
         const users = await Promise.all(['a', 'b', 'c'].map(name => userOperations.create({

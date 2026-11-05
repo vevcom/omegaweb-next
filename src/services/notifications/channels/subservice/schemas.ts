@@ -1,4 +1,5 @@
 import { internalPathMessage, isInternalPath } from '@/lib/fields/safeLink'
+import { Zpn } from '@/lib/fields/zpn'
 import { Permission } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
@@ -8,7 +9,7 @@ export const notificationMethodSchema = z.object({
     push: z.boolean(),
 })
 
-const dataFieldSchemas = z.object({
+export const notificationChannelDataFieldSchemas = z.object({
     name: z.string().min(2),
     description: z.string(),
     parentId: z.coerce.number().min(1),
@@ -20,11 +21,15 @@ const dataFieldSchemas = z.object({
         .transform(url => url || undefined)
         .optional(),
     // Who the notification is for, on top of being subscribed to its channel. Each given part narrows it.
-    audience: z.object({
-        userIds: z.number().array().optional(),
-        visibilityId: z.number().optional(),
-        permission: z.nativeEnum(Permission).optional(),
-        canRegisterForEventId: z.number().optional(),
+    audience: Zpn.json({
+        label: 'Mottakere',
+        schema: z.object({
+            userIds: z.number().array().optional(),
+            visibilityId: z.number().optional(),
+            permission: z.nativeEnum(Permission).optional(),
+            canRegisterForEventId: z.number().optional(),
+            registeredForEventId: z.number().optional(),
+        }),
     }).optional(),
 })
 
@@ -33,6 +38,8 @@ const paramsFieldSchemas = z.object({
     channelId: z.coerce.number().min(1),
     availableMethods: notificationMethodSchema,
 })
+
+const dataFieldSchemas = notificationChannelDataFieldSchemas
 
 export const notificationChannelSchemas = {
     data: {
