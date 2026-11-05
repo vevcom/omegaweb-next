@@ -2,8 +2,9 @@ import '@pn-server-only'
 import { notificationMethodIncluder } from './constants'
 import { notificationSubscriptionAuth } from './auth'
 import { notificationSubscriptionSchemas } from './schemas'
-import { validateMethods } from '@/services/notifications/channels/subservice/helpers'
+import { findDescendantIds, validateMethods } from '@/services/notifications/channels/subservice/helpers'
 import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
+import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
 import { availableNotificationMethodIncluder } from '@/services/notifications/channels/subservice/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
@@ -23,22 +24,37 @@ export const notificationSubscriptionOperations = {
         }),
     }),
 
+    /**
+     * Sets the user's methods for a channel, and when asked for the channels under it too, each as
+     * far as it offers them. Every method off means no subscription.
+     * @returns The subscriptions as they are afterwards, without the ones that ended up off.
+     */
     update: defineOperation({
         authorizer: ({ params }) => notificationSubscriptionAuth.update.data({ userId: params.userId }),
         paramsSchema: notificationSubscriptionSchemas.params.update,
         dataSchema: notificationSubscriptionSchemas.data.update,
         opensTransaction: true,
-        operation: async ({ prisma, params, data }): Promise<Subscription[]> => await prisma.$transaction(
-            async (tx) => {
-                // One bad subscription rolls back the whole batch, so the user never ends up with half of it.
-                const subscriptions = await Promise.all(
-                    data.subscriptions.map(subscription =>
-                        applySubscription(tx, params.userId, subscription.channelId, subscription.methods)
-                    )
-                )
-                return subscriptions.filter(subscription => subscription !== null)
+        operation: async ({ prisma, params, data: { includeChildren, ...methods } }): Promise<Subscription[]> => {
+            const changes = [{ channelId: params.channelId, methods }]
+            if (includeChildren) {
+                const channels = await prisma.notificationChannel.findMany({ include: availableNotificationMethodIncluder })
+                const descendantIds = findDescendantIds(params.channelId, channels)
+                changes.push(...channels
+                    .filter(channel => descendantIds.includes(channel.id))
+                    .map(channel => ({
+                        channelId: channel.id,
+                        methods: booleanOperationOnMethods(methods, channel.availableMethods, 'AND'),
+                    })))
             }
-        ),
+
+            // One bad subscription rolls back the whole batch, so the user never ends up with half of it.
+            return await prisma.$transaction(async (tx) => {
+                const subscriptions = await Promise.all(changes.map(change =>
+                    applySubscription(tx, params.userId, change.channelId, change.methods)
+                ))
+                return subscriptions.filter(subscription => subscription !== null)
+            })
+        },
     }),
 
     internal: {

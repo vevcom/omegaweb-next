@@ -21,6 +21,16 @@ export function validateNewParent(
     return findValidParents(channelId, channels).map(channel => channel.id).includes(newParentId)
 }
 
+/** How many channels sit right under the channel. ROOT is its own parent and does not count itself. */
+export function countChildren(channel: Pick<ExpandedNotificationChannel, 'id' | 'parentId' | '_count'>): number {
+    return channel._count.children - (channel.parentId === channel.id ? 1 : 0)
+}
+
+/** The channels under a channel, at any depth. */
+export function findDescendantIds(channelId: number, channels: ExpandedNotificationChannel[]): number[] {
+    return Array.from(collectDescendantIds(channelId, channels, new Set()))
+}
+
 /**
  * The channels a channel may be moved under: every channel but itself and its descendants, as
  * putting it under one of those would cut its subtree off from ROOT.

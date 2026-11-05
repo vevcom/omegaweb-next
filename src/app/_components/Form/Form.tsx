@@ -27,6 +27,8 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     closePopUpOnSuccess?: PopUpKeyType,
     buttonClassName?: string,
     disabled?: boolean,
+    /** A second way to submit, sent along as the field named, with 'on' as its value. */
+    secondarySubmit?: { text: ReactNode, name: string, color?: Colors },
 }
 /** The names of every input among the children, those inside sections included, so their errors find them. */
 function collectInputNames(children: ReactNode): string[] {
@@ -55,12 +57,15 @@ export default function Form<GiveActionReturn>({
     closePopUpOnSuccess,
     buttonClassName,
     disabled,
+    secondarySubmit,
     ...props
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
     const [inputErrors, setInputErrors] = useState<Partial<Record<string, ErrorMessage[]>>>({})
     const [success, setSuccess] = useState(false)
     const [pending, setPending] = useState(false)
+    // Which button submitted, so only it shows the wait and the check mark.
+    const [submitter, setSubmitter] = useState<'primary' | 'secondary'>('primary')
     const PopUpCtx = useContext(PopUpContext)
     const { refresh, push } = useSiteRouter()
 
@@ -125,7 +130,10 @@ export default function Form<GiveActionReturn>({
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (pending) return
-        const formData = new FormData(event.currentTarget)
+        // With the button that submitted, so its name and value are sent as a field.
+        const button = (event.nativeEvent as SubmitEvent).submitter
+        const formData = new FormData(event.currentTarget, button instanceof HTMLButtonElement ? button : null)
+        setSubmitter(button instanceof HTMLButtonElement && button.name === secondarySubmit?.name ? 'secondary' : 'primary')
         setPending(true)
         try {
             await actionWithError(formData)
@@ -153,18 +161,33 @@ export default function Form<GiveActionReturn>({
                 })}
                 <SubmitButton
                     color={submitColor}
-                    success={success}
+                    success={success && submitter === 'primary'}
                     generalErrors={generalErrors}
                     confirmation={confirmation}
-                    pending={pending}
+                    pending={pending && submitter === 'primary'}
                     className={`
                         ${buttonClassName}
                         m-0
                     `}
-                    disabled={disabled}
+                    disabled={disabled || (pending && submitter !== 'primary')}
                 >
                     {submitText}
                 </SubmitButton>
+                {secondarySubmit && <SubmitButton
+                    color={secondarySubmit.color ?? 'secondary'}
+                    success={success && submitter === 'secondary'}
+                    confirmation={confirmation}
+                    pending={pending && submitter === 'secondary'}
+                    className={`
+                        ${buttonClassName}
+                        m-0
+                    `}
+                    disabled={disabled || (pending && submitter !== 'secondary')}
+                    name={secondarySubmit.name}
+                    value="on"
+                >
+                    {secondarySubmit.text}
+                </SubmitButton>}
             </form>
         </FormContext.Provider>
     )

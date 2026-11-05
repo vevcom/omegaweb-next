@@ -77,6 +77,7 @@ const read = defineOperation({
                 },
                 hostedByCommittee: { select: { id: true, name: true, shortName: true } },
                 ledgerAccount: { select: { id: true, name: true } },
+                notificationChannel: { include: availableNotificationMethodIncluder },
                 infoNotificationChannel: { include: availableNotificationMethodIncluder },
                 generalNotificationChannel: { include: availableNotificationMethodIncluder },
                 variants: {

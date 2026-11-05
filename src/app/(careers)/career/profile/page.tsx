@@ -1,5 +1,4 @@
 import ContactInfoForm from './ContactInfoForm'
-import ContactorNotifications from './ContactorNotifications'
 import { careersAuthLinks } from '@/app/(careers)/career/(auth)/links'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
 import { badgeClassName, sectionHeadingClassName } from '@/app/(careers)/_lib/careersClassNames'
@@ -11,15 +10,10 @@ import { contactorNotificationChannel } from '@/services/careers/contactorNotifi
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { Smorekopp } from '@/services/error'
 import { displayDate } from '@/lib/dates/displayDate'
-import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { serverPage } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import type { NotificationMethodGeneral } from '@/services/notifications/types'
+import UpdateNotificationSubscription from '@/components/Notifications/UpdateNotificationSubscription'
 import type { ReactNode } from 'react'
-
-const pickMethods = ({ email, emailWeekly, push }: NotificationMethodGeneral): NotificationMethodGeneral => (
-    { email, emailWeekly, push }
-)
 
 function Section({ title, children }: { title: string, children: ReactNode }) {
     return (
@@ -123,11 +117,11 @@ const { page, generateMetadata } = serverPage({
 
             <Section title="E-post fra Contactor">
                 <p className="mb-4 text-m text-text-muted">{channel.description}</p>
-                <ContactorNotifications
+                <UpdateNotificationSubscription
                     userId={user.id}
-                    channelId={channel.id}
-                    availableMethods={pickMethods(channel.availableMethods)}
-                    methods={pickMethods(subscription?.methods ?? allNotificationMethodsOff)}
+                    channel={channel}
+                    methods={subscription?.methods ?? null}
+                    hasChildren={false}
                 />
             </Section>
 

@@ -13,7 +13,7 @@ import EventPaymentSection from '@/components/Event/EventPaymentSection'
 import EventSidebarSection from '@/components/Event/EventSidebarSection'
 import EventInfoRow from '@/components/Event/EventInfoRow'
 import EventNotificationsAdmin from '@/components/Event/EventNotificationsAdmin'
-import EventNotificationSettings from '@/components/Event/EventNotificationSettings'
+import NotificationSubscriptionTree from '@/components/Notifications/NotificationSubscriptionTree'
 import EventLocationMap from '@/components/Event/EventLocationMap'
 import CreateOrUpdateEventForm from '@/components/Event/CreateOrUpdateEventForm'
 import EventTag from '@/components/Event/EventTag'
@@ -146,8 +146,9 @@ export function eventPage(config: EventPagesConfig) {
             }
 
             const channelsOfEvent = [
-                { ...event.infoNotificationChannel, label: 'Viktig informasjon' },
-                { ...event.generalNotificationChannel, label: 'Annen informasjon' },
+                event.notificationChannel,
+                event.infoNotificationChannel,
+                event.generalNotificationChannel,
             ]
             const subscriptions = session.user
                 ? (await notificationSubscriptionOperations.read({ params: { userId: session.user.id } }))
@@ -454,7 +455,7 @@ export function eventPage(config: EventPagesConfig) {
 
                         {session.user && (
                             <EventSidebarSection title="Varslinger">
-                                <EventNotificationSettings
+                                <NotificationSubscriptionTree
                                     userId={session.user.id}
                                     channels={data.channelsOfEvent}
                                     subscriptions={data.subscriptions}

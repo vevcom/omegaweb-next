@@ -1,11 +1,12 @@
-import { notificationMethodSchema } from '@/services/notifications/channels/subservice/schemas'
+import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
-    subscriptions: z.array(z.object({
-        channelId: z.number().min(1),
-        methods: notificationMethodSchema,
-    })),
+    email: Zpn.checkboxOrBoolean({ label: 'E-post' }),
+    emailWeekly: Zpn.checkboxOrBoolean({ label: 'Ukentlig e-post' }),
+    push: Zpn.checkboxOrBoolean({ label: 'Push-varsel' }),
+    // Whether the channels under the channel get the same methods, as far as they offer them.
+    includeChildren: Zpn.checkboxOrBoolean({ label: 'Underkanaler' }).default(false),
 })
 
 const paramsFieldSchemas = z.object({
@@ -13,22 +14,25 @@ const paramsFieldSchemas = z.object({
     channelId: z.number(),
 })
 
-const subscriptionUser = paramsFieldSchemas.pick({
+const userAndChannel = paramsFieldSchemas.pick({
     userId: true,
+    channelId: true,
 })
 
 export const notificationSubscriptionSchemas = {
     data: {
         update: dataFieldSchemas.pick({
-            subscriptions: true,
+            email: true,
+            emailWeekly: true,
+            push: true,
+            includeChildren: true,
         }),
     },
     params: {
-        read: subscriptionUser,
-        update: subscriptionUser,
-        subscribeByDefault: paramsFieldSchemas.pick({
+        read: paramsFieldSchemas.pick({
             userId: true,
-            channelId: true,
         }),
+        update: userAndChannel,
+        subscribeByDefault: userAndChannel,
     },
 }

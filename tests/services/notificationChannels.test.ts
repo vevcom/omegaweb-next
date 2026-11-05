@@ -7,6 +7,7 @@ import { eventNotificationOperations } from '@/services/events/notifications/ope
 import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { userOperations } from '@/services/users/operations'
+import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 import { Smorekopp } from '@/services/error'
 import { afterAll, afterEach, beforeAll, describe, expect, jest, test } from '@jest/globals'
@@ -240,6 +241,25 @@ describe('the channels an event owns', () => {
             bypassAuth: true,
         })).resolves.toEqual({ notification: null })
         expect(infoSpy).toHaveBeenCalledTimes(1)
+    })
+
+    test('saving a subscription for the channels under one too gives each what it offers', async () => {
+        const [own, info, general] = await readChannelsOfEvent(eventId)
+        await notificationSubscriptionOperations.update({
+            params: { userId, channelId: own.id },
+            data: { email: true, emailWeekly: true, push: false, includeChildren: true },
+            bypassAuth: true,
+        })
+        const subscriptions = await prisma.notificationSubscription.findMany({
+            where: { userId, channelId: { in: [own.id, info.id, general.id] } },
+            include: { methods: true },
+        })
+        const methodsOf = (channelId: number) => (
+            subscriptions.find(subscription => subscription.channelId === channelId)?.methods
+        )
+        expect(methodsOf(own.id)).toMatchObject({ email: true, emailWeekly: true, push: false })
+        expect(methodsOf(info.id)).toMatchObject({ email: true, emailWeekly: false, push: false })
+        expect(methodsOf(general.id)).toMatchObject({ email: true, emailWeekly: true, push: false })
     })
 
     test('deleting the event takes its channels with it', async () => {

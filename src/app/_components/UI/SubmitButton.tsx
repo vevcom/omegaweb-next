@@ -22,10 +22,13 @@ export type Confirmation = {
     text?: string,
 }
 
-const submitButtonClassName = 'w-40 m-0 text-text-inv transition-colors duration-300 ease-in-out'
+const submitButtonClassName = 'w-40 m-0 transition-colors duration-300 ease-in-out'
 // The answers to a confirmation share a size, and ignore the caller's class and color, which
 // style the button that asks the question.
 const confirmationButtonClassName = 'w-24 m-0 transition-colors duration-300 ease-in-out'
+
+// The secondary button sits on a light surface and keeps the regular text colour.
+const textColorClassName = (color: Colors) => (color === 'secondary' ? '' : 'text-text-inv')
 
 export default function SubmitButton({
     children,
@@ -37,6 +40,8 @@ export default function SubmitButton({
     pending,
     onClick,
     disabled,
+    name,
+    value,
 }: {
     children: ReactNode,
     generalErrors?: ErrorMessage[],
@@ -47,6 +52,9 @@ export default function SubmitButton({
     pending?: boolean,
     onClick?: React.MouseEventHandler<HTMLButtonElement>,
     disabled?: boolean,
+    /** Sent as a field when this button submits, for a form with more than one way to submit. */
+    name?: string,
+    value?: string,
 }) {
     const formStatus = useFormStatus()
     pending ??= formStatus.pending
@@ -89,6 +97,7 @@ export default function SubmitButton({
             <Button
                 className={isConfirmation ? confirmationButtonClassName : `
                     ${submitButtonClassName}
+                    ${textColorClassName(idleColor)}
                     ${className ?? ''}
                 `}
                 aria-disabled={pending || success}
@@ -96,6 +105,8 @@ export default function SubmitButton({
                 type="submit"
                 onClick={onClick}
                 disabled={disabled}
+                name={name}
+                value={value}
             >
                 {renderButtonContent(label)}
             </Button>
@@ -123,6 +134,7 @@ export default function SubmitButton({
         <Button
             className={`
                 ${submitButtonClassName}
+                ${textColorClassName(color)}
                 ${className ?? ''}
             `}
             color={color}
