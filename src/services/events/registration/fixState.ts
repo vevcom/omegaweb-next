@@ -82,6 +82,7 @@ export async function fixVariantPlaces(tx: Prisma.TransactionClient, variantId: 
     waiting.push(...evicted)
     waiting.sort((first, second) => first.queuedAt.getTime() - second.queuedAt.getTime() || first.id - second.id)
 
+    const now = new Date()
     const moves: { registration: Registration, quotaId: number }[] = []
     const promoted: Registration[] = []
 
@@ -107,11 +108,16 @@ export async function fixVariantPlaces(tx: Prisma.TransactionClient, variantId: 
     await Promise.all([
         ...moves.map(({ registration, quotaId }) => tx.eventRegistration.update({
             where: { id: registration.id },
-            data: { state: 'IN_QUOTA', quotaId, waitingListVariantId: null },
+            data: {
+                state: 'IN_QUOTA',
+                quotaId,
+                waitingListVariantId: null,
+                promotedAt: promoted.includes(registration) ? now : undefined,
+            },
         })),
         ...evicted.filter(registration => waiting.includes(registration)).map(registration => tx.eventRegistration.update({
             where: { id: registration.id },
-            data: { state: 'WAITING_LIST', quotaId: null, waitingListVariantId: variantId },
+            data: { state: 'WAITING_LIST', quotaId: null, waitingListVariantId: variantId, promotedAt: null },
         })),
     ])
 

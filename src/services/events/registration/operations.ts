@@ -12,6 +12,7 @@ import {
 import { eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
 import { fixVariantPlaces, leaveOtherWaitingLists, notifyPromoted } from './fixState'
+import { paymentDeadline } from './paymentDeadline'
 import {
     lockEvent,
     queuedAhead,
@@ -445,7 +446,7 @@ export const eventRegistrationOperations = {
                 await lockEvent(tx, eventId)
                 const registration = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: { quotaId: true, userId: true },
+                    select: { quotaId: true, userId: true, state: true },
                 })
                 const quota = await tx.eventQuota.findUniqueOrThrow({
                     where: { id: data.quotaId },
@@ -472,7 +473,12 @@ export const eventRegistrationOperations = {
 
                 await tx.eventRegistration.update({
                     where: { id: params.registrationId },
-                    data: { state: 'IN_QUOTA', quotaId: data.quotaId, waitingListVariantId: null },
+                    data: {
+                        state: 'IN_QUOTA',
+                        quotaId: data.quotaId,
+                        waitingListVariantId: null,
+                        promotedAt: registration.state === 'WAITING_LIST' ? new Date() : undefined,
+                    },
                 })
                 await leaveOtherWaitingLists(tx, quota.variant, [registration.userId])
                 const promotedByMove = await fixVariantPlaces(tx, variantId)
@@ -679,7 +685,10 @@ export const eventRegistrationOperations = {
             }
 
             const now = new Date()
-            if (!variant.paymentStart || !variant.paymentEnd || now < variant.paymentStart || now > variant.paymentEnd) {
+            if (
+                !variant.paymentStart || !variant.paymentEnd || now < variant.paymentStart
+                || now > paymentDeadline(variant.paymentEnd, registration.promotedAt)
+            ) {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
             }
 
@@ -892,7 +901,8 @@ async function joinVariant(tx: Prisma.TransactionClient, variant: ResolvedVarian
         data: { state: 'WAITING_LIST', waitingListVariantId: variant.id, ...registrant },
     })
     const promoted = await fixVariantPlaces(tx, variant.id)
-    const registration = await tx.eventRegistration.findUniqueOrThrow({ where: { id: created.id } })
+    // Seating a new registration is an ordinary sign-up, so it earns no time to pay.
+    const registration = await tx.eventRegistration.update({ where: { id: created.id }, data: { promotedAt: null } })
     if (registration.state === 'WAITING_LIST' && !variant.event.waitingList) {
         throw new Smorekopp('BAD PARAMETERS', 'Arrangementet er fullt.')
     }

@@ -4,6 +4,7 @@ import CountDown from '@/components/CountDown/CountDown'
 import DateDisplay from '@/components/Date/Date'
 import EventPaymentModal from '@/components/Ledger/Modals/EventPaymentModal'
 import { displayAmount } from '@/lib/currency/convert'
+import { paymentDeadline } from '@/services/events/registration/paymentDeadline'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck, faCircleExclamation } from '@fortawesome/free-solid-svg-icons'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
@@ -40,13 +41,14 @@ export default function EventPaymentSection({
     if (!variant.takesPayment || price === null || !paymentStart || !paymentEnd) return null
 
     const now = new Date()
-    const paymentOpen = paymentStart <= now && now <= paymentEnd
+    const deadline = paymentDeadline(paymentEnd, registration?.promotedAt ?? null)
+    const paymentOpen = paymentStart <= now && now <= deadline
     const status = paymentStatus(registration)
 
     return <EventSidebarSection title="Betaling">
         <EventInfoRow label="Pris">{displayAmount(price, false)}</EventInfoRow>
         <EventInfoRow label="Betalingsstart"><DateDisplay date={paymentStart} includeTime /></EventInfoRow>
-        <EventInfoRow label="Betalingsslutt"><DateDisplay date={paymentEnd} includeTime /></EventInfoRow>
+        <EventInfoRow label="Betalingsslutt"><DateDisplay date={deadline} includeTime /></EventInfoRow>
 
         {status === 'PAID' && (
             <p className="
@@ -79,7 +81,7 @@ export default function EventPaymentSection({
             {paymentStart > now && (
                 <p className="m-0 text-text-muted">Betaling åpner om <CountDown referenceDate={paymentStart} /></p>
             )}
-            {paymentEnd < now && (
+            {deadline < now && (
                 <p className="m-0 text-text-muted">Betalingsperioden er over. Ta kontakt med arrangørene.</p>
             )}
         </>}

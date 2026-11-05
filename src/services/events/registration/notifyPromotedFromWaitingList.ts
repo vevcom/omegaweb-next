@@ -1,4 +1,5 @@
 import '@pn-server-only'
+import { PAYMENT_HOURS_AFTER_PROMOTION } from './paymentDeadline'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
@@ -16,7 +17,8 @@ export async function notifyPromotedFromWaitingList(
 ) {
     const title = 'Opprykk fra venteliste ved Omegas nettsider'
     const congratulation = 'Gratulerer! Du har rykket opp fra ventelisten på arrangementet'
-    const message = `${congratulation} ${event.name}.`
+    const message = `${congratulation} ${event.name}. Hvis arrangementet krever betaling, `
+        + `har du minst ${PAYMENT_HOURS_AFTER_PROMOTION} timer på deg til å betale.`
     const mailBody = `${congratulation} ${escapeHtml(event.name)}.`
 
     const userIds = registrations.flatMap(registration => (
