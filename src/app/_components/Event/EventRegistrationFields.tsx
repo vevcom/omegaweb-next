@@ -11,7 +11,7 @@ import { describeAudience } from '@/auth/visibility/describeVisibility'
 import { useGroups } from '@/contexts/ClientData'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
 import type { QuotaDraft, VariantDraft } from './eventSetupDraft'
 import type { ReactNode } from 'react'
@@ -23,10 +23,15 @@ const sectionClassName = `
 
 const flowStepClassName = 'm-0 py-1 pl-3 text-s text-text-muted'
 
-const iconButtonClassName = `
-    grid place-items-center size-8 shrink-0 border-none rounded-inner bg-surface-hover text-text cursor-pointer
-    hover:bg-surface-subtle
-    disabled:cursor-not-allowed disabled:opacity-40
+const linkButtonClassName = `
+    shrink-0 border-none bg-transparent p-0 text-s text-accent-blue cursor-pointer
+    hover:underline
+`
+
+const removeButtonClassName = `
+    shrink-0 border-none bg-transparent p-0 text-s text-accent-red cursor-pointer
+    enabled:hover:underline
+    disabled:text-text-muted disabled:cursor-not-allowed
 `
 
 function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
@@ -55,7 +60,7 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
                     name={`quotaName${quota.key}`}
                     value={quota.name}
                     onChange={event => onChange({ name: event.target.value })}
-                    className="flex-1 min-w-40 mt-0!"
+                    className="flex-1 min-w-40 max-w-none! mt-0!"
                 />
                 : <span className="flex-1">Antall plasser</span>}
             <NumberInput
@@ -66,16 +71,6 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
                 onChange={event => onChange({ places: Number(event.target.value) })}
                 className="w-28! mt-0!"
             />
-            {several && <button
-                type="button"
-                aria-label="Fjern kvoten"
-                title={quota.numOfRegistrations > 0 ? 'Kvoten har påmeldte' : undefined}
-                disabled={quota.numOfRegistrations > 0}
-                onClick={onRemove}
-                className={iconButtonClassName}
-            >
-                <FontAwesomeIcon icon={faXmark} />
-            </button>}
         </div>
         <EventQuotaBar taken={quota.numOfRegistrations} places={quota.places} />
         <div className="flex flex-wrap items-center justify-between gap-2 text-s">
@@ -83,17 +78,26 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
                 {quota.numOfRegistrations} påmeldt.{' '}
                 {describeAudience({ requirements: quota.visibilityRequirements }, groups)}
             </span>
-            <button
-                type="button"
-                aria-expanded={editingWho}
-                onClick={() => setEditingWho(!editingWho)}
-                className="
-                    border-none bg-transparent p-0 text-accent-blue cursor-pointer
-                    hover:underline
-                "
-            >
-                {editingWho ? 'Lukk' : 'Endre hvem'}
-            </button>
+            <div className="flex items-center gap-3">
+                <button
+                    type="button"
+                    aria-expanded={editingWho}
+                    onClick={() => setEditingWho(!editingWho)}
+                    className={linkButtonClassName}
+                >
+                    {editingWho ? 'Lukk' : 'Endre hvem'}
+                </button>
+                {several && <button
+                    type="button"
+                    aria-label="Fjern kvoten"
+                    title={quota.numOfRegistrations > 0 ? 'Kvoten har påmeldte' : undefined}
+                    disabled={quota.numOfRegistrations > 0}
+                    onClick={onRemove}
+                    className={removeButtonClassName}
+                >
+                    Fjern
+                </button>}
+            </div>
         </div>
         {over > 0 && <p className="m-0 text-s text-accent-orange">
             Når du lagrer, flyttes {over} til neste kvote de kan melde seg på, eller til ventelisten.
@@ -300,13 +304,12 @@ export default function EventRegistrationFields({ variants, waitingList, eventSt
                     />
                     <button
                         type="button"
-                        aria-label="Fjern varianten"
                         title={hasRegistrants(variant) ? 'Varianten har påmeldte' : undefined}
                         disabled={hasRegistrants(variant)}
                         onClick={() => onChange(variants.filter(other => other.key !== variant.key))}
-                        className={iconButtonClassName}
+                        className={removeButtonClassName}
                     >
-                        <FontAwesomeIcon icon={faXmark} />
+                        Fjern varianten
                     </button>
                 </div>
                 <RegistrationPeriod variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
