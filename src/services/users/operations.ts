@@ -16,7 +16,6 @@ import { omegaLinks } from '@/app/(omegaweb)/links'
 import { Site } from '@/lib/sites/site'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { classOperations } from '@/services/groups/classes/operations'
 import { feideEmailDomainsTrustedAsVerified } from '@/lib/feide/constants'
 import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
@@ -522,15 +521,6 @@ export const userOperations = {
                     update: {
                         passwordHash,
                     },
-                })
-
-                // Skips the channels the user is already subscribed to, which a user whose accepted
-                // terms were reset has kept.
-                await notificationSubscriptionOperations.createDefault.internalCall({
-                    params: {
-                        userId: params.id,
-                    },
-                    prisma: tx,
                 })
 
                 // What someone studies is what decides where they come in; anything above that is

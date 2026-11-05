@@ -24,7 +24,6 @@ export const notificationSubscriptionSchemas = {
     },
     params: {
         read: subscriptionUser,
-        createDefault: subscriptionUser,
         update: subscriptionUser,
     },
 }

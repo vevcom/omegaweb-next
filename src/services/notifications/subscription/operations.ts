@@ -5,8 +5,7 @@ import { notificationSubscriptionSchemas } from './schemas'
 import { validateMethods } from '@/services/notifications/channel/helpers'
 import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
 import { availableNotificationMethodIncluder } from '@/services/notifications/channel/constants'
-import { notificationChannelOperations } from '@/services/notifications/channel/operations'
-import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { Subscription } from './types'
@@ -22,46 +21,6 @@ export const notificationSubscriptionOperations = {
             },
             include: notificationMethodIncluder,
         }),
-    }),
-
-    /**
-     * Subscribes the user to every default channel they are not already subscribed to. Opens no
-     * transaction of its own, so that registration can run it on its own transaction, and skips the
-     * channels the user already has, so running it again is harmless.
-     */
-    createDefault: defineSubOperation({
-        paramsSchema: () => notificationSubscriptionSchemas.params.createDefault,
-        operation: () => async ({ prisma, params, session }) => {
-            const channels = await notificationChannelOperations.readDefault({
-                session,
-                prisma,
-                bypassAuth: true,
-            })
-            const subscribed = new Set((await prisma.notificationSubscription.findMany({
-                where: { userId: params.userId },
-                select: { channelId: true },
-            })).map(subscription => subscription.channelId))
-
-            for (const channel of channels.filter(defaultChannel => !subscribed.has(defaultChannel.id))) {
-                await prisma.notificationSubscription.create({
-                    data: {
-                        user: {
-                            connect: {
-                                id: params.userId,
-                            }
-                        },
-                        channel: {
-                            connect: {
-                                id: channel.id,
-                            }
-                        },
-                        methods: {
-                            create: channel.defaultMethods,
-                        }
-                    }
-                })
-            }
-        }
     }),
 
     update: defineOperation({
