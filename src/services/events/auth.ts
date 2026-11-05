@@ -70,6 +70,7 @@ export const eventAuth = {
     updateAdminVisibility: eventAdminLevel,
 
     read: canSeeEvent,
+    readStatistics: eventAdminLevel,
     readManyCurrent: visibleEvents,
     readManyArchivedPage: visibleEvents,
     search: visibleEvents,

@@ -3,10 +3,12 @@ import { SUCCESS_FEEDBACK_TIME } from './constants'
 import { FormContext, FormInputSlot, flattenChildren, inputName } from './FormContext'
 import FormSection from './FormSection'
 import FormTab from './FormTab'
+import { useUnsavedChanges } from './useUnsavedChanges'
 import { PopUpContext } from '@/contexts/PopUp'
+import Button from '@/components/UI/Button'
 import SubmitButton from '@/components/UI/SubmitButton'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import React, { Children, isValidElement, useContext, useState } from 'react'
+import React, { Children, isValidElement, useContext, useRef, useState } from 'react'
 import type { AppHref } from '@/lib/sites/href'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
@@ -30,6 +32,8 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     disabled?: boolean,
     /** A second way to submit, sent along as the field named, with 'on' as its value. */
     secondarySubmit?: { text: ReactNode, name: string, color?: Colors },
+    /** Keeps saving at the bottom of a long form, says whether there is anything to save and offers to discard it. */
+    saveBar?: { onDiscard: () => void },
 }
 /** The names of every input among the children, those inside sections included, so their errors find them. */
 function collectInputNames(children: ReactNode): string[] {
@@ -59,6 +63,7 @@ export default function Form<GiveActionReturn>({
     buttonClassName,
     disabled,
     secondarySubmit,
+    saveBar,
     ...props
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
@@ -69,6 +74,8 @@ export default function Form<GiveActionReturn>({
     const [submitter, setSubmitter] = useState<'primary' | 'secondary'>('primary')
     const PopUpCtx = useContext(PopUpContext)
     const { refresh, push } = useSiteRouter()
+    const formRef = useRef<HTMLFormElement>(null)
+    const { dirty, markSaved } = useUnsavedChanges(formRef, saveBar !== undefined)
 
     const actionWithError = async (formData: FormData) => {
         setGeneralErrors(undefined)
@@ -78,6 +85,7 @@ export default function Form<GiveActionReturn>({
 
         if (res.success) {
             setSuccess(true)
+            markSaved(formData)
             successCallback?.(res.data)
             if (closePopUpOnSuccess) {
                 setTimeout(() => {
@@ -143,9 +151,42 @@ export default function Form<GiveActionReturn>({
         }
     }
 
+    const submitButton = <div className={secondarySubmit ? 'flex flex-wrap items-start gap-x-2' : 'contents'}>
+        {/* The two buttons stay together, on one line wherever there is room for both. */}
+        <SubmitButton
+            color={submitColor}
+            success={success && submitter === 'primary'}
+            generalErrors={generalErrors}
+            confirmation={confirmation}
+            pending={pending && submitter === 'primary'}
+            className={`
+                ${buttonClassName}
+                m-0
+            `}
+            disabled={disabled || (pending && submitter !== 'primary') || (saveBar && !dirty && !success)}
+        >
+            {submitText}
+        </SubmitButton>
+        {secondarySubmit && <SubmitButton
+            color={secondarySubmit.color ?? 'secondary'}
+            success={success && submitter === 'secondary'}
+            confirmation={confirmation}
+            pending={pending && submitter === 'secondary'}
+            className={`
+                ${buttonClassName}
+                m-0
+            `}
+            disabled={disabled || (pending && submitter !== 'secondary')}
+            name={secondarySubmit.name}
+            value="on"
+        >
+            {secondarySubmit.text}
+        </SubmitButton>}
+    </div>
+
     return (
         <FormContext.Provider value={{ inputErrors, pending }}>
-            <form className={`
+            <form ref={formRef} className={`
                 relative w-full
                 [&>h2]:mb-2
                 ${className}
@@ -161,38 +202,20 @@ export default function Form<GiveActionReturn>({
                         pending={pending}
                     />
                 })}
-                {/* The two buttons stay together, on one line wherever there is room for both. */}
-                <div className={secondarySubmit ? 'flex flex-wrap items-start gap-x-2' : 'contents'}>
-                    <SubmitButton
-                        color={submitColor}
-                        success={success && submitter === 'primary'}
-                        generalErrors={generalErrors}
-                        confirmation={confirmation}
-                        pending={pending && submitter === 'primary'}
-                        className={`
-                            ${buttonClassName}
-                            m-0
-                        `}
-                        disabled={disabled || (pending && submitter !== 'primary')}
-                    >
-                        {submitText}
-                    </SubmitButton>
-                    {secondarySubmit && <SubmitButton
-                        color={secondarySubmit.color ?? 'secondary'}
-                        success={success && submitter === 'secondary'}
-                        confirmation={confirmation}
-                        pending={pending && submitter === 'secondary'}
-                        className={`
-                            ${buttonClassName}
-                            m-0
-                        `}
-                        disabled={disabled || (pending && submitter !== 'secondary')}
-                        name={secondarySubmit.name}
-                        value="on"
-                    >
-                        {secondarySubmit.text}
-                    </SubmitButton>}
-                </div>
+                {saveBar ? <div className="
+                    sticky -bottom-1 z-2 flex items-start justify-between gap-3 mt-auto pt-3 pb-1 border-t
+                    border-surface-subtle bg-surface-base
+                ">
+                    <p className="m-0 py-2 text-text-muted">
+                        {dirty ? 'Du har ulagrede endringer.' : 'Alt er lagret.'}
+                    </p>
+                    <div className="flex items-start gap-2">
+                        {dirty && <Button type="button" color="secondary" className="m-0" onClick={saveBar.onDiscard}>
+                            Forkast
+                        </Button>}
+                        {submitButton}
+                    </div>
+                </div> : submitButton}
             </form>
         </FormContext.Provider>
     )

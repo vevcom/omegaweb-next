@@ -1,3 +1,5 @@
+import { eventQuotaSchemas } from './quotas/schemas'
+import { eventVariantSchemas } from './variants/schemas'
 import { locationMapSchema } from '@/lib/maps/locationMap'
 import { Zpn } from '@/lib/fields/zpn'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
@@ -46,6 +48,21 @@ const dataFieldSchemas = z.object({
 
     published: Zpn.checkboxOrBoolean({ label: 'Publisert' }),
     notifyAboutChange: Zpn.checkboxOrBoolean({ label: 'Varsle de påmeldte' }).default(false),
+
+    // Everything the form on the event's page holds, saved with the event. See applyRegistrationSetup.
+    variants: Zpn.json({
+        label: 'Påmelding',
+        schema: z.array(eventVariantSchemas.data.create.extend({
+            id: z.number().int().optional(),
+            quotas: z.array(eventQuotaSchemas.data.create.extend({ id: z.number().int().optional() })),
+        })),
+    }),
+    adminRequirements: Zpn.json({
+        label: 'Hvem kan administrere',
+        schema: visibilityRequirementsSchema.min(1, 'Du må velge hvem som kan administrere arrangementet'),
+    }),
+    // The form sends 'NULL' while no account is picked, which leaves the link as it is.
+    ledgerAccountSelection: z.literal('NULL').transform(() => undefined).or(z.coerce.number().int()),
 
     // Created with an empty admin visibility the event would be administrable by anyone until
     // someone narrowed it. A requirement with no conditions can never be satisfied, and so means
@@ -128,7 +145,13 @@ export const eventSchemas = {
             })
             .refine(waitingListRefiner, waitingListMessage)
             .refine(bindingRegistrationRefiner, bindingRegistrationMessage),
-        update: dataFieldSchemas.pick({ ...eventFields, notifyAboutChange: true }).partial(),
+        update: dataFieldSchemas.pick({
+            ...eventFields,
+            notifyAboutChange: true,
+            variants: true,
+            adminRequirements: true,
+            ledgerAccountSelection: true,
+        }).partial(),
         setPublished: dataFieldSchemas.pick({
             published: true,
         }),
@@ -139,6 +162,7 @@ export const eventSchemas = {
     params: {
         adminVisibility: eventId,
         read: eventId,
+        readStatistics: eventId,
         readManyCurrent: paramsFieldSchemas.pick({
             tags: true,
             name: true,

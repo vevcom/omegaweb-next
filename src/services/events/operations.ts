@@ -3,6 +3,9 @@ import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
 import { assertSeenThroughQuotas, readEventAccess } from './access'
 import { hasNoAdministrators, publishProblems } from './publishProblems'
+import { applyRegistrationSetup } from './applyRegistrationSetup'
+import { lockEvent } from './registration/queue'
+import { notifyPromoted } from './registration/fixState'
 import {
     eventListSelection,
     eventQuotaOrder,
@@ -29,6 +32,7 @@ import { implementSearchOperation } from '@/services/search/implement'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { implementVisibilityOperations, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
+import type { VariantStatistics } from './statistics'
 import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
 import type { SearchFindArgs } from '@/services/search/implement'
@@ -118,6 +122,66 @@ const read = defineOperation({
 
 export const eventOperations = {
     adminVisibility,
+
+    /** Counts only, since those who administrate the event see the numbers without the people behind them. */
+    readStatistics: defineOperation({
+        paramsSchema: eventSchemas.params.readStatistics,
+        authorizer: async ({ params, prisma }) => eventAuth.readStatistics.data(await readEventAccess(prisma, params.id)),
+        operation: async ({ prisma, params }): Promise<VariantStatistics[]> => {
+            const variants = await prisma.eventVariant.findMany({
+                where: { eventId: params.id },
+                orderBy: { order: 'asc' },
+                select: {
+                    id: true,
+                    name: true,
+                    registrationStart: true,
+                    takesPayment: true,
+                    quotas: { select: { places: true } },
+                },
+            })
+            const registrations = await prisma.eventRegistration.findMany({
+                where: {
+                    OR: [
+                        { quota: { variant: { eventId: params.id } } },
+                        { waitingListVariant: { eventId: params.id } },
+                    ],
+                },
+                orderBy: { createdAt: 'asc' },
+                select: {
+                    createdAt: true,
+                    state: true,
+                    attendedAt: true,
+                    manuallyPaid: true,
+                    waitingListVariantId: true,
+                    quota: { select: { variantId: true } },
+                    ledgerTransactions: { where: validTransactionFilter, select: { id: true }, take: 1 },
+                },
+            })
+
+            return variants.map(variant => {
+                const ofVariant = registrations.filter(registration => (
+                    (registration.quota?.variantId ?? registration.waitingListVariantId) === variant.id
+                ))
+                const inQuota = ofVariant.filter(registration => registration.state === 'IN_QUOTA')
+                return {
+                    id: variant.id,
+                    name: variant.name,
+                    registrationStart: variant.registrationStart,
+                    places: variant.quotas.reduce((sum, quota) => sum + quota.places, 0),
+                    registeredAt: ofVariant.map(registration => registration.createdAt),
+                    inQuota: inQuota.length,
+                    lastSeatedAt: inQuota[inQuota.length - 1]?.createdAt ?? null,
+                    waiting: ofVariant.length - inQuota.length,
+                    paid: variant.takesPayment
+                        ? inQuota.filter(registration => (
+                            registration.manuallyPaid || registration.ledgerTransactions.length > 0
+                        )).length
+                        : null,
+                    attended: inQuota.filter(registration => registration.attendedAt !== null).length,
+                }
+            })
+        },
+    }),
 
     create: defineOperation({
         dataSchema: eventSchemas.data.create,
@@ -303,13 +367,28 @@ export const eventOperations = {
         }),
     }),
 
-    /** Updates an event. The registered are told of the change in its info channel when asked to. */
+    /**
+     * Saves everything the form on the event's page holds, as one change: if any of it is refused,
+     * none of it is saved. The event's own fields, its variants and quotas, who administrates it
+     * and the account it is paid into may each be left out.
+     */
     update: defineOperation({
         paramsSchema: eventSchemas.params.update,
         dataSchema: eventSchemas.data.update,
-        authorizer: async ({ params, prisma }) => eventAuth.update.data(await readEventAccess(prisma, params.id)),
-        transaction: 'RUNS_IN',
-        operation: async ({ prisma, params, data: { tagIds, locationMap, notifyAboutChange, ...data } }) => {
+        authorizer: async ({ params, data, prisma }) => {
+            const access = await readEventAccess(prisma, params.id)
+            if (data.ledgerAccountSelection === undefined) return eventAuth.update.data(access)
+            return eventAuth.connectToLedgerAccount.data({
+                ...access,
+                accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountSelection })],
+            })
+        },
+        transaction: 'OPENS',
+        operation: async ({
+            prisma,
+            params,
+            data: { tagIds, locationMap, notifyAboutChange, variants, adminRequirements, ledgerAccountSelection, ...data },
+        }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
                 include: { locationMap: true },
@@ -327,58 +406,75 @@ export const eventOperations = {
                 mapUpdate = { delete: true }
             }
 
-            const updatedEvent = await prisma.event.update({
-                where: { id: params.id },
-                data: {
-                    ...data,
-                    locationMap: mapUpdate,
-                },
-            })
-            await assertSeenThroughQuotas(prisma, params.id)
-            if (data.name !== undefined && data.name !== event.name) {
-                await eventNotificationOperations.internal.renameChannels.internalCall({
-                    params: { eventId: params.id },
-                    data: { name: data.name },
-                })
-            }
-            if (tagIds) {
-                await prisma.eventTagEvent.deleteMany({
-                    where: {
-                        eventId: params.id,
-                        NOT: {
-                            tagId: {
-                                in: tagIds
-                            }
-                        }
-                    }
-                })
+            if (ledgerAccountSelection !== undefined) await assertGroupAccount(prisma, ledgerAccountSelection)
 
-                await prisma.eventTagEvent.createMany({
-                    data: tagIds.map(tagId => ({
-                        eventId: params.id,
-                        tagId
-                    })),
-                    skipDuplicates: true
-                })
-            }
-
-            if (data.hostedByCommitteeId) {
-                await adoptHostAsAdministrators(prisma, params.id, event.visibilityAdminId, data.hostedByCommitteeId)
-            }
-
-            if (notifyAboutChange) {
-                await eventNotificationOperations.internal.createInfoNotification.internalCall({
-                    params: { channelId: updatedEvent.infoNotificationChannelId },
+            const { updatedEvent, promoted } = await prisma.$transaction(async tx => {
+                await lockEvent(tx, params.id)
+                const savedEvent = await tx.event.update({
+                    where: { id: params.id },
                     data: {
-                        title: `Endring i ${updatedEvent.name}`,
-                        message: `${updatedEvent.name} er endret. `
-                            + `🕓 ${displayDate(updatedEvent.eventStart)}, 📍 ${updatedEvent.location}. `
-                            + 'Se arrangementets side for detaljene.',
-                        url: omegaEventLinks.event(updatedEvent),
-                        audience: { registeredForEventId: updatedEvent.id },
+                        ...data,
+                        ledgerAccountId: ledgerAccountSelection,
+                        locationMap: mapUpdate,
                     },
                 })
-            }
+                if (adminRequirements) {
+                    await visibilityOperations.updateInTransaction.internalCall({
+                        prisma: tx,
+                        params: { visibilityId: event.visibilityAdminId },
+                        data: { requirements: adminRequirements },
+                    })
+                }
+                const promotedByChange = variants ? await applyRegistrationSetup(tx, params.id, variants) : []
+                await assertSeenThroughQuotas(tx, params.id)
+                if (data.name !== undefined && data.name !== event.name) {
+                    await eventNotificationOperations.internal.renameChannels.internalCall({
+                        prisma: tx,
+                        params: { eventId: params.id },
+                        data: { name: data.name },
+                    })
+                }
+                if (tagIds) {
+                    await tx.eventTagEvent.deleteMany({
+                        where: {
+                            eventId: params.id,
+                            NOT: {
+                                tagId: {
+                                    in: tagIds
+                                }
+                            }
+                        }
+                    })
+
+                    await tx.eventTagEvent.createMany({
+                        data: tagIds.map(tagId => ({
+                            eventId: params.id,
+                            tagId
+                        })),
+                        skipDuplicates: true
+                    })
+                }
+                if (data.hostedByCommitteeId) {
+                    await adoptHostAsAdministrators(tx, params.id, event.visibilityAdminId, data.hostedByCommitteeId)
+                }
+                if (notifyAboutChange) {
+                    await eventNotificationOperations.internal.createInfoNotification.internalCall({
+                        prisma: tx,
+                        params: { channelId: savedEvent.infoNotificationChannelId },
+                        data: {
+                            title: `Endring i ${savedEvent.name}`,
+                            message: `${savedEvent.name} er endret. `
+                                + `🕓 ${displayDate(savedEvent.eventStart)}, 📍 ${savedEvent.location}. `
+                                + 'Se arrangementets side for detaljene.',
+                            url: omegaEventLinks.event(savedEvent),
+                            audience: { registeredForEventId: savedEvent.id },
+                        },
+                    })
+                }
+                return { updatedEvent: savedEvent, promoted: promotedByChange }
+            })
+
+            await notifyPromoted(prisma, params.id, promoted)
             return updatedEvent
         }
     }),
@@ -395,13 +491,7 @@ export const eventOperations = {
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
         }),
         operation: async ({ prisma, params, data }) => {
-            const account = await prisma.ledgerAccount.findUniqueOrThrow({
-                where: { id: data.ledgerAccountId },
-                select: { type: true },
-            })
-            if (account.type !== 'GROUP') {
-                throw new ServiceError('BAD PARAMETERS', 'Et arrangement kan bare knyttes til en gruppekonto.')
-            }
+            await assertGroupAccount(prisma, data.ledgerAccountId)
 
             return await prisma.event.update({
                 where: { id: params.id },
@@ -649,8 +739,19 @@ async function adoptHostAsAdministrators(
 ) {
     const access = await readEventAccess(prisma, eventId)
     if (!hasNoAdministrators(access.adminVisibility)) return
-    await visibilityOperations.update.internalCall({
+    await visibilityOperations.updateInTransaction.internalCall({
+        prisma,
         params: { visibilityId },
         data: { requirements: await hostCommitteeAdminRequirements(prisma, committeeId) },
     })
+}
+
+async function assertGroupAccount(prisma: PrismaPossibleTransaction<false>, ledgerAccountId: number) {
+    const account = await prisma.ledgerAccount.findUniqueOrThrow({
+        where: { id: ledgerAccountId },
+        select: { type: true },
+    })
+    if (account.type !== 'GROUP') {
+        throw new ServiceError('BAD PARAMETERS', 'Et arrangement kan bare knyttes til en gruppekonto.')
+    }
 }

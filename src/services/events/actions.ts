@@ -11,9 +11,6 @@ export const readArchivedEventsPageAction = makeAction(eventOperations.readManyA
 
 export const updateEventAction = makeAction(eventOperations.update)
 export const setEventPublishedAction = makeAction(eventOperations.setPublished)
-export const connectEventToLedgerAccountAction = makeAction(eventOperations.connectToLedgerAccount)
 export const updateEventParagraphContentAction = makeAction(eventOperations.updateParagraphContent)
 export const updateEventCmsCoverImageAction = makeAction(eventOperations.updateCmsCoverImage)
-
-export const updateEventAdminVisibilityAction = makeAction(eventOperations.adminVisibility.update)
 

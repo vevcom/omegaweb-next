@@ -86,7 +86,7 @@ export default function Tabs({ tabs, label, children }: {
 export function TabPanel({ tab, children }: { tab: string | string[], children: ReactNode }) {
     const { active } = useTabs()
     const keys = [tab].flat()
-    return <div role="tabpanel" hidden={!keys.includes(active)} aria-labelledby={`tab-${keys[0]}`}>
+    return <div role="tabpanel" hidden={!keys.includes(active)} aria-labelledby={`tab-${keys[0]}`} className="h-full">
         {children}
     </div>
 }

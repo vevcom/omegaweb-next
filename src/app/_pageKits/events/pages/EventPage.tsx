@@ -33,7 +33,6 @@ import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { eventAuth } from '@/services/events/auth'
-import { eventVariantAuth } from '@/services/events/variants/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { eventNotificationAuth } from '@/services/events/notifications/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
@@ -149,6 +148,9 @@ export function eventPage(config: EventPagesConfig) {
             const notAttended = event.takesRegistration && eventHasEnded
                 ? await withFallback(eventRegistrationOperations.readNotAttended({ params: { eventId: event.id } }), null)
                 : null
+            const statistics = event.takesRegistration
+                ? await withFallback(eventOperations.readStatistics({ params: { id: event.id } }), null)
+                : null
 
             return {
                 event,
@@ -164,6 +166,7 @@ export function eventPage(config: EventPagesConfig) {
                 notAttended,
                 channelsOfEvent,
                 subscriptions,
+                statistics,
             }
         },
         capabilities: (data, session) => ({
@@ -171,11 +174,6 @@ export function eventPage(config: EventPagesConfig) {
             canEditCmsParagraph: eventAuth.updateParagraphContent.data(data.access),
             canDestroy: eventAuth.destroy.data(data.access),
             canUpdate: eventAuth.update.data(data.access),
-            canUpdateVisibility: Require.anyOf(
-                eventAuth.updateAdminVisibility.data(data.access),
-                eventAuth.setPublished.data(data.access),
-            ),
-            canUpdateVariants: eventVariantAuth.create.data(data.access),
             canConnectToLedgerAccount: eventAuth.connectToLedgerAccount.data({
                 ...data.access,
                 accounts: data.ledgerAccounts.map(account => account.ownership),
@@ -267,8 +265,7 @@ export function eventPage(config: EventPagesConfig) {
                             ${styles.overlay}
                             absolute top-2 right-2 z-1 flex flex-wrap justify-end gap-2
                         `}>
-                            {(capabilities.canUpdate.authorized || capabilities.canUpdateVariants.authorized
-                                || capabilities.canUpdateVisibility.authorized || capabilities.canDestroy.authorized
+                            {(capabilities.canUpdate.authorized || capabilities.canDestroy.authorized
                                 || capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
                             ) && (
                                 <AdminHeaderItemPopUp popUpKey="EventAdmin">
@@ -282,10 +279,9 @@ export function eventPage(config: EventPagesConfig) {
                                         ledgerAccounts={
                                             capabilities.canConnectToLedgerAccount.authorized ? ledgerAccounts : []
                                         }
+                                        statistics={data.statistics}
                                         capabilities={capabilitiesToJsObject({
                                             canUpdate: capabilities.canUpdate,
-                                            canUpdateVisibility: capabilities.canUpdateVisibility,
-                                            canUpdateVariants: capabilities.canUpdateVariants,
                                             canDestroy: capabilities.canDestroy,
                                             canRegisterAsAdmin: capabilities.canRegisterAsAdmin,
                                             canRegisterGuest: capabilities.canRegisterGuest,
