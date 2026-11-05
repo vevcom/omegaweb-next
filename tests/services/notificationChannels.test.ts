@@ -1,5 +1,5 @@
 import { prisma } from '@/prisma-pn-client-instance'
-import { dynamicNotificationChannelOperations } from '@/services/notifications/channels/dynamic/operations'
+import { manualNotificationChannelOperations } from '@/services/notifications/channels/manual/operations'
 import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
 import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
@@ -9,7 +9,7 @@ import { afterEach, describe, expect, test } from '@jest/globals'
 const createdChannelIds: number[] = []
 
 afterEach(async () => {
-    await Promise.all(createdChannelIds.map(id => dynamicNotificationChannelOperations.destroy({
+    await Promise.all(createdChannelIds.map(id => manualNotificationChannelOperations.destroy({
         params: { id },
         bypassAuth: true,
     })))
@@ -20,8 +20,8 @@ async function readRoot() {
     return specialNotificationChannelOperations.channels.ROOT.readChannel({ bypassAuth: true })
 }
 
-async function createDynamicChannel(name: string, parentId: number) {
-    const channel = await dynamicNotificationChannelOperations.create({
+async function createManualChannel(name: string, parentId: number) {
+    const channel = await manualNotificationChannelOperations.create({
         params: { availableMethods: allNotificationMethodsOn },
         data: { name, description: 'A channel made in a test', parentId },
         bypassAuth: true,
@@ -30,37 +30,39 @@ async function createDynamicChannel(name: string, parentId: number) {
     return channel
 }
 
-describe('the special and the dynamic notification channels', () => {
-    test('each system reads its own channels only', async () => {
+describe('the special and the manual notification channels', () => {
+    test('a channel carries the purpose of the system that made it, and each system reads its own', async () => {
         const root = await readRoot()
-        const dynamic = await createDynamicChannel('test-own-channels', root.id)
+        const manual = await createManualChannel('test-own-channels', root.id)
+        expect(root.purpose).toBe('SPECIAL')
+        expect(manual.purpose).toBe('MANUAL')
 
         const specials = await specialNotificationChannelOperations.readMany({ bypassAuth: true })
-        expect(specials.every(channel => channel.special !== null)).toBe(true)
+        expect(specials.every(channel => channel.purpose === 'SPECIAL')).toBe(true)
         expect(specials.map(channel => channel.id)).toContain(root.id)
 
-        const dynamics = await dynamicNotificationChannelOperations.readMany({ bypassAuth: true })
-        expect(dynamics.every(channel => channel.special === null)).toBe(true)
-        expect(dynamics.map(channel => channel.id)).toContain(dynamic.id)
-        expect(dynamics.map(channel => channel.id)).not.toContain(root.id)
+        const manuals = await manualNotificationChannelOperations.readMany({ bypassAuth: true })
+        expect(manuals.every(channel => channel.purpose === 'MANUAL')).toBe(true)
+        expect(manuals.map(channel => channel.id)).toContain(manual.id)
+        expect(manuals.map(channel => channel.id)).not.toContain(root.id)
     })
 
-    test('a special channel is neither changed, deleted nor sent in through the dynamic system', async () => {
+    test('a special channel is neither changed, deleted nor sent in through the manual system', async () => {
         const root = await readRoot()
         const disallowed = new Smorekopp('DISSALLOWED')
 
-        await expect(dynamicNotificationChannelOperations.update({
+        await expect(manualNotificationChannelOperations.update({
             params: { id: root.id, availableMethods: allNotificationMethodsOn },
             data: { name: 'Renamed root', description: '', parentId: root.id, mailAliasId: root.mailAliasId },
             bypassAuth: true,
         })).rejects.toThrow(disallowed)
 
-        await expect(dynamicNotificationChannelOperations.destroy({
+        await expect(manualNotificationChannelOperations.destroy({
             params: { id: root.id },
             bypassAuth: true,
         })).rejects.toThrow(disallowed)
 
-        await expect(dynamicNotificationChannelOperations.createNotification({
+        await expect(manualNotificationChannelOperations.createNotification({
             params: { channelId: root.id },
             data: { title: 'Not sent', message: 'This should never be created.' },
             bypassAuth: true,
@@ -69,14 +71,14 @@ describe('the special and the dynamic notification channels', () => {
         expect((await readRoot()).name).toBe(root.name)
     })
 
-    test('a dynamic channel may sit under a special one and be sent in', async () => {
+    test('a manual channel may sit under a special one and be sent in', async () => {
         const root = await readRoot()
-        const channel = await createDynamicChannel('test-under-special', root.id)
+        const channel = await createManualChannel('test-under-special', root.id)
         expect(channel.parentId).toBe(root.id)
 
-        await expect(dynamicNotificationChannelOperations.createNotification({
+        await expect(manualNotificationChannelOperations.createNotification({
             params: { channelId: channel.id },
-            data: { title: 'Sent in a dynamic channel', message: 'Nothing is created under IGNORE_SERVER_ONLY.' },
+            data: { title: 'Sent in a manual channel', message: 'Nothing is created under IGNORE_SERVER_ONLY.' },
             bypassAuth: true,
         })).resolves.toEqual({ notification: null })
     })
@@ -90,6 +92,7 @@ describe('the special and the dynamic notification channels', () => {
         expect(recreated.id).not.toBe(before.id)
         expect(recreated).toMatchObject({
             special: 'CONTACTOR',
+            purpose: 'SPECIAL',
             name: before.name,
             description: before.description,
             parentId: before.parentId,

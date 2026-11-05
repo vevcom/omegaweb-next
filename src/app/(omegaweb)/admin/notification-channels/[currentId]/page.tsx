@@ -1,8 +1,8 @@
 import ChannelSettings from './ChannelSettings'
 import SpecialChannelInfo from './SpecialChannelInfo'
-import { dynamicNotificationChannelOperations } from '@/services/notifications/channels/dynamic/operations'
+import { manualNotificationChannelOperations } from '@/services/notifications/channels/manual/operations'
 import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
-import { dynamicNotificationChannelAuth } from '@/services/notifications/channels/dynamic/auth'
+import { manualNotificationChannelAuth } from '@/services/notifications/channels/manual/auth'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
@@ -13,12 +13,12 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ currentId: string }>) => {
         authorizeAdminPage('notification-channels', session)
 
-        const [special, dynamic, mailAliases] = await Promise.all([
+        const [special, manual, mailAliases] = await Promise.all([
             specialNotificationChannelOperations.readMany({}),
-            dynamicNotificationChannelOperations.readMany({}),
+            manualNotificationChannelOperations.readMany({}),
             aliasOperations.readMany({}),
         ])
-        const channels = [...special, ...dynamic]
+        const channels = [...special, ...manual]
 
         const currentId = Number(params.currentId)
         const selected = channels.find(channel => channel.id === currentId)
@@ -30,8 +30,8 @@ const { page, generateMetadata } = serverPage({
         return { channels, mailAliases, selected }
     },
     capabilities: () => ({
-        canUpdateChannel: dynamicNotificationChannelAuth.update,
-        canDestroyChannel: dynamicNotificationChannelAuth.destroy,
+        canUpdateChannel: manualNotificationChannelAuth.update,
+        canDestroyChannel: manualNotificationChannelAuth.destroy,
     }),
     metadata: (data) => ({ title: data.selected.name }),
     render: ({ data, capabilities }) => (data.selected.special ? (

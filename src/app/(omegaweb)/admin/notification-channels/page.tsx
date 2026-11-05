@@ -1,9 +1,9 @@
 import AddNotificationChannel from './AddNotificationChannel'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { dynamicNotificationChannelOperations } from '@/services/notifications/channels/dynamic/operations'
+import { manualNotificationChannelOperations } from '@/services/notifications/channels/manual/operations'
 import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
-import { dynamicNotificationChannelAuth } from '@/services/notifications/channels/dynamic/auth'
+import { manualNotificationChannelAuth } from '@/services/notifications/channels/manual/auth'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
@@ -49,14 +49,14 @@ function orderByHierarchy(channels: ExpandedNotificationChannel[]): ChannelRow[]
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
         authorizeAdminPage('notification-channels', session)
-        const [special, dynamic] = await Promise.all([
+        const [special, manual] = await Promise.all([
             specialNotificationChannelOperations.readMany({}),
-            dynamicNotificationChannelOperations.readMany({}),
+            manualNotificationChannelOperations.readMany({}),
         ])
-        return [...special, ...dynamic]
+        return [...special, ...manual]
     },
     capabilities: () => ({
-        canCreateChannel: dynamicNotificationChannelAuth.create,
+        canCreateChannel: manualNotificationChannelAuth.create,
     }),
     metadata: () => ({ title: 'Varslingskanaler' }),
     render: ({ data: channels, capabilities }) => {

@@ -3,7 +3,7 @@ import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { SelectNumber } from '@/components/UI/Select'
 import NotificationMethodSelector from '@/components/NotificationMethodSelector/NotificationMethodSelector'
-import { createDynamicNotificationChannelAction } from '@/services/notifications/channels/dynamic/actions'
+import { createManualNotificationChannelAction } from '@/services/notifications/channels/manual/actions'
 import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
 import { configureAction } from '@/services/configureAction'
 import useSiteRouter from '@/hooks/useSiteRouter'
@@ -32,7 +32,7 @@ export default function AddNotificationChannel({ channels }: PropTypes) {
     return <Form
         title="Legg til varslingskanal"
         submitText="Legg til"
-        action={configureAction(createDynamicNotificationChannelAction, {
+        action={configureAction(createManualNotificationChannelAction, {
             params: {
                 availableMethods,
             }

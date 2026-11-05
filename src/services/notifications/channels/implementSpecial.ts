@@ -27,7 +27,7 @@ type ParentChannel = {
  * A notification channel the code sends in, owned by the service that implements it. It is what its
  * config says and nothing on the site changes it: it is created from the config when first read and
  * brought in line with it by the seeder. Notifications are only created in it from server code.
- * Users subscribe to it like any other channel, and dynamic channels may be put under it.
+ * Users subscribe to it like any other channel, and the channels of other purposes may be put under it.
  *
  * The root is the one channel without a parent: it is its own.
  */
@@ -75,6 +75,7 @@ export function implementSpecialNotificationChannel({
 
             return prisma.notificationChannel.create({
                 data: {
+                    purpose: 'SPECIAL',
                     special,
                     name: config.name,
                     description: config.description,
@@ -158,6 +159,7 @@ async function createRootChannel(
             parentId: Number(id),
             name: config.name,
             description: config.description,
+            purpose: 'SPECIAL',
             special: 'ROOT',
             availableMethodsId: availableMethods.id,
             mailAliasId: mailAlias.id,

@@ -22,7 +22,7 @@ export const specialNotificationChannelOperations = {
     readMany: notificationChannelOperations.readMany.implement({
         authorizer: () => specialNotificationChannelAuth.readMany,
         ownershipCheck: () => true,
-        operationImplementationFields: { where: { special: { not: null } } },
+        operationImplementationFields: { where: { purpose: 'SPECIAL' } },
     }),
 
     channels: {

@@ -17,7 +17,7 @@ export default function SpecialChannelInfo({ channel }: { channel: ExpandedNotif
                 <p>Spesiell kanal: {channel.special}</p>
                 <p>
                     Kanalen brukes av koden og er gitt av oppsettet. Den kan ikke endres eller sendes i herfra,
-                    men dynamiske kanaler kan legges under den.
+                    men kanaler laget her kan legges under den.
                 </p>
                 <p>Beskrivelse: {channel.description || '—'}</p>
                 <p>Tilgjengelige metoder: {methods.length ? methods.join(', ') : 'ingen'}</p>

@@ -7,9 +7,9 @@ import { SelectNumber } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import {
-    destroyDynamicNotificationChannelAction,
-    updateDynamicNotificationChannelAction
-} from '@/services/notifications/channels/dynamic/actions'
+    destroyManualNotificationChannelAction,
+    updateManualNotificationChannelAction
+} from '@/services/notifications/channels/manual/actions'
 import { findValidParents } from '@/services/notifications/channels/subservice/helpers'
 import { configureAction } from '@/services/configureAction'
 import { appHref } from '@/lib/sites/href'
@@ -42,7 +42,7 @@ export default function ChannelSettings({
         ">
             {capabilities.canUpdate.authorized &&
             <Form
-                action={configureAction(updateDynamicNotificationChannelAction, {
+                action={configureAction(updateManualNotificationChannelAction, {
                     params: {
                         id: currentChannelState.id,
                         availableMethods: currentChannelState.availableMethods,
@@ -110,7 +110,7 @@ export default function ChannelSettings({
                 title="Slett kanal"
                 submitText="Slett kanal"
                 submitColor="red"
-                action={configureAction(destroyDynamicNotificationChannelAction, { params: { id: currentChannel.id } })}
+                action={configureAction(destroyManualNotificationChannelAction, { params: { id: currentChannel.id } })}
                 navigateOnSuccess={appHref('/admin/notification-channels')}
                 confirmation={{
                     confirm: true,

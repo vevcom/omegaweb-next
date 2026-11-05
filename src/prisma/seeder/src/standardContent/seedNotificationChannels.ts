@@ -15,7 +15,7 @@ type ChannelInfo = {
 
 /**
  * The special channels are brought in line with their config, the root first since the others sit
- * under it. The dynamic channels below are upserted on their unique name, and an existing one is
+ * under it. The manual channels below are upserted on their unique name, and an existing one is
  * left untouched: its methods, alias and description are edited through the admin pages.
  */
 export const seedNotificationChannels = defineSeedOperation(async (prisma: PrismaClient) => {
@@ -67,6 +67,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         where: { name: channel.name },
         update: {},
         create: {
+            purpose: 'MANUAL',
             name: channel.name,
             description: channel.description,
             availableMethods: {

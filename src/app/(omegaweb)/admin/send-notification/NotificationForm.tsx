@@ -3,7 +3,7 @@ import { SelectNumber } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
-import { createNotificationInDynamicChannelAction } from '@/services/notifications/channels/dynamic/actions'
+import { createNotificationInManualChannelAction } from '@/services/notifications/channels/manual/actions'
 import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
@@ -17,13 +17,13 @@ export default function NotificationForm({
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
     const [channelId, setChannelId] = useState(channels[0]?.id)
 
-    if (channelId === undefined) return <p>Det finnes ingen dynamiske kanaler å sende varsler i.</p>
+    if (channelId === undefined) return <p>Det finnes ingen kanaler å sende varsler i. Lag en under varslingskanaler.</p>
 
     return <>
         <Form
             submitText="Send varsel"
             className="w-full"
-            action={configureAction(createNotificationInDynamicChannelAction, { params: { channelId } })}
+            action={configureAction(createNotificationInManualChannelAction, { params: { channelId } })}
             successCallback={data => {
                 if (data) {
                     setSuccessMessage(`

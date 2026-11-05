@@ -1,6 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 
-export const dynamicNotificationChannelAuth = {
+export const manualNotificationChannelAuth = {
     create: Require.permission('NOTIFICATION_ADMIN'),
     readMany: Require.user(),
     update: Require.permission('NOTIFICATION_ADMIN'),

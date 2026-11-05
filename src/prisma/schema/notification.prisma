@@ -1,3 +1,10 @@
+// What a channel exists for, which is to say which system owns it: the special channels are the
+// code's, the manual ones are made on the admin pages.
+enum NotificationChannelPurpose {
+  SPECIAL
+  MANUAL
+}
+
 enum SpecialNotificationChannel {
   ROOT
   NEW_EVENT
@@ -14,6 +21,7 @@ model NotificationChannel {
   name        String                      @unique
   description String                      @default("")
   special     SpecialNotificationChannel? @unique
+  purpose     NotificationChannelPurpose
   parentId    Int // Root is pointing to itself
   parent      NotificationChannel         @relation(name: "parent", fields: [parentId], references: [id])
   children    NotificationChannel[]       @relation(name: "parent")
