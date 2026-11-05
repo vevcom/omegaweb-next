@@ -1,4 +1,4 @@
-import { notificationMethodSchema } from '@/services/notifications/subservice/schemas'
+import { notificationMethodSchema } from '@/services/notifications/channels/subservice/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({

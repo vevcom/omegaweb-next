@@ -3,7 +3,7 @@ import { SelectNumber } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
-import { createDynamicNotificationAction } from '@/services/notifications/dynamic/actions'
+import { createNotificationInDynamicChannelAction } from '@/services/notifications/channels/dynamic/actions'
 import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
@@ -23,7 +23,7 @@ export default function NotificationForm({
         <Form
             submitText="Send varsel"
             className="w-full"
-            action={configureAction(createDynamicNotificationAction, { params: { channelId } })}
+            action={configureAction(createNotificationInDynamicChannelAction, { params: { channelId } })}
             successCallback={data => {
                 if (data) {
                     setSuccessMessage(`

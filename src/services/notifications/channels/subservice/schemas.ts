@@ -34,14 +34,14 @@ const paramsFieldSchemas = z.object({
     availableMethods: notificationMethodSchema,
 })
 
-export const notificationSchemas = {
+export const notificationChannelSchemas = {
     data: {
-        createChannel: dataFieldSchemas.pick({
+        create: dataFieldSchemas.pick({
             name: true,
             description: true,
             parentId: true,
         }),
-        updateChannel: dataFieldSchemas.pick({
+        update: dataFieldSchemas.pick({
             name: true,
             description: true,
             parentId: true,
@@ -55,14 +55,14 @@ export const notificationSchemas = {
         }),
     },
     params: {
-        createChannel: paramsFieldSchemas.pick({
+        create: paramsFieldSchemas.pick({
             availableMethods: true,
         }),
-        updateChannel: paramsFieldSchemas.pick({
+        update: paramsFieldSchemas.pick({
             id: true,
             availableMethods: true,
         }),
-        destroyChannel: paramsFieldSchemas.pick({
+        destroy: paramsFieldSchemas.pick({
             id: true,
         }),
         createNotification: paramsFieldSchemas.pick({

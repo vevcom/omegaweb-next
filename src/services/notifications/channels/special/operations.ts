@@ -1,7 +1,7 @@
 import '@pn-server-only'
-import { specialNotificationAuth } from './auth'
-import { notificationOperations } from '@/services/notifications/subservice/operations'
-import { rootNotificationChannel } from '@/services/notifications/subservice/special/implement'
+import { specialNotificationChannelAuth } from './auth'
+import { notificationChannelOperations } from '@/services/notifications/channels/subservice/operations'
+import { rootNotificationChannel } from '@/services/notifications/channels/rootNotificationChannel'
 import { newEventNotificationChannel } from '@/services/events/newEventNotificationChannel'
 import {
     waitingListPromotionNotificationChannel
@@ -12,15 +12,15 @@ import { newJobAdNotificationChannel } from '@/services/careers/jobAds/newJobAdN
 import { newOmegaquoteNotificationChannel } from '@/services/omegaquotes/newOmegaquoteNotificationChannel'
 import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
 import type { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
-import type { SpecialNotificationChannelImplementation } from '@/services/notifications/subservice/special/implement'
+import type { SpecialNotificationChannelImplementation } from '@/services/notifications/channels/implementSpecial'
 
 /**
  * The special channels assembled, for what needs all of them: the seeder, and the pages that show
  * the channel tree. Sending in one goes through the owning service's own implementation.
  */
-export const specialNotificationOperations = {
-    readManyChannels: notificationOperations.readManyChannels.implement({
-        authorizer: () => specialNotificationAuth.readManyChannels,
+export const specialNotificationChannelOperations = {
+    readMany: notificationChannelOperations.readMany.implement({
+        authorizer: () => specialNotificationChannelAuth.readMany,
         ownershipCheck: () => true,
         operationImplementationFields: { where: { special: { not: null } } },
     }),

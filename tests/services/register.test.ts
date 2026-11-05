@@ -1,7 +1,7 @@
 import { Session } from '@/auth/session/Session'
 import { userOperations } from '@/services/users/operations'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
-import { specialNotificationOperations } from '@/services/notifications/special/operations'
+import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
 import { ServiceError } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { describe, expect, jest, test } from '@jest/globals'
@@ -99,7 +99,7 @@ describe('register', () => {
 
     test('subscribes to no channel, so a new user hears nothing until they turn a channel on', async () => {
         const { user, session } = await createUnregisteredUser('registernosubscriptions', new Date().toISOString())
-        expect((await specialNotificationOperations.readManyChannels({ bypassAuth: true })).length).toBeGreaterThan(0)
+        expect((await specialNotificationChannelOperations.readMany({ bypassAuth: true })).length).toBeGreaterThan(0)
 
         await userOperations.register({
             params: { id: user.id },
@@ -112,7 +112,7 @@ describe('register', () => {
 
     test('keeps a subscription the user already has, as one whose accepted terms were reset does', async () => {
         const { user, session } = await createUnregisteredUser('registerkeepssubscription', new Date().toISOString())
-        const channel = (await specialNotificationOperations.readManyChannels({ bypassAuth: true }))[0]
+        const channel = (await specialNotificationChannelOperations.readMany({ bypassAuth: true }))[0]
         await prisma.notificationSubscription.create({
             data: {
                 user: { connect: { id: user.id } },

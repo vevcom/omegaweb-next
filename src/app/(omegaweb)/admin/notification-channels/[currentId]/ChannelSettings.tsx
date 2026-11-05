@@ -9,8 +9,8 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import {
     destroyDynamicNotificationChannelAction,
     updateDynamicNotificationChannelAction
-} from '@/services/notifications/dynamic/actions'
-import { findValidParents } from '@/services/notifications/subservice/helpers'
+} from '@/services/notifications/channels/dynamic/actions'
+import { findValidParents } from '@/services/notifications/channels/subservice/helpers'
 import { configureAction } from '@/services/configureAction'
 import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'

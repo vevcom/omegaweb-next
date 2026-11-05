@@ -1,5 +1,5 @@
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
-import { specialNotificationOperations } from '@/services/notifications/special/operations'
+import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
@@ -19,7 +19,7 @@ type ChannelInfo = {
  * left untouched: its methods, alias and description are edited through the admin pages.
  */
 export const seedNotificationChannels = defineSeedOperation(async (prisma: PrismaClient) => {
-    const { ROOT, ...otherSpecials } = specialNotificationOperations.channels
+    const { ROOT, ...otherSpecials } = specialNotificationChannelOperations.channels
     await ROOT.generateChannelFromConfig.internalCall({ prisma })
     await Promise.all(Object.values(otherSpecials).map(channel =>
         channel.generateChannelFromConfig.internalCall({ prisma })

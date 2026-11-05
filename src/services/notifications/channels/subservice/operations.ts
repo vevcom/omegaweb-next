@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { notificationSchemas } from './schemas'
+import { notificationChannelSchemas } from './schemas'
 import { availableNotificationMethodIncluder } from './constants'
 import { methodsAreEqual, validateMethods, validateNewParent } from './helpers'
 import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
@@ -15,10 +15,10 @@ import type { ExpandedNotificationChannel, NotificationResult } from '@/services
  * that implements these: the special channels by the code, through their config, and the rest by the
  * dynamic system of the admin pages.
  */
-export const notificationOperations = {
-    createChannel: defineSubOperation({
-        dataSchema: () => notificationSchemas.data.createChannel,
-        paramsSchema: () => notificationSchemas.params.createChannel,
+export const notificationChannelOperations = {
+    create: defineSubOperation({
+        dataSchema: () => notificationChannelSchemas.data.create,
+        paramsSchema: () => notificationChannelSchemas.params.create,
         opensTransaction: true,
         operation: () => async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> =>
             await prisma.$transaction(async (tx) => {
@@ -95,7 +95,7 @@ export const notificationOperations = {
     }),
 
     /** The channels the implementing system owns, as its `where` picks them out. */
-    readManyChannels: defineSubOperation({
+    readMany: defineSubOperation({
         operation: ({ where }: { where: Prisma.NotificationChannelWhereInput }) =>
             async ({ prisma }): Promise<ExpandedNotificationChannel[]> => await prisma.notificationChannel.findMany({
                 where,
@@ -103,9 +103,9 @@ export const notificationOperations = {
             }),
     }),
 
-    updateChannel: defineSubOperation({
-        dataSchema: () => notificationSchemas.data.updateChannel,
-        paramsSchema: () => notificationSchemas.params.updateChannel,
+    update: defineSubOperation({
+        dataSchema: () => notificationChannelSchemas.data.update,
+        paramsSchema: () => notificationChannelSchemas.params.update,
         opensTransaction: true,
         operation: () => async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
             const channel = await prisma.notificationChannel.findUniqueOrThrow({
@@ -158,8 +158,8 @@ export const notificationOperations = {
      * Deletes a channel with its subscriptions and the notifications sent in it. A channel's children
      * must be moved or deleted first.
      */
-    destroyChannel: defineSubOperation({
-        paramsSchema: () => notificationSchemas.params.destroyChannel,
+    destroy: defineSubOperation({
+        paramsSchema: () => notificationChannelSchemas.params.destroy,
         opensTransaction: true,
         operation: () => async ({ prisma, params }) => prisma.$transaction(async (tx) => {
             const channel = await tx.notificationChannel.findUniqueOrThrow({
@@ -208,8 +208,8 @@ export const notificationOperations = {
      * @returns The created notification.
      */
     createNotification: defineSubOperation({
-        paramsSchema: () => notificationSchemas.params.createNotification,
-        dataSchema: () => notificationSchemas.data.createNotification,
+        paramsSchema: () => notificationChannelSchemas.params.createNotification,
+        dataSchema: () => notificationChannelSchemas.data.createNotification,
         operation: () => async ({ prisma, params, data }): Promise<NotificationResult> => {
             // This prevents notifications from being created - and later dispatched by the
             // notification worker - during seeding.

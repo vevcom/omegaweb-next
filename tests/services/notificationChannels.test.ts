@@ -1,6 +1,6 @@
 import { prisma } from '@/prisma-pn-client-instance'
-import { dynamicNotificationOperations } from '@/services/notifications/dynamic/operations'
-import { specialNotificationOperations } from '@/services/notifications/special/operations'
+import { dynamicNotificationChannelOperations } from '@/services/notifications/channels/dynamic/operations'
+import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
 import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 import { Smorekopp } from '@/services/error'
@@ -9,7 +9,7 @@ import { afterEach, describe, expect, test } from '@jest/globals'
 const createdChannelIds: number[] = []
 
 afterEach(async () => {
-    await Promise.all(createdChannelIds.map(id => dynamicNotificationOperations.destroyChannel({
+    await Promise.all(createdChannelIds.map(id => dynamicNotificationChannelOperations.destroy({
         params: { id },
         bypassAuth: true,
     })))
@@ -17,11 +17,11 @@ afterEach(async () => {
 })
 
 async function readRoot() {
-    return specialNotificationOperations.channels.ROOT.readChannel({ bypassAuth: true })
+    return specialNotificationChannelOperations.channels.ROOT.readChannel({ bypassAuth: true })
 }
 
 async function createDynamicChannel(name: string, parentId: number) {
-    const channel = await dynamicNotificationOperations.createChannel({
+    const channel = await dynamicNotificationChannelOperations.create({
         params: { availableMethods: allNotificationMethodsOn },
         data: { name, description: 'A channel made in a test', parentId },
         bypassAuth: true,
@@ -35,11 +35,11 @@ describe('the special and the dynamic notification channels', () => {
         const root = await readRoot()
         const dynamic = await createDynamicChannel('test-own-channels', root.id)
 
-        const specials = await specialNotificationOperations.readManyChannels({ bypassAuth: true })
+        const specials = await specialNotificationChannelOperations.readMany({ bypassAuth: true })
         expect(specials.every(channel => channel.special !== null)).toBe(true)
         expect(specials.map(channel => channel.id)).toContain(root.id)
 
-        const dynamics = await dynamicNotificationOperations.readManyChannels({ bypassAuth: true })
+        const dynamics = await dynamicNotificationChannelOperations.readMany({ bypassAuth: true })
         expect(dynamics.every(channel => channel.special === null)).toBe(true)
         expect(dynamics.map(channel => channel.id)).toContain(dynamic.id)
         expect(dynamics.map(channel => channel.id)).not.toContain(root.id)
@@ -49,18 +49,18 @@ describe('the special and the dynamic notification channels', () => {
         const root = await readRoot()
         const disallowed = new Smorekopp('DISSALLOWED')
 
-        await expect(dynamicNotificationOperations.updateChannel({
+        await expect(dynamicNotificationChannelOperations.update({
             params: { id: root.id, availableMethods: allNotificationMethodsOn },
             data: { name: 'Renamed root', description: '', parentId: root.id, mailAliasId: root.mailAliasId },
             bypassAuth: true,
         })).rejects.toThrow(disallowed)
 
-        await expect(dynamicNotificationOperations.destroyChannel({
+        await expect(dynamicNotificationChannelOperations.destroy({
             params: { id: root.id },
             bypassAuth: true,
         })).rejects.toThrow(disallowed)
 
-        await expect(dynamicNotificationOperations.createNotification({
+        await expect(dynamicNotificationChannelOperations.createNotification({
             params: { channelId: root.id },
             data: { title: 'Not sent', message: 'This should never be created.' },
             bypassAuth: true,
@@ -74,7 +74,7 @@ describe('the special and the dynamic notification channels', () => {
         const channel = await createDynamicChannel('test-under-special', root.id)
         expect(channel.parentId).toBe(root.id)
 
-        await expect(dynamicNotificationOperations.createNotification({
+        await expect(dynamicNotificationChannelOperations.createNotification({
             params: { channelId: channel.id },
             data: { title: 'Sent in a dynamic channel', message: 'Nothing is created under IGNORE_SERVER_ONLY.' },
             bypassAuth: true,

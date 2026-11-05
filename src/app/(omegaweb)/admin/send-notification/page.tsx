@@ -1,7 +1,7 @@
 import NotificationForm from './NotificationForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { dynamicNotificationOperations } from '@/services/notifications/dynamic/operations'
-import { dynamicNotificationAuth } from '@/services/notifications/dynamic/auth'
+import { dynamicNotificationChannelOperations } from '@/services/notifications/channels/dynamic/operations'
+import { dynamicNotificationChannelAuth } from '@/services/notifications/channels/dynamic/auth'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -9,10 +9,10 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
         authorizeAdminPage('send-notification', session)
-        return dynamicNotificationOperations.readManyChannels({})
+        return dynamicNotificationChannelOperations.readMany({})
     },
     capabilities: () => ({
-        canCreateNotification: dynamicNotificationAuth.createNotification,
+        canCreateNotification: dynamicNotificationChannelAuth.createNotification,
     }),
     metadata: () => ({ title: 'Send varsel' }),
     render: ({ data: channels, capabilities }) => (

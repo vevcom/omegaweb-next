@@ -1,9 +1,8 @@
 import '@pn-server-only'
-import { notificationOperations } from '@/services/notifications/subservice/operations'
-import { notificationSchemas } from '@/services/notifications/subservice/schemas'
-import { availableNotificationMethodIncluder } from '@/services/notifications/subservice/constants'
-import { specialNotificationAuth } from '@/services/notifications/special/auth'
-import { allNotificationMethodsOn } from '@/services/notifications/constants'
+import { notificationChannelOperations } from './subservice/operations'
+import { notificationChannelSchemas } from './subservice/schemas'
+import { availableNotificationMethodIncluder } from './subservice/constants'
+import { specialNotificationChannelAuth } from './special/auth'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
@@ -19,19 +18,35 @@ export type SpecialNotificationChannelConfig = {
     alias?: string,
 }
 
+/** What a special channel needs of its parent: to read it, creating it when it is missing. */
+type ParentChannel = {
+    readChannelInternal: (args: { prisma: PrismaPossibleTransaction<false> }) => Promise<ExpandedNotificationChannel>,
+}
+
 /**
  * A notification channel the code sends in, owned by the service that implements it. It is what its
  * config says and nothing on the site changes it: it is created from the config when first read and
  * brought in line with it by the seeder. Notifications are only created in it from server code.
  * Users subscribe to it like any other channel, and dynamic channels may be put under it.
+ *
+ * The root is the one channel without a parent: it is its own.
  */
 export function implementSpecialNotificationChannel({
     special,
+    parent,
     config,
 }: {
-    special: SpecialNotificationChannel,
     config: SpecialNotificationChannelConfig,
-}) {
+} & ({
+    special: 'ROOT',
+    parent?: undefined,
+} | {
+    special: Exclude<SpecialNotificationChannel, 'ROOT'>,
+    parent: ParentChannel,
+})) {
+    const readParentId = async (prisma: PrismaPossibleTransaction<false>): Promise<number> =>
+        (await parent!.readChannelInternal({ prisma })).id
+
     const generateChannelFromConfig = defineSubOperation({
         operation: () => async ({ prisma }): Promise<ExpandedNotificationChannel> => {
             const mailAlias = { connect: { address: aliasAddress(config.alias) } }
@@ -50,13 +65,13 @@ export function implementSpecialNotificationChannel({
                         name: config.name,
                         description: config.description,
                         mailAlias,
-                        ...(special === 'ROOT' ? {} : { parent: { connect: { id: await readRootId(prisma) } } }),
+                        ...(parent ? { parent: { connect: { id: await readParentId(prisma) } } } : {}),
                     },
                     include: availableNotificationMethodIncluder,
                 })
             }
 
-            if (special === 'ROOT') return createRootChannel(prisma, config)
+            if (!parent) return createRootChannel(prisma, config)
 
             return prisma.notificationChannel.create({
                 data: {
@@ -64,7 +79,7 @@ export function implementSpecialNotificationChannel({
                     name: config.name,
                     description: config.description,
                     availableMethods: { create: config.availableMethods },
-                    parent: { connect: { id: await readRootId(prisma) } },
+                    parent: { connect: { id: await readParentId(prisma) } },
                     mailAlias,
                 },
                 include: availableNotificationMethodIncluder,
@@ -84,13 +99,13 @@ export function implementSpecialNotificationChannel({
     }
 
     const readChannel = defineOperation({
-        authorizer: () => specialNotificationAuth.readChannel,
+        authorizer: () => specialNotificationChannelAuth.readChannel,
         operation: async ({ prisma }) => readChannelInternal({ prisma }),
     })
 
     const createNotification = defineSubOperation({
-        dataSchema: () => notificationSchemas.data.createNotification,
-        operation: () => async ({ prisma, data }) => notificationOperations.createNotification.internalCall({
+        dataSchema: () => notificationChannelSchemas.data.createNotification,
+        operation: () => async ({ prisma, data }) => notificationChannelOperations.createNotification.internalCall({
             params: {
                 channelId: (await readChannelInternal({ prisma })).id,
             },
@@ -110,20 +125,6 @@ export function implementSpecialNotificationChannel({
 }
 
 export type SpecialNotificationChannelImplementation = ReturnType<typeof implementSpecialNotificationChannel>
-
-/** Every other special channel sits right under the root, which is created on demand too. */
-export const rootNotificationChannel = implementSpecialNotificationChannel({
-    special: 'ROOT',
-    config: {
-        name: 'Alle varslinger',
-        description: 'Denne kanalen styrer alle varslinger',
-        availableMethods: allNotificationMethodsOn,
-    },
-})
-
-async function readRootId(prisma: PrismaPossibleTransaction<false>): Promise<number> {
-    return (await rootNotificationChannel.readChannelInternal({ prisma })).id
-}
 
 function aliasAddress(alias: string | undefined): string {
     return `${alias ?? 'noreply'}@${DomainContext.mailDomainOf(Site.root)}`

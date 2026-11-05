@@ -1,6 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 
-export const specialNotificationAuth = {
+export const specialNotificationChannelAuth = {
     readChannel: Require.user(),
-    readManyChannels: Require.user(),
+    readMany: Require.user(),
 } as const

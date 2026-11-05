@@ -1,8 +1,8 @@
 import ChannelSettings from './ChannelSettings'
 import SpecialChannelInfo from './SpecialChannelInfo'
-import { dynamicNotificationOperations } from '@/services/notifications/dynamic/operations'
-import { specialNotificationOperations } from '@/services/notifications/special/operations'
-import { dynamicNotificationAuth } from '@/services/notifications/dynamic/auth'
+import { dynamicNotificationChannelOperations } from '@/services/notifications/channels/dynamic/operations'
+import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
+import { dynamicNotificationChannelAuth } from '@/services/notifications/channels/dynamic/auth'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
@@ -14,8 +14,8 @@ const { page, generateMetadata } = serverPage({
         authorizeAdminPage('notification-channels', session)
 
         const [special, dynamic, mailAliases] = await Promise.all([
-            specialNotificationOperations.readManyChannels({}),
-            dynamicNotificationOperations.readManyChannels({}),
+            specialNotificationChannelOperations.readMany({}),
+            dynamicNotificationChannelOperations.readMany({}),
             aliasOperations.readMany({}),
         ])
         const channels = [...special, ...dynamic]
@@ -30,8 +30,8 @@ const { page, generateMetadata } = serverPage({
         return { channels, mailAliases, selected }
     },
     capabilities: () => ({
-        canUpdateChannel: dynamicNotificationAuth.updateChannel,
-        canDestroyChannel: dynamicNotificationAuth.destroyChannel,
+        canUpdateChannel: dynamicNotificationChannelAuth.update,
+        canDestroyChannel: dynamicNotificationChannelAuth.destroy,
     }),
     metadata: (data) => ({ title: data.selected.name }),
     render: ({ data, capabilities }) => (data.selected.special ? (
