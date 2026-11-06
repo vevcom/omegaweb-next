@@ -16,9 +16,8 @@ export default function SearchButton() {
         >
             <FontAwesomeIcon
                 className="
-                    size-5! text-text transition-colors duration-300
-                    [&_path]:text-inherit
-                    group-hover:text-accent-blue
+                    size-5! text-base-content transition-colors duration-300
+                    group-hover:text-primary
                 "
                 icon={faMagnifyingGlass}
             />

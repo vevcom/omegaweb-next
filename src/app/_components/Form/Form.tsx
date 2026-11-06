@@ -141,7 +141,7 @@ export default function Form<GiveActionReturn>({
                 [&>h2]:mb-2
                 ${className}
             `} {...props} onSubmit={handleSubmit}>
-                {title && <h2>{title}</h2>}
+                {title && <h2 className="text-base-content">{title}</h2>}
                 {Children.toArray(children).map((child, index) => {
                     const name = inputName(child)
                     return <FormInputSlot

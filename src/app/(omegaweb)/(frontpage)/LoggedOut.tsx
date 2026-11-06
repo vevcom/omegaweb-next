@@ -25,7 +25,7 @@ import { appHref, externalHref } from '@/lib/sites/href'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
-// Important flags: btn/secondary-btn set their own margin and padding at the same specificity.
+// Important flags: btn/btn-neutral set their own margin and padding at the same specificity.
 const ctaLayout = 'w-full m-0! py-5! px-6!'
 
 export default async function LoggedOutLandingPage() {
@@ -44,7 +44,7 @@ export default async function LoggedOutLandingPage() {
                     <div className={frontInfoInnerClassName}>
                         <div className="
                             grid place-items-center p-8 rounded-full bg-radial-[circle] from-black/80 from-0%
-                            to-transparent to-70%
+                            to-transparent to-70% text-base-content
                         ">
                             <StandardImageServer
                                 standardImage="LOGO_WHITE"
@@ -54,15 +54,15 @@ export default async function LoggedOutLandingPage() {
                         </div>
 
                         <SiteLink className={`
-                            secondary-btn font-medium
+                            btn-neutral font-medium
                             ${ctaLayout}
                         `} href={omegaAuthLinks.login()}>Logg inn</SiteLink>
                         <SiteLink className={`
-                            btn font-bold
+                            btn-primary font-bold
                             ${ctaLayout}
                         `} href={appHref('/new-student')}>Ny student</SiteLink>
                         <SiteLink className={`
-                            secondary-btn font-medium
+                            btn-neutral font-medium
                             ${ctaLayout}
                         `} href={careerLinks.frontpage()} toMainDomainServingSite>For bedrifter</SiteLink>
 
@@ -82,8 +82,8 @@ export default async function LoggedOutLandingPage() {
                 >
                     <div className="
                         mt-4
-                        [&>a]:mr-2 [&>a]:text-text [&>a]:transition-colors [&>a]:duration-300
-                        [&>a:hover]:text-accent-blue
+                        [&>a]:mr-2 [&>a]:text-base-content [&>a]:transition-colors [&>a]:duration-300
+                        [&>a:hover]:text-primary
                     ">
                         <SocialIcons />
                     </div>

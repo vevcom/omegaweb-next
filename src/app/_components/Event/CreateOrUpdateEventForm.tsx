@@ -130,7 +130,7 @@ export default function CreateOrUpdateEventForm({ event, config, eventTags, comm
 
             {event ? (
                 <FormSection legend="Påmelding" columns={2}>
-                    <p className="m-0 col-span-full text-s text-text-muted">
+                    <p className="m-0 col-span-full text-s text-base-content/80">
                         Påmeldingsperiode, pris, plasser og hvem som kan melde seg på settes per variant og kvote
                         i variant-popupen.
                     </p>
@@ -167,7 +167,7 @@ export default function CreateOrUpdateEventForm({ event, config, eventTags, comm
                                 name="quotaVisibilityRequirements"
                                 value={JSON.stringify(quotaRequirements)}
                             />
-                            <p className="m-0 text-s text-text-muted">
+                            <p className="m-0 text-s text-base-content/80">
                                 Dette blir den første varianten og kvoten. Flere legges til på arrangementets side.
                             </p>
                         </div>

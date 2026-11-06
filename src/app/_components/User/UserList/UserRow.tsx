@@ -43,7 +43,7 @@ export default function UserRow({ user, groupSelected = false, href }: PropTypes
                         <span className="
                             hidden
                             max-mobile:block
-                            text-s text-text-muted
+                            text-s text-base-content/80
                         ">{details}</span>
                     </div>
                 </div>

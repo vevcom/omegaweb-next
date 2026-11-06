@@ -5,28 +5,26 @@ $black:  #000;
 $layer:      var(--layer);
 $boxShadow:  var(--boxShadow);
 
-$text:       var(--text);
-$text-muted: var(--text-muted);
-$text-inv:   var(--text-inv);
+$base-100:     var(--color-base-100);
+$base-200:     var(--color-base-200);
+$base-300:     var(--color-base-300);
+$base-content: var(--color-base-content);
 
-$surface-base:    var(--surface-base);
-$surface-raised:  var(--surface-raised);
-$surface-hover:   var(--surface-hover);
-$surface-subtle:  var(--surface-subtle);
+$body-background: $base-100;
 
-$body-background: $surface-base;
-
-$ink-hover:  var(--ink-hover);  // Light text
-$ink-strong: var(--ink-strong);  // Brightest text
-
-$accent-red:    var(--accent-red);    // Error
-$accent-orange: var(--accent-orange);
-$accent-yellow: var(--accent-yellow); // Warning
-$accent-green:  var(--accent-green);  // Success
-$accent-cyan:   var(--accent-cyan);
-$accent-blue:   var(--accent-blue);   // Primary color
-
-$accent-magenta: var(--accent-magenta);
-$accent-violet:  var(--accent-violet);
-
-$error: $accent-red;
+$primary: var(--color-primary);
+$primary-content: var(--color-primary-content);
+$secondary: var(--color-secondary);
+$secondary-content: var(--color-secondary-content);
+$accent: var(--color-accent);
+$accent-content: var(--color-accent-content);
+$neutral: var(--color-neutral);
+$neutral-content: var(--color-neutral-content);
+$info: var(--color-info);
+$info-content: var(--color-info-content);
+$success: var(--color-success);
+$success-content: var(--color-success-content);
+$warning: var(--color-warning);
+$warning-content: var(--color-warning-content);
+$error: var(--color-error);
+$error-content: var(--color-error-content);

@@ -126,7 +126,7 @@ export default function ScrollIndicator({ scrollRef, orientation = 'vertical', c
         >
             <div
                 className={`
-                    absolute rounded-full bg-surface-subtle pointer-events-auto touch-none
+                    absolute rounded-full bg-base-300 pointer-events-auto touch-none
                     before:absolute
                     ${vertical
             ? `

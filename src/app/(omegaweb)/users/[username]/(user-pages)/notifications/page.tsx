@@ -27,7 +27,7 @@ const { page, generateMetadata } = serverPage({
         canManagePushDevice: browserPushSubscriptionAuth.create.data({ userId: data.profile.user.id }),
     }),
     render: ({ data, capabilities }) => (
-        <div className="bg-surface-base rounded-round p-(--card-padding)">
+        <div className="bg-base-100 rounded-round p-(--card-padding)">
             <h2>Varslinger</h2>
             {capabilities.canManagePushDevice.authorized && (
                 <PushDeviceSettings

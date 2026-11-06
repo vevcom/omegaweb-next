@@ -22,7 +22,7 @@ export type Confirmation = {
     text?: string,
 }
 
-const submitButtonClassName = 'w-40 m-0 text-text-inv transition-colors duration-300 ease-in-out'
+const submitButtonClassName = 'w-40 m-0 transition-colors duration-300 ease-in-out'
 // The answers to a confirmation share a size, and ignore the caller's class and color, which
 // style the button that asks the question.
 const confirmationButtonClassName = 'w-24 m-0 transition-colors duration-300 ease-in-out'
@@ -203,7 +203,7 @@ export default function SubmitButton({
             {renderButtons()}
 
             <p className={`
-                flex flex-col min-h-[1.15em] mb-[3px] text-accent-red
+                flex flex-col min-h-[1.15em] mb-[3px] text-error
                 ${pending ? 'invisible' : ''}
             `}>
                 {

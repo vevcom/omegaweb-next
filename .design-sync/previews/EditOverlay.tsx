@@ -7,12 +7,12 @@ import { EditOverlay } from '@ohma/ui'
 export const OverCmsParagraph = () => (
     <div style={{ position: 'relative', maxWidth: '28rem' }}>
         <div style={{
-            background: 'var(--surface-raised)',
+            background: 'var(--color-base-200)',
             padding: '1.25rem',
             borderRadius: 'var(--rounding)',
         }}>
             <h3 style={{ margin: '0 0 0.5rem' }}>Hvad der hender</h3>
-            <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+            <p style={{ margin: 0, color: 'var(--color-base-content)' }}>
                 Denne teksten kommer fra CMS-et og kan redigeres i redigeringsmodus.
             </p>
         </div>
@@ -26,7 +26,7 @@ export const OverImage = () => (
             width: '100%',
             height: '100%',
             borderRadius: 'var(--rounding)',
-            background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-blue))',
+            background: 'linear-gradient(135deg, var(--color-secondary), var(--color-primary))',
         }} />
         <EditOverlay />
     </div>

@@ -34,7 +34,7 @@ export default serverLayout({
                 <PageWrapper className="rounded-round h-auto! overflow-visible!">
                     <PageTitleSetter title={committee.name} />
                     {committee.group.pensioned && (
-                        <p className="py-2 px-4 mb-4 rounded-round border border-text-muted text-text-muted">
+                        <p className="py-2 px-4 mb-4 rounded-round border border-base-content/80 text-base-content/80">
                             Denne komitéen er pensjonert. Den har ingen aktive medlemmer, og
                             innholdet står som det var.
                         </p>

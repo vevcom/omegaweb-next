@@ -10,8 +10,8 @@ const IconButton = ({ icon }: { icon: typeof faCog }) => (
         height: '2.75rem',
         borderRadius: 'var(--rounding)',
         border: 'none',
-        background: 'var(--surface-raised)',
-        color: 'var(--text)',
+        background: 'var(--color-base-200)',
+        color: 'var(--color-base-content)',
         fontSize: '1.1rem',
         cursor: 'pointer',
     }}>

@@ -34,7 +34,7 @@ export default function CompanyChooser({ className }: PropTypes) {
                     name="name"
                     onChange={handleNameFilter}
                 />
-                <SiteLink href={careerLinks.companies()} className="secondary-btn m-0 whitespace-nowrap">
+                <SiteLink href={careerLinks.companies()} className="btn-neutral m-0 whitespace-nowrap">
                     Administrer bedrifter
                 </SiteLink>
             </div>

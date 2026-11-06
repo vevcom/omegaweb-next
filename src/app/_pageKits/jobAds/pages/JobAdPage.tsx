@@ -50,10 +50,10 @@ export const jobAdPage = (config: JobAdPagesConfig) => serverPage({
                     article={jobAd.article}
                     coverImageClass="rounded-round overflow-hidden mb-2"
                     sideBarClassName="
-                        p-2 rounded-round ml-2 bg-surface-base
+                        p-2 rounded-round ml-2 bg-base-100
                         max-mobile:ml-0 max-mobile:mt-2
                     "
-                    articleClassName="bg-surface-base rounded-round"
+                    articleClassName="bg-base-100 rounded-round"
                     addSectionClassName="mx-4 mb-0"
                     actions={{
                         updateArticleAction: configureAction(

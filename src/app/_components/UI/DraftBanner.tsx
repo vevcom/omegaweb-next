@@ -7,8 +7,8 @@ export default function DraftBanner({ children }: { children: ReactNode }) {
     return <div
         role="status"
         className="
-            flex items-center gap-3 px-4 py-3 rounded-round border-2 border-accent-orange bg-surface-base font-medium
-            [&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-accent-orange
+            flex items-center gap-3 px-4 py-3 rounded-round border-2 border-warning bg-base-100 font-medium
+            [&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-warning
         "
     >
         <FontAwesomeIcon icon={faEyeSlash} />

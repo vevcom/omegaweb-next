@@ -127,13 +127,13 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                                 >
                                     <TextInput
                                         defaultValue={collection.name}
-                                        color="black"
+                                        color="base"
                                         label="Navn"
                                         name="collectionName"
                                     />
                                     <TextInput
                                         defaultValue={collection.description || ''}
-                                        color="black"
+                                        color="base"
                                         label="Beskrivelse"
                                         name="collectionDescription"
                                     />

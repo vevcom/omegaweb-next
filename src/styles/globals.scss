@@ -11,12 +11,11 @@
         margin: 0;
         box-sizing: border-box;
         font-family: ohma.$fonts-primary;
-        color: ohma.$colors-text;
     }
 
     html {
         scroll-behavior: smooth;
-        background-color: ohma.$colors-surface-base;
+        background-color: ohma.$colors-base-100;
 
         --rounding: 1rem;
         --gap: 0.5rem;
@@ -26,42 +25,23 @@
             --card-padding: var(--rounding);
         }
 
-        --layer: hsl(210, 0%, 0%, 20%);
-
-        --boxShadow:   hsl(207, 0%,    0%,    20%);
-        --text:        hsl(0,   0%,    90%);
-        --text-muted:  hsl(0,   0%,    75%);
-        --text-inv:    hsl(0,   0%,    10%);
-
-        --surface-base:    hsl(240 8% 8%);
-        --surface-raised:  hsl(240 6% 12%);
-        --surface-hover:   hsl(210, 8%, 18%);
-        --surface-subtle:  hsl(210, 8%, 35%);
-
-        --ink-hover:  hsl(210, 8%, 65%);
-        --ink-strong: hsl(210, 8%, 75%);
-
-        --accent-red:     hsl(0, 80%, 60%);
-        --accent-orange:  hsl(40, 80%, 60%);
-        --accent-yellow:  hsl(60, 80%, 60%);
-        --accent-green:   hsl(120, 80%, 60%);
-        --accent-cyan:    hsl(180, 80%, 60%);
-        --accent-blue:    #037FFC;
-        --accent-magenta: hsl(300, 80%, 60%);
-        --accent-violet:  hsl(260, 80%, 60%);
+        --layer: color-mix(in oklab, var(--color-base-content) 10%, transparent);
+        --boxShadow: hsl(207, 0%, 0%, 20%);
     }
 
+    // On body and not on *, so a colour set on a parent reaches everything inside it.
     body {
+        color: var(--color-base-content);
         font-size: ohma.$fonts-s;
         font-weight: ohma.$fonts-weight-s;
         overflow-x: hidden;
         overscroll-behavior-y:contain;
-        background-color: ohma.$colors-surface-base;
+        background-color: ohma.$colors-base-100;
     }
 
     * {
         scrollbar-width: thin;
-        scrollbar-color: ohma.$colors-surface-subtle transparent;
+        scrollbar-color: ohma.$colors-base-300 transparent;
     }
 
     ::-webkit-scrollbar {
@@ -74,23 +54,28 @@
     }
 
     ::-webkit-scrollbar-thumb {
-        background-color: ohma.$colors-surface-subtle;
+        background-color: ohma.$colors-base-300;
         border-radius: 999px;
         border: 2px solid transparent;
         background-clip: content-box;
 
         &:hover {
-            background-color: ohma.$colors-ink-hover;
+            background-color: ohma.$colors-base-content;
         }
     }
 
     a {
-        color: ohma.$colors-accent-blue;
+        color: ohma.$colors-primary;
         text-decoration: none;
 
         &:hover {
             text-decoration: underline;
         }
+    }
+
+    // Cards and icon links take the surrounding colour rather than turning link blue.
+    a:has(> *) {
+        color: inherit;
     }
 
     h1 {

@@ -12,8 +12,8 @@ import type { UpdateCmsParagraphAction } from '@/cms/paragraphs/types'
 import type { Options as EditorOptions } from 'easymde'
 
 const editorClassName = `
-    w-full text-s rounded-[4px] border border-accent-blue mt-2 bg-surface-raised overflow-y-scroll
-    focus:outline-none focus:shadow-[0_0_0_2px_var(--accent-blue)]
+    w-full text-s rounded-[4px] border border-primary mt-2 bg-base-200 overflow-y-scroll
+    focus:outline-none focus:shadow-[0_0_0_2px_var(--color-primary)]
 `
 
 // Needed because SimpleMDE is not SSR compatible as it access navigator object

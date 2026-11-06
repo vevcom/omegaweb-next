@@ -23,7 +23,7 @@ const pickMethods = ({ email, emailWeekly, push }: NotificationMethodGeneral): N
 function Section({ title, children }: { title: string, children: ReactNode }) {
     return (
         <section className="
-            p-8 bg-surface-raised border border-careers-line
+            p-8 bg-base-200 border border-careers-line
             max-mobile:p-6
         ">
             <h2 className="mb-6 text-l text-careers-navy">{title}</h2>
@@ -63,12 +63,12 @@ const { page, generateMetadata } = serverPage({
                     ${sectionHeadingClassName}
                     text-careers-navy
                 `}>{user.firstname} {user.lastname}</h1>
-                <p className="mt-2 text-m text-text-muted">{user.email}</p>
+                <p className="mt-2 text-m text-base-content/80">{user.email}</p>
             </div>
 
             <Section title="Mine påmeldinger">
                 {registrations.length === 0 ? (
-                    <p className="text-m text-text-muted">
+                    <p className="text-m text-base-content/80">
                         Du er ikke påmeldt noen kommende bedriftspresentasjoner.{' '}
                         <SiteLink href={companyPresentationLinks.list()}>Se bedriftspresentasjonene</SiteLink>
                     </p>
@@ -82,12 +82,12 @@ const { page, generateMetadata } = serverPage({
                                 >
                                     {registration.event.name}
                                 </SiteLink>
-                                <span className="text-s text-text-muted">
+                                <span className="text-s text-base-content/80">
                                     {displayDate(registration.event.eventStart)}
                                     {registration.event.location && ` · ${registration.event.location}`}
                                 </span>
                                 {registration.onWaitingList && (
-                                    <span className="text-s font-semibold text-accent-orange">Venteliste</span>
+                                    <span className="text-s font-semibold text-warning">Venteliste</span>
                                 )}
                             </li>
                         ))}
@@ -100,7 +100,7 @@ const { page, generateMetadata } = serverPage({
             </Section>
 
             <Section title="E-post fra Contactor">
-                <p className="mb-4 text-m text-text-muted">{channel.description}</p>
+                <p className="mb-4 text-m text-base-content/80">{channel.description}</p>
                 <ContactorNotifications
                     userId={user.id}
                     channelId={channel.id}
@@ -111,13 +111,13 @@ const { page, generateMetadata } = serverPage({
 
             <Section title="Prikker">
                 {dots.length === 0 ? (
-                    <p className="text-m text-text-muted">Du har ingen aktive prikker.</p>
+                    <p className="text-m text-base-content/80">Du har ingen aktive prikker.</p>
                 ) : (
                     <ul className="flex flex-col list-none divide-y divide-careers-line">
                         {dots.map(dot => (
                             <li key={dot.id} className="flex flex-col gap-1 py-3">
                                 <span className="text-m font-semibold">{dot.reason}</span>
-                                <span className="text-s text-text-muted">
+                                <span className="text-s text-base-content/80">
                                     {dot.valueLeft} av {dot.value} igjen · siste utløper{' '}
                                     {displayDate(dot.expiryForEachDotValue[dot.expiryForEachDotValue.length - 1], false)}
                                 </span>
@@ -127,7 +127,7 @@ const { page, generateMetadata } = serverPage({
                 )}
             </Section>
 
-            <SiteLink href={careersAuthLinks.logout()} className="self-start text-m text-text-muted">Logg ut</SiteLink>
+            <SiteLink href={careersAuthLinks.logout()} className="self-start text-m text-base-content/80">Logg ut</SiteLink>
         </div>
     ),
 })

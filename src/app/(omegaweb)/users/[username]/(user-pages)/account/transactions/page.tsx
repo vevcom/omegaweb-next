@@ -11,7 +11,7 @@ const { page, generateMetadata } = serverPage({
         return ledgerAccountOperations.read({ params: { userId: profile.user.id } })
     },
     render: ({ data: ledgerAccount }) => (
-        <div className="bg-surface-base rounded-round p-(--card-padding) overflow-x-auto">
+        <div className="bg-base-100 rounded-round p-(--card-padding) overflow-x-auto">
             <TransactionList accountId={ledgerAccount.id} />
         </div>
     ),

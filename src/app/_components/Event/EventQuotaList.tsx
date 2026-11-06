@@ -16,12 +16,12 @@ export default function EventQuotaList({ quotas, eligibleQuotaIds }: PropTypes) 
     }
 
     return <>
-        <p className="m-0 text-s text-text-muted">
+        <p className="m-0 text-s text-base-content/80">
             Kvotene fylles ovenfra: du får plass i den første du kan melde deg på som har ledig.
         </p>
         <ol className="
             m-0 p-0 list-none flex flex-col gap-1
-            [&>li]:px-2 [&>li]:py-1 [&>li]:rounded-inner [&>li]:bg-surface-raised
+            [&>li]:px-2 [&>li]:py-1 [&>li]:rounded-inner [&>li]:bg-base-200
         ">
             {quotas.map((quota, index) => {
                 const eligible = eligibleQuotaIds?.includes(quota.id)
@@ -29,12 +29,14 @@ export default function EventQuotaList({ quotas, eligibleQuotaIds }: PropTypes) 
                     <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                         <span className="font-medium">
                             {quota.name}
-                            {index === 0 && <span className="ml-2 text-xs uppercase text-text-muted">Fylles først</span>}
+                            {index === 0 && (
+                                <span className="ml-2 text-xs uppercase text-base-content/80">Fylles først</span>
+                            )}
                         </span>
                         <span>{quota.numOfRegistrations} / {quota.places}</span>
                     </div>
                     {eligibleQuotaIds && (
-                        <div className={eligible ? 'text-s text-accent-green' : 'text-s text-text-muted'}>
+                        <div className={eligible ? 'text-s text-success' : 'text-s text-base-content/80'}>
                             {eligible ? 'Åpen for deg' : 'Ikke for deg'}
                         </div>
                     )}

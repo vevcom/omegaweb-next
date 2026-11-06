@@ -39,7 +39,7 @@ function Sponsor({ sponsor, width }: { sponsor: SponsorCompany, width: number })
                     disableLinkingToLicense
                 />
             ) : (
-                <span className="text-text text-l font-medium text-center">{sponsor.name}</span>
+                <span className="text-base-content text-l font-medium text-center">{sponsor.name}</span>
             )}
         </SponsorLink>
     )

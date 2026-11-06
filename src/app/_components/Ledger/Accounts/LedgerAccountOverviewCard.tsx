@@ -46,12 +46,12 @@ export default async function LedgerAccountOverview({
         ? await getCustomerSessionClientSecret()
         : undefined
 
-    return <div className="bg-surface-base rounded-round p-(--card-padding)">
-        <h2>Kontooversikt</h2>
+    return <div className="bg-base-100 text-base-content rounded-round p-(--card-padding)">
+        <h2 className="text-base-content">Kontooversikt</h2>
         <LedgerAccountBalance ledgerAccountId={ledgerAccount.id} showFees={showFees} />
         {
             ledgerAccount.frozen &&
-            <p className="text-accent-red">
+            <p className="text-error">
                 <FontAwesomeIcon icon={faWarning}/> Kontoen er fryst, så ingen transaksjoner kan utføres.
             </p>
         }

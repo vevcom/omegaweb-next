@@ -8,15 +8,15 @@ export const Default = () => (
 
 /**
  * `color` sets the *typed text* colour, not the field chrome — so each variant
- * needs a value to show anything. (`secondary` maps to --surface-base, which is
+ * needs a value to show anything. (`secondary` maps to --base-100, which is
  * near-invisible on the dark field; see NOTES.md.)
  */
 export const Colors = () => (
     <div style={{ display: 'grid', gap: '1.5rem', maxWidth: '22rem' }}>
-        <TextInput name="black" label="Black (default)" color="black" defaultValue="Standard tekst" />
-        <TextInput name="primary" label="Primary" color="primary" defaultValue="Uthevet tekst" />
-        <TextInput name="white" label="White" color="white" defaultValue="Hvit tekst" />
-        <TextInput name="red" label="Red" color="red" defaultValue="Feil i feltet" />
+        <TextInput name="base" label="base (default)" color="base" defaultValue="Standard tekst" />
+        <TextInput name="primary" label="Primary" color="primary" defaultValue="Primary tekst" />
+        <TextInput name="secondary" label="secondary" color="secondary" defaultValue="Secondary tekst" />
+        <TextInput name="error" label="error" color="error" defaultValue="Feil i feltet" />
     </div>
 )
 
@@ -28,12 +28,12 @@ export const Password = () => (
 
 export const OnRaisedSurface = () => (
     <div style={{
-        background: 'var(--surface-raised)',
+        background: 'var(--color-base-200)',
         padding: '1.5rem',
         borderRadius: 'var(--rounding)',
         maxWidth: '22rem',
     }}>
-        <TextInput name="email" label="E-post" background="raised" defaultValue="omega@omega.ntnu.no" />
+        <TextInput name="email" label="E-post" background="base200" defaultValue="omega@omega.ntnu.no" />
     </div>
 )
 
