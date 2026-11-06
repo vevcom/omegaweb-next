@@ -633,11 +633,11 @@ export function defineSubOperation<
                     if (serviceOperationConfig.transaction !== 'RUNS_IN' || !isPrismaClient(resolved.prisma)) {
                         return run(resolved)
                     }
-                    return resolved.prisma.$transaction(tx => withServiceContext(
+                    return prismaErrorWrapper(() => resolved.prisma.$transaction(tx => withServiceContext(
                         { prisma: tx },
                         serviceOperationConfig.transaction,
                         run,
-                    ))
+                    )))
                 }
             )
         }

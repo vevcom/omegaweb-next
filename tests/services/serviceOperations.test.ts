@@ -3,7 +3,8 @@ import { Session } from '@/auth/session/Session'
 import { defineOperation, isPrismaClient } from '@/services/serviceOperation'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
-import { describe, expect, test } from '@jest/globals'
+import { describe, expect, jest, test } from '@jest/globals'
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import { z } from 'zod'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
@@ -169,6 +170,21 @@ describe('service operation', () => {
             }).catch((error: unknown) => expect(error).toBe(rollback))
 
             await globalPrisma.notificationMethod.deleteMany({ where: { id: { in: written.map(result => result.id) } } })
+        })
+
+        test('RUNS_IN turns a failure of the transaction itself into a service error', async () => {
+            const timeout = new PrismaClientKnownRequestError('Transaction timed out', {
+                code: 'P2028',
+                clientVersion: 'test',
+            })
+            const transaction = jest.spyOn(globalPrisma, '$transaction').mockRejectedValueOnce(timeout)
+
+            await expect(writeInTransaction({ data: { fail: false } })).rejects.toMatchObject({
+                errorCode: 'SERVER ERROR',
+                errors: [{ message: 'Operasjonen tok for lang tid. Prøv igjen.' }],
+            })
+
+            transaction.mockRestore()
         })
 
         test('OPENS is refused inside a transaction', async () => {
