@@ -53,13 +53,6 @@ import {
 
 export const navDef = defineNavDef([
     {
-        key: 'committees',
-        name: 'Komitéer',
-        href: appHref('/committees'),
-        icon: faBeer,
-        authorizers: () => [committeeAuth.readAll],
-    },
-    {
         key: 'jobAds',
         name: 'Jobbannonser',
         href: omegaJobAdLinks.list(),
@@ -89,19 +82,11 @@ export const navDef = defineNavDef([
         audience: 'loggedOut',
     },
     {
-        key: 'career',
-        name: 'Karriere',
-        href: careerLinks.frontpage(), //purposly notredirectToMainDomain - keeping current domain
-        icon: faSuitcase,
-        authorizers: () => [careersFrontpageAuth.readSpecialCmsParagraph],
-        audience: 'loggedIn',
-    },
-    {
-        key: 'ombul',
-        name: 'OmBul',
-        href: appHref('/ombul'),
-        icon: faBook,
-        authorizers: () => [ombulAuth.readLatest],
+        key: 'omegaquotes',
+        name: 'Omegaquotes',
+        href: appHref('/omegaquotes'),
+        icon: faComment,
+        authorizers: () => [omegaQuotesAuth.readPage],
     },
     {
         key: 'news',
@@ -111,53 +96,11 @@ export const navDef = defineNavDef([
         authorizers: () => [newsAuth.readCurrent],
     },
     {
-        key: 'omegaquotes',
-        name: 'Omegaquotes',
-        href: appHref('/omegaquotes'),
-        icon: faComment,
-        authorizers: () => [omegaQuotesAuth.readPage],
-    },
-    {
-        key: 'bulshit',
-        name: 'Bulshit',
-        href: appHref('/bulshit'),
-        icon: faPoo,
-        authorizers: () => [bulshitAuth.readPage, bulshitAuth.createOwn],
-    },
-    {
         key: 'articles',
         name: 'Artikler',
         href: appHref('/articles'),
         icon: faSignature,
         authorizers: () => [articleCategoryAuth.readAll],
-    },
-    {
-        key: 'images',
-        name: 'Bilder',
-        href: appHref('/image-collections'),
-        icon: faCamera,
-        authorizers: () => [dynamicImageAuth.readCollectionPage.data({ onlyAdministrated: false })],
-    },
-    {
-        key: 'interestGroups',
-        name: 'Interessegrupper',
-        href: appHref('/interest-groups'),
-        icon: faGamepad,
-        authorizers: () => [interestGroupAuth.readMany],
-    },
-    {
-        key: 'revue',
-        name: 'Omegarevyen',
-        href: revueLinks.frontpage(),
-        icon: faMasksTheater,
-        authorizers: () => [revueFrontpageAuth.readMainRevueInfo],
-    },
-    {
-        key: 'cabin',
-        name: 'Hyttebooking',
-        href: appHref('/cabin'),
-        icon: faHouseChimneyWindow,
-        authorizers: () => [cabinArticleAuth.read],
     },
     {
         key: 'users',
@@ -167,6 +110,41 @@ export const navDef = defineNavDef([
         authorizers: () => [userAuth.readPage],
     },
     {
+        key: 'committees',
+        name: 'Komitéer',
+        href: appHref('/committees'),
+        icon: faBeer,
+        authorizers: () => [committeeAuth.readAll],
+    },
+    {
+        key: 'interestGroups',
+        name: 'Interessegrupper',
+        href: appHref('/interest-groups'),
+        icon: faGamepad,
+        authorizers: () => [interestGroupAuth.readMany],
+    },
+    {
+        key: 'ombul',
+        name: 'OmBul',
+        href: appHref('/ombul'),
+        icon: faBook,
+        authorizers: () => [ombulAuth.readLatest],
+    },
+    {
+        key: 'bulshit',
+        name: 'Bulshit',
+        href: appHref('/bulshit'),
+        icon: faPoo,
+        authorizers: () => [bulshitAuth.readPage, bulshitAuth.createOwn],
+    },
+    {
+        key: 'cabin',
+        name: 'Hyttebooking',
+        href: appHref('/cabin'),
+        icon: faHouseChimneyWindow,
+        authorizers: () => [cabinArticleAuth.read],
+    },
+    {
         key: 'lockers',
         name: 'Skap',
         href: appHref('/lockers'),
@@ -174,11 +152,33 @@ export const navDef = defineNavDef([
         authorizers: () => [lockerAuth.readPage],
     },
     {
+        key: 'images',
+        name: 'Bilder',
+        href: appHref('/image-collections'),
+        icon: faCamera,
+        authorizers: () => [dynamicImageAuth.readCollectionPage.data({ onlyAdministrated: false })],
+    },
+    {
         key: 'applications',
         name: 'Søknadsperioder',
         href: appHref('/applications'),
         icon: faIdCard,
         authorizers: () => [applicationPeriodAuth.readAll],
+    },
+    {
+        key: 'revue',
+        name: 'Omegarevyen',
+        href: revueLinks.frontpage(),
+        icon: faMasksTheater,
+        authorizers: () => [revueFrontpageAuth.readMainRevueInfo],
+    },
+    {
+        key: 'career',
+        name: 'Karriere',
+        href: careerLinks.frontpage(), //purposly notredirectToMainDomain - keeping current domain
+        icon: faSuitcase,
+        authorizers: () => [careersFrontpageAuth.readSpecialCmsParagraph],
+        audience: 'loggedIn',
     },
     {
         key: 'phinans',
