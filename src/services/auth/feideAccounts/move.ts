@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { ServiceError } from '@/services/error'
 import { userPartitions } from '@/services/users/constants'
-import type { PrismaClient } from '@/prisma-generated-pn-client'
+import type { Prisma } from '@/prisma-generated-pn-types'
 
 /**
  * Moves a Feide account from a freshly created user onto a migrated user that has no
@@ -14,13 +14,13 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
  * hijacked. Unless `allowFinishedRegistration` is set, the fresh user must also not have completed
  * registration (no credentials, terms not accepted): a user claiming their own migrated user may
  * only shed a duplicate that holds nothing, while an administrator merges duplicates whatever
- * state they got into. All checks run inside the transaction that performs the move.
+ * state they got into. Runs on the caller's transaction, so the checks and the move are one.
  *
  * The fresh user's session dies on its own: the JWT decode requires the user's Feide
  * account to still exist, and it has been moved away.
  */
 export async function moveFeideAccountToUser(
-    prisma: PrismaClient,
+    prisma: Prisma.TransactionClient,
     { fromUserId, toUserId, feideAccountId, allowFinishedRegistration = false }: {
         fromUserId: number,
         toUserId: number,
@@ -33,62 +33,60 @@ export async function moveFeideAccountToUser(
         throw new ServiceError('BAD PARAMETERS', 'Kan ikke flytte en Feide-konto til brukeren den allerede er på.')
     }
 
-    await prisma.$transaction(async transaction => {
-        const fromUser = await transaction.user.findUniqueOrThrow({
-            where: { id: fromUserId },
-            select: {
-                acceptedTerms: true,
-                createdByFeideLoginOnOmegawebNext: true,
-                credentials: { select: { userId: true } },
-                feideAccount: { select: { id: true } },
-            },
-        })
+    const fromUser = await prisma.user.findUniqueOrThrow({
+        where: { id: fromUserId },
+        select: {
+            acceptedTerms: true,
+            createdByFeideLoginOnOmegawebNext: true,
+            credentials: { select: { userId: true } },
+            feideAccount: { select: { id: true } },
+        },
+    })
 
-        if (!fromUser.feideAccount) {
-            throw new ServiceError('BAD PARAMETERS', 'Brukeren har ingen Feide-konto å flytte.')
-        }
+    if (!fromUser.feideAccount) {
+        throw new ServiceError('BAD PARAMETERS', 'Brukeren har ingen Feide-konto å flytte.')
+    }
 
-        if (feideAccountId !== undefined && fromUser.feideAccount.id !== feideAccountId) {
-            throw new ServiceError('BAD PARAMETERS', 'Brukeren har ikke lenger denne Feide-kontoen.')
-        }
+    if (feideAccountId !== undefined && fromUser.feideAccount.id !== feideAccountId) {
+        throw new ServiceError('BAD PARAMETERS', 'Brukeren har ikke lenger denne Feide-kontoen.')
+    }
 
-        if (!fromUser.createdByFeideLoginOnOmegawebNext) {
-            throw new ServiceError(
-                'BAD PARAMETERS',
-                'Feide-kontoen kan bare flyttes fra en bruker som ble opprettet ved Feide-innloggingen.'
-            )
-        }
+    if (!fromUser.createdByFeideLoginOnOmegawebNext) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            'Feide-kontoen kan bare flyttes fra en bruker som ble opprettet ved Feide-innloggingen.'
+        )
+    }
 
-        if (!allowFinishedRegistration && (fromUser.credentials || fromUser.acceptedTerms)) {
-            throw new ServiceError(
-                'BAD PARAMETERS',
-                'Feide-kontoen kan bare flyttes fra en bruker som ikke har fullført registreringen.'
-            )
-        }
+    if (!allowFinishedRegistration && (fromUser.credentials || fromUser.acceptedTerms)) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            'Feide-kontoen kan bare flyttes fra en bruker som ikke har fullført registreringen.'
+        )
+    }
 
-        const toUser = await transaction.user.findUniqueOrThrow({
-            where: { id: toUserId, ...userPartitions.unarchived },
-            select: {
-                credentials: { select: { userId: true } },
-                feideAccount: { select: { id: true } },
-            },
-        })
+    const toUser = await prisma.user.findUniqueOrThrow({
+        where: { id: toUserId, ...userPartitions.unarchived },
+        select: {
+            credentials: { select: { userId: true } },
+            feideAccount: { select: { id: true } },
+        },
+    })
 
-        if (toUser.feideAccount || toUser.credentials) {
-            throw new ServiceError('BAD PARAMETERS', 'Målbrukeren er allerede koblet til en innlogging.')
-        }
+    if (toUser.feideAccount || toUser.credentials) {
+        throw new ServiceError('BAD PARAMETERS', 'Målbrukeren er allerede koblet til en innlogging.')
+    }
 
-        await transaction.feideAccount.update({
-            where: { userId: fromUserId },
-            data: { userId: toUserId },
-        })
+    await prisma.feideAccount.update({
+        where: { userId: fromUserId },
+        data: { userId: toUserId },
+    })
 
-        const deletedUser = await transaction.user.delete({
-            where: { id: fromUserId },
-            select: { bioParagraphId: true },
-        })
-        await transaction.cmsParagraph.delete({
-            where: { id: deletedUser.bioParagraphId },
-        })
+    const deletedUser = await prisma.user.delete({
+        where: { id: fromUserId },
+        select: { bioParagraphId: true },
+    })
+    await prisma.cmsParagraph.delete({
+        where: { id: deletedUser.bioParagraphId },
     })
 }

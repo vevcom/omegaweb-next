@@ -1,10 +1,10 @@
 import { recordSentMail } from 'tests/utils'
 import { prisma } from '@/prisma/client'
+import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { eventOperations } from '@/services/events/operations'
 import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { eventRegistrationQueueOrder } from '@/services/events/registration/constants'
-import { notificationOperations } from '@/services/notifications/operations'
 import { userOperations } from '@/services/users/operations'
 import { beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 
@@ -13,7 +13,7 @@ const guestEmail = 'guest@example.com'
 
 describe('waiting list promotion on more places', () => {
     const userIds: number[] = []
-    const notifySpy = jest.spyOn(notificationOperations.createSpecial, 'internalCall')
+    const notifySpy = jest.spyOn(eventNotificationOperations.internal.createInfoNotification, 'internalCall')
     let sentMail: ReturnType<typeof recordSentMail>
 
     beforeAll(async () => {
@@ -89,7 +89,6 @@ describe('waiting list promotion on more places', () => {
 
         expect(notifySpy).toHaveBeenCalledTimes(1)
         expect(notifySpy).toHaveBeenCalledWith(expect.objectContaining({
-            params: { special: 'EVENT_WAITINGLIST_PROMOTION' },
             data: expect.objectContaining({ audience: { userIds: [userIds[1]] } }),
         }))
         expect(sentMail).toHaveBeenCalledTimes(1)
@@ -125,7 +124,7 @@ describe('waiting list promotion on more places', () => {
 
 describe('moving registrations in the queue', () => {
     const userIds: number[] = []
-    const notifySpy = jest.spyOn(notificationOperations.createSpecial, 'internalCall')
+    const notifySpy = jest.spyOn(eventNotificationOperations.internal.createInfoNotification, 'internalCall')
 
     beforeAll(async () => {
         const users = await Promise.all(['a', 'b', 'c'].map(name => userOperations.create({

@@ -16,6 +16,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
 import type { CapabilityAuthorizer } from '@/auth/authorizer/capabilities'
+import type { SessionMaybeUser } from '@/auth/session/Session'
 
 export const searchCategoryNames = [
     'users',
@@ -50,4 +51,9 @@ export const searchCategories: Record<SearchCategory, {
     news: { label: 'Nyheter', icon: faNewspaper, authorizer: newsAuth.search },
     companies: { label: 'Bedrifter', icon: faBuilding, authorizer: companyAuth.search },
     jobAds: { label: 'Jobbannonser', icon: faBriefcase, authorizer: jobAdAuth.search },
+}
+
+/** The categories among `categories` the session may search, each by its own `search` authorizer. */
+export function searchableCategories(categories: readonly SearchCategory[], session: SessionMaybeUser): SearchCategory[] {
+    return categories.filter(category => searchCategories[category].authorizer.auth(session).authorized)
 }

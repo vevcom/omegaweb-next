@@ -95,9 +95,9 @@ export const applicationPeriodOperations = {
     create: defineOperation({
         authorizer: () => applicationPeriodAuth.create,
         dataSchema: applicationPeriodSchemas.data.create,
-        opensTransaction: true,
-        operation: async ({ prisma, data }) => prisma.$transaction(async (tx) => {
-            const period = await tx.applicationPeriod.create({
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data }) => {
+            const period = await prisma.applicationPeriod.create({
                 data: {
                     name: data.name,
                     startDate: data.startDate,
@@ -106,21 +106,21 @@ export const applicationPeriodOperations = {
                 },
                 select: { id: true, name: true },
             })
-            await createParticipations(tx, {
+            await createParticipations(prisma, {
                 applicationPeriodId: period.id,
                 committeeIds: data.participatingCommitteeIds,
             })
             return { name: period.name }
-        })
+        }
     }),
 
     update: defineOperation({
         authorizer: () => applicationPeriodAuth.update,
         dataSchema: applicationPeriodSchemas.data.update,
         paramsSchema: applicationPeriodSchemas.params.update,
-        opensTransaction: true,
-        operation: async ({ prisma, data, params }) => prisma.$transaction(async (tx) => {
-            const current = await tx.applicationPeriod.findUniqueOrThrow({
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data, params }) => {
+            const current = await prisma.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },
                 select: { id: true, startDate: true, endDate: true, endPriorityDate: true },
             })
@@ -128,7 +128,7 @@ export const applicationPeriodOperations = {
                 throw new ServiceError('BAD PARAMETERS', periodDatesMessage)
             }
 
-            const period = await tx.applicationPeriod.update({
+            const period = await prisma.applicationPeriod.update({
                 where: { id: current.id },
                 data: {
                     name: data.name,
@@ -141,7 +141,7 @@ export const applicationPeriodOperations = {
 
             const participatingCommitteeIds = data.participatingCommitteeIds
             if (participatingCommitteeIds) {
-                const participations = await tx.committeeParticipationInApplicationPeriod.findMany({
+                const participations = await prisma.committeeParticipationInApplicationPeriod.findMany({
                     where: { applicationPeriodId: period.id },
                     select: { id: true, committeeId: true, paragraphId: true, videoLinkId: true },
                 })
@@ -151,7 +151,7 @@ export const applicationPeriodOperations = {
 
                 // The applications to a committee that leaves the period go with it (the
                 // participation cascades), which leaves gaps in the priorities of whoever applied.
-                const applicants = await tx.application.findMany({
+                const applicants = await prisma.application.findMany({
                     where: {
                         applicationPeriodId: period.id,
                         applicationPeriodCommitteeId: { in: leaving.map(participation => participation.id) },
@@ -159,24 +159,24 @@ export const applicationPeriodOperations = {
                     select: { userId: true },
                     distinct: ['userId'],
                 })
-                await tx.committeeParticipationInApplicationPeriod.deleteMany({
+                await prisma.committeeParticipationInApplicationPeriod.deleteMany({
                     where: { id: { in: leaving.map(participation => participation.id) } }
                 })
-                await destroyParticipationCmsParts(tx, leaving)
-                await createParticipations(tx, {
+                await destroyParticipationCmsParts(prisma, leaving)
+                await createParticipations(prisma, {
                     applicationPeriodId: period.id,
                     committeeIds: participatingCommitteeIds.filter(committeeId =>
                         !participations.some(participation => participation.committeeId === committeeId)
                     ),
                 })
-                await renumberApplicationPriorities(tx, {
+                await renumberApplicationPriorities(prisma, {
                     applicationPeriodId: period.id,
                     userIds: applicants.map(applicant => applicant.userId),
                 })
             }
 
             return { name: period.name }
-        }),
+        },
     }),
 
     removeAllApplicationTexts: defineOperation({
@@ -206,18 +206,18 @@ export const applicationPeriodOperations = {
     destroy: defineOperation({
         authorizer: () => applicationPeriodAuth.destroy,
         paramsSchema: applicationPeriodSchemas.params.destroy,
-        opensTransaction: true,
-        operation: async ({ prisma, params }) => prisma.$transaction(async (tx) => {
-            const period = await tx.applicationPeriod.findUniqueOrThrow({
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params }) => {
+            const period = await prisma.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },
                 select: {
                     id: true,
                     committeesParticipating: { select: { paragraphId: true, videoLinkId: true } },
                 },
             })
-            await tx.applicationPeriod.delete({ where: { id: period.id } })
-            await destroyParticipationCmsParts(tx, period.committeesParticipating)
-        })
+            await prisma.applicationPeriod.delete({ where: { id: period.id } })
+            await destroyParticipationCmsParts(prisma, period.committeesParticipating)
+        }
     }),
 
     readNumberOfApplications: defineOperation({

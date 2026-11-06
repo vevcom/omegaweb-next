@@ -77,7 +77,7 @@ The codebase uses a ServiceOperation pattern for all business logic. Services li
 - **ServiceOperation**: core abstraction defined in `src/services/serviceOperation.ts`. All business logic is wrapped in ServiceOperations.
 - **Server Actions**: client-callable functions created by wrapping ServiceOperations with `makeAction()` from `src/services/serverAction.ts`.
 - **Authorization**: every ServiceOperation has an authorizer built with the `Require` chain from `src/auth/authorizer/Require.ts`. See [Authorizers](#authorizers).
-- **Transaction Management**: the `opensTransaction` flag signals that a ServiceOperation will open its own database transaction. Transactions cannot be nested, so this lets the type system and runtime validation prevent calling such operations from within an existing transaction.
+- **Transaction Management**: the `transaction` flag says how a ServiceOperation relates to database transactions. `'OPENS'` means it opens its own: transactions cannot be nested, so the type system and runtime validation prevent calling such an operation from within an existing transaction. `'RUNS_IN'` runs it in the caller's transaction when there is one, and in one of its own otherwise, for an operation of several writes that belong together. `'NONE'`, the default, runs on whatever client it is given.
 
 **Pattern example:**
 ```typescript

@@ -41,18 +41,18 @@ export const shopOperations = {
     create: defineOperation({
         dataSchema: shopSchemas.data.create,
         authorizer: () => shopAuth.create,
-        opensTransaction: true,
-        operation: async ({ prisma, data }) => prisma.$transaction(async tx => {
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data }) => {
             const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
-                prisma: tx,
+                prisma,
                 data: { requirements: data.visibilityRegularRequirements },
             })
             const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
-                prisma: tx,
+                prisma,
                 data: { requirements: data.visibilityAdminRequirements },
             })
 
-            return tx.shop.create({
+            return prisma.shop.create({
                 data: {
                     name: data.name,
                     description: data.description,
@@ -60,7 +60,7 @@ export const shopOperations = {
                     visibilityAdmin: { connect: { id: visibilityAdmin.id } },
                 },
             })
-        }),
+        },
     }),
 
     readMany: defineOperation({
@@ -168,14 +168,14 @@ export const shopOperations = {
         }),
         paramsSchema: shopSchemas.params.createProduct,
         dataSchema: shopSchemas.data.createProduct,
-        opensTransaction: true,
-        operation: async ({ prisma, params, data: { price, ...product } }) => prisma.$transaction(async tx => {
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params, data: { price, ...product } }) => {
             const image = await cmsImageOperations.create.internalCall({
                 data: {},
-                prisma: tx,
+                prisma,
                 operationImplementationFields: { special: null },
             })
-            return tx.product.create({
+            return prisma.product.create({
                 data: {
                     ...product,
                     suggestedPrice: price,
@@ -185,7 +185,7 @@ export const shopOperations = {
                     },
                 },
             })
-        }),
+        },
     }),
 
     /**

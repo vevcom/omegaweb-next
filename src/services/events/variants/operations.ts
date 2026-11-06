@@ -56,9 +56,9 @@ export const eventVariantOperations = {
         authorizer: async ({ params, prisma }) => eventVariantAuth.create.data(
             await readEventAccess(prisma, params.eventId)
         ),
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params, data }) =>
-            await prisma.$transaction(tx => createVariant(tx, params.eventId, data)),
+            await createVariant(prisma, params.eventId, data),
     }),
 
     update: defineOperation({
@@ -87,25 +87,23 @@ export const eventVariantOperations = {
         authorizer: async ({ params, prisma }) => eventVariantAuth.destroy.data(
             await readEventAccess(prisma, await readEventIdOfVariant(prisma, params.id))
         ),
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
             const variant = await prisma.eventVariant.findUniqueOrThrow({
                 where: { id: params.id },
                 select: { eventId: true, quotas: { select: { visibilityId: true } } },
             })
 
-            await prisma.$transaction(async tx => {
-                await lockEvent(tx, variant.eventId)
-                if (await tx.eventRegistration.count({ where: registrationsOfVariant(params.id) }) > 0) {
-                    throw new ServiceError('BAD PARAMETERS', 'Varianten har påmeldte. Meld dem av før du fjerner den.')
-                }
-                await tx.eventVariant.delete({ where: { id: params.id } })
-                await Promise.all(variant.quotas.map(quota => visibilityOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { visibilityId: quota.visibilityId },
-                })))
-                await assertSeenThroughQuotas(tx, variant.eventId)
-            })
+            await lockEvent(prisma, variant.eventId)
+            if (await prisma.eventRegistration.count({ where: registrationsOfVariant(params.id) }) > 0) {
+                throw new ServiceError('BAD PARAMETERS', 'Varianten har påmeldte. Meld dem av før du fjerner den.')
+            }
+            await prisma.eventVariant.delete({ where: { id: params.id } })
+            await Promise.all(variant.quotas.map(quota => visibilityOperations.destroy.internalCall({
+                prisma,
+                params: { visibilityId: quota.visibilityId },
+            })))
+            await assertSeenThroughQuotas(prisma, variant.eventId)
         },
     }),
 } as const

@@ -3,7 +3,7 @@
 import useActiveNavHref from '@/hooks/useActiveNavHref'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import type { NavLink } from './navDef'
+import type { NavLink } from '@/lib/navDef/navDef'
 
 type PropTypes = {
     /** Every nav item, so a page belonging to one that doesn't fit in the bar highlights none of these. */

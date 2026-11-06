@@ -60,26 +60,24 @@ export const interestGroupOperations = {
     create: defineOperation({
         dataSchema: interestGroupSchemas.data.create,
         authorizer: () => interestGroupAuth.create,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
             const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
-            return await prisma.$transaction(async tx => {
-                const articleSection = await articleSectionOperations.create.internalCall({ data: {}, prisma: tx })
-                return await tx.interestGroup.create({
-                    data: {
-                        ...data,
-                        articleSection: {
-                            connect: { id: articleSection.id },
-                        },
-                        group: {
-                            create: {
-                                groupType: 'INTEREST_GROUP',
-                                order,
-                            }
+            const articleSection = await articleSectionOperations.create.internalCall({ data: {}, prisma })
+            return await prisma.interestGroup.create({
+                data: {
+                    ...data,
+                    articleSection: {
+                        connect: { id: articleSection.id },
+                    },
+                    group: {
+                        create: {
+                            groupType: 'INTEREST_GROUP',
+                            order,
                         }
                     }
-                })
+                }
             })
         }
     }),
@@ -156,23 +154,21 @@ export const interestGroupOperations = {
     destroy: defineOperation({
         paramsSchema: interestGroupSchemas.params.destroy,
         authorizer: () => interestGroupAuth.destroy,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params: { id } }) => {
             await assertGroupNotPensioned(prisma, await readGroupIdOfInterestGroup(prisma, id))
 
-            await prisma.$transaction(async tx => {
-                const interestGroup = await tx.interestGroup.delete({
-                    where: { id }
-                })
-                // The section's image, paragraph and link go with it.
-                await articleSectionOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { articleSectionId: interestGroup.articleSectionId },
-                })
-                await groupOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { groupId: interestGroup.groupId },
-                })
+            const interestGroup = await prisma.interestGroup.delete({
+                where: { id }
+            })
+            // The section's image, paragraph and link go with it.
+            await articleSectionOperations.destroy.internalCall({
+                prisma,
+                params: { articleSectionId: interestGroup.articleSectionId },
+            })
+            await groupOperations.destroy.internalCall({
+                prisma,
+                params: { groupId: interestGroup.groupId },
             })
         }
     }),

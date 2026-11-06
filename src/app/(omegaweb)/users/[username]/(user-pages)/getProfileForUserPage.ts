@@ -1,11 +1,9 @@
 import { userOperations } from '@/services/users/operations'
 import { userNavDef } from '@/app/(omegaweb)/users/[username]/userNavDef'
 import { siteRedirect } from '@/app/domainContextOfRequest'
-import { appHref } from '@/lib/sites/href'
 import { notFound } from 'next/navigation'
 import type { ServerPageSession } from '@/app/ServerPage'
-import type { Authorizer } from '@/auth/authorizer/Authorizer'
-import type { UserNavItem, UserNavPath } from '@/app/(omegaweb)/users/[username]/userNavDef'
+import type { UserNavPath } from '@/app/(omegaweb)/users/[username]/userNavDef'
 
 type Params = {
     username: string
@@ -32,23 +30,12 @@ type Params = {
 export async function getProfileForUserPage({ username }: Params, path: UserNavPath, session: ServerPageSession) {
     if (username === 'me') {
         if (!session.user) return notFound()
-        await siteRedirect(appHref(`/users/${session.user.username}/${path}`))
+        await siteRedirect(userNavDef({ username: session.user.username, userId: session.user.id }).all.href(path))
     }
 
     const profile = await userOperations.readProfile({ params: { username } })
 
-    const navItems: readonly UserNavItem[] = Object.values(userNavDef).flat()
-    const navItem = navItems.find(item => item.path === path)
-    if (!navItem) {
-        throw new Error(`The user page '${path}' has no entry in userNavDef to be authorized with.`)
-    }
-
-    const authorizers = navItem.authorizers({ username, userId: profile.user.id })
-    const passes = (authorizer: Authorizer) => authorizer.auth(session).authorized
-
-    if (!authorizers.some(passes)) {
-        authorizers[0].auth(session).requireAuthorized()
-    }
+    userNavDef({ username, userId: profile.user.id }).all.authorize(path, session)
 
     return { profile }
 }

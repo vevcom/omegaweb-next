@@ -82,10 +82,10 @@ export const applicationOperations = {
     update: defineOperation({
         dataSchema: applicationSchemas.data.update,
         paramsSchema: applicationSchemas.params.update,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         authorizer: ({ params }) => applicationAuth.update.data({ userId: params.userId }),
-        operation: async ({ prisma, data, params }) => prisma.$transaction(async (tx) => {
-            const application = await tx.application.findUniqueOrThrow({
+        operation: async ({ prisma, data, params }) => {
+            const application = await prisma.application.findUniqueOrThrow({
                 where: applicationWhere(params),
                 select: {
                     id: true,
@@ -117,7 +117,7 @@ export const applicationOperations = {
                         'BAD PARAMETERS', 'Søknadsperioden er over.'
                     )
                 }
-                await tx.application.update({
+                await prisma.application.update({
                     where: { id: application.id },
                     data: { text: data.text },
                 })
@@ -130,7 +130,7 @@ export const applicationOperations = {
             }
 
             const newPriority = data.priority === 'UP' ? application.priority - 1 : application.priority + 1
-            const otherApplication = await tx.application.findFirst({
+            const otherApplication = await prisma.application.findFirst({
                 where: {
                     userId: params.userId,
                     applicationPeriodId: application.applicationPeriodId,
@@ -146,18 +146,18 @@ export const applicationOperations = {
             }
             // Swapped by way of -1: (userId, applicationPeriodId, priority) is unique, so neither
             // application can take the other's priority while it is still held.
-            await tx.application.update({ where: { id: application.id }, data: { priority: -1 } })
-            await tx.application.update({ where: { id: otherApplication.id }, data: { priority: application.priority } })
-            await tx.application.update({ where: { id: application.id }, data: { priority: newPriority } })
-        }),
+            await prisma.application.update({ where: { id: application.id }, data: { priority: -1 } })
+            await prisma.application.update({ where: { id: otherApplication.id }, data: { priority: application.priority } })
+            await prisma.application.update({ where: { id: application.id }, data: { priority: newPriority } })
+        },
     }),
 
     destroy: defineOperation({
         paramsSchema: applicationSchemas.params.destroy,
         authorizer: ({ params }) => applicationAuth.destroy.data({ userId: params.userId }),
-        opensTransaction: true,
-        operation: async ({ prisma, params }) => prisma.$transaction(async (tx) => {
-            const application = await tx.application.findUniqueOrThrow({
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params }) => {
+            const application = await prisma.application.findUniqueOrThrow({
                 where: applicationWhere(params),
                 select: {
                     id: true,
@@ -178,11 +178,11 @@ export const applicationOperations = {
                     'BAD PARAMETERS', 'Søknadsperioden er over.'
                 )
             }
-            await tx.application.delete({ where: { id: application.id } })
-            await renumberApplicationPriorities(tx, {
+            await prisma.application.delete({ where: { id: application.id } })
+            await renumberApplicationPriorities(prisma, {
                 applicationPeriodId: application.applicationPeriodId,
                 userIds: [params.userId],
             })
-        }),
+        },
     }),
 } as const

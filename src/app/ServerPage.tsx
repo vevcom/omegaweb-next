@@ -179,7 +179,7 @@ export function serverPage<
         if (!allowUnregistered) await redirectUnregistered(session)
         const data = await withServiceContext(
             { session },
-            false,
+            'NONE',
             () => operation({ params, searchParams, session })
         )
         return { data, session, capabilities: pageCapabilities(capabilities, data, session) }
@@ -334,5 +334,5 @@ export async function withPageSession<Result>(
     callback: (session: ServerPageSession) => Awaitable<Result>
 ): Promise<Result> {
     const session = await ServerSession.fromNextAuth()
-    return withServiceContext({ session }, false, () => callback(session))
+    return withServiceContext({ session }, 'NONE', () => callback(session))
 }

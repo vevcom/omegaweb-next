@@ -13,7 +13,7 @@ const { page, generateMetadata } = serverPage({
         const search = QueryParams.search.decode(searchParams) ?? ''
         return {
             search,
-            committees: (await committeeOperations.search({ params: { query: search } })).rows,
+            committees: (await committeeOperations.search()({ params: { query: search } })).rows,
         }
     },
     metadata: () => ({ title: 'Komitéer' }),

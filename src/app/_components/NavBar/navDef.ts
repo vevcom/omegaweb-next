@@ -1,7 +1,7 @@
 //This file defines all the routes for the navbar and menu
 //Higher placment in array gives hight priority on where it is placed (ie menu vs. navbar)
 //does not include / or /login (or profile route) as they are always shown and ar special
-import { adminNavAuthorizers } from '@/app/(omegaweb)/admin/adminNavDef'
+import { adminNavDef } from '@/app/(omegaweb)/admin/adminNavDef'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { revueLinks } from '@/app/(revue)/links'
@@ -25,6 +25,7 @@ import { lockerAuth } from '@/services/lockers/auth'
 import { shopAuth } from '@/services/shop/shop/auth'
 import { adminNavItemHref } from '@/components/NavBar/adminNavItemHref'
 import { Require } from '@/auth/authorizer/Require'
+import { defineNavDef } from '@/lib/navDef/navDef'
 import { appHref } from '@/lib/sites/href'
 import { externalHref } from '@/lib/sites/href'
 import {
@@ -49,59 +50,31 @@ import {
     faChartLine,
     faMasksTheater,
 } from '@fortawesome/free-solid-svg-icons'
-import type { AppHref } from '@/lib/sites/href'
-import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
-import type { SessionMaybeUser } from '@/auth/session/Session'
-import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
-import type { ExternalHref } from '@/lib/sites/href'
 
-export type NavItem = {
-    name: string,
-    href: AppHref | ExternalHref,
-    icon: IconDefinition,
-    /**
-     * The authorizers of the page the item points at, and passing **any** of them is enough to be
-     * shown it - so a link is never offered to a page that would turn the viewer away. Filtering
-     * authorizers are welcome: only whether they pass is looked at, not the filter they hand back.
-     */
-    authorizers: () => Authorizer<UserRequiredOutOpt, object | undefined>[],
-    /**
-     * Who the entry is worded for, not who may open it: some pages are offered under one name to
-     * visitors and another to members. Left out, the entry is for everyone the authorizers let in.
-     */
-    audience?: 'loggedIn' | 'loggedOut',
-}
-
-/** What of an item the nav components render - the authorizers stay on the server. */
-export type NavLink = Pick<NavItem, 'name' | 'href' | 'icon'>
-
-export const navDef: NavItem[] = [
+export const navDef = defineNavDef([
     {
-        name: 'Komitéer',
-        href: appHref('/committees'),
-        icon: faBeer,
-        authorizers: () => [committeeAuth.readAll],
-    },
-    {
+        key: 'jobAds',
         name: 'Jobbannonser',
         href: omegaJobAdLinks.list(),
         icon: faBriefcase,
         authorizers: () => [jobAdAuth.readActive],
     },
     {
-        name: 'Karriere',
-        href: careerLinks.frontpage(), //purposly notredirectToMainDomain - keeping current domain
-        icon: faSuitcase,
-        authorizers: () => [careersFrontpageAuth.readSpecialCmsParagraph],
-        audience: 'loggedIn',
+        key: 'events',
+        name: 'Hvad der hender',
+        href: omegaEventLinks.list(),
+        icon: faCalendar,
+        authorizers: () => [eventAuth.readManyCurrent],
     },
     {
+        key: 'shops',
         name: 'Butikker',
         href: appHref('/shop'),
         icon: faShoppingCart,
         authorizers: () => [shopAuth.readMany],
     },
     {
+        key: 'newStudent',
         name: 'Ny student?',
         href: appHref('/new-student'),
         icon: faGraduationCap,
@@ -109,84 +82,106 @@ export const navDef: NavItem[] = [
         audience: 'loggedOut',
     },
     {
-        name: 'Hvad der hender',
-        href: omegaEventLinks.list(),
-        icon: faCalendar,
-        authorizers: () => [eventAuth.readManyCurrent],
-    },
-    {
-        name: 'OmBul',
-        href: appHref('/ombul'),
-        icon: faBook,
-        authorizers: () => [ombulAuth.readLatest],
-    },
-    {
-        name: 'Nyheter',
-        href: appHref('/news'),
-        icon: faNewspaper,
-        authorizers: () => [newsAuth.readCurrent],
-    },
-    {
+        key: 'omegaquotes',
         name: 'Omegaquotes',
         href: appHref('/omegaquotes'),
         icon: faComment,
         authorizers: () => [omegaQuotesAuth.readPage],
     },
     {
-        name: 'Bulshit',
-        href: appHref('/bulshit'),
-        icon: faPoo,
-        authorizers: () => [bulshitAuth.readPage, bulshitAuth.createOwn],
+        key: 'news',
+        name: 'Nyheter',
+        href: appHref('/news'),
+        icon: faNewspaper,
+        authorizers: () => [newsAuth.readCurrent],
     },
     {
+        key: 'articles',
         name: 'Artikler',
         href: appHref('/articles'),
         icon: faSignature,
         authorizers: () => [articleCategoryAuth.readAll],
     },
     {
-        name: 'Bilder',
-        href: appHref('/image-collections'),
-        icon: faCamera,
-        authorizers: () => [dynamicImageAuth.readCollectionPage.data({ onlyAdministrated: false })],
-    },
-    {
-        name: 'Interessegrupper',
-        href: appHref('/interest-groups'),
-        icon: faGamepad,
-        authorizers: () => [interestGroupAuth.readMany],
-    },
-    {
-        name: 'Omegarevyen',
-        href: revueLinks.frontpage(),
-        icon: faMasksTheater,
-        authorizers: () => [revueFrontpageAuth.readMainRevueInfo],
-    },
-    {
-        name: 'Hyttebooking',
-        href: appHref('/cabin'),
-        icon: faHouseChimneyWindow,
-        authorizers: () => [cabinArticleAuth.read],
-    },
-    {
+        key: 'users',
         name: 'Broedre iitem Systre',
         href: appHref('/users'),
         icon: faPeopleLine,
         authorizers: () => [userAuth.readPage],
     },
     {
+        key: 'committees',
+        name: 'Komitéer',
+        href: appHref('/committees'),
+        icon: faBeer,
+        authorizers: () => [committeeAuth.readAll],
+    },
+    {
+        key: 'interestGroups',
+        name: 'Interessegrupper',
+        href: appHref('/interest-groups'),
+        icon: faGamepad,
+        authorizers: () => [interestGroupAuth.readMany],
+    },
+    {
+        key: 'ombul',
+        name: 'OmBul',
+        href: appHref('/ombul'),
+        icon: faBook,
+        authorizers: () => [ombulAuth.readLatest],
+    },
+    {
+        key: 'bulshit',
+        name: 'Bulshit',
+        href: appHref('/bulshit'),
+        icon: faPoo,
+        authorizers: () => [bulshitAuth.readPage, bulshitAuth.createOwn],
+    },
+    {
+        key: 'cabin',
+        name: 'Hyttebooking',
+        href: appHref('/cabin'),
+        icon: faHouseChimneyWindow,
+        authorizers: () => [cabinArticleAuth.read],
+    },
+    {
+        key: 'lockers',
         name: 'Skap',
         href: appHref('/lockers'),
         icon: faLock,
         authorizers: () => [lockerAuth.readPage],
     },
     {
+        key: 'images',
+        name: 'Bilder',
+        href: appHref('/image-collections'),
+        icon: faCamera,
+        authorizers: () => [dynamicImageAuth.readCollectionPage.data({ onlyAdministrated: false })],
+    },
+    {
+        key: 'applications',
         name: 'Søknadsperioder',
         href: appHref('/applications'),
         icon: faIdCard,
         authorizers: () => [applicationPeriodAuth.readAll],
     },
     {
+        key: 'revue',
+        name: 'Omegarevyen',
+        href: revueLinks.frontpage(),
+        icon: faMasksTheater,
+        authorizers: () => [revueFrontpageAuth.readMainRevueInfo],
+    },
+    {
+        key: 'career',
+        name: 'Karriere',
+        href: careerLinks.frontpage(), //purposly notredirectToMainDomain - keeping current domain
+        icon: faSuitcase,
+        authorizers: () => [careersFrontpageAuth.readSpecialCmsParagraph],
+        audience: 'loggedIn',
+    },
+    {
+        key: 'phinans',
         name: 'Phinans',
         href: externalHref('https://phinans.com/'),
         icon: faChartLine,
@@ -194,20 +189,10 @@ export const navDef: NavItem[] = [
         authorizers: () => [Require.nothing()],
     },
     {
+        key: 'admin',
         name: 'Administrasjon',
         href: adminNavItemHref,
         icon: faTools,
-        authorizers: () => adminNavAuthorizers(),
+        authorizers: () => adminNavDef.authorizers(),
     },
-]
-
-/**
- * The items of the nav the session may open and is the audience of, in order.
- */
-export function visibleNavItems(session: SessionMaybeUser): NavLink[] {
-    const loggedIn = session.user !== null
-    return navDef
-        .filter(item => item.audience === undefined || (item.audience === 'loggedIn') === loggedIn)
-        .filter(item => item.authorizers().some(authorizer => authorizer.auth(session).authorized))
-        .map(({ name, href, icon }) => ({ name, href, icon }))
-}
+])

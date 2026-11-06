@@ -10,7 +10,6 @@ import { visibilityOperations } from '@/services/visibility/operations'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
 import type { ExpandedImageCollection } from '@/services/images/subservice/types'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
-import type { Prisma } from '@/prisma-generated-pn-types'
 
 export function implementSpecialCollection({
     special,
@@ -33,9 +32,12 @@ export function implementSpecialCollection({
 }) {
     /**
      * Special collections are not editable through the site, so an existing one is brought in line
-     * with the config (name and description), while a missing one is created.
+     * with the config (name and description), while a missing one is created. The special
+     * collections are created lazily, by whatever reads them first, sometimes inside another
+     * service's transaction and sometimes not.
      */
     const generateCollectionFromConfig = defineSubOperation({
+        transaction: 'RUNS_IN',
         operation: () => async ({ prisma }) => {
             const existing = await prisma.imageCollection.findUnique({
                 where: { special },
@@ -58,28 +60,26 @@ export function implementSpecialCollection({
             // because each special collection's access model is specific to its owning service.
             // Empty visibilities are required by the schema but unused; ownershipCheck in the dynamic system
             // prevents special collections from being accessed through the dynamic image operations.
-            const created = await inTransaction(prisma, async tx => {
-                const visibilityRegular = await visibilityOperations.create.internalCall({ prisma: tx })
-                const visibilityAdmin = await visibilityOperations.create.internalCall({ prisma: tx })
+            const visibilityRegular = await visibilityOperations.create.internalCall({ prisma })
+            const visibilityAdmin = await visibilityOperations.create.internalCall({ prisma })
 
-                return tx.imageCollection.create({
-                    data: {
-                        special,
-                        name: config.name,
-                        description: config.description,
-                        visibilityAdmin: {
-                            connect: {
-                                id: visibilityAdmin.id,
-                            }
-                        },
-                        visibilityRegular: {
-                            connect: {
-                                id: visibilityRegular.id,
-                            }
+            const created = await prisma.imageCollection.create({
+                data: {
+                    special,
+                    name: config.name,
+                    description: config.description,
+                    visibilityAdmin: {
+                        connect: {
+                            id: visibilityAdmin.id,
                         }
                     },
-                    include: expandedImageCollectionIncluder,
-                })
+                    visibilityRegular: {
+                        connect: {
+                            id: visibilityRegular.id,
+                        }
+                    }
+                },
+                include: expandedImageCollectionIncluder,
             })
             return expandImageCollection(created, null)
         }
@@ -195,16 +195,4 @@ export function implementSpecialCollection({
         },
         generateCollectionFromConfig,
     } as const
-}
-
-/**
- * Runs `write` in the caller's transaction when there is one, or in a transaction of its own. The
- * special collections are created lazily, by whatever reads them first - sometimes inside another
- * service's transaction, sometimes not.
- */
-function inTransaction<Result>(
-    prisma: PrismaPossibleTransaction<false>,
-    write: (tx: Prisma.TransactionClient) => Promise<Result>,
-) {
-    return '$transaction' in prisma ? prisma.$transaction(write) : write(prisma)
 }

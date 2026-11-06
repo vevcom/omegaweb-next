@@ -1,72 +1,35 @@
 'use client'
 import { SelectNumber } from '@/components/UI/Select'
-import Form from '@/components/Form/Form'
-import TextInput from '@/components/UI/TextInput'
-import Textarea from '@/components/UI/Textarea'
-import { createNotificationAction } from '@/services/notifications/actions'
+import CreateNotificationForm from '@/components/Notifications/CreateNotificationForm'
+import { createNotificationInManualChannelAction } from '@/services/notifications/channels/manual/actions'
+import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
-
 
 export default function NotificationForm({
     channels,
 }: {
     channels: ExpandedNotificationChannel[]
 }) {
-    const [successMessage, setSuccessMessage] = useState<string | null>(null)
+    const [channelId, setChannelId] = useState(channels[0]?.id)
+
+    if (channelId === undefined) return <p>Det finnes ingen kanaler å sende varsler i. Lag en under varslingskanaler.</p>
 
     return <>
-        <Form
-            submitText="Send varsel"
-            className="w-full"
-            action={createNotificationAction}
-            successCallback={data => {
-                if (data) {
-                    setSuccessMessage(`
-                        Varslingen er lagt til i køen.
-                        Det kan ta ganske lang tid før alle får varselet.
-                    `)
-                }
-            }}
-        >
-            <SelectNumber
-                name="channelId"
-                options={channels.map(channel => ({
-                    value: channel.id,
-                    label: channel.name,
-                }))}
-                className="max-w-[20rem]"
-                label="Varslingskanal"
-            />
-
-            <TextInput name="title" label="Tittel" />
-            <Textarea name="message" label="Melding" className="max-h-[500px] h-[200px]" />
-            <TextInput name="url" label="Lenke (valgfri)" />
-            <p>
-                Lenken er en sti på nettsiden, for eksempel /events. Push-varselet åpner den når man trykker på
-                det, og e-postene lenker til den.
-            </p>
-
-            <p>
-                Vil du gjøre varselet mer personlig, kan du bruke brukerinformasjon i det.
-                Under er en liste med kommandoer. Sendes varselet bare som e-post, kan du skrive i Markdown.
-            </p>
-            <table>
-                <tr>
-                    <th>%n</th>
-                    <td>Fornavn</td>
-                </tr>
-                <tr>
-                    <th>%N</th>
-                    <td>Fullt navn</td>
-                </tr>
-                <tr>
-                    <th>%u</th>
-                    <td>Brukernavn</td>
-                </tr>
-            </table>
-
-        </Form>
-        {successMessage && <p>{successMessage}</p>}
+        <SelectNumber
+            name="channelId"
+            value={channelId}
+            onChange={setChannelId}
+            options={channels.map(channel => ({
+                value: channel.id,
+                label: channel.name,
+            }))}
+            className="max-w-[20rem]"
+            label="Varslingskanal"
+        />
+        <CreateNotificationForm
+            key={channelId}
+            action={configureAction(createNotificationInManualChannelAction, { params: { channelId } })}
+        />
     </>
 }

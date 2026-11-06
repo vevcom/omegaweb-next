@@ -16,7 +16,6 @@ import { omegaLinks } from '@/app/(omegaweb)/links'
 import { Site } from '@/lib/sites/site'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { classOperations } from '@/services/groups/classes/operations'
 import { feideEmailDomainsTrustedAsVerified } from '@/lib/feide/constants'
 import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
@@ -469,10 +468,11 @@ export const userOperations = {
         paramsSchema: userSchemas.params.register,
         dataSchema: userSchemas.data.register,
         authorizer: ({ params }) => userAuth.register.data({ userId: params.id }),
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, data, params }) => {
             const { sex, password, allergies, imageConsent } = data
 
+            // Hashed before the transaction, so it does not use up the transaction's timeout.
             const passwordHash = await hashAndEncryptPassword(password)
 
             // Everything registration writes stands or falls together, so a failure part of the way
@@ -522,15 +522,6 @@ export const userOperations = {
                     update: {
                         passwordHash,
                     },
-                })
-
-                // Skips the channels the user is already subscribed to, which a user whose accepted
-                // terms were reset has kept.
-                await notificationSubscriptionOperations.createDefault.internalCall({
-                    params: {
-                        userId: params.id,
-                    },
-                    prisma: tx,
                 })
 
                 // What someone studies is what decides where they come in; anything above that is
@@ -608,19 +599,17 @@ export const userOperations = {
     destroy: defineOperation({
         paramsSchema: userSchemas.params.destroy,
         authorizer: () => userAuth.destroy,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
-            await prisma.$transaction(async tx => {
-                const user = await tx.user.delete({
-                    where: {
-                        id: params.id,
-                    },
-                    select: { bioParagraphId: true },
-                })
-                await cmsParagraphOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { paragraphId: user.bioParagraphId },
-                })
+            const user = await prisma.user.delete({
+                where: {
+                    id: params.id,
+                },
+                select: { bioParagraphId: true },
+            })
+            await cmsParagraphOperations.destroy.internalCall({
+                prisma,
+                params: { paragraphId: user.bioParagraphId },
             })
         }
     }),
@@ -656,7 +645,7 @@ export const userOperations = {
         authorizer: ({ params }) => userAuth.updateProfileImage.data({ userField: { username: params.username } }),
         paramsSchema: userSchemas.params.updateProfileImage,
         dataSchema: userSchemas.data.updateProfileImage,
-        opensTransaction: true,
+        transaction: 'OPENS',
         // uploadImage resizes to 3 sizes, converts to avif and writes several files to store
         // before any db write happens - comfortably slower than the default 5000ms interactive
         // transaction timeout under load, hence the raised timeout below.

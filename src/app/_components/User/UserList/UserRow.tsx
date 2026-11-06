@@ -1,5 +1,6 @@
 import UserDisplayName from '@/components/User/UserDisplayName'
 import ProfilePicture from '@/components/User/ProfilePicture'
+import { ClassLevelConfig } from '@/services/groups/constants'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { UserPagingReturn } from '@/services/users/types'
 import type { AppHref } from '@/lib/sites/href'
@@ -16,8 +17,9 @@ type PropTypes = {
 
 export default function UserRow({ user, groupSelected = false, href }: PropTypes) {
     const displayName = <UserDisplayName width={16} user={user} />
+    const classLabel = user.class && (ClassLevelConfig[user.class].year ?? ClassLevelConfig[user.class].name)
     // A phone has no room for the other columns, so their values go on a line under the name.
-    const details = [`@${user.username}`, user.class, user.studyProgramme].filter(Boolean).join(' · ')
+    const details = [`@${user.username}`, classLabel, user.studyProgramme].filter(Boolean).join(' · ')
 
     return (
         <>
@@ -50,7 +52,7 @@ export default function UserRow({ user, groupSelected = false, href }: PropTypes
             </td>
             <td className="max-mobile:hidden">{user.username}</td>
             <td className="max-mobile:hidden">{user.studyProgramme}</td>
-            <td className="max-mobile:hidden">{user.class}</td>
+            <td className="max-mobile:hidden">{classLabel}</td>
             {
                 groupSelected && (<>
                     <td className="max-mobile:hidden">{user.selectedGroupInfo?.title}</td>
