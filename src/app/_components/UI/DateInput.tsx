@@ -32,7 +32,7 @@ const backgroundClassNames = {
 export default function DateInput({
     label = 'default',
     color = 'base',
-    background = 'base100',
+    background = 'base200',
     className,
     defaultValue,
     includeTime = false,
@@ -69,15 +69,14 @@ export default function DateInput({
                 defaultValue={defaultValueTransformedLocal}
                 type={includeTime ? 'datetime-local' : 'date'}
                 className={`
-                    scheme-dark w-full border-2 border-transparent rounded-inner h-14 p-4
-                    leading-[calc(var(--text-m)*1.25)] text-m text-base-content transition-[border-color,background-color]
-                    duration-300
-                    focus:outline-0 focus:border-accent-blue
+                    w-full border-2 border-transparent rounded-inner h-14 p-4 leading-[calc(var(--text-m)*1.25)] text-m
+                    text-base-content transition-[border-color,background-color] duration-300
+                    focus:outline-0 focus:border-primary
                     [&::-webkit-calendar-picker-indicator]:cursor-pointer
                     [&::-webkit-calendar-picker-indicator]:rounded-[calc(var(--gap)/2)]
                     [&::-webkit-calendar-picker-indicator]:transition-colors
                     [&::-webkit-calendar-picker-indicator]:duration-300
-                    [&::-webkit-calendar-picker-indicator]:hover:bg-surface-subtle
+                    [&::-webkit-calendar-picker-indicator]:hover:bg-base-300
                     ${backgroundClassNames[background]}
                 `}
                 {...props}

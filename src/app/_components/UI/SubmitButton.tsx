@@ -203,7 +203,7 @@ export default function SubmitButton({
             {renderButtons()}
 
             <p className={`
-                flex flex-col min-h-[1.15em] mb-[3px] text-accent-red
+                flex flex-col min-h-[1.15em] mb-[3px] text-error
                 ${pending ? 'invisible' : ''}
             `}>
                 {

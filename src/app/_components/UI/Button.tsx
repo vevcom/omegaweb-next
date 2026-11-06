@@ -20,7 +20,7 @@ export default function Button({ color = 'primary', children, className, ...prop
             className={`
                 ${colorClassNames[color]}
                 ${className ?? ''}
-                disabled:bg-surface-hover disabled:text-base-content/80
+                disabled:bg-base-300 disabled:text-base-content/80
             `}
             {...props}
         >

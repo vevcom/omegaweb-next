@@ -43,7 +43,7 @@ export const LabelFromValue = () => (
 
 export const OnRaisedSurface = () => (
     <div style={{
-        background: 'var(--surface-raised)',
+        background: 'var(--color-base-200)',
         padding: '1.5rem',
         borderRadius: 'var(--rounding)',
         maxWidth: '22rem',

@@ -8,9 +8,9 @@ export type OmegaquoteQuotePropTypes = {
 // The speech bubble: the ::after is the tail, tucked under the rounded text box.
 const bubbleClassName = `
     relative
-    after:absolute after:left-10 after:bottom-0 after:z-1 after:size-[20px] after:bg-surface-raised after:translate-y-1/2
+    after:absolute after:left-10 after:bottom-0 after:z-1 after:size-[20px] after:bg-base-200 after:translate-y-1/2
     after:rotate-45
-    [&>p]:relative [&>p]:z-2 [&>p]:block [&>p]:py-[2rem] [&>p]:px-[3rem] [&>p]:rounded-[25px] [&>p]:bg-surface-raised
+    [&>p]:relative [&>p]:z-2 [&>p]:block [&>p]:py-[2rem] [&>p]:px-[3rem] [&>p]:rounded-[25px] [&>p]:bg-base-200
     [&>p]:font-secondary [&>p]:text-xl [&>p]:[font-weight:lighter] [&>p]:italic [&>p]:text-left [&>p]:text-base-content
 `
 

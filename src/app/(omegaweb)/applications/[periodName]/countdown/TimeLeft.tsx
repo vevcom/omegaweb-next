@@ -27,9 +27,9 @@ export default function TimeLeft({ end }: PropTypes) {
     return (
         <div className="
             flex justify-center items-center gap-[10px] [font-family:Arial,sans-serif] text-[16rem] font-extrabold
-            text-accent-red
+            text-error
             [&_div]:py-[10px] [&_div]:px-[20px] [&_div]:rounded-[5px] [&_div]:text-center [&_div]:min-w-[60px]
-            [&_span]:text-[13rem] [&_span]:text-ink-strong [&_span]:-translate-y-[5%]
+            [&_span]:text-[13rem] [&_span]:text-base-content [&_span]:-translate-y-[5%]
         ">
             {timeLeft.days > 0 && (
                 <>

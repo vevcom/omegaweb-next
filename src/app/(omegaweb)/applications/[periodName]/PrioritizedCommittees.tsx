@@ -45,13 +45,13 @@ function PrioritizedCommittee({ item, priority, canReorder, onDragEnd }: ItemPro
                 {/* The priority comes from the position in the list rather than from the server
                     so that the numbers follow along while the card is being dragged. */}
                 <span className="
-                    shrink-0 rounded-full bg-accent-blue text-base-content/30 size-[3em] grid place-items-center font-bold
+                    shrink-0 rounded-full bg-primary text-primary-content size-[3em] grid place-items-center font-bold
                 ">{priority}</span>
                 {canReorder && (
                     <span className="
                         flex items-center justify-center size-6 rounded-[var(--gap)] text-base-content/80 cursor-grab
                         touch-none select-none transition-colors duration-300
-                        hover:bg-surface-hover hover:text-ink-strong
+                        hover:bg-base-300 hover:text-base-content
                         active:cursor-grabbing
                     " onPointerDown={startDrag}>
                         <FontAwesomeIcon icon={faGripVertical} />
@@ -143,7 +143,7 @@ export default function PrioritizedCommittees({ items, userId }: PropTypes) {
                     />
                 ))}
             </Reorder.Group>
-            {error && <i className="text-accent-red">{error}</i>}
+            {error && <i className="text-error">{error}</i>}
         </>
     )
 }

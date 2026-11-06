@@ -13,7 +13,7 @@ export default function CommitteeOrder({ committees }: PropTypes) {
             getId={committee => committee.id}
             saveOrder={committeeIds => reorderCommitteesAction({ data: { committeeIds } })}
             className="flex flex-col gap-1"
-            itemClassName="flex items-center gap-4 py-2 px-4 bg-surface-raised"
+            itemClassName="flex items-center gap-4 py-2 px-4 bg-base-200"
             renderItem={(committee, { handle, index }) => (
                 <>
                     {handle}

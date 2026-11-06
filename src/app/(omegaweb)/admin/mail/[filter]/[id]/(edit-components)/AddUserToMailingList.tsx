@@ -36,7 +36,7 @@ export default function AddUserToMailingList({ mailingListId }: { mailingListId:
     ">
         <h3>Legg til bruker</h3>
         <p>Trykk på en bruker for å legge dem til e-postlisten.</p>
-        {error && <p className="text-accent-red">{error}</p>}
+        {error && <p className="text-error">{error}</p>}
         <UserList linksToUser={false} />
     </div>
 }

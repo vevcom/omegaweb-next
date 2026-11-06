@@ -23,7 +23,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const lockerClassName = 'flex flex-wrap items-start gap-4 my-4'
 const cardClassName = `
-    flex-[1_1_320px] max-w-[480px] py-4 px-6 rounded-round bg-surface-raised shadow-soft
+    flex-[1_1_320px] max-w-[480px] py-4 px-6 rounded-round bg-base-200 shadow-soft
     [&>h2]:mb-0
 `
 
@@ -118,7 +118,7 @@ const { page, generateMetadata } = serverPage({
                                 <dd>{reservation.endDate ? displayDate(reservation.endDate, false) : 'Ubestemt tid'}</dd>
                             </dl>
                         ) : (
-                            <p className="text-accent-green font-medium">Skapet er ledig</p>
+                            <p className="text-success font-medium">Skapet er ledig</p>
                         )}
                         {reservation && capabilities.canDeactivateReservation.authorized && (
                             <Form

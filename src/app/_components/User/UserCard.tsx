@@ -22,8 +22,8 @@ export default function UserCard({
 
     return <SiteLink
         className={`
-            flex items-center gap-2 p-2 mx-2 mt-2 mb-0 box-border rounded-round no-underline text-base-content
-            bg-surface-raised border-4 border-solid border-[var(--flairColor,var(--surface-raised))]
+            flex items-center gap-2 p-2 mx-2 mt-2 mb-0 box-border rounded-round no-underline text-base-content bg-base-200
+            border-4 border-solid border-[var(--flairColor,var(--color-base-200))]
             [&>div>h6]:text-m
             [&>div>p]:text-s
             ${className ? className : ''}

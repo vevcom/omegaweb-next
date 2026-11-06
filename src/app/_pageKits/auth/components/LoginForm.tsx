@@ -21,8 +21,8 @@ type PropTypes = {
 // A rule on each side of the text.
 const dividerClassName = `
     flex justify-center my-4
-    before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted
-    after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted
+    before:m-2 before:flex-1 before:h-0 before:border-b before:border-base-content/80
+    after:m-2 after:flex-1 after:h-0 after:border-b after:border-base-content/80
 `
 
 const errorMessages: Record<string, string> = {
@@ -116,7 +116,7 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
             href={authLinks(config).sendResetPasswordEmail()}
             className="
                 self-start
-                [&>p]:my-4 [&>p]:text-accent-blue [&>p]:text-s
+                [&>p]:my-4 [&>p]:text-primary [&>p]:text-s
                 [&:hover>p]:underline
             "
         >

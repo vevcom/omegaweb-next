@@ -38,7 +38,9 @@ export default function SubscriptionItem({
             >
                 <span className="inline-flex items-center">
                     {depth ? <span
-                        className="inline-block size-[0.6em] mr-[0.6em] shrink-0 border-l-2 border-b-2 border-text-muted"
+                        className="
+                            inline-block size-[0.6em] mr-[0.6em] shrink-0 border-l-2 border-b-2 border-base-content/80
+                        "
                         aria-hidden="true"
                     /> : null}
                     <b>{branch.name}</b>

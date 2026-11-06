@@ -32,9 +32,9 @@ const { page, generateMetadata } = serverPage({
         }>
             <ol className="
                 grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2 mt-2 p-0 list-none
-                [&>li]:backdrop-blur-[30px] [&>li]:bg-surface-raised [&>li]:p-2 [&>li]:rounded-[0.8em] [&>li]:flex
+                [&>li]:backdrop-blur-[30px] [&>li]:bg-base-200 [&>li]:p-2 [&>li]:rounded-[0.8em] [&>li]:flex
                 [&>li]:flex-col [&>li]:gap-[0.5em]
-                [&_a]:font-bold [&_a]:text-accent-blue [&_a]:no-underline
+                [&_a]:font-bold [&_a]:text-primary [&_a]:no-underline
                 [&_time]:text-base-content [&_time]:text-s
             ">
                 {data.periods.map((period) => (

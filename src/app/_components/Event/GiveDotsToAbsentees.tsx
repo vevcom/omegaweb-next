@@ -61,7 +61,7 @@ export default function GiveDotsToAbsentees({ eventId, accuserId, notAttended }:
                         [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-2 [&>li]:py-1 [&>li]:border-b
                         [&>li]:border-[#adb5bd]
                         [&>li>button]:bg-transparent [&>li>button]:border-none [&>li>button]:cursor-pointer
-                        [&>li>button]:text-accent-red [&>li>button]:p-1
+                        [&>li>button]:text-error [&>li>button]:p-1
                     " aria-label="Får prikker">
                         {receiving.map(registration => (
                             <li key={registration.id}>

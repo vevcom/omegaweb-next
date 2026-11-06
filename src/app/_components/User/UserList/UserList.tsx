@@ -427,7 +427,7 @@ export default function UserList({
                                 { usersSelection &&
                                     <td>
                                         <button
-                                            className={usersSelection.includes(user) ? 'bg-accent-blue!' : ''}
+                                            className={usersSelection.includes(user) ? 'bg-primary!' : ''}
                                             aria-label={`Velg ${user.firstname} ${user.lastname}`}
                                             aria-pressed={usersSelection.includes(user)}
                                             onClick={(event) => {
@@ -441,7 +441,7 @@ export default function UserList({
                                 { userSelection &&
                                     <td>
                                         <button
-                                            className={userSelection.user?.id === user.id ? 'bg-accent-blue!' : ''}
+                                            className={userSelection.user?.id === user.id ? 'bg-primary!' : ''}
                                             aria-label={`Velg ${user.firstname} ${user.lastname}`}
                                             aria-pressed={userSelection.user?.id === user.id}
                                             onClick={(event) => {

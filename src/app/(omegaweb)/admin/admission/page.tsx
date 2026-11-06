@@ -35,7 +35,7 @@ const { page, generateMetadata } = serverPage({
                                     max-mobile:basis-full
                                     p-(--card-padding) rounded-round bg-base-200 text-base-content
                                     transition-[background-color] duration-300
-                                    hover:bg-base-300 hover:text-ink-strong
+                                    hover:bg-base-300 hover:text-base-content
                                 "
                             >
                                 <FontAwesomeIcon icon={faScroll} className="text-base-content text-xl" />

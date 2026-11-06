@@ -96,7 +96,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
         ">
             {products.length === 0 ? (
                 <div className="
-                    grid place-items-center gap-2 rounded-round bg-surface-raised p-12 text-center text-base-content/80
+                    grid place-items-center gap-2 rounded-round bg-base-200 p-12 text-center text-base-content/80
                 ">
                     <FontAwesomeIcon icon={faBasketShopping} className="size-10! text-inherit" />
                     <p className="m-0">Butikken har ingen varer ennå.</p>
@@ -118,13 +118,13 @@ export default function ShopUI({ shop, userId, capabilities }: {
             )}
 
             <aside className="
-                sticky z-2 flex flex-col gap-4 rounded-round bg-surface-raised p-5
+                sticky z-2 flex flex-col gap-4 rounded-round bg-base-200 p-5
                 mobile:top-0
                 max-mobile:bottom-0 max-mobile:max-h-[60dvh] max-mobile:overflow-y-auto
             ">
                 {receipt ? (
                     <>
-                        <div className="flex items-center gap-3 text-accent-green">
+                        <div className="flex items-center gap-3 text-success">
                             <FontAwesomeIcon icon={faCircleCheck} className="size-7! text-inherit" />
                             <h2 className="m-0 text-l text-base-content">Takk for kjøpet!</h2>
                         </div>
@@ -136,9 +136,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                                 </li>
                             ))}
                         </ul>
-                        <p className="
-                            m-0 flex justify-between border-t border-surface-hover pt-3 text-s text-base-content/80
-                        ">
+                        <p className="m-0 flex justify-between border-t border-base-300 pt-3 text-s text-base-content/80">
                             <span>Gjenstående saldo</span>
                             <span className="tabular-nums">{displayAmount(receipt.remainingBalance, false)}</span>
                         </p>
@@ -177,7 +175,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                                 ))}
                             </ul>
                         )}
-                        <div className="flex items-baseline justify-between border-t border-surface-hover pt-3">
+                        <div className="flex items-baseline justify-between border-t border-base-300 pt-3">
                             <span className="font-medium">Totalt</span>
                             <span className="text-xl font-bold tabular-nums">{displayAmount(total)}</span>
                         </div>
@@ -194,7 +192,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                                 {userId === null ? 'Logg inn for å handle.' : 'Du har ikke tilgang til å handle her.'}
                             </p>
                         )}
-                        {purchaseError && <p className="m-0 text-s text-accent-red">{purchaseError}</p>}
+                        {purchaseError && <p className="m-0 text-s text-error">{purchaseError}</p>}
                     </>
                 )}
             </aside>

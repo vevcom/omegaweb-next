@@ -14,18 +14,18 @@ export default function ServiceErrorView({ error }: { error: Smorekopp }) {
     const message = error.errors.at(0)?.message ?? errorConfig?.defaultMessage ?? 'En ukjent feil har oppstått'
 
     return (
-        <div className="bg-surface-base px-4 flex-1 flex flex-col justify-center items-center min-h-[50vh]">
+        <div className="bg-base-100 px-4 flex-1 flex flex-col justify-center items-center min-h-[50vh]">
             <PageTitleSetter title="Feil" />
             <div className="
                 flex justify-center items-center
                 max-mobile:min-h-[50vh]
                 [&_h3]:text-base-content
             ">
-                <div className="border-r-2 border-solid border-surface-base pr-[20px] mr-[20px]">
+                <div className="border-r-2 border-solid border-base-100 pr-[20px] mr-[20px]">
                     <StandardImageServer
                         width={70}
                         standardImage="LOGO_SIMPLE"
-                        tint="var(--text)"
+                        tint="var(--color-base-content)"
                     />
                 </div>
                 <div>

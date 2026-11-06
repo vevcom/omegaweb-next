@@ -137,7 +137,7 @@ function QuotaAdmin({ quota, index, quotaIds, variantId }: {
     quotaIds: number[],
     variantId: number,
 }) {
-    return <section className="flex flex-col gap-2 p-3 rounded-inner bg-surface-raised">
+    return <section className="flex flex-col gap-2 p-3 rounded-inner bg-base-200">
         <div className="flex flex-wrap items-center justify-between gap-2">
             <h4 className="m-0">{index + 1}. {quota.name} · {quota.numOfRegistrations} / {quota.places}</h4>
             <ReorderButtons

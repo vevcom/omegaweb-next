@@ -8,7 +8,7 @@ export const Default = () => (
 
 /**
  * `color` sets the *typed text* colour, not the field chrome — so each variant
- * needs a value to show anything. (`secondary` maps to --surface-base, which is
+ * needs a value to show anything. (`secondary` maps to --base-100, which is
  * near-invisible on the dark field; see NOTES.md.)
  */
 export const Colors = () => (
@@ -28,7 +28,7 @@ export const Password = () => (
 
 export const OnRaisedSurface = () => (
     <div style={{
-        background: 'var(--surface-raised)',
+        background: 'var(--color-base-200)',
         padding: '1.5rem',
         borderRadius: 'var(--rounding)',
         maxWidth: '22rem',

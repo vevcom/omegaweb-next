@@ -46,7 +46,7 @@ const { page, generateMetadata } = serverPage({
                     {sortObjectsByName(products).map(product => <tr key={product.id}>
                         <td className="w-14">
                             <div className="
-                                size-12 overflow-hidden rounded-inner bg-surface-hover
+                                size-12 overflow-hidden rounded-inner bg-base-300
                                 [&_div]:size-full
                                 [&_img]:size-full [&_img]:object-cover
                             ">

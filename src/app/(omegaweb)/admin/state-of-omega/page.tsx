@@ -30,8 +30,7 @@ const { page, generateMetadata } = serverPage({
             <div className="min-h-full flex flex-col items-center justify-center gap-6 p-8 text-center">
                 <div
                     className="
-                        rounded-round bg-surface-raised border-3 border-accent-blue py-12 px-16 flex flex-col items-center
-                        gap-2
+                        rounded-round bg-base-200 border-3 border-primary py-12 px-16 flex flex-col items-center gap-2
                     "
                 >
                     <p className="m-0 font-secondary text-l tracking-[0.3em] uppercase text-base-content/80">
@@ -39,8 +38,8 @@ const { page, generateMetadata } = serverPage({
                     </p>
                     <h1
                         className="
-                            m-0 font-secondary text-[length:clamp(6rem,20vw,12rem)] font-bold leading-none
-                            text-accent-blue [text-shadow:0_0_0.3em_color-mix(in_srgb,var(--accent-blue),transparent_40%)]
+                            m-0 font-secondary text-[length:clamp(6rem,20vw,12rem)] font-bold leading-none text-primary
+                            [text-shadow:0_0_0.3em_color-mix(in_srgb,var(--color-primary),transparent_40%)]
                         "
                     >{ data.currentOrder.order }</h1
                     >
@@ -49,7 +48,7 @@ const { page, generateMetadata } = serverPage({
                     Ordenen til Omega ble sist inkrementert{' '}
                     <Date date={data.currentOrder.createdAt} includeTime={false} />
                 </p>
-                <div className="rounded-round bg-surface-raised p-6 w-full max-w-[700px] text-left">
+                <div className="rounded-round bg-base-200 p-6 w-full max-w-[700px] text-left">
                     <Requirements requirements={data.requirements} />
                 </div>
                 {capabilities.canCreateOrder.authorized &&

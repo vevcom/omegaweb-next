@@ -64,7 +64,7 @@ const { page, generateMetadata } = serverPage({
             })))
     },
     render: ({ data: sections }) => (
-        <div className="bg-surface-base rounded-round p-(--card-padding)">
+        <div className="bg-base-100 rounded-round p-(--card-padding)">
             <h2>Grupper</h2>
             {sections.map(({ type, memberships }) =>
                 <section key={type} className="mt-(--card-padding) overflow-x-auto">

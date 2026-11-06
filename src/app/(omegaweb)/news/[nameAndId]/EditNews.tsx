@@ -69,7 +69,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
     )
 
     return (
-        <div className="p-4 rounded-round bg-surface-base text-base-content flex flex-wrap gap-[1em]">
+        <div className="p-4 rounded-round bg-base-100 text-base-content flex flex-wrap gap-[1em]">
             <div className="max-w-[200px]">
                 {
                     canUpdate && (

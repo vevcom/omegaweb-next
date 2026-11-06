@@ -24,7 +24,7 @@ export default function Requirements({ requirements }: PropTypes) {
                 "
             >
                 <p>For å kunne opprette neste orden må følgende ha skjedd:</p>
-                <span className={allFulfilled ? 'text-accent-green' : 'text-accent-red'}>
+                <span className={allFulfilled ? 'text-success' : 'text-error'}>
                     {fulfilledCount} / {requirements.length}
                 </span>
             </div>
@@ -36,7 +36,7 @@ export default function Requirements({ requirements }: PropTypes) {
                             flex items-center gap-4 py-2 px-4 rounded-round layer
                             [&_span]:text-base-content
                             [&_svg]:shrink-0 [&_svg]:w-[1.2em]! [&_svg]:h-[1.2em]!
-                            ${requirement.fulfilled ? 'text-accent-green' : 'text-accent-red'}
+                            ${requirement.fulfilled ? 'text-success' : 'text-error'}
                         `}
                     >
                         <FontAwesomeIcon icon={requirement.fulfilled ? faCheck : faXmark} />

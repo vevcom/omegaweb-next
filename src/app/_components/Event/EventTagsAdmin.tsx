@@ -91,7 +91,7 @@ export default function EventTagsAdmin({
                                 capabilities.canUpdateTags.authorized || capabilities.canDestroyTags.authorized ? (
                                     <SettingsHeaderItemPopUp scale={25} popUpKey={`EventTagPopUp${tag.id}`}>
                                         {capabilities.canUpdateTags.authorized && <span
-                                            className="border-b-3 border-surface-subtle"
+                                            className="border-b-3 border-base-300"
                                         >
                                             <Form
                                                 refreshOnSuccess

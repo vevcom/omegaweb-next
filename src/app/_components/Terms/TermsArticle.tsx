@@ -9,7 +9,7 @@ import type { ExternalHref } from '@/lib/sites/href'
 const LAST_UPDATED = '21. oktober 2026'
 
 const boxClassName = `
-    bg-surface-raised rounded-round py-4 px-6 mb-8
+    bg-base-200 rounded-round py-4 px-6 mb-8
     [&>h2]:mt-0 [&>h2]:mb-4 [&>h2]:font-secondary [&>h2]:text-l
 `
 
@@ -40,7 +40,7 @@ export default function TermsArticle() {
             [&_p]:mb-4
             [&_:is(ul,ol)]:pl-8 [&_:is(ul,ol)]:mb-4
             [&_li]:mb-2
-            [&_a]:text-accent-blue [&_a]:no-underline
+            [&_a]:text-primary [&_a]:no-underline
             [&_a:hover]:underline
         ">
             <header>
@@ -250,8 +250,8 @@ export default function TermsArticle() {
             <h3>Hvilke opplysninger vi behandler</h3>
             <dl className="
                 mb-4
-                [&>dt]:mt-4 [&>dt]:font-medium [&>dt]:text-ink-strong
-                [&>dd]:mb-2 [&>dd]:border-l [&>dd]:border-surface-subtle [&>dd]:pl-4
+                [&>dt]:mt-4 [&>dt]:font-medium [&>dt]:text-base-content
+                [&>dd]:mb-2 [&>dd]:border-l [&>dd]:border-base-300 [&>dd]:pl-4
             ">
                 <dt>Konto og profil</dt>
                 <dd>

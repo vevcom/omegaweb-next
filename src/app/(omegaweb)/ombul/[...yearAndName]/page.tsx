@@ -66,8 +66,7 @@ const { page, generateMetadata } = serverPage({
                         back to the page you are already on and repeated the name and issue printed
                         right above it. */}
                     <div className="
-                        relative w-full max-w-[calc(33*var(--gap))] aspect-[5/7] rounded-round overflow-hidden
-                        bg-surface-raised
+                        relative w-full max-w-[calc(33*var(--gap))] aspect-[5/7] rounded-round overflow-hidden bg-base-200
                         [&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full
                         [&_img]:w-full [&_img]:h-full [&_img]:object-cover
                     ">

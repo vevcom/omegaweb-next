@@ -38,7 +38,7 @@ const mutedLinkClassName = `
  */
 export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTypes) {
     return (
-        <header className="sticky top-0 z-3 bg-surface-raised border-b border-careers-line">
+        <header className="sticky top-0 z-3 bg-base-200 border-b border-careers-line">
             <nav className={`
                 ${innerClassName}
                 min-h-[64px] flex flex-wrap items-center gap-6

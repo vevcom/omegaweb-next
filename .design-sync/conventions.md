@@ -37,10 +37,10 @@ complete set:
 
 | Group | Tokens |
 |---|---|
-| Surfaces | `--surface-base` (page), `--surface-raised` (cards/panels), `--surface-hover`, `--surface-subtle` |
-| Text | `--text`, `--text-muted`, `--text-inv` (on accent fills) |
-| Ink | `--ink-hover`, `--ink-strong` |
-| Accents | `--accent-blue` (primary), `--accent-red`, `--accent-green`, `--accent-yellow`, `--accent-orange`, `--accent-cyan`, `--accent-magenta`, `--accent-violet` |
+| Surfaces | `--color-base-100` (page), `--color-base-200` (cards/panels), `--color-base-300` (hover, borders) |
+| Text | `--color-base-content`, with `/80` opacity for muted text |
+| Colours | `--color-primary`, `secondary`, `accent`, `neutral`, `info`, `success`, `warning`, `error` |
+| Text on colours | The matching `--color-*-content`, for example `--color-primary-content` on `--color-primary` |
 | Shape / spacing | `--rounding` (1rem), `--gap` (0.5rem) |
 | Depth | `--layer`, `--boxShadow` |
 
@@ -48,15 +48,15 @@ Idiomatic panel:
 
 ```jsx
 <div style={{
-  background: 'var(--surface-raised)',
+  background: 'var(--color-base-200)',
   color: 'var(--text)',
   padding: 'calc(2 * var(--gap))',
   borderRadius: 'var(--rounding)',
 }}>…</div>
 ```
 
-**Always paint a `--surface-base` (or `--surface-raised`) background behind your
-content**, and always take text colour from `--text` / `--text-muted`. Dropping
+**Always paint a `--color-base-100` (or `--color-base-200`) background behind your
+content**, and always take text colour from `--color-base-content`. Dropping
 content onto an unpainted background is the single most common way to end up with
 invisible text here, because the default theme's `--text` is near-white.
 
@@ -65,7 +65,7 @@ invisible text here, because the default theme's `--text` is near-white.
 Four themes ship with the design system: **`Standard`** (dark, the default),
 **`Light`**, **`Solarized`** (warm light), and **`StjerneInnbygger`** (deep blue).
 Each re-declares the same 17 colour tokens — every surface, text, ink and accent
-above; `--rounding`, `--gap`, `--text-inv` and `--boxShadow` stay fixed.
+above; `--rounding`, `--gap`, `--boxShadow` stay fixed.
 
 Two equivalent ways to select one:
 
@@ -78,12 +78,12 @@ const { applyTheme, ThemeName, themes } = window.OhmaUI
 applyTheme(ThemeName.Solarized)   // sets the custom properties on <html>
 ```
 
-`themes` is the raw palette map (`themes.Light['surface-base']` etc.) if you need
+`themes` is the raw palette map (`themes.Light['--color-base-100']` etc.) if you need
 to read a value rather than apply one. `subscribeToTheme(fn)` notifies on change;
 `getActiveTheme()` reads the persisted choice.
 
 **This is why the token rule matters.** A component or layout styled with
-`var(--surface-raised)` follows all four themes for free. A hardcoded `#1a1a1e`
+`var(--color-base-200)` follows all four themes for free. A hardcoded `#1a1a1e`
 looks correct in `Standard` and broken in `Light` and `Solarized` — so never
 hardcode a colour that a token already names.
 
@@ -118,7 +118,7 @@ imports (`fonts/fonts.css`, `_ds_bundle.css`).
   `NumberInput`, `DateInput`, `SelectString`, `SelectNumber`, `ColorInput`,
   `FileInput`, `Dropdown`, `SearchableDropdown` — with a label that floats above
   the value. Pass `background="raised"` on any of them when the field sits on
-  `--surface-raised`, so it stays distinguishable.
+  `--color-base-200`, so it stays distinguishable.
 - **There is no outline/ghost button.** Every action is a filled `Button`:
   `primary` for the main action on a view, `secondary` for everything beside it.
   Don't invent a bordered variant — the design system deliberately has two

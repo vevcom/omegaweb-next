@@ -39,7 +39,7 @@ export default function ComponentTest() {
             <p>Et lite utvalg av komponenter som finnes på veven.</p>
 
             <section className="
-                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                flex flex-col gap-2 pb-4 border-b border-base-300
                 last:border-b-0
             ">
                 <h2>Buttons</h2>
@@ -57,7 +57,7 @@ export default function ComponentTest() {
             </section>
 
             <section className="
-                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                flex flex-col gap-2 pb-4 border-b border-base-300
                 last:border-b-0
             ">
                 <h2>Text inputs</h2>
@@ -76,7 +76,7 @@ export default function ComponentTest() {
             </section>
 
             <section className="
-                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                flex flex-col gap-2 pb-4 border-b border-base-300
                 last:border-b-0
             ">
                 <h2>Checkbox and sliders</h2>
@@ -93,7 +93,7 @@ export default function ComponentTest() {
             </section>
 
             <section className="
-                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                flex flex-col gap-2 pb-4 border-b border-base-300
                 last:border-b-0
             ">
                 <h2>File input</h2>
@@ -105,7 +105,7 @@ export default function ComponentTest() {
             </section>
 
             <section className="
-                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                flex flex-col gap-2 pb-4 border-b border-base-300
                 last:border-b-0
             ">
                 <h2>Color input</h2>
@@ -121,7 +121,7 @@ export default function ComponentTest() {
             </section>
 
             <section className="
-                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                flex flex-col gap-2 pb-4 border-b border-base-300
                 last:border-b-0
             ">
                 <h2>Dropdowns</h2>
@@ -136,7 +136,7 @@ export default function ComponentTest() {
             </section>
 
             <section className="
-                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                flex flex-col gap-2 pb-4 border-b border-base-300
                 last:border-b-0
             ">
                 <h2>Selects</h2>
@@ -163,7 +163,7 @@ export default function ComponentTest() {
             </section>
 
             <section className="
-                flex flex-col gap-2 pb-4 border-b border-surface-subtle
+                flex flex-col gap-2 pb-4 border-b border-base-300
                 last:border-b-0
             ">
                 <h2>Progress bar</h2>

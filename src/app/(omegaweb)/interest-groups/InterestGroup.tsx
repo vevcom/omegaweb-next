@@ -22,15 +22,15 @@ type PropTypes = {
 }
 
 const administrateClassName = `
-    text-accent-blue p-2 size-[30px] ml-auto
-    hover:text-[color-mix(in_srgb,var(--accent-blue),black_10%)] hover:cursor-pointer
+    text-primary p-2 size-[30px] ml-auto
+    hover:text-[color-mix(in_srgb,var(--color-primary),black_10%)] hover:cursor-pointer
 `
 
 export default function InterestGroup({ interestGroup, capabilities }: PropTypes) {
     const cmsArticleActionConfig = { implementationParams: { interestGroupId: interestGroup.id } }
 
     return (
-        <div className="bg-surface-base rounded-round p-4">
+        <div className="bg-base-100 rounded-round p-4">
             <div className="
                 flex justify-between items-center gap-4
                 [&_h2]:text-xl
@@ -38,7 +38,7 @@ export default function InterestGroup({ interestGroup, capabilities }: PropTypes
                 <h2>{interestGroup.name}</h2>
                 {interestGroup.group.pensioned && (
                     <span className="
-                        px-2 rounded-round border border-text-muted text-base-content/80 text-s whitespace-nowrap
+                        px-2 rounded-round border border-base-content/80 text-base-content/80 text-s whitespace-nowrap
                     ">
                         Pensjonert
                     </span>

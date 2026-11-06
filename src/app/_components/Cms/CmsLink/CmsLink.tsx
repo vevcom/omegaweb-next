@@ -20,12 +20,12 @@ const colorClassNames = {
     primary: 'btn-primary m-0',
     secondary: `
         btn-neutral m-0
-        hover:bg-neutral-hover hover:text-neutral-content
+        hover:bg-neutral/90 hover:text-neutral-content
     `,
     neutral:
         `
             btn-neutral m-0
-            hover:bg-neutral-hover hover:text-neutral-content
+            hover:bg-neutral/90 hover:text-neutral-content
         `,
 } as const
 
@@ -55,7 +55,7 @@ export default function CmsLink({
                     ? <span aria-disabled className={`
                         ${buttonClass}
                         opacity-50 cursor-default
-                        hover:bg-neutral-hover
+                        hover:bg-neutral/90
                     `}>
                         {cmsLink.text}
                     </span>

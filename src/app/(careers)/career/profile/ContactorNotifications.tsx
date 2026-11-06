@@ -58,7 +58,7 @@ export default function ContactorNotifications({ userId, channelId, availableMet
                     onChange={save}
                 />
             </div>
-            {error && <p className="text-s text-accent-red">{error}</p>}
+            {error && <p className="text-s text-error">{error}</p>}
         </div>
     )
 }

@@ -48,7 +48,7 @@ export default function SearchableDropdown<ValueType extends string | number>({
     options,
     onChange,
     color = 'base',
-    background = 'base100',
+    background = 'base200',
     className,
     disabled,
 }: PropTypes<ValueType>) {

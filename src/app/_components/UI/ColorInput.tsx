@@ -15,14 +15,14 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
 
 const backgroundClassNames = {
     base: `
-        bg-surface-raised
-        hover:bg-surface-hover
-        peer-focus:bg-surface-hover
+        bg-base-200
+        hover:bg-base-300
+        peer-focus:bg-base-300
     `,
     raised: `
-        bg-surface-hover
-        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-        peer-focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        bg-base-300
+        hover:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
+        peer-focus:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
     `,
 } as const
 
@@ -89,17 +89,17 @@ export default function ColorInput({
             <label htmlFor={inputId} className={`
                 relative w-full flex items-center gap-2 border-2 border-transparent rounded-inner outline-0 text-m
                 text-left pt-6 px-4 pb-2 transition-[border-color,background-color] duration-300 cursor-pointer
-                peer-focus:border-accent-blue
+                peer-focus:border-primary
                 peer-disabled:cursor-not-allowed peer-disabled:opacity-60
                 ${backgroundClassNames[background]}
             `}>
                 <span
                     className="
                         shrink-0 size-[calc(var(--text-m)*1.25)] rounded-[calc(var(--rounding)-1.5*var(--gap))]
-                        shadow-[inset_0_0_0_1px_var(--surface-subtle)]
+                        shadow-[inset_0_0_0_1px_var(--color-base-300)]
                     "
                     style={{ backgroundColor: color }} />
-                <span className="min-h-[calc(var(--text-m)*1.25)] flex items-center tabular-nums text-ink-strong">
+                <span className="min-h-[calc(var(--text-m)*1.25)] flex items-center tabular-nums text-base-content">
                     {color.toUpperCase()}
                 </span>
             </label>
@@ -107,7 +107,7 @@ export default function ColorInput({
                 htmlFor={inputId}
                 className="
                     absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-base-content/80
-                    peer-focus:text-accent-blue
+                    peer-focus:text-primary
                     transition-all duration-300 pointer-events-none z-1
                 "
             >

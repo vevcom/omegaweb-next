@@ -214,7 +214,7 @@ export function eventPage(config: EventPagesConfig) {
                         ${styles.coverImage}
                         flex-[0_0_100%] block relative h-[20em]
                         max-mobile:h-auto max-mobile:aspect-video
-                        bg-surface-base rounded-round overflow-hidden
+                        bg-base-100 rounded-round overflow-hidden
                     `}>
                         <CmsImage
                             capabilities={{ canEdit: capabilities.canEditCmsCoverImage }}
@@ -433,7 +433,7 @@ export function eventPage(config: EventPagesConfig) {
                     <main className="
                         flex-[999_1_420px]
                         max-mobile:basis-full
-                        min-w-0 p-4 bg-surface-base rounded-round
+                        min-w-0 p-4 bg-base-100 rounded-round
                     ">
                         <CmsParagraph
                             capabilities={{ canEdit: capabilities.canEditCmsParagraph }}
@@ -453,7 +453,7 @@ export function eventPage(config: EventPagesConfig) {
 
                     {event.takesRegistration && capabilities.canReadRegistrations.authorized && (
                         <div className="
-                            flex-[0_0_100%] bg-surface-base p-2 rounded-round
+                            flex-[0_0_100%] bg-base-100 p-2 rounded-round
                             [&>h4]:text-xl [&>h4]:font-bold
                         ">
                             <RegistrationsList

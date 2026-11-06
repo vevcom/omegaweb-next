@@ -43,7 +43,7 @@ const backgroundClassNames = {
 export default function NumberInput({
     label,
     color = 'base',
-    background = 'base100',
+    background = 'base200',
     className,
     id,
     ...props

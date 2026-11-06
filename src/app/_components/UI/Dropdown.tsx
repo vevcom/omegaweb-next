@@ -230,7 +230,7 @@ export default function Dropdown<ValueType extends string | number>({
     options,
     onChange,
     color = 'base',
-    background = 'base100',
+    background = 'base200',
     className,
     disabled,
 }: PropTypes<ValueType>) {
@@ -274,7 +274,7 @@ export default function Dropdown<ValueType extends string | number>({
                     relative w-full flex items-center border-2 rounded-inner outline-0 text-m text-left pt-6 pr-10 pb-2
                     pl-4 transition-[border-color,background-color] duration-300 cursor-pointer
                     disabled:cursor-not-allowed disabled:opacity-60
-                    focus-visible:border-accent-blue
+                    focus-visible:border-primary
                     ${dropdownColorClassNames[color]}
                     ${open ? 'border-primary' : 'border-transparent'}
                     ${triggerBackgroundClassNames[background][open ? 'open' : 'closed']}

@@ -31,18 +31,18 @@ const dayClassName = 'relative min-h-[2.3rem]'
 
 const selectionClassNames: Record<Selection, string> = {
     [Selection.START]: `
-        before:absolute before:top-0 before:right-0 before:size-full before:bg-accent-blue before:rounded-l-[10px]
+        before:absolute before:top-0 before:right-0 before:size-full before:bg-primary before:rounded-l-[10px]
     `,
     [Selection.END]: `
-        before:absolute before:top-0 before:left-0 before:size-full before:bg-accent-blue before:rounded-r-[10px]
+        before:absolute before:top-0 before:left-0 before:size-full before:bg-primary before:rounded-r-[10px]
     `,
-    [Selection.INRANGE]: 'bg-[color-mix(in_srgb,var(--accent-blue),white_30%)]',
+    [Selection.INRANGE]: 'bg-[color-mix(in_srgb,var(--color-primary),white_30%)]',
 }
 
 const bookingSelectionClassNames: Record<Selection, string> = {
-    [Selection.START]: '[&>:last-child]:bg-accent-red',
-    [Selection.END]: '[&>:first-child]:bg-accent-red',
-    [Selection.INRANGE]: '[&>*]:bg-accent-red',
+    [Selection.START]: '[&>:last-child]:bg-error',
+    [Selection.END]: '[&>:first-child]:bg-error',
+    [Selection.INRANGE]: '[&>*]:bg-error',
 }
 
 type Day = {
@@ -302,13 +302,12 @@ export default function CabinCalendar({
 
     return <div
         className="
-            w-full max-w-[30rem] max-h-[30rem] overflow-y-auto mt-[1rem] px-[5px] border-2 border-surface-subtle
-            rounded-round
+            w-full max-w-[30rem] max-h-[30rem] overflow-y-auto mt-[1rem] px-[5px] border-2 border-base-300 rounded-round
         "
     >
         <div className={`
             ${weekClassName}
-            bg-surface-base sticky top-0 z-2 py-[0.2rem]
+            bg-base-100 sticky top-0 z-2 py-[0.2rem]
         `}>
             <div className="w-[2.5rem]">Uke</div>
             <div className="grid grid-cols-7 flex-1 text-center">
@@ -360,7 +359,7 @@ function CalendarDay({
 }) {
     return <div className={`
         ${dayClassName}
-        hover:bg-surface-hover
+        hover:bg-base-300
     `}>
         <div
             className={`
@@ -372,7 +371,7 @@ function CalendarDay({
             <div className="relative p-[4px] text-[1.3rem]">{day.date.getDate()}</div>
         </div>
         <div className={`
-            absolute size-full z-0 bg-accent-green
+            absolute size-full z-0 bg-success
             ${day.bookingSelection === undefined ? '' : bookingSelectionClassNames[day.bookingSelection]}
         `}>
             <div className="w-1/2 h-full float-left" />

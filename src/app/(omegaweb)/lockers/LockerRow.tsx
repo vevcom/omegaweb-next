@@ -5,8 +5,7 @@ import { appHref } from '@/lib/sites/href'
 import type { LockerWithReservation } from '@/services/lockers/types'
 
 export const lockerRowClassName = `
-    flex items-center gap-2 bg-surface-raised py-3 px-4 text-inherit no-underline transition-[background-color]
-    duration-300
+    flex items-center gap-2 bg-base-200 py-3 px-4 text-inherit no-underline transition-[background-color] duration-300
     [&>span]:min-w-0 [&>span]:overflow-hidden [&>span]:text-ellipsis [&>span]:whitespace-nowrap
 `
 
@@ -38,8 +37,8 @@ export default function LockerRow({ locker }: PropTypes) {
             href={appHref(`/lockers/${locker.id}`)}
             className={`
                 ${lockerRowClassName}
-                even:bg-[color-mix(in_srgb,var(--surface-raised),white_3%)]
-                hover:bg-surface-hover hover:no-underline
+                even:bg-[color-mix(in_srgb,var(--color-base-200),white_3%)]
+                hover:bg-base-300 hover:no-underline
             `}
             role="row"
         >

@@ -85,10 +85,10 @@ export default function QrCodeReader({ onScan, singleRead = false, qrboxSize }: 
         <div id={qrcodeRegionId} />
 
         <div className={`
-            w-full h-[3rem] rounded-[calc(3*var(--rounding))] text-base-content/30 text-l content-center text-center
-            ${(feedback.status === 'SUCCESS' && !singleRead) ? 'bg-accent-green' : ''}
-            ${feedback.status === 'ERROR' ? 'bg-accent-red' : ''}
-            ${feedback.status === 'WAITING' ? 'bg-accent-yellow' : ''}
+            w-full h-[3rem] rounded-[calc(3*var(--rounding))] text-l content-center text-center
+            ${(feedback.status === 'SUCCESS' && !singleRead) ? 'bg-success text-success-content' : ''}
+            ${feedback.status === 'ERROR' ? 'bg-error text-error-content' : ''}
+            ${feedback.status === 'WAITING' ? 'bg-warning text-warning-content' : ''}
         `} >
             <span>{feedback.text}</span>
         </div>

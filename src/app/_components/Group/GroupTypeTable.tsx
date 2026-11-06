@@ -48,7 +48,7 @@ export default function GroupTypeTable({
     return (
         <table className="
             ohma-table
-            [&_a]:text-accent-blue [&_a]:no-underline
+            [&_a]:text-primary [&_a]:no-underline
             [&_a:hover]:underline
         ">
             <thead>
@@ -68,7 +68,7 @@ export default function GroupTypeTable({
                     const behind = !row.pensioned && row.order < currentOrder
                     // A group behind the current omega order still has to be migrated, and says so rather
                     // than leaving the reader to work out what the colour means.
-                    const status = behind ? 'text-accent-red font-bold' : 'text-accent-green'
+                    const status = behind ? 'text-error font-bold' : 'text-success'
                     const orderClass = row.pensioned ? '' : status
 
                     return (
@@ -77,11 +77,11 @@ export default function GroupTypeTable({
                             <td className={row.pensioned ? 'text-base-content/80' : ''}>
                                 <span className={orderClass}>{row.order}</span>
                                 {behind && (
-                                    <span className="block mt-0.5 text-accent-red text-s">
+                                    <span className="block mt-0.5 text-error text-s">
                                         står i en tidligere orden og må migreres til orden {currentOrder}
                                     </span>
                                 )}
-                                {row.pensioned && <span className="block mt-0.5 text-accent-red text-s">pensjonert</span>}
+                                {row.pensioned && <span className="block mt-0.5 text-error text-s">pensjonert</span>}
                             </td>
                             <td>{row.members}</td>
                         </tr>

@@ -83,7 +83,7 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
 
     const isCollectionActive = (collection: { id: number }) => (
         collection.id === currentCollectionId
-            ? 'scale-110 z-3 border-5 border-accent-blue rounded-[1.25em] [&_img]:scale-120'
+            ? 'scale-110 z-3 border-5 border-primary rounded-[1.25em] [&_img]:scale-120'
             : ''
     )
 
@@ -169,7 +169,7 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                         />
                     )}
                     <div className="
-                        col-[2/3] row-[1/2] bg-surface-base overflow-scroll max-w-full w-full round
+                        col-[2/3] row-[1/2] bg-base-100 overflow-scroll max-w-full w-full round
                         [&>*]:isolate
                         max-mobile:col-[1/2] max-mobile:my-[1em] max-mobile:mx-0
                     ">
@@ -202,7 +202,7 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                             [&>*:last-child:not([data-collection])]:min-w-[calc(14vmin+70px)]
                             [&>*:last-child:not([data-collection])]:h-[calc(14vmin+70px)]
                             [&>*:last-child:not([data-collection])]:border
-                            [&>*:last-child:not([data-collection])]:border-surface-subtle
+                            [&>*:last-child:not([data-collection])]:border-base-300
                             [&>*:last-child:not([data-collection])]:flex [&>*:last-child:not([data-collection])]:relative
                             [&>*:last-child:not([data-collection])]:round
                         ">

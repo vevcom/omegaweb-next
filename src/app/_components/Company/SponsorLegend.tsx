@@ -4,7 +4,7 @@ import { companySponsorTierDetails } from '@/services/careers/companies/constant
 export default function SponsorLegend() {
     return (
         <dl className="
-            flex flex-col gap-2 m-0 p-4 rounded-inner bg-surface-raised
+            flex flex-col gap-2 m-0 p-4 rounded-inner bg-base-200
             [&>div]:flex [&>div]:items-center [&>div]:gap-3
             [&_dt]:shrink-0 [&_dt]:min-w-[15em]
             [&_dd]:m-0 [&_dd]:text-s [&_dd]:text-base-content/80

@@ -48,7 +48,7 @@ export default function TextInput({
     label = 'default',
     type = 'text',
     color = 'base',
-    background = 'base100',
+    background = 'base200',
     compact = false,
     className,
     id,

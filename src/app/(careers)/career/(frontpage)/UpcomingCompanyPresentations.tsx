@@ -17,7 +17,7 @@ export default function UpcomingCompanyPresentations({ eventsHref }: PropTypes) 
             aria-label="Kommende bedriftspresentasjoner"
             className={`
                 ${bandClassName}
-                border-y border-careers-line bg-surface-raised
+                border-y border-careers-line bg-base-200
             `}
         >
             <div className={`

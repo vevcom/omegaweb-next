@@ -53,7 +53,7 @@ export default function RegistrationForm({ config, userData, callbackUrl: callba
             value={sexValue}
             onChange={(e) => setSexValue(e as Sex)} />
         <Checkbox label="Jeg samtykker til å bli tatt bilde av" name="imageConsent" />
-        {config.accountNotice && <p className="p-2 border-l-3 border-accent-blue">{config.accountNotice}</p>}
+        {config.accountNotice && <p className="p-2 border-l-3 border-primary">{config.accountNotice}</p>}
         <Checkbox name="acceptedTerms">
             <span>
                 Jeg godtar&nbsp;

@@ -56,7 +56,7 @@ export default function MigrateGroup({
     if (groupOrder >= currentOmegaOrder) {
         return (
             <div className="flex flex-col gap-2">
-                <p className="text-accent-green">Gruppen er i orden {groupOrder} og trenger ingen migrering.</p>
+                <p className="text-success">Gruppen er i orden {groupOrder} og trenger ingen migrering.</p>
             </div>
         )
     }
@@ -127,7 +127,7 @@ export default function MigrateGroup({
             </span>
 
             {missingAdmin && (
-                <p className="text-accent-red text-s">
+                <p className="text-error text-s">
                     Minst ett medlem må være admin i orden {currentOmegaOrder}.
                 </p>
             )}

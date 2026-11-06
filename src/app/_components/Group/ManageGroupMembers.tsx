@@ -156,10 +156,10 @@ export default function ManageGroupMembers({
             )}
             <span className="flex gap-1">
                 {member.admin && <span className="
-                    px-2 rounded-round border text-s whitespace-nowrap border-accent-blue text-accent-blue
+                    px-2 rounded-round border text-s whitespace-nowrap border-primary text-primary
                 ">Administrator</span>}
                 {!member.active && <span className="
-                    px-2 rounded-round border text-s whitespace-nowrap border-text-muted text-base-content/80
+                    px-2 rounded-round border text-s whitespace-nowrap border-base-content/80 text-base-content/80
                 ">Inaktiv</span>}
             </span>
             {/* The action cells are rendered even when this member cannot use them,

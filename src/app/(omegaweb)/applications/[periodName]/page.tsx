@@ -40,8 +40,8 @@ import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs, ServerPageSession } from '@/app/ServerPage'
 
 const periodDateItemClassName = `
-    bg-surface-raised rounded-inner p-3 flex items-center gap-[0.5em] text-base-content
-    [&>b]:text-accent-blue [&>b]:font-medium [&>b]:whitespace-nowrap
+    bg-base-200 rounded-inner p-3 flex items-center gap-[0.5em] text-base-content
+    [&>b]:text-primary [&>b]:font-medium [&>b]:whitespace-nowrap
 `
 
 export type PropTypes = {

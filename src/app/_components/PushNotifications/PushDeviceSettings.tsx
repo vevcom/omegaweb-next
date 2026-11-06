@@ -85,7 +85,7 @@ export default function PushDeviceSettings({ userId, vapidPublicKey }: {
     }
 
     return <section className="
-        mb-4 py-2 px-3 rounded-round bg-surface-raised
+        mb-4 py-2 px-3 rounded-round bg-base-200
         [&_h3]:mt-0
         [&_p]:max-w-[60ch]
         [&_ol]:max-w-[60ch] [&_ol]:pl-[1.5em]
@@ -130,6 +130,6 @@ export default function PushDeviceSettings({ userId, vapidPublicKey }: {
             <Button color="secondary" onClick={disable} disabled={pending}>Skru av på denne enheten</Button>
         </>}
 
-        {error && <p className="text-accent-red">{error}</p>}
+        {error && <p className="text-error">{error}</p>}
     </section>
 }

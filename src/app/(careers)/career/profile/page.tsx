@@ -23,7 +23,7 @@ const pickMethods = ({ email, emailWeekly, push }: NotificationMethodGeneral): N
 function Section({ title, children }: { title: string, children: ReactNode }) {
     return (
         <section className="
-            p-8 bg-surface-raised border border-careers-line
+            p-8 bg-base-200 border border-careers-line
             max-mobile:p-6
         ">
             <h2 className="mb-6 text-l text-careers-navy">{title}</h2>
@@ -87,7 +87,7 @@ const { page, generateMetadata } = serverPage({
                                     {registration.event.location && ` · ${registration.event.location}`}
                                 </span>
                                 {registration.onWaitingList && (
-                                    <span className="text-s font-semibold text-accent-orange">Venteliste</span>
+                                    <span className="text-s font-semibold text-warning">Venteliste</span>
                                 )}
                             </li>
                         ))}

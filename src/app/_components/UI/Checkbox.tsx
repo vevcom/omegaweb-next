@@ -35,7 +35,7 @@ function Checkbox({ label, children, id, ...props }: PropTypes) {
 
     return (
         <div className="
-            text-m text-ink-strong my-1 mr-1 ml-0 inline-flex items-center
+            text-m text-base-content my-1 mr-1 ml-0 inline-flex items-center
             [&>label]:cursor-pointer
         ">
             {

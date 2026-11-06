@@ -18,6 +18,7 @@ enum Theme {
   STJERNE_INNBYGGER
   HOT_DOG_STAND
   OW_BASIC
+  VALENTINE
 }
 
 model User {

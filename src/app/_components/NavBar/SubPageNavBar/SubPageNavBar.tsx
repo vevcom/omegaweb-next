@@ -29,8 +29,8 @@ export function SubPageNavBarItem({ children, icon, href }:SubPageNavBarProps) {
                     max-mobile:px-1
                     bg-transparent text-base-content
                     [&_*]:transition-colors [&_*]:duration-200 [&_*]:ease-[ease]
-                    hover:[&_*]:text-accent-blue
-                    ${page === thisPage ? '[&_*]:text-accent-blue' : ''}
+                    hover:[&_*]:text-primary
+                    ${page === thisPage ? '[&_*]:text-primary' : ''}
                 `}>
                     {icon && <FontAwesomeIcon icon={icon} className="w-[24px]! h-[24px]!" />}
                     <p className="
@@ -47,7 +47,7 @@ export function SubPageNavBar({ children }: {children: ReactNode}) {
     return (<>
         <div className="
             grid grid-flow-col auto-cols-max col-span-full justify-center gap-1 w-full mx-auto p-2 h-[64px] sticky
-            bottom-0 z-2 rounded-round bg-surface-base overflow-x-auto
+            bottom-0 z-2 rounded-round bg-base-100 overflow-x-auto
         ">
             {children}
         </div>

@@ -41,8 +41,8 @@ export default function PaymentMethodList({ userId, paymentMethods }: Params) {
         <ul className="list-none">
             {paymentMethods.length > 0 ? paymentMethods.map((method) => (
                 <li key={method.id} className="
-                    flex items-center justify-between gap-4 rounded-round border-2 border-solid border-surface-subtle my-2
-                    p-4 text-l
+                    flex items-center justify-between gap-4 rounded-round border-2 border-solid border-base-300 my-2 p-4
+                    text-l
                 ">
                     {displayPaymentMethod(method)}
                     {canDeletePaymentMethod &&

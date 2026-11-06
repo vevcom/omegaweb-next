@@ -73,9 +73,9 @@ const { page, generateMetadata } = serverPage({
                     {items.map(item => <li key={item.id}>
                         <SiteLink href={appHref(`/admin/mail/${filter}/${item.id}`)}
                             className="
-                                flex flex-col gap-1 p-4 rounded-round bg-surface-raised text-base-content no-underline
+                                flex flex-col gap-1 p-4 rounded-round bg-base-200 text-base-content no-underline
                                 transition-[background-color] duration-300
-                                hover:bg-surface-hover
+                                hover:bg-base-300
                                 [&_span]:text-base-content/80 [&_span]:text-[0.9rem]
                             "
                         >
@@ -86,7 +86,7 @@ const { page, generateMetadata } = serverPage({
                     {items.length === 0 && <li className="text-base-content/80 italic">Ingen enda.</li>}
                 </ul>
                 {capabilities.canCreate.authorized && <aside
-                    className="flex-[0_1_20rem] bg-surface-raised rounded-[calc(3*var(--rounding))] p-(--card-padding)"
+                    className="flex-[0_1_20rem] bg-base-200 rounded-[calc(3*var(--rounding))] p-(--card-padding)"
                 >
                     {filter === 'alias' && <CreateMailAlias />}
                     {filter === 'mailingList' && <CreateMailingList />}

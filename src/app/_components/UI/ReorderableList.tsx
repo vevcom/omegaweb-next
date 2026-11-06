@@ -31,7 +31,7 @@ function ReorderableItem<Item>({
             className="
                 flex items-center justify-center size-6 rounded-[var(--gap)] text-base-content/80 cursor-grab touch-none
                 select-none transition-colors duration-300
-                hover:bg-surface-hover hover:text-ink-strong
+                hover:bg-base-300 hover:text-base-content
                 active:cursor-grabbing
             "
             aria-label="Dra for å flytte"
@@ -130,7 +130,7 @@ export default function ReorderableList<Item>({
                     />
                 ))}
             </Reorder.Group>
-            {error && <i className="text-accent-red">{error}</i>}
+            {error && <i className="text-error">{error}</i>}
         </>
     )
 }

@@ -40,7 +40,7 @@ export default function RemovePart({ part, removePartFromArticleSectionAction, c
                     <div
                         className="
                             shadow-[0_0_10px_0_var(--boxShadow)] absolute top-full left-1/2 -translate-x-1/2 w-[200px]
-                            bg-surface-raised round grid place-items-center
+                            bg-base-200 round grid place-items-center
                             [&_form]:w-auto [&_form]:h-auto
                         "
                     >

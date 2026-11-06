@@ -163,8 +163,8 @@ export default function MailFlow({
         return <li
             key={`${chip.type}-${chip.id}`}
             className={`
-                flex items-center gap-2 py-2 px-3 rounded-round bg-surface-subtle min-w-0
-                ${focused ? 'outline-2 outline-accent-green font-bold' : ''}
+                flex items-center gap-2 py-2 px-3 rounded-round bg-base-300 min-w-0
+                ${focused ? 'outline-2 outline-success font-bold' : ''}
             `}
         >
             <FontAwesomeIcon icon={typeIcons[chip.type]} className="text-base-content/80 flex-none" />
@@ -187,7 +187,7 @@ export default function MailFlow({
                 type="button"
                 className="
                     ml-auto bg-transparent border-none cursor-pointer text-base-content/80 p-1 leading-none flex-none
-                    hover:text-accent-red
+                    hover:text-error
                 "
                 aria-label={`Fjern ${chip.label}`}
                 onClick={() => removeRelation(chip)}
@@ -220,7 +220,7 @@ export default function MailFlow({
         </section>
     }
 
-    return <div className="bg-surface-raised rounded-[calc(3*var(--rounding))] p-(--card-padding)">
+    return <div className="bg-base-200 rounded-[calc(3*var(--rounding))] p-(--card-padding)">
         <div className="
             flex flex-row items-stretch gap-4
             max-mobile:flex-col
@@ -247,6 +247,6 @@ export default function MailFlow({
                 { label: 'Eksterne adresser', chips: externalChips },
             ])}
         </div>
-        {error && <p className="text-accent-red mx-0 mb-0 mt-2">{error}</p>}
+        {error && <p className="text-error mx-0 mb-0 mt-2">{error}</p>}
     </div>
 }

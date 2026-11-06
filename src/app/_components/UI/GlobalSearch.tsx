@@ -52,7 +52,7 @@ export type PropTypes = {
 
 const kbdClassName = `
     inline-flex items-center justify-center min-w-4 py-[calc(0.15*var(--gap))] px-[calc(0.4*var(--gap))]
-    mr-[calc(0.3*var(--gap))] bg-surface-hover rounded-[calc(0.35*var(--gap))] text-s text-base-content
+    mr-[calc(0.3*var(--gap))] bg-base-300 rounded-[calc(0.35*var(--gap))] text-s text-base-content
 `
 
 /**
@@ -239,7 +239,7 @@ export default function GlobalSearch({ navItems, adminNavItems, categories }: Pr
             max-mobile:pt-0
         ">
             <div className="
-                w-[min(800px,90vw)] max-h-[70svh] h-[70svh] bg-[color-mix(in_srgb,var(--surface-base),transparent_40%)]
+                w-[min(800px,90vw)] max-h-[70svh] h-[70svh] bg-[color-mix(in_srgb,var(--color-base-100),transparent_40%)]
                 backdrop-blur-[8px] backdrop-saturate-[140%] rounded-round flex flex-col gap-2 p-4 overflow-hidden
                 max-mobile:w-screen max-mobile:max-h-svh max-mobile:h-svh max-mobile:rounded-none
             " ref={ref}>
@@ -300,10 +300,10 @@ export default function GlobalSearch({ navItems, adminNavItems, categories }: Pr
                                                         flex items-center gap-2 p-2 rounded-[calc(0.5*var(--gap))]
                                                         no-underline transition-colors duration-300
                                                         ${index === safeActiveIndex
-                                                ? 'bg-accent-blue text-base-content/30'
+                                                ? 'bg-primary text-primary-content'
                                                 : `
                                                     text-base-content
-                                                    hover:bg-surface-hover
+                                                    hover:bg-base-300
                                                 `}
                                                     `}
                                                     onMouseEnter={() => setActiveIndex(index)}
@@ -311,7 +311,7 @@ export default function GlobalSearch({ navItems, adminNavItems, categories }: Pr
                                                 >
                                                     <span className="
                                                         relative shrink-0 size-10 rounded-[calc(0.5*var(--gap))]
-                                                        overflow-hidden flex items-center justify-center bg-surface-hover
+                                                        overflow-hidden flex items-center justify-center bg-base-300
                                                         text-base-content/80
                                                         [&_div]:w-full [&_div]:h-full
                                                         [&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full
@@ -347,9 +347,7 @@ export default function GlobalSearch({ navItems, adminNavItems, categories }: Pr
                         ))
                     }
                 </div>
-                <div className="
-                    shrink-0 flex flex-wrap gap-3 pt-2 border-t border-surface-hover text-s text-base-content/80
-                ">
+                <div className="shrink-0 flex flex-wrap gap-3 pt-2 border-t border-base-300 text-s text-base-content/80">
                     <span><kbd className={kbdClassName}>↑</kbd><kbd className={kbdClassName}>↓</kbd> Naviger</span>
                     <span><kbd className={kbdClassName}>↵</kbd> Velg</span>
                     <span><kbd className={kbdClassName}>Tab</kbd> Bytt fane</span>

@@ -51,7 +51,7 @@ export default function SideBar({ category, children }: PropTypes) {
             flex relative h-full
             mobile:gap-2
         ">
-            <aside className="mobile:bg-surface-base mobile:rounded-round mobile:w-[300px] mobile:left-0 mobile:z-2">
+            <aside className="mobile:bg-base-100 mobile:rounded-round mobile:w-[300px] mobile:left-0 mobile:z-2">
                 <div ref={measure} className="mobile:h-[calc(100%-2em)]">
                     <div ref={ref} className="
                         max-mobile:hidden
@@ -66,7 +66,7 @@ export default function SideBar({ category, children }: PropTypes) {
             </aside>
 
             <main className="
-                mobile:bg-surface-base mobile:rounded-round mobile:z-1 mobile:overflow-hidden
+                mobile:bg-base-100 mobile:rounded-round mobile:z-1 mobile:overflow-hidden
                 mobile:w-[calc(100%-300px-var(--gap))]
                 max-mobile:w-full
             ">
@@ -135,9 +135,9 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
                             canRemoveArticle && (
                                 <button
                                     className="
-                                        w-[20px] h-[20px] bg-accent-red border-none rounded-full cursor-pointer
+                                        w-[20px] h-[20px] bg-error border-none rounded-full cursor-pointer
                                         transition-[background] duration-500 flex justify-center items-center
-                                        hover:bg-[color-mix(in_srgb,var(--accent-red),black_10%)]
+                                        hover:bg-[color-mix(in_srgb,var(--color-error),black_10%)]
                                     "
                                     onClick={() => handleDestroy(article.id)}
                                 >

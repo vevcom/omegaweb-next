@@ -24,7 +24,7 @@ const ombulCoverClassName = `
     flex flex-col items-center relative text-base-content no-underline
     [&>*]:text-center [&>*]:w-full
     [&>p]:font-light
-    [&>h2]:after:content-[''] [&>h2]:after:block [&>h2]:after:w-full [&>h2]:after:h-[2px] [&>h2]:after:bg-surface-subtle
+    [&>h2]:after:content-[''] [&>h2]:after:block [&>h2]:after:w-full [&>h2]:after:h-[2px] [&>h2]:after:bg-base-300
     [&>h2]:after:mb-2
     max-mobile:[&>h2]:text-xl
 `
@@ -53,7 +53,7 @@ export default function OmbulCover(props: PropTypes) {
         coverImage instanceof File && coverImage.size ? (
             <img src={URL.createObjectURL(coverImage)} />
         ) : (
-            <div className="border-[3px] border-surface-subtle aspect-[5/7] grid place-items-center">
+            <div className="border-[3px] border-base-300 aspect-[5/7] grid place-items-center">
                 Forsidebilde ikke valgt
             </div>
         )

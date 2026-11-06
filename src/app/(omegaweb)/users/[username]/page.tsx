@@ -31,9 +31,9 @@ export type PropTypes = {
 
 const groupSectionClassName = `
     mt-[1em]
-    [&_h2]:text-[1.1em] [&_h2]:text-ink-strong
+    [&_h2]:text-[1.1em] [&_h2]:text-base-content
 `
-const labelClassName = 'w-[10em] inline-block font-medium text-accent-blue'
+const labelClassName = 'w-[10em] inline-block font-medium text-primary'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
@@ -98,7 +98,7 @@ const { page, generateMetadata } = serverPage({
             <div className="h-full">
                 <div className="grid grid-rows-[1fr_auto] gap-2 h-full">
                     <div className="
-                        relative h-full min-h-0 bg-surface-base rounded-round
+                        relative h-full min-h-0 bg-base-100 rounded-round
                         before:content-[''] before:absolute before:inset-[calc(0.25rem*1.5)]
                         before:rounded-[calc(var(--rounding)-0.375rem)] before:border-4
                         before:border-[color:var(--flairColor,transparent)] before:pointer-events-none
@@ -140,8 +140,7 @@ const { page, generateMetadata } = serverPage({
                                         >
                                             <SiteLink href={appHref(`/committees/${membership.committee.shortName}`)}>
                                                 <p className="
-                                                    rounded-[0.3em] p-[0.5em] bg-accent-blue text-surface-base
-                                                    inline-block
+                                                    rounded-[0.3em] p-[0.5em] bg-primary text-primary-content inline-block
                                                 ">
                                                     {membership.title} i {membership.committee.name}
                                                 </p>
@@ -151,7 +150,7 @@ const { page, generateMetadata } = serverPage({
                                 </div>
 
                                 <hr className="
-                                    border-none h-px my-[0.5em] mr-[4em] ml-0 bg-surface-subtle
+                                    border-none h-px my-[0.5em] mr-[4em] ml-0 bg-base-300
                                     max-mobile:w-4/5 max-mobile:mx-auto
                                 " />
 
@@ -165,7 +164,7 @@ const { page, generateMetadata } = serverPage({
                                                 className="no-underline group"
                                             >
                                                 <p className="
-                                                    text-accent-blue
+                                                    text-primary
                                                     group-hover:underline
                                                 ">
                                                     {membership.title} uudaf {membership.order}´dis orden i{' '}
@@ -186,7 +185,7 @@ const { page, generateMetadata } = serverPage({
                                                 className="no-underline group"
                                             >
                                                 <p className="
-                                                    text-accent-blue
+                                                    text-primary
                                                     group-hover:underline
                                                 ">
                                                     {membership.title} uudaf {membership.order}´dis orden i{' '}
@@ -233,8 +232,7 @@ const { page, generateMetadata } = serverPage({
                                 {/* An empty bio is only worth showing to someone who can write it, in edit mode. */}
                                 {(profile.user.bioParagraph.contentHtml !== '' || capabilities.canUpdateBio.authorized) &&
                                     <div className="
-                                        mb-[2em] p-[1em] border-l-[3px] border-accent-blue text-ink-hover
-                                        bg-surface-raised
+                                        mb-[2em] p-[1em] border-l-[3px] border-primary text-base-content/80 bg-base-200
                                     ">
                                         <h2>Bio:</h2>
                                         <CmsParagraph

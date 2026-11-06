@@ -17,7 +17,7 @@ export default function PageWrapper({
     search?: { value: string, label?: string },
     fillHeight?: boolean,
     hideTitle?: boolean,
-    /** For pages laid out as islands: drops the wrapper's surface-base panel so the page background shows through. */
+    /** For pages laid out as islands: drops the wrapper's base-100 panel so the page background shows through. */
     transparent?: boolean,
     /** Extra class for page-specific tweaks (e.g. rounding, spacing) without touching the shared default. */
     className?: string,

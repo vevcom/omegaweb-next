@@ -2,7 +2,7 @@ import { PageWrapper, Button, SimpleTable, AddHeaderItemPopUp, TextInput } from 
 
 export const Default = () => (
     <PageWrapper title="Arrangementer">
-        <p style={{ color: 'var(--text-muted)' }}>
+        <p style={{ color: 'var(--color-base-content)' }}>
             Alt som skjer i Omega, samlet på ett sted.
         </p>
     </PageWrapper>

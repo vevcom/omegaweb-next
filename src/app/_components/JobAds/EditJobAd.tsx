@@ -54,8 +54,7 @@ export default function EditJobAd({ jobAd, config, children }: PropTypes) {
     return (
         <div
             className="
-                shrink-0 max-h-[80vh] grid gap-6 p-6 my-4 mx-[min(4rem,4vw)] rounded-round bg-surface-raised
-                text-base-content
+                shrink-0 max-h-[80vh] grid gap-6 p-6 my-4 mx-[min(4rem,4vw)] rounded-round bg-base-200 text-base-content
                 mobile:grid-cols-[minmax(240px,320px)_1fr] mobile:items-start
                 max-mobile:grid-cols-1 max-mobile:mx-2 max-mobile:max-h-none
             "
@@ -108,7 +107,7 @@ export default function EditJobAd({ jobAd, config, children }: PropTypes) {
                         />
                     </Form>
                     {canDestroy && (
-                        <div className="mt-4 pt-4 border-t border-surface-hover">
+                        <div className="mt-4 pt-4 border-t border-base-300">
                             <Form
                                 action={configureAction(destroyJobAdAction, { params: { id: jobAd.id } })}
                                 navigateOnSuccess={links.list()}

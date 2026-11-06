@@ -64,9 +64,9 @@ function FlairTableRow({ row, index, canReorder, onDragEnd }: RowPropTypes) {
             onDragEnd={() => onDragEnd(row.id)}
             whileDrag={{ scale: 1.01, boxShadow: '0 8px 20px rgba(0, 0, 0, 0.35)' }}
             className="
-                relative flex items-center gap-2 bg-surface-raised py-3 px-4 transition-[background-color] duration-300
-                even:bg-[color-mix(in_srgb,var(--surface-raised),white_3%)]
-                hover:bg-surface-hover
+                relative flex items-center gap-2 bg-base-200 py-3 px-4 transition-[background-color] duration-300
+                even:bg-[color-mix(in_srgb,var(--color-base-200),white_3%)]
+                hover:bg-base-300
             "
         >
             <span className={columnClass.colHandle} role="cell">
@@ -75,7 +75,7 @@ function FlairTableRow({ row, index, canReorder, onDragEnd }: RowPropTypes) {
                     className="
                         flex items-center justify-center size-6 rounded-[var(--gap)] text-base-content/80 cursor-grab
                         touch-none select-none transition-colors duration-300
-                        hover:bg-surface-hover hover:text-ink-strong
+                        hover:bg-base-300 hover:text-base-content
                         active:cursor-grabbing
                     "
                     onPointerDown={startDrag}
@@ -136,7 +136,7 @@ export default function FlairTable({ rows }: PropTypes) {
             "
             role="table"
         >
-            <div className="flex items-center gap-2 bg-surface-raised text-ink-strong font-medium py-3 px-4" role="row">
+            <div className="flex items-center gap-2 bg-base-200 text-base-content font-medium py-3 px-4" role="row">
                 <span className={columnClass.colHandle} role="columnheader"></span>
                 <span className={columnClass.colImage} role="columnheader">Bilde</span>
                 <span className={columnClass.colName} role="columnheader">Navn</span>

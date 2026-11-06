@@ -50,7 +50,7 @@ export default function EventPaymentSection({
 
         {status === 'PAID' && (
             <p className="
-                m-0 flex items-center gap-2 text-l font-bold text-accent-green
+                m-0 flex items-center gap-2 text-l font-bold text-success
                 [&>svg]:size-5
             ">
                 <FontAwesomeIcon icon={faCircleCheck} />
@@ -59,7 +59,7 @@ export default function EventPaymentSection({
         )}
         {status === 'UNPAID' && <>
             <p className="
-                m-0 flex items-center gap-2 text-l font-bold text-accent-orange
+                m-0 flex items-center gap-2 text-l font-bold text-warning
                 [&>svg]:size-5
             ">
                 <FontAwesomeIcon icon={faCircleExclamation} />

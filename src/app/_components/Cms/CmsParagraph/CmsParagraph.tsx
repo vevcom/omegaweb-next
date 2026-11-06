@@ -27,7 +27,7 @@ export default function CmsParagraph({ cmsParagraph, className, updateCmsParagra
                             [&_*]:break-words [&_*]:text-base-content/80
                             [&_ul]:pl-[1.5em]
                             [&_ol]:pl-[1.5em]
-                            [&_a]:no-underline [&_a]:text-accent-blue [&_a]:font-bold
+                            [&_a]:no-underline [&_a]:text-primary [&_a]:font-bold
                             [&_a:hover]:underline
                             [&_h1]:mb-[.5em]
                             [&_h2]:mb-[.5em]

@@ -21,7 +21,7 @@ export default function EventQuotaList({ quotas, eligibleQuotaIds }: PropTypes) 
         </p>
         <ol className="
             m-0 p-0 list-none flex flex-col gap-1
-            [&>li]:px-2 [&>li]:py-1 [&>li]:rounded-inner [&>li]:bg-surface-raised
+            [&>li]:px-2 [&>li]:py-1 [&>li]:rounded-inner [&>li]:bg-base-200
         ">
             {quotas.map((quota, index) => {
                 const eligible = eligibleQuotaIds?.includes(quota.id)
@@ -36,7 +36,7 @@ export default function EventQuotaList({ quotas, eligibleQuotaIds }: PropTypes) 
                         <span>{quota.numOfRegistrations} / {quota.places}</span>
                     </div>
                     {eligibleQuotaIds && (
-                        <div className={eligible ? 'text-s text-accent-green' : 'text-s text-base-content/80'}>
+                        <div className={eligible ? 'text-s text-success' : 'text-s text-base-content/80'}>
                             {eligible ? 'Åpen for deg' : 'Ikke for deg'}
                         </div>
                     )}

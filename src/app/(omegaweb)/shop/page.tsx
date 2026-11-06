@@ -44,13 +44,13 @@ const { page, generateMetadata } = serverPage({
                             key={shop.id}
                             href={appHref(`/shop/${shop.id}`)}
                             className="
-                                group flex flex-col gap-3 rounded-round bg-surface-raised p-5 text-base-content
-                                no-underline transition-colors duration-300
-                                hover:bg-surface-hover hover:no-underline
+                                group flex flex-col gap-3 rounded-round bg-base-200 p-5 text-base-content no-underline
+                                transition-colors duration-300
+                                hover:bg-base-300 hover:no-underline
                             "
                         >
                             <span className="
-                                grid size-12 place-items-center rounded-full bg-accent-blue text-base-content/30
+                                grid size-12 place-items-center rounded-full bg-primary text-primary-content
                                 [&_svg]:text-inherit
                             ">
                                 <FontAwesomeIcon icon={faStore} className="size-5!" />
@@ -60,7 +60,7 @@ const { page, generateMetadata } = serverPage({
                                 <p className="m-0 text-s text-base-content/80 line-clamp-3">{shop.description}</p>
                             )}
                             <span className="
-                                mt-auto flex items-center gap-2 pt-2 text-s font-medium text-accent-blue
+                                mt-auto flex items-center gap-2 pt-2 text-s font-medium text-primary
                                 [&_svg]:text-inherit
                             ">
                                 Gå til butikken

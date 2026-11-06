@@ -18,9 +18,9 @@ export default function AddTeamPerson({ departmentId }: { departmentId: number }
         <PopUp
             popUpKey={popUpKey}
             showButtonClass="
-                flex flex-col items-center justify-center gap-2 aspect-4/5 w-full border border-dashed
-                border-surface-subtle bg-transparent text-base-content/80 cursor-pointer transition-colors
-                hover:bg-surface-hover
+                flex flex-col items-center justify-center gap-2 aspect-4/5 w-full border border-dashed border-base-300
+                bg-transparent text-base-content/80 cursor-pointer transition-colors
+                hover:bg-base-300
             "
             showButtonContent={<>
                 <FontAwesomeIcon icon={faPlus} />

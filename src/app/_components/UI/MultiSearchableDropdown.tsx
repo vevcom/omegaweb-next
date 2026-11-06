@@ -33,7 +33,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
     options,
     onChange,
     color = 'base',
-    background = 'base100',
+    background = 'base200',
     className,
     disabled,
 }: PropTypes<ValueType>) {
@@ -136,7 +136,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                     {selectedOptions.map(option => (
                         <li
                             key={option.key ?? String(option.value)}
-                            className="flex items-center gap-1 rounded-inner bg-surface-hover py-1 pl-3 pr-1 text-s"
+                            className="flex items-center gap-1 rounded-inner bg-base-300 py-1 pl-3 pr-1 text-s"
                         >
                             {option.label ?? String(option.value)}
                             <button
@@ -144,7 +144,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                                 className="
                                     flex items-center justify-center size-6 border-none rounded-full bg-transparent
                                     text-base-content/80 cursor-pointer
-                                    hover:text-accent-red
+                                    hover:text-error
                                 "
                                 aria-label={`Fjern ${option.label ?? String(option.value)}`}
                                 disabled={disabled}

@@ -12,8 +12,8 @@ import type { PopUpKeyType } from '@/contexts/PopUp'
 type Color = 'red' | 'green' | null
 
 const copySuccessColorClass = {
-    red: 'text-accent-red',
-    green: 'text-accent-green',
+    red: 'text-error',
+    green: 'text-success',
 }
 
 type PropTypes = {

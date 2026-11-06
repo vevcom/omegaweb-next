@@ -10,7 +10,7 @@ function Item({ href, name }: PropTypes) {
     return (
         <SiteLink href={href} className="
             inline-block relative text-base-content no-underline
-            after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-accent-blue after:scale-x-0
+            after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-primary after:scale-x-0
             after:origin-bottom-right after:transition-transform after:duration-250 after:ease-out
             hover:after:scale-x-100 hover:after:origin-bottom-left
         ">

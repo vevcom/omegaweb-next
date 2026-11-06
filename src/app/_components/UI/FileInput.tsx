@@ -12,40 +12,40 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
 }
 
 const valueColorClassNames = {
-    black: 'text-ink-strong',
-    primary: 'text-accent-blue',
+    black: 'text-base-content',
+    primary: 'text-primary',
     secondary: 'text-base-content',
-    red: 'text-accent-red',
+    red: 'text-error',
     white: 'text-white',
 } as const
 
 const focusClassNames = {
     blue: {
         trigger: `
-            peer-focus:border-accent-blue
-            peer-focus:[&_svg]:text-accent-blue
+            peer-focus:border-primary
+            peer-focus:[&_svg]:text-primary
         `,
-        label: 'peer-focus:text-accent-blue',
+        label: 'peer-focus:text-primary',
     },
     red: {
         trigger: `
-            peer-focus:border-accent-red
-            peer-focus:[&_svg]:text-accent-red
+            peer-focus:border-error
+            peer-focus:[&_svg]:text-error
         `,
-        label: 'peer-focus:text-accent-red',
+        label: 'peer-focus:text-error',
     },
 } as const
 
 const backgroundClassNames = {
     base: `
-        bg-surface-raised
-        hover:bg-surface-hover
-        peer-focus:bg-surface-hover
+        bg-base-200
+        hover:bg-base-300
+        peer-focus:bg-base-300
     `,
     raised: `
-        bg-surface-hover
-        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-        peer-focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        bg-base-300
+        hover:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
+        peer-focus:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
     `,
 } as const
 
@@ -98,7 +98,7 @@ export default function FileInput({
                 htmlFor={inputId}
                 className={`
                     relative w-full flex items-center border-2 border-transparent rounded-inner outline-0 text-m text-left
-                    text-ink-strong pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300
+                    text-base-content pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300
                     cursor-pointer
                     peer-disabled:cursor-not-allowed peer-disabled:opacity-60
                     ${backgroundClassNames[background]}
