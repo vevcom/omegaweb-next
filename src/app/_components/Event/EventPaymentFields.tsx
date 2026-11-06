@@ -67,6 +67,13 @@ export default function EventPaymentFields({ variants, ledgerAccount, ledgerAcco
                         if (event.target.value) onChange(variant.key, { paymentEnd: new Date(event.target.value) })
                     }}
                 />
+                <Slider
+                    label="Flytt ubetalte bakerst på ventelisten"
+                    name={`requeueUnpaidRegistrations${variant.key}`}
+                    checked={variant.requeueUnpaidRegistrations}
+                    onChange={event => onChange(variant.key, { requeueUnpaidRegistrations: event.target.checked })}
+                    className="col-span-full"
+                />
             </div>}
         </section>)}
 

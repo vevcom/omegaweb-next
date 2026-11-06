@@ -1,4 +1,5 @@
 import { Session } from '@/auth/session/Session'
+import { toVariantDrafts } from '@/components/Event/eventSetupDraft'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
@@ -179,6 +180,25 @@ describe('saving an event with its registration', () => {
         })
         expect(states.map(registration => registration.state)).toEqual(['IN_QUOTA', 'IN_QUOTA'])
         expect(notifySpy).toHaveBeenCalledTimes(1)
+    })
+
+    test('keeps moving unpaid registrations back through the form', async () => {
+        const id = await createEvent('Flytter ubetalte')
+        await save(id, {
+            variants: [{
+                name: 'Påmelding',
+                ...period,
+                takesPayment: true,
+                price: 100,
+                paymentStart: period.registrationStart,
+                paymentEnd: period.registrationEnd,
+                requeueUnpaidRegistrations: true,
+                quotas: [{ name: 'Alle', places: 5, ...open }],
+            }],
+        })
+
+        const { variants } = await eventOperations.read({ params: { id }, bypassAuth: true })
+        expect(toVariantDrafts(variants)[0].requeueUnpaidRegistrations).toBe(true)
     })
 
     test('leaves out what was not sent', async () => {

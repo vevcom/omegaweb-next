@@ -23,6 +23,7 @@ export type VariantDraft = {
     price?: number,
     paymentStart?: Date,
     paymentEnd?: Date,
+    requeueUnpaidRegistrations: boolean,
     numOfRegistrations: number,
     numOnWaitingList: number,
     quotas: QuotaDraft[],
@@ -39,6 +40,7 @@ export function toVariantDrafts(variants: EventVariantExpanded[]): VariantDraft[
         price: variant.price === null ? undefined : variant.price / 100,
         paymentStart: variant.paymentStart ?? undefined,
         paymentEnd: variant.paymentEnd ?? undefined,
+        requeueUnpaidRegistrations: variant.requeueUnpaidRegistrations,
         numOfRegistrations: variant.numOfRegistrations,
         numOnWaitingList: variant.numOnWaitingList,
         quotas: variant.quotas.map(quota => ({
@@ -72,6 +74,7 @@ export function newVariantDraft(name: string, eventStart: Date, like?: VariantDr
         registrationStart: like?.registrationStart ?? new Date(),
         registrationEnd: like?.registrationEnd ?? eventStart,
         takesPayment: false,
+        requeueUnpaidRegistrations: false,
         numOfRegistrations: 0,
         numOnWaitingList: 0,
         quotas: [newQuotaDraft('Påmelding', like?.quotas[0]?.visibilityRequirements)],
