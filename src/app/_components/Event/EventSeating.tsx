@@ -1,22 +1,40 @@
 'use client'
+import Form from '@/components/Form/Form'
 import Button from '@/components/UI/Button'
-import NumberInput from '@/components/UI/NumberInput'
+import DateInput from '@/components/UI/DateInput'
+import TextInput from '@/components/UI/TextInput'
+import { configureAction } from '@/services/configureAction'
+import {
+    openEventSeatingWishesAction,
+    saveEventSeatingPlanAction,
+    setEventSeatingPublishedAction,
+} from '@/services/events/seating/actions'
 import {
     createSeatingPlan,
-    exampleWishes,
+    displaySeats,
     fulfilledWishes,
     moveGuest,
+    parseSeats,
+    reconcilePlan,
+    resizePlan,
     seatingSummary,
     swapGuests,
-} from '@/services/events/seating'
+} from '@/services/events/seating/plan'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLock, faLockOpen } from '@fortawesome/free-solid-svg-icons'
 import { MotionConfig, motion } from 'framer-motion'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { DragEvent, ReactNode } from 'react'
-import type { SeatingGuest, SeatingPlan } from '@/services/events/seating'
+import type { SeatingPlan } from '@/services/events/seating/plan'
+import type { SeatingBoard } from '@/services/events/seating/types'
 
 const DEFAULT_SEATS_PER_TABLE = 8
+
+const sectionClassName = `
+    flex flex-col gap-2 p-3 rounded-inner bg-surface-raised
+    [&>h3]:m-0 [&>h3]:text-m
+    [&>p]:m-0 [&>p]:text-s
+`
 
 function Stat({ label, value }: { label: string, value: ReactNode }) {
     return <div className="flex flex-col p-3 rounded-inner bg-surface-raised">
@@ -25,35 +43,56 @@ function Stat({ label, value }: { label: string, value: ReactNode }) {
     </div>
 }
 
-/**
- * Demo of table seating from wishes and committees. Nothing here is stored, so a reload starts over.
- * ponytail: the plan lives in this component until wishes and tables get a migration.
- */
-export default function EventSeating({ guests }: { guests: SeatingGuest[] }) {
-    const emptyPlan = (tableCount: number): SeatingPlan => ({
-        tables: Array.from({ length: tableCount }, () => []),
-        unseated: guests.map(guest => guest.id),
-    })
-    const firstTableCount = Math.max(1, Math.ceil(guests.length / DEFAULT_SEATS_PER_TABLE))
+/** Sorted, so a plan saved and read back compares equal to what was saved. */
+function placementsOf(plan: SeatingPlan, locked: number[]) {
+    return plan.tables
+        .flatMap((members, table) => members.map(registrationId => ({
+            registrationId,
+            table,
+            locked: locked.includes(registrationId),
+        })))
+        .sort((first, second) => first.registrationId - second.registrationId)
+}
 
-    const [seatsPerTable, setSeatsPerTable] = useState(DEFAULT_SEATS_PER_TABLE)
-    const [plan, setPlan] = useState(emptyPlan(firstTableCount))
-    const [locked, setLocked] = useState<number[]>([])
+function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: SeatingBoard, onDiscard: () => void }) {
+    const { guests, wishes } = board
+    const guestIds = guests.map(guest => guest.id)
+    const firstSeats = board.seats.length > 0
+        ? board.seats
+        : Array<number>(Math.max(1, Math.ceil(guests.length / DEFAULT_SEATS_PER_TABLE))).fill(DEFAULT_SEATS_PER_TABLE)
+
+    const [seats, setSeats] = useState(firstSeats)
+    const [seatsText, setSeatsText] = useState(displaySeats(firstSeats))
+    const [workingPlan, setPlan] = useState(resizePlan(board.plan, firstSeats))
+    const [workingLocked, setLocked] = useState(board.locked)
     const [selected, setSelected] = useState<number | null>(null)
     const [dragged, setDragged] = useState<number | null>(null)
     const [drafts, setDrafts] = useState(0)
 
-    const wishes = useMemo(() => exampleWishes(guests), [guests])
+    // Registrations can change behind an open plan, which must not throw away the work on it.
+    const plan = reconcilePlan(workingPlan, guestIds)
+    const locked = workingLocked.filter(id => guestIds.includes(id) && !plan.unseated.includes(id))
+
     const summary = seatingSummary(plan, guests, wishes)
     const nameOf = (id: number) => guests.find(guest => guest.id === id)?.name ?? 'Ukjent'
-    const places = plan.tables.length * seatsPerTable
+    const places = seats.reduce((sum, count) => sum + count, 0)
     const selectedGuest = guests.find(guest => guest.id === selected)
-    const tableIsFull = (index: number) => plan.tables[index].length >= seatsPerTable
+    const wishNames = selectedGuest && (wishes[selectedGuest.id] ?? []).map(nameOf).join(', ')
+    const tableIsFull = (index: number) => plan.tables[index].length >= seats[index]
+    const wishing = guests.filter(guest => wishes[guest.id]?.length).length
 
-    const resize = (tableCount: number, seats: number) => {
-        setSeatsPerTable(seats)
-        setPlan(emptyPlan(tableCount))
-        setLocked([])
+    const placements = placementsOf(plan, locked)
+    const hasUnsavedPlan = JSON.stringify([seats, placements]) !== JSON.stringify([
+        board.seats,
+        placementsOf(reconcilePlan(board.plan, guestIds), board.locked),
+    ])
+
+    const changeSeats = (text: string) => {
+        setSeatsText(text)
+        const parsed = parseSeats(text)
+        if (!parsed) return
+        setSeats(parsed)
+        setPlan(resizePlan(plan, parsed))
     }
 
     const draft = () => {
@@ -61,13 +100,7 @@ export default function EventSeating({ guests }: { guests: SeatingGuest[] }) {
             id,
             plan.tables.findIndex(members => members.includes(id)),
         ]))
-        setPlan(createSeatingPlan({
-            guests,
-            wishes,
-            seats: plan.tables.map(() => seatsPerTable),
-            locked: lockedTables,
-            seed: drafts + 1,
-        }))
+        setPlan(createSeatingPlan({ guests, wishes, seats, locked: lockedTables, seed: drafts + 1 }))
         setDrafts(drafts + 1)
         setSelected(null)
     }
@@ -96,6 +129,7 @@ export default function EventSeating({ guests }: { guests: SeatingGuest[] }) {
 
     const renderGuest = (guestId: number, seated: boolean) => {
         const wishCount = wishes[guestId]?.length ?? 0
+        const fulfilled = fulfilledWishes(guestId, plan, wishes).length
         const isSelected = guestId === selected
         const isWished = selected !== null && wishes[selected]?.includes(guestId)
         const isLocked = locked.includes(guestId)
@@ -139,10 +173,11 @@ export default function EventSeating({ guests }: { guests: SeatingGuest[] }) {
                         title="Antall ønsker som er oppfylt"
                         className={`
                             text-s
+                            ${fulfilled === 0 && wishCount > 0 ? 'text-accent-red font-bold' : ''}
                             ${isSelected ? '' : 'text-text-muted'}
                         `}
                     >
-                        {fulfilledWishes(guestId, plan, wishes).length}/{wishCount}
+                        {fulfilled}/{wishCount}
                     </span>
                     <button
                         type="button"
@@ -176,89 +211,137 @@ export default function EventSeating({ guests }: { guests: SeatingGuest[] }) {
         Flytt hit
     </button>
 
-    if (guests.length === 0) return <p className="m-0 text-text-muted">Ingen er påmeldt ennå.</p>
+    if (guests.length === 0) return <p className="m-0 text-text-muted">Ingen har fått plass ennå.</p>
 
     return <MotionConfig reducedMotion="user">
         <div className="flex flex-col gap-3">
-            <p className="m-0 text-s text-text-muted">
-                Gjestene og komiteene er ekte, men ønskene er oppdiktet i denne demoen, og ingenting lagres ennå.
-            </p>
-
-            <div className="flex flex-wrap items-end gap-3">
-                <NumberInput
-                    name="tables"
-                    label="Antall bord"
-                    min={1}
-                    value={plan.tables.length}
-                    onChange={event => resize(Math.max(1, Number(event.target.value)), seatsPerTable)}
-                    className="w-32!"
-                />
-                <NumberInput
-                    name="seats"
-                    label="Plasser per bord"
-                    min={1}
-                    value={seatsPerTable}
-                    onChange={event => resize(plan.tables.length, Math.max(1, Number(event.target.value)))}
-                    className="w-40!"
-                />
-                <Button type="button" onClick={draft} className="m-0!">
-                    {drafts === 0 ? 'Lag utkast' : 'Lag nytt utkast'}
-                </Button>
-                <span className="pb-2 text-s text-text-muted">{guests.length} gjester, {places} plasser</span>
-            </div>
-
-            {drafts > 0 && <div className="
-                grid grid-cols-3 gap-2
-                max-mobile:grid-cols-1
-            ">
-                <Stat label="fikk minst ett ønske" value={`${summary.gotAWish} av ${summary.wishing}`} />
-                <Stat label="fikk alle ønskene" value={`${summary.gotAllWishes} av ${summary.wishing}`} />
-                <Stat
-                    label="sitter med noen fra komiteen"
-                    value={`${summary.withCommittee} av ${summary.committeeMembers}`}
-                />
-            </div>}
-
-            <p aria-live="polite" className="m-0 min-h-6 text-s">
-                {selectedGuest
-                    ? `${selectedGuest.name} ønsket seg ${(wishes[selectedGuest.id] ?? []).map(nameOf).join(', ')}.`
-                    : 'Velg noen for å se ønskene, og dra dem til et annet bord eller oppå en de skal bytte med.'}
-            </p>
-
-            <section
-                {...dropZone(null)}
-                className="p-3 rounded-inner bg-surface-raised"
-            >
-                <div className="flex justify-between gap-2 mb-1">
-                    <h3 className="m-0 text-m">Uten bord ({plan.unseated.length})</h3>
-                    {moveHereButton(null)}
-                </div>
-                <ul className="
-                    grid grid-cols-3 gap-x-2 m-0 p-0
-                    max-mobile:grid-cols-2
-                ">
-                    {plan.unseated.map(guestId => renderGuest(guestId, false))}
-                </ul>
-            </section>
-
             <div className="
-                grid grid-cols-3 gap-2
+                grid grid-cols-2 gap-2
                 max-mobile:grid-cols-1
             ">
-                {plan.tables.map((members, index) => <section
-                    key={index}
-                    {...dropZone(index)}
-                    className="min-h-24 p-3 rounded-inner bg-surface-raised"
-                >
-                    <div className="flex justify-between gap-2 mb-1">
-                        <h3 className="m-0 text-m">Bord {index + 1}</h3>
-                        {moveHereButton(index) || <span className="text-s text-text-muted">
-                            {members.length}/{seatsPerTable}
-                        </span>}
-                    </div>
-                    <ul className="m-0 p-0">{members.map(guestId => renderGuest(guestId, true))}</ul>
-                </section>)}
+                <section className={sectionClassName}>
+                    <h3>Ønsker</h3>
+                    <p>
+                        {board.wishesEnd
+                            ? `${wishing} av ${guests.length} har sendt ønsker.`
+                            : 'Gjestene får beskjed når du åpner, og kan velge hvem de vil sitte med.'}
+                    </p>
+                    <Form
+                        action={configureAction(openEventSeatingWishesAction, { params: { id: eventId } })}
+                        submitText={board.wishesEnd ? 'Endre fristen' : 'Åpne for ønsker'}
+                        refreshOnSuccess
+                    >
+                        <DateInput
+                            name="wishesEnd"
+                            label="Frist for ønsker"
+                            includeTime
+                            defaultValue={board.wishesEnd ?? undefined}
+                        />
+                    </Form>
+                </section>
+                <section className={sectionClassName}>
+                    <h3>Publisering</h3>
+                    <p>
+                        {board.publishedAt
+                            ? 'Gjestene ser bordet sitt. Det du lagrer vises for dem med en gang.'
+                            : 'Gjestene ser ikke bordene før du publiserer, og får beskjed når du gjør det.'}
+                    </p>
+                    {hasUnsavedPlan && <p className="text-text-muted">Lagre plasseringen før du publiserer.</p>}
+                    <Form
+                        action={() => configureAction(setEventSeatingPublishedAction, { params: { id: eventId } })({
+                            data: { published: !board.publishedAt },
+                        })}
+                        submitText={board.publishedAt ? 'Skjul bordene' : 'Publiser bordene'}
+                        submitColor={board.publishedAt ? 'red' : 'green'}
+                        disabled={!board.publishedAt && hasUnsavedPlan}
+                        refreshOnSuccess
+                    />
+                </section>
             </div>
+
+            <Form
+                action={configureAction(saveEventSeatingPlanAction, { params: { id: eventId } })}
+                saveBar={{ onDiscard }}
+                submitText="Lagre"
+                refreshOnSuccess
+            >
+                <input type="hidden" name="seats" value={JSON.stringify(seats)} />
+                <input type="hidden" name="placements" value={JSON.stringify(placements)} />
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-end gap-3">
+                        <TextInput
+                            name="seatsText"
+                            label="Bord og plasser"
+                            value={seatsText}
+                            onChange={event => changeSeats(event.target.value)}
+                            className="w-56!"
+                        />
+                        <Button type="button" onClick={draft} className="m-0!">
+                            {plan.tables.flat().length === 0 ? 'Lag utkast' : 'Lag nytt utkast'}
+                        </Button>
+                        <span className="pb-2 text-s text-text-muted">{guests.length} gjester, {places} plasser</span>
+                    </div>
+                    {!parseSeats(seatsText) && <p className="m-0 text-s text-accent-red">
+                        Skriv bordene som 5x8, eller hvert bord for seg som 10, 10, 8, 8.
+                    </p>}
+
+                    {plan.tables.flat().length > 0 && <div className="
+                        grid grid-cols-3 gap-2
+                        max-mobile:grid-cols-1
+                    ">
+                        <Stat label="fikk minst ett ønske" value={`${summary.gotAWish} av ${summary.wishing}`} />
+                        <Stat label="fikk alle ønskene" value={`${summary.gotAllWishes} av ${summary.wishing}`} />
+                        <Stat
+                            label="sitter med noen fra komiteen"
+                            value={`${summary.withCommittee} av ${summary.committeeMembers}`}
+                        />
+                    </div>}
+
+                    <p aria-live="polite" className="m-0 min-h-6 text-s">
+                        {selectedGuest
+                            ? `${selectedGuest.name} ønsket seg ${wishNames || 'ingen'}.`
+                            : 'Velg noen for å se ønskene, og dra dem til et annet bord eller oppå en de skal bytte med.'}
+                    </p>
+
+                    <section {...dropZone(null)} className="p-3 rounded-inner bg-surface-raised">
+                        <div className="flex justify-between gap-2 mb-1">
+                            <h3 className="m-0 text-m">Uten bord ({plan.unseated.length})</h3>
+                            {moveHereButton(null)}
+                        </div>
+                        <ul className="
+                            grid grid-cols-3 gap-x-2 m-0 p-0
+                            max-mobile:grid-cols-2
+                        ">
+                            {plan.unseated.map(guestId => renderGuest(guestId, false))}
+                        </ul>
+                    </section>
+
+                    <div className="
+                        grid grid-cols-3 gap-2
+                        max-mobile:grid-cols-1
+                    ">
+                        {plan.tables.map((members, index) => <section
+                            key={index}
+                            {...dropZone(index)}
+                            className="min-h-24 p-3 rounded-inner bg-surface-raised"
+                        >
+                            <div className="flex justify-between gap-2 mb-1">
+                                <h3 className="m-0 text-m">Bord {index + 1}</h3>
+                                {moveHereButton(index) || <span className="text-s text-text-muted">
+                                    {members.length}/{seats[index]}
+                                </span>}
+                            </div>
+                            <ul className="m-0 p-0">{members.map(guestId => renderGuest(guestId, true))}</ul>
+                        </section>)}
+                    </div>
+                </div>
+            </Form>
         </div>
     </MotionConfig>
+}
+
+/** Collecting wishes, placing the guests at tables, and publishing the result to them. */
+export default function EventSeating({ eventId, board }: { eventId: number, board: SeatingBoard }) {
+    const [discards, setDiscards] = useState(0)
+    return <SeatingEditor key={discards} eventId={eventId} board={board} onDiscard={() => setDiscards(discards + 1)} />
 }

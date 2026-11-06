@@ -71,7 +71,6 @@ export const eventAuth = {
 
     read: canSeeEvent,
     readStatistics: eventAdminLevel,
-    readSeatingGuests: eventAdminLevel,
     readManyCurrent: visibleEvents,
     readManyArchivedPage: visibleEvents,
     search: visibleEvents,

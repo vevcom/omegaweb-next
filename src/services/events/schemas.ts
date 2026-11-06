@@ -163,7 +163,6 @@ export const eventSchemas = {
         adminVisibility: eventId,
         read: eventId,
         readStatistics: eventId,
-        readSeatingGuests: eventId,
         readManyCurrent: paramsFieldSchemas.pick({
             tags: true,
             name: true,

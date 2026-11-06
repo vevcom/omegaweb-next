@@ -5,6 +5,9 @@ export type SeatingPlan = { tables: number[][], unseated: number[] }
 
 // The first wish a guest gets is worth the most, so everyone getting one beats a few getting all three.
 export const FULFILLED_WISH_POINTS = [20, 4, 2]
+export const MAX_WISHES = 3
+export const MAX_TABLES = 200
+export const MAX_SEATS_PER_TABLE = 100
 export const MUTUAL_WISH_POINTS = 2
 // Lower than a first wish, so a committee is split rather than leaving someone with none of their wishes.
 export const SHARED_COMMITTEE_POINTS = 1
@@ -168,22 +171,34 @@ export function swapGuests(plan: SeatingPlan, first: number, second: number): Se
     return { tables: plan.tables.map(members => members.map(trade)), unseated: plan.unseated.map(trade) }
 }
 
-/**
- * ponytail: invented wishes so the demo has something to place. Replace with the wishes guests
- * submit, which need a table of their own and so a migration.
- */
-export function exampleWishes(guests: SeatingGuest[], seed = 7): SeatingWishes {
-    const random = seededRandom(seed)
-    const COMMITTEE_WISH_SHARE = 0.6
-    return Object.fromEntries(guests.map(guest => {
-        const others = guests.filter(other => other.id !== guest.id)
-        const peers = others.filter(other => other.committees.some(committee => guest.committees.includes(committee)))
-        const wished: number[] = []
-        for (let attempt = 0; attempt < 50 && wished.length < Math.min(3, others.length); attempt++) {
-            const pool = peers.length > 0 && random() < COMMITTEE_WISH_SHARE ? peers : others
-            const candidate = pool[Math.floor(random() * pool.length)].id
-            if (!wished.includes(candidate)) wished.push(candidate)
-        }
-        return [guest.id, wished]
-    }))
+/** Reads "5x8", or each table as "10, 10, 8", into the seats of each table. Null when it makes no sense. */
+export function parseSeats(text: string): number[] | null {
+    const seats: number[] = []
+    for (const token of text.split(/[,;\s]+/).filter(Boolean)) {
+        const match = /^(?:(\d+)[x*×])?(\d+)$/i.exec(token)
+        if (!match || Number(match[2]) < 1 || Number(match[2]) > MAX_SEATS_PER_TABLE) return null
+        seats.push(...Array<number>(Number(match[1] ?? 1)).fill(Number(match[2])))
+        if (seats.length > MAX_TABLES) return null
+    }
+    return seats.length > 0 ? seats : null
+}
+
+export function displaySeats(seats: number[]) {
+    return seats.every(count => count === seats[0]) ? `${seats.length}x${seats[0]}` : seats.join(', ')
+}
+
+/** Keeps who still has room at their table, so changing the tables does not undo the work. */
+export function resizePlan(plan: SeatingPlan, seats: number[]): SeatingPlan {
+    const tables = seats.map((capacity, index) => (plan.tables[index] ?? []).slice(0, capacity))
+    const seated = new Set(tables.flat())
+    return { tables, unseated: [...plan.unseated, ...plan.tables.flat().filter(id => !seated.has(id))] }
+}
+
+/** Fits a plan to who is registered now, which may have changed while it was being worked on. */
+export function reconcilePlan(plan: SeatingPlan, guestIds: number[]): SeatingPlan {
+    const present = new Set(guestIds)
+    const tables = plan.tables.map(members => members.filter(id => present.has(id)))
+    const unseated = plan.unseated.filter(id => present.has(id))
+    const placed = new Set([...tables.flat(), ...unseated])
+    return { tables, unseated: [...unseated, ...guestIds.filter(id => !placed.has(id))] }
 }

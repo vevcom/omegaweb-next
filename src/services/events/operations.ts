@@ -32,7 +32,6 @@ import { implementSearchOperation } from '@/services/search/implement'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { implementVisibilityOperations, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
-import type { SeatingGuest } from './seating'
 import type { VariantStatistics } from './statistics'
 import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
@@ -184,36 +183,6 @@ export const eventOperations = {
         },
     }),
 
-    readSeatingGuests: defineOperation({
-        paramsSchema: eventSchemas.params.readSeatingGuests,
-        authorizer: async ({ params, prisma }) => eventAuth.readSeatingGuests.data(await readEventAccess(prisma, params.id)),
-        operation: async ({ prisma, params }): Promise<SeatingGuest[]> => {
-            const registrations = await prisma.eventRegistration.findMany({
-                where: { state: 'IN_QUOTA', quota: { variant: { eventId: params.id } } },
-                orderBy: { id: 'asc' },
-                select: {
-                    id: true,
-                    contact: { select: { name: true } },
-                    user: {
-                        select: {
-                            firstname: true,
-                            lastname: true,
-                            memberships: {
-                                where: { active: true, group: { committee: { isNot: null } } },
-                                select: { group: { select: { committee: { select: { name: true } } } } },
-                            },
-                        },
-                    },
-                },
-            })
-
-            return registrations.map(({ id, contact, user }) => ({
-                id,
-                name: user ? `${user.firstname} ${user.lastname}` : contact?.name ?? 'Ukjent',
-                committees: user?.memberships.flatMap(({ group }) => group.committee?.name ?? []) ?? [],
-            }))
-        },
-    }),
 
     create: defineOperation({
         dataSchema: eventSchemas.data.create,

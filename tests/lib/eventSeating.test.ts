@@ -1,16 +1,35 @@
 import {
     createSeatingPlan,
-    exampleWishes,
+    displaySeats,
     moveGuest,
+    parseSeats,
+    reconcilePlan,
+    resizePlan,
     seatingSummary,
     swapGuests,
-} from '@/services/events/seating'
+} from '@/services/events/seating/plan'
 import { describe, expect, test } from '@jest/globals'
-import type { SeatingGuest, SeatingPlan } from '@/services/events/seating'
+import type { SeatingGuest, SeatingPlan, SeatingWishes } from '@/services/events/seating/plan'
 
 const guest = (id: number, committees: string[] = []): SeatingGuest => ({ id, name: `Gjest ${id}`, committees })
 const manyGuests = (count: number) => Array.from({ length: count }, (_, index) => guest(index + 1))
 const tableOf = (plan: SeatingPlan, id: number) => plan.tables.findIndex(members => members.includes(id))
+// Everyone wishes for three random others, always the same ones so the test is stable.
+function wishesOf(guests: SeatingGuest[]): SeatingWishes {
+    let state = 7
+    const advance = () => {
+        state = (state * 16807) % 2147483647
+        return state
+    }
+    return Object.fromEntries(guests.map(({ id }) => {
+        const wished: number[] = []
+        while (wished.length < 3) {
+            const candidate = guests[advance() % guests.length].id
+            if (candidate !== id && !wished.includes(candidate)) wished.push(candidate)
+        }
+        return [id, wished]
+    }))
+}
 const everyone = (plan: SeatingPlan) => [...plan.tables.flat(), ...plan.unseated].sort((first, second) => first - second)
 
 describe('createSeatingPlan', () => {
@@ -68,18 +87,42 @@ describe('createSeatingPlan', () => {
 
     test('gives the same plan for the same seed', () => {
         const guests = manyGuests(20)
-        const wishes = exampleWishes(guests)
+        const wishes = wishesOf(guests)
         expect(createSeatingPlan({ guests, wishes, seats: [10, 10], seed: 3 }))
             .toEqual(createSeatingPlan({ guests, wishes, seats: [10, 10], seed: 3 }))
     })
 
     test('gives nearly everyone at a big dinner a wish, in about a second', () => {
         const guests = manyGuests(200)
-        const wishes = exampleWishes(guests)
+        const wishes = wishesOf(guests)
         const started = Date.now()
         const plan = createSeatingPlan({ guests, wishes, seats: Array<number>(20).fill(10) })
         expect(Date.now() - started).toBeLessThan(3000)
         expect(seatingSummary(plan, guests, wishes).gotAWish).toBeGreaterThanOrEqual(185)
+    })
+})
+
+describe('tables', () => {
+    test('reads the tables as they are written', () => {
+        expect(parseSeats('2x8, 10;6')).toEqual([8, 8, 10, 6])
+        expect(parseSeats('abc')).toBeNull()
+        expect(parseSeats('0')).toBeNull()
+        expect(parseSeats('')).toBeNull()
+        expect(parseSeats('999x8')).toBeNull()
+    })
+
+    test('writes equal tables the short way', () => {
+        expect(displaySeats([8, 8])).toBe('2x8')
+        expect(displaySeats([10, 8])).toBe('10, 8')
+    })
+
+    test('moves those who no longer fit away from their table', () => {
+        const resized = resizePlan({ tables: [[1, 2, 3], [4]], unseated: [5] }, [2])
+        expect(resized).toEqual({ tables: [[1, 2]], unseated: [5, 3, 4] })
+    })
+
+    test('follows who is registered', () => {
+        expect(reconcilePlan({ tables: [[1, 2]], unseated: [3] }, [2, 3, 4])).toEqual({ tables: [[2]], unseated: [3, 4] })
     })
 })
 
