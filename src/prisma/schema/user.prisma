@@ -106,6 +106,9 @@ model User {
   dots        Dot[] @relation(name: "dot_user")
   dotsAccused Dot[] @relation(name: "dot_accuser")
 
+  // Which groups in the revues the user has been a member of.
+  revueGroupMemberships RevueGroupMember[]
+
   // Which cabin bookings the user has made.
   cabinBooking Booking[] @relation()
 
