@@ -5,9 +5,9 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 
 export type NavAuthorizer = Authorizer<UserRequiredOutOpt, object | undefined>
 
-export type NavItem<Key extends string = string> = {
+export type NavItem = {
     /** What the code calls the item: `href` and `authorize` take it. */
-    key: Key,
+    key: string,
     name: string,
     href: AppHref | ExternalHref,
     icon: IconDefinition,
@@ -25,20 +25,31 @@ export type NavItem<Key extends string = string> = {
 }
 
 /** What of an item the nav components render, so the authorizers stay on the server. */
-export type NavLink<Key extends string = string> = Pick<NavItem<Key>, 'key' | 'name' | 'href' | 'icon'>
+export type NavLink<Item extends NavItem = NavItem> = {
+    key: Item['key'],
+    name: string,
+    href: Item['href'],
+    icon: IconDefinition,
+}
+
+/** A link of a nav whose items are all pages of the app. */
+export type AppNavLink = NavLink<NavItem & { href: AppHref }>
 
 /**
- * A nav from its items, in the order they are shown.
+ * A nav from its items, in the order they are shown. It remembers each item's href type by its key,
+ * so `href` of a page of the app is an AppHref even when another item of the nav is external.
  */
-export function defineNavDef<Key extends string>(items: NavItem<Key>[]) {
+export function defineNavDef<const Item extends NavItem>(items: readonly Item[]) {
+    type Key = Item['key']
+
     function authorizers({ except }: { except?: Key } = {}): NavAuthorizer[] {
         return items
             .filter(item => item.key !== except)
             .flatMap(item => item.authorizers())
     }
 
-    function itemOf(key: Key): NavItem<Key> {
-        const item = items.find(candidate => candidate.key === key)
+    function itemOf<ItemKey extends Key>(key: ItemKey): Extract<Item, { key: ItemKey }> {
+        const item = items.find((candidate): candidate is Extract<Item, { key: ItemKey }> => candidate.key === key)
         if (!item) throw new Error(`The nav has no item '${key}'.`)
         return item
     }
@@ -47,7 +58,7 @@ export function defineNavDef<Key extends string>(items: NavItem<Key>[]) {
         items,
 
         /** The items the session may open and is the audience of, in order. */
-        visible(session: SessionMaybeUser): NavLink<Key>[] {
+        visible(session: SessionMaybeUser): NavLink<Item>[] {
             const loggedIn = session.user !== null
             return items
                 .filter(item => item.audience === undefined || (item.audience === 'loggedIn') === loggedIn)
@@ -58,7 +69,7 @@ export function defineNavDef<Key extends string>(items: NavItem<Key>[]) {
         /** Every authorizer in the nav. Passing any of them is what it takes to have an item to open at all. */
         authorizers,
 
-        href(key: Key): AppHref | ExternalHref {
+        href<ItemKey extends Key>(key: ItemKey): Extract<Item, { key: ItemKey }>['href'] {
             return itemOf(key).href
         },
 

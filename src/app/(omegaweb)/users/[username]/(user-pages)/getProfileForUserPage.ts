@@ -1,7 +1,6 @@
 import { userOperations } from '@/services/users/operations'
 import { userNavDef } from '@/app/(omegaweb)/users/[username]/userNavDef'
 import { siteRedirect } from '@/app/domainContextOfRequest'
-import { appHref } from '@/lib/sites/href'
 import { notFound } from 'next/navigation'
 import type { ServerPageSession } from '@/app/ServerPage'
 import type { UserNavPath } from '@/app/(omegaweb)/users/[username]/userNavDef'
@@ -31,7 +30,7 @@ type Params = {
 export async function getProfileForUserPage({ username }: Params, path: UserNavPath, session: ServerPageSession) {
     if (username === 'me') {
         if (!session.user) return notFound()
-        await siteRedirect(appHref(`/users/${session.user.username}/${path}`))
+        await siteRedirect(userNavDef({ username: session.user.username, userId: session.user.id }).all.href(path))
     }
 
     const profile = await userOperations.readProfile({ params: { username } })

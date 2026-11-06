@@ -1,9 +1,9 @@
 import { SubPageNavBar, SubPageNavBarItem } from '@/components/NavBar/SubPageNavBar/SubPageNavBar'
-import type { NavLink } from '@/lib/navDef/navDef'
+import type { AppNavLink } from '@/lib/navDef/navDef'
 
 type PropTypes = {
     /** The items of `committeeNavDef` the session may open. */
-    links: NavLink[],
+    links: AppNavLink[],
 }
 
 export default function Nav({ links }: PropTypes) {
