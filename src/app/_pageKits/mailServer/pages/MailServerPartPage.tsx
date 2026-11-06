@@ -12,6 +12,9 @@ import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { validMailAddressDomains } from '@/services/mail/constants'
+import { DomainContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
 import { notFound } from 'next/navigation'
 import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 import type { MailServerPart } from '@/pageKits/mailServer/links'
@@ -46,13 +49,17 @@ export const mailServerPartPage = (config: MailServerPagesConfig) => {
                 ))
             })()
 
-            return { part, items }
+            // The alias form offers every mail domain, with the domain of the site it is on picked first.
+            const domains = part === 'alias' ? validMailAddressDomains() : []
+            const defaultDomain = part === 'alias' ? DomainContext.mailDomainOf(Site.of(config.site)) : ''
+
+            return { part, items, domains, defaultDomain }
         },
         capabilities: ({ part }) => ({
             canCreate: createAuth[part](),
         }),
         metadata: ({ part }) => ({ title: mailServerParts[part].title }),
-        render: ({ data: { part, items }, capabilities }) => <PageWrapper>
+        render: ({ data: { part, items, domains, defaultDomain }, capabilities }) => <PageWrapper>
             <div className="p-4 flex flex-col gap-4">
                 <MailServerTabs config={config} active={part} />
                 <p className="text-text-muted max-w-[60ch]">{mailServerParts[part].intro}</p>
@@ -78,7 +85,11 @@ export const mailServerPartPage = (config: MailServerPagesConfig) => {
                             flex-[0_1_20rem] bg-surface-raised rounded-[calc(3*var(--rounding))] p-(--card-padding)
                         "
                     >
-                        {part === 'alias' && <CreateMailAlias config={config} />}
+                        {part === 'alias' && <CreateMailAlias
+                            config={config}
+                            domains={domains}
+                            defaultDomain={defaultDomain}
+                        />}
                         {part === 'mailingList' && <CreateMailingList config={config} />}
                         {part === 'mailaddressExternal' && <CreateMailAddressExternal config={config} />}
                     </aside>}

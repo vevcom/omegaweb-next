@@ -3,7 +3,7 @@ import { mailServerLinks } from '@/pageKits/mailServer/links'
 
 import TextInput from '@/components/UI/TextInput'
 import Form from '@/components/Form/Form'
-import { SelectNumber } from '@/components/UI/Select'
+import { SelectNumber, SelectString } from '@/components/UI/Select'
 import { createAliasMailingListRelationAction } from '@/services/mail/actions'
 import { updateMailAliasAction, destroyMailAliasAction } from '@/services/mail/alias/actions'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
@@ -20,17 +20,22 @@ export default function EditMailAlias({
     id,
     data,
     mailingLists,
+    domains,
 }: {
     config: MailServerPagesConfig,
     id: number,
     data: MailFlowObject,
     mailingLists: MailingList[],
+    domains: string[],
 }) {
     const { push, refresh } = useSiteRouter()
     const links = mailServerLinks(config)
 
     const focusedAlias = data.alias.find(alias => alias.id === id)
     if (!focusedAlias) throw new Error('Fant ikke e-postaliaset')
+    const [localPart, domain] = focusedAlias.address.split('@')
+    // An alias on a domain that has since left the config stays editable as it is.
+    const domainOptions = domains.includes(domain) ? domains : [domain, ...domains]
 
     const canUpdateAlias = useAuthorizer({ authorizer: mailAliasAuth.update }).authorized
     const canDestroyAlias = useAuthorizer({ authorizer: mailAliasAuth.destroy }).authorized
@@ -47,7 +52,13 @@ export default function EditMailAlias({
             submitText="Oppdater"
             action={configureAction(updateMailAliasAction, { params: { id: focusedAlias.id } })}
         >
-            <TextInput name="address" label="Adresse" defaultValue={focusedAlias.address} />
+            <TextInput name="localPart" label="Alias" defaultValue={localPart} />
+            <SelectString
+                name="domain"
+                label="Domene"
+                options={domainOptions.map(option => ({ value: option, label: `@${option}` }))}
+                defaultValue={domain}
+            />
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedAlias.description} />
         </Form>}
 

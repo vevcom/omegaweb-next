@@ -16,7 +16,7 @@ const sessionWith = (permissions: Permission[]) => Session.fromJsObject({
 
 async function createAliasAndList(name: string) {
     const alias = await aliasOperations.create({
-        data: { address: `test-${name}@omega.ntnu.no`, description: '' },
+        data: { localPart: `test-${name}`, domain: 'omega.ntnu.no', description: '' },
         bypassAuth: true,
     })
     const list = await mailingListOperations.create({

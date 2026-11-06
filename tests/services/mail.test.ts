@@ -36,15 +36,22 @@ afterEach(async () => {
 describe('alias address validation', () => {
     test('valid domain is accepted', async () => {
         const alias = await aliasOperations.create({
-            data: { address: 'test-valid@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-valid', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         expect(alias.address).toBe('test-valid@omega.ntnu.no')
     })
 
+    test('a local part with other characters than an address allows is rejected', async () => {
+        await expect(aliasOperations.create({
+            data: { localPart: 'test valid', domain: 'omega.ntnu.no', description: '' },
+            bypassAuth: true,
+        })).rejects.toThrow()
+    })
+
     test('invalid domain is rejected', async () => {
         await expect(aliasOperations.create({
-            data: { address: 'test@invalid-domain.com', description: '' },
+            data: { localPart: 'test', domain: 'invalid-domain.com', description: '' },
             bypassAuth: true,
         })).rejects.toThrow()
         expect(await prisma.mailAlias.count({ where: { address: { endsWith: '@invalid-domain.com' } } })).toBe(0)
@@ -63,7 +70,7 @@ describe('the domains of the sites are mail domains', () => {
     test('an alias may be on a site\'s domain, and is stored in lowercase as Postfix looks it up', async () => {
         withSites()
         const alias = await aliasOperations.create({
-            data: { address: 'Test-Post@Contactor.no', description: '' },
+            data: { localPart: 'Test-Post', domain: 'Contactor.no', description: '' },
             bypassAuth: true,
         })
         expect(alias.address).toBe('test-post@contactor.no')
@@ -71,7 +78,7 @@ describe('the domains of the sites are mail domains', () => {
 
     test('the same address is refused once the domain is no longer one of the sites\'', async () => {
         await expect(aliasOperations.create({
-            data: { address: 'test-post@contactor.no', description: '' },
+            data: { localPart: 'test-post', domain: 'contactor.no', description: '' },
             bypassAuth: true,
         })).rejects.toThrow()
     })
@@ -150,7 +157,7 @@ describe('alias destroy guard', () => {
 
     test('can destroy alias with no notification channel', async () => {
         const alias = await aliasOperations.create({
-            data: { address: 'test-orphan@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-orphan', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         await aliasOperations.destroy({ params: { id: alias.id }, bypassAuth: true })
@@ -163,7 +170,7 @@ describe('alias destroy guard', () => {
 describe('mail flow traversal', () => {
     test('traversal from alias shows connected mailing list and external address', async () => {
         const alias = await aliasOperations.create({
-            data: { address: 'test-flow@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-flow', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         const list = await mailingListOperations.create({
@@ -199,11 +206,11 @@ describe('mail flow traversal', () => {
 
     test('traversal from mailing list shows connected aliases and external addresses', async () => {
         const alias1 = await aliasOperations.create({
-            data: { address: 'test-alias1@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-alias1', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         const alias2 = await aliasOperations.create({
-            data: { address: 'test-alias2@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-alias2', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         const list = await mailingListOperations.create({
@@ -335,7 +342,7 @@ describe('mail flow traversal', () => {
 
     test('external address appearing via multiple mailing lists is deduplicated in alias traversal', async () => {
         const alias = await aliasOperations.create({
-            data: { address: 'test-dedup@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-dedup', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         const list1 = await mailingListOperations.create({
