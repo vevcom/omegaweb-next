@@ -8,6 +8,7 @@ import { dotOperations } from '@/services/dots/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
+import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { Smorekopp } from '@/services/error'
 import { displayDate } from '@/lib/dates/displayDate'
 import { serverPage } from '@/app/ServerPage'
@@ -119,7 +120,8 @@ const { page, generateMetadata } = serverPage({
                 <UpdateNotificationSubscription
                     userId={user.id}
                     channel={channel}
-                    methods={subscription?.methods ?? null}
+                    methods={subscription?.methods ?? allNotificationMethodsOff}
+                    inherited={!subscription?.explicit}
                     hasChildren={false}
                 />
             </Section>

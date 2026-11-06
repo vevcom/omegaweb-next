@@ -1,9 +1,10 @@
 import UpdateNotificationSubscription from './UpdateNotificationSubscription'
 import { treeConnectorClassName } from './constants'
 import { countChildren } from '@/services/notifications/channels/subservice/helpers'
+import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import type { SubscribableChannel } from './UpdateNotificationSubscription'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
-import type { MinimizedSubscription } from '@/services/notifications/subscription/types'
+import type { ResolvedSubscription } from '@/services/notifications/subscription/types'
 import type { ReactNode } from 'react'
 
 type TreeChannel = SubscribableChannel & Pick<ExpandedNotificationChannel, 'parentId' | '_count'>
@@ -20,7 +21,7 @@ export default function NotificationSubscriptionTree({
 }: {
     userId: number,
     channels: TreeChannel[],
-    subscriptions: MinimizedSubscription[],
+    subscriptions: ResolvedSubscription[],
 }) {
     const ids = new Set(channels.map(channel => channel.id))
     const childrenOf = (channel: TreeChannel) => channels.filter(
@@ -29,12 +30,14 @@ export default function NotificationSubscriptionTree({
     const node = (channel: TreeChannel, depth: number): ReactNode => {
         const shown = childrenOf(channel)
         const hidden = countChildren(channel) - shown.length
+        const subscription = subscriptions.find(candidate => candidate.channelId === channel.id)
         return <div key={channel.id} className="flex flex-col">
             <div className="border-b border-surface-hover">
                 <UpdateNotificationSubscription
                     userId={userId}
                     channel={channel}
-                    methods={subscriptions.find(subscription => subscription.channelId === channel.id)?.methods ?? null}
+                    methods={subscription?.methods ?? allNotificationMethodsOff}
+                    inherited={!subscription?.explicit && channel.parentId !== channel.id}
                     hasChildren={countChildren(channel) > 0}
                     depth={depth}
                 />

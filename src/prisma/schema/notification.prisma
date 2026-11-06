@@ -52,6 +52,9 @@ model NotificationMethod {
   subscriptions    NotificationSubscription[]
 }
 
+// The user's own word on a channel. A user with no row for a channel follows the nearest channel
+// above it they have a row for, so a row with every method off is how a channel is turned off
+// under one that is on. See services/notifications/subscription/resolve.ts.
 model NotificationSubscription {
   id        Int                 @id @default(autoincrement())
   createdAt DateTime            @default(now())

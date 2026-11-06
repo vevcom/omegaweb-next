@@ -26,6 +26,18 @@ export function countChildren(channel: Pick<ExpandedNotificationChannel, 'id' | 
     return channel._count.children - (channel.parentId === channel.id ? 1 : 0)
 }
 
+/** The channel and the channels above it, nearest first, up to ROOT, which is its own parent. */
+export function findChainIds(channelId: number, channels: Pick<ExpandedNotificationChannel, 'id' | 'parentId'>[]): number[] {
+    const byId = new Map(channels.map(channel => [channel.id, channel]))
+    const chain: number[] = []
+    let current = byId.get(channelId)
+    while (current && !chain.includes(current.id)) {
+        chain.push(current.id)
+        current = byId.get(current.parentId)
+    }
+    return chain
+}
+
 /** The channels under a channel, at any depth. */
 export function findDescendantIds(channelId: number, channels: ExpandedNotificationChannel[]): number[] {
     return Array.from(collectDescendantIds(channelId, channels, new Set()))

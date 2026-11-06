@@ -79,6 +79,7 @@ export const eventNotificationOperations = {
         createChannels: defineSubOperation({
             paramsSchema: () => eventNotificationSchemas.params.createChannels,
             dataSchema: () => eventNotificationSchemas.data.createChannels,
+            transaction: 'RUNS_IN',
             operation: () => async ({ prisma, params, data }): Promise<EventChannelIds> => {
                 const parent = await eventNotificationChannel.readChannelInternal({ prisma })
                 const name = `${data.name} (#${params.eventId})`

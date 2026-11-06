@@ -3,7 +3,6 @@ import { treeConnectorClassName } from './constants'
 import Form from '@/components/Form/Form'
 import NotificationMethodCheckboxes from '@/components/NotificationMethodSelector/NotificationMethodCheckboxes'
 import { updateNotificationSubscriptionAction } from '@/services/notifications/subscription/actions'
-import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { configureAction } from '@/services/configureAction'
 import type { ExpandedNotificationChannel, NotificationMethodGeneral } from '@/services/notifications/types'
 
@@ -17,13 +16,16 @@ export default function UpdateNotificationSubscription({
     userId,
     channel,
     methods,
+    inherited,
     hasChildren,
     depth = 0,
 }: {
     userId: number,
     channel: SubscribableChannel,
-    /** The methods subscribed with, or null when not subscribed. */
-    methods: NotificationMethodGeneral | null,
+    /** The methods the subscription resolves to. */
+    methods: NotificationMethodGeneral,
+    /** Whether they follow a channel above, since the user has not saved this one. */
+    inherited: boolean,
     hasChildren: boolean,
     /** How far under the top of a tree the channel sits; a channel under another is marked. */
     depth?: number,
@@ -43,6 +45,9 @@ export default function UpdateNotificationSubscription({
                     <b>{channel.name}</b>
                 </span>
                 {channel.description && <span className="block mt-1 text-s text-text-muted">{channel.description}</span>}
+                {inherited && (
+                    <span className="block mt-1 text-s text-text-muted">Følger kanalen over til du lagrer her.</span>
+                )}
             </div>
             {/*
               * Saving refreshes the page, since a save with the sub-channels changes other rows. The
@@ -62,7 +67,7 @@ export default function UpdateNotificationSubscription({
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-1 mr-2">
                     <NotificationMethodCheckboxes
                         label
-                        methods={methods ?? allNotificationMethodsOff}
+                        methods={methods}
                         editable={channel.availableMethods}
                     />
                 </div>

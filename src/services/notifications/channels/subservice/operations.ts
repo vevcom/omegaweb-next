@@ -1,9 +1,7 @@
 import '@pn-server-only'
 import { notificationChannelSchemas } from './schemas'
 import { availableNotificationMethodIncluder } from './constants'
-import { methodsAreEqual, validateMethods, validateNewParent } from './helpers'
-import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
-import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
+import { methodsAreEqual, validateNewParent } from './helpers'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { defaultNotificationAlias } from '@/lib/email/constants'
 import { ServiceError } from '@/services/error'
@@ -17,67 +15,35 @@ import type { ExpandedNotificationChannel, NotificationResult } from '@/services
  */
 export const notificationChannelOperations = {
     /**
-     * Creates a channel under its parent. Whoever subscribes to the parent is subscribed to the new
-     * channel too, with the methods they have on for the parent, as far as the new channel offers
-     * them. One nested write, so it runs atomically whether or not the caller is in a transaction.
+     * Creates a channel under its parent. Those subscribed to the parent reach it through that
+     * subscription, which resolves through the channels above, see subscription/resolve.ts, so
+     * nothing is copied and a channel costs the same however many subscribers the parent has.
      */
     create: defineSubOperation({
         dataSchema: () => notificationChannelSchemas.data.create,
         paramsSchema: () => notificationChannelSchemas.params.create,
         operation: ({ purpose }: { purpose: NotificationChannelPurpose }) =>
-            async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
-                const parentSubscriptions = await prisma.notificationSubscription.findMany({
-                    where: {
-                        channelId: data.parentId
-                    },
-                    include: {
-                        methods: {
-                            select: allNotificationMethodsOn,
+            async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => prisma.notificationChannel.create({
+                data: {
+                    purpose,
+                    name: data.name,
+                    description: data.description,
+                    parent: {
+                        connect: {
+                            id: data.parentId,
                         }
-                    }
-                })
-
-                const subscriptions = parentSubscriptions
-                    .map(subscription => ({
-                        userId: subscription.userId,
-                        methods: booleanOperationOnMethods(subscription.methods, params.availableMethods, 'AND'),
-                    }))
-                    .filter(subscription => !validateMethods(allNotificationMethodsOff, subscription.methods))
-
-                return await prisma.notificationChannel.create({
-                    data: {
-                        purpose,
-                        name: data.name,
-                        description: data.description,
-                        parent: {
-                            connect: {
-                                id: data.parentId,
-                            }
-                        },
-                        availableMethods: {
-                            create: params.availableMethods,
-                        },
-                        mailAlias: {
-                            connect: {
-                                address: defaultNotificationAlias(),
-                            }
-                        },
-                        subscriptions: {
-                            create: subscriptions.map(subscription => ({
-                                user: {
-                                    connect: {
-                                        id: subscription.userId,
-                                    },
-                                },
-                                methods: {
-                                    create: subscription.methods,
-                                },
-                            })),
-                        },
                     },
-                    include: availableNotificationMethodIncluder,
-                })
-            },
+                    availableMethods: {
+                        create: params.availableMethods,
+                    },
+                    mailAlias: {
+                        connect: {
+                            address: defaultNotificationAlias(),
+                        }
+                    },
+                },
+                include: availableNotificationMethodIncluder,
+            }),
     }),
 
     /** The channels the implementing system owns, as its `where` picks them out. */

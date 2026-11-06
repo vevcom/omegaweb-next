@@ -3,12 +3,13 @@ import { sendNotificationEmails } from './dispatch'
 import { sendNotificationPushes } from './dispatchPush'
 import { pushRecipientIncluder } from './constants'
 import { sendWeeklyEmailDigest } from './dispatchWeekly'
-import { notificationDispatchIncluder, recipientsWhere } from './recipients'
+import { notificationDispatchIncluder, readChannelChainIds, recipientsWhere } from './recipients'
 import { notificationMethodSchemas } from './schemas'
 import logger from '@/lib/logger'
 import { userBasicSelection } from '@/services/users/constants'
 import { permissionOperations } from '@/services/permissions/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
+import { findChainIds } from '@/services/notifications/channels/subservice/helpers'
 
 export const notificationMethodOperations = {
     /**
@@ -26,8 +27,9 @@ export const notificationMethodOperations = {
             })
 
             const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })
+            const chainIds = await readChannelChainIds(prisma, notification.channelId)
             const recipients = await prisma.user.findMany({
-                where: recipientsWhere(notification, 'email', defaultPermissions),
+                where: recipientsWhere(notification, 'email', defaultPermissions, chainIds),
                 select: { ...userBasicSelection, email: true },
             })
 
@@ -55,9 +57,10 @@ export const notificationMethodOperations = {
             })
 
             const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })
+            const chainIds = await readChannelChainIds(prisma, notification.channelId)
             const recipients = await prisma.browserPushSubscription.findMany({
                 where: {
-                    user: recipientsWhere(notification, 'push', defaultPermissions),
+                    user: recipientsWhere(notification, 'push', defaultPermissions, chainIds),
                 },
                 include: pushRecipientIncluder,
             })
@@ -113,9 +116,12 @@ export const notificationMethodOperations = {
             if (notifications.length === 0) return { notifications: 0, entries: 0 }
 
             const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })
+            const channels = await prisma.notificationChannel.findMany({ select: { id: true, parentId: true } })
             const entries = (await Promise.all(notifications.map(async notification => {
                 const recipients = await prisma.user.findMany({
-                    where: recipientsWhere(notification, 'emailWeekly', defaultPermissions),
+                    where: recipientsWhere(
+                        notification, 'emailWeekly', defaultPermissions, findChainIds(notification.channelId, channels)
+                    ),
                     select: { id: true },
                 })
                 return recipients.map(user => ({

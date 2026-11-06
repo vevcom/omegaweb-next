@@ -5,7 +5,7 @@ const dataFieldSchemas = z.object({
     email: Zpn.checkboxOrBoolean({ label: 'E-post' }),
     emailWeekly: Zpn.checkboxOrBoolean({ label: 'Ukentlig e-post' }),
     push: Zpn.checkboxOrBoolean({ label: 'Push-varsel' }),
-    // Whether the channels under the channel get the same methods, as far as they offer them.
+    // Whether the user's own rows for the channels under it are dropped, so those follow this one.
     includeChildren: Zpn.checkboxOrBoolean({ label: 'Underkanaler' }).default(false),
 })
 

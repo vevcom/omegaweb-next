@@ -243,23 +243,64 @@ describe('the channels an event owns', () => {
         expect(infoSpy).toHaveBeenCalledTimes(1)
     })
 
-    test('saving a subscription for the channels under one too gives each what it offers', async () => {
+    test("an event's channels take no rows of their own: the parent's subscribers follow through them", async () => {
+        const parent = await eventNotificationChannel.readChannel({ bypassAuth: true })
+        await notificationSubscriptionOperations.update({
+            params: { userId, channelId: parent.id },
+            data: { email: true, emailWeekly: true, push: false },
+            bypassAuth: true,
+        })
+        const created = await eventNotificationOperations.internal.createChannels.internalCall({
+            params: { eventId },
+            data: { name: 'test-inherited-subscribers' },
+        })
+        const ids = [created.notificationChannelId, created.infoNotificationChannelId, created.generalNotificationChannelId]
+        expect(await prisma.notificationSubscription.count({ where: { channelId: { in: ids } } })).toBe(0)
+
+        const resolved = await notificationSubscriptionOperations.read({ params: { userId }, bypassAuth: true })
+        const of = (channelId: number) => resolved.find(subscription => subscription.channelId === channelId)
+        expect(of(created.infoNotificationChannelId)).toEqual({
+            channelId: created.infoNotificationChannelId,
+            explicit: false,
+            methods: { email: true, emailWeekly: false, push: false },
+        })
+        expect(of(created.generalNotificationChannelId)).toMatchObject({
+            explicit: false,
+            methods: { email: true, emailWeekly: true, push: false },
+        })
+        await eventNotificationOperations.internal.destroyChannels.internalCall({ params: created })
+    })
+
+    test('saving for the channels under one too drops their rows, so they follow it, off included', async () => {
         const [own, info, general] = await readChannelsOfEvent(eventId)
+        const resolvedOf = async (channelId: number) => (
+            await notificationSubscriptionOperations.read({ params: { userId }, bypassAuth: true })
+        ).find(subscription => subscription.channelId === channelId)
+
         await notificationSubscriptionOperations.update({
             params: { userId, channelId: own.id },
             data: { email: true, emailWeekly: true, push: false, includeChildren: true },
             bypassAuth: true,
         })
-        const subscriptions = await prisma.notificationSubscription.findMany({
-            where: { userId, channelId: { in: [own.id, info.id, general.id] } },
-            include: { methods: true },
+        expect(await prisma.notificationSubscription.count({
+            where: { userId, channelId: { in: [info.id, general.id] } },
+        })).toBe(0)
+        expect(await resolvedOf(own.id))
+            .toMatchObject({ explicit: true, methods: { email: true, emailWeekly: true, push: false } })
+        expect(await resolvedOf(info.id))
+            .toMatchObject({ explicit: false, methods: { email: true, emailWeekly: false, push: false } })
+        expect(await resolvedOf(general.id))
+            .toMatchObject({ explicit: false, methods: { email: true, emailWeekly: true, push: false } })
+
+        // Off is a row too, which the channels under it follow whatever is on above it.
+        await notificationSubscriptionOperations.update({
+            params: { userId, channelId: own.id },
+            data: { email: false, emailWeekly: false, push: false },
+            bypassAuth: true,
         })
-        const methodsOf = (channelId: number) => (
-            subscriptions.find(subscription => subscription.channelId === channelId)?.methods
-        )
-        expect(methodsOf(own.id)).toMatchObject({ email: true, emailWeekly: true, push: false })
-        expect(methodsOf(info.id)).toMatchObject({ email: true, emailWeekly: false, push: false })
-        expect(methodsOf(general.id)).toMatchObject({ email: true, emailWeekly: true, push: false })
+        expect(await prisma.notificationSubscription.count({ where: { userId, channelId: own.id } })).toBe(1)
+        expect(await resolvedOf(general.id))
+            .toMatchObject({ explicit: false, methods: { email: false, emailWeekly: false, push: false } })
     })
 
     test('deleting the event takes its channels with it', async () => {

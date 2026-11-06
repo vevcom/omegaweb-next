@@ -138,7 +138,7 @@ describe('service operation', () => {
 
         const exists = async (id: number) => (await globalPrisma.notificationMethod.findUnique({ where: { id } })) !== null
 
-        test('runsInTransaction opens a transaction for a caller outside one, which a failure rolls back', async () => {
+        test('RUNS_IN opens a transaction for a caller outside one, which a failure rolls back', async () => {
             const written = await writeInTransaction({ data: { fail: false } })
             expect(written.inTransaction).toBe(true)
             expect(await exists(written.id)).toBe(true)
@@ -150,7 +150,7 @@ describe('service operation', () => {
             await globalPrisma.notificationMethod.delete({ where: { id: written.id } })
         })
 
-        test('runsInTransaction joins the transaction of a caller in one, also when called at once', async () => {
+        test('RUNS_IN joins the transaction of a caller in one, also when called at once', async () => {
             const written = await globalPrisma.$transaction(async tx => {
                 const results = await Promise.all([
                     writeInTransaction({ data: { fail: false }, prisma: tx }),
@@ -171,7 +171,7 @@ describe('service operation', () => {
             await globalPrisma.notificationMethod.deleteMany({ where: { id: { in: written.map(result => result.id) } } })
         })
 
-        test('opensTransaction is refused inside a transaction', async () => {
+        test('OPENS is refused inside a transaction', async () => {
             expect(await opensTransaction({})).toEqual(expect.any(Number))
             await globalPrisma.$transaction(async tx => {
                 await expect(opensTransaction({ prisma: tx as unknown as PrismaClient })).rejects.toThrow(Smorekopp)
