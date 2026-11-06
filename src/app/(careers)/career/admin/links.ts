@@ -1,4 +1,5 @@
 import { careerAdminPages } from './config'
+import { careerMailServerLinks } from '@/app/(careers)/career/admin/mail/links'
 import { defineLinks } from '@/lib/sites/defineLinks'
 import type { AppHref } from '@/lib/sites/href'
 import type { PagesMount } from '@/lib/sites/defineLinks'
@@ -14,5 +15,5 @@ export const careerAdminLinks: CareerAdminLinks = defineLinks<PagesMount, Career
     frontpage: () => href(),
     companies: () => href('/companies'),
     highlights: () => href('/highlights'),
-    mail: () => href('/mail'),
+    mail: () => careerMailServerLinks.frontpage(),
 }))(careerAdminPages)

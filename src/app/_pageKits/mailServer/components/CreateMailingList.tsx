@@ -1,12 +1,14 @@
 'use client'
+import { mailServerLinks } from '@/pageKits/mailServer/links'
 import { createMailingListAction } from '@/services/mail/list/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import { appHref } from '@/lib/sites/href'
+import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 
-export default function CreateMailingList() {
+export default function CreateMailingList({ config }: { config: MailServerPagesConfig }) {
     const { push } = useSiteRouter()
+    const links = mailServerLinks(config)
 
     return <Form
         title="Opprett ny e-postliste"
@@ -14,7 +16,7 @@ export default function CreateMailingList() {
         action={createMailingListAction}
         successCallback={data => {
             if (!data) return
-            push(appHref(`/admin/mail/mailingList/${data.id}`))
+            push(links.node('mailingList', data.id))
         }}
     >
         <TextInput label="Navn" name="name"></TextInput>

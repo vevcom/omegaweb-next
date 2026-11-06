@@ -1,14 +1,16 @@
 'use client'
+import { mailServerLinks } from '@/pageKits/mailServer/links'
 
 import { createMailAliasAction } from '@/services/mail/alias/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import { appHref } from '@/lib/sites/href'
+import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 
 
-export default function CreateMailAlias() {
+export default function CreateMailAlias({ config }: { config: MailServerPagesConfig }) {
     const { push } = useSiteRouter()
+    const links = mailServerLinks(config)
 
     return <Form
         title="Opprett nytt alias"
@@ -16,7 +18,7 @@ export default function CreateMailAlias() {
         action={createMailAliasAction}
         successCallback={(data) => {
             if (!data) return
-            push(appHref(`/admin/mail/alias/${data.id}`))
+            push(links.node('alias', data.id))
         }}
     >
         <TextInput label="Alias" name="address" />

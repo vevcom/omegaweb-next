@@ -1,4 +1,5 @@
 'use client'
+import { mailServerLinks } from '@/pageKits/mailServer/links'
 
 import TextInput from '@/components/UI/TextInput'
 import Form from '@/components/Form/Form'
@@ -10,20 +11,23 @@ import { mailAuth } from '@/services/mail/auth'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import { appHref } from '@/lib/sites/href'
+import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 import type { MailingList } from '@/prisma-generated-pn-types'
 import type { MailFlowObject } from '@/services/mail/types'
 
 export default function EditMailAlias({
+    config,
     id,
     data,
     mailingLists,
 }: {
+    config: MailServerPagesConfig,
     id: number,
     data: MailFlowObject,
     mailingLists: MailingList[],
 }) {
     const { push, refresh } = useSiteRouter()
+    const links = mailServerLinks(config)
 
     const focusedAlias = data.alias.find(alias => alias.id === id)
     if (!focusedAlias) throw new Error('Fant ikke e-postaliaset')
@@ -63,7 +67,7 @@ export default function EditMailAlias({
 
         {canDestroyAlias && <Form
             action={configureAction(destroyMailAliasAction, { params: { id: focusedAlias.id } })}
-            successCallback={() => push(appHref('/admin/mail/alias'))}
+            successCallback={() => push(links.part('alias'))}
             submitText="Slett aliaset"
             submitColor="red"
             confirmation={{

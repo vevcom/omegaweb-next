@@ -1,8 +1,4 @@
-import { siteRedirect } from '@/app/domainContextOfRequest'
-import { appHref } from '@/lib/sites/href'
+import { omegaMailServerPages } from './config'
+import { mailServerFrontpage } from '@/pageKits/mailServer/pages/MailServerFrontpage'
 
-// The mail admin is split into one page per part (see the admin nav) - the old combined page
-// only forwards to the most central of them.
-export default async function MailSettings() {
-    await siteRedirect(appHref('/admin/mail/mailingList'))
-}
+export default mailServerFrontpage(omegaMailServerPages)

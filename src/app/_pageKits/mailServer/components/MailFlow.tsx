@@ -1,4 +1,5 @@
 'use client'
+import { mailServerLinks } from '@/pageKits/mailServer/links'
 import {
     destroyAliasMailingListRelationAction,
     destroyMailingListExternalRelationAction,
@@ -9,12 +10,12 @@ import { mailAuth } from '@/services/mail/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faArrowRightLong, faAt, faEnvelope, faListUl, faUser, faUserGroup, faXmark
 } from '@fortawesome/free-solid-svg-icons'
+import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import type { ActionReturn } from '@/services/actionTypes'
 import type { MailFlowObject, MailListTypes, ViaType } from '@/services/mail/types'
@@ -47,15 +48,18 @@ type ChipSection = {
  * listed. Direct relations to the focused item can be removed right in the graphic.
  */
 export default function MailFlow({
+    config,
     filter,
     id,
     data,
 }: {
+    config: MailServerPagesConfig,
     filter: MailListTypes,
     id: number,
     data: MailFlowObject,
 }) {
     const { refresh } = useSiteRouter()
+    const links = mailServerLinks(config)
     const [error, setError] = useState<string | null>(null)
 
     const canDestroyAliasMailingListRelation = useAuthorizer({
@@ -174,7 +178,7 @@ export default function MailFlow({
                         text-text no-underline wrap-anywhere
                         hover:underline
                     "
-                    href={appHref(`/admin/mail/${chip.type}/${chip.id}`)}
+                    href={links.node(chip.type, chip.id)}
                 >
                     {chip.label}
                 </SiteLink>
