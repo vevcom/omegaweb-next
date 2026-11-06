@@ -288,6 +288,7 @@ export const eventOperations = {
         paramsSchema: eventSchemas.params.update,
         dataSchema: eventSchemas.data.update,
         authorizer: async ({ params, prisma }) => eventAuth.update.data(await readEventAccess(prisma, params.id)),
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params, data: { tagIds, locationMap, notifyAboutChange, ...data } }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
@@ -306,44 +307,40 @@ export const eventOperations = {
                 mapUpdate = { delete: true }
             }
 
-            const updatedEvent = await prisma.$transaction(async tx => {
-                const updated = await tx.event.update({
-                    where: { id: params.id },
-                    data: {
-                        ...data,
-                        locationMap: mapUpdate,
-                    },
+            const updatedEvent = await prisma.event.update({
+                where: { id: params.id },
+                data: {
+                    ...data,
+                    locationMap: mapUpdate,
+                },
+            })
+            await assertSeenThroughQuotas(prisma, params.id)
+            if (data.name !== undefined && data.name !== event.name) {
+                await eventNotificationOperations.internal.renameChannels.internalCall({
+                    params: { eventId: params.id },
+                    data: { name: data.name },
                 })
-                await assertSeenThroughQuotas(tx, params.id)
-                if (data.name !== undefined && data.name !== event.name) {
-                    await eventNotificationOperations.internal.renameChannels.internalCall({
-                        prisma: tx,
-                        params: { eventId: params.id },
-                        data: { name: data.name },
-                    })
-                }
-                if (tagIds) {
-                    await tx.eventTagEvent.deleteMany({
-                        where: {
-                            eventId: params.id,
-                            NOT: {
-                                tagId: {
-                                    in: tagIds
-                                }
+            }
+            if (tagIds) {
+                await prisma.eventTagEvent.deleteMany({
+                    where: {
+                        eventId: params.id,
+                        NOT: {
+                            tagId: {
+                                in: tagIds
                             }
                         }
-                    })
+                    }
+                })
 
-                    await tx.eventTagEvent.createMany({
-                        data: tagIds.map(tagId => ({
-                            eventId: params.id,
-                            tagId
-                        })),
-                        skipDuplicates: true
-                    })
-                }
-                return updated
-            })
+                await prisma.eventTagEvent.createMany({
+                    data: tagIds.map(tagId => ({
+                        eventId: params.id,
+                        tagId
+                    })),
+                    skipDuplicates: true
+                })
+            }
 
             if (notifyAboutChange) {
                 await eventNotificationOperations.internal.createInfoNotification.internalCall({
@@ -410,6 +407,7 @@ export const eventOperations = {
         paramsSchema: eventSchemas.params.setPublished,
         dataSchema: eventSchemas.data.setPublished,
         authorizer: async ({ params, prisma }) => eventAuth.setPublished.data(await readEventAccess(prisma, params.id)),
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params, data }) => {
             if (data.published) await assertSeenThroughQuotas(prisma, params.id, { published: true })
             const { count: flipped } = await prisma.event.updateMany({

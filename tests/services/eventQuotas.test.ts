@@ -1,5 +1,5 @@
 import { Session } from '@/auth/session/Session'
-import { Smorekopp } from '@/services/error'
+import { ServiceError, Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { eventOperations } from '@/services/events/operations'
@@ -643,5 +643,47 @@ describe('who sees an event with quotas', () => {
         expect(await listedFor(member)).toContain(eventId)
         expect(await listedFor(organiser)).toContain(eventId)
         expect(await listedFor(outsider)).not.toContain(eventId)
+    })
+})
+
+describe('notifications are written with the change they report', () => {
+    const failure = new ServiceError('SERVER ERROR', 'Could not write the notification')
+
+    test('a failed change notice rolls back the update', async () => {
+        const { eventId } = await createEvent([{ quotas: [{ name: 'Alle', places: 1 }] }])
+        notifySpy.mockRejectedValueOnce(failure)
+
+        await expect(eventOperations.update({
+            params: { id: eventId },
+            data: { name: 'Nytt navn', location: 'Et annet sted', notifyAboutChange: true },
+            bypassAuth: true,
+        })).rejects.toBe(failure)
+
+        const event = await prisma.event.findUniqueOrThrow({
+            where: { id: eventId },
+            include: { notificationChannel: true },
+        })
+        expect(event.location).toBe('Lophtet')
+        expect(event.notificationChannel.name).toContain('Kvotearrangement')
+    })
+
+    test('a failed announcement leaves the event a draft, so publishing again announces it', async () => {
+        const { eventId } = await createEvent([{ quotas: [{ name: 'Alle', places: 1 }] }])
+        await eventOperations.setPublished({ params: { id: eventId }, data: { published: false }, bypassAuth: true })
+        const announceSpy = jest.spyOn(eventNotificationOperations.internal.createOwnNotification, 'internalCall')
+        announceSpy.mockRejectedValueOnce(failure)
+
+        await expect(eventOperations.setPublished({
+            params: { id: eventId },
+            data: { published: true },
+            bypassAuth: true,
+        })).rejects.toBe(failure)
+        expect((await prisma.event.findUniqueOrThrow({ where: { id: eventId } })).published).toBe(false)
+
+        await eventOperations.setPublished({ params: { id: eventId }, data: { published: true }, bypassAuth: true })
+        expect((await prisma.event.findUniqueOrThrow({ where: { id: eventId } })).published).toBe(true)
+        expect(announceSpy).toHaveBeenCalledTimes(2)
+
+        announceSpy.mockRestore()
     })
 })
