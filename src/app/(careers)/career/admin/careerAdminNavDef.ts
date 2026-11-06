@@ -28,10 +28,6 @@ export const careerAdminNavDef = defineNavDef([
         name: 'E-posttjener',
         href: careerAdminLinks.mail(),
         icon: faEnvelopesBulk,
-        authorizers: () => [
-            mailingListAuth.readMany,
-            mailAliasAuth.readMany,
-            mailAddressExternalAuth.readMany,
-        ],
+        authorizers: () => [mailAliasAuth.create, mailingListAuth.create, mailAddressExternalAuth.readMany],
     },
 ])

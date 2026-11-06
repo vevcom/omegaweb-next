@@ -4,13 +4,14 @@ import { mailingListSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementVisibilityOperations } from '@/services/visibility/implement'
+import { mailTraversalOperations } from '@/services/mail/traversal/operations'
 import type { MailingList } from '@/prisma-generated-pn-types'
 
 /** The owners of a mailing list: pass it, or hold MAILSERVER_ADMIN. */
 const visibility = implementVisibilityOperations({
     implementationParamsSchema: mailingListSchemas.params.visibility,
     authorizers: {
-        readMatrix: () => mailingListAuth.readVisibility,
+        readMatrix: ({ matrix }) => mailingListAuth.readVisibility.data({ visibility: matrix }),
         update: () => mailingListAuth.updateVisibility,
     },
     readVisibility: async ({ prisma, implementationParams, include }) => (
@@ -40,10 +41,18 @@ export const mailingListOperations = {
         },
     }),
 
+    readTraversal: mailTraversalOperations.read.implement({
+        authorizer: async ({ params, prisma }) => mailingListAuth.readTraversal.data({
+            visibility: await visibility.readMatrixInternal({ prisma, params }),
+        }),
+        ownershipCheck: () => true,
+        operationImplementationFields: { type: 'mailingList' },
+    }),
+
     readMany: defineOperation({
         authorizer: () => mailingListAuth.readMany,
-        operation: async ({ prisma }): Promise<MailingList[]> =>
-            prisma.mailingList.findMany(),
+        operation: async ({ prisma }, prismaWhereFilter): Promise<MailingList[]> =>
+            prisma.mailingList.findMany({ where: prismaWhereFilter }),
     }),
 
     update: defineOperation({

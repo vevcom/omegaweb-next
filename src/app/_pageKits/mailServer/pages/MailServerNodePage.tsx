@@ -6,7 +6,7 @@ import EditUser from '@/pageKits/mailServer/components/EditUser'
 import EditGroup from '@/pageKits/mailServer/components/EditGroup'
 import MailServerTabs from '@/pageKits/mailServer/components/MailServerTabs'
 import { mailServerPartArray } from '@/pageKits/mailServer/links'
-import { mailOperations } from '@/services/mail/operations'
+import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operations'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { MailListTypeArray, validMailAddressDomains } from '@/services/mail/constants'
@@ -66,7 +66,7 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
         }
 
         const [results, mailOptions, allGroupTypes, owners] = await Promise.all([
-            mailOperations.readMailTraversal({ params: { filter, id } }),
+            mailTraversalReadOfType[filter]({ params: { id } }),
             mailOperations.readMailOptions({}),
             readExpandedOfAllTypes({}),
             readOwners(filter, id),

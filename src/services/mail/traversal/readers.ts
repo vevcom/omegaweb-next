@@ -5,7 +5,7 @@ import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
 import type { Prisma } from '@/prisma-generated-pn-client'
 import type { GroupWithDumbRelations } from '@/services/groups/types'
-import type { MailFlowGroup, MailFlowObject, ViaArrayType, ViaType } from './types'
+import type { MailFlowGroup, MailFlowObject, ViaArrayType, ViaType } from '@/services/mail/types'
 
 
 /**

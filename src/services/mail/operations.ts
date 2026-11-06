@@ -1,19 +1,13 @@
 import '@pn-server-only'
 import { mailAuth } from './auth'
+import { mailAddressExternalAuth } from './mailAddressExternal/auth'
 import { mailSchemas } from './schemas'
 import { aliasOperations } from './alias/operations'
 import { mailingListOperations } from './list/operations'
 import { mailAddressExternalOperations } from './mailAddressExternal/operations'
-import {
-    readAliasTraversal,
-    readGroupTraversal,
-    readMailaddressExternalTraversal,
-    readMailingListTraversal,
-    readUserTraversal,
-} from './traversal'
+import { mailTraversalOperations } from './traversal/operations'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServiceError } from '@/services/error'
-import type { MailFlowObject } from './types'
+import type { MailListTypes } from './types'
 import type {
     MailAlias,
     MailAliasMailingList,
@@ -117,37 +111,44 @@ export const mailOperations = {
             }),
     }),
 
-    readMailTraversal: defineOperation({
-        paramsSchema: mailSchemas.params.readMailTraversal,
-        authorizer: () => mailAuth.readMailTraversal,
-        operation: async ({ prisma, params }): Promise<MailFlowObject> => {
-            if (params.filter === 'alias') return readAliasTraversal(prisma, params.id)
-            if (params.filter === 'mailingList') return readMailingListTraversal(prisma, params.id)
-            if (params.filter === 'mailaddressExternal') return readMailaddressExternalTraversal(prisma, params.id)
-            if (params.filter === 'group') return readGroupTraversal(prisma, params.id)
-            if (params.filter === 'user') return readUserTraversal(prisma, params.id)
-            throw new ServiceError('BAD PARAMETERS', `The filter ${params.filter} is not a valid MailListTypes`)
-        },
+    readGroupTraversal: mailTraversalOperations.read.implement({
+        authorizer: ({ params }) => mailAuth.readGroupTraversal.data({ groupId: params.id }),
+        ownershipCheck: () => true,
+        operationImplementationFields: { type: 'group' },
     }),
 
+    readUserTraversal: mailTraversalOperations.read.implement({
+        authorizer: ({ params }) => mailAuth.readUserTraversal.data({ userId: params.id }),
+        ownershipCheck: () => true,
+        operationImplementationFields: { type: 'user' },
+    }),
+
+    /** What the session may wire: the aliases and lists it reads, and the external addresses if it may list them. */
     readMailOptions: defineOperation({
         authorizer: () => mailAuth.readMailOptions,
-        operation: async (): Promise<{
+        operation: async ({ session }): Promise<{
             alias: MailAlias[],
             mailingList: MailingList[],
             mailaddressExternal: MailAddressExternal[],
         }> => {
-            const results = await Promise.all([
-                aliasOperations.readMany({ bypassAuth: true }),
-                mailingListOperations.readMany({ bypassAuth: true }),
-                mailAddressExternalOperations.readMany({ bypassAuth: true }),
+            const [alias, mailingList, mailaddressExternal] = await Promise.all([
+                aliasOperations.readMany({}),
+                mailingListOperations.readMany({}),
+                mailAddressExternalAuth.readMany.auth(session).authorized
+                    ? mailAddressExternalOperations.readMany({})
+                    : [],
             ])
 
-            return {
-                alias: results[0],
-                mailingList: results[1],
-                mailaddressExternal: results[2],
-            }
+            return { alias, mailingList, mailaddressExternal }
         },
     }),
 } as const
+
+/** The traversal read of each type of node, for a page that gets the type from its url. */
+export const mailTraversalReadOfType = {
+    alias: aliasOperations.readTraversal,
+    mailingList: mailingListOperations.readTraversal,
+    mailaddressExternal: mailAddressExternalOperations.readTraversal,
+    group: mailOperations.readGroupTraversal,
+    user: mailOperations.readUserTraversal,
+} as const satisfies Record<MailListTypes, unknown>

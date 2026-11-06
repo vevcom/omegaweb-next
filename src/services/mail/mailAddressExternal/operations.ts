@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { mailAddressExternalAuth } from './auth'
 import { mailAddressExternalSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
+import { mailTraversalOperations } from '@/services/mail/traversal/operations'
 import { ServiceError } from '@/services/error'
 import { userPartitions } from '@/services/users/constants'
 import type { MailAddressExternal } from '@/prisma-generated-pn-types'
@@ -15,6 +16,12 @@ export const mailAddressExternalOperations = {
             await assertNotAUsersEmail(prisma, data.address)
             return prisma.mailAddressExternal.create({ data })
         },
+    }),
+
+    readTraversal: mailTraversalOperations.read.implement({
+        authorizer: () => mailAddressExternalAuth.readTraversal,
+        ownershipCheck: () => true,
+        operationImplementationFields: { type: 'mailaddressExternal' },
     }),
 
     readMany: defineOperation({

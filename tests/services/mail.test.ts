@@ -5,7 +5,7 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailAddressExternalOperations } from '@/services/mail/mailAddressExternal/operations'
-import { mailOperations } from '@/services/mail/operations'
+import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operations'
 import { DomainConfig } from '@/lib/sites/domainConfig'
 import { DomainContext } from '@/lib/sites/context'
 import { afterEach, describe, expect, test } from '@jest/globals'
@@ -258,8 +258,8 @@ describe('mail flow traversal', () => {
             bypassAuth: true,
         })
 
-        const flow = await mailOperations.readMailTraversal({
-            params: { filter: 'alias', id: alias.id },
+        const flow = await mailTraversalReadOfType.alias({
+            params: { id: alias.id },
             bypassAuth: true,
         })
 
@@ -302,8 +302,8 @@ describe('mail flow traversal', () => {
             bypassAuth: true,
         })
 
-        const flow = await mailOperations.readMailTraversal({
-            params: { filter: 'mailingList', id: list.id },
+        const flow = await mailTraversalReadOfType.mailingList({
+            params: { id: list.id },
             bypassAuth: true,
         })
 
@@ -345,8 +345,8 @@ describe('mail flow traversal', () => {
             bypassAuth: true,
         })
 
-        const flow = await mailOperations.readMailTraversal({
-            params: { filter: 'mailingList', id: list.id },
+        const flow = await mailTraversalReadOfType.mailingList({
+            params: { id: list.id },
             bypassAuth: true,
         })
 
@@ -398,8 +398,8 @@ describe('mail flow traversal', () => {
             bypassAuth: true,
         })
 
-        const flow = await mailOperations.readMailTraversal({
-            params: { filter: 'mailingList', id: list.id },
+        const flow = await mailTraversalReadOfType.mailingList({
+            params: { id: list.id },
             bypassAuth: true,
         })
 
@@ -444,8 +444,8 @@ describe('mail flow traversal', () => {
             bypassAuth: true,
         })
 
-        const flow = await mailOperations.readMailTraversal({
-            params: { filter: 'alias', id: alias.id },
+        const flow = await mailTraversalReadOfType.alias({
+            params: { id: alias.id },
             bypassAuth: true,
         })
 
