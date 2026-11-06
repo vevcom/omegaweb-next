@@ -9,7 +9,7 @@ import PageTitleSetter from '@/contexts/PageTitleSetter'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import ProfilePicture from '@/components/User/ProfilePicture'
 import type { ExpandedImage } from '@/services/images/subservice/types'
-import type { NavLink } from './navDef'
+import type { NavLink } from '@/lib/navDef/navDef'
 
 export type PropTypes = {
     isLoggedIn: boolean,
@@ -54,7 +54,7 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                 {
                     itemsForNav.map((item) => (
                         <li className="hidden" key={item.name}>
-                            <Item key={item.name} {...item} />
+                            <Item name={item.name} href={item.href} />
                         </li>
                     ))
                 }

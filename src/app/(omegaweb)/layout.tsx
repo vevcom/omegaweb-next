@@ -1,8 +1,8 @@
 import MobileNavBar from '@/components/NavBar/MobileNavBar'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
 import NavBar from '@/components/NavBar/NavBar'
-import { visibleNavItems } from '@/components/NavBar/navDef'
-import { visibleAdminNav } from '@/app/(omegaweb)/admin/adminNavDef'
+import { navDef } from '@/components/NavBar/navDef'
+import { adminNavDef } from '@/app/(omegaweb)/admin/adminNavDef'
 import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import NavMenuProvider from '@/contexts/NavMenu'
@@ -12,7 +12,6 @@ import { searchableCategories } from '@/services/search/constants'
 import { omegawebSearchCategories } from '@/services/omegawebSearch/constants'
 import { withFallback, withPageSession } from '@/app/ServerPage'
 import { Theme, themes } from '@/lib/theme'
-import { appHref } from '@/lib/sites/href'
 import type { ReactNode } from 'react'
 
 type PropTypes = {
@@ -37,11 +36,11 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
             navUser: profileRead?.user ?? null,
         }
     })
-    const navItems = visibleNavItems(serverSession)
-    const adminNavItems = visibleAdminNav(serverSession).flatMap(group => group.links.map(link => ({
-        name: link.title,
-        href: appHref(`/admin/${link.path}`),
-        icon: group.header.icon,
+    const navItems = navDef.visible(serverSession)
+    const adminNavItems = adminNavDef.visible(serverSession).flatMap(group => group.links.map(link => ({
+        name: link.name,
+        href: link.href,
+        icon: link.icon,
         group: group.header.title,
     })))
     const searchCategories = searchableCategories(omegawebSearchCategories, serverSession)

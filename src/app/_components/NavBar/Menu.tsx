@@ -10,7 +10,7 @@ import SiteLink from '@/components/SiteLink/SiteLink'
 import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
-import type { NavLink } from './navDef'
+import type { NavLink } from '@/lib/navDef/navDef'
 
 type PropTypes = {
     openBtnVariant: 'mobile' | 'desktop',
