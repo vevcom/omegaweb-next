@@ -1,6 +1,7 @@
 import { REGISTRATION_READER_TYPE } from './constants'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Zpn } from '@/lib/fields/zpn'
+import { searchMaxLength } from '@/services/search/constants'
 import { PaymentProvider, SpecialEventTags } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
@@ -21,6 +22,7 @@ const paramsFieldSchemas = z.object({
     quotaId: z.number().min(0),
     registeredById: z.number().min(0),
     type: z.nativeEnum(REGISTRATION_READER_TYPE),
+    search: z.string().trim().max(searchMaxLength),
     direction: z.enum(['UP', 'DOWN']),
     provider: z.nativeEnum(PaymentProvider).optional(),
     amountFromBalance: z.coerce.number().nonnegative().default(0),
@@ -40,6 +42,9 @@ const readPage = readPageInputSchemaObject(
     paramsFieldSchemas.pick({
         eventId: true,
         type: true,
+    }).extend({
+        variantId: paramsFieldSchemas.shape.variantId.optional(),
+        search: paramsFieldSchemas.shape.search.optional(),
     }),
 )
 

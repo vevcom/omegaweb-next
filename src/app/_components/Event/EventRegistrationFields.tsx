@@ -34,6 +34,20 @@ const removeButtonClassName = `
     disabled:text-base-content/80 disabled:cursor-not-allowed
 `
 
+function VariantDescription({ variant, onChange }: {
+    variant: VariantDraft,
+    onChange: (changes: Partial<VariantDraft>) => void,
+}) {
+    return <TextInput
+        label="Kort info over påmeldingen, for eksempel når de skal møte"
+        name={`variantDescription${variant.key}`}
+        maxLength={120}
+        value={variant.description ?? ''}
+        onChange={event => onChange({ description: event.target.value })}
+        className="max-w-none! mt-0!"
+    />
+}
+
 function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
     quota: QuotaDraft,
     index: number,
@@ -286,6 +300,7 @@ export default function EventRegistrationFields({ variants, waitingList, eventSt
 
         {variants.length === 1 && <section className={sectionClassName}>
             <RegistrationPeriod variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
+            <VariantDescription variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
             <QuotaFlow
                 variant={variants[0]}
                 waitingList={waitingList}
@@ -315,6 +330,7 @@ export default function EventRegistrationFields({ variants, waitingList, eventSt
                     </button>
                 </div>
                 <RegistrationPeriod variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
+                <VariantDescription variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
                 <QuotaFlow
                     variant={variant}
                     waitingList={waitingList}

@@ -4,6 +4,7 @@ import type { Prisma } from '@/prisma-generated-pn-types'
 
 export type VariantFields = {
     name: string,
+    description?: string | null,
     registrationStart: Date,
     registrationEnd: Date,
     takesPayment: boolean,

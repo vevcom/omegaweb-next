@@ -12,6 +12,9 @@ import {
 import UserDisplayName from '@/components/User/UserDisplayName'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import Slider from '@/components/UI/Slider'
+import TextInput from '@/components/UI/TextInput'
+import { useDebounce } from '@/hooks/useDebounce'
+import { searchMaxLength } from '@/services/search/constants'
 import Form from '@/components/Form/Form'
 import ContactCard from '@/components/User/ContactCard'
 import {
@@ -26,18 +29,22 @@ import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowDown, faArrowUp } from '@fortawesome/free-solid-svg-icons'
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import type { EventFiltered } from '@/services/events/types'
 import type { EventRegistrationNotAttended } from '@/services/events/registration/types'
+
+const SEARCH_DEBOUNCE_MS = 300
 
 function DetailedTable({
     event,
     type,
+    search,
     attendanceTakerId,
     dotGiverId,
 }: {
     event: EventFiltered,
     type: REGISTRATION_READER_TYPE,
+    search: string,
     attendanceTakerId: number | null,
     dotGiverId: number | null,
 }) {
@@ -50,6 +57,7 @@ function DetailedTable({
         event.variants.find(variant => variant.id === variantId)?.quotas ?? []
 
     return <EventRegistrationDetailedPagingProvider
+        key={search}
         serverRenderedData={[]}
         startPage={{
             page: 0,
@@ -58,6 +66,7 @@ function DetailedTable({
         details={{
             eventId: event.id,
             type,
+            search,
         }}
     >
         <div className="block overflow-x-auto overflow-y-visible">
@@ -185,24 +194,29 @@ function DetailedTable({
     </EventRegistrationDetailedPagingProvider>
 }
 
-function DefaultList({
-    event,
-    type,
-}: {
-    event: EventFiltered,
-    type: REGISTRATION_READER_TYPE
+/** Says when a search found no one. It sits inside the paging provider to know. */
+function NoMatches({ search }: { search: string }) {
+    const paging = useContext(EventRegistrationPagingContext)
+    if (!search || !paging?.state.allLoaded || paging.state.data.length > 0) return null
+    return <p className="m-0 text-text-muted">Ingen treff.</p>
+}
+
+function RegistrationCards({ eventId, type, variantId, search }: {
+    eventId: number,
+    type: REGISTRATION_READER_TYPE,
+    variantId?: number,
+    search: string,
 }) {
     return <EventRegistrationPagingProvider
+        key={search}
         serverRenderedData={[]}
         startPage={{
             page: 0,
             pageSize: 50
         }}
-        details={{
-            eventId: event.id,
-            type,
-        }}
+        details={{ eventId, type, variantId, search }}
     >
+        <NoMatches search={search} />
         <div className="
             w-full grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-2
             [&>:last-child]:col-span-full
@@ -223,6 +237,35 @@ function DefaultList({
     </EventRegistrationPagingProvider>
 }
 
+/** With several variants, each gets its own list, so friends can see where someone is. */
+function DefaultList({ event, type, search }: {
+    event: EventFiltered,
+    type: REGISTRATION_READER_TYPE,
+    search: string,
+}) {
+    if (event.variants.length < 2) return <RegistrationCards eventId={event.id} type={type} search={search} />
+
+    const countOf = (variant: EventFiltered['variants'][number]) => (
+        type === REGISTRATION_READER_TYPE.WAITING_LIST ? variant.numOnWaitingList : variant.numOfRegistrations
+    )
+    return <div className="flex flex-col gap-3 w-full">
+        {event.variants.filter(variant => countOf(variant) > 0).map(variant => <section
+            key={variant.id}
+            className="flex flex-col gap-2"
+        >
+            <h5 className="m-0 text-l font-bold">
+                {variant.name} {!search && <span className="font-normal text-text-muted">({countOf(variant)})</span>}
+            </h5>
+            <RegistrationCards
+                eventId={event.id}
+                type={type}
+                variantId={variant.id}
+                search={search}
+            />
+        </section>)}
+    </div>
+}
+
 export default function RegistrationsList({
     event,
     canReadDetailed,
@@ -239,9 +282,18 @@ export default function RegistrationsList({
     notAttended: EventRegistrationNotAttended[] | null,
 }) {
     const [detailedView, setDetailedView] = useState(false)
+    const [search, setSearch] = useState('')
+    const changeSearch = useDebounce(setSearch, SEARCH_DEBOUNCE_MS)
 
     return <>
         <h4>Påmeldte</h4>
+        <TextInput
+            label="Søk etter navn"
+            name="registrationSearch"
+            maxLength={searchMaxLength}
+            onChange={changeEvent => changeSearch(changeEvent.target.value.trim())}
+            className="max-w-none! mt-0!"
+        />
         {dotGiverId !== null && notAttended && notAttended.length > 0 && <GiveDotsToAbsentees
             eventId={event.id}
             accuserId={dotGiverId}
@@ -256,11 +308,13 @@ export default function RegistrationsList({
         {detailedView ? <DetailedTable
             event={event}
             type={REGISTRATION_READER_TYPE.REGISTRATIONS}
+            search={search}
             attendanceTakerId={attendanceTakerId}
             dotGiverId={dotGiverId}
         /> : <DefaultList
             event={event}
             type={REGISTRATION_READER_TYPE.REGISTRATIONS}
+            search={search}
         />}
 
         {event.waitingList && <>
@@ -268,11 +322,13 @@ export default function RegistrationsList({
             {detailedView ? <DetailedTable
                 event={event}
                 type={REGISTRATION_READER_TYPE.WAITING_LIST}
+                search={search}
                 attendanceTakerId={attendanceTakerId}
                 dotGiverId={dotGiverId}
             /> : <DefaultList
                 event={event}
                 type={REGISTRATION_READER_TYPE.WAITING_LIST}
+                search={search}
             />}
         </>}
     </>
