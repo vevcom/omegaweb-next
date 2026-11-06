@@ -10,10 +10,10 @@ import LoginLink from '@/pageKits/auth/components/LoginLink'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
-import type { AppHref, ExternalHref } from '@/lib/sites/href'
+import type { NavLink } from '@/lib/navDef/navDef'
 
 type PropTypes = {
-    links: { name: string, href: AppHref | ExternalHref }[],
+    links: NavLink[],
     loggedIn: boolean,
     /** Whether the visitor has a place on Omega's own site: a member of Omega, not den gemene hob. */
     showOmegaLink: boolean,
@@ -57,7 +57,7 @@ export default function CareersNavBar({ links, loggedIn, showOmegaLink }: PropTy
                     max-mobile:order-3 max-mobile:w-full max-mobile:flex-wrap max-mobile:gap-y-0
                 `}>
                     {links.map(link => (
-                        <li key={link.href}>
+                        <li key={link.key}>
                             <SiteLink href={link.href} className={`
                                 ${linkClassName}
                                 text-careers-navy

@@ -2,7 +2,7 @@ import CareersNavBar from './_components/CareersNavBar'
 import CareersFooter from './_components/CareersFooter'
 import { karla, sora } from './_lib/careersFonts'
 import { careersTheme } from './_lib/careersTheme'
-import { careerNavLinks } from './_lib/careersSite'
+import { careerNavDef } from './_lib/careerNavDef'
 import { innerClassName } from './_lib/careersClassNames'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import { CareersGlobalSearch, CareersGlobalSearchProvider } from '@/app/(careers)/GlobalSearch'
@@ -43,6 +43,7 @@ export default serverLayout({
         return {
             loggedIn: session.user !== null,
             omegaMember: level !== null && level.level !== 'DEN_GEMENE_HOB',
+            navLinks: careerNavDef.visible(session),
             searchCategories: searchableCategories(careersSearchCategories, session),
         }
     },
@@ -63,9 +64,9 @@ export default serverLayout({
         >
             <SiteTheme colors={careersTheme} />
             <CareersGlobalSearchProvider>
-                <CareersGlobalSearch navItems={careerNavLinks} categories={data.searchCategories} />
+                <CareersGlobalSearch navItems={data.navLinks} categories={data.searchCategories} />
                 <WorkInProgressBanner siteName="Contactor" currentSiteHref={externalHref('https://contactor.no')} />
-                <CareersNavBar links={careerNavLinks} loggedIn={data.loggedIn} showOmegaLink={data.omegaMember} />
+                <CareersNavBar links={data.navLinks} loggedIn={data.loggedIn} showOmegaLink={data.omegaMember} />
                 <main className={`
                     ${innerClassName}
                     flex-1
