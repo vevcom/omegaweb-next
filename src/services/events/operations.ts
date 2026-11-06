@@ -315,6 +315,13 @@ export const eventOperations = {
                     },
                 })
                 await assertSeenThroughQuotas(tx, params.id)
+                if (data.name !== undefined && data.name !== event.name) {
+                    await eventNotificationOperations.internal.renameChannels.internalCall({
+                        prisma: tx,
+                        params: { eventId: params.id },
+                        data: { name: data.name },
+                    })
+                }
                 if (tagIds) {
                     await tx.eventTagEvent.deleteMany({
                         where: {

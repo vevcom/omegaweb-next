@@ -21,11 +21,15 @@ export const eventNotificationSchemas = {
         createChannels: dataFieldSchemas.pick({
             name: true,
         }),
+        renameChannels: dataFieldSchemas.pick({
+            name: true,
+        }),
     },
     params: {
         createNotification: eventId,
         createPaymentReminder: eventId,
         createChannels: eventId,
+        renameChannels: eventId,
         destroyChannels: paramsFieldSchemas.pick({
             notificationChannelId: true,
             infoNotificationChannelId: true,

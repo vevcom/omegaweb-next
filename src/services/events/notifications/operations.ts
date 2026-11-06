@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { eventNotificationAuth } from './auth'
 import { eventNotificationSchemas } from './schemas'
-import { eventChannelDescriptions, eventInfoChannelMethods } from './constants'
+import { eventChannelDescriptions, eventChannelNames, eventInfoChannelMethods } from './constants'
 import { eventNotificationChannel } from '@/services/events/eventNotificationChannel'
 import { readEventAccess } from '@/services/events/access'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
@@ -82,28 +82,20 @@ export const eventNotificationOperations = {
             transaction: 'RUNS_IN',
             operation: () => async ({ prisma, params, data }): Promise<EventChannelIds> => {
                 const parent = await eventNotificationChannel.readChannelInternal({ prisma })
-                const name = `${data.name} (#${params.eventId})`
+                const names = eventChannelNames(data.name, params.eventId)
 
                 const own = await channels.own.internal.create.internalCall({
                     params: { availableMethods: parent.availableMethods },
-                    data: { name, description: eventChannelDescriptions.own, parentId: parent.id },
+                    data: { name: names.own, description: eventChannelDescriptions.own, parentId: parent.id },
                 })
                 const [info, general] = await Promise.all([
                     channels.info.internal.create.internalCall({
                         params: { availableMethods: eventInfoChannelMethods },
-                        data: {
-                            name: `${name}: viktig informasjon`,
-                            description: eventChannelDescriptions.info,
-                            parentId: own.id,
-                        },
+                        data: { name: names.info, description: eventChannelDescriptions.info, parentId: own.id },
                     }),
                     channels.general.internal.create.internalCall({
                         params: { availableMethods: parent.availableMethods },
-                        data: {
-                            name: `${name}: annen informasjon`,
-                            description: eventChannelDescriptions.general,
-                            parentId: own.id,
-                        },
+                        data: { name: names.general, description: eventChannelDescriptions.general, parentId: own.id },
                     }),
                 ])
 
@@ -112,6 +104,29 @@ export const eventNotificationOperations = {
                     infoNotificationChannelId: info.id,
                     generalNotificationChannelId: general.id,
                 }
+            },
+        }),
+
+        /** Names the channels of an event after its new name. */
+        renameChannels: defineSubOperation({
+            paramsSchema: () => eventNotificationSchemas.params.renameChannels,
+            dataSchema: () => eventNotificationSchemas.data.renameChannels,
+            transaction: 'RUNS_IN',
+            operation: () => async ({ prisma, params, data }): Promise<void> => {
+                const event = await prisma.event.findUniqueOrThrow({
+                    where: { id: params.eventId },
+                    select: {
+                        notificationChannelId: true,
+                        infoNotificationChannelId: true,
+                        generalNotificationChannelId: true,
+                    },
+                })
+                const names = eventChannelNames(data.name, params.eventId)
+                await Promise.all([
+                    { id: event.notificationChannelId, name: names.own },
+                    { id: event.infoNotificationChannelId, name: names.info },
+                    { id: event.generalNotificationChannelId, name: names.general },
+                ].map(({ id, name }) => prisma.notificationChannel.update({ where: { id }, data: { name } })))
             },
         }),
 
