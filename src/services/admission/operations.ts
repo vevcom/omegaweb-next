@@ -48,7 +48,7 @@ export const admissionOperations = {
         authorizer: () => admissionAuth.createTrial,
         paramsSchema: admissionSchemas.params.createTrial,
         dataSchema: admissionSchemas.data.createTrial,
-        transaction: 'RUNS_IN',
+        transaction: 'OPENS',
         operation: async ({ prisma, session, params, data }): Promise<ExpandedAdmissionTrail> => {
             // The last trial makes the user a sysken, so registering one's own would be self-promotion.
             if (data.userId === session.user?.id) {
@@ -77,49 +77,51 @@ export const admissionOperations = {
             // The trial and the promotion it earns are written together. Were the promotion to fail
             // on its own, the user would be left holding every trial as a soelle - and unable to be
             // put right by sitting the last one again, since they already hold it.
-            const trial = await prisma.admissionTrial.create({
-                data: {
-                    user: {
-                        connect: {
-                            id: data.userId,
+            return prisma.$transaction(async tx => {
+                const trial = await tx.admissionTrial.create({
+                    data: {
+                        user: {
+                            connect: {
+                                id: data.userId,
+                            },
                         },
-                    },
-                    registeredBy: {
-                        connect: {
-                            id: session.user?.id,
+                        registeredBy: {
+                            connect: {
+                                id: session.user?.id,
+                            },
                         },
+                        admission: params.admission,
                     },
-                    admission: params.admission,
-                },
-                include: {
-                    user: {
-                        select: userBasicSelection,
+                    include: {
+                        user: {
+                            select: userBasicSelection,
+                        }
                     }
-                }
-            })
-
-            // Counted on the same client, so that the trial just written is counted with them.
-            const completedTrials = await admissionOperations.userCompletedTrials({
-                params: {
-                    userId: data.userId
-                },
-                prisma,
-                bypassAuth: true,
-            })
-
-            if (completedTrials) {
-                await omegaMembershipGroupOperations.writeUserLevel.internalCall({
-                    params: {
-                        userId: data.userId,
-                        omegaMembershipLevel: 'SYSKEN',
-                        onlyUpgrade: true,
-                    },
-                    prisma,
                 })
-                await invalidateOneUserSessionData(prisma, data.userId)
-            }
 
-            return trial
+                // Counted on the same client, so that the trial just written is counted with them.
+                const completedTrials = await admissionOperations.userCompletedTrials({
+                    params: {
+                        userId: data.userId
+                    },
+                    prisma: tx,
+                    bypassAuth: true,
+                })
+
+                if (completedTrials) {
+                    await omegaMembershipGroupOperations.writeUserLevel.internalCall({
+                        params: {
+                            userId: data.userId,
+                            omegaMembershipLevel: 'SYSKEN',
+                            onlyUpgrade: true,
+                        },
+                        prisma: tx,
+                    })
+                    await invalidateOneUserSessionData(tx, data.userId)
+                }
+
+                return trial
+            })
         }
     }),
 } as const

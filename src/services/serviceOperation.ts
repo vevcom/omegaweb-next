@@ -92,7 +92,9 @@ export type ServiceOperationOperation<
  * How an operation relates to database transactions. NONE runs on whatever client it is given.
  * OPENS opens a transaction itself, so it takes the root client and cannot be called inside a
  * transaction. RUNS_IN runs in the caller's transaction when it is in one, and in a transaction of
- * its own otherwise, for an operation of several writes that belong together.
+ * its own otherwise, for an operation of several writes that belong together. The whole operation
+ * runs in it, so one with slow work, or writes that must outlive a later failure, uses OPENS and
+ * opens its transaction around the writes that belong together.
  */
 export type TransactionFlag = 'NONE' | 'OPENS' | 'RUNS_IN'
 
