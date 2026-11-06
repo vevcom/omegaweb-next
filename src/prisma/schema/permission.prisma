@@ -85,6 +85,7 @@ enum Permission {
   // Omega job ads
   COMPANY_USE
   COMPANY_ADMIN
+  CAREER_FRONTPAGE_HIGHLIGHT_ADMIN
 
   // Dots
   DOTS_ADMIN
