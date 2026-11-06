@@ -19,7 +19,8 @@ type PropTypes = {
 /**
  * A controlled editor for a single visibility matrix. It owns no persistence of its own - the
  * consumer decides whether the matrix is saved against an existing visibility (VisibilityAdmin) or
- * submitted as part of creating the thing it will guard (MakeNewCollection).
+ * submitted as part of creating the thing it will guard (MakeNewCollection). Its inputs have no names
+ * since the consumer submits `requirements`, and they load late, which a form would count as a change.
  */
 export default function VisibilityMatrixEditor({ requirements, onChange }: PropTypes) {
     const groupsResult = useGroups()
@@ -115,7 +116,7 @@ export default function VisibilityMatrixEditor({ requirements, onChange }: PropT
                                         requirement.conditions.map((condition, conditionIndex) => (
                                             <div className="flex flex-wrap gap-[0.5em] items-end" key={conditionIndex}>
                                                 <SearchableDropdown
-                                                    name={`req-${requirementIndex}-cond-${conditionIndex}-group`}
+                                                    name=""
                                                     label="Gruppe"
                                                     className="basis-full"
                                                     value={condition.groupId}
@@ -125,7 +126,7 @@ export default function VisibilityMatrixEditor({ requirements, onChange }: PropT
                                                     )}
                                                 />
                                                 <SelectString
-                                                    name={`req-${requirementIndex}-cond-${conditionIndex}-type`}
+                                                    name=""
                                                     label="Type"
                                                     value={condition.type}
                                                     options={[
@@ -142,7 +143,7 @@ export default function VisibilityMatrixEditor({ requirements, onChange }: PropT
                                                 {
                                                     condition.type === 'ORDER' && (
                                                         <SelectNumber
-                                                            name={`req-${requirementIndex}-cond-${conditionIndex}-order`}
+                                                            name=""
                                                             label="Orden"
                                                             value={condition.order}
                                                             options={orderOptions(findGroup(groups, condition.groupId))}

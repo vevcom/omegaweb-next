@@ -3,6 +3,7 @@ import EventLocationInput from './EventLocationInput'
 import EventPaymentFields from './EventPaymentFields'
 import EventRegistrationFields from './EventRegistrationFields'
 import EventTagComponent from './EventTag'
+import EventWhoCanWhat, { EventQuotaAudiences } from './EventWhoCanWhat'
 import { toVariantDrafts } from './eventSetupDraft'
 import Form from '@/components/Form/Form'
 import FormSection from '@/components/Form/FormSection'
@@ -37,7 +38,7 @@ export const eventSetupTabs = [
     { key: 'rules', label: 'Regler' },
     { key: 'registration', label: 'Påmelding' },
     { key: 'payment', label: 'Betaling' },
-    { key: 'access', label: 'Tilgang' },
+    { key: 'access', label: 'Hvem kan hva' },
 ]
 
 type PropTypes = {
@@ -81,6 +82,7 @@ export default function EventSetupForm({
     const [variants, setVariants] = useState<VariantDraft[]>(() => toVariantDrafts(event.variants))
     const [adminRequirements, setAdminRequirements] = useState(access.adminVisibility.requirements)
     const [waitingList, setWaitingList] = useState(event.waitingList)
+    const [canBeViewedBy, setCanBeViewedBy] = useState(event.canBeViewedBy)
     const save: ActionFormData<Event> = configureAction(updateEventAction, { params: { id: event.id } })
     const { reportDots } = useTabs()
 
@@ -90,7 +92,7 @@ export default function EventSetupForm({
             location: values.get('location') as string | null,
             eventStart: utcDate(values.get('eventStart')),
             eventEnd: utcDate(values.get('eventEnd')),
-            canBeViewedBy: (values.get('canBeViewedBy') ?? event.canBeViewedBy) as EventCanView,
+            canBeViewedBy,
             // An account left unpicked keeps the one the event has, as the save does.
             ledgerAccount: event.ledgerAccount ?? (account && account !== 'NULL' ? { id: Number(account) } : null),
             variants,
@@ -163,15 +165,6 @@ export default function EventSetupForm({
         </FormTab>
 
         <FormTab tab="rules">
-            <FormSection legend="Synlighet">
-                <SelectString
-                    className="max-w-[300px]"
-                    label="Hvem kan se arrangementet"
-                    name="canBeViewedBy"
-                    options={eventCanBeViewedByOptions}
-                    defaultValue={event.canBeViewedBy}
-                />
-            </FormSection>
             <FormSection legend="Påmelding" columns={2}>
                 <Slider
                     label="Venteliste"
@@ -214,6 +207,20 @@ export default function EventSetupForm({
         </FormTab>
 
         <FormTab tab="access">
+            <FormSection legend="Hvem kan se arrangementet">
+                <SelectString
+                    className="max-w-[300px]"
+                    label="Hvem kan se arrangementet"
+                    name="canBeViewedBy"
+                    options={eventCanBeViewedByOptions}
+                    value={canBeViewedBy}
+                    onChange={value => setCanBeViewedBy(value as EventCanView)}
+                />
+            </FormSection>
+            <div className="flex flex-col gap-2 pb-4">
+                <p className="m-0 font-medium">Hvem kan melde seg på</p>
+                <EventQuotaAudiences variants={variants} />
+            </div>
             {adminVisibilityKnown ? <div className="flex flex-col gap-3 pb-4">
                 <p className="m-0 font-medium">Hvem kan administrere arrangementet</p>
                 <p className="m-0 text-s text-text-muted">
@@ -222,6 +229,20 @@ export default function EventSetupForm({
                 <input type="hidden" name="adminRequirements" value={JSON.stringify(adminRequirements)} />
                 <VisibilityMatrixEditor requirements={adminRequirements} onChange={setAdminRequirements} />
             </div> : <p className="m-0 text-text-muted">Du kan ikke se hvem som administrerer arrangementet.</p>}
+            {adminVisibilityKnown && <>
+                <p className="m-0 font-medium">Slik blir det</p>
+                <EventWhoCanWhat access={{
+                    ...access,
+                    canBeViewedBy,
+                    // The save refuses an empty editor, so until then no one is shown as administrating.
+                    adminVisibility: {
+                        requirements: adminRequirements.length > 0 ? adminRequirements : [{ conditions: [] }],
+                    },
+                    quotaVisibilities: variants.flatMap(variant => variant.quotas.map(quota => ({
+                        requirements: quota.visibilityRequirements,
+                    }))),
+                }} />
+            </>}
         </FormTab>
     </Form>
 }
