@@ -14,7 +14,7 @@ export const revueGroupOperations = {
         paramsSchema: revueGroupSchemas.params.create,
         dataSchema: revueGroupSchemas.data.create,
         authorizer: () => revueGroupAuth.create,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: ({ prisma, params, data }) => prisma.$transaction(async tx => {
             const articleSection = await articleSectionOperations.create.internalCall({ data: {}, prisma: tx })
             return tx.revueGroup.create({
@@ -53,7 +53,7 @@ export const revueGroupOperations = {
     destroy: defineOperation({
         paramsSchema: revueGroupSchemas.params.destroy,
         authorizer: () => revueGroupAuth.destroy,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: ({ prisma, params }) => prisma.$transaction(tx => destroyRevueGroups(tx, { id: params.groupId })),
     }),
 
