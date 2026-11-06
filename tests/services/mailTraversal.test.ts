@@ -61,11 +61,11 @@ async function createGraph() {
     await prisma.membership.create({ data: { userId: archivedUserId, groupId, admin: false, active: true, order } })
 
     const aliasAId = (await aliasOperations.create({
-        data: { address: 'traversal-a@omega.ntnu.no', description: '' },
+        data: { localPart: 'traversal-a', domain: 'omega.ntnu.no', description: '' },
         bypassAuth: true,
     })).id
     const aliasBId = (await aliasOperations.create({
-        data: { address: 'traversal-b@omega.ntnu.no', description: '' },
+        data: { localPart: 'traversal-b', domain: 'omega.ntnu.no', description: '' },
         bypassAuth: true,
     })).id
     const listOneId = (await mailingListOperations.create({

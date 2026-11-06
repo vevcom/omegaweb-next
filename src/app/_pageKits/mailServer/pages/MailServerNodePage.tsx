@@ -7,7 +7,7 @@ import EditGroup from '@/pageKits/mailServer/components/EditGroup'
 import MailServerTabs from '@/pageKits/mailServer/components/MailServerTabs'
 import { mailServerPartArray } from '@/pageKits/mailServer/links'
 import { mailOperations } from '@/services/mail/operations'
-import { MailListTypeArray } from '@/services/mail/constants'
+import { MailListTypeArray, validMailAddressDomains } from '@/services/mail/constants'
 import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -62,14 +62,15 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
         ])
 
         const groups = flattenExpandedGroups(allGroupTypes)
+        const domains = filter === 'alias' ? validMailAddressDomains() : []
 
-        return { filter, id, results, mailOptions, groups }
+        return { filter, id, results, mailOptions, groups, domains }
     },
     metadata: ({ filter, id, results }) => ({
         title: focusedLabel(filter, id, results) ?? typeDisplayNames[filter],
     }),
     render: ({ data }) => {
-        const { filter, id, results, mailOptions, groups } = data
+        const { filter, id, results, mailOptions, groups, domains } = data
 
         return <PageWrapper>
             <div className="p-4 flex flex-col gap-4">
@@ -100,6 +101,7 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
                         id={id}
                         data={results}
                         mailingLists={mailOptions.mailingList}
+                        domains={domains}
                     />}
                     {filter === 'mailaddressExternal' && <EditMailAddressExternal
                         config={config}

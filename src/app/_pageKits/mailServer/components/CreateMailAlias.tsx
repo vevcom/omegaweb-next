@@ -1,14 +1,21 @@
 'use client'
 import { mailServerLinks } from '@/pageKits/mailServer/links'
-
 import { createMailAliasAction } from '@/services/mail/alias/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
+import { SelectString } from '@/components/UI/Select'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 
-
-export default function CreateMailAlias({ config }: { config: MailServerPagesConfig }) {
+export default function CreateMailAlias({
+    config,
+    domains,
+    defaultDomain,
+}: {
+    config: MailServerPagesConfig,
+    domains: string[],
+    defaultDomain: string,
+}) {
     const { push } = useSiteRouter()
     const links = mailServerLinks(config)
 
@@ -21,7 +28,13 @@ export default function CreateMailAlias({ config }: { config: MailServerPagesCon
             push(links.node('alias', data.id))
         }}
     >
-        <TextInput label="Alias" name="address" />
+        <TextInput label="Alias" name="localPart" />
+        <SelectString
+            label="Domene"
+            name="domain"
+            options={domains.map(domain => ({ value: domain, label: `@${domain}` }))}
+            defaultValue={defaultDomain}
+        />
         <TextInput label="Beskrivelse" name="description" />
     </Form>
 }
