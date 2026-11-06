@@ -28,6 +28,11 @@ export default function EventAdmin({ event, capabilities, statistics, ...setup }
     const showRegisterOthers = event.takesRegistration && canRegisterOthers
     const showPublishing = canUpdate || capabilities.canDestroy.authorized
     const [discards, setDiscards] = useState(0)
+    // Registering someone changes the counts, which must not throw away what is being set up.
+    const setupFormKey = JSON.stringify(
+        [event.variants, setup.access.adminVisibility, discards],
+        (key, value: unknown) => (['numOfRegistrations', 'numOnWaitingList'].includes(key) ? undefined : value),
+    )
     const publishingDot = () => {
         if (event.published) return { level: 'ok' as const, label: 'Publisert' }
         return publishProblems({ ...event, adminVisibility: setup.access.adminVisibility }).length > 0
@@ -47,7 +52,7 @@ export default function EventAdmin({ event, capabilities, statistics, ...setup }
         >
             {canUpdate && <TabPanel tab={eventSetupTabs.map(tab => tab.key)}>
                 <EventSetupForm
-                    key={JSON.stringify([event.variants, setup.access.adminVisibility, discards])}
+                    key={setupFormKey}
                     event={event}
                     {...setup}
                     onDiscard={() => setDiscards(discards + 1)}
