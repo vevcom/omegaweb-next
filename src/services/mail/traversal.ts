@@ -1,7 +1,11 @@
 import '@pn-server-only'
 import { userBasicSelection, userPartitions } from '@/services/users/constants'
+import { groupsWithRelationsIncluder } from '@/services/groups/constants'
+import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
+import { inferGroupName } from '@/lib/groups/inferGroupName'
 import type { Prisma } from '@/prisma-generated-pn-client'
-import type { MailFlowObject, ViaArrayType, ViaType } from './types'
+import type { GroupWithDumbRelations } from '@/services/groups/types'
+import type { MailFlowGroup, MailFlowObject, ViaArrayType, ViaType } from './types'
 
 
 /**
@@ -55,6 +59,14 @@ const includeMailingListsWithAliases = {
     },
 } as const
 
+/** The active, unarchived members: the ones mail to the group actually reaches. */
+const includeMembers = {
+    memberships: {
+        where: { active: true, user: userPartitions.unarchived },
+        include: includeUser,
+    },
+} as const satisfies Prisma.GroupInclude
+
 /**
  * Everything a mailing list forwards to: its groups with their members, its users and its external addresses.
  */
@@ -63,10 +75,8 @@ const includeRecipients = {
         include: {
             group: {
                 include: {
-                    memberships: {
-                        where: { active: true, user: userPartitions.unarchived },
-                        include: includeUser,
-                    },
+                    ...groupsWithRelationsIncluder,
+                    ...includeMembers,
                 },
             },
         },
@@ -90,12 +100,28 @@ function aliasesOf<Alias>(mailingList: { mailAliases: { mailAlias: Alias }[] }):
     return mailingList.mailAliases.map(aliasItem => aliasItem.mailAlias)
 }
 
-function membersOf<User>(groupItem: { group: { memberships: { user: User }[] } }): User[] {
-    return groupItem.group.memberships.map(membership => membership.user)
+function membersOf<User>(group: { memberships: { user: User }[] }): User[] {
+    return group.memberships.map(membership => membership.user)
 }
 
 function withVia<Node extends object>(node: Node, via: ViaType): Node & { via: ViaType[] } {
     return { ...node, via: [via] }
+}
+
+type GroupWithNameRelations = GroupWithDumbRelations<'name', 'name', 'level', 'name', 'omegaMembershipLevel', 'name'>
+const groupTypeRelations = [
+    'committee', 'manualGroup', 'class', 'interestGroup', 'omegaMembershipGroup', 'studyProgramme',
+] as const
+
+/**
+ * A group as the flow shows it: named after its type-specific relation, which is then dropped.
+ */
+function toFlowGroup<Group extends GroupWithNameRelations>(
+    group: Group,
+): MailFlowGroup & Omit<Group, typeof groupTypeRelations[number]> {
+    const name = inferGroupName(assertGroupValidity(group))
+    // On a copy, since the same group is named once per path that reaches it.
+    return { ...withoutRelations({ ...group }, ...groupTypeRelations), name }
 }
 
 /**
@@ -115,14 +141,14 @@ function throughMailingLists<MailingList extends { id: number, name: string }, N
 /**
  * The nodes each group leads to, every one marked as reached through that group.
  */
-function throughGroups<GroupItem extends { groupId: number }, Node extends object>(
-    groupItems: GroupItem[],
-    nodesOf: (groupItem: GroupItem) => Node[],
+function throughGroups<Group extends { id: number, name: string }, Node extends object>(
+    groups: Group[],
+    nodesOf: (group: Group) => Node[],
 ) {
-    return groupItems.flatMap(groupItem => nodesOf(groupItem).map(node => withVia(node, {
+    return groups.flatMap(group => nodesOf(group).map(node => withVia(node, {
         type: 'group',
-        id: groupItem.groupId,
-        label: String(groupItem.groupId),
+        id: group.id,
+        label: group.name,
     })))
 }
 
@@ -182,10 +208,11 @@ export async function readAliasTraversal(prisma: Prisma.TransactionClient, id: n
     })
 
     const mailingList = mailingListsOf(alias)
-    const group = throughMailingLists(mailingList, list => list.groups.map(groupItem => groupItem.group))
+    const groupsOf = (list: typeof mailingList[number]) => list.groups.map(groupItem => toFlowGroup(groupItem.group))
+    const group = throughMailingLists(mailingList, groupsOf)
     const user = [
         ...throughMailingLists(mailingList, list => list.users.map(userItem => userItem.user)),
-        ...mailingList.flatMap(list => throughGroups(list.groups, membersOf)),
+        ...mailingList.flatMap(list => throughGroups(groupsOf(list), membersOf)),
     ]
     const mailaddressExternal = throughMailingLists(
         mailingList,
@@ -211,10 +238,10 @@ export async function readMailingListTraversal(prisma: Prisma.TransactionClient,
     })
 
     const alias = aliasesOf(mailingList)
-    const group = mailingList.groups.map(groupItem => groupItem.group)
+    const group = mailingList.groups.map(groupItem => toFlowGroup(groupItem.group))
     const user = [
         ...mailingList.users.map(userItem => userItem.user),
-        ...throughGroups(mailingList.groups, membersOf),
+        ...throughGroups(group, membersOf),
     ]
     const mailaddressExternal = mailingList.mailAddressExternal.map(address => address.mailAddressExternal)
 
@@ -252,24 +279,22 @@ export async function readGroupTraversal(prisma: Prisma.TransactionClient, id: n
     const group = await prisma.group.findUniqueOrThrow({
         where: { id },
         include: {
-            memberships: {
-                where: { active: true },
-                include: includeUser,
-            },
+            ...groupsWithRelationsIncluder,
+            ...includeMembers,
             ...includeMailingListsWithAliases,
         },
     })
 
     const mailingList = mailingListsOf(group)
     const alias = throughMailingLists(mailingList, aliasesOf)
-    const user = group.memberships.map(membership => membership.user)
+    const user = membersOf(group)
 
     return {
         mailaddressExternal: [],
         mailingList: mailingList.map(list => withoutRelations(list, 'mailAliases')),
         alias: removeDuplicates(alias),
         user,
-        group: [withoutRelations(group, 'memberships', 'mailingLists')],
+        group: [withoutRelations(toFlowGroup(group), 'memberships', 'mailingLists')],
     }
 }
 
@@ -283,29 +308,32 @@ export async function readUserTraversal(prisma: Prisma.TransactionClient, id: nu
                 where: { active: true },
                 include: {
                     group: {
-                        include: includeMailingListsWithAliases,
+                        include: {
+                            ...groupsWithRelationsIncluder,
+                            ...includeMailingListsWithAliases,
+                        },
                     },
                 },
             },
         },
     })
 
+    const groups = user.memberships.map(membership => toFlowGroup(membership.group))
     const directMailingLists = mailingListsOf(user)
     const mailingList = [
         ...directMailingLists,
-        ...throughGroups(user.memberships, membership => mailingListsOf(membership.group)),
+        ...throughGroups(groups, mailingListsOf),
     ]
     const alias = [
         ...throughMailingLists(directMailingLists, aliasesOf),
-        ...user.memberships.flatMap(membership => throughMailingLists(mailingListsOf(membership.group), aliasesOf)),
+        ...groups.flatMap(group => throughMailingLists(mailingListsOf(group), aliasesOf)),
     ]
-    const group = user.memberships.map(membership => membership.group)
 
     return {
         mailaddressExternal: [],
         mailingList: removeDuplicates(mailingList.map(list => withoutRelations(list, 'mailAliases'))),
         alias: removeDuplicates(alias),
         user: [withoutRelations(user, 'mailingLists', 'memberships')],
-        group: group.map(groupItem => withoutRelations(groupItem, 'mailingLists')),
+        group: groups.map(group => withoutRelations(group, 'mailingLists')),
     }
 }

@@ -50,12 +50,10 @@ export default function MailFlow({
     filter,
     id,
     data,
-    groupNames,
 }: {
     filter: MailListTypes,
     id: number,
     data: MailFlowObject,
-    groupNames: Record<number, string>,
 }) {
     const { refresh } = useSiteRouter()
     const [error, setError] = useState<string | null>(null)
@@ -112,7 +110,7 @@ export default function MailFlow({
     const groupChips: Chip[] = data.group.map(group => ({
         type: 'group',
         id: group.id,
-        label: groupNames[group.id] ?? `Gruppe ${group.id}`,
+        label: group.name,
         via: group.via,
         destroy: (filter === 'mailingList' && !group.via && canDestroyMailingListGroupRelation)
             ? () => destroyMailingListGroupRelationAction({ data: { mailingListId: id, groupId: group.id } })
@@ -121,8 +119,9 @@ export default function MailFlow({
 
     // A group stands in for its members, so users that are only reached via a group are left
     // out - except the focused user, who must stay visible on their own page.
+    const reachedThroughGroupAlone = (via: ViaType[]) => via.every(viaItem => viaItem.type === 'group')
     const userChips: Chip[] = data.user
-        .filter(user => !user.via || (filter === 'user' && user.id === id))
+        .filter(user => !user.via || !reachedThroughGroupAlone(user.via) || (filter === 'user' && user.id === id))
         .map(user => ({
             type: 'user',
             id: user.id,

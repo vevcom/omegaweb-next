@@ -6,8 +6,8 @@ import { mailAddressExternalOperations } from '@/services/mail/mailAddressExtern
 import { mailOperations } from '@/services/mail/operations'
 import { userBasicSelection } from '@/services/users/constants'
 import { beforeAll, describe, expect, test } from '@jest/globals'
-import type { Group, MailingList } from '@/prisma-generated-pn-types'
-import type { MailListTypes, ViaType } from '@/services/mail/types'
+import type { MailingList } from '@/prisma-generated-pn-types'
+import type { MailFlowGroup, MailListTypes, ViaType } from '@/services/mail/types'
 
 /**
  * Builds the graph every test reads from. Every node is reachable along more than one path,
@@ -17,14 +17,20 @@ import type { MailListTypes, ViaType } from '@/services/mail/types'
  *   aliasB  -> listOne
  *   listOne -> group, firstUser (directly), external
  *   listTwo -> group, secondUser (directly), external
- *   group   -> firstUser, secondUser (memberships)
+ *   group   -> firstUser, secondUser (memberships), and an archived user mail never reaches
  *
  * Rows are created in id order so the expected ordering does not depend on how the database scans them.
  * The records are read back afterwards so they are compared in the exact shape the traversal returns.
  */
 async function createGraph() {
     const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-    const groupId = (await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })).id
+    const groupId = (await prisma.group.create({
+        data: {
+            groupType: 'MANUAL_GROUP',
+            order,
+            manualGroup: { create: { name: 'Traversal Group', shortName: 'traversal-group' } },
+        },
+    })).id
     const firstUserId = (await prisma.user.create({
         data: {
             username: 'traversal-first',
@@ -41,8 +47,18 @@ async function createGraph() {
             ledgerAccount: { create: { type: 'USER' } },
         },
     })).id
+    const archivedUserId = (await prisma.user.create({
+        data: {
+            username: 'traversal-archived',
+            email: 'traversal-archived@test.test',
+            archived: true,
+            bioParagraph: { create: {} },
+            ledgerAccount: { create: { type: 'USER' } },
+        },
+    })).id
     await prisma.membership.create({ data: { userId: firstUserId, groupId, admin: false, active: true, order } })
     await prisma.membership.create({ data: { userId: secondUserId, groupId, admin: false, active: true, order } })
+    await prisma.membership.create({ data: { userId: archivedUserId, groupId, admin: false, active: true, order } })
 
     const aliasAId = (await aliasOperations.create({
         data: { address: 'traversal-a@omega.ntnu.no', description: '' },
@@ -109,7 +125,7 @@ async function createGraph() {
         aliasB: await prisma.mailAlias.findUniqueOrThrow({ where: { id: aliasBId } }),
         listOne: await prisma.mailingList.findUniqueOrThrow({ where: { id: listOneId } }),
         listTwo: await prisma.mailingList.findUniqueOrThrow({ where: { id: listTwoId } }),
-        group: await prisma.group.findUniqueOrThrow({ where: { id: groupId } }),
+        group: { ...await prisma.group.findUniqueOrThrow({ where: { id: groupId } }), name: 'Traversal Group' },
         firstUser: await readUser(firstUserId),
         secondUser: await readUser(secondUserId),
         external: await prisma.mailAddressExternal.findUniqueOrThrow({ where: { id: externalId } }),
@@ -126,8 +142,8 @@ function viaList(list: MailingList): ViaType {
     return { type: 'mailingList', id: list.id, label: list.name }
 }
 
-function viaGroup(group: Group): ViaType {
-    return { type: 'group', id: group.id, label: String(group.id) }
+function viaGroup(group: MailFlowGroup): ViaType {
+    return { type: 'group', id: group.id, label: group.name }
 }
 
 function traverse(filter: MailListTypes, id: number) {
