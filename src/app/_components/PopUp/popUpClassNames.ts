@@ -13,7 +13,7 @@ export const popUpClassNames = {
     `,
     overflow: 'flex-1 min-h-0 overflow-x-visible overflow-y-auto m-0 p-0',
     closeBtn: `
-        close-btn [&_path]:text-inherit text-error-content absolute
+        close-btn text-error-content absolute
         mobile:top-[calc(-48px-var(--gap))] mobile:left-0
         max-mobile:-top-14 max-mobile:left-4
     `,

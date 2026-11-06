@@ -78,10 +78,9 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                                     first:mt-0
                                     py-2 px-3 border-b border-surface-hover text-l font-bold text-base-content
                                     [&_svg]:text-[0.8em] [&_svg]:text-inherit
-                                    [&_path]:text-inherit
                                 "
                             >
-                                <FontAwesomeIcon icon={group.header.icon} className='[&_path]:text-inherit text-base-content' />
+                                <FontAwesomeIcon icon={group.header.icon} className='text-base-content' />
                                 {group.header.title}
                             </h3>
                             {

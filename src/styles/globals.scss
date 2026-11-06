@@ -11,7 +11,6 @@
         margin: 0;
         box-sizing: border-box;
         font-family: ohma.$fonts-primary;
-        color: ohma.$colors-text;
     }
 
     html {
@@ -51,7 +50,9 @@
         --accent-violet:  hsl(260, 80%, 60%);
     }
 
+    // On body and not on *, so a colour set on a parent reaches everything inside it.
     body {
+        color: var(--color-base-content);
         font-size: ohma.$fonts-s;
         font-weight: ohma.$fonts-weight-s;
         overflow-x: hidden;
@@ -91,6 +92,11 @@
         &:hover {
             text-decoration: underline;
         }
+    }
+
+    // Cards and icon links take the surrounding colour rather than turning link blue.
+    a:has(> *) {
+        color: inherit;
     }
 
     h1 {

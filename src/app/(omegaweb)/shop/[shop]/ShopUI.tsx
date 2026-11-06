@@ -100,7 +100,6 @@ export default function ShopUI({ shop, userId, capabilities }: {
                 ">
                     <FontAwesomeIcon icon={faBasketShopping} className="
                         size-10! text-inherit
-                        [&_path]:text-inherit
                     " />
                     <p className="m-0">Butikken har ingen varer ennå.</p>
                 </div>
@@ -130,7 +129,6 @@ export default function ShopUI({ shop, userId, capabilities }: {
                         <div className="flex items-center gap-3 text-accent-green">
                             <FontAwesomeIcon icon={faCircleCheck} className="
                                 size-7! text-inherit
-                                [&_path]:text-inherit
                             " />
                             <h2 className="m-0 text-l text-base-content">Takk for kjøpet!</h2>
                         </div>
@@ -154,7 +152,6 @@ export default function ShopUI({ shop, userId, capabilities }: {
                             <h2 className="m-0 flex items-center gap-2 text-l">
                                 <FontAwesomeIcon icon={faBasketShopping} className="
                                     size-5! text-inherit
-                                    [&_path]:text-inherit
                                 " />
                                 Handlekurv
                             </h2>

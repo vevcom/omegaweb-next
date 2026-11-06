@@ -28,7 +28,6 @@ const entryLinkClassName = `
     hover:text-primary
     [&_svg]:mr-2 [&_svg]:text-base-content
     hover:[&_svg]:text-primary
-    [&_path]:text-inherit
     aria-[current=page]:text-primary
     aria-[current=page]:[&_svg]:text-primary
     max-mobile:[font-size:x-large] max-mobile:w-full

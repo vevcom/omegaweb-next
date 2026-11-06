@@ -33,7 +33,7 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
         {
             transactionsHref &&
             <SiteLink href={transactionsHref} className="btn-primary inline-flex items-center gap-2">
-                Se alle transaksjoner <FontAwesomeIcon icon={faArrowRight} className='[&_path]:text-primary-content' />
+                Se alle transaksjoner <FontAwesomeIcon icon={faArrowRight} />
             </SiteLink>
         }
     </div>

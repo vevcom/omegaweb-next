@@ -17,7 +17,6 @@ export default function ReportButton() {
                 <FontAwesomeIcon
                     className="
                         size-5! text-base-content transition-colors duration-300
-                        [&_path]:text-inherit
                         group-hover:text-primary
                     "
                     icon={faShieldHeart}

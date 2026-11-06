@@ -211,7 +211,7 @@ export function DropdownPanel<ValueType extends string | number>({
                             data-active={index === activeIndex}
                         >
                             <span className='text-inherit'>{option.label ?? option.value}</span>
-                            {isSelected(option) && <FontAwesomeIcon icon={faCheck} className='[&_path]:text-inherit text-inherit' />}
+                            {isSelected(option) && <FontAwesomeIcon icon={faCheck} className='text-inherit' />}
                         </button>
                     </li>
                 ))

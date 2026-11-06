@@ -24,7 +24,7 @@ type PropTypes = {
 
 const stepButtonClassName = 'grid place-items-center size-9 rounded-full border-none cursor-pointer '
     + 'bg-surface-hover text-base-content transition-colors duration-200 hover:bg-accent-blue hover:text-base-content/30 '
-    + '[&_svg]:text-inherit [&_path]:text-inherit'
+    + '[&_svg]:text-inherit'
 
 /** One product on the shop's shelf: its photo, what it costs, and how many are in the cart. */
 export default function ProductCard({ shop, product, quantity, canUpdateProduct, onAdd, onRemove }: PropTypes) {
@@ -86,7 +86,6 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                                 cursor-pointer text-base-content/80
                                 hover:text-accent-blue
                                 [&_svg]:text-inherit
-                                [&_path]:text-inherit
                             "
                         >
                             <EditProductForShopForm
@@ -111,7 +110,6 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                                     btn-primary m-0! flex w-full items-center justify-center gap-2 h-9 py-0! px-4! rounded-full!
                                     text-s!
                                     [&_svg]:text-inherit
-                                    [&_path]:text-inherit
                                 "
                                 onClick={onAdd}
                             >

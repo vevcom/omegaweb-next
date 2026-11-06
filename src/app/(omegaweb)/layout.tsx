@@ -50,7 +50,7 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
     const theme = serverSession.user?.theme ?? Theme.STANDARD
 
     return (
-        <div className="min-h-dvh text-base-content bg-base-200 [&_path]:text-inherit">
+        <div className="min-h-dvh text-base-content bg-base-200">
             <SiteTheme colors={themes[theme]} />
             <GlobalSearch navItems={navItems} adminNavItems={adminNavItems} categories={searchableCategories} />
             <NavMenuProvider>

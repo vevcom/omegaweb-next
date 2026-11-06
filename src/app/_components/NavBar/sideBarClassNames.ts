@@ -7,7 +7,6 @@ const activeColor = 'group-hover/navicon:text-primary group-aria-[current=page]/
 
 export const navIconIconClassName = `
     size-5! shrink-0 ml-0.5 text-base-content transition-colors duration-300 ease-[ease]
-    [&_path]:text-inherit
     ${activeColor}
 `
 

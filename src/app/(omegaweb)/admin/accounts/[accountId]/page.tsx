@@ -55,7 +55,7 @@ const { page, generateMetadata } = serverPage({
                         duration-500 flex justify-center items-center text-base-content
                         hover:bg-base-200
                     "
-                    showButtonContent={<FontAwesomeIcon icon={faPencil} className='[&_path]:text-inherit text-base-content' />}
+                    showButtonContent={<FontAwesomeIcon icon={faPencil} className='text-base-content' />}
                 >
                     <EditLedgerAccountDetailsForm
                         ledgerAccount={ledgerAccount}

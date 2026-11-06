@@ -52,7 +52,6 @@ const { page, generateMetadata } = serverPage({
                             <span className="
                                 grid size-12 place-items-center rounded-full bg-accent-blue text-base-content/30
                                 [&_svg]:text-inherit
-                                [&_path]:text-inherit
                             ">
                                 <FontAwesomeIcon icon={faStore} className="size-5!" />
                             </span>
@@ -63,7 +62,6 @@ const { page, generateMetadata } = serverPage({
                             <span className="
                                 mt-auto flex items-center gap-2 pt-2 text-s font-medium text-accent-blue
                                 [&_svg]:text-inherit
-                                [&_path]:text-inherit
                             ">
                                 Gå til butikken
                                 <FontAwesomeIcon icon={faArrowRight} className="

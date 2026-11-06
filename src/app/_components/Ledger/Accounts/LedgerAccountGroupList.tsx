@@ -48,7 +48,7 @@ export default function LedgerAccountGroupList({ ledgerAccountId, groups, capabi
                                 cursor-pointer transition-[background] duration-500 flex justify-center items-center
                                 hover:bg-base-200
                             ">
-                                <FontAwesomeIcon icon={faXmark} className='[&_path]:text-inherit text-base-content' />
+                                <FontAwesomeIcon icon={faXmark} className='text-base-content' />
                             </button>
                         }
                     </li>

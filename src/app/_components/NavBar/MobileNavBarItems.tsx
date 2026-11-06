@@ -20,7 +20,6 @@ export default function MobileNavBarItems({ navItems }: PropTypes) {
                 <FontAwesomeIcon
                     className={`
                         size-[25px]!
-                        [&_path]:text-inherit
                         ${item.href === activeHref ? 'text-primary' : 'text-base-content'}
                     `}
                     icon={item.icon}

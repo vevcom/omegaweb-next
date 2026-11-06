@@ -42,7 +42,6 @@ export default function EditModeSwitch() {
                 />
                 <FontAwesomeIcon className="
                     size-[var(--edit-mode-icon-size,20px)] text-base-content transition-all duration-200
-                    [&_path]:text-inherit
                     peer-checked:text-primary
                     group-hover/switch:peer-not-checked:text-primary
                 " icon={faPencil} />

@@ -35,7 +35,7 @@ export default function SponsorBadge({ sponsorTier, iconOnly = false, className 
             `}
             title={`${label} — ${description}`}
         >
-            <FontAwesomeIcon icon={sponsorTierIcon[sponsorTier]} className={`[&_path]:text-inherit ${sponsorTierClass[sponsorTier]}`} aria-hidden />
+            <FontAwesomeIcon icon={sponsorTierIcon[sponsorTier]} className={`${sponsorTierClass[sponsorTier]}`} aria-hidden />
             <span className={iconOnly ? 'sr-only' : 'overflow-hidden text-ellipsis'}>{label}</span>
         </span>
     )

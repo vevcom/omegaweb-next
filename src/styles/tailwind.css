@@ -42,7 +42,7 @@
     --color-success-content: oklch(43% 0.095 166.913);
 
     --color-warning: oklch(75% 0.183 55.934);
-    --color-warning-hover: oklch(70% 0.213 47.604)
+    --color-warning-hover: oklch(70% 0.213 47.604);
     --color-warning-content: oklch(26% 0.079 36.259);
 
     --color-error: oklch(63% 0.237 25.331);
@@ -232,10 +232,6 @@
     & > svg {
         width: 40%;
         height: 40%;
-        color: var(--color-error-content);
-    }
-
-    & > path {
         color: var(--color-error-content);
     }
 }

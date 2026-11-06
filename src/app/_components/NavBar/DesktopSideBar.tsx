@@ -60,7 +60,6 @@ export default function DesktopSideBar({ navItems }: PropTypes) {
                 className="
                     group w-full h-10 flex items-center justify-center shrink-0 border-none bg-transparent cursor-pointer
                     [&_svg]:text-base-content [&_svg]:transition-colors [&_svg]:duration-300
-                    [&_path]:text-inherit
                     hover:[&_svg]:text-primary
                 "
                 onClick={() => setExpanded(prev => !prev)}
