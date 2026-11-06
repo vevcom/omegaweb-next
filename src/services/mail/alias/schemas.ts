@@ -1,4 +1,5 @@
 import { validMailAddressDomains } from '@/services/mail/constants'
+import { mailOwnerRequirements } from '@/services/mail/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -11,6 +12,7 @@ const dataFieldSchemas = z.object({
         () => ({ message: `Domenet er ugyldig. Gyldige domener er: ${validMailAddressDomains().join(', ')}` }),
     ),
     description: z.string(),
+    ownerRequirements: mailOwnerRequirements,
 })
 
 const paramsFieldSchemas = z.object({
@@ -18,11 +20,8 @@ const paramsFieldSchemas = z.object({
 })
 
 /** The address comes as what stands before and after the @, with the domain picked from ours, and is stored joined. */
-const aliasData = dataFieldSchemas.pick({
-    localPart: true,
-    domain: true,
-    description: true,
-}).transform(({ localPart, domain, ...rest }) => ({ ...rest, address: `${localPart}@${domain}` }))
+const joinAddress = <Rest extends object>({ localPart, domain, ...rest }: Rest & { localPart: string, domain: string }) =>
+    ({ ...rest, address: `${localPart}@${domain}` })
 
 const alias = paramsFieldSchemas.pick({
     id: true,
@@ -30,11 +29,21 @@ const alias = paramsFieldSchemas.pick({
 
 export const mailAliasSchemas = {
     data: {
-        create: aliasData,
-        update: aliasData,
+        create: dataFieldSchemas.pick({
+            localPart: true,
+            domain: true,
+            description: true,
+            ownerRequirements: true,
+        }).transform(joinAddress),
+        update: dataFieldSchemas.pick({
+            localPart: true,
+            domain: true,
+            description: true,
+        }).transform(joinAddress),
     },
     params: {
         update: alias,
+        visibility: alias,
         destroy: alias,
     },
 }

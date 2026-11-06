@@ -47,6 +47,7 @@ async function createMailingList() {
     const external = `ekstern-${userCounter}@example.com`
     const list = await prisma.mailingList.create({
         data: {
+            ownerVisibility: { create: { requirements: { create: [{}] } } },
             name: `sendmail-liste-${userCounter}`,
             users: { create: { userId: direct.id } },
             groups: { create: { groupId: group.id } },

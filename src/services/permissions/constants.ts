@@ -220,6 +220,18 @@ export const permissionConfig = {
         category: 'mail',
         canBeDefault: false,
     },
+    MAIL_ALIAS_CREATE: {
+        name: 'Opprette e-postalias',
+        description: 'kan opprette e-postalias og eie dem',
+        category: 'mail',
+        canBeDefault: false,
+    },
+    MAIL_LIST_CREATE: {
+        name: 'Opprette e-postlister',
+        description: 'kan opprette e-postlister og eie dem',
+        category: 'mail',
+        canBeDefault: false,
+    },
     ADMISSION_USE: {
         name: 'Bruke opptakssystemet',
         description: 'kan lage, lese og administrere opptaksprøver',

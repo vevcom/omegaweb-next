@@ -75,6 +75,8 @@ enum Permission {
   // Mail server: aliases, mailing lists and external addresses
   MAILSERVER_USE
   MAILSERVER_ADMIN
+  MAIL_ALIAS_CREATE
+  MAIL_LIST_CREATE
 
   // Admisstion
   ADMISSION_USE

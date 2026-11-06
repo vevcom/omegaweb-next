@@ -1,8 +1,10 @@
+import { mailOwnerRequirements } from '@/services/mail/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
     name: z.string().min(2).max(50),
     description: z.string().max(200),
+    ownerRequirements: mailOwnerRequirements,
 })
 
 const paramsFieldSchemas = z.object({
@@ -18,6 +20,7 @@ export const mailingListSchemas = {
         create: dataFieldSchemas.pick({
             name: true,
             description: true,
+            ownerRequirements: true,
         }),
         update: dataFieldSchemas.pick({
             name: true,
@@ -26,6 +29,7 @@ export const mailingListSchemas = {
     },
     params: {
         update: mailingList,
+        visibility: mailingList,
         destroy: mailingList,
     },
 }

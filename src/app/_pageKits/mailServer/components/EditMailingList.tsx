@@ -1,5 +1,6 @@
 'use client'
 import AddUserToMailingList from './AddUserToMailingList'
+import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
 import { mailServerLinks } from '@/pageKits/mailServer/links'
 
 import TextInput from '@/components/UI/TextInput'
@@ -10,7 +11,11 @@ import {
     createMailingListExternalRelationAction,
     createMailingListGroupRelationAction,
 } from '@/services/mail/actions'
-import { updateMailingListAction, destroyMailingListAction } from '@/services/mail/list/actions'
+import {
+    updateMailingListAction,
+    updateMailingListVisibilityAction,
+    destroyMailingListAction,
+} from '@/services/mail/list/actions'
 import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAuth } from '@/services/mail/auth'
 import { configureAction } from '@/services/configureAction'
@@ -20,6 +25,7 @@ import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 import type { MailAddressExternal, MailAlias } from '@/prisma-generated-pn-types'
 import type { ExpandedGroup } from '@/services/groups/types'
 import type { MailFlowObject } from '@/services/mail/types'
+import type { VisibilityMatrix } from '@/services/visibility/types'
 
 export default function EditMailingList({
     config,
@@ -28,6 +34,7 @@ export default function EditMailingList({
     mailaliases,
     mailAddressExternal,
     groups,
+    owners,
 }: {
     config: MailServerPagesConfig,
     id: number,
@@ -35,6 +42,7 @@ export default function EditMailingList({
     mailaliases: MailAlias[],
     mailAddressExternal: MailAddressExternal[],
     groups: ExpandedGroup[],
+    owners: VisibilityMatrix,
 }) {
     const { push, refresh } = useSiteRouter()
     const links = mailServerLinks(config)
@@ -44,6 +52,7 @@ export default function EditMailingList({
 
     const canUpdateMailingList = useAuthorizer({ authorizer: mailingListAuth.update }).authorized
     const canDestroyMailingList = useAuthorizer({ authorizer: mailingListAuth.destroy }).authorized
+    const canUpdateOwners = useAuthorizer({ authorizer: mailingListAuth.updateVisibility }).authorized
     const canAddAliasRelation = useAuthorizer({
         authorizer: mailAuth.createAliasMailingListRelation
     }).authorized
@@ -75,6 +84,18 @@ export default function EditMailingList({
             <TextInput name="name" label="Navn" defaultValue={focusedMailingList.name} />
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedMailingList.description} />
         </Form>}
+
+        {canUpdateOwners && <div className="flex flex-col gap-2">
+            <h3 className="m-0">Eiere</h3>
+            <VisibilityAdmin
+                visibility={owners}
+                visibilityId={focusedMailingList.ownerVisibilityId}
+                updateVisibilityAction={configureAction(
+                    updateMailingListVisibilityAction,
+                    { implementationParams: { id: focusedMailingList.id } },
+                )}
+            />
+        </div>}
 
         {canAddAliasRelation && availableAliases.length > 0 && <Form
             title="Koble til alias"
