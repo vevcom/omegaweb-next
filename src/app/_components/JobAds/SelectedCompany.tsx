@@ -22,11 +22,11 @@ export default function SelectedCompany() {
                 ${company ? 'border-transparent' : 'border-[color-mix(in_srgb,var(--accent-yellow),transparent_60%)]'}
             `}
         >
-            <span className="text-[length:calc(var(--text-s)*0.85)] text-text-muted">Bedrift</span>
+            <span className="text-[length:calc(var(--text-s)*0.85)] text-base-content/80">Bedrift</span>
             <span className={`
                 text-m leading-[calc(var(--text-m)*1.25)] truncate
                 ${
-        company ? 'text-ink-strong' : 'text-text-muted italic'
+        company ? 'text-ink-strong' : 'text-base-content/80 italic'
         }
             `}>{company ? company.name : 'Velg en bedrift i listen'}</span>
             {company && <input name="companyId" type="hidden" value={company.id} />}

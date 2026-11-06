@@ -20,8 +20,8 @@ export default function CreateGroupLedgerAccountForm({ popUpKey }: Props) {
             closePopUpOnSuccess={popUpKey}
             refreshOnSuccess
         >
-            <TextInput name="name" label="Navn" required />
-            <TextInput name="payoutAccountNumber" label="Utbetalingskontonummer" />
+            <TextInput background='base200' name="name" label="Navn" required />
+            <TextInput background='base200' name="payoutAccountNumber" label="Utbetalingskontonummer" />
         </Form>
     )
 }

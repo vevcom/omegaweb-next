@@ -64,8 +64,8 @@ const { page, generateMetadata } = serverPage({
             <PageWrapper>
                 <div className="p-4 flex flex-col gap-4">
                     <div className="flex flex-row flex-wrap items-center gap-2">
-                        <Link className="btn font-light m-0!" href="/admin/dots">Velg en annen bruker</Link>
-                        <Link className="btn font-light m-0!" href={
+                        <Link className="btn-primary font-light m-0!" href="/admin/dots">Velg en annen bruker</Link>
+                        <Link className="btn-primary font-light m-0!" href={
                             `/admin/dots?${QueryParams.userId.encodeUrl(data.userId)}` +
                             `&${QueryParams.onlyActive.encodeUrl(!data.onlyActive)}`
                         }>

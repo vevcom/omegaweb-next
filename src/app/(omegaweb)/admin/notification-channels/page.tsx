@@ -106,7 +106,7 @@ const { page, generateMetadata } = serverPage({
                                             </span>
                                             : null}
                                     </td>
-                                    <td className="text-text-muted">{channel.description || '—'}</td>
+                                    <td className="text-base-content/80">{channel.description || '—'}</td>
                                 </tr>
                             </Link>
                         ))}

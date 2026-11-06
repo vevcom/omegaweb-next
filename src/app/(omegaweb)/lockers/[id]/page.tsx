@@ -100,11 +100,11 @@ const { page, generateMetadata } = serverPage({
                 <div className={lockerClassName}>
                     <section className={cardClassName}>
                         <h2>Skap {lockerId}</h2>
-                        <p className="text-text-muted mb-4">{locker.building}, {locker.floor}. etasje</p>
+                        <p className="text-base-content/80 mb-4">{locker.building}, {locker.floor}. etasje</p>
                         {reservation ? (
                             <dl className="
                                 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2
-                                [&>dt]:text-text-muted
+                                [&>dt]:text-base-content/80
                                 [&>dd]:m-0
                             ">
                                 <dt>Reservert av</dt>
@@ -170,7 +170,7 @@ const { page, generateMetadata } = serverPage({
                                 />
                             )}
                             {capabilities.canDestroyLocker.authorized && (reservation ? (
-                                <p className="mt-4 text-text-muted">Skapet er reservert. Frigi det før det slettes.</p>
+                                <p className="mt-4 text-base-content/80">Skapet er reservert. Frigi det før det slettes.</p>
                             ) : (
                                 <Form
                                     className="mt-4"

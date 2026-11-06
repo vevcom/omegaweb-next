@@ -26,7 +26,7 @@ export function SubPageNavBarItem({ children, icon, href }:SubPageNavBarProps) {
                 <div className={`
                     inline-flex items-center justify-center h-[calc(64px-2*var(--gap))] px-2 border-0
                     max-mobile:px-1
-                    bg-transparent text-text
+                    bg-transparent text-base-content
                     [&_*]:transition-colors [&_*]:duration-200 [&_*]:ease-[ease]
                     hover:[&_*]:text-accent-blue
                     ${page === thisPage ? '[&_*]:text-accent-blue' : ''}

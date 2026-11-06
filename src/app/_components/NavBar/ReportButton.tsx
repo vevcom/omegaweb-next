@@ -15,9 +15,9 @@ export default function ReportButton() {
             <Link href="/report" className="group flex items-center justify-center size-12">
                 <FontAwesomeIcon
                     className="
-                        size-5! text-text transition-colors duration-300
+                        size-5! text-base-content transition-colors duration-300
                         [&_path]:text-inherit
-                        group-hover:text-accent-red
+                        group-hover:text-primary
                     "
                     icon={faShieldHeart}
                 />

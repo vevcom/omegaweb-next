@@ -72,7 +72,7 @@ function FlairTableRow({ row, index, canReorder, onDragEnd }: RowPropTypes) {
                 {canReorder &&
                 <span
                     className="
-                        flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab
+                        flex items-center justify-center size-6 rounded-[var(--gap)] text-base-content/80 cursor-grab
                         touch-none select-none transition-colors duration-300
                         hover:bg-surface-hover hover:text-ink-strong
                         active:cursor-grabbing

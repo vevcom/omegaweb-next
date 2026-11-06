@@ -121,7 +121,7 @@ export default function LogIn() {
             </p>
         </Link>
 
-        <p className="text-text">
+        <p className="text-base-content">
             Er det første gang du logger inn? Da er det bare å logge inn med Feide for å lage en bruker.
         </p>
     </>

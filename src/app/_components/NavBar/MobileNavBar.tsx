@@ -17,7 +17,7 @@ export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
         <nav className="
             relative hidden
             max-mobile:grid
-            grid-cols-5 grid-rows-[auto] w-full h-full p-4 overflow-hidden bg-surface-base text-text
+            grid-cols-5 grid-rows-[auto] w-full h-full p-4 overflow-hidden bg-base-100 text-base-content
             [&>*:not(:last-child)]:grid [&>*:not(:last-child)]:place-items-center
             [&>*:not(:last-child)>button]:[background:none] [&>*:not(:last-child)>button]:text-inherit
             [&>*:not(:last-child)>button]:border-none [&>*:not(:last-child)>button]:p-0
@@ -31,7 +31,7 @@ export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
                     width={25}
                     height={25}
                     alt={isLoggedIn ? 'Profil' : 'Logg inn'}
-                    tint="var(--magic-hat-tint, var(--text))"
+                    tint="var(--color-base-content)"
                 />
                 <UserNavigation isLoggedIn={isLoggedIn} />
             </MobileMagicHat>

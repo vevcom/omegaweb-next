@@ -50,7 +50,7 @@ export default function CareersNavBar({ links }: PropTypes) {
                     ">
                         <Link href="/" className={`
                             ${linkClassName}
-                            text-text-muted
+                            text-base-content/80
                             hover:text-careers-navy
                             [&_svg]:size-[0.8em] [&_svg]:text-inherit
                         `}>

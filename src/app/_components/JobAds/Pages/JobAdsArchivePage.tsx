@@ -14,7 +14,7 @@ export default function JobAdsArchivePage({ basePath }: PropTypes) {
     return (
         <PageWrapper headerItem={
             <Link href={basePath} className="
-                text-text
+                text-base-content
                 [&_svg]:size-[30px]!
             ">
                 <FontAwesomeIcon icon={faArrowLeft} />

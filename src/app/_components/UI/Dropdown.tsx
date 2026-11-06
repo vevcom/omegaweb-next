@@ -18,41 +18,57 @@ export type PropTypes<ValueType> = {
     defaultValue?: ValueType,
     options: DropdownOption<ValueType>[],
     onChange?: (value: ValueType) => void,
-    color?: 'primary' | 'secondary' | 'red' | 'black' | 'white',
-    background?: 'base' | 'raised',
+    color?: 'base' | 'primary' | 'secondary' | 'accent' | 'neutral' | 'info' | 'success' | 'warning' | 'error',
+    background?: 'base100' | 'base200',
     className?: string,
     disabled?: boolean,
 }
 
+export const dropdownBorderClassNames = {
+    base: 'focus:border-base-300',
+    primary: 'focus:border-primary',
+    secondary: 'focus:border-secondary',
+    accent: 'focus:border-accent',
+    neutral: 'focus:border-neutral',
+    info: 'focus:border-info',
+    success: 'focus:border-success',
+    warning: 'focus:border-warning',
+    error: 'focus:border-error',
+}
+
 export const dropdownColorClassNames = {
-    black: 'text-ink-strong',
-    primary: 'text-accent-blue',
-    secondary: 'text-text',
-    red: 'text-accent-red',
-    white: 'text-white',
+    base: 'focus:border-base-300',
+    primary: 'focus:border-primary',
+    secondary: 'focus:border-secondary',
+    accent: 'focus:border-accent',
+    neutral: 'focus:border-neutral',
+    info: 'focus:border-info',
+    success: 'focus:border-success',
+    warning: 'focus:border-warning',
+    error: 'focus:border-error',
 } as const
 
 export const dropdownLabelClassName = (floated: boolean) => `
-    absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1
+    absolute left-4 block text-base-content/80 transition-all duration-300 pointer-events-none z-1
     ${floated ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-6 text-m'}`
 
 export const dropdownChevronClassName = (open: boolean) => `
     absolute right-4 top-1/2 -translate-y-1/2 transition-[translate,rotate,color] duration-300
-    ${open ? 'rotate-180 text-accent-blue' : 'text-text-muted'}`
+    ${open ? 'rotate-180 text-primary' : 'text-base-content/80'}`
 
 const triggerBackgroundClassNames = {
-    base: { closed: `
-        bg-surface-raised
-        hover:bg-surface-hover
-    `, open: 'bg-surface-hover' },
-    raised: {
+    base100: { closed: `
+        bg-base-100
+        hover:bg-base-200
+    `, open: 'bg-base-200' },
+    base200: {
         closed: `
-            bg-surface-hover
-            hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+            bg-base-200
+            hover:bg-base-300
         `,
         open: `
-            bg-surface-hover
-            hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+            bg-base-300
+            hover:bg-base-300
         `,
     },
 } as const
@@ -165,11 +181,11 @@ export function DropdownPanel<ValueType extends string | number>({
     return (
         <ul id={id} className="
             absolute top-[calc(100%+var(--gap))] left-0 right-0 z-5 list-none m-0 p-2 max-h-[260px] overflow-y-auto
-            rounded-inner bg-surface-hover shadow-soft-hover
+            rounded-inner bg-base-200 shadow-soft-hover
         " role="listbox" ref={panelRef}>
             {
                 options.length === 0 && emptyText ? (
-                    <li className="py-2 px-4 text-text-muted text-s">{emptyText}</li>
+                    <li className="py-2 px-4 text-base-content/80 text-s">{emptyText}</li>
                 ) : options.map((option, index) => (
                     <li key={option.key ?? String(option.value)}>
                         <button
@@ -178,20 +194,20 @@ export function DropdownPanel<ValueType extends string | number>({
                             aria-selected={isSelected(option)}
                             className={
                                 `
-                                    w-full flex items-center justify-between gap-2 border-none bg-transparent text-left
+                                    w-full flex items-center justify-between gap-2 border-none text-left
                                     text-m py-2 px-4 rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer
                                     transition-colors duration-300
-                                    hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-                                    ${isSelected(option) ? 'text-accent-blue' : 'text-text'}
-                                    ${index === activeIndex ? 'bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]' : ''}
+                                    hover:bg-base-300 hover:text-base-content
+                                    ${isSelected(option) ? 'text-primary-content bg-primary' : 'text-base-content bg-base-200'}
+                                    ${index === activeIndex ? 'bg-base-300' : ''}
                                 `
                             }
                             onClick={() => onSelect(option)}
                             onMouseEnter={() => onActivate(index)}
                             data-active={index === activeIndex}
                         >
-                            <span>{option.label ?? option.value}</span>
-                            {isSelected(option) && <FontAwesomeIcon icon={faCheck} />}
+                            <span className='text-inherit'>{option.label ?? option.value}</span>
+                            {isSelected(option) && <FontAwesomeIcon icon={faCheck} className='[&_path]:text-inherit text-inherit' />}
                         </button>
                     </li>
                 ))
@@ -206,8 +222,8 @@ export default function Dropdown<ValueType extends string | number>({
     defaultValue,
     options,
     onChange,
-    color = 'black',
-    background = 'base',
+    color = 'base',
+    background = 'base100',
     className,
     disabled,
 }: PropTypes<ValueType>) {
@@ -252,7 +268,7 @@ export default function Dropdown<ValueType extends string | number>({
                     pl-4 transition-[border-color,background-color] duration-300 cursor-pointer
                     disabled:cursor-not-allowed disabled:opacity-60
                     ${dropdownColorClassNames[color]}
-                    ${open ? 'border-accent-blue' : 'border-transparent'}
+                    ${open ? 'border-primary' : 'border-transparent'}
                     ${triggerBackgroundClassNames[background][open ? 'open' : 'closed']}
                 `}
                 disabled={disabled}

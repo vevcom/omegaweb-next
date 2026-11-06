@@ -26,8 +26,8 @@ type PropTypes = {
  */
 const dotsClassName = (valueLeft: number) => `py-[0.2em]! px-[0.6em]! rounded-[0.4em] whitespace-nowrap ${
     valueLeft > 0
-        ? 'bg-[color-mix(in_srgb,var(--accent-red),white_50%)] text-text-inv'
-        : 'bg-[color-mix(in_srgb,var(--accent-green),white_50%)] text-text-inv'
+        ? 'bg-[color-mix(in_srgb,var(--accent-red),white_50%)] text-base-content/30'
+        : 'bg-[color-mix(in_srgb,var(--accent-green),white_50%)] text-base-content/30'
 }`
 
 export default function UserDots({

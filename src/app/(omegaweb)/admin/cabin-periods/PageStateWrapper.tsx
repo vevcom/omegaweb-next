@@ -40,7 +40,7 @@ export default function PageStateWrapper({
             <PopUp
                 popUpKey="CreateNewReleasePeriod"
                 showButtonContent="Nytt slipp"
-                showButtonClass="btn"
+                showButtonClass="pirmary-btn"
             >
                 <ReleasePeriodForm closePopUpOnSuccess="CreateNewReleasePeriod" />
             </PopUp>
@@ -84,7 +84,7 @@ export default function PageStateWrapper({
             <PopUp
                 popUpKey="CreateNewPricePeriod"
                 showButtonContent="Ny prisperiode"
-                showButtonClass="btn"
+                showButtonClass="pirmary-btn"
             >
                 <PricePeriodForm closePopUpOnSuccess="CreateNewPricePeriod" />
             </PopUp>

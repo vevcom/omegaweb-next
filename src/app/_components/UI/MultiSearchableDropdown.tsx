@@ -142,7 +142,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                                 type="button"
                                 className="
                                     flex items-center justify-center size-6 border-none rounded-full bg-transparent
-                                    text-text-muted cursor-pointer
+                                    text-base-content/80 cursor-pointer
                                     hover:text-accent-red
                                 "
                                 aria-label={`Fjern ${option.label ?? String(option.value)}`}

@@ -34,7 +34,7 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <PageWrapper>
-                <p className="text-text-muted max-w-[70ch] mb-4">
+                <p className="text-base-content/80 max-w-[70ch] mb-4">
                     Hvilken medlemsgruppe en bruker tilhører styres kun gjennom opptakssystemet. Gruppene
                     følger ordenen til Omega automatisk, og kan verken opprettes eller slettes.
                 </p>

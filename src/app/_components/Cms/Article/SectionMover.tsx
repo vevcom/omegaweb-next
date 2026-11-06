@@ -16,7 +16,7 @@ type PropTypes = {
     capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
-const moveButtonClassName = 'btn rounded-full p-[1em] w-[2em] h-[2em] flex items-center justify-center'
+const moveButtonClassName = 'btn-primary rounded-full p-[1em] w-[2em] h-[2em] flex items-center justify-center'
 
 export default function SectionMover({
     className,

@@ -11,7 +11,7 @@ export default function JobAdInactiveList({ basePath }: PropTypes) {
     return (
         <main className="row-list">
             <EndlessScroll
-                loadingInfoClassName="text-text-muted"
+                loadingInfoClassName="text-base-content/80"
                 pagingContext={JobAdInactivePagingContext}
                 renderer={jobAd => (
                     <JobAd jobAd={jobAd} basePath={basePath} />

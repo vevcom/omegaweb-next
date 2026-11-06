@@ -8,7 +8,7 @@ import type { Capabilities } from '@/auth/authorizer/capabilities'
 export type PropTypes = {
     cmsLink: CmsLinkT
     className?: string
-    color?: 'primary' | 'secondary'
+    color?: 'primary' | 'secondary' | 'neutral'
     /** Renders the link as a dead button - for a link whose url nobody has filled in yet. */
     disabled?: boolean
     updateCmsLinkAction: UpdateCmsLinkAction
@@ -16,11 +16,13 @@ export type PropTypes = {
 }
 
 const colorClassNames = {
-    primary: 'btn m-0',
+    primary: 'btn-primary m-0',
     secondary: `
-        secondary-btn m-0
-        hover:bg-surface-hover hover:text-text
-    `,
+        btn-neutral m-0
+        hover:bg-neutral-hover hover:text-neutral-content`,
+    neutral:
+        `btn-neutral m-0
+        hover:bg-neutral-hover hover:text-neutral-content`,
 } as const
 
 export default function CmsLink({
@@ -49,7 +51,7 @@ export default function CmsLink({
                     ? <span aria-disabled className={`
                         ${buttonClass}
                         opacity-50 cursor-default
-                        hover:bg-surface-hover
+                        hover:bg-neutral-hover
                     `}>
                         {cmsLink.text}
                     </span>

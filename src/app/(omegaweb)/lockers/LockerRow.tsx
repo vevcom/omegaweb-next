@@ -46,7 +46,7 @@ export default function LockerRow({ locker }: PropTypes) {
             <span className={lockerColumnClassName.location} role="cell">{locker.building} {locker.floor}. etasje</span>
             <span className={`
                 ${lockerColumnClassName.user}
-                ${reservation ? '' : 'text-text-muted'}
+                ${reservation ? '' : 'text-base-content/80'}
             `} role="cell">
                 {reservation ? `${reservation.user.firstname} ${reservation.user.lastname}` : 'Ledig'}
             </span>

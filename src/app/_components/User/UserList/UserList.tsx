@@ -77,7 +77,7 @@ function getOrdereOptions(group: ExpandedGroup): { value: number | 'NULL', label
 
 const sortableClassName = `
     p-0! select-none whitespace-nowrap
-    hover:text-accent-blue
+    hover:underline
 `
 const sortButtonClassName = `
     w-full h-auto block py-3 px-4 [font:inherit] text-inherit [text-align:inherit] border-none bg-transparent
@@ -184,11 +184,11 @@ export default function UserList({
     }
 
     const sortIcon = (field: SortField) => {
-        if (currentSort?.field !== field) return <FontAwesomeIcon icon={faSort} className="ml-1 text-[0.85em]" />
+        if (currentSort?.field !== field) return <FontAwesomeIcon icon={faSort} className="ml-1 [&_path]:text-inherit text-primary-content text-[0.85em]" />
         return (
             <FontAwesomeIcon
                 icon={currentSort.direction === 'asc' ? faSortUp : faSortDown}
-                className="ml-1 text-[0.85em]"
+                className="[&_path]:text-inherit text-primary-content ml-1 text-[0.85em]"
             />
         )
     }

@@ -7,7 +7,7 @@ const { page, generateMetadata } = serverPage({
     render: () => (
         <div className="py-20">
             <h1 className="mb-4 text-xxl text-careers-navy">Om Contactor</h1>
-            <p className="text-l text-text-muted">Her kommer det mer om oss.</p>
+            <p className="text-l text-base-content/80">Her kommer det mer om oss.</p>
         </div>
     ),
 })

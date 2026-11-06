@@ -29,7 +29,7 @@ const statusClass: Record<FreezePeriodStatus['style'], string> = {
     `,
     finished: `
         ${statusBadge}
-        bg-surface-subtle text-text-muted
+        bg-surface-subtle text-base-content/80
     `,
 }
 

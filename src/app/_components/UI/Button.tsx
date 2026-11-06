@@ -8,10 +8,10 @@ export type PropTypes = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const colorClassNames = {
-    primary: 'btn',
-    secondary: 'secondary-btn',
-    green: 'btn [--btn-color:var(--accent-green)]',
-    red: 'btn [--btn-color:var(--accent-red)]',
+    primary: 'btn-primary',
+    secondary: 'btn-neutral',
+    green: 'btn-success',
+    red: 'btn-error',
 } as const
 
 export default function Button({ color = 'primary', children, className, ...props }: PropTypes) {
@@ -20,7 +20,7 @@ export default function Button({ color = 'primary', children, className, ...prop
             className={`
                 ${colorClassNames[color]}
                 ${className ?? ''}
-                disabled:bg-surface-hover disabled:text-text-muted
+                disabled:bg-surface-hover disabled:text-base-content/80
             `}
             {...props}
         >

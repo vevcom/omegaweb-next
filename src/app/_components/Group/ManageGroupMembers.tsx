@@ -134,7 +134,7 @@ export default function ManageGroupMembers({
                     }))}
                 />
                 {selectedOrder !== groupOrder && (
-                    <p className="text-text-muted text-s">
+                    <p className="text-base-content/80 text-s">
                         Orden {selectedOrder} er historikk - gruppen selv står i orden {groupOrder}.
                         Medlemmer som legges til her blir lagt til som inaktive medlemskap.
                     </p>
@@ -145,7 +145,7 @@ export default function ManageGroupMembers({
                 <PopUp
                     key={selectedOrder}
                     popUpKey={addPopUpKey}
-                    showButtonClass="secondary-btn self-start py-2 px-4 text-s"
+                    showButtonClass="btn-neutral self-start py-2 px-4 text-s"
                     showButtonContent={<>Legg til medlemmer</>}
                 >
                     <UserPagingProvider
@@ -166,11 +166,11 @@ export default function ManageGroupMembers({
             )}
 
             {members.length === 0 ? (
-                <p className="text-text-muted italic">Gruppen har ingen medlemskap i orden {selectedOrder}.</p>
+                <p className="text-base-content/80 italic">Gruppen har ingen medlemskap i orden {selectedOrder}.</p>
             ) : (
                 <div className="flex flex-col gap-1">
                     <div className="
-                        grid grid-cols-(--member-columns) items-center gap-4 px-4 text-text-muted text-s
+                        grid grid-cols-(--member-columns) items-center gap-4 px-4 text-base-content/80 text-s
                         max-mobile:hidden
                     " style={columnStyle}>
                         <span>Navn</span>
@@ -193,7 +193,7 @@ export default function ManageGroupMembers({
                             style={columnStyle}
                             key={`${selectedOrder}-${member.userId}`}
                         >
-                            <span className="min-w-0 text-text truncate">{member.name}</span>
+                            <span className="min-w-0 text-base-content truncate">{member.name}</span>
                             {setMemberTitleAction ? (
                                 <Form
                                     className="
@@ -224,14 +224,14 @@ export default function ManageGroupMembers({
                                     />
                                 </Form>
                             ) : (
-                                <span className="text-text-muted text-s">{member.title}</span>
+                                <span className="text-base-content/80 text-s">{member.title}</span>
                             )}
                             <span className="flex gap-1">
                                 {member.admin && <span className="
                                     px-2 rounded-round border text-s whitespace-nowrap border-accent-blue text-accent-blue
                                 ">Administrator</span>}
                                 {!member.active && <span className="
-                                    px-2 rounded-round border text-s whitespace-nowrap border-text-muted text-text-muted
+                                    px-2 rounded-round border text-s whitespace-nowrap border-text-muted text-base-content/80
                                 ">Inaktiv</span>}
                             </span>
                             {/* The action cells are rendered even when this member cannot use them,

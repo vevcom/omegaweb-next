@@ -38,7 +38,7 @@ export default function JobAd({ jobAd, basePath }: PropTypes) {
                     <b>{deadline.day}</b>
                     <span>{months[deadline.month - 1]}</span>
                 </> : (
-                    <span className="text-s text-text-muted normal-case text-center">Løpende</span>
+                    <span className="text-s text-base-content/80 normal-case text-center">Løpende</span>
                 )}
             </div>
 
@@ -57,7 +57,7 @@ export default function JobAd({ jobAd, basePath }: PropTypes) {
             <div className="list-row-meta">
                 {jobAd.location && <span>{jobAd.location}</span>}
                 {!jobAd.active && (
-                    <span className="bg-accent-red text-text-inv px-2 rounded-inner font-medium">Inaktiv</span>
+                    <span className="bg-error text-error-content px-2 rounded-inner font-medium">Inaktiv</span>
                 )}
             </div>
         </Link>

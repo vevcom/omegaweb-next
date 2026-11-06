@@ -23,18 +23,18 @@ const entryClassName = `
     max-mobile:w-full
 `
 const entryLinkClassName = `
-    w-60 flex items-center p-4 border-none rounded-round bg-surface-base text-text text-l font-bold cursor-pointer
+    w-60 flex items-center p-4 border-none rounded-round bg-base-100 text-base-content text-l font-bold cursor-pointer
     [font-family:inherit] no-underline
-    hover:text-accent-blue
-    [&_svg]:mr-2 [&_svg]:text-text
-    hover:[&_svg]:text-accent-blue
+    hover:text-primary
+    [&_svg]:mr-2 [&_svg]:text-base-content
+    hover:[&_svg]:text-primary
     [&_path]:text-inherit
-    aria-[current=page]:text-accent-blue
-    aria-[current=page]:[&_svg]:text-accent-blue
+    aria-[current=page]:text-primary
+    aria-[current=page]:[&_svg]:text-primary
     max-mobile:[font-size:x-large] max-mobile:w-full
 `
 const burgerLineClassName = `
-    absolute left-0 w-full h-[2px] rounded-[2px] bg-text transition-[rotate,opacity,top] duration-300 ease-[ease]
+    absolute left-0 w-full h-[2px] rounded-[2px] bg-base-content transition-[rotate,opacity,top] duration-300 ease-[ease]
 `
 
 export default function Menu({ items, openBtnVariant }: PropTypes) {
@@ -126,10 +126,10 @@ export default function Menu({ items, openBtnVariant }: PropTypes) {
                     </div>
                 }
                 {openBtnVariant === 'desktop' && !isOpen &&
-                    <p className="font-medium text-text">Mer</p>
+                    <p className="font-medium text-base-content">Mer</p>
                 }
                 {openBtnVariant === 'desktop' && isOpen &&
-                    <p className="font-medium text-text">Mindre</p>
+                    <p className="font-medium text-base-content">Mindre</p>
                 }
             </button>
         </>

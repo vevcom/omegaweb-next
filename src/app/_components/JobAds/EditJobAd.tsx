@@ -34,7 +34,7 @@ const columnClassName = `
     flex flex-col gap-2 min-h-0 min-w-0
     mobile:max-h-[calc(80vh-6*var(--gap))]
 `
-const headingClassName = 'text-s font-medium uppercase tracking-[0.06em] text-text-muted shrink-0'
+const headingClassName = 'text-s font-medium uppercase tracking-[0.06em] text-base-content/80 shrink-0'
 
 export default function EditJobAd({ jobAd, basePath, children }: PropTypes) {
     const canEdit = useEditMode({
@@ -52,7 +52,7 @@ export default function EditJobAd({ jobAd, basePath, children }: PropTypes) {
     return (
         <div
             className="
-                shrink-0 max-h-[80vh] grid gap-6 p-6 my-4 mx-[min(4rem,4vw)] rounded-round bg-surface-raised text-text
+                shrink-0 max-h-[80vh] grid gap-6 p-6 my-4 mx-[min(4rem,4vw)] rounded-round bg-surface-raised text-base-content
                 mobile:grid-cols-[minmax(240px,320px)_1fr] mobile:items-start
                 max-mobile:grid-cols-1 max-mobile:mx-2 max-mobile:max-h-none
             "
@@ -97,13 +97,13 @@ export default function EditJobAd({ jobAd, basePath, children }: PropTypes) {
                             label="Aktiv"
                             name="active"
                             defaultChecked={jobAd.active}
-                            color="primary"
+                            color="secondary"
                         />
                         <Slider
                             label="Løpende"
                             name="rollingDueDate"
                             defaultChecked={jobAd.rollingDueDate}
-                            color="primary"
+                            color="secondary"
                         />
                     </Form>
                     {canDestroy && (

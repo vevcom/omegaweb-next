@@ -21,7 +21,7 @@ type PropTypes = {
 
 // A rule on each side of the text.
 const dividerClassName = `
-    flex justify-center items-center my-2 text-text-muted
+    flex justify-center items-center my-2 text-base-content/80
     before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted
     after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted
 `

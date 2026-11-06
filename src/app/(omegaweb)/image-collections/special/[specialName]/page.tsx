@@ -34,7 +34,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data }) => (
         <PageWrapper>
             {data.collection.description && (
-                <p className="block text-m text-text-muted mb-4">{data.collection.description}</p>
+                <p className="block text-m text-base-content/80 mb-4">{data.collection.description}</p>
             )}
             <main>
                 <SpecialCollectionPanel special={data.specialName} />

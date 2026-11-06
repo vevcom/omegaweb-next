@@ -32,7 +32,7 @@ export default serverLayout({
     render: ({ capabilities, children }) => (
         <div
             className={`
-                min-h-dvh flex flex-col bg-surface-base text-text font-careers-sans [--careers-max-width:1320px]
+                min-h-dvh flex flex-col bg-surface-base text-base-content font-careers-sans [--careers-max-width:1320px]
                 [--careers-page-padding:clamp(1.5rem,5vw,4rem)]
                 [&_*]:font-careers-sans
                 [&_:is(h1,h2,h3,h4)]:font-careers-heading [&_:is(h1,h2,h3,h4)]:tracking-[-0.01em]

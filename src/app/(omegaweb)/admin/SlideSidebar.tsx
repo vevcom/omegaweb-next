@@ -50,7 +50,7 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                     hidden
                     max-mobile:flex
                     items-center justify-center fixed top-4 right-6 z-6 size-[44px] border-none rounded-full
-                    bg-surface-raised text-text cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.25)]
+                    bg-surface-raised text-base-content cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.25)]
                 "
                 aria-label={open ? 'Lukk meny' : 'Åpne meny'}
                 aria-expanded={open}
@@ -60,7 +60,7 @@ export default function SlideSidebar({ navigation }: PropTypes) {
             </button>
             <aside
                 className={`
-                    flex flex-col gap-1 overflow-y-auto h-full text-text
+                    flex flex-col gap-1 overflow-y-auto h-full text-base-content
                     max-mobile:fixed max-mobile:top-[calc(56px+2*var(--gap))] max-mobile:left-0
                     max-mobile:w-[min(85vw,320px)] max-mobile:h-[calc(100dvh-120px-4*var(--gap))] max-mobile:m-0
                     max-mobile:p-2 max-mobile:bg-surface-base max-mobile:rounded-r-round max-mobile:z-5
@@ -75,12 +75,12 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                                 className="
                                     flex items-center gap-2 mt-4 mb-1 mx-0
                                     first:mt-0
-                                    py-2 px-3 border-b border-surface-hover text-l font-bold text-ink-strong
+                                    py-2 px-3 border-b border-surface-hover text-l font-bold text-base-content
                                     [&_svg]:text-[0.8em] [&_svg]:text-inherit
                                     [&_path]:text-inherit
                                 "
                             >
-                                <FontAwesomeIcon icon={group.header.icon} />
+                                <FontAwesomeIcon icon={group.header.icon} className='[&_path]:text-inherit text-base-content' />
                                 {group.header.title}
                             </h3>
                             {
@@ -90,8 +90,8 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                                         href={`/admin/${link.path}`}
                                         className={`
                                             no-underline py-3 px-4 ml-6 transition-colors duration-300
-                                            hover:text-accent-blue
-                                            ${link.path === currentPath ? 'text-accent-blue' : 'text-text'}
+                                            hover:text-primary
+                                            ${link.path === currentPath ? 'text-primary' : 'text-base-content'}
                                         `}
                                     >
                                         {link.title}

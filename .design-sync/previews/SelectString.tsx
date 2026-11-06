@@ -20,10 +20,10 @@ export const Default = () => (
 
 export const Colors = () => (
     <div style={{ display: 'grid', gap: '1rem', maxWidth: '22rem' }}>
-        <SelectString name="black" label="Black (default)" color="black" options={committees} />
+        <SelectString name="base" label="base (default)" color="base" options={committees} />
         <SelectString name="primary" label="Primary" color="primary" options={committees} />
-        <SelectString name="white" label="White" color="white" options={committees} />
-        <SelectString name="red" label="Red" color="red" options={committees} />
+        <SelectString name="secondary" label="secondary" color="secondary" options={committees} />
+        <SelectString name="error" label="Error" color="error" options={committees} />
     </div>
 )
 
@@ -48,7 +48,7 @@ export const OnRaisedSurface = () => (
         borderRadius: 'var(--rounding)',
         maxWidth: '22rem',
     }}>
-        <SelectString name="committeeRaised" label="Komité" background="raised" options={committees} />
+        <SelectString name="committeeRaised" label="Komité" background="base100" options={committees} />
     </div>
 )
 

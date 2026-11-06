@@ -80,17 +80,17 @@ export default function EventPaymentSection({
                 />
             )}
             {paymentStart > now && (
-                <p className="m-0 text-text-muted">Betaling åpner om <CountDown referenceDate={paymentStart} /></p>
+                <p className="m-0 text-base-content/80">Betaling åpner om <CountDown referenceDate={paymentStart} /></p>
             )}
             {paymentEnd < now && (
-                <p className="m-0 text-text-muted">Betalingsperioden er over. Ta kontakt med arrangørene.</p>
+                <p className="m-0 text-base-content/80">Betalingsperioden er over. Ta kontakt med arrangørene.</p>
             )}
         </>}
         {status === 'WAITING_LIST' && (
-            <p className="m-0 text-text-muted">Du står på ventelisten og betaler når du får plass.</p>
+            <p className="m-0 text-base-content/80">Du står på ventelisten og betaler når du får plass.</p>
         )}
         {status === 'NOT_REGISTERED' && (
-            <p className="m-0 text-text-muted">Betales etter påmelding.</p>
+            <p className="m-0 text-base-content/80">Betales etter påmelding.</p>
         )}
     </EventSidebarSection>
 }

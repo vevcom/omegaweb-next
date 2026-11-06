@@ -39,7 +39,7 @@ import Link from 'next/link'
 import type { PageOperationArgs, ServerPageSession } from '@/app/ServerPage'
 
 const periodDateItemClassName = `
-    bg-surface-raised rounded-inner p-3 flex items-center gap-[0.5em] text-text
+    bg-surface-raised rounded-inner p-3 flex items-center gap-[0.5em] text-base-content
     [&>b]:text-accent-blue [&>b]:font-medium [&>b]:whitespace-nowrap
 `
 
@@ -153,7 +153,7 @@ const { page, generateMetadata } = serverPage({
                                             {part.priority === null ? 'Søk nå!' : 'Endre søknad'}
                                         </span>
                                     }
-                                    showButtonClass="btn m-0!"
+                                    showButtonClass="btn-primary m-0!"
                                 >
                                     <h1>Søknad til {part.committee.name}</h1>
                                     {
@@ -209,13 +209,13 @@ const { page, generateMetadata } = serverPage({
                                         )
                                     }
                                 </PopUp>
-                            ) : <Link href="/login" className="btn m-0!">
+                            ) : <Link href="/login" className="btn-primary m-0!">
                             Logg inn for å søke
                             </Link>
                         }
                         <Link
                             href={`/committees/${part.committee.shortName}`}
-                            className="secondary-btn m-0!"
+                            className="btn-neutral m-0!"
                         >
                         Les mer
                         </Link>

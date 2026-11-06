@@ -44,7 +44,7 @@ export default function SubscriptionItem({
                     <b>{branch.name}</b>
                 </span>
                 {branch.description && (
-                    <span className="block mt-[0.2em] text-text-muted text-s">{branch.description}</span>
+                    <span className="block mt-[0.2em] text-base-content/80 text-s">{branch.description}</span>
                 )}
             </td>
 

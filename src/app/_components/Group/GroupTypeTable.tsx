@@ -60,7 +60,7 @@ export default function GroupTypeTable({
             <tbody>
                 {rows.length === 0 && (
                     <tr>
-                        <td className="text-text-muted italic" colSpan={3}>{emptyText}</td>
+                        <td className="text-base-content/80 italic" colSpan={3}>{emptyText}</td>
                     </tr>
                 )}
                 {rowsPensionedLast.map(row => {
@@ -73,7 +73,7 @@ export default function GroupTypeTable({
                     return (
                         <tr key={row.key}>
                             <th>{row.href ? <Link href={row.href}>{row.name}</Link> : row.name}</th>
-                            <td className={row.pensioned ? 'text-text-muted' : ''}>
+                            <td className={row.pensioned ? 'text-base-content/80' : ''}>
                                 <span className={orderClass}>{row.order}</span>
                                 {behind && (
                                     <span className="block mt-0.5 text-accent-red text-s">

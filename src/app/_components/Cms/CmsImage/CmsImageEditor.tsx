@@ -186,7 +186,7 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                     </div>
                     <div className="col-[1/3] row-[2/3] layer flex flex-col max-w-full p-4 rounded-round">
                         <p className="
-                            flex items-start gap-2 mb-2 max-w-[90ch] text-s text-text-muted
+                            flex items-start gap-2 mb-2 max-w-[90ch] text-s text-base-content/80
                             [&>svg]:mt-[0.25em] [&>svg]:shrink-0
                         ">
                             <FontAwesomeIcon icon={faInfo} />

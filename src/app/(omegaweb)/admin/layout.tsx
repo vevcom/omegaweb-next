@@ -17,14 +17,14 @@ export default serverLayout({
         ">
             <PageTitleSetter title={'Administrasjon'} />
             <div className="
-                bg-surface-base rounded-round self-start sticky
+                bg-base-100 text-base-content rounded-round self-start sticky
                 max-mobile:static
             ">
                 <SlideSidebar navigation={navigation} />
             </div>
             <div
                 className="
-                    bg-surface-base grow min-w-0 ml-2 p-2 rounded-round overflow-y-auto h-[calc(100dvh-56px-26px)]
+                    bg-base-100 grow min-w-0 ml-2 p-2 rounded-round overflow-y-auto h-[calc(100dvh-56px-26px)]
                     max-mobile:m-0 max-mobile:h-[calc(100dvh-120px)]
                 "
             >

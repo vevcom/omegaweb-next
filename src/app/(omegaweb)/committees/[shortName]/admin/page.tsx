@@ -69,7 +69,7 @@ const { page, generateMetadata } = serverPage({
                     [&_h2]:m-0
                 ">
                     <h2>Administrer {committee.name}</h2>
-                    <div className="flex flex-wrap gap-6 text-text-muted text-s">
+                    <div className="flex flex-wrap gap-6 text-base-content/80 text-s">
                         <span>Kortnavn: {committee.shortName}</span>
                         {expanded && <span>Orden: {expanded.order}</span>}
                         {expanded && <span>Aktive medlemmer: {expanded.members}</span>}

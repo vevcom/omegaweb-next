@@ -51,7 +51,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const iconRowClassName = `
     m-0 flex items-center gap-3 text-m
-    [&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-text-muted
+    [&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-base-content/80
 `
 
 /** The page of one event, rendered under `config.basePath` on Omega's site and on the career site. */
@@ -378,7 +378,7 @@ export const eventPage = (config: EventPagesConfig) => serverPage({
                                     canUnregisterAsAdmin: capabilities.canUnregisterAsAdmin.toJsObject(),
                                 }}
                             />
-                        </> : <p className="text-text-muted">Dette arrangementet tar ikke påmelding.</p>}
+                        </> : <p className="text-base-content/80">Dette arrangementet tar ikke påmelding.</p>}
                     </EventSidebarSection>
 
                     {event.takesPayment && (

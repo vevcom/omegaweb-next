@@ -43,7 +43,7 @@ const { page, generateMetadata } = serverPage({
                     </AddHeaderItemPopUp>
                 )}
             >
-                <p className="text-text-muted max-w-[70ch]">
+                <p className="text-base-content/80 max-w-[70ch]">
                     Øvrige grupper som ikke passer inn i de andre gruppetypene. De migreres én og én: når
                     Omega inkrementeres blir de stående i forrige orden til noen velger hvilke medlemmer
                     som skal videre.

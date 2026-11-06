@@ -29,7 +29,7 @@ export default function Textarea({ label, background = 'base', className, id, ..
             flex flex-col gap-1 mt-2 w-full
             ${className ?? ''}
         `}>
-            <label htmlFor={inputId} className="text-s text-text-muted">{ label }</label>
+            <label htmlFor={inputId} className="text-s text-base-content/80">{ label }</label>
             <textarea
                 {...props}
                 id={inputId}

@@ -17,10 +17,10 @@ export default function OmegaquoteRow({ quote }: PropTypes) {
         // Not a link, so the hover affordance list-row gives clickable listings is cancelled.
         <div className="
             list-row
-            hover:bg-surface-raised!
+            hover:bg-base-200!
         ">
-            <div className="list-row-lead text-text-muted text-l">
-                <FontAwesomeIcon icon={faQuoteLeft} />
+            <div className="list-row-lead text-base-content/80 text-l">
+                <FontAwesomeIcon icon={faQuoteLeft} className="text-primary [&_path]:text-inherit" />
             </div>
 
             <div className="list-row-main">

@@ -11,7 +11,7 @@ export default function AttendanceCountsPill() {
         ">
             <strong>{counts.attended}</strong> / {counts.total}
         </span>
-        {counts.attendedFromWaitingList > 0 && <span className="text-s text-text-muted">
+        {counts.attendedFromWaitingList > 0 && <span className="text-s text-base-content/80">
             + {counts.attendedFromWaitingList} fra venteliste
         </span>}
     </div>

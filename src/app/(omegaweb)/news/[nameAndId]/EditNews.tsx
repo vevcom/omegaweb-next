@@ -68,7 +68,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
     )
 
     return (
-        <div className="p-4 rounded-round bg-surface-base text-text flex flex-wrap gap-[1em]">
+        <div className="p-4 rounded-round bg-surface-base text-base-content flex flex-wrap gap-[1em]">
             <div className="max-w-[200px]">
                 {
                     canUpdate && (
@@ -78,13 +78,13 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                             submitText="Oppdater"
                         >
                             <TextInput
-                                color="white"
+                                color="base"
                                 defaultValue={news.articleName}
                                 label="Navn"
                                 name="name"
                             />
                             <DateInput
-                                color="white"
+                                color="base"
                                 defaultValue={news.endDateTime}
                                 label="Sluttdato"
                                 name="endDateTime"

@@ -106,7 +106,7 @@ export default function ColorInput({
             <label
                 htmlFor={inputId}
                 className="
-                    absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-text-muted
+                    absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-base-content/80
                     peer-focus:text-accent-blue
                     transition-all duration-300 pointer-events-none z-1
                 "

@@ -23,7 +23,7 @@ type PropTypes = {
 }
 
 const stepButtonClassName = 'grid place-items-center size-9 rounded-full border-none cursor-pointer '
-    + 'bg-surface-hover text-text transition-colors duration-200 hover:bg-accent-blue hover:text-text-inv '
+    + 'bg-surface-hover text-base-content transition-colors duration-200 hover:bg-accent-blue hover:text-base-content/30 '
     + '[&_svg]:text-inherit [&_path]:text-inherit'
 
 /** One product on the shop's shelf: its photo, what it costs, and how many are in the cart. */
@@ -67,7 +67,7 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                 {quantity > 0 && (
                     <span className="
                         absolute top-2 right-2 z-1 grid place-items-center min-w-8 h-8 px-2 rounded-full bg-accent-blue
-                        text-text-inv text-s font-bold
+                        text-base-content/30 text-s font-bold
                     ">
                         {quantity}
                     </span>
@@ -83,7 +83,7 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                             showButtonContent={<FontAwesomeIcon icon={faPencil} />}
                             showButtonClass="
                                 shrink-0 grid place-items-center size-8 p-2 rounded-full border-none bg-transparent
-                                cursor-pointer text-text-muted
+                                cursor-pointer text-base-content/80
                                 hover:text-accent-blue
                                 [&_svg]:text-inherit
                                 [&_path]:text-inherit
@@ -98,7 +98,7 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                     )}
                 </div>
                 {product.description && (
-                    <p className="m-0 text-s text-text-muted line-clamp-2">{product.description}</p>
+                    <p className="m-0 text-s text-base-content/80 line-clamp-2">{product.description}</p>
                 )}
 
                 <div className="mt-auto flex flex-col gap-3 pt-3">
@@ -108,7 +108,7 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                             <button
                                 type="button"
                                 className="
-                                    btn m-0! flex w-full items-center justify-center gap-2 h-9 py-0! px-4! rounded-full!
+                                    btn-primary m-0! flex w-full items-center justify-center gap-2 h-9 py-0! px-4! rounded-full!
                                     text-s!
                                     [&_svg]:text-inherit
                                     [&_path]:text-inherit

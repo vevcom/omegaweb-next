@@ -23,7 +23,7 @@ export default function CompanyListFilter({ currentName }: PropTypes) {
     }, 300)
     return (
         <span className="flex flex-row flex-nowrap items-center gap-3 w-full max-w-[360px]">
-            <FontAwesomeIcon className="shrink-0 text-text-muted" icon={faSearch} />
+            <FontAwesomeIcon className="shrink-0 text-base-content/80" icon={faSearch} />
             <TextInput
                 name="name"
                 onChange={(e) => setNameFilter(e.target.value)}

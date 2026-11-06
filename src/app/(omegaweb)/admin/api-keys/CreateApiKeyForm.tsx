@@ -80,7 +80,7 @@ export default function CreateApiKeyForm({ popUpKey }: PropTypes) {
                         <button
                             className="
                                 bg-transparent border-none
-                                [&_svg]:text-text-muted [&_svg]:w-[1.5em]! [&_svg]:h-[1.5em]!
+                                [&_svg]:text-base-content/80 [&_svg]:w-[1.5em]! [&_svg]:h-[1.5em]!
                             "
                             onClick={copyAPIKeyToClipboard}
                         >

@@ -166,12 +166,12 @@ export default function MailFlow({
                 ${focused ? 'outline-2 outline-accent-green font-bold' : ''}
             `}
         >
-            <FontAwesomeIcon icon={typeIcons[chip.type]} className="text-text-muted flex-none" />
+            <FontAwesomeIcon icon={typeIcons[chip.type]} className="text-base-content/80 flex-none" />
             {focused
-                ? <span className="text-text no-underline wrap-anywhere">{chip.label}</span>
+                ? <span className="text-base-content no-underline wrap-anywhere">{chip.label}</span>
                 : <Link
                     className="
-                        text-text no-underline wrap-anywhere
+                        text-base-content no-underline wrap-anywhere
                         hover:underline
                     "
                     href={`/admin/mail/${chip.type}/${chip.id}`}
@@ -179,13 +179,13 @@ export default function MailFlow({
                     {chip.label}
                 </Link>
             }
-            {chip.via && chip.via.length > 0 && <span className="text-[0.8rem] text-text-muted italic">
+            {chip.via && chip.via.length > 0 && <span className="text-[0.8rem] text-base-content/80 italic">
                 via {chip.via.map(viaItem => viaItem.label).join(', ')}
             </span>}
             {removable && <button
                 type="button"
                 className="
-                    ml-auto bg-transparent border-none cursor-pointer text-text-muted p-1 leading-none flex-none
+                    ml-auto bg-transparent border-none cursor-pointer text-base-content/80 p-1 leading-none flex-none
                     hover:text-accent-red
                 "
                 aria-label={`Fjern ${chip.label}`}
@@ -200,12 +200,12 @@ export default function MailFlow({
         const chipCount = sections.reduce((count, section) => count + section.chips.length, 0)
 
         return <section className="flex-[1_1_0] min-w-0">
-            <h3 className="mt-0 mx-0 mb-2 text-[0.85rem] uppercase tracking-[0.06em] text-text-muted">{title}</h3>
-            {chipCount === 0 && <p className="text-text-muted italic m-0">Ingen</p>}
+            <h3 className="mt-0 mx-0 mb-2 text-[0.85rem] uppercase tracking-[0.06em] text-base-content/80">{title}</h3>
+            {chipCount === 0 && <p className="text-base-content/80 italic m-0">Ingen</p>}
             {sections.filter(section => section.chips.length > 0).map(section => (
                 <div key={section.label ?? title} className="[&:not(:first-of-type)]:mt-3">
                     {section.label && <h4
-                        className="mt-0 mx-0 mb-1 text-[0.75rem] font-normal uppercase tracking-[0.06em] text-text-muted"
+                        className="mt-0 mx-0 mb-1 text-[0.75rem] font-normal uppercase tracking-[0.06em] text-base-content/80"
                     >
                         {section.label}
                     </h4>}
@@ -226,7 +226,7 @@ export default function MailFlow({
             <FontAwesomeIcon
                 icon={faArrowRightLong}
                 className="
-                    self-center text-text-muted text-[1.5rem] flex-none
+                    self-center text-base-content/80 text-[1.5rem] flex-none
                     max-mobile:rotate-90
                 "
             />
@@ -234,7 +234,7 @@ export default function MailFlow({
             <FontAwesomeIcon
                 icon={faArrowRightLong}
                 className="
-                    self-center text-text-muted text-[1.5rem] flex-none
+                    self-center text-base-content/80 text-[1.5rem] flex-none
                     max-mobile:rotate-90
                 "
             />

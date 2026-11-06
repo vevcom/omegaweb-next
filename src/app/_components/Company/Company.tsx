@@ -94,7 +94,7 @@ export default function Company({
             <div className={`
                 mx-2 pb-2 relative flex-1
                 [&_h2]:text-l [&_h2]:truncate
-                [&_p]:text-text-muted
+                [&_p]:text-base-content/80
                 ${showSettings ? 'pr-10' : ''}
             `}>
                 <h2>{company.name}</h2>
@@ -102,7 +102,7 @@ export default function Company({
                 {
                     showSettings ? (
                         <SettingsHeaderItemPopUp
-                            showButtonClass="text-text absolute top-0 right-0 z-2"
+                            showButtonClass="text-base-content absolute top-0 right-0 z-2"
                             popUpKey={`Edit ${company.id}`}
                         >
                             {

@@ -23,7 +23,7 @@ export default function HeaderItemLink({ href, label, icon, iconOnlyScale }: Pro
                 aria-label={label}
                 title={label}
                 className="
-                    grid place-items-center rounded-inner bg-surface-hover text-text no-underline
+                    grid place-items-center rounded-inner bg-surface-hover text-base-content no-underline
                     transition-[background-color,color] duration-300
                     hover:bg-surface-subtle hover:text-ink-strong hover:no-underline
                 "

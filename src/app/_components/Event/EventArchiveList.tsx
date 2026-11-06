@@ -11,7 +11,7 @@ export default function EventArchiveList({ basePath }: PropTypes) {
     return (
         <main className="row-list">
             <EndlessScroll
-                loadingInfoClassName="text-text-muted"
+                loadingInfoClassName="text-base-content/80"
                 pagingContext={EventArchivePagingContext}
                 renderer={event =>
                     <EventCard key={event.id} event={event} basePath={basePath} />

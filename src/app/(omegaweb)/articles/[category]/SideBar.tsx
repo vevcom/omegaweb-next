@@ -54,7 +54,7 @@ export default function SideBar({ category, children }: PropTypes) {
                 <div ref={measure} className="mobile:h-[calc(100%-2em)]">
                     <div ref={ref} className="
                         max-mobile:hidden
-                        opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out] overflow-auto text-text
+                        opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out] overflow-auto text-base-content
                         m-[1em_0em_1em_1em] p-[calc(3*var(--rounding))]
                         [&_h2]:text-l
                     ">
@@ -90,9 +90,9 @@ export default function SideBar({ category, children }: PropTypes) {
                 >
                     <FontAwesomeIcon
                         icon={faChevronUp}
-                        className="size-[40px]! m-[5px] text-text transition-transform duration-[0.35s]"
+                        className="size-[40px]! m-[5px] text-base-content transition-transform duration-[0.35s]"
                     />
-                    <h1 className="my-0 mx-2 text-text">{category.name.toUpperCase()}</h1>
+                    <h1 className="my-0 mx-2 text-base-content">{category.name.toUpperCase()}</h1>
                 </button>
                 <MainListContent category={category} />
             </span>
@@ -121,7 +121,7 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
         <ul className="
             list-none p-0
             [&_li]:my-[1em] [&_li]:flex [&_li]:justify-between
-            [&_li_a]:text-text [&_li_a]:no-underline
+            [&_li_a]:text-base-content [&_li_a]:no-underline
             [&_li_a:hover]:underline
         ">
             {

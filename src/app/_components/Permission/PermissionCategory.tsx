@@ -21,7 +21,7 @@ export default function PermissionCategory({ category, renderBesidePermission }:
 
     return (
         <div className="[&>h2]:text-xl">
-            <h2>{category.toUpperCase()}</h2>
+            <h2 className='text-base-content'>{category.toUpperCase()}</h2>
             <div className="flex flex-col gap-4">
                 {
                     permissionsInCategory.map(permission => (

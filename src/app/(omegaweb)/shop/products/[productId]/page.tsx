@@ -42,7 +42,7 @@ const { page, generateMetadata } = serverPage({
                     />
                 </div>
                 <div className="min-w-[260px] flex-1">
-                    {product.description && <p className="mt-0 text-m text-text-muted">{product.description}</p>}
+                    {product.description && <p className="mt-0 text-m text-base-content/80">{product.description}</p>}
                     {capabilities.canUpdateProduct.authorized && <ProductForm product={product} />}
                 </div>
             </div>

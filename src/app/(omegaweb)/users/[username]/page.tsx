@@ -126,7 +126,7 @@ const { page, generateMetadata } = serverPage({
                                         width={40}
                                     /></h1>
                                 </div>
-                                <p className="text-text font-secondary font-light italic">
+                                <p className="text-base-content font-secondary font-light italic">
                                     { memberhipTitle() }
                                 </p>
 
@@ -199,7 +199,7 @@ const { page, generateMetadata } = serverPage({
                                     <section className={groupSectionClassName}>
                                         <h2>Studier:</h2>
                                         {activeStudyProgrammes.map(({ studyProgramme }) =>
-                                            <p key={studyProgramme.id} className="text-text">
+                                            <p key={studyProgramme.id} className="text-base-content">
                                                 {studyProgramme.name} {`(${studyProgramme.code})`}
                                             </p>
                                         )}
@@ -223,7 +223,7 @@ const { page, generateMetadata } = serverPage({
                             <div
                                 className="
                                     max-mobile:my-[1em] max-mobile:mx-[2em]
-                                    [&_p]:font-light! [&_p]:mb-[0.5em]! [&_p]:text-text!
+                                    [&_p]:font-light! [&_p]:mb-[0.5em]! [&_p]:text-base-content!
                                 "
                             >
 

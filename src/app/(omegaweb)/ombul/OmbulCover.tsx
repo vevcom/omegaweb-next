@@ -20,7 +20,7 @@ const coverImgClassName = `
 `
 
 const ombulCoverClassName = `
-    flex flex-col items-center relative text-text no-underline
+    flex flex-col items-center relative text-base-content no-underline
     [&>*]:text-center [&>*]:w-full
     [&>p]:font-light
     [&>h2]:after:content-[''] [&>h2]:after:block [&>h2]:after:w-full [&>h2]:after:h-[2px] [&>h2]:after:bg-surface-subtle

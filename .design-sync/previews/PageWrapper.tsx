@@ -15,7 +15,7 @@ export const WithHeaderItem = () => (
             <AddHeaderItemPopUp popUpKey="pw-add-committee">
                 <div style={{ display: 'grid', gap: '1rem', minWidth: '16rem' }}>
                     <h2 style={{ margin: 0 }}>Ny komité</h2>
-                    <TextInput name="committeeName" label="Navn" background="raised" />
+                    <TextInput name="committeeName" label="Navn" background="base200" />
                     <Button color="primary">Opprett</Button>
                 </div>
             </AddHeaderItemPopUp>

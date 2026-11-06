@@ -35,7 +35,7 @@ const { page, generateMetadata } = serverPage({
                 [&>li]:backdrop-blur-[30px] [&>li]:bg-surface-raised [&>li]:p-2 [&>li]:rounded-[0.8em] [&>li]:flex
                 [&>li]:flex-col [&>li]:gap-[0.5em]
                 [&_a]:font-bold [&_a]:text-accent-blue [&_a]:no-underline
-                [&_time]:text-text [&_time]:text-s
+                [&_time]:text-base-content [&_time]:text-s
             ">
                 {data.periods.map((period) => (
                     <li key={period.name}>

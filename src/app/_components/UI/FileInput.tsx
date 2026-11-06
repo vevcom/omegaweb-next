@@ -14,7 +14,7 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
 const valueColorClassNames = {
     black: 'text-ink-strong',
     primary: 'text-accent-blue',
-    secondary: 'text-text',
+    secondary: 'text-base-content',
     red: 'text-accent-red',
     white: 'text-white',
 } as const
@@ -116,13 +116,13 @@ export default function FileInput({
                 </span>
                 <FontAwesomeIcon
                     icon={faPaperclip}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted transition-colors duration-300"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/80 transition-colors duration-300"
                 />
             </label>
             <label
                 htmlFor={inputId}
                 className={`
-                    absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1
+                    absolute left-4 block text-base-content/80 transition-all duration-300 pointer-events-none z-1
                     ${value ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-6 text-m'}
                     peer-focus:top-2 peer-focus:text-[length:calc(var(--text-s)*0.85)]
                     ${focus.label}

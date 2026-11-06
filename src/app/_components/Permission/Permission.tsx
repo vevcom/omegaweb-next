@@ -21,7 +21,7 @@ export default function Permission({ permission, children, displayCategory = tru
 
     return (
         <div className={`
-            bg-surface-raised flex round items-center gap-[1em]
+            bg-base-200 flex round items-center gap-[1em]
             ${className}
         `}>
             {children}
@@ -31,10 +31,10 @@ export default function Permission({ permission, children, displayCategory = tru
                     [&>h3]:text-l
                     [&>i]:text-s [&>i]:wrap-anywhere
                 ">
-                    <h3>{permissionInfo.name}</h3> <i>({permission})</i>
+                    <h3 className='text-base-content'>{permissionInfo.name}</h3> <i className='text-base-content'>({permission})</i>
                 </div>
                 <div className="flex items-center gap-[.3em]">
-                    <p>{permissionInfo.description}</p>
+                    <p className='text-base-content'>{permissionInfo.description}</p>
                     {displayCategory ? <><p> - </p><i>{permissionInfo.category}</i></> : <></>}
                 </div>
             </div>

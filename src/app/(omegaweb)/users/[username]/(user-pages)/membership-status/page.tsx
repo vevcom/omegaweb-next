@@ -68,7 +68,7 @@ const { page, generateMetadata } = serverPage({
                                 flex items-center justify-between gap-2 p-(--card-padding) border-2 rounded-round
                                 ${level === currentLevel
                             ? 'border-accent-blue bg-surface-hover text-ink-strong font-bold'
-                            : 'border-transparent bg-surface-raised text-text-muted'}
+                            : 'border-transparent bg-surface-raised text-base-content/80'}
                             `}
                             >
                                 <span>
@@ -112,7 +112,7 @@ const { page, generateMetadata } = serverPage({
                                                 max-mobile:basis-full
                                                 ${sittedTrials.has(admission)
                                             ? 'border-solid border-accent-green text-ink-strong'
-                                            : 'border-dashed border-[#adb5bd] text-text-muted'}
+                                            : 'border-dashed border-[#adb5bd] text-base-content/80'}
                                             `}
                                         >
                                             <span>{admissionDisplayNames[admission]}</span>

@@ -19,7 +19,7 @@ export default function ServiceErrorView({ error }: { error: Smorekopp }) {
             <div className="
                 flex justify-center items-center
                 max-mobile:min-h-[50vh]
-                [&_h3]:text-text
+                [&_h3]:text-base-content
             ">
                 <div className="border-r-2 border-solid border-surface-base pr-[20px] mr-[20px]">
                     <StandardImageServer
@@ -30,7 +30,7 @@ export default function ServiceErrorView({ error }: { error: Smorekopp }) {
                 </div>
                 <div>
                     <h3>{message}</h3>
-                    <p className="text-text opacity-60 text-s">{error.httpCode} - {error.errorCode}</p>
+                    <p className="text-base-content opacity-60 text-s">{error.httpCode} - {error.errorCode}</p>
                 </div>
             </div>
         </div>

@@ -40,7 +40,7 @@ type PropTypes = {
 }
 
 const navButtonClassName = `
-    size-10 grid place-items-center rounded-full border-none cursor-pointer bg-surface-raised text-text
+    size-10 grid place-items-center rounded-full border-none cursor-pointer bg-surface-raised text-base-content
     transition-[background-color] duration-300
     hover:bg-surface-hover
     [&>svg]:w-[45%]! [&>svg]:h-[45%]!
@@ -89,7 +89,7 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                             {image.name}
                         </h2>
                         <dl className="
-                            mt-2 flex flex-wrap gap-x-4 gap-y-0 text-s text-text-muted
+                            mt-2 flex flex-wrap gap-x-4 gap-y-0 text-s text-base-content/80
                             [&>div]:flex [&>div]:gap-[0.4em] [&>div]:min-w-0
                             [&_dt]:text-ink-hover
                             [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap

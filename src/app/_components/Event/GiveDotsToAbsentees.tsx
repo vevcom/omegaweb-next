@@ -38,7 +38,7 @@ export default function GiveDotsToAbsentees({ eventId, accuserId, notAttended }:
         <PopUp
             popUpKey={popUpKey}
             showButtonContent="Gi prikker til de som ikke møtte opp"
-            showButtonClass="btn"
+            showButtonClass="pirmary-btn"
         >
             <div className="min-w-[min(28rem,85vw)]">
                 <Form
@@ -77,7 +77,7 @@ export default function GiveDotsToAbsentees({ eventId, accuserId, notAttended }:
                             </li>
                         ))}
                     </ul>
-                    {receiving.length === 0 && <p className="text-text-muted">Ingen igjen å gi prikker til.</p>}
+                    {receiving.length === 0 && <p className="text-base-content/80">Ingen igjen å gi prikker til.</p>}
                 </Form>
             </div>
         </PopUp>

@@ -26,7 +26,7 @@ export default function UpcomingCompanyPresentations({ eventsHref }: PropTypes) 
                 <span className="text-careers-accent-dark text-s font-semibold tracking-[0.15em] uppercase">
                     Kommende bedriftspresentasjoner
                 </span>
-                <span className="flex-1 text-text-muted text-m">Her kommer de neste bedriftspresentasjonene.</span>
+                <span className="flex-1 text-base-content/80 text-m">Her kommer de neste bedriftspresentasjonene.</span>
                 <Link href={eventsHref} className="text-careers-navy text-m font-semibold">
                     Alle bedriftspresentasjoner →
                 </Link>

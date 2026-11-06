@@ -21,7 +21,7 @@ export default function PageWrapper({
     const wrapperClass = `
         min-h-full size-full self-start
         [&_h1]:font-secondary [&_h1]:text-xxl [&_h1]:capitalize
-        ${transparent ? 'bg-transparent' : 'bg-surface-base'}
+        ${transparent ? 'bg-transparent' : 'bg-base-100'}
         ${className}
     `
     const scrollerClass = `

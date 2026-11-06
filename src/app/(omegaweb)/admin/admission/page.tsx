@@ -20,8 +20,8 @@ const { page, generateMetadata } = serverPage({
         <PageWrapper>
             <div className="flex flex-col gap-4">
                 <section className="[&_h2]:m-0">
-                    <h2>Registrer opptaksprøve</h2>
-                    <p className="mx-0 my-2 text-text-muted">
+                    <h2 className='text-base-content'>Registrer opptaksprøve</h2>
+                    <p className="mx-0 my-2 text-base-content/80">
                         Velg prøven som skal registreres, og les av Omega-ID eller søk opp soellen.
                     </p>
                     <div className="flex flex-row flex-wrap gap-2">
@@ -32,22 +32,22 @@ const { page, generateMetadata } = serverPage({
                                 className="
                                     flex items-center gap-2 flex-[1_1_14rem]
                                     max-mobile:basis-full
-                                    p-(--card-padding) rounded-round bg-surface-raised text-text
+                                    p-(--card-padding) rounded-round bg-base-200 text-base-content
                                     transition-[background-color] duration-300
-                                    hover:bg-surface-hover hover:text-ink-strong
+                                    hover:bg-base-300 hover:text-ink-strong
                                 "
                             >
-                                <FontAwesomeIcon icon={faScroll} className="text-accent-blue text-xl" />
-                                <span className="flex-1 font-light">{admissionDisplayNames[admission]}</span>
-                                <FontAwesomeIcon icon={faChevronRight} className="text-text-muted" />
+                                <FontAwesomeIcon icon={faScroll} className="text-base-content text-xl" />
+                                <span className="flex-1 text-base-content font-light">{admissionDisplayNames[admission]}</span>
+                                <FontAwesomeIcon icon={faChevronRight} className="text-base-content/80" />
                             </Link>
                         ))}
                     </div>
                 </section>
 
                 <section className="[&_h2]:m-0">
-                    <h2>Medlemsstatus</h2>
-                    <p className="mx-0 my-2 text-text-muted">
+                    <h2 className='text-base-content'>Medlemsstatus</h2>
+                    <p className="mx-0 my-2 text-base-content/80">
                         Søk opp en bruker for å se hvilke prøver de har tatt, og for å endre medlemskapet deres.
                     </p>
                     {capabilities.canSearchUsers.authorized ? (
@@ -59,7 +59,7 @@ const { page, generateMetadata } = serverPage({
                             <MembershipStatusUserSearch />
                         </UserPagingProvider>
                     ) : (
-                        <p className="mx-0 my-2 text-text-muted">
+                        <p className="mx-0 my-2 text-base-content/80">
                             Du mangler tilgangen «Les bruker», og kan derfor ikke søke opp brukere her.
                         </p>
                     )}

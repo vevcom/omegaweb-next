@@ -50,7 +50,7 @@ export default function Terms() {
             ">
                 <header>
                     <h1 className="mb-2 normal-case!">Vilkår og personvern</h1>
-                    <p className="text-text-muted">Sist oppdatert {LAST_UPDATED}</p>
+                    <p className="text-base-content/80">Sist oppdatert {LAST_UPDATED}</p>
                 </header>
 
                 <section className={boxClassName}>

@@ -28,14 +28,14 @@ const { page, generateMetadata } = serverPage({
         )
 
         return (
-            <div className="w-full h-full text-text self-start">
+            <div className="w-full h-full text-base-content self-start">
                 {
                     committees.length ? (
                         <>
                             {committeeCards(active)}
                             {pensioned.length > 0 && (
                                 <>
-                                    <h2 className="mt-8 text-text-muted">Pensjonerte</h2>
+                                    <h2 className="mt-8 text-base-content/80">Pensjonerte</h2>
                                     {committeeCards(pensioned)}
                                 </>
                             )}

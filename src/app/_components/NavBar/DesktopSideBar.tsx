@@ -27,7 +27,7 @@ export default function DesktopSideBar({ navItems }: PropTypes) {
     return (
         <aside
             className="
-                group/sidebar h-full w-full flex flex-col items-stretch gap-2 min-h-0 p-2 rounded-round bg-surface-base
+                group/sidebar h-full w-full flex flex-col items-stretch gap-2 min-h-0 p-2 rounded-round bg-base-100
             "
             data-expanded={expanded}
         >
@@ -59,9 +59,9 @@ export default function DesktopSideBar({ navItems }: PropTypes) {
                 type="button"
                 className="
                     group w-full h-10 flex items-center justify-center shrink-0 border-none bg-transparent cursor-pointer
-                    [&_svg]:text-text [&_svg]:transition-colors [&_svg]:duration-300
+                    [&_svg]:text-base-content [&_svg]:transition-colors [&_svg]:duration-300
                     [&_path]:text-inherit
-                    hover:[&_svg]:text-accent-blue
+                    hover:[&_svg]:text-primary
                 "
                 onClick={() => setExpanded(prev => !prev)}
                 aria-label={expanded ? 'Skjul navigasjonen' : 'Utvid navigasjonen'}

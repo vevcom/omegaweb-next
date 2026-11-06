@@ -44,7 +44,7 @@ export default function AttendanceScanner({
             }}
         />
 
-        <p className="m-auto max-w-[460px] text-center text-text-muted">
+        <p className="m-auto max-w-[460px] text-center text-base-content/80">
             Skann Omega-ID-en til de som kommer. Gjester uten Omega-ID, og rettelser, tar du i
             listen over påmeldte.
         </p>

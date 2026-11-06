@@ -16,7 +16,7 @@ export default function NavBarTitle() {
     return (
         <div
             className="
-                ml-2 min-w-0 max-w-[40ch] font-title text-xxl font-medium text-text whitespace-nowrap overflow-hidden
+                ml-2 min-w-0 max-w-[40ch] font-title text-xxl font-medium text-base-content whitespace-nowrap overflow-hidden
                 text-ellipsis
             "
             aria-hidden={false}

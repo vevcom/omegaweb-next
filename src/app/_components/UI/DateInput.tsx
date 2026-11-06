@@ -10,11 +10,11 @@ type PropTypes = Omit<PropTypesInput, 'type' | 'defaultValue'> & {
 }
 
 const colorClassNames = {
-    white: 'text-text-inv',
+    white: 'text-base-content/30',
     primary: 'text-accent-blue',
     secondary: 'text-surface-base',
     red: 'text-accent-red',
-    black: 'text-text',
+    black: 'text-base-content',
 } as const
 
 const backgroundClassNames = {
@@ -64,7 +64,7 @@ export default function DateInput({
                 `
             }
         >
-            <label htmlFor={inputId} className="text-s text-text-muted">{label}</label>
+            <label htmlFor={inputId} className="text-s text-base-content/80">{label}</label>
             <input
                 onChange={setUtc}
                 defaultValue={defaultValueTransformedLocal}

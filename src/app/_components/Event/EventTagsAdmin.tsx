@@ -68,7 +68,7 @@ export default function EventTagsAdmin({
                                 className={
                                     selectedTags.map(tagItem => tagItem.name).includes(tag.name) ? `
                                         relative
-                                        hover:after:content-['✖'] hover:after:text-[length:4em] hover:after:text-text
+                                        hover:after:content-['✖'] hover:after:text-[length:4em] hover:after:text-base-content
                                         hover:after:absolute hover:after:left-1/2 hover:after:top-1/2
                                         hover:after:-translate-x-1/2 hover:after:-translate-y-1/2
                                     ` : ''

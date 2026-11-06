@@ -13,10 +13,10 @@ import ColorInput from '@/components/UI/ColorInput'
 import { SelectString, SelectNumber } from '@/components/UI/Select'
 import ProgressBar from '@/components/ProgressBar/ProgressBar'
 
-const textInputColors = ['primary', 'secondary', 'red', 'black', 'white'] as const
+const textInputColors = ['base', 'secondary', 'error'] as const
 const sliderColors = ['primary', 'secondary', 'red', 'black', 'white'] as const
 const fileInputColors = ['primary', 'secondary', 'red', 'black', 'white'] as const
-const selectColors = ['primary', 'secondary', 'red', 'black', 'white'] as const
+const selectColors = ['primary', 'secondary', 'base', 'error'] as const
 
 const dropdownOptions = [
     { value: 'ntnu', label: 'NTNU' },
@@ -33,7 +33,7 @@ export default function ComponentTest() {
     return (
         <div className="
             p-4 flex flex-col gap-4
-            [&>p]:text-text-muted
+            [&>p]:text-base-content/80
         ">
             <h1>Komponenter</h1>
             <p>Et lite utvalg av komponenter som finnes på veven.</p>
