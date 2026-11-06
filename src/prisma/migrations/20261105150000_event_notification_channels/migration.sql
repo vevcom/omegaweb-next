@@ -12,11 +12,15 @@ SET "purpose" = CASE WHEN "special" IS NULL THEN 'MANUAL' ELSE 'SPECIAL' END::"N
 ALTER TABLE "NotificationChannel" ALTER COLUMN "purpose" SET NOT NULL;
 
 -- The waiting list promotions move to the channels of the events, so that special channel goes. Its
--- subscriptions and notifications cascade with it, the method rows they point to do not.
-UPDATE "NotificationChannel"
-SET "parentId" = (SELECT "id" FROM "NotificationChannel" WHERE "special" = 'NEW_EVENT')
-WHERE "parentId" = (SELECT "id" FROM "NotificationChannel" WHERE "special" = 'EVENT_WAITINGLIST_PROMOTION')
-    AND EXISTS (SELECT 1 FROM "NotificationChannel" WHERE "special" = 'NEW_EVENT');
+-- subscriptions and notifications cascade with it, the method rows they point to do not. The channels
+-- under it move to NEW_EVENT, or to the channel above it where there is no NEW_EVENT.
+UPDATE "NotificationChannel" child
+SET "parentId" = COALESCE(
+    (SELECT "id" FROM "NotificationChannel" WHERE "special" = 'NEW_EVENT'),
+    promotion."parentId"
+)
+FROM "NotificationChannel" promotion
+WHERE promotion."special" = 'EVENT_WAITINGLIST_PROMOTION' AND child."parentId" = promotion."id";
 
 DELETE FROM "NotificationMethod"
 WHERE "id" IN (
@@ -50,9 +54,9 @@ ALTER TABLE "Event" ADD COLUMN     "generalNotificationChannelId" INTEGER,
 ADD COLUMN     "infoNotificationChannelId" INTEGER,
 ADD COLUMN     "notificationChannelId" INTEGER;
 
--- Backfill: every event gets its three channels, without the subscriptions a new channel takes over
--- from its parent. Those registered are subscribed to the info channel, as registering does, so
--- nobody on a waiting list misses their promotion.
+-- Backfill: every event gets its three channels, with no subscriptions of their own, so subscribers
+-- follow the channel above. Those registered are subscribed to the info channel, as registering does,
+-- so nobody on a waiting list misses their promotion.
 DO $$
 DECLARE
     event_row RECORD;
