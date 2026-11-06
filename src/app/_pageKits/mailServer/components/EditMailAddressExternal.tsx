@@ -1,4 +1,5 @@
 'use client'
+import { mailServerLinks } from '@/pageKits/mailServer/links'
 
 import TextInput from '@/components/UI/TextInput'
 import Form from '@/components/Form/Form'
@@ -13,20 +14,23 @@ import { mailAuth } from '@/services/mail/auth'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import { appHref } from '@/lib/sites/href'
+import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 import type { MailingList } from '@/prisma-generated-pn-types'
 import type { MailFlowObject } from '@/services/mail/types'
 
 export default function EditMailAddressExternal({
+    config,
     id,
     data,
     mailingLists,
 }: {
+    config: MailServerPagesConfig,
     id: number,
     data: MailFlowObject,
     mailingLists: MailingList[],
 }) {
     const { push, refresh } = useSiteRouter()
+    const links = mailServerLinks(config)
 
     const focusedExternal = data.mailaddressExternal.find(external => external.id === id)
     if (!focusedExternal) throw new Error('Fant ikke den eksterne adressen')
@@ -70,7 +74,7 @@ export default function EditMailAddressExternal({
 
         {canDestroyExternal && <Form
             action={configureAction(destroyMailAddressExternalAction, { params: { id: focusedExternal.id } })}
-            successCallback={() => push(appHref('/admin/mail/mailaddressExternal'))}
+            successCallback={() => push(links.part('mailaddressExternal'))}
             submitText="Slett adressen"
             submitColor="red"
             confirmation={{

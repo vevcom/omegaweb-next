@@ -10,6 +10,7 @@ import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { permissionsAuth } from '@/services/permissions/auth'
 import { apiKeyAuth } from '@/services/apiKeys/auth'
 import { sendMailAuth } from '@/services/notifications/sendMail/auth'
+import { omegaMailServerLinks } from '@/app/(omegaweb)/admin/mail/links'
 import { manualNotificationChannelAuth } from '@/services/notifications/channels/manual/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailingListAuth } from '@/services/mail/list/auth'
@@ -203,19 +204,19 @@ export const adminNavDef = defineGroupedNavDef([
             {
                 key: 'mail/mailingList',
                 name: 'E-postlister',
-                href: appHref('/admin/mail/mailingList'),
+                href: omegaMailServerLinks.part('mailingList'),
                 authorizers: () => [mailingListAuth.readMany],
             },
             {
                 key: 'mail/alias',
                 name: 'E-postalias',
-                href: appHref('/admin/mail/alias'),
+                href: omegaMailServerLinks.part('alias'),
                 authorizers: () => [mailAliasAuth.readMany],
             },
             {
                 key: 'mail/mailaddressExternal',
                 name: 'Eksterne adresser',
-                href: appHref('/admin/mail/mailaddressExternal'),
+                href: omegaMailServerLinks.part('mailaddressExternal'),
                 authorizers: () => [mailAddressExternalAuth.readMany],
             },
         ],
