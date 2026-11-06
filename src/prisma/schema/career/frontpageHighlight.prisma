@@ -1,0 +1,14 @@
+// What the career site's frontpage shows between start and end, chosen by its administrators.
+// Exactly one of the event and the job ad is set.
+model CareerFrontpageHighlight {
+  id      Int      @id @default(autoincrement())
+  event   Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int?
+  jobAd   JobAd?   @relation(fields: [jobAdId], references: [id], onDelete: Cascade)
+  jobAdId Int?
+  start   DateTime
+  end     DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
