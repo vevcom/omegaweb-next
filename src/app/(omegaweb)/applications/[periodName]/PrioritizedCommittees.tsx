@@ -3,11 +3,11 @@ import { committeeCardBodyClassName, committeeCardClassName } from './committeeC
 import { updateApplicationAction } from '@/services/applications/actions'
 import { applicationAuth } from '@/services/applications/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons'
 import { useCallback, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import type { PointerEvent, ReactNode } from 'react'
 
 export type PrioritizedCommittee = {
@@ -80,7 +80,7 @@ export default function PrioritizedCommittees({ items, userId }: PropTypes) {
     const [order, setOrder] = useState(items)
     const [prevItems, setPrevItems] = useState(items)
     const [error, setError] = useState<string | null>(null)
-    const router = useRouter()
+    const router = useSiteRouter()
     const canReorder = useAuthorizer({ authorizer: applicationAuth.update.data({ userId }) }).authorized
 
     if (prevItems !== items) {

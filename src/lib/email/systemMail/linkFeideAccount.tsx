@@ -2,7 +2,10 @@ import '@pn-server-only'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { LinkFeideAccountTemplate } from '@/lib/email/templates/linkFeideAccount'
 import { generateJWT } from '@/jwt/jwt'
-import { QueryParams } from '@/lib/queryParams/queryParams'
+import { DomainContext } from '@/lib/sites/context'
+import { authLinks } from '@/pageKits/auth/links'
+import { authPagesOf } from '@/lib/sites/authPagesOf'
+import type { Site } from '@/lib/sites/site'
 import type { FeideIdentity } from '@/services/auth/types'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
@@ -14,8 +17,13 @@ import type { UserBasicWithEmail } from '@/services/users/types'
  *
  * @param targetUser - The migrated user the Feide login should be moved to.
  * @param feideIdentity - The Feide identity to move, and the fresh user currently holding it.
+ * @param site - The site the link opens on.
  */
-export async function sendLinkFeideAccountMail(targetUser: UserBasicWithEmail, feideIdentity: FeideIdentity) {
+export async function sendLinkFeideAccountMail(
+    targetUser: UserBasicWithEmail,
+    feideIdentity: FeideIdentity,
+    site: Site,
+) {
     const jwt = generateJWT('linkfeideaccount', {
         sub: targetUser.id,
         feideUserId: feideIdentity.userId,
@@ -24,7 +32,7 @@ export async function sendLinkFeideAccountMail(targetUser: UserBasicWithEmail, f
         feideEmail: feideIdentity.email,
     }, 60 * 60)
 
-    const link = `${process.env.WEBSITE_URL}/link-ow-user?${QueryParams.token.encodeUrl(jwt)}`
+    const link = DomainContext.publicUrl(site, authLinks(authPagesOf(site)).linkOwUser(jwt))
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {

@@ -7,6 +7,7 @@ import { JWT_ISSUER } from '@/lib/jwt/constants'
 import { emailValidationExpiration } from '@/lib/email/systemMail/constants'
 import { decryptAndComparePassword, hashAndEncryptPassword } from '@/auth/passwordHash'
 import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
+import { Site } from '@/lib/sites/site'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { moveFeideAccountToUser } from '@/services/auth/feideAccounts/move'
 import { recordSentMail } from 'tests/utils'
@@ -258,7 +259,7 @@ describe('archived users', () => {
         await archive(user.id)
         const sentMail = recordSentMail()
 
-        await sendResetPasswordMail(user.email)
+        await sendResetPasswordMail(user.email, Site.OMEGAWEB)
 
         expect(sentMail).not.toHaveBeenCalled()
     })
@@ -301,7 +302,7 @@ describe('archived users', () => {
         const activeUser = await createMigratedUser('activemigrated', false)
         const sentMail = recordSentMail()
         const claim = (usernameOrEmail: string) => authOperations.sendLinkFeideAccountEmail({
-            params: { userId: feideUser.id },
+            params: { userId: feideUser.id, site: 'OMEGAWEB' },
             data: { usernameOrEmail },
             bypassAuth: true,
         })

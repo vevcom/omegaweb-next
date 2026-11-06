@@ -12,11 +12,12 @@ import {
     updateNewsAdminLevelVisibilityAction,
     updateNewsRegularLevelVisibilityAction,
 } from '@/services/news/actions'
-import { formatVevenUri } from '@/lib/urlEncoding'
 import { newsAuth } from '@/services/news/auth'
 import { configureAction } from '@/services/configureAction'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
 import type { ExpandedNewsArticle } from '@/services/news/types'
 import type { ReactNode } from 'react'
@@ -32,7 +33,7 @@ type PropTypes = {
  * pass it not: id of article to make sure not to display that article
  */
 export default function EditNews({ news, doubleLevelVisibility, children }: PropTypes) {
-    const { refresh, push } = useRouter()
+    const { refresh, push } = useSiteRouter()
 
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
     const canUpdate = useEditMode({
@@ -74,7 +75,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                     canUpdate && (
                         <Form
                             action={updateAction}
-                            navigateOnSuccess={(data) => `/news/${data ? formatVevenUri(data.articleName, data.id) : ''}`}
+                            navigateOnSuccess={data => (data ? omegaLinks.news(data) : appHref('/news'))}
                             submitText="Oppdater"
                         >
                             <TextInput
@@ -103,7 +104,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                                 )
                             }
                             successCallback={() => {
-                                push('/news')
+                                push(appHref('/news'))
                                 refresh()
                             }}
                             submitText="Slett nyhet"

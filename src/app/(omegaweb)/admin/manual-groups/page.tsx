@@ -8,7 +8,8 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import PopUp from '@/components/PopUp/PopUp'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -78,9 +79,9 @@ const { page, generateMetadata } = serverPage({
                                         </td>
                                     )}
                                     <th>
-                                        <Link href={`/admin/manual-groups/${manualGroup.id}`}>
+                                        <SiteLink href={appHref(`/admin/manual-groups/${manualGroup.id}`)}>
                                             {manualGroup.name}
-                                        </Link>
+                                        </SiteLink>
                                     </th>
                                     <td>{manualGroup.shortName}</td>
                                     <td>{orderOfGroup(manualGroup.groupId)}</td>

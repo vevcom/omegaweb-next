@@ -8,6 +8,8 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
     type?: 'text' | 'password',
     color?: 'base' | 'secondary' | 'error',
     background?: 'base100' | 'base200',
+    /** 40px tall instead of 56px, to sit in a row of header pills. */
+    compact?: boolean,
 }
 
 const colorClassNames = {
@@ -47,6 +49,7 @@ export default function TextInput({
     type = 'text',
     color = 'base',
     background = 'base100',
+    compact = false,
     className,
     id,
     ...props
@@ -65,19 +68,26 @@ export default function TextInput({
                 type={type}
                 className={`
                     peer w-full border-2 border-transparent rounded-inner outline-0 text-m
-                    leading-[calc(var(--text-m)*1.25)] pt-6 px-4 pb-2 transition-[border-color,background-color]
-                    duration-300 z-1
+                    leading-[calc(var(--text-m)*1.25)] px-4 transition-[border-color,background-color] duration-300 z-1
                     placeholder:opacity-0
+                    ${compact ? 'pt-3.5 pb-0.5' : 'pt-6 pb-2'}
                     ${colorClassNames[color].field}
                     ${backgroundClassNames[background]}
                 `}
                 placeholder={label}
             />
             <label htmlFor={inputId} className={`
-                absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-base-content/80 transition-all
-                duration-300 pointer-events-none z-2
-                peer-placeholder-shown:top-6 peer-placeholder-shown:text-m peer-placeholder-shown:cursor-text
-                peer-focus:top-2 peer-focus:text-[length:calc(var(--text-s)*0.85)]
+                absolute left-4 block text-base-content/80 transition-all duration-300 pointer-events-none z-2
+                peer-placeholder-shown:text-m peer-placeholder-shown:cursor-text
+                ${compact ? `
+                    top-0.5 text-[length:calc(var(--text-s)*0.7)]
+                    peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2
+                    peer-focus:top-0.5 peer-focus:translate-y-0 peer-focus:text-[length:calc(var(--text-s)*0.7)]
+                ` : `
+                    top-2 text-[length:calc(var(--text-s)*0.85)]
+                    peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2
+                    peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[length:calc(var(--text-s)*0.85)]
+                `}
                 ${colorClassNames[color].label}
             `}>{label}</label>
         </div>

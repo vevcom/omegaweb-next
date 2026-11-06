@@ -21,7 +21,8 @@ import {
     updateDynamicImageCollectionRegularLevelVisibilityAction,
     updateDynamicImageCollectionAdminLevelVisibilityAction,
 } from '@/services/images/dynamic/actions'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import type { ExpandedImageCollection } from '@/services/images/subservice/types'
 import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
@@ -34,7 +35,7 @@ type PropTypes = {
 
 export default function CollectionAdmin({ collection, doubleLevelVisibility, refreshImages }: PropTypes) {
     const { id: collectionId } = collection
-    const router = useRouter()
+    const router = useSiteRouter()
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
 
     const canUploadOne = useEditMode({
@@ -143,7 +144,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                             canDestroyCollection && (
                                 <Form
                                     submitText="Slett samling"
-                                    successCallback={() => router.push('/image-collections')}
+                                    successCallback={() => router.push(appHref('/image-collections'))}
                                     action={configureAction(
                                         destroyDynamicImageCollectionAction,
                                         { params: { collectionId } }

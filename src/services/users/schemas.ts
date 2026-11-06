@@ -2,6 +2,7 @@ import { Zpn } from '@/lib/fields/zpn'
 import { imageDataFieldSchemas } from '@/services/images/subservice/schemas'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Sex, RelationshipStatus, Theme } from '@/prisma-generated-pn-types'
+import { siteNameSchema } from '@/lib/sites/site'
 import { z } from 'zod'
 
 export const userDataFieldSchemas = z.object({
@@ -42,13 +43,11 @@ const groupFilter = z.object({
 
 const paramsFieldSchemas = z.object({
     id: z.number(),
+    site: siteNameSchema,
     userId: z.number(),
     username: z.string(),
     email: z.string().trim().toLowerCase(),
     studentCard: z.string(),
-    query: z.string().trim().min(1).max(100),
-    limit: z.number().int().min(1).max(25)
-        .optional(),
     partOfName: z.string().max(100),
     groups: z.array(groupFilter),
     selectedGroup: groupFilter.nullable().optional(),
@@ -170,12 +169,8 @@ export const userSchemas = {
         readUnarchivedPage: readPage,
         readArchivedPage: readPage,
 
-        search: paramsFieldSchemas.pick({
-            query: true,
-            limit: true,
-        }),
-
         connectStudentCard: id,
+        disconnectStudentCard: id,
         update: z.union([id, username]),
         updateProfile: username,
         updateBioParagraphContent: paramsFieldSchemas.pick({
@@ -183,7 +178,7 @@ export const userSchemas = {
         }),
         updatePassword: id,
         updateTheme: username,
-        registerNewEmail: id,
+        registerNewEmail: paramsFieldSchemas.pick({ id: true, site: true }),
         register: id,
         destroy: id,
         archive: id,

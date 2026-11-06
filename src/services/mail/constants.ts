@@ -1,15 +1,21 @@
-import { isBuildPhase } from '@/lib/isBuildPhase'
-import { ServiceError } from '@/services/error'
+import { DomainContext } from '@/lib/sites/context'
+import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 
 
 export const MailListTypeArray = ['alias', 'mailingList', 'group', 'user', 'mailaddressExternal'] as const
 
-export const validMailAddressDomains = isBuildPhase() ? ['build-phase-placeholder.invalid'] : (() => {
-    if (!process.env.EMAIL_DOMAIN || !process.env.EMAIL_HOSTNAME) {
-        throw new ServiceError('INVALID CONFIGURATION', 'The env vars EMAIL_DOMAIN and EMAIL_HOSTNAME must be set')
-    }
-    return [
-        process.env.EMAIL_DOMAIN,
-        process.env.EMAIL_HOSTNAME
-    ] as const
-})()
+/**
+ * The domains mail is ours on: every domain of the sites in sites.json, Omega's main domain among
+ * them. Aliases and senders are on one of them, external addresses on none. Postfix receives mail
+ * for every domain an alias is on, see containers/postfix.
+ */
+export function validMailAddressDomains(): string[] {
+    loadDomainConfig()
+    return DomainContext.hostNames()
+}
+
+/** Whether an address is on one of our mail domains, whatever its case. */
+export function isOwnMailAddress(address: string): boolean {
+    const domain = address.split('@').at(-1)?.trim().toLowerCase()
+    return domain !== undefined && validMailAddressDomains().includes(domain)
+}

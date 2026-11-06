@@ -1,6 +1,7 @@
 import Image from '@/components/Image/Image'
 import { formatVevenUri } from '@/lib/urlEncoding'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { ExpandedOmbul } from '@/services/ombul/types'
 
 export type PropTypesPreview = {
@@ -79,15 +80,15 @@ export default function OmbulCover(props: PropTypes) {
     </>
 
     return props.ombul ? (
-        <Link
+        <SiteLink
             className={`
                 ${ombulCoverClassName}
                 hover:[&_img]:scale-110
             `}
-            href={`/ombul/${props.ombul.year}/${formatVevenUri(props.ombul.name, props.ombul.id)}`}
+            href={appHref(`/ombul/${props.ombul.year}/${formatVevenUri(props.ombul.name, props.ombul.id)}`)}
         >
             { content }
-        </Link>
+        </SiteLink>
     ) : (
         <div className={ombulCoverClassName}>
             { content }

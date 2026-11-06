@@ -11,6 +11,8 @@ import {
 import PromoBar from './PromoBar'
 import EventCard from '@/app/_components/Event/EventCard'
 import JobAd from '@/components/JobAds/JobAd'
+import { omegaEventPages } from '@/app/(omegaweb)/events/config'
+import { omegaJobAdPages } from '@/app/(omegaweb)/job-ads/config'
 import NewsCard from '@/app/(omegaweb)/news/NewsCard'
 import OmbulRow from '@/app/(omegaweb)/ombul/OmbulRow'
 import OmegaquoteRow from '@/app/(omegaweb)/omegaquotes/OmegaquoteRow'
@@ -27,9 +29,14 @@ import { withPageSession } from '@/app/ServerPage'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
-import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
+import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
+import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { externalHref } from '@/lib/sites/href'
+import { appHref } from '@/lib/sites/href'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import Link from 'next/link'
+import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 
 // ohma.pagePadding(): the promo bar and the islands share the same centred content width.
 const pagePadding = 'w-full max-w-[1200px] mx-auto relative overflow-y-hidden'
@@ -96,9 +103,9 @@ export default async function LoggedInLandingPage() {
                             width={300}
                             tint="white"
                         />
-                        <Link className={scrollDownClassName} href="#firstSection">
+                        <SiteLink className={scrollDownClassName} href={externalHref('#firstSection')}>
                             <FontAwesomeIcon icon={faAngleDown} />
-                        </Link>
+                        </SiteLink>
                     </div>
                 </div>
             </div>
@@ -110,37 +117,41 @@ export default async function LoggedInLandingPage() {
             <div id="firstSection" className={loggedInPartClassName}>
                 <div className={pagePadding}>
                     <div className="flex flex-wrap items-start gap-2">
-                        <LoggedInSection title="Nyheter" link="/news" emptyMessage="Det er for tiden ingen nyheter">
+                        <LoggedInSection
+                            title="Nyheter"
+                            link={appHref('/news')}
+                            emptyMessage="Det er for tiden ingen nyheter"
+                        >
                             {news.map((newsArticle, key) => (
                                 <NewsCard key={key} news={newsArticle} />
                             ))}
                         </LoggedInSection>
                         <LoggedInSection
                             title="Hvad der hender"
-                            link="/events"
+                            link={omegaEventLinks.list()}
                             layout="rows"
                             span="half"
                             emptyMessage="Det er for tiden ingen kommende arrangementer"
                         >
                             {events.map((event, key) => (
-                                <EventCard key={key} event={event} basePath="/events" />
+                                <EventCard key={key} event={event} config={omegaEventPages} />
                             ))}
                         </LoggedInSection>
                         <LoggedInSection
                             title="Jobbannonser"
-                            link="/job-ads"
+                            link={omegaJobAdLinks.list()}
                             layout="rows"
                             span="half"
                             emptyMessage="Det er for tiden ingen jobbannonser"
                         >
                             {jobAds.map((jobAd, key) => (
-                                <JobAd key={key} jobAd={jobAd} basePath="/job-ads" />
+                                <JobAd key={key} jobAd={jobAd} config={omegaJobAdPages} />
                             ))}
                         </LoggedInSection>
                         {capabilities.canReadOmbul.authorized && (
                             <LoggedInSection
                                 title="Ombul"
-                                link="/ombul"
+                                link={appHref('/ombul')}
                                 layout="rows"
                                 span="half"
                                 emptyMessage="Det er ingen ombuler å vise enda"
@@ -153,7 +164,7 @@ export default async function LoggedInLandingPage() {
                         {capabilities.canReadOmegaquotes.authorized && (
                             <LoggedInSection
                                 title="Omegaquotes"
-                                link="/omegaquotes"
+                                link={omegaLinks.omegaquotes()}
                                 layout="rows"
                                 span="half"
                                 emptyMessage="Det er ingen sitater å vise ennå"

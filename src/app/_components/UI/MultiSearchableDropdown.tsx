@@ -14,7 +14,7 @@ import type { PropTypes as DropdownPropTypes } from './Dropdown'
 import type { SearchableDropdownOption } from './SearchableDropdown'
 import type { ChangeEvent } from 'react'
 
-export type PropTypes<ValueType> = Omit<DropdownPropTypes<ValueType>, 'options' | 'defaultValue' | 'onChange'> & {
+export type PropTypes<ValueType> = Omit<DropdownPropTypes<ValueType>, 'options' | 'defaultValue' | 'value' | 'onChange'> & {
     options: SearchableDropdownOption<ValueType>[],
     defaultValues?: ValueType[],
     onChange?: (values: ValueType[]) => void,

@@ -13,6 +13,7 @@ import {
 } from '@/services/notifications/channel/actions'
 import { findValidParents } from '@/services/notifications/channel/helpers'
 import { configureAction } from '@/services/configureAction'
+import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 import type { MailAlias } from '@/prisma-generated-pn-types'
@@ -134,7 +135,7 @@ export default function ChannelSettings({
                 submitText="Slett kanal"
                 submitColor="red"
                 action={configureAction(destroyNotificationChannelAction, { params: { id: currentChannel.id } })}
-                navigateOnSuccess="/admin/notification-channels"
+                navigateOnSuccess={appHref('/admin/notification-channels')}
                 confirmation={{
                     confirm: true,
                     text: `

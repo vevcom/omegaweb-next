@@ -7,6 +7,7 @@ import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { serverPage } from '@/app/ServerPage'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -14,7 +15,7 @@ const { page, generateMetadata } = serverPage({
         const { profile } = await getProfileForUserPage(params, 'account', session)
 
         const ledgerAccount = await ledgerAccountOperations.read({ params: { userId: profile.user.id } })
-        return { ledgerAccount, userId: profile.user.id }
+        return { ledgerAccount, userId: profile.user.id, username: profile.user.username }
     },
     capabilities: (data) => ({
         canDeposit: ledgerMovementAuth.createDeposit.data({ accounts: [data.ledgerAccount.ownership] }),
@@ -39,7 +40,7 @@ const { page, generateMetadata } = serverPage({
             <LedgerAccountPaymentMethods userId={data.userId} />
             <LedgerAccountTransactionSummary
                 accountId={data.ledgerAccount.id}
-                transactionsHref="account/transactions"
+                transactionsHref={appHref(`/users/${data.username}/account/transactions`)}
             />
         </div>
     ),

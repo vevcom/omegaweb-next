@@ -2,6 +2,9 @@ import {
     allNotificationMethodsOff,
     notificationMethodsArray,
 } from '@/services/notifications/constants'
+import { Site } from '@/lib/sites/site'
+import { DomainContext } from '@/lib/sites/context'
+import { isAppPath } from '@/lib/sites/href'
 import type { NotificationMethodGeneral } from '@/services/notifications/types'
 import type { UserBasic } from '@/services/users/types'
 
@@ -41,7 +44,8 @@ export function truncate(text: string, maxLength: number) {
 
 /** A markdown link to the page a notification is about, for the mails. */
 export function linkToNotificationPage(url: string | null) {
-    return url ? `[Les mer på Omegaveven](<${process.env.WEBSITE_URL}${url}>)` : null
+    if (!url || !isAppPath(url)) return null
+    return `[Les mer på Omegaveven](<${DomainContext.publicUrl(Site.ofPath(url), url)}>)`
 }
 
 export function replaceSpecialSymbols(text: string, user: UserBasic) {

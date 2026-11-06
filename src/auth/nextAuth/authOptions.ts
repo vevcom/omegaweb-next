@@ -234,10 +234,11 @@ export const authOptions: AuthOptions = {
             }
         }
     },
+    // No newUser page: serverPage sends a user who has not registered to the register page of the
+    // site they are on, which NextAuth could not pick.
     pages: {
         signIn: '/login',
         signOut: '/logout',
-        newUser: '/register',
     },
     adapter: VevenAdapter(prisma),
     logger: {

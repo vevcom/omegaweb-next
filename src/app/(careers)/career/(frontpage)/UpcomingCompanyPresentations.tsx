@@ -1,9 +1,10 @@
 import { bandClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     /** The company presentations page. */
-    eventsHref: string,
+    eventsHref: AppHref,
 }
 
 /**
@@ -27,9 +28,9 @@ export default function UpcomingCompanyPresentations({ eventsHref }: PropTypes) 
                     Kommende bedriftspresentasjoner
                 </span>
                 <span className="flex-1 text-base-content/80 text-m">Her kommer de neste bedriftspresentasjonene.</span>
-                <Link href={eventsHref} className="text-careers-navy text-m font-semibold">
+                <SiteLink href={eventsHref} className="text-careers-navy text-m font-semibold">
                     Alle bedriftspresentasjoner →
-                </Link>
+                </SiteLink>
             </div>
         </section>
     )

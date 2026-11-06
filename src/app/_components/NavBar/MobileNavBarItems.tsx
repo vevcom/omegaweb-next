@@ -1,7 +1,7 @@
 'use client'
 
 import useActiveNavHref from '@/hooks/useActiveNavHref'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { NavLink } from './navDef'
 
@@ -16,7 +16,7 @@ export default function MobileNavBarItems({ navItems }: PropTypes) {
 
     return navItems.slice(0, 3).map(item => (
         <div key={item.name}>
-            <Link href={item.href} aria-label={item.name} aria-current={item.href === activeHref ? 'page' : undefined}>
+            <SiteLink href={item.href} aria-label={item.name} aria-current={item.href === activeHref ? 'page' : undefined}>
                 <FontAwesomeIcon
                     className={`
                         size-[25px]!
@@ -26,7 +26,7 @@ export default function MobileNavBarItems({ navItems }: PropTypes) {
                     icon={item.icon}
                     width={25}
                 />
-            </Link>
+            </SiteLink>
         </div>
     ))
 }

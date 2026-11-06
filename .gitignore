@@ -64,3 +64,6 @@ next-env.d.ts
 /.design-sync/learnings/
 /.design-sync/node_modules
 
+
+# the domains of the sites, see sites.example.json
+/sites.json

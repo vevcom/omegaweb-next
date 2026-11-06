@@ -11,8 +11,11 @@ import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
+import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { Require } from '@/auth/authorizer/Require'
+import { appHref } from '@/lib/sites/href'
 import {
+    faCalendarCheck,
     faCircleDot,
     faHatWizard,
     faIdCard,
@@ -27,6 +30,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
+import type { AppHref } from '@/lib/sites/href'
 
 /** The user a page is about - everything a page's authorizers are allowed to key off. */
 export type UserNavSubject = {
@@ -69,6 +73,12 @@ export const userNavDef = {
             icon: faQrcode,
             path: 'omegaid',
             authorizers: ({ userId }) => [omegaIdAuth.generate.data({ userId })],
+        },
+        {
+            name: 'Påmeldinger',
+            icon: faCalendarCheck,
+            path: 'registrations',
+            authorizers: ({ userId }) => [eventRegistrationAuth.readUpcomingOfUser.data({ userId })],
         },
         {
             // The page only ever shows the session user's own account.
@@ -168,8 +178,8 @@ export type UserNavGroup = keyof typeof userNavDef
 
 export type UserNavPath = Extract<(typeof userNavDef)[UserNavGroup][number], { path: string }>['path']
 
-export function userNavHref(username: string, item: UserNavItem) {
-    return `/users/${username}${item.path ? `/${item.path}` : ''}`
+export function userNavHref(username: string, item: UserNavItem): AppHref {
+    return appHref(`/users/${username}${item.path ? `/${item.path}` : ''}`)
 }
 
 /**

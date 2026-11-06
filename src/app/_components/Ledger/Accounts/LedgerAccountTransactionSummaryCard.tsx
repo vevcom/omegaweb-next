@@ -2,13 +2,14 @@ import LedgerTransactionRow from '@/components/Ledger/Transactions/LedgerTransac
 import LedgerTransactionTable, { emptyTransactionsText } from '@/components/Ledger/Transactions/LedgerTransactionTable'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { withPageSession } from '@/app/ServerPage'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
-import Link from 'next/link'
+import type { AppHref } from '@/lib/sites/href'
 
 type Props = {
     accountId: number,
-    transactionsHref?: string,
+    transactionsHref?: AppHref,
 }
 
 export default async function LedgerAccountTransactionSummary({ accountId, transactionsHref }: Props) {
@@ -31,9 +32,9 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
         }
         {
             transactionsHref &&
-            <Link href={transactionsHref} className="btn-primary inline-flex items-center gap-2">
+            <SiteLink href={transactionsHref} className="btn-primary inline-flex items-center gap-2">
                 Se alle transaksjoner <FontAwesomeIcon icon={faArrowRight} className='[&_path]:text-primary-content' />
-            </Link>
+            </SiteLink>
         }
     </div>
 }

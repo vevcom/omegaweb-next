@@ -44,6 +44,7 @@ export default function SearchableDropdown<ValueType extends string | number>({
     name,
     label,
     defaultValue,
+    value: controlledValue,
     options,
     onChange,
     color = 'base',
@@ -68,7 +69,13 @@ export default function SearchableDropdown<ValueType extends string | number>({
         select,
         openWithActive,
         handleKeyDown,
-    } = useDropdown({ listedOptions: filteredOptions, defaultValue, onChange, onClose: () => setSearchTerm('') })
+    } = useDropdown({
+        listedOptions: filteredOptions,
+        defaultValue,
+        value: controlledValue,
+        onChange,
+        onClose: () => setSearchTerm(''),
+    })
 
     const selectedOption = options.find(option => option.value === value)
 

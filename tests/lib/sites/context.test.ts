@@ -1,0 +1,151 @@
+import { DomainConfig } from '@/lib/sites/domainConfig'
+import { DomainContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
+import { appHref, externalHref } from '@/lib/sites/href'
+import { beforeEach, describe, expect, test } from '@jest/globals'
+import type { DomainContextData } from '@/lib/sites/context'
+
+const withDomains = DomainConfig.parse({
+    'omega.ntnu.no': { site: 'OMEGAWEB', main: true },
+    'contactor.no': { site: 'CAREERS', main: true },
+    'contactor.com': { site: 'CAREERS' },
+})
+const withoutDomains = DomainConfig.parse({})
+
+describe('DomainContext', () => {
+    beforeEach(() => DomainContext.configure(withDomains))
+
+    test('on a site\'s own domain the path is the site\'s, with the base path put back', () => {
+        const context = DomainContext.fromBrowser('contactor.no', '/job-ads')
+        expect(context.path).toBe('/career/job-ads')
+        expect(context.siteDomain()).toMatchObject({ host: 'contactor.no', site: 'CAREERS', main: true })
+        expect(context.hostSite()).toBe(Site.CAREERS)
+        expect(context.site()).toBe(Site.CAREERS)
+        expect(context.servesBasePaths()).toBe(false)
+        expect(context.browserPath()).toBe('/job-ads')
+        expect(DomainContext.fromBrowser('contactor.no', '/').path).toBe('/career')
+        expect(DomainContext.fromBrowser('contactor.no', '/?event-tags=BedPres').path).toBe('/career?event-tags=BedPres')
+    })
+
+    test('on an Omega domain the path is as sent, and the page\'s site comes from it', () => {
+        const context = DomainContext.fromBrowser('omega.ntnu.no', '/career/job-ads')
+        expect(context.path).toBe('/career/job-ads')
+        expect(context.hostSite()).toBe(Site.OMEGAWEB)
+        expect(context.site()).toBe(Site.CAREERS)
+        expect(context.servesBasePaths()).toBe(true)
+        expect(context.browserPath()).toBe('/career/job-ads')
+        expect(DomainContext.fromBrowser('omega.ntnu.no', '/events').site()).toBe(Site.OMEGAWEB)
+        expect(DomainContext.fromBrowser('omega.ntnu.no', '/').path).toBe('/')
+        expect(DomainContext.fromBrowser('omega.ntnu.no', '/?a=1').path).toBe('/?a=1')
+    })
+
+    test('the same page on contactor.no and on omega.ntnu.no/career are different contexts', () => {
+        const onCareerDomain = DomainContext.fromBrowser('contactor.no', '/job-ads')
+        const onOmegaDomain = DomainContext.fromBrowser('omega.ntnu.no', '/career/job-ads')
+        expect(onCareerDomain.path).toBe(onOmegaDomain.path)
+        expect(onCareerDomain.site()).toBe(onOmegaDomain.site())
+        expect(onCareerDomain.hostSite()).not.toBe(onOmegaDomain.hostSite())
+        expect(onCareerDomain.browserPath()).not.toBe(onOmegaDomain.browserPath())
+    })
+
+    test('an unconfigured host serves everything like an Omega domain', () => {
+        DomainContext.configure(withoutDomains)
+        const context = DomainContext.fromBrowser('localhost:3000', '/revue/login')
+        expect(context.siteDomain()).toBeNull()
+        expect(context.hostSite()).toBe(Site.OMEGAWEB)
+        expect(context.site()).toBe(Site.REVUE)
+    })
+
+    test('holds nothing but the domain and the path, and survives the trip to the browser', () => {
+        const context = DomainContext.fromAppPath('contactor.no', '/career/job-ads')
+        expect(context.toData()).toEqual({ domain: 'contactor.no', path: '/career/job-ads' })
+        const data = JSON.parse(JSON.stringify(context.toData())) as DomainContextData
+        expect(DomainContext.fromData(data).site()).toBe(Site.CAREERS)
+        expect(context.withPath(appHref('/career/about')).browserPath()).toBe('/about')
+    })
+
+    test('makes a public url of a page by the main domain serving it, and refuses without Omega\'s', () => {
+        expect(DomainContext.publicUrl(Site.CAREERS, appHref('/career/job-ads'))).toBe('https://contactor.no/job-ads')
+        expect(DomainContext.publicUrl(Site.REVUE, appHref('/revue'))).toBe('https://omega.ntnu.no/revue')
+        DomainContext.configure(withoutDomains)
+        expect(() => DomainContext.publicUrl(Site.REVUE, appHref('/revue'))).toThrow()
+    })
+
+    test('puts a site\'s mail on its main domain, or Omega\'s without one, and refuses without Omega\'s', () => {
+        expect(DomainContext.mailDomainOf(Site.CAREERS)).toBe('contactor.no')
+        expect(DomainContext.mailDomainOf(Site.REVUE)).toBe('omega.ntnu.no')
+        expect(DomainContext.mailDomainOf(Site.root)).toBe('omega.ntnu.no')
+        DomainContext.configure(DomainConfig.parse({ 'localhost:3000': { site: 'OMEGAWEB', main: true, protocol: 'http' } }))
+        expect(DomainContext.mailDomainOf(Site.CAREERS)).toBe('localhost')
+        DomainContext.configure(withoutDomains)
+        expect(() => DomainContext.mailDomainOf(Site.root)).toThrow()
+    })
+
+    describe('resolveHref', () => {
+        const onOmega = DomainContext.fromAppPath('omega.ntnu.no', '/')
+        const onCareers = DomainContext.fromAppPath('contactor.no', '/career')
+        const onCareersOther = DomainContext.fromAppPath('contactor.com', '/career')
+
+        test('a page of the host\'s own site is site-relative', () => {
+            expect(onCareers.resolveHref(appHref('/career/job-ads'))).toBe('/job-ads')
+            expect(onCareers.resolveHref(appHref('/career'))).toBe('/')
+            expect(onCareers.resolveHref(appHref('/career?event-tags=BedPres'))).toBe('/?event-tags=BedPres')
+            expect(onOmega.resolveHref(appHref('/events/x-1'))).toBe('/events/x-1')
+        })
+
+        test('from an Omega domain another site sits under its base path', () => {
+            expect(onOmega.resolveHref(appHref('/career/job-ads'))).toBe('/career/job-ads')
+            expect(onOmega.resolveHref(appHref('/revue'))).toBe('/revue')
+        })
+
+        test('a site\'s other domains keep the visitor on them', () => {
+            expect(onCareersOther.resolveHref(appHref('/career/job-ads'))).toBe('/job-ads')
+            expect(onCareersOther.resolveHref(appHref('/committees/x'))).toBe('https://omega.ntnu.no/committees/x')
+        })
+
+        test('from another site\'s domain a page is reached by its site\'s main domain', () => {
+            expect(onCareers.resolveHref(appHref('/committees/x'))).toBe('https://omega.ntnu.no/committees/x')
+            expect(onCareers.resolveHref(appHref('/'))).toBe('https://omega.ntnu.no/')
+        })
+
+        test('a site without domains is reached by Omega\'s main domain with the base path', () => {
+            expect(onCareers.resolveHref(appHref('/revue/login'))).toBe('https://omega.ntnu.no/revue/login')
+        })
+
+        test('toMainDomainServingSite goes by the main domain serving the page, even from a domain that does', () => {
+            const toMain = { toMainDomainServingSite: true }
+            expect(onOmega.resolveHref(appHref('/career'), toMain)).toBe('https://contactor.no/')
+            expect(onCareers.resolveHref(appHref('/'), toMain)).toBe('https://omega.ntnu.no/')
+            expect(onOmega.resolveHref(appHref('/revue'), toMain)).toBe('https://omega.ntnu.no/revue')
+            expect(onCareersOther.resolveHref(appHref('/career/job-ads'), toMain)).toBe('https://contactor.no/job-ads')
+        })
+
+        test('without any domains every link is the app path, as before', () => {
+            DomainContext.configure(withoutDomains)
+            const onLocalhost = DomainContext.fromAppPath('localhost:3000', '/')
+            expect(onLocalhost.resolveHref(appHref('/career/job-ads'))).toBe('/career/job-ads')
+            expect(onLocalhost.resolveHref(appHref('/career'), { toMainDomainServingSite: true })).toBe('/career')
+        })
+
+        test('leaves anything but an app path alone', () => {
+            const external = externalHref('https://www.facebook.com/ContactorNTNU/')
+            expect(onCareers.resolveHref(external)).toBe(external)
+            expect(onCareers.resolveHref(externalHref('mailto:post@contactor.no'))).toBe('mailto:post@contactor.no')
+            expect(onCareers.resolveHref(externalHref('#top'))).toBe('#top')
+        })
+
+        test('keeps the app-wide paths on the domain the visitor is on', () => {
+            expect(onCareers.resolveHref(appHref('/api/health'))).toBe('/api/health')
+            expect(onCareers.resolveHref(appHref('/store/images/cover.webp'))).toBe('/store/images/cover.webp')
+        })
+
+        test('keeps the files at the app\'s root there too, since every domain asks for them by their plain path', () => {
+            expect(onCareers.resolveHref(appHref('/sw.js?cache=off'))).toBe('/sw.js?cache=off')
+            expect(onCareers.resolveHref(appHref('/manifest.webmanifest'))).toBe('/manifest.webmanifest')
+            expect(onCareers.resolveHref(appHref('/icon-192.png'))).toBe('/icon-192.png')
+            // A page is never a file, however it is named.
+            expect(onCareers.resolveHref(appHref('/about'))).toBe('https://omega.ntnu.no/about')
+            expect(onCareers.resolveHref(appHref('/career/job-ads'))).toBe('/job-ads')
+        })
+    })
+})

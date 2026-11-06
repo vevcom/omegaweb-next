@@ -1,6 +1,7 @@
 'use client'
 import GiveDotPopUp from './GiveDotPopUp'
 import GiveDotsToAbsentees from './GiveDotsToAbsentees'
+import MoveToQuotaForm from './MoveToQuotaForm'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { EventRegistrationPagingProvider, EventRegistrationPagingContext } from '@/contexts/paging/EventRegistrationPaging'
 import UserCard from '@/components/User/UserCard'
@@ -9,6 +10,7 @@ import {
     EventRegistrationDetailedPagingContext,
 } from '@/contexts/paging/EventRegistrationDetailedPaging'
 import UserDisplayName from '@/components/User/UserDisplayName'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import Slider from '@/components/UI/Slider'
 import Form from '@/components/Form/Form'
 import ContactCard from '@/components/User/ContactCard'
@@ -21,9 +23,9 @@ import {
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
 import { configureAction } from '@/services/configureAction'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowDown, faArrowUp } from '@fortawesome/free-solid-svg-icons'
-import Link from 'next/link'
 import { useState } from 'react'
 import type { EventFiltered } from '@/services/events/types'
 import type { EventRegistrationNotAttended } from '@/services/events/registration/types'
@@ -39,7 +41,13 @@ function DetailedTable({
     attendanceTakerId: number | null,
     dotGiverId: number | null,
 }) {
-    const columns = 7 + (event.takesPayment ? 1 : 0) + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
+    const onWaitingList = type === REGISTRATION_READER_TYPE.WAITING_LIST
+    const severalVariants = event.variants.length > 1
+    const severalQuotas = event.variants.some(variant => variant.quotas.length > 1)
+    const columns = 7 + (severalVariants ? 1 : 0) + (severalQuotas ? 1 : 0) + (event.takesPayment ? 1 : 0)
+        + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
+    const quotasOfVariant = (variantId: number | undefined) =>
+        event.variants.find(variant => variant.id === variantId)?.quotas ?? []
 
     return <EventRegistrationDetailedPagingProvider
         serverRenderedData={[]}
@@ -60,6 +68,8 @@ function DetailedTable({
                 <thead>
                     <tr>
                         <th>Flytt</th>
+                        {severalVariants && <th>Variant</th>}
+                        {severalQuotas && <th>Kvote</th>}
                         <th>Navn</th>
                         <th>E-post</th>
                         <th>Mobil</th>
@@ -76,13 +86,14 @@ function DetailedTable({
                         pagingContext={EventRegistrationDetailedPagingContext}
                         loadingInfoWrapper={loadingInfo => <tr><td colSpan={columns}>{loadingInfo}</td></tr>}
                         renderer={row => {
-                            const name = row.user ? <Link href={`/users/${row.user.username}`}>
+                            const name = row.user ? <SiteLink href={omegaLinks.user(row.user)}>
                                 <UserDisplayName user={row.user} width={20} />
-                            </Link> : row.contact?.name
+                            </SiteLink> : row.contact?.name
                             return <tr key={row.id}>
                                 <td>
                                     <div className="flex gap-1">
-                                        {(['UP', 'DOWN'] as const).map(direction => <Form
+                                        {/* The waiting list is a queue; a place is only given by a freed one or by hand. */}
+                                        {onWaitingList && (['UP', 'DOWN'] as const).map(direction => <Form
                                             key={direction}
                                             action={configureAction(
                                                 moveEventRegistrationAction,
@@ -94,8 +105,15 @@ function DetailedTable({
                                             buttonClassName="w-auto!"
                                             refreshOnSuccess
                                         />)}
+                                        {(onWaitingList || severalQuotas) && <MoveToQuotaForm
+                                            registrationId={row.id}
+                                            currentQuotaId={row.quota?.id ?? null}
+                                            quotas={quotasOfVariant(row.quota?.variant.id ?? row.waitingListVariant?.id)}
+                                        />}
                                     </div>
                                 </td>
+                                {severalVariants && <td>{row.quota?.variant.name ?? row.waitingListVariant?.name}</td>}
+                                {severalQuotas && <td>{row.quota?.name}</td>}
                                 <td>{name}</td>
                                 <td>{row.user ? row.user.email : row.contact?.email}</td>
                                 <td>{row.user ? row.user.mobile : row.contact?.mobile}</td>

@@ -2,7 +2,7 @@
 import { dividerClassName, navIconClassName, navIconIconClassName, navIconLabelClassName } from './sideBarClassNames'
 import NavTooltip from './NavTooltip'
 import { adminNavItemHref } from './adminNavItemHref'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTools } from '@fortawesome/free-solid-svg-icons'
 
@@ -23,7 +23,7 @@ export default function AdminNav({ showAdmin, expanded = false, active = false }
             <hr className={dividerClassName} />
             <nav className="w-full flex flex-col items-stretch shrink-0" aria-label="Adminnavigasjon">
                 <NavTooltip content="Administrasjon" disabled={expanded}>
-                    <Link
+                    <SiteLink
                         href={adminNavItemHref}
                         className={navIconClassName}
                         aria-label="Administrasjon"
@@ -31,7 +31,7 @@ export default function AdminNav({ showAdmin, expanded = false, active = false }
                     >
                         <FontAwesomeIcon icon={faTools} className={navIconIconClassName} />
                         <span className={navIconLabelClassName}>Administrasjon</span>
-                    </Link>
+                    </SiteLink>
                 </NavTooltip>
             </nav>
         </>

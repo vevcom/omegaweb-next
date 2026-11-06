@@ -5,10 +5,10 @@ import { Smorekopp } from '@/services/error'
 import { withServiceContext } from '@/services/serviceOperation'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
-import { CURRENT_PATH_HEADER } from '@/proxy'
-import { QueryParams } from '@/lib/queryParams/queryParams'
-import { notFound, redirect, unstable_rethrow as unstableRethrow } from 'next/navigation'
-import { headers } from 'next/headers'
+import { authLinks } from '@/pageKits/auth/links'
+import { authPagesOf } from '@/lib/sites/authPagesOf'
+import { domainContextOfRequest, siteRedirect } from '@/app/domainContextOfRequest'
+import { notFound, unstable_rethrow as unstableRethrow } from 'next/navigation'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
 import type { Capabilities, CapabilityAuthorizers, CapabilityKey } from '@/auth/authorizer/capabilities'
@@ -62,7 +62,7 @@ export async function handleServiceError(error: unknown): Promise<Smorekopp> {
     unstableRethrow(error)
     if (!(error instanceof Smorekopp)) throw error
     if (error.errorCode === 'NOT FOUND') notFound()
-    if (error.errorCode === 'UNAUTHENTICATED') redirect(await urlWithCallback('/login'))
+    if (error.errorCode === 'UNAUTHENTICATED') await siteRedirect(await authPathWithCallback('login'))
     return error
 }
 
@@ -75,18 +75,17 @@ export async function handleServiceError(error: unknown): Promise<Smorekopp> {
  * `allowUnregistered` on {@link serverPage}).
  */
 async function redirectUnregistered(session: ServerPageSession) {
-    if (session.user && !session.user.acceptedTerms) redirect(await urlWithCallback('/register'))
+    if (session.user && !session.user.acceptedTerms) await siteRedirect(await authPathWithCallback('register'))
 }
 
 /**
- * The given url with the current page as callbackUrl, so the user lands back where they
- * were once they are through it. The current path comes from the header stamped by the proxy
- * (src/proxy.ts) - a server component cannot read its own URL. Should the header be
- * missing, the plain url is used.
+ * The given auth page of the site the current page belongs to, with the current page as
+ * callbackUrl, so the user lands back where they were once they are through it.
  */
-async function urlWithCallback(url: string) {
-    const currentPath = (await headers()).get(CURRENT_PATH_HEADER)
-    return currentPath ? `${url}?${QueryParams.callbackUrl.encodeUrl(currentPath)}` : url
+async function authPathWithCallback(page: 'login' | 'register') {
+    const context = await domainContextOfRequest()
+    const links = authLinks(authPagesOf(context.site()))
+    return links[page]({ callbackUrl: context.path })
 }
 
 /**
@@ -243,6 +242,8 @@ type LayoutProps<Params extends object> = {
  * Not for the root layout - it renders the document itself, so it has nothing to show an error
  * view in. It wraps its reads in {@link withFallback} instead.
  *
+ * @param allowUnregistered - As for {@link serverPage}: for a layout the registration pages live
+ * under, which then leaves the check to its pages.
  * @param operation - Loads everything the layout needs. Throwing a service error inside it
  * shows the error view instead of the layout and its pages.
  * @param capabilities - Optional, as for {@link serverPage}: what the user may do on the layout,
@@ -261,7 +262,8 @@ export function serverLayout<
     Params extends object,
     Data,
     Authorizers extends CapabilityAuthorizers<Authorizers> = Record<never, never>,
->({ operation, capabilities, render }: {
+>({ allowUnregistered = false, operation, capabilities, render }: {
+    allowUnregistered?: boolean,
     operation: (args: LayoutOperationArgs<Params>) => Awaitable<Data>,
     capabilities?: CapabilitiesOf<Data, Authorizers>,
     render: (args: {
@@ -274,7 +276,7 @@ export function serverLayout<
     return async ({ params, children }) => {
         try {
             const loaded = await withPageSession(async session => {
-                await redirectUnregistered(session)
+                if (!allowUnregistered) await redirectUnregistered(session)
                 const data = await operation({ params: await params, session })
                 return { data, session, capabilities: pageCapabilities(capabilities, data, session) }
             })

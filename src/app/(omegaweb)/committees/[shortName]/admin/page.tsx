@@ -1,16 +1,17 @@
+import UpdateCommitteeForm from './UpdateCommitteeForm'
 import getCommittee from '@/app/(omegaweb)/committees/[shortName]/getCommittee'
 import Image from '@/components/Image/Image'
 import ImageUploader from '@/components/Image/ImageUploader'
 import MigrateGroup from '@/components/Group/MigrateGroup'
 import ManageGroupMembers from '@/components/Group/ManageGroupMembers'
 import PensionGroup from '@/components/Group/PensionGroup'
-import UpdateCommitteeForm from './UpdateCommitteeForm'
 import { groupMembersByOrder } from '@/components/Group/groupMembersByOrder'
 import { configureAction } from '@/services/configureAction'
 import {
     addCommitteeMembersAction,
     migrateCommitteeAction,
     removeCommitteeMembersAction,
+    reorderCommitteeMembersAction,
     setCommitteeMemberAdminAction,
     setCommitteeMemberTitleAction,
     pensionCommitteeAction,
@@ -50,6 +51,7 @@ const { page, generateMetadata } = serverPage({
         canAddMembers: committeeAuth.addMembers.data({ groupId: data.committee.groupId }),
         canSetMemberAdmin: committeeAuth.setMemberAdmin.data({ groupId: data.committee.groupId }),
         canSetMemberTitle: committeeAuth.setMemberTitle.data({ groupId: data.committee.groupId }),
+        canReorderMembers: committeeAuth.reorderMembers.data({ groupId: data.committee.groupId }),
         canRemoveMembers: committeeAuth.removeMembers.data({ groupId: data.committee.groupId }),
         canPension: committeeAuth.pension,
     }),
@@ -141,6 +143,9 @@ const { page, generateMetadata } = serverPage({
                             }
                             removeMembersAction={
                                 capabilities.canRemoveMembers.authorized ? removeCommitteeMembersAction : undefined
+                            }
+                            reorderMembersAction={
+                                capabilities.canReorderMembers.authorized ? reorderCommitteeMembersAction : undefined
                             }
                         />
                     </section>

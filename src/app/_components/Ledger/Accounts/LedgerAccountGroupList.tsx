@@ -1,9 +1,9 @@
 'use client'
 
 import { updateLedgerAccountAsAdminAction } from '@/services/ledger/accounts/actions'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { ExpandedGroup } from '@/services/groups/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
@@ -15,7 +15,7 @@ type Props = {
 }
 
 export default function LedgerAccountGroupList({ ledgerAccountId, groups, capabilities }: Props) {
-    const router = useRouter()
+    const router = useSiteRouter()
     const [error, setError] = useState<string | null>(null)
 
     const removeGroup = async (groupId: number) => {

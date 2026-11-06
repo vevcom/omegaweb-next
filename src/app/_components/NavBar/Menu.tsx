@@ -6,10 +6,10 @@ import useOnNavigation from '@/hooks/useOnNavigation'
 import { useGlobalSearch } from '@/contexts/GlobalSearch'
 import { useNavMenu } from '@/contexts/NavMenu'
 import useActiveNavHref from '@/hooks/useActiveNavHref'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
-import Link from 'next/link'
 import type { NavLink } from './navDef'
 
 type PropTypes = {
@@ -83,14 +83,14 @@ export default function Menu({ items, openBtnVariant }: PropTypes) {
                                 </div>
                                 {items.map((item) => (
                                     <div key={item.name} className={entryClassName}>
-                                        <Link
+                                        <SiteLink
                                             href={item.href}
                                             className={entryLinkClassName}
                                             aria-current={item.href === activeHref ? 'page' : undefined}
                                         >
                                             <FontAwesomeIcon icon={item.icon}/>
                                             {item.name}
-                                        </Link>
+                                        </SiteLink>
                                     </div>
                                 ))}
                             </div>

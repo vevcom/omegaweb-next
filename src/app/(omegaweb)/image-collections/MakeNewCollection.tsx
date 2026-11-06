@@ -4,6 +4,7 @@ import TextInput from '@/components/UI/TextInput'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { createDynamicImageCollectionAction } from '@/services/images/dynamic/actions'
+import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import type { VisibilityRequirement } from '@/services/visibility/types'
 
@@ -32,12 +33,11 @@ export default function MakeNewCollection() {
                     closePopUpOnSuccess={popUpKey}
                     refreshOnSuccess
                     navigateOnSuccess={
-                        collection =>
-                            (
-                                collection ?
-                                    `/image-collections/dynamic/${encodeURIComponent(collection.name)}`
-                                    : '/image-collections'
-                            )
+                        collection => appHref(
+                            collection ?
+                                `/image-collections/dynamic/${encodeURIComponent(collection.name)}`
+                                : '/image-collections'
+                        )
                     }
                     title="Lag et album"
                     submitText="Lag album"

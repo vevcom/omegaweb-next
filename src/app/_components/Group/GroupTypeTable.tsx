@@ -1,4 +1,5 @@
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import type { AppHref } from '@/lib/sites/href'
 
 export type GroupTypeTableRow = {
     /** Stable react key - the group id is the natural choice. */
@@ -10,7 +11,7 @@ export type GroupTypeTableRow = {
      * Where this group is administered. Left out for group types that have nowhere to go - a class,
      * for instance, is not administered per group.
      */
-    href?: string,
+    href?: AppHref,
     /**
      * Whether the group has been pensioned. A pensioned group is not waiting to be migrated, so it
      * is not flagged for being behind - it is simply done.
@@ -72,7 +73,7 @@ export default function GroupTypeTable({
 
                     return (
                         <tr key={row.key}>
-                            <th>{row.href ? <Link href={row.href}>{row.name}</Link> : row.name}</th>
+                            <th>{row.href ? <SiteLink href={row.href}>{row.name}</SiteLink> : row.name}</th>
                             <td className={row.pensioned ? 'text-base-content/80' : ''}>
                                 <span className={orderClass}>{row.order}</span>
                                 {behind && (

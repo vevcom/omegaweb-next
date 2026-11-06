@@ -1,6 +1,7 @@
 import UserDisplayName from './UserDisplayName'
 import ProfilePicture from './ProfilePicture'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { CSSProperties } from 'react'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { UserCard as UserCardData } from '@/services/users/types'
@@ -19,15 +20,15 @@ export default function UserCard({
 }) {
     const [topFlair] = [...user.flairs].sort((flairA, flairB) => flairA.rank - flairB.rank)
 
-    return <Link
+    return <SiteLink
         className={`
-            flex items-center gap-2 p-2 mx-2 mt-2 mb-0 box-border rounded-round no-underline text-text bg-surface-raised
+            flex items-center gap-2 p-2 mx-2 mt-2 mb-0 box-border rounded-round no-underline text-base-content bg-surface-raised
             border-4 border-solid border-[var(--flairColor,var(--surface-raised))]
             [&>div>h6]:text-m
             [&>div>p]:text-s
             ${className ? className : ''}
         `}
-        href={`/users/${user.username}`}
+        href={appHref(`/users/${user.username}`)}
         style={topFlair ? {
             '--flairColor': `rgb(${topFlair.colorR}, ${topFlair.colorG}, ${topFlair.colorB})`,
         } as CSSProperties : undefined}
@@ -39,5 +40,5 @@ export default function UserCard({
             </h6>
             {subText && <p>{subText}</p>}
         </div>
-    </Link>
+    </SiteLink>
 }

@@ -2,7 +2,7 @@
 import UserList from '@/components/User/UserList/UserList'
 import { UserSelectionContext } from '@/contexts/UserSelection'
 import { createMailingListUserRelationAction } from '@/services/mail/actions'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useContext, useState } from 'react'
 
 /**
@@ -11,7 +11,7 @@ import { useContext, useState } from 'react'
  */
 export default function AddUserToMailingList({ mailingListId }: { mailingListId: number }) {
     const userSelection = useContext(UserSelectionContext)
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
     const [error, setError] = useState<string | null>(null)
 
     if (!userSelection) throw new Error('UserSelectionContext kreves for å legge brukere til en e-postliste')

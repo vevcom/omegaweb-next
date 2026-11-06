@@ -50,6 +50,7 @@ model Image {
   committee               Committee?
   ombul                   Ombul?
   promo                   Promo?
+  careerTeamPerson        CareerTeamPerson?
 
   @@index([collectionId])
 }
@@ -99,6 +100,7 @@ enum SpecialCollection {
   COMMITTEELOGOS
   FLAIRIMAGES
   PROMOIMAGES
+  CAREERTEAMIMAGES
 }
 
 model ImageCollection {

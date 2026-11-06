@@ -5,8 +5,12 @@ import { careersTheme } from './_lib/careersTheme'
 import { careerNavLinks } from './_lib/careersSite'
 import { innerClassName } from './_lib/careersClassNames'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
+import WorkInProgressBanner from '@/components/WorkInProgressBanner/WorkInProgressBanner'
+import { externalHref } from '@/lib/sites/href'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
-import { serverLayout } from '@/app/ServerPage'
+import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
+import { serverLayout, withFallback } from '@/app/ServerPage'
+import type { LayoutOperationArgs } from '@/app/ServerPage'
 import type { Metadata } from 'next'
 
 // The career pages carry Contactor's name, not Omega's, in the tab.
@@ -25,11 +29,23 @@ export const metadata: Metadata = {
  * as the rest of the site.
  */
 export default serverLayout({
-    operation: () => ({}),
+    allowUnregistered: true,
+    operation: async ({ session }: LayoutOperationArgs) => {
+        const level = session.user
+            ? await withFallback(
+                omegaMembershipGroupOperations.readUserLevel({ params: { userId: session.user.id } }),
+                null,
+            )
+            : null
+        return {
+            loggedIn: session.user !== null,
+            omegaMember: level !== null && level.level !== 'DEN_GEMENE_HOB',
+        }
+    },
     capabilities: () => ({
         canEditSpecialCmsLink: careersFrontpageAuth.updateSpecialCmsLink,
     }),
-    render: ({ capabilities, children }) => (
+    render: ({ data, capabilities, children }) => (
         <div
             className={`
                 min-h-dvh flex flex-col bg-surface-base text-base-content font-careers-sans [--careers-max-width:1320px]
@@ -42,14 +58,15 @@ export default serverLayout({
             data-tone="light"
         >
             <SiteTheme colors={careersTheme} />
-            <CareersNavBar links={careerNavLinks} />
+            <WorkInProgressBanner siteName="Contactor" currentSiteHref={externalHref('https://contactor.no')} />
+            <CareersNavBar links={careerNavLinks} loggedIn={data.loggedIn} showOmegaLink={data.omegaMember} />
             <main className={`
                 ${innerClassName}
                 flex-1
             `}>
                 {children}
             </main>
-            <CareersFooter capabilities={capabilities} />
+            <CareersFooter capabilities={capabilities} showOmegaLink={data.omegaMember} />
         </div>
     ),
 })

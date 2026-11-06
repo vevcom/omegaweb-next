@@ -1,4 +1,5 @@
 import CreateCommitteeForm from './CreateCommitteeForm'
+import CommitteeOrder from './CommitteeOrder'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { committeeAuth } from '@/services/groups/committees/auth'
@@ -7,6 +8,7 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -21,6 +23,7 @@ const { page, generateMetadata } = serverPage({
     },
     capabilities: () => ({
         canCreate: committeeAuth.create,
+        canReorder: committeeAuth.reorder,
     }),
     metadata: () => ({ title: 'Komitéer' }),
     render: ({ data, capabilities }) => {
@@ -32,7 +35,7 @@ const { page, generateMetadata } = serverPage({
                 order: expanded.order,
                 members: expanded.members,
                 pensioned: committee.group.pensioned,
-                href: `/committees/${committee.shortName}/admin`,
+                href: appHref(`/committees/${committee.shortName}/admin`),
             }] : []
         })
 
@@ -45,6 +48,16 @@ const { page, generateMetadata } = serverPage({
                 )}
             >
                 <GroupTypeTable rows={rows} currentOrder={data.currentOrder.order} emptyText="Ingen komitéer" />
+                {capabilities.canReorder.authorized && (
+                    <section className="mt-8">
+                        <h2>Rekkefølge</h2>
+                        <p className="text-base-content/80">Rekkefølgen komitéene vises i på komitésiden. Dra for å flytte.</p>
+                        <CommitteeOrder committees={data.committees
+                            .filter(committee => !committee.group.pensioned)
+                            .map(committee => ({ id: committee.id, name: committee.name }))}
+                        />
+                    </section>
+                )}
             </PageWrapper>
         )
     },

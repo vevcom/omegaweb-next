@@ -7,8 +7,8 @@ import { Require } from '@/auth/authorizer/Require'
  * destroy one - destroying takes every article in it along.
  * Both levels still need `{ visibility: DoubleLevelVisibilityMatrix }` supplied via `.data()`.
  */
-const regularLevel = Require.permission('ARTICLE_CATEGORY_ADMIN').or().levelOfDoubleVisibility({ level: 'regularLevel' })
-const adminLevel = Require.permission('ARTICLE_CATEGORY_ADMIN').or().levelOfDoubleVisibility({ level: 'adminLevel' })
+const regularLevel = Require.permission('ARTICLE_CATEGORY_ADMIN').or().levelOfDoubleVisibility({ level: 'REGULAR' })
+const adminLevel = Require.permission('ARTICLE_CATEGORY_ADMIN').or().levelOfDoubleVisibility({ level: 'ADMIN' })
 
 export const articleCategoryAuth = {
     create: Require.permission('ARTICLE_CATEGORY_ADMIN'),
@@ -23,7 +23,7 @@ export const articleCategoryAuth = {
     removeArticleFromCategory: adminLevel,
     addArticleToCategory: adminLevel,
 
-    readAll: Require.visibilityFilter({ bypassPermission: 'ARTICLE_CATEGORY_ADMIN' }),
+    readAll: Require.doubleLevelFilter({ level: 'REGULAR', bypassPermission: 'ARTICLE_CATEGORY_ADMIN' }),
     read: regularLevel,
     readArticleInCategory: regularLevel,
 } as const

@@ -10,7 +10,8 @@ import { mailAddressExternalOperations } from '@/services/mail/mailAddressExtern
 import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -70,7 +71,7 @@ const { page, generateMetadata } = serverPage({
             <div className="flex flex-row flex-wrap gap-6 items-start">
                 <ul className="flex-[1_1_300px] list-none p-0 m-0 flex flex-col gap-2 max-w-[40rem]">
                     {items.map(item => <li key={item.id}>
-                        <Link href={`/admin/mail/${filter}/${item.id}`}
+                        <SiteLink href={appHref(`/admin/mail/${filter}/${item.id}`)}
                             className="
                                 flex flex-col gap-1 p-4 rounded-round bg-surface-raised text-base-content no-underline
                                 transition-[background-color] duration-300
@@ -80,7 +81,7 @@ const { page, generateMetadata } = serverPage({
                         >
                             <strong>{item.label}</strong>
                             {item.description && <span>{item.description}</span>}
-                        </Link>
+                        </SiteLink>
                     </li>)}
                     {items.length === 0 && <li className="text-base-content/80 italic">Ingen enda.</li>}
                 </ul>

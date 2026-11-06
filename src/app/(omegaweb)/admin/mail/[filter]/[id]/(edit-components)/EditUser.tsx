@@ -4,7 +4,7 @@ import Form from '@/components/Form/Form'
 import { SelectNumber } from '@/components/UI/Select'
 import { createMailingListUserRelationAction } from '@/services/mail/actions'
 import { mailAuth } from '@/services/mail/auth'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import type { MailFlowObject } from '@/services/mail/types'
 import type { MailingList } from '@/prisma-generated-pn-types'
 
@@ -17,7 +17,7 @@ export default function EditUser({
     data: MailFlowObject,
     mailingLists: MailingList[]
 }) {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
 
     const focusedUser = data.user.find(user => user.id === id)
     if (!focusedUser) throw new Error('Fant ikke brukeren')

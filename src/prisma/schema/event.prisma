@@ -26,20 +26,12 @@ model Event {
   ledgerAccount       LedgerAccount? @relation(fields: [ledgerAccountId], references: [id])
   ledgerAccountId     Int?
 
-  takesRegistration   Boolean
-  places              Int                 @default(0)
-  registrationStart   DateTime
-  registrationEnd     DateTime
+  variants            EventVariant[]
   waitingList         Boolean
   // Registrants cannot unregister themselves. Only those who administrate the event remove a registration.
-  bindingRegistration Boolean             @default(false)
-  eventRegistrations  EventRegistration[]
-  takesPayment        Boolean             @default(false)
-  // Price in øre. Set exactly when the event takes payment.
-  price               Int?
-  // Set exactly when the event takes payment. Separate from the registration period.
-  paymentStart        DateTime?
-  paymentEnd          DateTime?
+  bindingRegistration Boolean        @default(false)
+  // Waiting on several variants is always allowed.
+  allowRegistrationInMultipleVariants Boolean @default(false)
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -47,10 +39,11 @@ model Event {
 
   published Boolean @default(false)
 
-  visibilityAdmin     Visibility @relation(name: "EventAdminVisibility", fields: [visibilityAdminId], references: [id], onDelete: Restrict)
-  visibilityAdminId   Int        @unique
-  visibilityRegular   Visibility @relation(name: "EventRegularVisibility", fields: [visibilityRegularId], references: [id], onDelete: Restrict)
-  visibilityRegularId Int        @unique
+  // The notifications sent to those who may register, resolved against the quotas when they are sent.
+  notificationsToWhoCanRegister Notification[]
+
+  visibilityAdmin   Visibility @relation(name: "EventAdminVisibility", fields: [visibilityAdminId], references: [id], onDelete: Restrict)
+  visibilityAdminId Int        @unique
 
   // Legacy from OW basic database
   company     Boolean @default(false) // If a plus one is allowed
@@ -99,20 +92,73 @@ model EventTag {
   updatedAt DateTime @updatedAt
 }
 
+// A way to take part in the event, e.g. "Golfrunde 1" and "Golfrunde 2". Registrants pick one.
+model EventVariant {
+  id      Int    @id @default(autoincrement())
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int
+  order   Int
+  name    String
+
+  registrationStart DateTime
+  registrationEnd   DateTime
+
+  takesPayment Boolean   @default(false)
+  // In øre. Set exactly when the variant takes payment.
+  price        Int?
+  paymentStart DateTime?
+  paymentEnd   DateTime?
+
+  quotas                   EventQuota[]
+  waitingListRegistrations EventRegistration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId, order])
+}
+
+// Quotas fill in `order`.
+model EventQuota {
+  id        Int          @id @default(autoincrement())
+  variant   EventVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId Int
+  order     Int
+  name      String
+  places    Int
+
+  visibility   Visibility @relation(name: "EventQuotaVisibility", fields: [visibilityId], references: [id], onDelete: Restrict)
+  visibilityId Int        @unique
+
+  registrations EventRegistration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([variantId, order])
+}
+
+enum EventRegistrationState {
+  IN_QUOTA
+  WAITING_LIST
+}
+
 model EventRegistration {
-  id        Int             @id @default(autoincrement())
-  event     Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId   Int
-  user      User?           @relation(name: "registration", fields: [userId], references: [id])
-  userId    Int?
-  contact   ContactDetails? @relation(fields: [contactId], references: [id])
-  contactId Int?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  note      String?
-  // Registrations queue for the places of the event by this time, then by id. It is when they
-  // registered until an administrator moves one.
-  queuedAt  DateTime        @default(now())
+  id                   Int                    @id @default(autoincrement())
+  state                EventRegistrationState
+  quota                EventQuota?            @relation(fields: [quotaId], references: [id], onDelete: Restrict)
+  quotaId              Int?
+  waitingListVariant   EventVariant?          @relation(fields: [waitingListVariantId], references: [id], onDelete: Cascade)
+  waitingListVariantId Int?
+  user                 User?                  @relation(name: "registration", fields: [userId], references: [id])
+  userId               Int?
+  contact              ContactDetails?        @relation(fields: [contactId], references: [id])
+  contactId            Int?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  note                 String?
+  // Queue position within a quota and on the waiting list, by this then id.
+  queuedAt             DateTime               @default(now())
 
   // Null until attendance is taken for the event - after that, null means they did not show up.
   attendedAt               DateTime?
@@ -128,7 +174,9 @@ model EventRegistration {
 
   ledgerTransactions LedgerTransaction[]
 
-  @@unique([eventId, userId])
-  @@index([eventId, queuedAt])
+  @@unique([quotaId, userId])
+  @@unique([waitingListVariantId, userId])
+  @@index([quotaId, queuedAt])
+  @@index([waitingListVariantId, queuedAt])
   @@index([userId])
 }

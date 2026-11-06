@@ -1,5 +1,5 @@
 import ImageCard from '@/components/ImageCard/ImageCard'
-import { formatVevenUri } from '@/lib/urlEncoding'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { SimpleNewsArticle } from '@/services/news/types'
 
 type PropTypes = {
@@ -9,7 +9,7 @@ type PropTypes = {
 export default function NewsCard({ news }: PropTypes) {
     return (
         <ImageCard
-            href={`/news/${formatVevenUri(news.articleName, news.id)}`}
+            href={omegaLinks.news(news)}
             title={news.articleName}
             image={news.coverImage}
         >

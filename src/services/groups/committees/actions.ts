@@ -4,10 +4,12 @@ import { committeeOperations } from '@/services/groups/committees/operations'
 
 export const createCommitteeAction = makeAction(committeeOperations.create)
 export const updateCommitteeAction = makeAction(committeeOperations.update)
+export const reorderCommitteesAction = makeAction(committeeOperations.reorder)
 export const addCommitteeMembersAction = makeAction(committeeOperations.addMembers)
 export const removeCommitteeMembersAction = makeAction(committeeOperations.removeMembers)
 export const setCommitteeMemberAdminAction = makeAction(committeeOperations.setMemberAdmin)
 export const setCommitteeMemberTitleAction = makeAction(committeeOperations.setMemberTitle)
+export const reorderCommitteeMembersAction = makeAction(committeeOperations.reorderMembers)
 export const migrateCommitteeAction = makeAction(committeeOperations.migrateGroup)
 export const pensionCommitteeAction = makeAction(committeeOperations.pension)
 export const updateCommitteeParagraphAction = makeAction(committeeOperations.updateParagraphContent)

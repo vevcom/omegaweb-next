@@ -7,41 +7,37 @@ import { displayAmount } from '@/lib/currency/convert'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck, faCircleExclamation } from '@fortawesome/free-solid-svg-icons'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
-import type { EventExpanded } from '@/services/events/types'
-import type { EventRegistrationWithWaitingList } from '@/services/events/registration/types'
+import type { EventVariantSummary } from '@/services/events/types'
+import type { EventRegistrationOfUser } from '@/services/events/registration/types'
 
-type OwnRegistration = EventRegistrationWithWaitingList & { ledgerTransactions: { id: number }[] }
-
-/** Where the visitor stands with paying for the event. Only a registration holding a place is paid for. */
-function paymentStatus(registration: OwnRegistration | null) {
+/** Where the visitor stands with paying for the variant. Only a registration holding a place is paid for. */
+function paymentStatus(registration: EventRegistrationOfUser | null) {
     if (!registration) return 'NOT_REGISTERED'
-    if (registration.onWaitingList) return 'WAITING_LIST'
+    if (registration.state === 'WAITING_LIST') return 'WAITING_LIST'
     if (registration.ledgerTransactions.length > 0 || registration.manuallyPaid) return 'PAID'
     return 'UNPAID'
 }
 
-/**
- * The payment section of the sidebar of a paid event: the price, the payment period and whether the
- * visitor has paid, with the way to pay while the period is open.
- */
 export default function EventPaymentSection({
-    event,
+    eventId,
+    variant,
     registration,
     userId,
     availableBalance,
     customerSessionClientSecret,
     capabilities,
 }: {
-    event: EventExpanded,
-    /** The visitor's registration, with whether a payment is in effect for it. */
-    registration: OwnRegistration | null,
+    eventId: number,
+    variant: EventVariantSummary,
+    /** The visitor's registration in the variant, with whether a payment is in effect for it. */
+    registration: EventRegistrationOfUser | null,
     userId: number | null,
     availableBalance?: number,
     customerSessionClientSecret?: string,
     capabilities: Capabilities<'canPay'>,
 }) {
-    const { price, paymentStart, paymentEnd } = event
-    if (!event.takesPayment || price === null || !paymentStart || !paymentEnd) return null
+    const { price, paymentStart, paymentEnd } = variant
+    if (!variant.takesPayment || price === null || !paymentStart || !paymentEnd) return null
 
     const now = new Date()
     const paymentOpen = paymentStart <= now && now <= paymentEnd
@@ -71,7 +67,8 @@ export default function EventPaymentSection({
             </p>
             {paymentOpen && userId !== null && capabilities.canPay.authorized && (
                 <EventPaymentModal
-                    eventId={event.id}
+                    eventId={eventId}
+                    variantId={variant.id}
                     userId={userId}
                     price={price}
                     availableBalance={availableBalance}

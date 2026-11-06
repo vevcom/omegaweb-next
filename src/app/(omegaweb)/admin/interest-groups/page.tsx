@@ -4,6 +4,7 @@ import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import GroupTypeTable from '@/components/Group/GroupTypeTable'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -26,7 +27,7 @@ const { page, generateMetadata } = serverPage({
                 order: expanded.order,
                 members: expanded.members,
                 pensioned: interestGroup.group.pensioned,
-                href: `/interest-groups/${interestGroup.id}`,
+                href: appHref(`/interest-groups/${interestGroup.id}`),
             }] : []
         })
 

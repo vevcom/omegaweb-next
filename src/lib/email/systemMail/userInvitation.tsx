@@ -3,8 +3,11 @@ import { userInvitationExpiration } from './constants'
 import { generateVerifyEmailJWT } from './verifyEmailToken'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import { UserInvitationTemplate } from '@/lib/email/templates/userInvitation'
-import { QueryParams } from '@/lib/queryParams/queryParams'
 import logger from '@/lib/logger'
+import { DomainContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
+import { authLinks } from '@/pageKits/auth/links'
+import { authPagesOf } from '@/lib/sites/authPagesOf'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
 /**
@@ -15,12 +18,12 @@ export async function sendUserInvitationEmail(user: UserBasicWithEmail) {
     try {
         const jwt = generateVerifyEmailJWT(user.id, user.email, userInvitationExpiration)
 
-        const link = `${process.env.WEBSITE_URL}/verify-email?${QueryParams.token.encodeUrl(jwt)}`
+        const link = DomainContext.publicUrl(Site.OMEGAWEB, authLinks(authPagesOf(Site.OMEGAWEB)).verifyEmail(jwt))
 
         await sendMailOperations.internal.sendSystemMail.internalCall({
             data: {
                 to: user.email,
-                subject: `Invitasjon til ${process.env.WEBSITE_DOMAIN}`,
+                subject: `Invitasjon til ${DomainContext.mailDomainOf(Site.root)}`,
                 body: <UserInvitationTemplate user={user} link={link} />,
             },
         })

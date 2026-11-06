@@ -8,9 +8,11 @@ export const notificationOperations = {
     /**
      * Creates a notification. Nothing is sent here: the notification worker picks it up, resolves
      * who should receive it at that point (channel subscriptions ∩ targeted users ∩ visibility ∩
-     * permission, see methods/recipients.ts) and dispatches it through the channel's available methods.
+     * permission ∩ who can register for the event, see methods/recipients.ts) and dispatches it
+     * through the channel's available methods.
      *
-     * @param data - The notification, optionally restricted to an audience of users, a visibility and a permission.
+     * @param data - The notification, optionally restricted to an audience of users, a visibility, a
+     * permission and those who can register for an event.
      * @returns The created notification.
      */
     create: defineOperation({
@@ -46,6 +48,13 @@ export const notificationOperations = {
                         },
                     } : {}),
                     permission: data.audience?.permission,
+                    ...(data.audience?.canRegisterForEventId ? {
+                        canRegisterForEvent: {
+                            connect: {
+                                id: data.audience.canRegisterForEventId,
+                            },
+                        },
+                    } : {}),
                 }
             })
 

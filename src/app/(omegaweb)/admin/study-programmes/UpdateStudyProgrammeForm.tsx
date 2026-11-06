@@ -6,7 +6,7 @@ import TextInput from '@/components/UI/TextInput'
 import { updateStudyProgrammeAction, createStudyProgrammeAction } from '@/services/groups/studyProgrammes/actions'
 import { configureAction } from '@/services/configureAction'
 import { CLASS_LEVEL_ORDERING, ClassLevelConfig } from '@/services/groups/constants'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import type { StudyProgramme } from '@/prisma-generated-pn-types'
 
 
@@ -15,7 +15,7 @@ export default function UpdateStudyProgrammeForm({
 }: {
     studyProgramme?: StudyProgramme
 }) {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
 
     const create = studyProgramme === undefined
 

@@ -1,7 +1,8 @@
 import Image from '@/components/Image/Image'
 import { companyOperations } from '@/services/careers/companies/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { hrefOf } from '@/lib/sites/href'
 import type { ReactNode } from 'react'
 import type { SponsorCompany } from '@/services/careers/companies/types'
 
@@ -19,9 +20,9 @@ function SponsorLink({ sponsor, children }: { sponsor: SponsorCompany, children:
     if (!sponsor.website) return <span className={sponsorClassName}>{children}</span>
 
     return (
-        <Link className={sponsorClassName} href={sponsor.website} target="_blank" rel="noreferrer">
+        <SiteLink className={sponsorClassName} href={hrefOf(sponsor.website)} target="_blank" rel="noreferrer">
             {children}
-        </Link>
+        </SiteLink>
     )
 }
 

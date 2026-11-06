@@ -1,3 +1,5 @@
+import { testDomainConfig } from './testDomains'
+import { DomainContext } from '@/lib/sites/context'
 import { jest } from '@jest/globals'
 
 // React email rendering uses dynamic imports which are not supported in Jest by default.
@@ -5,3 +7,5 @@ import { jest } from '@jest/globals'
 jest.mock('@react-email/render', () => ({
     render: jest.fn().mockImplementation(() => 'Email rendering is disabled during tests.'),
 }))
+
+DomainContext.configure(testDomainConfig)

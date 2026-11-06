@@ -2,6 +2,8 @@ import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/
 import { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
+import { DomainContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { NotificationMethod } from '@/prisma-generated-pn-types'
 
@@ -122,6 +124,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
             alias: 'vevcom',
         },
         {
+            special: 'CONTACTOR',
             name: 'Contactor',
             description: 'Her kommer det diverse informasjon fra Contactor',
             defaultMethods: {
@@ -176,7 +179,8 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
         )
     }
 
-    const DEFAULT_NOTIFCIATION_ALIAS = `noreply@${process.env.EMAIL_DOMAIN}`
+    const domain = DomainContext.mailDomainOf(Site.root)
+    const DEFAULT_NOTIFCIATION_ALIAS = `noreply@${domain}`
 
     const rChan = channels.find(channel => channel.special === 'ROOT')
 
@@ -215,7 +219,7 @@ export const seedNotificationChannels = defineSeedOperation(async (prisma: Prism
                 },
                 mailAlias: {
                     connect: {
-                        address: channel.alias ? `${channel.alias}@${process.env.EMAIL_DOMAIN}` : DEFAULT_NOTIFCIATION_ALIAS,
+                        address: channel.alias ? `${channel.alias}@${domain}` : DEFAULT_NOTIFCIATION_ALIAS,
                     }
                 }
             }

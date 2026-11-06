@@ -9,6 +9,7 @@ import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
 import { paymentAuth } from '@/services/ledger/payments/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/ServerPage'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import { notFound } from 'next/navigation'
@@ -78,7 +79,7 @@ const { page, generateMetadata } = serverPage({
             {/* Add link to products overview */}
             <LedgerAccountTransactionSummary
                 accountId={ledgerAccount.id}
-                transactionsHref={`${ledgerAccount.id}/transactions`}
+                transactionsHref={appHref(`/admin/accounts/${ledgerAccount.id}/transactions`)}
             />
         </div>
     ),

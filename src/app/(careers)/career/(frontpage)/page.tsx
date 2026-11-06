@@ -1,6 +1,7 @@
 import CareersHeroShape from '@/app/(careers)/career/(frontpage)/CareersHeroShape'
 import UpcomingCompanyPresentations from '@/app/(careers)/career/(frontpage)/UpcomingCompanyPresentations'
-import { CAREER_PATH, companyPresentationPages } from '@/app/(careers)/_lib/careersSite'
+import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
+import { careerLinks } from '@/app/(careers)/links'
 import {
     badgeClassName,
     bandClassName,
@@ -24,7 +25,7 @@ import {
 } from '@/services/careers/frontpage/actions'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
 import { serverPage } from '@/app/ServerPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import type {
@@ -125,7 +126,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </section>
 
-                <UpcomingCompanyPresentations eventsHref={companyPresentationPages.basePath} />
+                <UpcomingCompanyPresentations eventsHref={companyPresentationLinks.list()} />
 
                 <section id="studieprogrammene" className={`
                     ${bandClassName}
@@ -208,14 +209,14 @@ const { page, generateMetadata } = serverPage({
                                 `}
                                 {...paragraphActions}
                             />
-                            <Link href={`${CAREER_PATH}/about`} className={`
+                            <SiteLink href={careerLinks.about()} className={`
                                 ${buttonClassName}
                                 mt-8 bg-careers-navy text-white
                                 hover:bg-careers-navy-dark
                             `}>
                                 Møt teamet
                                 <FontAwesomeIcon icon={faArrowRight} />
-                            </Link>
+                            </SiteLink>
                         </div>
                         <div className={`
                             [--image-width:100%] overflow-hidden rounded-[calc(var(--rounding)/2)] aspect-[4/3]

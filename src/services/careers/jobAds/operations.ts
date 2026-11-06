@@ -2,13 +2,14 @@ import '@pn-server-only'
 import { jobAdAuth } from './auth'
 import { jobAdSchemas } from './schemas'
 import { activeJobAdOrdering, articleAndCompanyIncluder, simpleArticleAndCompanyIncluder } from './constants'
+import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { logoIncluder } from '@/services/careers/companies/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { articleOperations } from '@/cms/articles/operations'
 import { notificationOperations } from '@/services/notifications/operations'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
-import { formatVevenUri } from '@/lib/urlEncoding'
+import { implementSearchOperation } from '@/services/search/implement'
 import type { ExpandedJobAd, SimpleJobAd } from './types'
 
 const read = defineOperation({
@@ -72,7 +73,7 @@ export const jobAdOperations = {
                 data: {
                     title: `Ny jobbannonse: ${articleName}`,
                     message: `${jobAd.company.name} har lagt ut en ny jobbannonse: ${articleName}`,
-                    url: `/job-ads/${formatVevenUri(articleName, jobAd.id)}`,
+                    url: omegaJobAdLinks.jobAd({ articleName, id: jobAd.id }),
                     audience: { permission: 'JOBAD_USE' },
                 },
             })
@@ -107,6 +108,32 @@ export const jobAdOperations = {
                 companySponsorTier: jobAd.company.sponsorTier,
             }))
         }
+    }),
+    search: implementSearchOperation({
+        authorizer: () => jobAdAuth.search,
+        find: ({ prisma, query, take }) => prisma.jobAd.findMany({
+            take,
+            where: {
+                OR: [
+                    { article: { name: { contains: query, mode: 'insensitive' } } },
+                    { company: { name: { contains: query, mode: 'insensitive' } } },
+                ],
+            },
+            orderBy: [{ active: 'desc' }, ...activeJobAdOrdering],
+            select: {
+                id: true,
+                active: true,
+                article: { select: { name: true } },
+                company: { select: { name: true } },
+            },
+        }),
+        toSearchResult: jobAd => ({
+            key: `job-ad-${jobAd.id}`,
+            href: omegaJobAdLinks.jobAd({ articleName: jobAd.article.name, id: jobAd.id }),
+            label: jobAd.article.name,
+            sublabel: jobAd.active ? jobAd.company.name : `${jobAd.company.name} (utløpt)`,
+            image: null,
+        }),
     }),
     /**
      * This handler reads a page of inactive jobAds

@@ -5,6 +5,9 @@ import { buildWeeklyDigestText } from '@/services/notifications/methods/dispatch
 import { userPrivateSelection } from '@/services/users/constants'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { permissionOperations } from '@/services/permissions/operations'
+import { eventOperations } from '@/services/events/operations'
+import { eventQuotaOperations } from '@/services/events/quotas/operations'
+import { eventVariantOperations } from '@/services/events/variants/operations'
 import { afterEach, describe, expect, test } from '@jest/globals'
 import type { NotificationMethods } from '@/services/notifications/types'
 import type { Permission } from '@/prisma-generated-pn-types'
@@ -16,10 +19,13 @@ import type { UserFiltered } from '@/services/users/types'
 
 const testGroupIds: number[] = []
 const testVisibilityIds: number[] = []
+const testEventIds: number[] = []
 
 afterEach(async () => {
     await prisma.weeklyMailOutboxEntry.deleteMany()
     await prisma.notification.deleteMany({ where: { title: { startsWith: 'test-' } } })
+    await Promise.all(testEventIds.map(id => eventOperations.destroy({ params: { id }, bypassAuth: true })))
+    testEventIds.length = 0
     await prisma.visibility.deleteMany({ where: { id: { in: testVisibilityIds } } })
     await prisma.membership.deleteMany({ where: { user: { username: { startsWith: 'test-' } } } })
     await prisma.user.deleteMany({ where: { username: { startsWith: 'test-' } } })
@@ -71,6 +77,7 @@ async function createTestNotification(data: {
     targetUserIds?: number[],
     visibilityId?: number,
     permission?: Permission,
+    canRegisterForEventId?: number,
     createdAt?: Date,
 }) {
     return await prisma.notification.create({
@@ -84,6 +91,7 @@ async function createTestNotification(data: {
                 : undefined,
             visibilityId: data.visibilityId,
             permission: data.permission,
+            canRegisterForEventId: data.canRegisterForEventId,
         },
         include: notificationDispatchIncluder,
     })
@@ -178,6 +186,76 @@ describe('notification recipient resolution', () => {
         })
         expect(await resolveRecipientIds(notification.id, 'email'))
             .toEqual([member.id, outsider.id].sort())
+    })
+
+    test('who can register for an event is resolved against its quotas when dispatched', async () => {
+        const channelId = await readRootChannelId()
+        const member = await createTestUser('test-register-member')
+        const outsider = await createTestUser('test-register-outsider')
+        await subscribe(member.id, channelId, { email: true, emailWeekly: true })
+        await subscribe(outsider.id, channelId, { email: true, emailWeekly: true })
+
+        const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
+        const group = await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })
+        testGroupIds.push(group.id)
+        await prisma.membership.create({
+            data: { userId: member.id, groupId: group.id, admin: false, active: true, order },
+        })
+
+        const event = await eventOperations.create({
+            data: {
+                name: 'test-event',
+                location: 'Lophtet',
+                eventStart: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                eventEnd: new Date(Date.now() + 26 * 60 * 60 * 1000),
+                canBeViewedBy: 'ALL',
+                takesRegistration: false,
+                waitingList: false,
+                allowRegistrationInMultipleVariants: false,
+                tagIds: [],
+                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+            },
+            bypassAuth: true,
+        })
+        testEventIds.push(event.id)
+        const notification = await createTestNotification({
+            channelId,
+            title: 'test-can-register',
+            canRegisterForEventId: event.id,
+        })
+
+        // Open to all and without registration: everyone subscribed.
+        expect(await resolveRecipientIds(notification.id, 'email')).toEqual([member.id, outsider.id].sort())
+
+        // A quota for the group alone, added after the notification was created, narrows it to the member.
+        const variant = await eventVariantOperations.create({
+            params: { eventId: event.id },
+            data: {
+                name: 'Påmelding',
+                registrationStart: new Date(),
+                registrationEnd: new Date(Date.now() + 60 * 60 * 1000),
+            },
+            bypassAuth: true,
+        })
+        const quota = await eventQuotaOperations.create({
+            params: { variantId: variant.id },
+            data: {
+                name: 'Gruppa',
+                places: 5,
+                visibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+            },
+            bypassAuth: true,
+        })
+        expect(await resolveRecipientIds(notification.id, 'email')).toEqual([member.id])
+
+        // Opening the quota to everyone brings the outsider back.
+        await eventQuotaOperations.visibility.update({
+            implementationParams: { id: quota.id },
+            params: { visibilityId: quota.visibilityId },
+            data: { requirements: [] },
+            bypassAuth: true,
+        })
+        expect(await resolveRecipientIds(notification.id, 'email')).toEqual([member.id, outsider.id].sort())
     })
 
     test('a permission is held through an active membership of a group holding it, or as a default', async () => {

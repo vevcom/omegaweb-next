@@ -13,7 +13,8 @@ import {
 } from '@/services/articleCategories/actions'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { configureAction } from '@/services/configureAction'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCog } from '@fortawesome/free-solid-svg-icons'
 import type {
@@ -26,7 +27,7 @@ type PropTypes = {
 }
 
 export default function EditCategory({ category }: PropTypes) {
-    const { refresh, push } = useRouter()
+    const { refresh, push } = useSiteRouter()
     const canAddArticle = useAuthorizer({
         authorizer: articleCategoryAuth.addArticleToCategory.data({ visibility: category.visibility })
     }).authorized
@@ -44,13 +45,13 @@ export default function EditCategory({ category }: PropTypes) {
     }).authorized
 
     const handleSuccessDestroy = () => {
-        push('/articles')
+        push(appHref('/articles'))
         refresh()
     }
 
     const handleSuccessUpdate = (data: ExpandedArticleCategory | undefined) => {
         if (data) {
-            push(`/articles/${data.name}`)
+            push(appHref(`/articles/${data.name}`))
         }
         refresh()
     }

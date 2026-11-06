@@ -2,13 +2,13 @@
 import { lockerPathOfQrCode } from './lockerQrCode'
 import QrCodeReader from '@/components/QrCodeReader/QrCodeReader'
 import { ScanHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 
 /**
  * Opens the camera in a pop-up and goes to the locker whose QR code is held in front of it.
  */
 export default function LockerScanner() {
-    const router = useRouter()
+    const router = useSiteRouter()
 
     return (
         <ScanHeaderItemPopUp popUpKey="scan_locker_qr_code">

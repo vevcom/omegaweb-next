@@ -3,9 +3,9 @@
 import { deleteSavedPaymentMethodAction } from '@/services/stripeCustomers/actions'
 import { stripeCustomerAuth } from '@/services/stripeCustomers/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { useRouter } from 'next/navigation'
 import type { FilteredPaymentMethod } from '@/services/stripeCustomers/types'
 
 type Params = {
@@ -14,7 +14,7 @@ type Params = {
 }
 
 export default function PaymentMethodList({ userId, paymentMethods }: Params) {
-    const router = useRouter()
+    const router = useSiteRouter()
     const canDeletePaymentMethod = useAuthorizer({
         authorizer: stripeCustomerAuth.deleteSavedPaymentMethod.data({ userId }),
     }).authorized

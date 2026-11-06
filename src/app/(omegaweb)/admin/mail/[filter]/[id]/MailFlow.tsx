@@ -7,8 +7,9 @@ import {
 } from '@/services/mail/actions'
 import { mailAuth } from '@/services/mail/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -56,7 +57,7 @@ export default function MailFlow({
     data: MailFlowObject,
     groupNames: Record<number, string>,
 }) {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
     const [error, setError] = useState<string | null>(null)
 
     const canDestroyAliasMailingListRelation = useAuthorizer({
@@ -169,15 +170,15 @@ export default function MailFlow({
             <FontAwesomeIcon icon={typeIcons[chip.type]} className="text-base-content/80 flex-none" />
             {focused
                 ? <span className="text-base-content no-underline wrap-anywhere">{chip.label}</span>
-                : <Link
+                : <SiteLink
                     className="
                         text-base-content no-underline wrap-anywhere
                         hover:underline
                     "
-                    href={`/admin/mail/${chip.type}/${chip.id}`}
+                    href={appHref(`/admin/mail/${chip.type}/${chip.id}`)}
                 >
                     {chip.label}
-                </Link>
+                </SiteLink>
             }
             {chip.via && chip.via.length > 0 && <span className="text-[0.8rem] text-base-content/80 italic">
                 via {chip.via.map(viaItem => viaItem.label).join(', ')}

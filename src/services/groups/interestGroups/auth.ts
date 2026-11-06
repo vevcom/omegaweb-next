@@ -7,6 +7,7 @@ export const interestGroupAuth = {
     create: Require.permission('INTEREST_GROUP_ADMIN'),
     read: Require.permission('INTEREST_GROUP_USE'),
     readMany: Require.permission('INTEREST_GROUP_USE'),
+    search: Require.permission('INTEREST_GROUP_USE'),
     readExpanded: Require.permission('INTEREST_GROUP_USE'),
     readMembers: requireReadManagedGroupMembers('INTEREST_GROUP_USE'),
     readMembershipsOfUser: requireReadMembershipsOfUser('INTEREST_GROUP_USE'),

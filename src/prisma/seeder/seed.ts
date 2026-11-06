@@ -1,9 +1,12 @@
 import seed from './src/seed'
 import logger from '@/lib/logger'
+import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import { prisma } from '@/prisma-pn-client-instance'
 import { exit } from 'process'
 
 process.env.SEED = 'true'
+// The standard aliases and channels are on Omega's mail domain.
+loadDomainConfig()
 
 void seed({ devData: process.env.NODE_ENV === 'development' })
     .then(async () => {

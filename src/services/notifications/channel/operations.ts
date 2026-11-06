@@ -10,7 +10,7 @@ import {
 } from '@/services/notifications/constants'
 import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
 import { defineOperation } from '@/services/serviceOperation'
-import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
+import { defaultNotificationAlias } from '@/lib/email/constants'
 import { ServiceError } from '@/services/error'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 
@@ -43,7 +43,7 @@ export const notificationChannelOperations = {
                         },
                         mailAlias: {
                             connect: {
-                                address: DEFAULT_NOTIFICATION_ALIAS,
+                                address: defaultNotificationAlias(),
                             }
                         }
                     },
@@ -107,6 +107,15 @@ export const notificationChannelOperations = {
         operation: async ({ prisma }) => await prisma.notificationChannel.findMany({
             include: availableNotificationMethodIncluder,
         })
+    }),
+
+    readSpecial: defineOperation({
+        paramsSchema: notificationChannelSchemas.params.readSpecial,
+        authorizer: () => notificationChannelAuth.readSpecial,
+        operation: async ({ prisma, params }) => await prisma.notificationChannel.findUniqueOrThrow({
+            where: { special: params.special },
+            include: availableNotificationMethodIncluder,
+        }),
     }),
 
     readDefault: defineOperation({

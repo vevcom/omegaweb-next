@@ -2,11 +2,12 @@
 import { createMailAddressExternalAction } from '@/services/mail/mailAddressExternal/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 
 
 export default function CreateMailaddressExternal() {
-    const { push } = useRouter()
+    const { push } = useSiteRouter()
 
     return <Form
         title="Opprett ny ekstern adresse"
@@ -14,7 +15,7 @@ export default function CreateMailaddressExternal() {
         action={createMailAddressExternalAction}
         successCallback={data => {
             if (!data) return
-            push(`/admin/mail/mailaddressExternal/${data.id}`)
+            push(appHref(`/admin/mail/mailaddressExternal/${data.id}`))
         }}
     >
         <TextInput label="Adresse" name="address"></TextInput>

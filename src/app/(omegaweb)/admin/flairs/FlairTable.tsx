@@ -3,20 +3,21 @@ import { increaseFlairRankAction, decreaseFlairRankAction } from '@/services/fla
 import { configureAction } from '@/services/configureAction'
 import { flairAuth } from '@/services/flairs/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import { useRouter } from 'next/navigation'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
 import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowUpRightFromSquare, faGripVertical } from '@fortawesome/free-solid-svg-icons'
-import Link from 'next/link'
 import type { PointerEvent, ReactNode } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 export type FlairRow = {
     id: number,
     image: ReactNode,
     name: string,
     colorStyle: { backgroundColor: string },
-    editHref: string,
+    editHref: AppHref,
 }
 
 const columnClass = {
@@ -88,10 +89,10 @@ function FlairTableRow({ row, index, canReorder, onDragEnd }: RowPropTypes) {
             <span className={columnClass.colColor} role="cell" style={row.colorStyle}></span>
             <span className={columnClass.colRank} role="cell">{index + 1}</span>
             <span className={columnClass.colLink} role="cell">
-                <Link href={row.editHref}>
+                <SiteLink href={row.editHref}>
                     <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
                     <span className="max-mobile:sr-only">Rediger</span>
-                </Link>
+                </SiteLink>
             </span>
         </Reorder.Item>
     )
@@ -104,7 +105,7 @@ type PropTypes = {
 export default function FlairTable({ rows }: PropTypes) {
     const [order, setOrder] = useState(rows)
     const [prevRows, setPrevRows] = useState(rows)
-    const router = useRouter()
+    const router = useSiteRouter()
     const canIncreaseFlairRank = useAuthorizer({ authorizer: flairAuth.increaseRank }).authorized
     const canDecreaseFlairRank = useAuthorizer({ authorizer: flairAuth.decreaseRank }).authorized
 
