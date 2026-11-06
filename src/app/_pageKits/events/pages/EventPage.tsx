@@ -151,8 +151,9 @@ export function eventPage(config: EventPagesConfig) {
                 event.generalNotificationChannel,
             ]
             const subscriptions = session.user
-                ? (await notificationSubscriptionOperations.read({ params: { userId: session.user.id } }))
-                    .filter(subscription => channelsOfEvent.some(channel => channel.id === subscription.channelId))
+                ? await notificationSubscriptionOperations.read({
+                    params: { userId: session.user.id, channelIds: channelsOfEvent.map(channel => channel.id) },
+                })
                 : []
 
             // For giving dots after the event; readable by those administrating it.

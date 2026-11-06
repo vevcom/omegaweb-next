@@ -2,7 +2,7 @@ import { passesVisibilityWhere } from '@/auth/visibility/passesVisibilityWhere'
 import { whoCanRegisterSelection, whoCanRegisterWhere } from '@/services/events/access'
 import { visibilityIncluder } from '@/services/visibility/implement'
 import { userPartitions } from '@/services/users/constants'
-import { findChainIds } from '@/services/notifications/channels/subservice/helpers'
+import { channelsById, findChainIds } from '@/services/notifications/channels/subservice/helpers'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { NotificationMethods } from '@/services/notifications/types'
 import type { Permission, Prisma } from '@/prisma-generated-pn-types'
@@ -99,7 +99,7 @@ function registeredForEventWhere(eventId: number): Prisma.UserWhereInput {
 /** The channel and the channels above it, nearest first, as recipientsWhere takes them. */
 export async function readChannelChainIds(prisma: PrismaPossibleTransaction<false>, channelId: number): Promise<number[]> {
     const channels = await prisma.notificationChannel.findMany({ select: { id: true, parentId: true } })
-    return findChainIds(channelId, channels)
+    return findChainIds(channelId, channelsById(channels))
 }
 
 /**

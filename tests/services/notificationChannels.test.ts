@@ -268,6 +268,10 @@ describe('the channels an event owns', () => {
             explicit: false,
             methods: { email: true, emailWeekly: true, push: false },
         })
+        await expect(notificationSubscriptionOperations.read({
+            params: { userId, channelIds: [created.generalNotificationChannelId] },
+            bypassAuth: true,
+        })).resolves.toEqual([of(created.generalNotificationChannelId)])
         await eventNotificationOperations.internal.destroyChannels.internalCall({ params: created })
     })
 

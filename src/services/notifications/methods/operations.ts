@@ -9,7 +9,7 @@ import logger from '@/lib/logger'
 import { userBasicSelection } from '@/services/users/constants'
 import { permissionOperations } from '@/services/permissions/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
-import { findChainIds } from '@/services/notifications/channels/subservice/helpers'
+import { channelsById, findChainIds } from '@/services/notifications/channels/subservice/helpers'
 
 export const notificationMethodOperations = {
     /**
@@ -93,7 +93,7 @@ export const notificationMethodOperations = {
      */
     materializeWeeklyOutbox: defineSubOperation({
         paramsSchema: () => notificationMethodSchemas.params.materializeWeeklyOutbox,
-        transaction: 'RUNS_IN',
+        transaction: 'OPENS',
         operation: () => async ({ prisma, params }) => {
             const notifications = await prisma.notification.findMany({
                 where: {
@@ -116,7 +116,10 @@ export const notificationMethodOperations = {
             if (notifications.length === 0) return { notifications: 0, entries: 0 }
 
             const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })
-            const channels = await prisma.notificationChannel.findMany({ select: { id: true, parentId: true } })
+            const channels = channelsById(
+                await prisma.notificationChannel.findMany({ select: { id: true, parentId: true } })
+            )
+            // Resolved outside the transaction, since a long backlog could outlast its timeout.
             const entries = (await Promise.all(notifications.map(async notification => {
                 const recipients = await prisma.user.findMany({
                     where: recipientsWhere(
@@ -130,18 +133,20 @@ export const notificationMethodOperations = {
                 }))
             }))).flat()
 
-            await prisma.weeklyMailOutboxEntry.createMany({
-                data: entries,
-                skipDuplicates: true,
-            })
-            await prisma.notification.updateMany({
-                where: {
-                    id: {
-                        in: notifications.map(notification => notification.id),
+            await prisma.$transaction([
+                prisma.weeklyMailOutboxEntry.createMany({
+                    data: entries,
+                    skipDuplicates: true,
+                }),
+                prisma.notification.updateMany({
+                    where: {
+                        id: {
+                            in: notifications.map(notification => notification.id),
+                        },
                     },
-                },
-                data: { emailWeeklyDispatchedAt: new Date() },
-            })
+                    data: { emailWeeklyDispatchedAt: new Date() },
+                }),
+            ])
 
             return { notifications: notifications.length, entries: entries.length }
         },

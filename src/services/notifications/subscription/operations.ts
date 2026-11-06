@@ -12,7 +12,7 @@ import type { Prisma } from '@/prisma-generated-pn-types'
 import type { ResolvedSubscription, Subscription } from './types'
 
 export const notificationSubscriptionOperations = {
-    /** The user's subscription to every channel, as their rows resolve, see resolveSubscriptions. */
+    /** The user's subscription to the channels asked for or else to every one, see resolveSubscriptions. */
     read: defineOperation({
         paramsSchema: notificationSubscriptionSchemas.params.read,
         authorizer: ({ params }) => notificationSubscriptionAuth.read.data({ userId: params.userId }),
@@ -26,7 +26,7 @@ export const notificationSubscriptionOperations = {
                     include: notificationMethodIncluder,
                 }),
             ])
-            return resolveSubscriptions(channels, subscriptions)
+            return resolveSubscriptions(channels, subscriptions, params.channelIds)
         },
     }),
 

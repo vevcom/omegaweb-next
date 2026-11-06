@@ -34,17 +34,16 @@ const { page, generateMetadata } = serverPage({
         if (!session.user) throw new Smorekopp('UNAUTHENTICATED')
         const userId = session.user.id
 
-        const [user, profile, registrations, dots, channel, subscriptions] = await Promise.all([
+        const channel = await contactorNotificationChannel.readChannel({})
+        const [user, profile, registrations, dots, [subscription]] = await Promise.all([
             userOperations.read({ params: { id: userId } }),
             userOperations.readProfile({ params: { username: session.user.username } }),
             eventRegistrationOperations.readUpcomingOfUser({
                 params: { userId, specialTag: 'COMPANY_PRESENTATION' },
             }),
             dotOperations.readForUser({ params: { userId, onlyActive: true } }),
-            contactorNotificationChannel.readChannel({}),
-            notificationSubscriptionOperations.read({ params: { userId } }),
+            notificationSubscriptionOperations.read({ params: { userId, channelIds: [channel.id] } }),
         ])
-        const subscription = subscriptions.find(candidate => candidate.channelId === channel.id)
 
         return { user, profile, registrations, dots, channel, subscription }
     },
