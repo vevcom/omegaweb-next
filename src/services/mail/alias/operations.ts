@@ -3,14 +3,42 @@ import { mailAliasAuth } from './auth'
 import { mailAliasSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
+import { visibilityOperations } from '@/services/visibility/operations'
+import { implementVisibilityOperations } from '@/services/visibility/implement'
 import type { MailAlias } from '@/prisma-generated-pn-types'
 
+/** The owners of an alias: pass it, or hold MAILSERVER_ADMIN. */
+const visibility = implementVisibilityOperations({
+    implementationParamsSchema: mailAliasSchemas.params.visibility,
+    authorizers: {
+        readMatrix: () => mailAliasAuth.readVisibility,
+        update: () => mailAliasAuth.updateVisibility,
+    },
+    readVisibility: async ({ prisma, implementationParams, include }) => (
+        await prisma.mailAlias.findUniqueOrThrow({
+            where: { id: implementationParams.id },
+            select: { ownerVisibility: { include } },
+        })
+    ).ownerVisibility,
+    emptyMeans: 'REFUSED',
+})
+
 export const aliasOperations = {
+    visibility,
+
     create: defineOperation({
         dataSchema: mailAliasSchemas.data.create,
         authorizer: () => mailAliasAuth.create,
-        operation: async ({ prisma, data }): Promise<MailAlias> =>
-            prisma.mailAlias.create({ data }),
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data: { ownerRequirements, ...data } }): Promise<MailAlias> => {
+            const ownerVisibility = await visibilityOperations.createWithRequirements.internalCall({
+                prisma,
+                data: { requirements: ownerRequirements },
+            })
+            return prisma.mailAlias.create({
+                data: { ...data, ownerVisibility: { connect: { id: ownerVisibility.id } } },
+            })
+        },
     }),
 
     readMany: defineOperation({
@@ -33,6 +61,7 @@ export const aliasOperations = {
     destroy: defineOperation({
         paramsSchema: mailAliasSchemas.params.destroy,
         authorizer: () => mailAliasAuth.destroy,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }): Promise<MailAlias> => {
             const alias = await prisma.mailAlias.findUniqueOrThrow({
                 where: { id: params.id },
@@ -46,9 +75,14 @@ export const aliasOperations = {
                 )
             }
 
-            return prisma.mailAlias.delete({
+            const destroyed = await prisma.mailAlias.delete({
                 where: { id: params.id },
             })
+            await visibilityOperations.destroy.internalCall({
+                prisma,
+                params: { visibilityId: destroyed.ownerVisibilityId },
+            })
+            return destroyed
         },
     }),
 } as const

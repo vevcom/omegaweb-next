@@ -7,6 +7,8 @@ import EditGroup from '@/pageKits/mailServer/components/EditGroup'
 import MailServerTabs from '@/pageKits/mailServer/components/MailServerTabs'
 import { mailServerPartArray } from '@/pageKits/mailServer/links'
 import { mailOperations } from '@/services/mail/operations'
+import { aliasOperations } from '@/services/mail/alias/operations'
+import { mailingListOperations } from '@/services/mail/list/operations'
 import { MailListTypeArray, validMailAddressDomains } from '@/services/mail/constants'
 import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
@@ -19,6 +21,7 @@ import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 import type { MailServerPart } from '@/pageKits/mailServer/links'
 import type { PageOperationArgs } from '@/app/ServerPage'
 import type { MailFlowObject, MailListTypes } from '@/services/mail/types'
+import type { VisibilityMatrix } from '@/services/visibility/types'
 
 const typeDisplayNames: Record<MailListTypes, string> = {
     alias: 'E-postalias',
@@ -35,6 +38,13 @@ function focusedLabel(filter: MailListTypes, id: number, data: MailFlowObject) {
     if (filter === 'group') return data.group.find(group => group.id === id)?.name
     const user = data.user.find(focusedUser => focusedUser.id === id)
     return user && `${user.firstname} ${user.lastname}`
+}
+
+/** Aliases and mailing lists have owners; the matrix is empty for the other nodes, which have no owners to edit. */
+function readOwners(filter: MailListTypes, id: number): Promise<VisibilityMatrix> {
+    if (filter === 'alias') return aliasOperations.visibility.readMatrix({ params: { id } })
+    if (filter === 'mailingList') return mailingListOperations.visibility.readMatrix({ params: { id } })
+    return Promise.resolve({ requirements: [] })
 }
 
 /** A group or a user is in the flow without a part of its own, so no tab is active on its page. */
@@ -55,22 +65,23 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
             notFound()
         }
 
-        const [results, mailOptions, allGroupTypes] = await Promise.all([
+        const [results, mailOptions, allGroupTypes, owners] = await Promise.all([
             mailOperations.readMailTraversal({ params: { filter, id } }),
             mailOperations.readMailOptions({}),
             readExpandedOfAllTypes({}),
+            readOwners(filter, id),
         ])
 
         const groups = flattenExpandedGroups(allGroupTypes)
         const domains = filter === 'alias' ? validMailAddressDomains() : []
 
-        return { filter, id, results, mailOptions, groups, domains }
+        return { filter, id, results, mailOptions, groups, domains, owners }
     },
     metadata: ({ filter, id, results }) => ({
         title: focusedLabel(filter, id, results) ?? typeDisplayNames[filter],
     }),
     render: ({ data }) => {
-        const { filter, id, results, mailOptions, groups, domains } = data
+        const { filter, id, results, mailOptions, groups, domains, owners } = data
 
         return <PageWrapper>
             <div className="p-4 flex flex-col gap-4">
@@ -93,6 +104,7 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
                                 mailaliases={mailOptions.alias}
                                 mailAddressExternal={mailOptions.mailaddressExternal}
                                 groups={groups}
+                                owners={owners}
                             />
                         </UserPagingProvider>
                     </UserSelectionProvider>}
@@ -102,6 +114,7 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
                         data={results}
                         mailingLists={mailOptions.mailingList}
                         domains={domains}
+                        owners={owners}
                     />}
                     {filter === 'mailaddressExternal' && <EditMailAddressExternal
                         config={config}

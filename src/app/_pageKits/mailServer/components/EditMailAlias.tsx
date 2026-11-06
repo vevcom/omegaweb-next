@@ -1,11 +1,16 @@
 'use client'
+import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
 import { mailServerLinks } from '@/pageKits/mailServer/links'
 
 import TextInput from '@/components/UI/TextInput'
 import Form from '@/components/Form/Form'
 import { SelectNumber, SelectString } from '@/components/UI/Select'
 import { createAliasMailingListRelationAction } from '@/services/mail/actions'
-import { updateMailAliasAction, destroyMailAliasAction } from '@/services/mail/alias/actions'
+import {
+    updateMailAliasAction,
+    updateMailAliasVisibilityAction,
+    destroyMailAliasAction,
+} from '@/services/mail/alias/actions'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { mailAuth } from '@/services/mail/auth'
 import { configureAction } from '@/services/configureAction'
@@ -14,6 +19,7 @@ import useSiteRouter from '@/hooks/useSiteRouter'
 import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 import type { MailingList } from '@/prisma-generated-pn-types'
 import type { MailFlowObject } from '@/services/mail/types'
+import type { VisibilityMatrix } from '@/services/visibility/types'
 
 export default function EditMailAlias({
     config,
@@ -21,12 +27,15 @@ export default function EditMailAlias({
     data,
     mailingLists,
     domains,
+    owners,
 }: {
     config: MailServerPagesConfig,
     id: number,
     data: MailFlowObject,
     mailingLists: MailingList[],
+    /** The domains an alias may be on. */
     domains: string[],
+    owners: VisibilityMatrix,
 }) {
     const { push, refresh } = useSiteRouter()
     const links = mailServerLinks(config)
@@ -39,6 +48,7 @@ export default function EditMailAlias({
 
     const canUpdateAlias = useAuthorizer({ authorizer: mailAliasAuth.update }).authorized
     const canDestroyAlias = useAuthorizer({ authorizer: mailAliasAuth.destroy }).authorized
+    const canUpdateOwners = useAuthorizer({ authorizer: mailAliasAuth.updateVisibility }).authorized
     const canAddRelation = useAuthorizer({
         authorizer: mailAuth.createAliasMailingListRelation
     }).authorized
@@ -61,6 +71,18 @@ export default function EditMailAlias({
             />
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedAlias.description} />
         </Form>}
+
+        {canUpdateOwners && <div className="flex flex-col gap-2">
+            <h3 className="m-0">Eiere</h3>
+            <VisibilityAdmin
+                visibility={owners}
+                visibilityId={focusedAlias.ownerVisibilityId}
+                updateVisibilityAction={configureAction(
+                    updateMailAliasVisibilityAction,
+                    { implementationParams: { id: focusedAlias.id } },
+                )}
+            />
+        </div>}
 
         {canAddRelation && availableLists.length > 0 && <Form
             title="Koble til e-postliste"

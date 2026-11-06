@@ -31,6 +31,73 @@ afterEach(async () => {
     await prisma.mailAddressExternal.deleteMany({ where: { address: { startsWith: 'test-' } } })
 })
 
+// ─── Owners ───────────────────────────────────────────────────────────────────
+
+describe('the owners of aliases and mailing lists', () => {
+    test('an alias created without owners gets a visibility no one passes', async () => {
+        const alias = await aliasOperations.create({
+            data: { localPart: 'test-unowned', domain: 'omega.ntnu.no', description: '' },
+            bypassAuth: true,
+        })
+        expect(await aliasOperations.visibility.readMatrix({ params: { id: alias.id }, bypassAuth: true })).toStrictEqual({
+            requirements: [{ conditions: [] }],
+        })
+    })
+
+    test('a mailing list is created with the owners given, which can be changed but not emptied', async () => {
+        const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
+        const group = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'mail-owners', shortName: 'mail-owners' } },
+            },
+        })
+        testGroupIds.push(group.id)
+        const owners = (groupId: number) => ({ requirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }] })
+
+        const list = await mailingListOperations.create({
+            data: { name: 'test-owned', description: '', ownerRequirements: owners(group.id).requirements },
+            bypassAuth: true,
+        })
+        const readOwners = () => mailingListOperations.visibility.readMatrix({ params: { id: list.id }, bypassAuth: true })
+        expect(await readOwners()).toStrictEqual(owners(group.id))
+
+        const otherGroup = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'mail-owners-other', shortName: 'mail-owners-other' } },
+            },
+        })
+        testGroupIds.push(otherGroup.id)
+        await mailingListOperations.visibility.update({
+            implementationParams: { id: list.id },
+            params: { visibilityId: list.ownerVisibilityId },
+            data: owners(otherGroup.id),
+            bypassAuth: true,
+        })
+        expect(await readOwners()).toStrictEqual(owners(otherGroup.id))
+
+        await expect(mailingListOperations.visibility.update({
+            implementationParams: { id: list.id },
+            params: { visibilityId: list.ownerVisibilityId },
+            data: { requirements: [] },
+            bypassAuth: true,
+        })).rejects.toThrow()
+        expect(await readOwners()).toStrictEqual(owners(otherGroup.id))
+    })
+
+    test('destroying a mailing list destroys its visibility', async () => {
+        const list = await mailingListOperations.create({
+            data: { name: 'test-destroy-owners', description: '' },
+            bypassAuth: true,
+        })
+        await mailingListOperations.destroy({ params: { id: list.id }, bypassAuth: true })
+        expect(await prisma.visibility.findUnique({ where: { id: list.ownerVisibilityId } })).toBeNull()
+    })
+})
+
 // ─── Alias Domain Validation ──────────────────────────────────────────────────
 
 describe('alias address validation', () => {

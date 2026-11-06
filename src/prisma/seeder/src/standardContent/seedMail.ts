@@ -3,6 +3,9 @@ import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
+/** A visibility no one passes, so the alias or list is the mail server admins' alone until they hand it over. */
+const ownedByNoOne = { create: { requirements: { create: [{}] } } }
+
 /**
  * Upserts the standard mail aliases (keyed on address) and mailing lists (keyed on name). An
  * existing mailing list is left untouched, including which aliases it holds - those are managed
@@ -61,7 +64,7 @@ export const seedMail = defineSeedOperation(async (prisma: PrismaClient) => {
     await Promise.all(Array.from(new Set(allAliases)).map(alias => prisma.mailAlias.upsert({
         where: { address: alias + DOMAIN },
         update: {},
-        create: { address: alias + DOMAIN },
+        create: { address: alias + DOMAIN, ownerVisibility: ownedByNoOne },
     })))
 
     await Promise.all(mailingLists.map(mailingList => prisma.mailingList.upsert({
@@ -69,6 +72,7 @@ export const seedMail = defineSeedOperation(async (prisma: PrismaClient) => {
         update: {},
         create: {
             name: mailingList.name,
+            ownerVisibility: ownedByNoOne,
             mailAliases: {
                 create: mailingList.aliases.map(alias => ({
                     mailAlias: { connect: { address: alias + DOMAIN } },
