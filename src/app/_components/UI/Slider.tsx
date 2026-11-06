@@ -4,12 +4,10 @@ import type { PropTypes as TextInputPropTypes } from './TextInput'
 type PropTypes = Omit<TextInputPropTypes, 'type'> & { name: string }
 
 const checkedColorClassNames = {
-    secondary: 'peer-checked:bg-surface-base',
-    primary: 'peer-checked:bg-accent-blue',
-    red: 'peer-checked:bg-accent-red',
-    green: 'peer-checked:bg-accent-green',
-    white: 'peer-checked:bg-white',
-    black: 'peer-checked:bg-black',
+    base: 'peer-checked:bg-base-content',
+    primary: 'peer-checked:bg-primary',
+    secondary: 'peer-checked:bg-secondary',
+    error: 'peer-checked:bg-error',
 } as const
 
 /**

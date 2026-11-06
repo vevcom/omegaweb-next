@@ -6,7 +6,7 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
     name: string,
     label: string,
     type?: 'text' | 'password',
-    color?: 'base' | 'secondary' | 'error',
+    color?: 'base' | 'primary' | 'secondary' | 'error',
     background?: 'base100' | 'base200',
     /** 40px tall instead of 56px, to sit in a row of header pills. */
     compact?: boolean,

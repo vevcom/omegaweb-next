@@ -14,7 +14,7 @@ import { SelectString, SelectNumber } from '@/components/UI/Select'
 import ProgressBar from '@/components/ProgressBar/ProgressBar'
 
 const textInputColors = ['base', 'secondary', 'error'] as const
-const sliderColors = ['primary', 'secondary', 'red', 'black', 'white'] as const
+const sliderColors = ['base', 'primary', 'secondary', 'error'] as const
 const fileInputColors = ['primary', 'secondary', 'red', 'black', 'white'] as const
 const selectColors = ['primary', 'secondary', 'base', 'error'] as const
 

@@ -1,12 +1,13 @@
 'use client'
 import {
     DropdownPanel,
+    dropdownBorderClassNames,
     dropdownChevronClassName,
     dropdownColorClassNames,
     dropdownLabelClassName,
     useDropdown,
 } from './Dropdown'
-import { backgroundClassNames, focusBorderClassNames } from './SearchableDropdown'
+import { backgroundClassNames } from './SearchableDropdown'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -31,8 +32,8 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
     defaultValues = [],
     options,
     onChange,
-    color = 'black',
-    background = 'base',
+    color = 'base',
+    background = 'base100',
     className,
     disabled,
 }: PropTypes<ValueType>) {
@@ -93,7 +94,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                         duration-300
                         disabled:cursor-not-allowed disabled:opacity-60
                         ${dropdownColorClassNames[color]}
-                        ${focusBorderClassNames[color]}
+                        ${dropdownBorderClassNames[color]}
                         ${backgroundClassNames[background]}
                     `}
                     autoComplete="off"
