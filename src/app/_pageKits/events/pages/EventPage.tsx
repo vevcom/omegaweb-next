@@ -151,6 +151,9 @@ export function eventPage(config: EventPagesConfig) {
             const statistics = event.takesRegistration
                 ? await withFallback(eventOperations.readStatistics({ params: { id: event.id } }), null)
                 : null
+            const seatingGuests = event.takesRegistration
+                ? await withFallback(eventOperations.readSeatingGuests({ params: { id: event.id } }), null)
+                : null
 
             return {
                 event,
@@ -167,6 +170,7 @@ export function eventPage(config: EventPagesConfig) {
                 channelsOfEvent,
                 subscriptions,
                 statistics,
+                seatingGuests,
             }
         },
         capabilities: (data, session) => ({
@@ -280,6 +284,7 @@ export function eventPage(config: EventPagesConfig) {
                                             capabilities.canConnectToLedgerAccount.authorized ? ledgerAccounts : []
                                         }
                                         statistics={data.statistics}
+                                        seatingGuests={data.seatingGuests}
                                         capabilities={capabilitiesToJsObject({
                                             canUpdate: capabilities.canUpdate,
                                             canDestroy: capabilities.canDestroy,
