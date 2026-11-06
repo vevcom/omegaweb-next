@@ -3,7 +3,7 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailAddressExternalOperations } from '@/services/mail/mailAddressExternal/operations'
-import { mailOperations } from '@/services/mail/operations'
+import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operations'
 import { userBasicSelection } from '@/services/users/constants'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { MailingList } from '@/prisma-generated-pn-types'
@@ -147,7 +147,7 @@ function viaGroup(group: MailFlowGroup): ViaType {
 }
 
 function traverse(filter: MailListTypes, id: number) {
-    return mailOperations.readMailTraversal({ params: { filter, id }, bypassAuth: true })
+    return mailTraversalReadOfType[filter]({ params: { id }, bypassAuth: true })
 }
 
 describe('reading the mail traversal', () => {

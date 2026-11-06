@@ -1,4 +1,3 @@
-import { MailListTypeArray } from './constants'
 import { visibilityRequirementsSchema } from '@/services/visibility/schemas'
 import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
@@ -22,10 +21,6 @@ const dataFieldSchemas = z.object({
     groupId: z.coerce.number().min(1),
 })
 
-const paramsFieldSchemas = z.object({
-    filter: z.enum(MailListTypeArray),
-    id: z.coerce.number().min(1),
-})
 
 const aliasMailingListRelation = dataFieldSchemas.pick({
     mailAliasId: true,
@@ -58,11 +53,5 @@ export const mailSchemas = {
         destroyMailingListExternalRelation: mailingListExternalRelation,
         destroyMailingListUserRelation: mailingListUserRelation,
         destroyMailingListGroupRelation: mailingListGroupRelation,
-    },
-    params: {
-        readMailTraversal: paramsFieldSchemas.pick({
-            filter: true,
-            id: true,
-        }),
     },
 }
