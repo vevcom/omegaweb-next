@@ -26,16 +26,19 @@ export default function AddCategory() {
                 <VisibilityMatrixEditor
                     requirements={adminRequirements}
                     onChange={setAdminRequirements}
+                    verb="kan redigere artiklene"
                 />
                 <input
                     type="hidden"
                     name="visibilityAdminRequirements"
                     value={JSON.stringify(adminRequirements)}
                 />
-                <h3>Hvem kan lese artiklene? (tomt betyr alle)</h3>
+                <h3>Hvem kan lese artiklene?</h3>
                 <VisibilityMatrixEditor
                     requirements={regularRequirements}
                     onChange={setRegularRequirements}
+                    verb="kan lese artiklene"
+                    everyone="Alle"
                 />
                 <input
                     type="hidden"

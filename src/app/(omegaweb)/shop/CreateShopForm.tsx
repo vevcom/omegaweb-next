@@ -28,16 +28,19 @@ export default function CreateShopForm() {
             <VisibilityMatrixEditor
                 requirements={adminRequirements}
                 onChange={setAdminRequirements}
+                verb="kan administrere butikken"
             />
             <input
                 type="hidden"
                 name="visibilityAdminRequirements"
                 value={JSON.stringify(adminRequirements)}
             />
-            <h3>Hvem kan handle i butikken? (tomt betyr alle)</h3>
+            <h3>Hvem kan handle i butikken?</h3>
             <VisibilityMatrixEditor
                 requirements={regularRequirements}
                 onChange={setRegularRequirements}
+                verb="kan handle i butikken"
+                everyone="Alle"
             />
             <input
                 type="hidden"

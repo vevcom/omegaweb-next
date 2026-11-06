@@ -10,6 +10,8 @@ export type DropdownOption<ValueType> = {
     value: ValueType,
     label?: ReactNode,
     key?: string,
+    /** A heading over this option and the ones after it, for options kept in sections. */
+    section?: string,
 }
 
 export type PropTypes<ValueType> = {
@@ -176,6 +178,9 @@ export function DropdownPanel<ValueType extends string | number>({
                     <li className="py-2 px-4 text-text-muted text-s">{emptyText}</li>
                 ) : options.map((option, index) => (
                     <li key={option.key ?? String(option.value)}>
+                        {option.section && option.section !== options[index - 1]?.section && (
+                            <div role="presentation" className="py-1 px-4 text-s text-text-muted">{option.section}</div>
+                        )}
                         <button
                             type="button"
                             role="option"

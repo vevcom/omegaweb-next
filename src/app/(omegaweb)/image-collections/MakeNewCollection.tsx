@@ -50,6 +50,7 @@ export default function MakeNewCollection() {
                         <VisibilityMatrixEditor
                             requirements={adminRequirements}
                             onChange={setAdminRequirements}
+                            verb="kan administrere albumet"
                         />
                     </div>
                 </Form>

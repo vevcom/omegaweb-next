@@ -27,6 +27,12 @@ function waysToPass(matrix: VisibilityMatrix): VisibilityCondition[][] {
     )
 }
 
+/** The same whichever order the conditions, or their fields, came in. */
+const keyOf = (way: VisibilityCondition[]) => way
+    .map(condition => [condition.type, condition.groupId, condition.type === 'ORDER' ? condition.order : ''].join())
+    .sort()
+    .join(';')
+
 function sessionOf(conditions: VisibilityCondition[]) {
     return Session.fromJsObject({
         user: { id: NOBODY } as SessionUser['user'],
@@ -48,7 +54,7 @@ function sessionOf(conditions: VisibilityCondition[]) {
 export function whoCanWhat(access: EventAccess): WhoCanWhatRow[] {
     const ways = [...access.quotaVisibilities, access.adminVisibility].flatMap(waysToPass)
     const distinct = ways.filter((way, index) => way.length > 0 && index === ways.findIndex(
-        other => JSON.stringify(other) === JSON.stringify(way)
+        other => keyOf(other) === keyOf(way)
     ))
 
     const rowOf = (

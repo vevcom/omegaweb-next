@@ -75,6 +75,14 @@ describe('whoCanWhat', () => {
         expect(rowsFor(access, MEMBERS)).toHaveLength(1)
     })
 
+    test('the same group is one row, however its condition was written', () => {
+        const access = event({
+            quotaVisibilities: [{ requirements: [{ conditions: [{ groupId: MEMBERS, type: 'ACTIVE' }] }] }],
+            adminVisibility: { requirements: [{ conditions: [{ type: 'ACTIVE', groupId: MEMBERS }] }] },
+        })
+        expect(rowsFor(access, MEMBERS)).toHaveLength(1)
+    })
+
     test('nobody registers without a quota', () => {
         expect(rowOf(event({ quotaVisibilities: [] }), 'loggedOut')?.registers).toBe('no')
         expect(rowOf(event({ quotaVisibilities: [] }), 'loggedIn')?.registers).toBe('no')
