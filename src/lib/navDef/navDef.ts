@@ -44,6 +44,8 @@ export function defineNavDef<Key extends string>(items: NavItem<Key>[]) {
     }
 
     return {
+        items,
+
         /** The items the session may open and is the audience of, in order. */
         visible(session: SessionMaybeUser): NavLink<Key>[] {
             const loggedIn = session.user !== null
