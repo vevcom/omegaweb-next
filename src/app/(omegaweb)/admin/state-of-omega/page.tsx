@@ -34,7 +34,9 @@ const { page, generateMetadata } = serverPage({
                         gap-2
                     "
                 >
-                    <p className="m-0 font-secondary text-l tracking-[0.3em] uppercase text-base-content/80">Omega er i orden</p>
+                    <p className="m-0 font-secondary text-l tracking-[0.3em] uppercase text-base-content/80">
+                        Omega er i orden
+                    </p>
                     <h1
                         className="
                             m-0 font-secondary text-[length:clamp(6rem,20vw,12rem)] font-bold leading-none

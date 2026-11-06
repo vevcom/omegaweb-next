@@ -16,7 +16,7 @@ export default function SmallEventTag({ eventTag }: PropTypes) {
         " style={{
             color: `rgb(${eventTag.colorR}, ${eventTag.colorG}, ${eventTag.colorB})`
         }}>
-            <FontAwesomeIcon icon={faTag} className='text-base-content'/>
+            <FontAwesomeIcon icon={faTag} className="text-base-content"/>
             <p>{eventTag.name}</p>
         </div>
     )

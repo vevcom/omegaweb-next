@@ -46,12 +46,12 @@ function Footer() {
                     tint="var(--color-base-content)"
                     tintAspectRatio={1657.3333 / 210.66667}
                 />
-                <p className='text-base-content'>
+                <p className="text-base-content">
                 Linjeforeningen for Elektronisk systemdesign
                 og innovasjon (MTELSYS) og Kybernetikk og
                 robotikk (MTTK) ved Norges teknisk-naturvitenskapelige universitet (NTNU)
                 </p>
-                <p className='text-base-content'>Org.nr. 890 384 692</p>
+                <p className="text-base-content">Org.nr. 890 384 692</p>
                 <p>
                     <SiteLink href={appHref('/terms')} className="
                         text-base-content no-underline
@@ -76,19 +76,19 @@ function Footer() {
                 max-mobile:w-full max-mobile:gap-0
             `}>
                 <div className={infoClassName}>
-                    <p className='text-base-content'>Kontakt:</p>
-                    <p className='text-base-content'>Bedrift: <a href="mailto:post@contactor.no">post@contactor.no</a></p>
-                    <p className='text-base-content'>Teknisk: <a href={`mailto:vevcom@${emailDomain}`}>vevcom@{emailDomain}</a></p>
-                    <p className='text-base-content'>PR: <a href={`mailto:blaest@${emailDomain}`}>blaest@{emailDomain}</a></p>
-                    <p className='text-base-content'>Annet: <a href={`mailto:hs@${emailDomain}`}>hs@{emailDomain}</a></p>
-                    <p className='text-base-content'>Tlf: <a href="tel:73594211">73 59 42 11</a></p>
+                    <p className="text-base-content">Kontakt:</p>
+                    <p className="text-base-content">Bedrift: <a href="mailto:post@contactor.no">post@contactor.no</a></p>
+                    <p>Teknisk: <a href={`mailto:vevcom@${emailDomain}`}>vevcom@{emailDomain}</a></p>
+                    <p>PR: <a href={`mailto:blaest@${emailDomain}`}>blaest@{emailDomain}</a></p>
+                    <p className="text-base-content">Annet: <a href={`mailto:hs@${emailDomain}`}>hs@{emailDomain}</a></p>
+                    <p className="text-base-content">Tlf: <a href="tel:73594211">73 59 42 11</a></p>
                 </div>
                 <div className={infoClassName}>
-                    <p className='text-base-content'>Adresse:</p>
-                    <p className='text-base-content'>Sct. Omega Broderskab</p>
-                    <p className='text-base-content'>NTNU Gløshaugen</p>
-                    <p className='text-base-content'>Elektrobygget</p>
-                    <p className='text-base-content'>7491 Trondheim</p>
+                    <p className="text-base-content">Adresse:</p>
+                    <p className="text-base-content">Sct. Omega Broderskab</p>
+                    <p className="text-base-content">NTNU Gløshaugen</p>
+                    <p className="text-base-content">Elektrobygget</p>
+                    <p className="text-base-content">7491 Trondheim</p>
                 </div>
             </div>
             <div className={`

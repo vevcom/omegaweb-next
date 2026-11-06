@@ -80,7 +80,7 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                                     [&_svg]:text-[0.8em] [&_svg]:text-inherit
                                 "
                             >
-                                <FontAwesomeIcon icon={group.header.icon} className='text-base-content' />
+                                <FontAwesomeIcon icon={group.header.icon} className="text-base-content" />
                                 {group.header.title}
                             </h3>
                             {

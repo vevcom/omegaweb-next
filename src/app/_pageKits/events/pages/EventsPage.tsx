@@ -68,9 +68,9 @@ export function eventsPage(config: EventPagesConfig) {
                         <div className="
                             flex items-center gap-[1em]
                             [&_a]:no-underline [&_a]:relative
-                            [&_a:hover]:after:content-['✖'] [&_a:hover]:after:text-[4em] [&_a:hover]:after:text-base-content
-                            [&_a:hover]:after:absolute [&_a:hover]:after:left-1/2 [&_a:hover]:after:top-1/2
-                            [&_a:hover]:after:-translate-1/2
+                            [&_a:hover]:after:content-['✖'] [&_a:hover]:after:text-[4em]
+                            [&_a:hover]:after:text-base-content [&_a:hover]:after:absolute [&_a:hover]:after:left-1/2
+                            [&_a:hover]:after:top-1/2 [&_a:hover]:after:-translate-1/2
                         ">
                             {pickedTags.map(tag => {
                                 const remainingTagNames = pickedTags

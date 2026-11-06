@@ -9,8 +9,8 @@ const sponsorTierIcon = {
 } as const
 
 const sponsorTierClass = {
-    MAIN: `text-primary-content border-primary bg-primary`,
-    SPONSOR: `text-primary border-primary bg-base-200`,
+    MAIN: 'text-primary-content border-primary bg-primary',
+    SPONSOR: 'text-primary border-primary bg-base-200',
 } as const
 
 type PropTypes = {
@@ -35,7 +35,9 @@ export default function SponsorBadge({ sponsorTier, iconOnly = false, className 
             `}
             title={`${label} — ${description}`}
         >
-            <FontAwesomeIcon icon={sponsorTierIcon[sponsorTier]} className={`${sponsorTierClass[sponsorTier]}`} aria-hidden />
+            <FontAwesomeIcon icon={sponsorTierIcon[sponsorTier]} className={`
+                ${sponsorTierClass[sponsorTier]}
+            `} aria-hidden />
             <span className={iconOnly ? 'sr-only' : 'overflow-hidden text-ellipsis'}>{label}</span>
         </span>
     )

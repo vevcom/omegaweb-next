@@ -17,7 +17,7 @@ export default function Error404() {
                         tint="var(--color-base-content)"
                     />
                 </div>
-                <h3 className='text-base-content'>404 - Side ikke funnet</h3>
+                <h3 className="text-base-content">404 - Side ikke funnet</h3>
             </div>
         </div>
     )

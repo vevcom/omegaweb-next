@@ -24,7 +24,7 @@ export default async function LedgerAccountBalance({ ledgerAccountId: accountId,
         max-mobile:grid-cols-[auto_1fr]
     ">
         <div className="contents text-xxl">
-            <div className='text-base-content'>Saldo</div>
+            <div className="text-base-content">Saldo</div>
             <div className="text-right text-base-content">{displayAmount(balance.amount)}</div>
             <div className={`
                 ${currencyClassName}
@@ -32,7 +32,7 @@ export default async function LedgerAccountBalance({ ledgerAccountId: accountId,
             `}>{currencySymbol}</div>
         </div>
         {showFees && <div className="contents text-l">
-            <div className='text-base-content'>Avgifter</div>
+            <div className="text-base-content">Avgifter</div>
             <div className="text-right text-base-content">{displayAmount(balance.fees)}</div>
             {/* Scaled from the balance's currency by text-l / text-xxl, which is about a half. */}
             <div className={`

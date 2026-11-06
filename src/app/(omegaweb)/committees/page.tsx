@@ -3,9 +3,9 @@ import { committeeOperations } from '@/services/groups/committees/operations'
 import SearchBar from '@/UI/SearchBar'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage } from '@/app/ServerPage'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
-import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({

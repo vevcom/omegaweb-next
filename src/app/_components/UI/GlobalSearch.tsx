@@ -347,7 +347,9 @@ export default function GlobalSearch({ navItems, adminNavItems, categories }: Pr
                         ))
                     }
                 </div>
-                <div className="shrink-0 flex flex-wrap gap-3 pt-2 border-t border-surface-hover text-s text-base-content/80">
+                <div className="
+                    shrink-0 flex flex-wrap gap-3 pt-2 border-t border-surface-hover text-s text-base-content/80
+                ">
                     <span><kbd className={kbdClassName}>↑</kbd><kbd className={kbdClassName}>↓</kbd> Naviger</span>
                     <span><kbd className={kbdClassName}>↵</kbd> Velg</span>
                     <span><kbd className={kbdClassName}>Tab</kbd> Bytt fane</span>

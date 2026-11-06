@@ -41,11 +41,12 @@ export default function LoggedInSection({
             w-full flex justify-between items-center gap-4
             [&>h4]:text-xl [&>h4]:font-bold [&>h4]:font-secondary
         ">
-            <h4 className='text-base-content'>{title}</h4>
+            <h4 className="text-base-content">{title}</h4>
             <SiteLink href={link} className="
-                shrink-0 flex items-center h-10 px-4 rounded-inner btn-base text-m font-medium
-                whitespace-nowrap no-underline
-                hover:no-underline text-base-content
+                shrink-0 flex items-center h-10 px-4 rounded-inner btn-base text-m font-medium whitespace-nowrap
+                no-underline
+                hover:no-underline
+                text-base-content
             ">Se flere</SiteLink>
         </div>
         <div className={`
@@ -55,10 +56,11 @@ export default function LoggedInSection({
             {isEmpty
                 ? <div className="
                     h-76 flex flex-col items-center justify-center gap-2 text-center
-                    [&>svg]:[font-size:calc(6*var(--gap))] [&>svg]:opacity-50 text-base-content
+                    [&>svg]:[font-size:calc(6*var(--gap))] [&>svg]:opacity-50
+                    text-base-content
                 ">
                     <FontAwesomeIcon icon={faInbox} />
-                    <p className='text-base-content'>{emptyMessage}</p>
+                    <p className="text-base-content">{emptyMessage}</p>
                 </div>
                 : children}
         </div>

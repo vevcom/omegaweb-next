@@ -9,7 +9,8 @@ export const popUpClassNames = {
         absolute z-9 flex flex-col w-min max-h-[95svh] p-6 rounded-round bg-base-100
         mobile:top-1/2 mobile:left-1/2 mobile:-translate-x-1/2 mobile:-translate-y-1/2
         max-mobile:bottom-0 max-mobile:left-0 max-mobile:w-[100svw] max-mobile:rounded-b-none
-        max-mobile:pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-base-content
+        max-mobile:pb-[calc(1.5rem+env(safe-area-inset-bottom))]
+        text-base-content
     `,
     overflow: 'flex-1 min-h-0 overflow-x-visible overflow-y-auto m-0 p-0',
     closeBtn: `

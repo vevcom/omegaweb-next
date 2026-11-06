@@ -17,7 +17,7 @@ export default async function LedgerAccountGroupsCard({ ledgerAccountId, groupId
     const availableGroups = allGroups.filter(group => !groupIds.includes(group.id))
 
     return <div className="bg-base-100 text-base-content rounded-round p-(--card-padding)">
-        <h2 className='text-base-content'>Grupper</h2>
+        <h2 className="text-base-content">Grupper</h2>
         <LedgerAccountGroupList
             ledgerAccountId={ledgerAccountId}
             groups={currentGroups}

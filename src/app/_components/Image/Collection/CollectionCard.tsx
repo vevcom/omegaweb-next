@@ -35,7 +35,8 @@ export default function CollectionCard({ collection, className }: PropTypes) {
                 bg-accent-magenta rounded-[0_0_1em_0]
             ">Spesiell</p>}
             <div className="
-                absolute bottom-0 left-0 z-1 w-full p-2 no-underline text-base-content transition-[min-height] duration-500
+                absolute bottom-0 left-0 z-1 w-full p-2 no-underline text-base-content transition-[min-height]
+                duration-500
                 [&_i]:mt-2 [&_i]:transition-opacity [&_i]:duration-500 [&_i]:text-ellipsis [&_i]:whitespace-nowrap
             ">
                 <h2>{collection.name}</h2>

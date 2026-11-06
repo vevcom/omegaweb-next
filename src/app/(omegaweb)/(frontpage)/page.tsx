@@ -30,7 +30,7 @@ const { page } = serverPage({
                             className="absolute top-2 right-2 z-2 btn-neutral"
                             href={appHref(`/?${QueryParams.frontpageVersion.encodeUrl('logged-in')}`)}
                         >
-                            <span className='text-neutral-content'>Gå til innlogget forside</span>
+                            <span className="text-neutral-content">Gå til innlogget forside</span>
                         </SiteLink>
                         <LoggedOutLandingPage />
                     </div>
@@ -45,7 +45,7 @@ const { page } = serverPage({
                                     className="absolute top-2 right-2 z-2 btn-neutral"
                                     href={appHref(`/?${QueryParams.frontpageVersion.encodeUrl('logged-out')}`)}
                                 >
-                                    <span className='text-neutral-content'>Gå til utlogget forside</span>
+                                    <span className="text-neutral-content">Gå til utlogget forside</span>
                                 </SiteLink>
                             )
                         }

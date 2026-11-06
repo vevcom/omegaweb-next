@@ -112,14 +112,15 @@ export default function Image({
             )}
             {!hideCopyRight && image.licenseLink && (
                 <div className="
-                    group absolute right-0 top-0 z-2 flex flex-row items-center justify-around no-underline text-base-content
+                    group absolute right-0 top-0 z-2 flex flex-row items-center justify-around no-underline
+                    text-base-content
                     hover:bg-base-100 hover:opacity-50
                 ">
                     {disableLinkingToLicense ? (
                         <p className="
                             hidden
-                            group-hover:inline text-base-content
-                            text-s ml-[.5em]
+                            group-hover:inline
+                            text-base-content text-s ml-[.5em]
                         ">{image.licenseName}</p>
                     ) : (
                         <SiteLink
@@ -127,8 +128,7 @@ export default function Image({
                             target="_blank"
                             referrerPolicy="no-referrer"
                             className="
-                                text-base-content
-                                hidden
+                                text-base-content hidden
                                 group-hover:inline
                                 text-s ml-[.5em]
                             "

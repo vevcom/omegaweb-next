@@ -18,7 +18,7 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
     }))
 
     return <div className="bg-base-100 rounded-round p-(--card-padding)">
-        <h2 className='text-base-content'>Transaksjoner</h2>
+        <h2 className="text-base-content">Transaksjoner</h2>
         {
             transactions.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -28,7 +28,7 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
                         ))}
                     </LedgerTransactionTable>
                 </div>
-            ) : <p className='text-base-content'>{emptyTransactionsText}</p>
+            ) : <p className="text-base-content">{emptyTransactionsText}</p>
         }
         {
             transactionsHref &&

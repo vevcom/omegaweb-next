@@ -21,7 +21,7 @@ const { page, generateMetadata } = serverPage({
         <PageWrapper>
             <div className="flex flex-col gap-4">
                 <section className="[&_h2]:m-0">
-                    <h2 className='text-base-content'>Registrer opptaksprøve</h2>
+                    <h2 className="text-base-content">Registrer opptaksprøve</h2>
                     <p className="mx-0 my-2 text-base-content/80">
                         Velg prøven som skal registreres, og les av Omega-ID eller søk opp soellen.
                     </p>
@@ -39,7 +39,7 @@ const { page, generateMetadata } = serverPage({
                                 "
                             >
                                 <FontAwesomeIcon icon={faScroll} className="text-base-content text-xl" />
-                                <span className="flex-1 text-base-content font-light">{admissionDisplayNames[admission]}</span>
+                                <span className="flex-1 font-light">{admissionDisplayNames[admission]}</span>
                                 <FontAwesomeIcon icon={faChevronRight} className="text-base-content/80" />
                             </SiteLink>
                         ))}
@@ -47,7 +47,7 @@ const { page, generateMetadata } = serverPage({
                 </section>
 
                 <section className="[&_h2]:m-0">
-                    <h2 className='text-base-content'>Medlemsstatus</h2>
+                    <h2 className="text-base-content">Medlemsstatus</h2>
                     <p className="mx-0 my-2 text-base-content/80">
                         Søk opp en bruker for å se hvilke prøver de har tatt, og for å endre medlemskapet deres.
                     </p>

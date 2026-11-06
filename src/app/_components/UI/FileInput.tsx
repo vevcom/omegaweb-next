@@ -116,7 +116,9 @@ export default function FileInput({
                 </span>
                 <FontAwesomeIcon
                     icon={faPaperclip}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/80 transition-colors duration-300"
+                    className="
+                        absolute right-4 top-1/2 -translate-y-1/2 text-base-content/80 transition-colors duration-300
+                    "
                 />
             </label>
             <label

@@ -212,7 +212,9 @@ export default function UserList({
     }
 
     const sortIcon = (field: SortField) => {
-        if (currentSort?.field !== field) return <FontAwesomeIcon icon={faSort} className="ml-1 text-primary-content text-[0.85em]" />
+        if (currentSort?.field !== field) {
+            return <FontAwesomeIcon icon={faSort} className="ml-1 text-primary-content text-[0.85em]" />
+        }
         return (
             <FontAwesomeIcon
                 icon={currentSort.direction === 'asc' ? faSortUp : faSortDown}

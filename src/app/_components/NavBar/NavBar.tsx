@@ -26,7 +26,8 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
         <nav className="text-base-content text-m w-full h-[56px]">
             <ul className="w-full h-full flex flex-row justify-start items-center list-none">
                 <li className="
-                    flex items-center justify-center h-full relative bg-primary text-primary rounded-[calc(2*var(--gap))] p-2
+                    flex items-center justify-center h-full relative bg-primary text-primary rounded-[calc(2*var(--gap))]
+                    p-2
                 ">
                     <HomeLogoLink className="flex items-center justify-center">
                         <div className="size-10 flex items-center justify-center">
@@ -66,7 +67,8 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                     <SearchButton/>
                     <ReportButton/>
                     <div className="
-                        btn-primary relative m-0! size-[56px] p-0! flex items-center justify-center rounded-[calc(2*var(--gap))]!
+                        btn-primary relative m-0! size-[56px] p-0! flex items-center justify-center
+                        rounded-[calc(2*var(--gap))]!
                     ">
                         {
                             profileImage ? (

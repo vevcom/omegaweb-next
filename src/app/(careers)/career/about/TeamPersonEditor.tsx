@@ -24,7 +24,8 @@ type PropTypes = {
 }
 
 const controlClassName = `
-    grid place-items-center size-8 rounded-full border-none bg-surface-hover text-base-content cursor-pointer transition-colors
+    grid place-items-center size-8 rounded-full border-none bg-surface-hover text-base-content cursor-pointer
+    transition-colors
     hover:bg-surface-subtle
     disabled:opacity-30 disabled:cursor-default
 `

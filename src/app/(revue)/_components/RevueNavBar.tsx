@@ -20,7 +20,9 @@ export default function RevueNavBar({ loggedIn }: PropTypes) {
     return (
         <header className="sticky top-0 z-3 bg-surface-raised border-b border-surface-subtle">
             <nav className="w-full max-w-[1100px] mx-auto px-[clamp(1rem,4vw,3rem)] min-h-[64px] flex items-center gap-6">
-                <SiteLink href={revueLinks.frontpage()} className="mr-auto text-xl font-semibold text-base-content no-underline">
+                <SiteLink href={revueLinks.frontpage()} className="
+                    mr-auto text-xl font-semibold text-base-content no-underline
+                ">
                     Omegarevyen
                 </SiteLink>
                 <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className={linkClassName}>

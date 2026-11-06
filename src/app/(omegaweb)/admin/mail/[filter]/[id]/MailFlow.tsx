@@ -206,7 +206,9 @@ export default function MailFlow({
             {sections.filter(section => section.chips.length > 0).map(section => (
                 <div key={section.label ?? title} className="[&:not(:first-of-type)]:mt-3">
                     {section.label && <h4
-                        className="mt-0 mx-0 mb-1 text-[0.75rem] font-normal uppercase tracking-[0.06em] text-base-content/80"
+                        className="
+                            mt-0 mx-0 mb-1 text-[0.75rem] font-normal uppercase tracking-[0.06em] text-base-content/80
+                        "
                     >
                         {section.label}
                     </h4>}

@@ -98,9 +98,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                 <div className="
                     grid place-items-center gap-2 rounded-round bg-surface-raised p-12 text-center text-base-content/80
                 ">
-                    <FontAwesomeIcon icon={faBasketShopping} className="
-                        size-10! text-inherit
-                    " />
+                    <FontAwesomeIcon icon={faBasketShopping} className="size-10! text-inherit" />
                     <p className="m-0">Butikken har ingen varer ennå.</p>
                 </div>
             ) : (
@@ -127,9 +125,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                 {receipt ? (
                     <>
                         <div className="flex items-center gap-3 text-accent-green">
-                            <FontAwesomeIcon icon={faCircleCheck} className="
-                                size-7! text-inherit
-                            " />
+                            <FontAwesomeIcon icon={faCircleCheck} className="size-7! text-inherit" />
                             <h2 className="m-0 text-l text-base-content">Takk for kjøpet!</h2>
                         </div>
                         <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -140,7 +136,9 @@ export default function ShopUI({ shop, userId, capabilities }: {
                                 </li>
                             ))}
                         </ul>
-                        <p className="m-0 flex justify-between border-t border-surface-hover pt-3 text-s text-base-content/80">
+                        <p className="
+                            m-0 flex justify-between border-t border-surface-hover pt-3 text-s text-base-content/80
+                        ">
                             <span>Gjenstående saldo</span>
                             <span className="tabular-nums">{displayAmount(receipt.remainingBalance, false)}</span>
                         </p>
@@ -150,9 +148,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                     <>
                         <div className="flex items-center justify-between">
                             <h2 className="m-0 flex items-center gap-2 text-l">
-                                <FontAwesomeIcon icon={faBasketShopping} className="
-                                    size-5! text-inherit
-                                " />
+                                <FontAwesomeIcon icon={faBasketShopping} className="size-5! text-inherit" />
                                 Handlekurv
                             </h2>
                             {itemCount > 0 && (

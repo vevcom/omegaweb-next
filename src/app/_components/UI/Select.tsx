@@ -21,10 +21,10 @@ export type PropTypes<ValueType> = Omit<SelectHTMLAttributes<HTMLSelectElement>,
 })
 
 const colorClassNames = {
-    base: {field: `
+    base: { field: `
         text-base-content
         focus:border-base-content
-    `, accent: `peer-focus:text-base-content`},
+    `, accent: 'peer-focus:text-base-content' },
     primary: { field: `
         text-primary
         focus:border-primary
@@ -123,8 +123,8 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                 <label
                     htmlFor={selectId}
                     className={`
-                        absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-base-content/80 transition-all
-                        duration-300 pointer-events-none z-1
+                        absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-base-content/80
+                        transition-all duration-300 pointer-events-none z-1
                         ${colorClassNames[color].accent}
                     `}
                 >{label ?? name}</label>

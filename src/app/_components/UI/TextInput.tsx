@@ -23,8 +23,8 @@ const colorClassNames = {
     `, label: 'peer-focus:text-primary' },
     secondary: { field: `
         text-secondary
-        focus:border-secondary    
-    `, label: 'peer-focus:text-secondary'},
+        focus:border-secondary
+    `, label: 'peer-focus:text-secondary' },
     error: { field: `
         text-error
         focus:border-error

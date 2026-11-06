@@ -107,8 +107,8 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                             <button
                                 type="button"
                                 className="
-                                    btn-primary m-0! flex w-full items-center justify-center gap-2 h-9 py-0! px-4! rounded-full!
-                                    text-s!
+                                    btn-primary m-0! flex w-full items-center justify-center gap-2 h-9 py-0! px-4!
+                                    rounded-full! text-s!
                                     [&_svg]:text-inherit
                                 "
                                 onClick={onAdd}

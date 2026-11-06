@@ -44,8 +44,8 @@ const { page, generateMetadata } = serverPage({
                             key={shop.id}
                             href={appHref(`/shop/${shop.id}`)}
                             className="
-                                group flex flex-col gap-3 rounded-round bg-surface-raised p-5 text-base-content no-underline
-                                transition-colors duration-300
+                                group flex flex-col gap-3 rounded-round bg-surface-raised p-5 text-base-content
+                                no-underline transition-colors duration-300
                                 hover:bg-surface-hover hover:no-underline
                             "
                         >

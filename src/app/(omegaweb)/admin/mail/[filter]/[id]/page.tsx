@@ -64,7 +64,9 @@ const { page, generateMetadata } = serverPage({
 
         return <PageWrapper>
             <div className="p-4 flex flex-col gap-4">
-                <p className="m-0 text-base-content/80 text-[0.85rem] uppercase tracking-[0.06em]">{typeDisplayNames[filter]}</p>
+                <p className="m-0 text-base-content/80 text-[0.85rem] uppercase tracking-[0.06em]">
+                    {typeDisplayNames[filter]}
+                </p>
 
                 <MailFlow filter={filter} id={id} data={results} groupNames={groupNames} />
 

@@ -37,7 +37,9 @@ export default function InterestGroup({ interestGroup, capabilities }: PropTypes
             ">
                 <h2>{interestGroup.name}</h2>
                 {interestGroup.group.pensioned && (
-                    <span className="px-2 rounded-round border border-text-muted text-base-content/80 text-s whitespace-nowrap">
+                    <span className="
+                        px-2 rounded-round border border-text-muted text-base-content/80 text-s whitespace-nowrap
+                    ">
                         Pensjonert
                     </span>
                 )}

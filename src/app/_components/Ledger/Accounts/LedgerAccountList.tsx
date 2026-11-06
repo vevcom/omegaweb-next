@@ -28,7 +28,10 @@ export default function LedgerAccountList() {
                             <th>Saldo</th>
                         </tr>
                     </thead>
-                    <tbody className='[&_td]:text-base-content [&_a]:text-primary'>
+                    <tbody className="
+                        [&_td]:text-base-content
+                        [&_a]:text-primary
+                    ">
                         {children}
                     </tbody>
                 </table>

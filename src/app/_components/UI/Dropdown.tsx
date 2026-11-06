@@ -198,11 +198,13 @@ export function DropdownPanel<ValueType extends string | number>({
                             aria-selected={isSelected(option)}
                             className={
                                 `
-                                    w-full flex items-center justify-between gap-2 border-none text-left
-                                    text-m py-2 px-4 rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer
-                                    transition-colors duration-300
+                                    w-full flex items-center justify-between gap-2 border-none text-left text-m py-2 px-4
+                                    rounded-[calc(var(--rounding)-1.5*var(--gap))] cursor-pointer transition-colors
+                                    duration-300
                                     hover:bg-base-300 hover:text-base-content
-                                    ${isSelected(option) ? 'text-primary-content bg-primary' : 'text-base-content bg-base-200'}
+                                    ${isSelected(option) ? 'text-primary-content bg-primary' : `
+                                        text-base-content bg-base-200
+                                    `}
                                     ${index === activeIndex ? 'bg-base-300' : ''}
                                 `
                             }
@@ -210,8 +212,8 @@ export function DropdownPanel<ValueType extends string | number>({
                             onMouseEnter={() => onActivate(index)}
                             data-active={index === activeIndex}
                         >
-                            <span className='text-inherit'>{option.label ?? option.value}</span>
-                            {isSelected(option) && <FontAwesomeIcon icon={faCheck} className='text-inherit' />}
+                            <span className="text-inherit">{option.label ?? option.value}</span>
+                            {isSelected(option) && <FontAwesomeIcon icon={faCheck} className="text-inherit" />}
                         </button>
                     </li>
                 ))

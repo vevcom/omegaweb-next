@@ -55,8 +55,8 @@ export default function SideBar({ category, children }: PropTypes) {
                 <div ref={measure} className="mobile:h-[calc(100%-2em)]">
                     <div ref={ref} className="
                         max-mobile:hidden
-                        opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out] overflow-auto text-base-content
-                        m-[1em_0em_1em_1em] p-[calc(3*var(--rounding))]
+                        opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out] overflow-auto
+                        text-base-content m-[1em_0em_1em_1em] p-[calc(3*var(--rounding))]
                         [&_h2]:text-l
                     ">
                         <h2>{category.name.toUpperCase()}</h2>

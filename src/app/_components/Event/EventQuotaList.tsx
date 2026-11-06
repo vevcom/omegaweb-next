@@ -29,7 +29,9 @@ export default function EventQuotaList({ quotas, eligibleQuotaIds }: PropTypes) 
                     <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                         <span className="font-medium">
                             {quota.name}
-                            {index === 0 && <span className="ml-2 text-xs uppercase text-base-content/80">Fylles først</span>}
+                            {index === 0 && (
+                                <span className="ml-2 text-xs uppercase text-base-content/80">Fylles først</span>
+                            )}
                         </span>
                         <span>{quota.numOfRegistrations} / {quota.places}</span>
                     </div>

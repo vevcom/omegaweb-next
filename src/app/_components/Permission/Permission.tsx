@@ -31,10 +31,10 @@ export default function Permission({ permission, children, displayCategory = tru
                     [&>h3]:text-l
                     [&>i]:text-s [&>i]:wrap-anywhere
                 ">
-                    <h3 className='text-base-content'>{permissionInfo.name}</h3> <i className='text-base-content'>({permission})</i>
+                    <h3>{permissionInfo.name}</h3> <i>({permission})</i>
                 </div>
                 <div className="flex items-center gap-[.3em]">
-                    <p className='text-base-content'>{permissionInfo.description}</p>
+                    <p className="text-base-content">{permissionInfo.description}</p>
                     {displayCategory ? <><p> - </p><i>{permissionInfo.category}</i></> : <></>}
                 </div>
             </div>
