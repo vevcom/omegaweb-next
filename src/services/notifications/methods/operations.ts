@@ -90,7 +90,7 @@ export const notificationMethodOperations = {
      */
     materializeWeeklyOutbox: defineSubOperation({
         paramsSchema: () => notificationMethodSchemas.params.materializeWeeklyOutbox,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: () => async ({ prisma, params }) => {
             const notifications = await prisma.notification.findMany({
                 where: {
@@ -124,20 +124,18 @@ export const notificationMethodOperations = {
                 }))
             }))).flat()
 
-            await prisma.$transaction([
-                prisma.weeklyMailOutboxEntry.createMany({
-                    data: entries,
-                    skipDuplicates: true,
-                }),
-                prisma.notification.updateMany({
-                    where: {
-                        id: {
-                            in: notifications.map(notification => notification.id),
-                        },
+            await prisma.weeklyMailOutboxEntry.createMany({
+                data: entries,
+                skipDuplicates: true,
+            })
+            await prisma.notification.updateMany({
+                where: {
+                    id: {
+                        in: notifications.map(notification => notification.id),
                     },
-                    data: { emailWeeklyDispatchedAt: new Date() },
-                }),
-            ])
+                },
+                data: { emailWeeklyDispatchedAt: new Date() },
+            })
 
             return { notifications: notifications.length, entries: entries.length }
         },

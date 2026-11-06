@@ -88,6 +88,17 @@ export type ServiceOperationOperation<
     , prismaWhereFilter: PrismaWhereFilter | undefined
 ) => Awaitable<Return>
 
+/**
+ * How an operation relates to database transactions. NONE runs on whatever client it is given.
+ * OPENS opens a transaction itself, so it takes the root client and cannot be called inside a
+ * transaction. RUNS_IN runs in the caller's transaction when it is in one, and in a transaction of
+ * its own otherwise, for an operation of several writes that belong together.
+ */
+export type TransactionFlag = 'NONE' | 'OPENS' | 'RUNS_IN'
+
+/** Whether an operation with the flag opens a transaction, which decides the client it takes. */
+type OpensTransactionOf<Flag extends TransactionFlag> = [Flag] extends ['OPENS'] ? true : false
+
 export type SubServiceOperationConfig<
     ParamsSchema extends z.ZodTypeAny | undefined,
     DataSchema extends z.ZodTypeAny | undefined,
@@ -95,14 +106,14 @@ export type SubServiceOperationConfig<
     DataSchemaImplementationFields extends object | undefined,
     OperationImplementationFields extends object | undefined,
     Return,
-    OpensTransaction extends boolean = false,
+    Flag extends TransactionFlag = 'NONE',
     PrismaWhereFilter extends object | undefined = undefined
 > = {
     paramsSchema?: ((implementationFields: ParamsSchemaImplementationFields) => ParamsSchema) | undefined,
     dataSchema?: ((implementationFields: DataSchemaImplementationFields) => DataSchema) | undefined,
-    opensTransaction?: OpensTransaction,
+    transaction?: Flag,
     operation: (implementationFields: OperationImplementationFields) =>
-        ServiceOperationOperation<OpensTransaction, ParamsSchema, DataSchema, Return, PrismaWhereFilter>
+        ServiceOperationOperation<OpensTransactionOf<Flag>, ParamsSchema, DataSchema, Return, PrismaWhereFilter>
 }
 
 export type ArgsAuthGetterAndOwnershipCheck<
@@ -251,8 +262,8 @@ export type ServiceOperationImplementationConfig<
  * so if the service operation opens a transaction, the prisma client can only be a PrismaClient.
  *
  * The check is written as [OpensTransaction] extends [true] rather than the bare
- * OpensTransaction extends true so that it does not distribute over a union. An operation that
- * does not declare opensTransaction gets `boolean` here, and a distributing conditional turns that
+ * OpensTransaction extends true so that it does not distribute over a union. A context that is not
+ * tied to an operation gets `boolean` here, and a distributing conditional turns that
  * into PrismaClient | Prisma.TransactionClient - a union whose deeply generic method signatures tsc
  * has to reconcile at every call site, which reaches the instantiation depth limit on some models.
  * Not distributing resolves `boolean` to Prisma.TransactionClient, which is what an operation that
@@ -288,17 +299,34 @@ const asyncLocalStorage = new AsyncLocalStorage<ServiceOperationContext>()
  * @param callback The callback to run with the context.
  * @returns The return value of the callback.
  */
-export function withServiceContext<T, OpensTransaction extends boolean>(
-    contextOverride: Partial<ServiceOperationContext<OpensTransaction>>,
-    opensTransaction: OpensTransaction | undefined,
-    callback: (context: ServiceOperationContext<OpensTransaction>) => T,
+/**
+ * Whether the client is the root one, rather than the one of an interactive transaction. Prisma
+ * marks the latter with this symbol, and nothing else it exposes tells the two apart: since Prisma 7
+ * the transaction client has `$transaction` too, which nests a transaction in the open one.
+ */
+export function isPrismaClient(prisma: PrismaClient | Prisma.TransactionClient): prisma is PrismaClient {
+    return !(Symbol.for('prisma.client.transaction.scope_context') in prisma)
+}
+
+/**
+ * What a caller sets of the context. Any client may be given, since it is checked against the
+ * operation's transaction flag when the context is resolved.
+ */
+export type ServiceContextOverride = Partial<
+    Omit<ServiceOperationContext, 'prisma'> & { prisma: PrismaClient | Prisma.TransactionClient }
+>
+
+export function withServiceContext<T, Flag extends TransactionFlag>(
+    contextOverride: ServiceContextOverride,
+    transaction: Flag | undefined,
+    callback: (context: ServiceOperationContext<OpensTransactionOf<Flag>>) => T,
 ): T {
     const localContext = asyncLocalStorage.getStore()
 
     const isAppropriateClient = (
         prisma: PrismaClient | Prisma.TransactionClient
-    ): prisma is PrismaPossibleTransaction<OpensTransaction> =>
-        !opensTransaction || '$transaction' in prisma
+    ): prisma is PrismaPossibleTransaction<OpensTransactionOf<Flag>> =>
+        transaction !== 'OPENS' || isPrismaClient(prisma)
 
     const prisma = contextOverride.prisma ?? localContext?.prisma ?? globalPrisma
     if (!isAppropriateClient(prisma)) {
@@ -309,7 +337,7 @@ export function withServiceContext<T, OpensTransaction extends boolean>(
         )
     }
 
-    const context: ServiceOperationContext<OpensTransaction> = {
+    const context: ServiceOperationContext<OpensTransactionOf<Flag>> = {
         prisma,
         session: contextOverride.session ?? localContext?.session ?? Session.empty(),
         bypassAuth: contextOverride.bypassAuth ?? localContext?.bypassAuth ?? false,
@@ -392,7 +420,7 @@ export type ImplementationParams<T extends { implementationParamsSchema?: z.ZodT
 
 export function defineSubOperation<
     Return,
-    OpensTransaction extends boolean = false,
+    Flag extends TransactionFlag = 'NONE',
     ParamsSchema extends z.ZodTypeAny | undefined = undefined,
     DataSchema extends z.ZodTypeAny | undefined = undefined,
     ParamsSchemaImplementationFields extends object | undefined = undefined,
@@ -407,10 +435,12 @@ export function defineSubOperation<
         DataSchemaImplementationFields,
         OperationImplementationFields,
         Return,
-        OpensTransaction,
+        Flag,
         PrismaWhereFilter
     >
 ) {
+    type OpensTransaction = OpensTransactionOf<Flag>
+
     const implement = <ImplementationParamsSchema extends z.ZodTypeAny | undefined = undefined>(
         implementationArgs: ServiceOperationImplementationConfig<
             OpensTransaction,
@@ -524,78 +554,90 @@ export function defineSubOperation<
                 )
             }
 
-            // Then, get the context (which includes the prisma client, the session and the bypassAuth flag).
-            // If a context override is provided, use it. Otherwise, use the context from the async local storage.
-            // If there is no context in the async local storage, use global defaults.
+            const run = async (
+                { prisma, bypassAuth, session }: ServiceOperationContext<OpensTransaction>
+            ): Promise<Return> => {
+                // Then, authorize user.
+                // This has to be done after the validation because the
+                // authorizer might use the data to authorize the user.
+                const prismaWhereFilter: PrismaWhereFilter | undefined = await (async () => {
+                    if (!bypassAuth) {
+                        if (!implementationArgs.authorizer) {
+                            throw new Smorekopp(
+                                'UNAUTHENTICATED',
+                                'This service operation is not externally callable.'
+                            )
+                        }
+
+                        const authorizer = await prismaErrorWrapper(
+                            () => implementationArgs.authorizer({ ...args, prisma })
+                        )
+                        const authResult = authorizer.auth(session)
+
+                        if (!authResult.authorized) {
+                            throw new Smorekopp(authResult.failureStatus, authResult.getErrorMessage)
+                        }
+
+                        return authResult.prismaWhereFilter
+                    }
+                    return undefined
+                })()
+
+                const ownershipCheckResult = await prismaErrorWrapper(
+                    () => implementationArgs.ownershipCheck({
+                        ...args,
+                        prisma,
+                    })
+                )
+                if (!ownershipCheckResult) {
+                    throw new Smorekopp('DISSALLOWED', `
+                        This resource cannot be accessed through this implementation
+                        as the resource implementing this resource does not own it.
+                    `)
+                }
+
+                await prismaErrorWrapper(
+                    () => implementationArgs.beforeRun?.({
+                        ...args,
+                        prisma,
+                    })
+                )
+
+                // Given as a plain value or as a function of the call: made the one shape here. No
+                // field type is a function itself, so typeof tells the two apart.
+                const fieldsOf = (
+                    typeof implementationArgs.operationImplementationFields === 'function'
+                        ? implementationArgs.operationImplementationFields
+                        : () => implementationArgs.operationImplementationFields
+                ) as OperationImplementationFieldsOf<
+                    OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema, OperationImplementationFields
+                >
+                const operationImplementationFields = await prismaErrorWrapper(() => fieldsOf({ ...args, prisma }))
+
+                const result = await prismaErrorWrapper(() =>
+                    serviceOperationConfig.operation(
+                        operationImplementationFields
+                    )({ ...args, prisma, bypassAuth, session }, prismaWhereFilter)
+                )
+                await prismaErrorWrapper(() => implementationArgs.afterRun?.({ ...args, prisma }))
+                return result
+            }
+
+            // The context is resolved first, so the operation joins the caller's transaction when it is in one.
             return withServiceContext(
                 context,
-                serviceOperationConfig.opensTransaction,
-                async ({ prisma, bypassAuth, session }) => {
-                    // Then, authorize user.
-                    // This has to be done after the validation because the
-                    // authorizer might use the data to authorize the user.
-                    const prismaWhereFilter: PrismaWhereFilter | undefined = await (async () => {
-                        if (!bypassAuth) {
-                            if (!implementationArgs.authorizer) {
-                                throw new Smorekopp(
-                                    'UNAUTHENTICATED',
-                                    'This service operation is not externally callable.'
-                                )
-                            }
-
-                            const authorizer = await prismaErrorWrapper(
-                                () => implementationArgs.authorizer({ ...args, prisma })
-                            )
-                            const authResult = authorizer.auth(session)
-
-                            if (!authResult.authorized) {
-                                throw new Smorekopp(authResult.failureStatus, authResult.getErrorMessage)
-                            }
-
-                            return authResult.prismaWhereFilter
-                        }
-                        return undefined
-                    })()
-
-                    const ownershipCheckResult = await prismaErrorWrapper(
-                        () => implementationArgs.ownershipCheck({
-                            ...args,
-                            prisma,
-                        })
-                    )
-                    if (!ownershipCheckResult) {
-                        throw new Smorekopp('DISSALLOWED', `
-                            This resource cannot be accessed through this implementation
-                            as the resource implementing this resource does not own it.
-                        `)
+                serviceOperationConfig.transaction,
+                resolved => {
+                    if (serviceOperationConfig.transaction !== 'RUNS_IN' || !isPrismaClient(resolved.prisma)) {
+                        return run(resolved)
                     }
-
-                    await prismaErrorWrapper(
-                        () => implementationArgs.beforeRun?.({
-                            ...args,
-                            prisma,
-                        })
-                    )
-
-                    // Given as a plain value or as a function of the call: made the one shape here. No
-                    // field type is a function itself, so typeof tells the two apart.
-                    const fieldsOf = (
-                        typeof implementationArgs.operationImplementationFields === 'function'
-                            ? implementationArgs.operationImplementationFields
-                            : () => implementationArgs.operationImplementationFields
-                    ) as OperationImplementationFieldsOf<
-                        OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema, OperationImplementationFields
-                    >
-                    const operationImplementationFields = await prismaErrorWrapper(() => fieldsOf({ ...args, prisma }))
-
-                    const result = await prismaErrorWrapper(() =>
-                        serviceOperationConfig.operation(
-                            operationImplementationFields
-                        )({ ...args, prisma, bypassAuth, session }, prismaWhereFilter)
-                    )
-                    await prismaErrorWrapper(() => implementationArgs.afterRun?.({ ...args, prisma }))
-                    return result
-                })
+                    return resolved.prisma.$transaction(tx => withServiceContext(
+                        { prisma: tx },
+                        serviceOperationConfig.transaction,
+                        run,
+                    ))
+                }
+            )
         }
 
         executeOperation.paramsSchema = serviceOperationConfig.paramsSchema
@@ -609,6 +651,8 @@ export function defineSubOperation<
         return executeOperation
     }
     return {
+        /** As declared, so a type can tell the operations apart by it. */
+        transaction: serviceOperationConfig.transaction,
         implement,
         /**
          * Implements the sub-operation right away with require-nothing authorizer and "no" ownership check.
@@ -632,21 +676,23 @@ export function defineSubOperation<
 }
 
 export function defineOperation<
-    OpensTransaction extends boolean,
-    Return,
+    Flag extends TransactionFlag = 'NONE',
+    Return = unknown,
     ParamsSchema extends z.ZodTypeAny | undefined = undefined,
     DataSchema extends z.ZodTypeAny | undefined = undefined,
     PrismaWhereFilter extends object | undefined = undefined
->({ paramsSchema, dataSchema, opensTransaction, authorizer, operation }: {
+>({ paramsSchema, dataSchema, transaction, authorizer, operation }: {
     paramsSchema?: ParamsSchema,
     dataSchema?: DataSchema,
-    opensTransaction?: OpensTransaction,
-    authorizer: AuthorizerGetter<OpensTransaction, ParamsSchema, DataSchema, undefined, PrismaWhereFilter | undefined>,
-    operation: ServiceOperationOperation<OpensTransaction, ParamsSchema, DataSchema, Return, PrismaWhereFilter>
-}): ServiceOperation<OpensTransaction, Return, ParamsSchema, DataSchema, undefined> {
+    transaction?: Flag,
+    authorizer: AuthorizerGetter<
+        OpensTransactionOf<Flag>, ParamsSchema, DataSchema, undefined, PrismaWhereFilter | undefined
+    >,
+    operation: ServiceOperationOperation<OpensTransactionOf<Flag>, ParamsSchema, DataSchema, Return, PrismaWhereFilter>
+}): ServiceOperation<OpensTransactionOf<Flag>, Return, ParamsSchema, DataSchema, undefined> {
     return defineSubOperation<
         Return,
-        OpensTransaction,
+        Flag,
         ParamsSchema,
         DataSchema,
         undefined,
@@ -654,7 +700,7 @@ export function defineOperation<
         undefined,
         PrismaWhereFilter
     >({
-        opensTransaction,
+        transaction,
         operation: () => operation,
         paramsSchema: paramsSchema !== undefined ? () => paramsSchema : undefined,
         dataSchema: dataSchema !== undefined ? () => dataSchema : undefined,
@@ -670,7 +716,7 @@ export function defineOperation<
 
 export type SubServiceOperation<
     Return,
-    OpensTransaction extends boolean = false,
+    Flag extends TransactionFlag = 'NONE',
     ParamsSchema extends z.ZodTypeAny | undefined = undefined,
     DataSchema extends z.ZodTypeAny | undefined = undefined,
     ParamsSchemaImplementationFields extends object | undefined = undefined,
@@ -678,7 +724,7 @@ export type SubServiceOperation<
     OperationImplementationFields extends object | undefined = undefined,
 > = ReturnType<typeof defineSubOperation<
     Return,
-    OpensTransaction,
+    Flag,
     ParamsSchema,
     DataSchema,
     ParamsSchemaImplementationFields,

@@ -113,7 +113,7 @@ export const eventOperations = {
     create: defineOperation({
         dataSchema: eventSchemas.data.create,
         authorizer: () => eventAuth.create,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, data, session }) => {
             if (data.eventStart > data.eventEnd) {
                 throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
@@ -124,74 +124,72 @@ export const eventOperations = {
 
             // The event and everything it owns are created together, so a failure leaves no
             // orphaned paragraph, image, visibility, variant or quota behind.
-            const event = await prisma.$transaction(async tx => {
-                const cmsParagraph = await cmsParagraphOperations.create.internalCall({
-                    data: {},
-                    prisma: tx,
-                    operationImplementationFields: { special: null }
-                })
-                const cmsImage = await cmsImageOperations.create.internalCall({
-                    data: {},
-                    prisma: tx,
-                    operationImplementationFields: { special: null }
-                })
-                const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
-                    data: { requirements: data.visibilityAdminRequirements },
-                    prisma: tx,
-                })
-                const id = await reserveId(tx, 'Event')
-                const channels = await eventNotificationOperations.internal.createChannels.internalCall({
-                    prisma: tx,
-                    params: { eventId: id },
-                    data: { name: data.name },
-                })
-
-                // Scalar foreign keys, since prisma will not take an explicit id along with nested connects.
-                const createdEvent = await tx.event.create({
-                    data: {
-                        id,
-                        name: data.name,
-                        location: data.location,
-                        locationMap: data.locationMap ? { create: getLocationMapData(data.locationMap) } : undefined,
-                        eventStart: data.eventStart,
-                        eventEnd: data.eventEnd,
-                        canBeViewedBy: data.canBeViewedBy,
-                        hostedByCommitteeId: data.hostedByCommitteeId ?? undefined,
-                        waitingList: data.waitingList,
-                        bindingRegistration: data.bindingRegistration,
-                        allowRegistrationInMultipleVariants: data.allowRegistrationInMultipleVariants,
-                        createdById: session?.user?.id,
-                        cmsParagraphId: cmsParagraph.id,
-                        coverImageId: cmsImage.id,
-                        visibilityAdminId: visibilityAdmin.id,
-                        ...channels,
-                    }
-                })
-                await tx.eventTagEvent.createMany({
-                    data: data.tagIds.map(tagId => ({
-                        eventId: createdEvent.id,
-                        tagId
-                    }))
-                })
-
-                if (data.takesRegistration) {
-                    const variant = await createVariant(tx, createdEvent.id, {
-                        name: 'Påmelding',
-                        registrationStart: data.registrationStart ?? new Date(),
-                        registrationEnd: data.registrationEnd ?? new Date(Date.now() + DAY_MS),
-                        takesPayment: data.takesPayment,
-                        price: data.price,
-                        paymentStart: data.paymentStart,
-                        paymentEnd: data.paymentEnd,
-                    })
-                    await createQuota(tx, variant.id, {
-                        name: 'Påmelding',
-                        places: data.places ?? 0,
-                        visibilityRequirements: data.quotaVisibilityRequirements,
-                    })
-                }
-                return createdEvent
+            const cmsParagraph = await cmsParagraphOperations.create.internalCall({
+                data: {},
+                prisma,
+                operationImplementationFields: { special: null }
             })
+            const cmsImage = await cmsImageOperations.create.internalCall({
+                data: {},
+                prisma,
+                operationImplementationFields: { special: null }
+            })
+            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+                data: { requirements: data.visibilityAdminRequirements },
+                prisma,
+            })
+            const id = await reserveId(prisma, 'Event')
+            const channels = await eventNotificationOperations.internal.createChannels.internalCall({
+                prisma,
+                params: { eventId: id },
+                data: { name: data.name },
+            })
+
+            // Scalar foreign keys, since prisma will not take an explicit id along with nested connects.
+            const createdEvent = await prisma.event.create({
+                data: {
+                    id,
+                    name: data.name,
+                    location: data.location,
+                    locationMap: data.locationMap ? { create: getLocationMapData(data.locationMap) } : undefined,
+                    eventStart: data.eventStart,
+                    eventEnd: data.eventEnd,
+                    canBeViewedBy: data.canBeViewedBy,
+                    hostedByCommitteeId: data.hostedByCommitteeId ?? undefined,
+                    waitingList: data.waitingList,
+                    bindingRegistration: data.bindingRegistration,
+                    allowRegistrationInMultipleVariants: data.allowRegistrationInMultipleVariants,
+                    createdById: session?.user?.id,
+                    cmsParagraphId: cmsParagraph.id,
+                    coverImageId: cmsImage.id,
+                    visibilityAdminId: visibilityAdmin.id,
+                    ...channels,
+                }
+            })
+            await prisma.eventTagEvent.createMany({
+                data: data.tagIds.map(tagId => ({
+                    eventId: createdEvent.id,
+                    tagId
+                }))
+            })
+
+            if (data.takesRegistration) {
+                const variant = await createVariant(prisma, createdEvent.id, {
+                    name: 'Påmelding',
+                    registrationStart: data.registrationStart ?? new Date(),
+                    registrationEnd: data.registrationEnd ?? new Date(Date.now() + DAY_MS),
+                    takesPayment: data.takesPayment,
+                    price: data.price,
+                    paymentStart: data.paymentStart,
+                    paymentEnd: data.paymentEnd,
+                })
+                await createQuota(prisma, variant.id, {
+                    name: 'Påmelding',
+                    places: data.places ?? 0,
+                    visibilityRequirements: data.quotaVisibilityRequirements,
+                })
+            }
+            const event = createdEvent
 
             // A new event is a draft. Subscribers hear of it once it is published (see setPublished).
             return event
@@ -432,7 +430,7 @@ export const eventOperations = {
     destroy: defineOperation({
         paramsSchema: eventSchemas.params.destroy,
         authorizer: async ({ params, prisma }) => eventAuth.destroy.data(await readEventAccess(prisma, params.id)),
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
@@ -448,48 +446,46 @@ export const eventOperations = {
                 OR: [{ quota: { variant: { eventId: params.id } } }, { waitingListVariant: { eventId: params.id } }],
             }
 
-            await prisma.$transaction(async tx => {
-                // The registrations are locked first, as createPayment does, so no payment can start
-                // between this check and the delete.
-                await tx.$queryRaw`
-                    SELECT r."id" FROM "EventRegistration" r
-                    LEFT JOIN "EventQuota" q ON q."id" = r."quotaId"
-                    LEFT JOIN "EventVariant" v ON v."id" = COALESCE(q."variantId", r."waitingListVariantId")
-                    WHERE v."eventId" = ${params.id}
-                    FOR UPDATE OF r
-                `
-                const liveTransaction = await tx.ledgerTransaction.findFirst({
-                    where: {
-                        eventRegistration: registrationsOfEvent,
-                        OR: [{ state: 'PENDING' }, validTransactionFilter],
-                    },
-                    select: { id: true },
-                })
-                if (liveTransaction) {
-                    throw new ServiceError(
-                        'BAD PARAMETERS',
-                        'Arrangementet har betalte påmeldinger eller betalinger under behandling. '
-                        + 'Meld av deltakerne først, så de får pengene tilbake.'
-                    )
-                }
-
-                // Registrations go first: deleting the event cascades to its quotas, which refuse
-                // to go while they hold any.
-                await tx.eventRegistration.deleteMany({ where: registrationsOfEvent })
-                await tx.event.delete({
-                    where: {
-                        id: params.id
-                    }
-                })
-                await eventNotificationOperations.internal.destroyChannels.internalCall({ prisma: tx, params: event })
-                const visibilityIds = [
-                    event.visibilityAdminId,
-                    ...event.variants.flatMap(variant => variant.quotas.map(quota => quota.visibilityId)),
-                ]
-                await Promise.all(visibilityIds.map(
-                    visibilityId => visibilityOperations.destroy.internalCall({ prisma: tx, params: { visibilityId } })
-                ))
+            // The registrations are locked first, as createPayment does, so no payment can start
+            // between this check and the delete.
+            await prisma.$queryRaw`
+                SELECT r."id" FROM "EventRegistration" r
+                LEFT JOIN "EventQuota" q ON q."id" = r."quotaId"
+                LEFT JOIN "EventVariant" v ON v."id" = COALESCE(q."variantId", r."waitingListVariantId")
+                WHERE v."eventId" = ${params.id}
+                FOR UPDATE OF r
+            `
+            const liveTransaction = await prisma.ledgerTransaction.findFirst({
+                where: {
+                    eventRegistration: registrationsOfEvent,
+                    OR: [{ state: 'PENDING' }, validTransactionFilter],
+                },
+                select: { id: true },
             })
+            if (liveTransaction) {
+                throw new ServiceError(
+                    'BAD PARAMETERS',
+                    'Arrangementet har betalte påmeldinger eller betalinger under behandling. '
+                    + 'Meld av deltakerne først, så de får pengene tilbake.'
+                )
+            }
+
+            // Registrations go first: deleting the event cascades to its quotas, which refuse
+            // to go while they hold any.
+            await prisma.eventRegistration.deleteMany({ where: registrationsOfEvent })
+            await prisma.event.delete({
+                where: {
+                    id: params.id
+                }
+            })
+            await eventNotificationOperations.internal.destroyChannels.internalCall({ prisma, params: event })
+            const visibilityIds = [
+                event.visibilityAdminId,
+                ...event.variants.flatMap(variant => variant.quotas.map(quota => quota.visibilityId)),
+            ]
+            await Promise.all(visibilityIds.map(
+                visibilityId => visibilityOperations.destroy.internalCall({ prisma, params: { visibilityId } })
+            ))
         }
     }),
 

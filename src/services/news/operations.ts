@@ -48,38 +48,36 @@ export const newsOperations = {
     create: defineOperation({
         authorizer: () => newsAuth.create,
         dataSchema: newsSchemas.data.create,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
             const { name, description, endDateTime } = data
 
             const backupEndDateTime = new Date(Date.now() + defaultNewsArticleOldCutoff * 24 * 60 * 60 * 1000)
 
-            return prisma.$transaction(async tx => {
-                const article = await articleOperations.create.internalCall({
-                    prisma: tx,
-                    data: { name },
-                    dataSchemaImplementationFields: { maxNameLength: 30 },
-                    operationImplementationFields: { special: null }
-                })
-                const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
-                    prisma: tx,
-                    data: { requirements: data.visibilityRegularRequirements },
-                })
-                const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
-                    prisma: tx,
-                    data: { requirements: data.visibilityAdminRequirements },
-                })
+            const article = await articleOperations.create.internalCall({
+                prisma,
+                data: { name },
+                dataSchemaImplementationFields: { maxNameLength: 30 },
+                operationImplementationFields: { special: null }
+            })
+            const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
+                prisma,
+                data: { requirements: data.visibilityRegularRequirements },
+            })
+            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+                prisma,
+                data: { requirements: data.visibilityAdminRequirements },
+            })
 
-                return tx.newsArticle.create({
-                    data: {
-                        description,
-                        endDateTime: endDateTime ?? backupEndDateTime,
-                        article: { connect: { id: article.id } },
-                        visibilityRegular: { connect: { id: visibilityRegular.id } },
-                        visibilityAdmin: { connect: { id: visibilityAdmin.id } },
-                    },
-                    include: newsArticleRelationsIncluder,
-                })
+            return prisma.newsArticle.create({
+                data: {
+                    description,
+                    endDateTime: endDateTime ?? backupEndDateTime,
+                    article: { connect: { id: article.id } },
+                    visibilityRegular: { connect: { id: visibilityRegular.id } },
+                    visibilityAdmin: { connect: { id: visibilityAdmin.id } },
+                },
+                include: newsArticleRelationsIncluder,
             })
         }
     }),
@@ -89,23 +87,21 @@ export const newsOperations = {
                 visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
             }),
         paramsSchema: newsSchemas.params.destroy,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
-            await prisma.$transaction(async tx => {
-                // The news row goes first: it restricts the deletion of its article and visibilities.
-                const news = await tx.newsArticle.delete({ where: { id: params.id } })
-                await visibilityOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { visibilityId: news.visibilityAdminId },
-                })
-                await visibilityOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { visibilityId: news.visibilityRegularId },
-                })
-                await articleOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { articleId: news.articleId },
-                })
+            // The news row goes first: it restricts the deletion of its article and visibilities.
+            const news = await prisma.newsArticle.delete({ where: { id: params.id } })
+            await visibilityOperations.destroy.internalCall({
+                prisma,
+                params: { visibilityId: news.visibilityAdminId },
+            })
+            await visibilityOperations.destroy.internalCall({
+                prisma,
+                params: { visibilityId: news.visibilityRegularId },
+            })
+            await articleOperations.destroy.internalCall({
+                prisma,
+                params: { articleId: news.articleId },
             })
         }
     }),

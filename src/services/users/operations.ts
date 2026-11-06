@@ -468,7 +468,7 @@ export const userOperations = {
         paramsSchema: userSchemas.params.register,
         dataSchema: userSchemas.data.register,
         authorizer: ({ params }) => userAuth.register.data({ userId: params.id }),
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, data, params }) => {
             const { sex, password, allergies, imageConsent } = data
 
@@ -476,75 +476,73 @@ export const userOperations = {
 
             // Everything registration writes stands or falls together, so a failure part of the way
             // leaves the user unregistered and free to try again, not registered with half of it.
-            return await prisma.$transaction(async tx => {
-                const storedUser = await tx.user.findUniqueOrThrow({
-                    where: {
-                        id: params.id,
-                    },
-                    select: {
-                        acceptedTerms: true,
-                        emailVerified: true,
-                    },
-                })
-
-                if (storedUser.acceptedTerms) throw new ServiceError('DUPLICATE', 'Brukeren er allerede registrert.')
-
-                if (!storedUser.emailVerified) {
-                    throw new ServiceError('DISSALLOWED', 'Du må bekrefte e-posten din før du kan registrere deg.')
-                }
-
-                const registeredUser = await tx.user.update({
-                    where: {
-                        id: params.id,
-                    },
-                    data: {
-                        acceptedTerms: new Date(),
-                        imageConsent,
-                        sex,
-                        allergies,
-                    },
-                    select: userPrivateSelection
-                })
-
-                await tx.credentials.upsert({
-                    where: {
-                        userId: params.id,
-                    },
-                    create: {
-                        user: {
-                            connect: {
-                                id: params.id,
-                            },
-                        },
-                        passwordHash,
-                    },
-                    update: {
-                        passwordHash,
-                    },
-                })
-
-                // What someone studies is what decides where they come in; anything above that is
-                // earned through the admission system, so this only ever moves a user up.
-                const inferredLevel = await omegaMembershipGroupOperations.inferUserLevel({
-                    params: {
-                        userId: params.id,
-                    },
-                    prisma: tx,
-                    bypassAuth: true,
-                })
-
-                await omegaMembershipGroupOperations.writeUserLevel.internalCall({
-                    params: {
-                        userId: params.id,
-                        omegaMembershipLevel: inferredLevel,
-                        onlyUpgrade: true,
-                    },
-                    prisma: tx,
-                })
-                await invalidateOneUserSessionData(tx, params.id)
-
-                return registeredUser
+            const storedUser = await prisma.user.findUniqueOrThrow({
+                where: {
+                    id: params.id,
+                },
+                select: {
+                    acceptedTerms: true,
+                    emailVerified: true,
+                },
             })
+
+            if (storedUser.acceptedTerms) throw new ServiceError('DUPLICATE', 'Brukeren er allerede registrert.')
+
+            if (!storedUser.emailVerified) {
+                throw new ServiceError('DISSALLOWED', 'Du må bekrefte e-posten din før du kan registrere deg.')
+            }
+
+            const registeredUser = await prisma.user.update({
+                where: {
+                    id: params.id,
+                },
+                data: {
+                    acceptedTerms: new Date(),
+                    imageConsent,
+                    sex,
+                    allergies,
+                },
+                select: userPrivateSelection
+            })
+
+            await prisma.credentials.upsert({
+                where: {
+                    userId: params.id,
+                },
+                create: {
+                    user: {
+                        connect: {
+                            id: params.id,
+                        },
+                    },
+                    passwordHash,
+                },
+                update: {
+                    passwordHash,
+                },
+            })
+
+            // What someone studies is what decides where they come in; anything above that is
+            // earned through the admission system, so this only ever moves a user up.
+            const inferredLevel = await omegaMembershipGroupOperations.inferUserLevel({
+                params: {
+                    userId: params.id,
+                },
+                prisma,
+                bypassAuth: true,
+            })
+
+            await omegaMembershipGroupOperations.writeUserLevel.internalCall({
+                params: {
+                    userId: params.id,
+                    omegaMembershipLevel: inferredLevel,
+                    onlyUpgrade: true,
+                },
+                prisma,
+            })
+            await invalidateOneUserSessionData(prisma, params.id)
+
+            return registeredUser
         }
     }),
 
@@ -598,19 +596,17 @@ export const userOperations = {
     destroy: defineOperation({
         paramsSchema: userSchemas.params.destroy,
         authorizer: () => userAuth.destroy,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
-            await prisma.$transaction(async tx => {
-                const user = await tx.user.delete({
-                    where: {
-                        id: params.id,
-                    },
-                    select: { bioParagraphId: true },
-                })
-                await cmsParagraphOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { paragraphId: user.bioParagraphId },
-                })
+            const user = await prisma.user.delete({
+                where: {
+                    id: params.id,
+                },
+                select: { bioParagraphId: true },
+            })
+            await cmsParagraphOperations.destroy.internalCall({
+                prisma,
+                params: { paragraphId: user.bioParagraphId },
             })
         }
     }),
@@ -646,7 +642,7 @@ export const userOperations = {
         authorizer: ({ params }) => userAuth.updateProfileImage.data({ userField: { username: params.username } }),
         paramsSchema: userSchemas.params.updateProfileImage,
         dataSchema: userSchemas.data.updateProfileImage,
-        opensTransaction: true,
+        transaction: 'OPENS',
         // uploadImage resizes to 3 sizes, converts to avif and writes several files to store
         // before any db write happens - comfortably slower than the default 5000ms interactive
         // transaction timeout under load, hence the raised timeout below.

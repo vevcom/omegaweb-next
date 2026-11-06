@@ -89,7 +89,7 @@ const createRegistration = defineSubOperation({
     paramsSchema: ({ asAdmin }: { asAdmin: boolean }): CreateParamsSchema => (asAdmin
         ? eventRegistrationSchemas.params.createAsAdmin
         : eventRegistrationSchemas.params.create),
-    opensTransaction: true,
+    transaction: 'OPENS',
     operation: ({ asAdmin }: { asAdmin: boolean }) =>
         async ({ prisma, params, session }) => {
             const { registration, promoted } = await prisma.$transaction(async tx => {
@@ -120,7 +120,7 @@ const createRegistration = defineSubOperation({
  */
 const destroyRegistration = defineSubOperation({
     paramsSchema: () => eventRegistrationSchemas.params.destroy,
-    opensTransaction: true,
+    transaction: 'OPENS',
     operation: ({ asAdmin }: { asAdmin: boolean }) =>
         async ({ prisma, params }) => {
             const { eventId, variantId } = await registrationContext(prisma, params.registrationId)
@@ -222,7 +222,7 @@ export const eventRegistrationOperations = {
         ),
         paramsSchema: eventRegistrationSchemas.params.createGuest,
         dataSchema: eventRegistrationSchemas.data.createGuest,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
             const { registration, promoted } = await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.eventId)
@@ -384,47 +384,45 @@ export const eventRegistrationOperations = {
             (await registrationOwnerAndAccess(prisma, params.registrationId)).access
         ),
         paramsSchema: eventRegistrationSchemas.params.move,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
             const { eventId, variantId } = await registrationContext(prisma, params.registrationId)
 
-            await prisma.$transaction(async tx => {
-                await lockEvent(tx, eventId)
-                const registration = await tx.eventRegistration.findUniqueOrThrow({
-                    where: { id: params.registrationId },
-                    select: { id: true, queuedAt: true, state: true },
-                })
-                if (registration.state !== 'WAITING_LIST') {
-                    throw new Smorekopp('BAD PARAMETERS', 'Bare ventelisten har en kø å flytte i.')
-                }
-                const up = params.direction === 'UP'
-
-                const neighbour = await tx.eventRegistration.findFirst({
-                    where: {
-                        ...waitingInVariant(variantId),
-                        ...(up ? queuedAhead(registration) : queuedBehind(registration)),
-                    },
-                    orderBy: up
-                        ? [{ queuedAt: 'desc' }, { id: 'desc' }]
-                        : eventRegistrationQueueOrder,
-                    select: { id: true, queuedAt: true },
-                })
-                if (!neighbour) {
-                    throw new Smorekopp(
-                        'BAD PARAMETERS',
-                        up ? 'Påmeldingen er allerede først i køen.' : 'Påmeldingen er allerede sist i køen.'
-                    )
-                }
-
-                const ahead = up ? neighbour : registration
-                const behind = up ? registration : neighbour
-                // On equal times the id decides, so trading them would change nothing.
-                const times = ahead.queuedAt.getTime() === behind.queuedAt.getTime()
-                    ? await untieQueue(tx, variantId)
-                    : new Map([[ahead.id, ahead.queuedAt], [behind.id, behind.queuedAt]])
-                await tx.eventRegistration.update({ where: { id: behind.id }, data: { queuedAt: times.get(ahead.id) } })
-                await tx.eventRegistration.update({ where: { id: ahead.id }, data: { queuedAt: times.get(behind.id) } })
+            await lockEvent(prisma, eventId)
+            const registration = await prisma.eventRegistration.findUniqueOrThrow({
+                where: { id: params.registrationId },
+                select: { id: true, queuedAt: true, state: true },
             })
+            if (registration.state !== 'WAITING_LIST') {
+                throw new Smorekopp('BAD PARAMETERS', 'Bare ventelisten har en kø å flytte i.')
+            }
+            const up = params.direction === 'UP'
+
+            const neighbour = await prisma.eventRegistration.findFirst({
+                where: {
+                    ...waitingInVariant(variantId),
+                    ...(up ? queuedAhead(registration) : queuedBehind(registration)),
+                },
+                orderBy: up
+                    ? [{ queuedAt: 'desc' }, { id: 'desc' }]
+                    : eventRegistrationQueueOrder,
+                select: { id: true, queuedAt: true },
+            })
+            if (!neighbour) {
+                throw new Smorekopp(
+                    'BAD PARAMETERS',
+                    up ? 'Påmeldingen er allerede først i køen.' : 'Påmeldingen er allerede sist i køen.'
+                )
+            }
+
+            const ahead = up ? neighbour : registration
+            const behind = up ? registration : neighbour
+            // On equal times the id decides, so trading them would change nothing.
+            const times = ahead.queuedAt.getTime() === behind.queuedAt.getTime()
+                ? await untieQueue(prisma, variantId)
+                : new Map([[ahead.id, ahead.queuedAt], [behind.id, behind.queuedAt]])
+            await prisma.eventRegistration.update({ where: { id: behind.id }, data: { queuedAt: times.get(ahead.id) } })
+            await prisma.eventRegistration.update({ where: { id: ahead.id }, data: { queuedAt: times.get(behind.id) } })
         },
     }),
 
@@ -439,7 +437,7 @@ export const eventRegistrationOperations = {
         ),
         paramsSchema: eventRegistrationSchemas.params.moveToQuota,
         dataSchema: eventRegistrationSchemas.data.moveToQuota,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
             const { eventId, variantId } = await registrationContext(prisma, params.registrationId)
 
@@ -655,7 +653,7 @@ export const eventRegistrationOperations = {
     createPayment: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.createPayment,
         authorizer: ({ params }) => eventRegistrationAuth.createPayment.data({ userId: params.userId }),
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params, session }): Promise<{ payment: ExpandedPayment | null }> => {
             const variant = await resolveVariant(prisma, params.eventId, params.variantId)
             const registration = await prisma.eventRegistration.findFirst({

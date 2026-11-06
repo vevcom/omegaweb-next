@@ -91,7 +91,7 @@ export function implementNotificationChannelsForPurpose<
             update: defineSubOperation({
                 paramsSchema: () => notificationChannelSchemas.params.update,
                 dataSchema: () => notificationChannelSchemas.data.update,
-                opensTransaction: true,
+                transaction: 'RUNS_IN',
                 operation: () => async ({ prisma, params, data }) => {
                     await assertPurpose({ prisma, channelId: params.id })
                     return notificationChannelOperations.update.internalCall({ params, data })

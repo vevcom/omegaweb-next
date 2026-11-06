@@ -20,17 +20,17 @@ export const careersTeamOperations = {
     createDepartment: defineOperation({
         dataSchema: careersTeamSchemas.data.createDepartment,
         authorizer: () => careersTeamAuth.createDepartment,
-        opensTransaction: true,
-        operation: ({ prisma, data }) => prisma.$transaction(async tx => {
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data }) => {
             const paragraph = await cmsParagraphOperations.create.internalCall({
                 data: {},
-                prisma: tx,
+                prisma,
                 operationImplementationFields: { special: null },
             })
-            return tx.careerTeamDepartment.create({
+            return prisma.careerTeamDepartment.create({
                 data: { ...data, paragraphId: paragraph.id },
             })
-        }),
+        },
     }),
 
     updateDepartment: defineOperation({
@@ -49,13 +49,13 @@ export const careersTeamOperations = {
         paramsSchema: careersTeamSchemas.params.moveDepartment,
         dataSchema: careersTeamSchemas.data.moveDepartment,
         authorizer: () => careersTeamAuth.moveDepartment,
-        opensTransaction: true,
-        operation: ({ prisma, params, data }) => prisma.$transaction(async tx => {
-            const department = await tx.careerTeamDepartment.findUniqueOrThrow({
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params, data }) => {
+            const department = await prisma.careerTeamDepartment.findUniqueOrThrow({
                 where: { id: params.departmentId },
                 select: { id: true, order: true },
             })
-            const neighbour = await tx.careerTeamDepartment.findFirst({
+            const neighbour = await prisma.careerTeamDepartment.findFirst({
                 where: { order: data.direction === 'UP' ? { lt: department.order } : { gt: department.order } },
                 orderBy: { order: data.direction === 'UP' ? 'desc' : 'asc' },
                 select: { id: true, order: true },
@@ -63,16 +63,16 @@ export const careersTeamOperations = {
             if (!neighbour) throw new ServiceError('BAD PARAMETERS', 'Avdelingen kan ikke flyttes dit')
 
             // Swapped by way of -1, since the order is unique.
-            await tx.careerTeamDepartment.update({ where: { id: department.id }, data: { order: -1 } })
-            await tx.careerTeamDepartment.update({ where: { id: neighbour.id }, data: { order: department.order } })
-            await tx.careerTeamDepartment.update({ where: { id: department.id }, data: { order: neighbour.order } })
-        }),
+            await prisma.careerTeamDepartment.update({ where: { id: department.id }, data: { order: -1 } })
+            await prisma.careerTeamDepartment.update({ where: { id: neighbour.id }, data: { order: department.order } })
+            await prisma.careerTeamDepartment.update({ where: { id: department.id }, data: { order: neighbour.order } })
+        },
     }),
 
     destroyDepartment: defineOperation({
         paramsSchema: careersTeamSchemas.params.destroyDepartment,
         authorizer: () => careersTeamAuth.destroyDepartment,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params }) => {
             const cleanup = await prisma.$transaction(async tx => {
                 const personsCleanup = await destroyPersonsAndReturnCleanup(tx, { departmentId: params.departmentId })

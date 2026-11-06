@@ -92,7 +92,7 @@ export const notificationChannelOperations = {
     update: defineSubOperation({
         dataSchema: () => notificationChannelSchemas.data.update,
         paramsSchema: () => notificationChannelSchemas.params.update,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: () => async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
             const channel = await prisma.notificationChannel.findUniqueOrThrow({
                 where: {
@@ -110,32 +110,30 @@ export const notificationChannelOperations = {
                 throw new ServiceError('BAD PARAMETERS', 'Den overordnede kanalen kan ikke gi en løkke.')
             }
 
-            return await prisma.$transaction(async (tx) => {
-                if (!methodsAreEqual(params.availableMethods, channel.availableMethods)) {
-                    await tx.notificationMethod.update({
-                        where: {
-                            id: channel.availableMethods.id,
-                        },
-                        data: params.availableMethods,
-                    })
-                }
-
-                return tx.notificationChannel.update({
+            if (!methodsAreEqual(params.availableMethods, channel.availableMethods)) {
+                await prisma.notificationMethod.update({
                     where: {
-                        id: params.id,
+                        id: channel.availableMethods.id,
                     },
-                    data: {
-                        name: data.name,
-                        description: data.description,
-                        parent: { connect: { id: data.parentId } },
-                        mailAlias: {
-                            connect: {
-                                id: data.mailAliasId,
-                            }
-                        }
-                    },
-                    include: availableNotificationMethodIncluder,
+                    data: params.availableMethods,
                 })
+            }
+
+            return prisma.notificationChannel.update({
+                where: {
+                    id: params.id,
+                },
+                data: {
+                    name: data.name,
+                    description: data.description,
+                    parent: { connect: { id: data.parentId } },
+                    mailAlias: {
+                        connect: {
+                            id: data.mailAliasId,
+                        }
+                    }
+                },
+                include: availableNotificationMethodIncluder,
             })
         }
     }),

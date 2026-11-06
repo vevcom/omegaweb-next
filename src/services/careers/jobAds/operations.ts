@@ -35,7 +35,7 @@ export const jobAdOperations = {
     create: defineOperation({
         dataSchema: jobAdSchemas.data.create,
         authorizer: () => jobAdAuth.create,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, data: { articleName, companyId, ...data } }) => {
             const jobAd = await prisma.$transaction(async tx => {
                 const article = await articleOperations.create.internalCall({

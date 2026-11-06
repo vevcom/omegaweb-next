@@ -22,7 +22,7 @@ const createPurchase = defineSubOperation({
     // Each implementation reads the schemas under its own name.
     paramsSchema: ({ operation }: { operation: PurchaseImplementation }) => purchaseSchemas.params[operation],
     dataSchema: ({ operation }: { operation: PurchaseImplementation }) => purchaseSchemas.data[operation],
-    opensTransaction: true,
+    transaction: 'RUNS_IN',
     operation: ({ method }: { method: PurchaseMethod }) => async ({ prisma, params, data }) => {
         const user = await prisma.user.findUniqueOrThrow({
             where: {
@@ -71,25 +71,23 @@ const createPurchase = defineSubOperation({
             bypassAuth: true,
         })
 
-        await prisma.$transaction(async tx => {
-            const purchase = await tx.purchase.create({
-                data: {
-                    shop: {
-                        connect: {
-                            id: data.shopId,
-                        },
-                    },
-                    method,
-                    PurchaseProduct: {
-                        createMany: {
-                            data: productList,
-                        },
+        const purchase = await prisma.purchase.create({
+            data: {
+                shop: {
+                    connect: {
+                        id: data.shopId,
                     },
                 },
-            })
+                method,
+                PurchaseProduct: {
+                    createMany: {
+                        data: productList,
+                    },
+                },
+            },
+        })
 
-            if (totalPrice === 0) return
-
+        if (totalPrice !== 0) {
             // bypassAuth: who pays has already been decided by the authorizer of the implementation
             // (`create`: the session user, buying for themselves in a shop they can see;
             // `createOnBehalf`: the kiosk, charging a card whose owner may shop there). The generic
@@ -105,10 +103,10 @@ const createPurchase = defineSubOperation({
                     ],
                     purchaseId: purchase.id,
                 },
-                prisma: tx,
+                prisma,
                 bypassAuth: true,
             })
-        })
+        }
 
         const remainingBalance = await ledgerAccountOperations.calculateBalance({
             params: { ledgerAccountId: buyerAccount.id },
@@ -166,7 +164,7 @@ export const purchaseOperations = {
     createByStudentCard: defineOperation({
         authorizer: () => purchaseAuth.createByStudentCard,
         dataSchema: purchaseSchemas.data.createByStudentCard,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ data }) => {
             const user = await readCardOwner(data.studentCard)
             return createOnBehalf({

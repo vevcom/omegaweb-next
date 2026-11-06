@@ -9,26 +9,25 @@ export const promoOperations = {
     create: defineOperation({
         authorizer: () => promoAuth.create,
         dataSchema: promoSchemas.data.create,
-        opensTransaction: true,
-        operation: ({ prisma, data }) =>
-            prisma.$transaction(async tx => {
-                const image = await promoImageOperations.uploadImage.internalCall({ prisma: tx, data })
-                return await tx.promo.create({
-                    data: {
-                        title: data.title,
-                        text: data.text,
-                        link: data.link,
-                        startDate: data.startDate,
-                        endDate: data.endDate,
-                        image: {
-                            connect: {
-                                id: image.id
-                            }
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data }) => {
+            const image = await promoImageOperations.uploadImage.internalCall({ prisma, data })
+            return await prisma.promo.create({
+                data: {
+                    title: data.title,
+                    text: data.text,
+                    link: data.link,
+                    startDate: data.startDate,
+                    endDate: data.endDate,
+                    image: {
+                        connect: {
+                            id: image.id
                         }
-                    },
-                    include: promoWithImageIncluder,
-                })
+                    }
+                },
+                include: promoWithImageIncluder,
             })
+        }
     }),
     update: defineOperation({
         authorizer: () => promoAuth.update,
@@ -52,7 +51,7 @@ export const promoOperations = {
         authorizer: () => promoAuth.updateImage,
         paramsSchema: promoSchemas.params.updateImage,
         dataSchema: promoSchemas.data.updateImage,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
             const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
                 const existingPromo = await tx.promo.findUniqueOrThrow({
@@ -118,7 +117,7 @@ export const promoOperations = {
     destroy: defineOperation({
         authorizer: () => promoAuth.destroy,
         paramsSchema: promoSchemas.params.destroy,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params: { promoId } }) => {
             const { cleanup } = await prisma.$transaction(async tx => {
                 const promo = await tx.promo.delete({

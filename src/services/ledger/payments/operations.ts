@@ -56,7 +56,7 @@ export const paymentOperations = {
         paramsSchema: paymentSchemas.params.initiate,
         // This method does not actually open a transaction. However, it cannot be used
         // inside a transaction as it does external API calls which cannot be reversed.
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params, session }) => {
             const payment = await prisma.payment.findUniqueOrThrow({
                 where: {

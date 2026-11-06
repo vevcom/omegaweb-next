@@ -33,7 +33,7 @@ export const notificationSubscriptionOperations = {
         authorizer: ({ params }) => notificationSubscriptionAuth.update.data({ userId: params.userId }),
         paramsSchema: notificationSubscriptionSchemas.params.update,
         dataSchema: notificationSubscriptionSchemas.data.update,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params, data: { includeChildren, ...methods } }): Promise<Subscription[]> => {
             const changes = [{ channelId: params.channelId, methods }]
             if (includeChildren) {
@@ -48,12 +48,10 @@ export const notificationSubscriptionOperations = {
             }
 
             // One bad subscription rolls back the whole batch, so the user never ends up with half of it.
-            return await prisma.$transaction(async (tx) => {
-                const subscriptions = await Promise.all(changes.map(change =>
-                    applySubscription(tx, params.userId, change.channelId, change.methods)
-                ))
-                return subscriptions.filter(subscription => subscription !== null)
-            })
+            const subscriptions = await Promise.all(changes.map(change =>
+                applySubscription(prisma, params.userId, change.channelId, change.methods)
+            ))
+            return subscriptions.filter(subscription => subscription !== null)
         },
     }),
 
