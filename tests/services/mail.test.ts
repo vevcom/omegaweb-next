@@ -21,6 +21,7 @@ afterEach(async () => {
     await prisma.mailingListMailAddressExternal.deleteMany()
     await prisma.membership.deleteMany({ where: { user: { username: { startsWith: 'test-' } } } })
     await prisma.user.deleteMany({ where: { username: { startsWith: 'test-' } } })
+    await prisma.manualGroup.deleteMany({ where: { groupId: { in: testGroupIds } } })
     await prisma.group.deleteMany({ where: { id: { in: testGroupIds } } })
     testGroupIds.length = 0
     // Only delete aliases/lists/externals created by tests (not seeded data)
@@ -240,7 +241,13 @@ describe('mail flow traversal', () => {
 
     test('traversal from mailing list via group shows connected user', async () => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-        const group = await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })
+        const group = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'mail-via-group', shortName: 'mail-via-group' } },
+            },
+        })
         testGroupIds.push(group.id)
         const user = await prisma.user.create({
             data: {
@@ -276,7 +283,13 @@ describe('mail flow traversal', () => {
 
     test('inactive group members are not part of the mail flow', async () => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-        const group = await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })
+        const group = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'mail-inactive-members', shortName: 'mail-inactive-members' } },
+            },
+        })
         testGroupIds.push(group.id)
         const activeUser = await prisma.user.create({
             data: {
@@ -374,7 +387,13 @@ describe('mail flow traversal', () => {
 describe('destroy mailing list user relation', () => {
     test('throws NOT FOUND when user is connected to list only via a group', async () => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-        const group = await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })
+        const group = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'mail-destroy-user-relation', shortName: 'mail-destroy-user-relation' } },
+            },
+        })
         testGroupIds.push(group.id)
         const user = await prisma.user.create({
             data: {

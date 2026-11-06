@@ -24,11 +24,11 @@ const typeDisplayNames: Record<MailListTypes, string> = {
     mailaddressExternal: 'Ekstern e-postadresse',
 }
 
-function focusedLabel(filter: MailListTypes, id: number, data: MailFlowObject, groupNames: Record<number, string>) {
+function focusedLabel(filter: MailListTypes, id: number, data: MailFlowObject) {
     if (filter === 'alias') return data.alias.find(alias => alias.id === id)?.address
     if (filter === 'mailingList') return data.mailingList.find(list => list.id === id)?.name
     if (filter === 'mailaddressExternal') return data.mailaddressExternal.find(external => external.id === id)?.address
-    if (filter === 'group') return groupNames[id]
+    if (filter === 'group') return data.group.find(group => group.id === id)?.name
     const user = data.user.find(focusedUser => focusedUser.id === id)
     return user && `${user.firstname} ${user.lastname}`
 }
@@ -52,15 +52,14 @@ const { page, generateMetadata } = serverPage({
         ])
 
         const groups = flattenExpandedGroups(allGroupTypes)
-        const groupNames: Record<number, string> = Object.fromEntries(groups.map(group => [group.id, group.name]))
 
-        return { filter, id, results, mailOptions, groups, groupNames }
+        return { filter, id, results, mailOptions, groups }
     },
-    metadata: ({ filter, id, results, groupNames }) => ({
-        title: focusedLabel(filter, id, results, groupNames) ?? typeDisplayNames[filter],
+    metadata: ({ filter, id, results }) => ({
+        title: focusedLabel(filter, id, results) ?? typeDisplayNames[filter],
     }),
     render: ({ data }) => {
-        const { filter, id, results, mailOptions, groups, groupNames } = data
+        const { filter, id, results, mailOptions, groups } = data
 
         return <PageWrapper>
             <div className="p-4 flex flex-col gap-4">
@@ -68,7 +67,7 @@ const { page, generateMetadata } = serverPage({
                     {typeDisplayNames[filter]}
                 </p>
 
-                <MailFlow filter={filter} id={id} data={results} groupNames={groupNames} />
+                <MailFlow filter={filter} id={id} data={results} />
 
                 <div className="flex flex-row flex-wrap items-start gap-4">
                     {filter === 'mailingList' && <UserSelectionProvider>

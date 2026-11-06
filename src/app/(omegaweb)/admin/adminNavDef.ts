@@ -189,17 +189,17 @@ export const adminNavDef = defineGroupedNavDef([
                 href: appHref('/admin/send-notification'),
                 authorizers: () => [manualNotificationChannelAuth.createNotification],
             },
-        ],
-    },
-    {
-        header: { icon: faEnvelopesBulk, title: 'E-posttjener' },
-        items: [
             {
                 key: 'send-mail',
                 name: 'Send e-post',
                 href: appHref('/admin/send-mail'),
                 authorizers: () => [sendMailAuth.sendMail],
             },
+        ],
+    },
+    {
+        header: { icon: faEnvelopesBulk, title: 'E-posttjener' },
+        items: [
             {
                 key: 'mail/mailingList',
                 name: 'E-postlister',
