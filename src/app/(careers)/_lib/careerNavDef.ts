@@ -2,6 +2,8 @@ import { CAREERS_EMAIL } from './careersSite'
 import { careerLinks } from '@/app/(careers)/links'
 import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
+import { careerAdminLinks } from '@/app/(careers)/career/admin/links'
+import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { companyAuth } from '@/services/careers/companies/auth'
 import { careersTeamAuth } from '@/services/careers/team/auth'
@@ -15,6 +17,7 @@ import {
     faCalendar,
     faEnvelope,
     faPeopleGroup,
+    faTools,
     faUser,
 } from '@fortawesome/free-solid-svg-icons'
 
@@ -61,5 +64,12 @@ export const careerNavDef = defineNavDef([
         href: careerLinks.profile(),
         icon: faUser,
         authorizers: () => [Require.user()],
+    },
+    {
+        key: 'admin',
+        name: 'Administrasjon',
+        href: careerAdminLinks.frontpage(),
+        icon: faTools,
+        authorizers: () => careerAdminNavDef.authorizers(),
     },
 ])

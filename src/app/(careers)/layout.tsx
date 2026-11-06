@@ -6,6 +6,7 @@ import { careerNavDef } from './_lib/careerNavDef'
 import { innerClassName } from './_lib/careersClassNames'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import { CareersGlobalSearch, CareersGlobalSearchProvider } from '@/app/(careers)/GlobalSearch'
+import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
 import WorkInProgressBanner from '@/components/WorkInProgressBanner/WorkInProgressBanner'
 import { externalHref } from '@/lib/sites/href'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
@@ -44,6 +45,7 @@ export default serverLayout({
             loggedIn: session.user !== null,
             omegaMember: level !== null && level.level !== 'DEN_GEMENE_HOB',
             navLinks: careerNavDef.visible(session),
+            adminNavLinks: careerAdminNavDef.visible(session),
             searchCategories: searchableCategories(careersSearchCategories, session),
         }
     },
@@ -64,7 +66,11 @@ export default serverLayout({
         >
             <SiteTheme colors={careersTheme} />
             <CareersGlobalSearchProvider>
-                <CareersGlobalSearch navItems={data.navLinks} categories={data.searchCategories} />
+                <CareersGlobalSearch
+                    navItems={data.navLinks}
+                    adminNavItems={data.adminNavLinks}
+                    categories={data.searchCategories}
+                />
                 <WorkInProgressBanner siteName="Contactor" currentSiteHref={externalHref('https://contactor.no')} />
                 <CareersNavBar links={data.navLinks} loggedIn={data.loggedIn} showOmegaLink={data.omegaMember} />
                 <main className={`

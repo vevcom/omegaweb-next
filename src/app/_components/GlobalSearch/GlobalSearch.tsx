@@ -48,8 +48,8 @@ export type SearchNavItem = {
 export type GlobalSearchProps = {
     /** The nav items the session may open, as the site's navigation leaves them. */
     navItems: SearchNavItem[],
-    /** The admin pages the session may open, with their group's title. Only Omega's site has them. */
-    adminNavItems?: (SearchNavItem & { group: string })[],
+    /** The admin pages the session may open, with their group's title on a site that groups them. */
+    adminNavItems?: (SearchNavItem & { group?: string })[],
     /** The categories the session may search, from `searchableCategories` on the site's categories. */
     categories: SearchCategory[],
 }
@@ -205,13 +205,13 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
                 })),
             // Admin pages only show up when searched for, so they don't crowd the plain list of pages.
             ...(trimmedQuery === '' ? [] : adminNavItems)
-                .filter(item => `${item.name} ${item.group}`.toLowerCase().includes(trimmedQuery))
+                .filter(item => `${item.name} ${item.group ?? ''}`.toLowerCase().includes(trimmedQuery))
                 .map((item): SearchItem => ({
                     key: `admin-nav-${item.href}`,
                     href: item.href,
                     thumb: { type: 'icon', icon: item.icon ?? faArrowRight },
                     label: item.name,
-                    sublabel: `Admin · ${item.group}`,
+                    sublabel: item.group ? `Admin · ${item.group}` : 'Admin',
                 })),
         ], [navItems, adminNavItems, trimmedQuery])
 
