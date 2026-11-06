@@ -44,7 +44,7 @@ export default function EventAdmin({ event, capabilities, statistics, seatingBoa
             : { level: 'warning' as const, label: 'Klart, men ikke publisert' }
     }
 
-    return <div className="min-w-[min(90vw,62rem)] h-[min(85svh,44rem)]">
+    return <div className="min-w-[min(90vw,62rem)] h-[calc(100svh-10rem)]">
         <Tabs
             label="Administrer arrangementet"
             tabs={[

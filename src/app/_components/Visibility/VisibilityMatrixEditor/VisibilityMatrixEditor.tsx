@@ -32,6 +32,14 @@ const groupTypeNames: Record<GroupType, string> = {
 }
 const NOW = -1
 
+const modeClassName = (active: boolean) => `
+    py-1 px-3 border-none rounded-[calc(var(--rounding)/2)] text-s cursor-pointer
+    ${active ? 'bg-accent-blue text-white font-medium' : `
+        bg-transparent text-text
+        hover:bg-surface-raised
+    `}
+`
+
 const groupOptions = (groups: ExpandedGroup[]) => Object.entries(groupTypeNames).flatMap(([type, section]) => (
     groups
         .filter(group => group.groupType === type)
@@ -129,27 +137,25 @@ export default function VisibilityMatrixEditor({ requirements, onChange, verb, e
             {nobody ? 'Ingen slipper inn ennå. Velg minst én gruppe.' : sentence}
         </p>
 
-        {everyone !== undefined && <div className="flex flex-wrap gap-2">
-            <Button
+        {everyone !== undefined && <div className="flex flex-wrap gap-1 self-start p-1 rounded-inner bg-surface-hover">
+            <button
                 type="button"
-                color={specific ? 'secondary' : 'primary'}
                 aria-pressed={!specific}
                 onClick={() => onChange([])}
-                className="m-0!"
+                className={modeClassName(!specific)}
             >
                 {everyone}
-            </Button>
-            <Button
+            </button>
+            <button
                 type="button"
-                color={specific ? 'primary' : 'secondary'}
                 aria-pressed={specific}
                 onClick={() => {
                     if (!specific) onChange([{ conditions: [] }])
                 }}
-                className="m-0!"
+                className={modeClassName(specific)}
             >
                 Bestemte grupper
-            </Button>
+            </button>
         </div>}
 
         {specific && (groups === null ? <p className="m-0">Laster grupper...</p> : <>
@@ -214,7 +220,7 @@ export default function VisibilityMatrixEditor({ requirements, onChange, verb, e
                 type="button"
                 color="secondary"
                 onClick={() => onChange([...lists, { conditions: [] }])}
-                className="m-0! self-start"
+                className="self-start m-0! py-1! px-3! text-s!"
             >
                 <FontAwesomeIcon icon={faPlus} /> Og må også være i
             </Button>
