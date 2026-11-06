@@ -21,6 +21,7 @@ export type VariantDraft = {
     key: number,
     id?: number,
     name: string,
+    description?: string,
     /** Null for a date that was emptied in the form, which the save refuses. */
     registrationStart: Date | null,
     registrationEnd: Date | null,
@@ -40,6 +41,7 @@ export function toVariantDrafts(variants: EventVariantExpanded[]): VariantDraft[
         key: variant.id,
         id: variant.id,
         name: variant.name,
+        description: variant.description ?? undefined,
         registrationStart: variant.registrationStart,
         registrationEnd: variant.registrationEnd,
         takesPayment: variant.takesPayment,
@@ -73,6 +75,7 @@ export function variantsToPost(variants: VariantDraft[]): PostedVariant[] {
     return variants.map(variant => ({
         id: variant.id,
         name: variant.name,
+        description: variant.description,
         registrationStart: postedDate(variant.registrationStart),
         registrationEnd: postedDate(variant.registrationEnd),
         takesPayment: variant.takesPayment,

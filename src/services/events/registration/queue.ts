@@ -77,10 +77,33 @@ export async function untieQueue(tx: Prisma.TransactionClient, variantId: number
     return times
 }
 
-export function queueSegmentFilter(details: EventRegistrationPageDetails): Prisma.EventRegistrationWhereInput {
-    return details.type === REGISTRATION_READER_TYPE.WAITING_LIST
-        ? waitingInEvent(details.eventId)
-        : seatedInEvent(details.eventId)
+/** A segment of the queue, optionally of one variant, and narrowed to those matching every word of a search. */
+export function queueSegmentFilter({
+    eventId,
+    type,
+    variantId,
+    search,
+}: EventRegistrationPageDetails): Prisma.EventRegistrationWhereInput {
+    const waiting = type === REGISTRATION_READER_TYPE.WAITING_LIST
+    const words = search?.split(/\s+/).filter(Boolean) ?? []
+    const contains = (word: string) => ({ contains: word, mode: 'insensitive' as const })
+
+    return {
+        AND: [
+            waiting ? waitingInEvent(eventId) : seatedInEvent(eventId),
+            ...(variantId === undefined ? [] : [
+                waiting ? { waitingListVariantId: variantId } : { quota: { variantId } },
+            ]),
+            ...words.map(word => ({
+                OR: [
+                    { user: { firstname: contains(word) } },
+                    { user: { lastname: contains(word) } },
+                    { user: { username: contains(word) } },
+                    { contact: { name: contains(word) } },
+                ],
+            })),
+        ],
+    }
 }
 
 /** Those with a place list by variant, quota and queue; the waiting lists by variant and queue. */
