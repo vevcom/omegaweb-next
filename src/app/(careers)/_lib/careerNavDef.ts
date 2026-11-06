@@ -1,4 +1,3 @@
-import { CAREERS_EMAIL } from './careersSite'
 import { careerLinks } from '@/app/(careers)/links'
 import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
@@ -10,18 +9,16 @@ import { careersTeamAuth } from '@/services/careers/team/auth'
 import { eventAuth } from '@/services/events/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { defineNavDef } from '@/lib/navDef/navDef'
-import { externalHref } from '@/lib/sites/href'
 import {
     faBriefcase,
     faBuilding,
     faCalendar,
-    faEnvelope,
     faPeopleGroup,
     faTools,
     faUser,
 } from '@fortawesome/free-solid-svg-icons'
 
-/** The career site's navigation: the parts of the career pages, then the way to get in touch. */
+/** The parts of the career pages, in the career site's navigation. */
 export const careerNavDef = defineNavDef([
     {
         key: 'jobAds',
@@ -51,13 +48,10 @@ export const careerNavDef = defineNavDef([
         icon: faPeopleGroup,
         authorizers: () => [careersTeamAuth.readDepartments],
     },
-    {
-        key: 'contact',
-        name: 'Kontakt',
-        href: externalHref(`mailto:${CAREERS_EMAIL}`),
-        icon: faEnvelope,
-        authorizers: () => [Require.nothing()],
-    },
+])
+
+/** What belongs to the logged in user, which the navigation keeps apart from the pages of the site. */
+export const careerAccountNavDef = defineNavDef([
     {
         key: 'profile',
         name: 'Min side',

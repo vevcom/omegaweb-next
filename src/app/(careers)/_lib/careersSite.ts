@@ -2,6 +2,8 @@ import { externalHref } from '@/lib/sites/href'
 
 export const CAREERS_EMAIL = 'post@contactor.no'
 
+export const CAREERS_CONTACT_HREF = externalHref(`mailto:${CAREERS_EMAIL}`)
+
 export const CAREERS_SOCIALS = {
     facebook: externalHref('https://www.facebook.com/ContactorNTNU/'),
     linkedin: externalHref('https://www.linkedin.com/company/contactor-ntnu/'),

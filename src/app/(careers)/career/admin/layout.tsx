@@ -11,7 +11,7 @@ export default serverLayout({
             max-mobile:flex-col max-mobile:gap-4
         ">
             <aside className="
-                w-[250px] shrink-0 self-start sticky top-[calc(64px+2rem)]
+                w-[250px] shrink-0 self-start sticky top-8
                 max-mobile:static max-mobile:w-full
             ">
                 <CareerAdminSidebar links={links} />
