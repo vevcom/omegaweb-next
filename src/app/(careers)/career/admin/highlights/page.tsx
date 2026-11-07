@@ -1,0 +1,62 @@
+import CreateHighlight from './CreateHighlight'
+import EditHighlight from './EditHighlight'
+import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
+import { careerFrontpageHighlightOperations } from '@/services/careers/frontpage/highlights/operations'
+import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import { displayDate } from '@/lib/dates/displayDate'
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
+import type { ExpandedCareerFrontpageHighlight } from '@/services/careers/frontpage/highlights/types'
+
+function statusOf({ start, end }: ExpandedCareerFrontpageHighlight, now: Date) {
+    if (end < now) return 'Utløpt'
+    return start > now ? 'Planlagt' : 'Aktiv'
+}
+
+const { page, generateMetadata } = serverPage({
+    operation: async ({ session }: PageOperationArgs) => {
+        careerAdminNavDef.authorize('highlights', session)
+        const [highlights, targets] = await Promise.all([
+            careerFrontpageHighlightOperations.readMany({}),
+            careerFrontpageHighlightOperations.readTargets({}),
+        ])
+        return { highlights, targets }
+    },
+    metadata: () => ({ title: 'Fremhevinger' }),
+    render: ({ data: { highlights, targets } }) => {
+        const now = new Date()
+        return (
+            <PageWrapper headerItem={<CreateHighlight targets={targets} />}>
+                {highlights.length ? (
+                    <ul className="flex flex-col gap-2 m-0 p-0 list-none">
+                        {highlights.map(highlight => {
+                            const name = highlight.event?.name ?? highlight.jobAd?.articleName ?? ''
+                            return (
+                                <li key={highlight.id} className="
+                                    flex flex-wrap items-center gap-x-6 gap-y-1 p-4 rounded-(--rounding) bg-surface-raised
+                                ">
+                                    <div className="flex-1 min-w-[14rem]">
+                                        <p className="m-0 font-semibold">{name}</p>
+                                        <p className="m-0 text-s text-text-muted">
+                                            {highlight.event ? 'Bedriftspresentasjon' : 'Jobbannonse'}
+                                        </p>
+                                    </div>
+                                    <p className="m-0 text-s text-text-muted">
+                                        {displayDate(highlight.start)} – {displayDate(highlight.end)}
+                                    </p>
+                                    <p className="m-0 text-s font-semibold">{statusOf(highlight, now)}</p>
+                                    <EditHighlight highlight={highlight} targets={targets} name={name} />
+                                </li>
+                            )
+                        })}
+                    </ul>
+                ) : (
+                    <p className="text-text-muted">Ingenting er fremhevet ennå.</p>
+                )}
+            </PageWrapper>
+        )
+    },
+})
+
+export default page
+export { generateMetadata }

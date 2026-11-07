@@ -1,6 +1,5 @@
 import CareersHeroShape from '@/app/(careers)/career/(frontpage)/CareersHeroShape'
-import UpcomingCompanyPresentations from '@/app/(careers)/career/(frontpage)/UpcomingCompanyPresentations'
-import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
+import CareerFrontpageHighlights from '@/app/(careers)/career/(frontpage)/CareerFrontpageHighlights'
 import { careerLinks } from '@/app/(careers)/links'
 import {
     badgeClassName,
@@ -24,7 +23,8 @@ import {
     updateCareersFrontpageSpecialCmsParagraphContentAction,
 } from '@/services/careers/frontpage/actions'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
-import { serverPage } from '@/app/ServerPage'
+import { careerFrontpageHighlightOperations } from '@/services/careers/frontpage/highlights/operations'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
@@ -65,7 +65,7 @@ const programmeLinkClassName = `
 `
 
 const { page, generateMetadata } = serverPage({
-    operation: () => ({}),
+    operation: () => withFallback(careerFrontpageHighlightOperations.readCurrent({}), []),
     capabilities: () => ({
         canEditSpecialCmsParagraph: careersFrontpageAuth.updateSpecialCmsParagraphContent,
         canEditSpecialCmsImage: careersFrontpageAuth.updateSpecialCmsImage,
@@ -74,7 +74,7 @@ const { page, generateMetadata } = serverPage({
     // Absolute: the layout's "| Contactor NTNU" template only applies to the segments under it,
     // and the frontpage is the site's own name.
     metadata: () => ({ title: { absolute: 'Contactor NTNU' } }),
-    render: ({ capabilities }) => {
+    render: ({ data: highlights, capabilities }) => {
         const paragraphActions = {
             capabilities: { canEdit: capabilities.canEditSpecialCmsParagraph },
             readSpecialCmsParagraphAction: readCareersFrontpageSpecialCmsParagraphAction,
@@ -126,7 +126,7 @@ const { page, generateMetadata } = serverPage({
                     </div>
                 </section>
 
-                <UpcomingCompanyPresentations eventsHref={companyPresentationLinks.list()} />
+                <CareerFrontpageHighlights highlights={highlights} />
 
                 <section id="studieprogrammene" className={`
                     ${bandClassName}

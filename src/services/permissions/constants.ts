@@ -250,6 +250,12 @@ export const permissionConfig = {
         category: 'brukere',
         canBeDefault: false,
     },
+    CAREER_FRONTPAGE_HIGHLIGHT_ADMIN: {
+        name: 'Fremhevingsadministrator',
+        description: 'kan velge hvilke bedriftspresentasjoner og jobbannonser forsiden til karrieresiden fremhever',
+        category: 'jobad',
+        canBeDefault: false,
+    },
     COMPANY_USE: {
         name: 'Les bedrifter',
         description: 'kan lese bedrifter',

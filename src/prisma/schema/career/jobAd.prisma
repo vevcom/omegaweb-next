@@ -20,6 +20,8 @@ model JobAd {
   active              Boolean      @default(true)
   rollingDueDate      Boolean      @default(false)
 
+  careerFrontpageHighlights CareerFrontpageHighlight[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
