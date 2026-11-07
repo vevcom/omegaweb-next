@@ -2,10 +2,9 @@ import { Require } from '@/auth/authorizer/Require'
 import { marksOwnedBySelf } from '@/services/mail/auth'
 
 /**
- * External addresses have no owners: they are the pool any list owner may pick from. Reading them
- * takes a mail server permission, since an operation's authorizer cannot tell whether the session
- * owns a list, which also makes it what the admin navs offer the mail server pages on. Only
- * MAILSERVER_ADMIN changes them.
+ * External addresses have no owners: they are the pool any list owner may pick from, so the owners
+ * of any list read them, given every list's owner matrix, as do the mail server permissions. Only
+ * MAILSERVER_ADMIN changes the addresses.
  */
 const readsExternalAddresses = Require.permission('MAILSERVER_USE')
     .or()
@@ -14,6 +13,11 @@ const readsExternalAddresses = Require.permission('MAILSERVER_USE')
     .permission('MAIL_ALIAS_CREATE')
     .or()
     .permission('MAIL_LIST_CREATE')
+    .or()
+    .anyVisibility({
+        key: 'mailingListOwnerVisibilities',
+        errorMessage: 'Bare eierne av en e-postliste ser de eksterne adressene',
+    })
 
 export const mailAddressExternalAuth = {
     create: Require.permission('MAILSERVER_ADMIN'),

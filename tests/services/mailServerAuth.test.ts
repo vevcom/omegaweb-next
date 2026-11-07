@@ -138,9 +138,18 @@ describe('reading the mail server as an owner', () => {
             .toStrictEqual({ requirements: ownerRequirements })
     })
 
-    test('the external addresses are listed by those the admin is open to, and offered to no one else', async () => {
+    test('the external addresses are listed by any list\'s owners and the mail permissions, by no one else', async () => {
         const external = await mailAddressExternalOperations.create({
             data: { address: 'test-pool@example.com', description: '' },
+            bypassAuth: true,
+        })
+        const owners = await createGroup('pool-owners')
+        await mailingListOperations.create({
+            data: {
+                name: 'test-pool',
+                description: '',
+                ownerRequirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId: owners.id }] }],
+            },
             bypassAuth: true,
         })
         const member = await createUser('pool-member')
@@ -150,8 +159,14 @@ describe('reading the mail server as an owner', () => {
         expect((await mailOperations.readMailOptions({ session: asCreator })).mailaddressExternal.map(address => address.id))
             .toContain(external.id)
 
+        const asListOwner = memberSession(member, [owners.membership])
+        expect((await mailAddressExternalOperations.readMany({ session: asListOwner })).map(address => address.id))
+            .toContain(external.id)
+        expect((await mailTraversalReadOfType.mailaddressExternal({ params: { id: external.id }, session: asListOwner }))
+            .mailaddressExternal.map(address => address.id)).toStrictEqual([external.id])
+
         const asMember = memberSession(member, [])
-        await expect(mailAddressExternalOperations.readMany({ session: asMember })).rejects.toThrow(Smorekopp)
+        await rejectsSaying(mailAddressExternalOperations.readMany({ session: asMember }), 'eierne av en e-postliste')
         expect((await mailOperations.readMailOptions({ session: asMember })).mailaddressExternal).toStrictEqual([])
     })
 

@@ -5,6 +5,8 @@ import { groupOperations } from '@/services/groups/operations'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { VisibilityMatrix } from '@/services/visibility/types'
+
 
 /** The memberships a read marks what is owned by: the user's own, or none when no user was asked for. */
 export function readMembershipsToMark({ prisma, userId }: {
@@ -34,4 +36,12 @@ export function markOwned<Node extends { ownerVisibility: OwnerVisibility }>(
 /** Whether the memberships make the session an administrator of the group. */
 export function administrates(groupId: number, memberships: MembershipFiltered[]): boolean {
     return memberships.some(membership => membership.groupId === groupId && membership.active && membership.admin)
+}
+
+/** The owner matrices of every mailing list, for a rule that asks whether the session owns any list at all. */
+export async function readMailingListOwnerMatrices({ prisma }: {
+    prisma: PrismaPossibleTransaction<false>,
+}): Promise<VisibilityMatrix[]> {
+    const lists = await prisma.mailingList.findMany({ select: ownerVisibilityIncluder })
+    return lists.map(list => toMatrix(list.ownerVisibility))
 }

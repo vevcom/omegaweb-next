@@ -1,7 +1,7 @@
 import { careerAdminLinks } from './links'
 import { companyAuth } from '@/services/careers/companies/auth'
 import { careerFrontpageHighlightAuth } from '@/services/careers/frontpage/highlights/auth'
-import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
+import { mailServerNavAuthorizer } from '@/pageKits/mailServer/navAuthorizer'
 import { defineNavDef } from '@/lib/navDef/navDef'
 import { faBuilding, faEnvelopesBulk, faStar } from '@fortawesome/free-solid-svg-icons'
 
@@ -26,6 +26,6 @@ export const careerAdminNavDef = defineNavDef([
         name: 'E-posttjener',
         href: careerAdminLinks.mail(),
         icon: faEnvelopesBulk,
-        authorizers: () => [mailAddressExternalAuth.readMany],
+        authorizers: () => [mailServerNavAuthorizer],
     },
 ])

@@ -1,5 +1,5 @@
 import { revueAdminLinks } from './links'
-import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
+import { mailServerNavAuthorizer } from '@/pageKits/mailServer/navAuthorizer'
 import { defineNavDef } from '@/lib/navDef/navDef'
 import { faEnvelopesBulk } from '@fortawesome/free-solid-svg-icons'
 
@@ -10,6 +10,6 @@ export const revueAdminNavDef = defineNavDef([
         name: 'E-posttjener',
         href: revueAdminLinks.mail(),
         icon: faEnvelopesBulk,
-        authorizers: () => [mailAddressExternalAuth.readMany],
+        authorizers: () => [mailServerNavAuthorizer],
     },
 ])

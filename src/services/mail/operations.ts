@@ -1,12 +1,12 @@
 import '@pn-server-only'
 import { mailAuth } from './auth'
-import { mailAddressExternalAuth } from './mailAddressExternal/auth'
 import { mailSchemas } from './schemas'
 import { aliasOperations } from './alias/operations'
 import { mailingListOperations } from './list/operations'
 import { mailAddressExternalOperations } from './mailAddressExternal/operations'
 import { mailTraversalOperations } from './traversal/operations'
 import { defineOperation } from '@/services/serviceOperation'
+import { Smorekopp } from '@/services/error'
 import type { MailListTypes } from './types'
 import type {
     MailAlias,
@@ -184,7 +184,7 @@ export const mailOperations = {
     /** What the session may wire: the aliases and lists it reads, and the external addresses if it may list them. */
     readMailOptions: defineOperation({
         authorizer: () => mailAuth.readMailOptions,
-        operation: async ({ session }): Promise<{
+        operation: async (): Promise<{
             alias: MailAlias[],
             mailingList: MailingList[],
             mailaddressExternal: MailAddressExternal[],
@@ -192,9 +192,10 @@ export const mailOperations = {
             const [alias, mailingList, mailaddressExternal] = await Promise.all([
                 aliasOperations.readMany({ params: {} }),
                 mailingListOperations.readMany({ params: {} }),
-                mailAddressExternalAuth.readMany.auth(session).authorized
-                    ? mailAddressExternalOperations.readMany({})
-                    : [],
+                mailAddressExternalOperations.readMany({}).catch((error: unknown) => {
+                    if (error instanceof Smorekopp && error.errorCode === 'UNAUTHORIZED') return []
+                    throw error
+                }),
             ])
 
             return { alias, mailingList, mailaddressExternal }
