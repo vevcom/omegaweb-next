@@ -446,7 +446,7 @@ export const eventRegistrationOperations = {
                 await lockEvent(tx, eventId)
                 const registration = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: { quotaId: true, userId: true, state: true },
+                    select: { id: true, quotaId: true, userId: true, state: true, contact: { select: { email: true } } },
                 })
                 const quota = await tx.eventQuota.findUniqueOrThrow({
                     where: { id: data.quotaId },
@@ -495,7 +495,7 @@ export const eventRegistrationOperations = {
                         'En kvote foran har ledig plass og tar påmeldingen tilbake. Fyll den plassen først.'
                     )
                 }
-                return promotedByMove
+                return registration.state === 'WAITING_LIST' ? [...promotedByMove, registration] : promotedByMove
             })
 
             await notifyPromoted(prisma, eventId, promoted)
