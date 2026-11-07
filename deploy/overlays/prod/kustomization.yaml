@@ -29,10 +29,10 @@ configMapGenerator:
 images:
 - name: omegaweb-next
   newName: ghcr.io/vevcom/omegaweb-next
-  newTag: v26.2.0
+  newTag: v26.2.1
 - name: omegaweb-next-tools
   newName: ghcr.io/vevcom/omegaweb-next-tools
-  newTag: v26.2.0
+  newTag: v26.2.1
 
     # The images are private because the build bakes in NEXT_SERVER_ACTIONS_ENCRYPTION_KEY.
     # ghcr-pull is created by hand, like phase-service-token.
