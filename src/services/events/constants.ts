@@ -55,6 +55,7 @@ export const eventVariantSummarySelection = {
     price: true,
     paymentStart: true,
     paymentEnd: true,
+    requeueUnpaidRegistrations: true,
     quotas: {
         select: eventQuotaSummarySelection,
         orderBy: eventQuotaOrder,

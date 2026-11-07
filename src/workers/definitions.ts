@@ -14,6 +14,7 @@ import {
     reimburseUnclaimedPayments,
 } from '@/services/ledger/sweeper'
 import { runNextPaymentCompletionHook } from '@/services/ledger/transactions/paymentCompletionHooks'
+import { requeueNextUnpaidRegistration } from '@/services/events/registration/requeueUnpaid'
 import logger from '@/lib/logger'
 import type { Worker } from './types'
 
@@ -68,6 +69,13 @@ export const workers = {
         // is confirmed right away.
         intervalMs: 1000,
         tick: runNextPaymentCompletionHook,
+    },
+
+    /** Sends unpaid registrations past their deadline to the back of the waiting list, where the variant asks for it. */
+    unpaidRegistrations: {
+        name: 'Unpaid registration worker',
+        intervalMs: 60 * 1000,
+        tick: requeueNextUnpaidRegistration,
     },
 
     /**

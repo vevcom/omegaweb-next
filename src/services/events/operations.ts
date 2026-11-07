@@ -182,6 +182,7 @@ export const eventOperations = {
                     price: data.price,
                     paymentStart: data.paymentStart,
                     paymentEnd: data.paymentEnd,
+                    requeueUnpaidRegistrations: data.requeueUnpaidRegistrations,
                 })
                 await createQuota(prisma, variant.id, {
                     name: 'Påmelding',

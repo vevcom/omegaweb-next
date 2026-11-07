@@ -10,6 +10,7 @@ const dataFieldSchemas = z.object({
     price: z.coerce.number().min(0).transform(val => convertAmount(val)).optional(),
     paymentStart: Zpn.date({ label: 'Betalingsstart' }).optional(),
     paymentEnd: Zpn.date({ label: 'Betalingsslutt' }).optional(),
+    requeueUnpaidRegistrations: Zpn.checkboxOrBoolean({ label: 'Flytt ubetalte bakerst på ventelisten' }).default(false),
 })
 
 const paramsFieldSchemas = z.object({
@@ -25,6 +26,7 @@ const variantFields = {
     price: true,
     paymentStart: true,
     paymentEnd: true,
+    requeueUnpaidRegistrations: true,
 } as const
 
 const variantId = paramsFieldSchemas.pick({

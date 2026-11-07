@@ -78,6 +78,9 @@ export default function EventPaymentSection({
                     triggerLabel="Betal nå"
                 />
             )}
+            {variant.requeueUnpaidRegistrations && deadline >= now && (
+                <p className="m-0 text-text-muted">Betaler du ikke innen fristen, flyttes du bakerst på ventelisten.</p>
+            )}
             {paymentStart > now && (
                 <p className="m-0 text-text-muted">Betaling åpner om <CountDown referenceDate={paymentStart} /></p>
             )}

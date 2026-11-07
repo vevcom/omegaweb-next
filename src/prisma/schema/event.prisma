@@ -118,6 +118,8 @@ model EventVariant {
   price        Int?
   paymentStart DateTime?
   paymentEnd   DateTime?
+  // Lets a worker send registrations that pass their deadline unpaid to the back of the waiting list.
+  requeueUnpaidRegistrations Boolean @default(false)
 
   quotas                   EventQuota[]
   waitingListRegistrations EventRegistration[]
