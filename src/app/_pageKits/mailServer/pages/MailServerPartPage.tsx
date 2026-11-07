@@ -51,9 +51,8 @@ export const mailServerPartPage = (config: MailServerPagesConfig) => {
                 ))
             })()
 
-            // The alias form offers every mail domain, with the domain of the site it is on picked first.
             const domains = part === 'alias' ? validMailAddressDomains() : []
-            const defaultDomain = part === 'alias' ? DomainContext.mailDomainOf(Site.of(config.site)) : ''
+            const defaultDomain = part === 'alias' ? DomainContext.mailDomainOf(Site.of(config.defaultDomainOfSite)) : ''
 
             return { part, items, domains, defaultDomain }
         },
