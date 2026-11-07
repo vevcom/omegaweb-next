@@ -301,18 +301,30 @@ describe('canceling a transaction', () => {
         memberships: [],
     })
 
-    test('only an admin can cancel, since the ledger sweeper cancels abandoned attempts', async () => {
+    test('a party to the transaction can cancel it, and no one else but an admin', async () => {
         const account = await createAccount('cancelauthdepositor')
+        const stranger = await createAccount('cancelauthstranger')
         const { transactionId } = await startStripeDeposit(account.id)
 
         await expect(ledgerTransactionOperations.cancel({
             params: { id: transactionId },
-            session: sessionOf(account.ownership.userId!, ['LEDGER_USE']),
+            session: sessionOf(stranger.ownership.userId!, ['LEDGER_USE']),
         })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
 
         await expect(ledgerTransactionOperations.cancel({
             params: { id: transactionId },
-            session: sessionOf(account.ownership.userId!, ['LEDGER_ADMIN']),
+            session: sessionOf(account.ownership.userId!, ['LEDGER_USE']),
+        })).resolves.toMatchObject({ state: 'CANCELED' })
+    })
+
+    test('an admin can cancel a transaction they are not a party to', async () => {
+        const account = await createAccount('cancelauthadmindepositor')
+        const admin = await createAccount('cancelauthadmin')
+        const { transactionId } = await startStripeDeposit(account.id)
+
+        await expect(ledgerTransactionOperations.cancel({
+            params: { id: transactionId },
+            session: sessionOf(admin.ownership.userId!, ['LEDGER_ADMIN']),
         })).resolves.toMatchObject({ state: 'CANCELED' })
     })
 })

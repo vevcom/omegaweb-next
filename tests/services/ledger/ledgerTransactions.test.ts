@@ -6,6 +6,7 @@ import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { beforeAll, beforeEach, afterEach, describe, expect, test } from '@jest/globals'
+import type { LedgerTransactionFilters } from '@/services/ledger/transactions/types'
 
 const TEST_ACCOUNT_COUNT = 3
 const INITIAL_BALANCE = { amount: 100_00, fees: 10_00 }
@@ -192,6 +193,64 @@ describe('ledger transactions', () => {
 
                 expect(balance.amount).toBe(INITIAL_BALANCE.amount)
             })
+        })
+    })
+
+    describe('reading a page of an account\'s transactions', () => {
+        const LOAN = 30_00
+
+        // Each account starts with its deposit, and the first then lends to the second.
+        beforeEach(async () => {
+            await ledgerTransactionOperations.create({
+                params: {
+                    purpose: 'CABIN_BOOKING',
+                    ledgerEntries: [
+                        { ledgerAccountId: testAccountIds[1], funds: LOAN },
+                        { ledgerAccountId: testAccountIds[0], funds: -LOAN },
+                    ],
+                    description: 'Lån til middag',
+                },
+                bypassAuth: true,
+            })
+        })
+
+        const purposesListed = async (filters: LedgerTransactionFilters) => {
+            const transactions = await ledgerTransactionOperations.readPage({
+                params: {
+                    paging: {
+                        page: { page: 0, pageSize: 10, cursor: null },
+                        details: { accountId: testAccountIds[0], ...filters },
+                    },
+                },
+                bypassAuth: true,
+            })
+            return transactions.map(transaction => transaction.purpose).sort()
+        }
+
+        test('with no filters, every transaction of the account is listed', async () => {
+            expect(await purposesListed({})).toEqual(['CABIN_BOOKING', 'DEPOSIT'])
+        })
+
+        test('the direction is the sign of the account\'s own balance change', async () => {
+            expect(await purposesListed({ direction: 'IN' })).toEqual(['DEPOSIT'])
+            expect(await purposesListed({ direction: 'OUT' })).toEqual(['CABIN_BOOKING'])
+        })
+
+        test('the amount bounds the size of the balance change, whichever way it goes', async () => {
+            expect(await purposesListed({ minAmount: LOAN + 1 })).toEqual(['DEPOSIT'])
+            expect(await purposesListed({ maxAmount: LOAN })).toEqual(['CABIN_BOOKING'])
+            expect(await purposesListed({ minAmount: LOAN, maxAmount: LOAN })).toEqual(['CABIN_BOOKING'])
+            expect(await purposesListed({ direction: 'IN', maxAmount: LOAN })).toEqual([])
+        })
+
+        test('a transaction can be filtered on its purpose', async () => {
+            expect(await purposesListed({ purpose: 'DEPOSIT' })).toEqual(['DEPOSIT'])
+        })
+
+        test('the search matches the comment and the name of the purpose, ignoring case', async () => {
+            expect(await purposesListed({ search: 'MIDDAG' })).toEqual(['CABIN_BOOKING'])
+            expect(await purposesListed({ search: 'innskudd' })).toEqual(['DEPOSIT'])
+            expect(await purposesListed({ search: 'ingenting' })).toEqual([])
         })
     })
 })

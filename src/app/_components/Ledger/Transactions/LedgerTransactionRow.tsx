@@ -1,14 +1,16 @@
 'use client'
 
-import LedgerTransactionDetails, { transactionPurposeNames, transactionStateNames } from './LedgerTransactionDetails'
+import LedgerTransactionDetails, { transactionStateNames, transactionTitles } from './LedgerTransactionDetails'
 import PopUp from '@/components/PopUp/PopUp'
 import { displayAmount } from '@/lib/currency/convert'
 import { displayDate } from '@/lib/dates/displayDate'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type Props = {
     transaction: ExpandedLedgerTransaction,
     accountId: number,
+    capabilities: CapabilitiesJsObject<'canCancel'>,
 }
 
 // Incomplete (PENDING) transactions are shown in italic; terminal-but-unsuccessful (FAILED,
@@ -20,7 +22,7 @@ function stateStyle(state: ExpandedLedgerTransaction['state']) {
     return undefined
 }
 
-export default function LedgerTransactionRow({ transaction, accountId }: Props) {
+export default function LedgerTransactionRow({ transaction, accountId, capabilities }: Props) {
     const totalFunds = (
         transaction.ledgerEntries?.reduce((sum, entry) => sum + Math.abs(entry.funds), 0)
         + Math.abs(transaction.payment?.funds ?? 0)
@@ -39,7 +41,7 @@ export default function LedgerTransactionRow({ transaction, accountId }: Props) 
         customShowButton={open => (
             <tr className={rowClassName} onClick={open}>
                 <td>{displayDate(transaction.createdAt)}</td>
-                <td>{transaction.description ?? transactionPurposeNames[transaction.purpose]}</td>
+                <td>{transactionTitles[transaction.purpose](transaction)}</td>
                 <td>{transactionStateNames[transaction.state]}</td>
                 <td className="text-right"><b>{displayAmount(totalFunds)}</b></td>
                 <td className="text-right">
@@ -48,6 +50,6 @@ export default function LedgerTransactionRow({ transaction, accountId }: Props) 
             </tr>
         )}
     >
-        <LedgerTransactionDetails transaction={transaction} accountId={accountId} />
+        <LedgerTransactionDetails transaction={transaction} accountId={accountId} capabilities={capabilities} />
     </PopUp>
 }

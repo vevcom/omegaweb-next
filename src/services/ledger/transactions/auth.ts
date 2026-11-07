@@ -33,8 +33,9 @@ export const ledgerTransactionAuth = {
         return Require.permission('LEDGER_USE').allOf(ownsEveryAccount.data({ accounts: debitAccounts }))
     },
 
-    // Users never need to: the ledger sweeper cancels an abandoned attempt once it is stale.
-    cancel: Require.permission('LEDGER_ADMIN'),
+    // The ledger sweeper cancels a stale attempt on its own, but a party may do it sooner to get
+    // their money back. Exempt from LEDGER_USE like the reads, since it only ever stops a payment.
+    cancel: partyToAnyAccount,
 
     // Real callers (createPayment/createDeposit) pass bypassAuth after authorizing the resource.
     // LEDGER_USE is a safety net, not an ownership check, so admins can still pay for others.
