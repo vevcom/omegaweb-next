@@ -9,7 +9,10 @@
 set -euo pipefail
 
 argocd=false
-[[ ${1:-} == --argocd ]] && argocd=true
+for arg in "$@"; do
+    [[ $arg == --argocd ]] || { echo "Usage: $0 [--argocd]" >&2; exit 2; }
+    argocd=true
+done
 
 cd "$(dirname "$0")/../.."
 cluster=omegaweb-next

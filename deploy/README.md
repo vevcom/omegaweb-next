@@ -115,8 +115,10 @@ Use `copy`, not `sync`, so deletes never reach the copy.
    `DEPLOY_PR_TOKEN`, and the variable `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and keep both
    GHCR packages private. `DEPLOY_PR_TOKEN` is a token with write access to contents and pull
    requests on this repo, which `release.yml` opens the deploy pull request with.
-7. **Bootstrap Argo CD** from vivat, as its README describes. Deploy the release Dokploy
-   runs, since the restore below replaces the migration history along with the schema.
+7. **Bootstrap Argo CD** from vivat, as its README describes. First publish a release, deploy that
+   same release to Dokploy and merge the pull request `release.yml` opens. The overlay's `v0.0.0`
+   tags have no images behind them, and the restore below replaces the migration history along
+   with the schema, so both sides must run the same release.
 8. **Move the data.** Stop the Dokploy stack and dump its database. The migrate job has
    already created and seeded the new database, and the workers are running against it, so
    the restore replaces everything in one transaction. If it fails, nothing has changed.

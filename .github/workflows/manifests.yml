@@ -11,18 +11,27 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - name: checkout
       uses: actions/checkout@v4
-    - name: install kubeconform
+    - name: install tools
       run: |
-        curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+        curl -fsSLO https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+        curl -fsSLO https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.3/kustomize_v5.8.3_linux_amd64.tar.gz
+        sha256sum -c - <<'EOF'
+        95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73  kubeconform-linux-amd64.tar.gz
+        cb9e31198d3f63b44848bd0afc4c8efc56e6cfef9c93a4a39a211940e6decd61  kustomize_v5.8.3_linux_amd64.tar.gz
+        EOF
+        tar xzf kubeconform-linux-amd64.tar.gz kubeconform
+        tar xzf kustomize_v5.8.3_linux_amd64.tar.gz kustomize
     # CRD schemas (Cluster, Middleware, ...) come from the datree catalog, which has none for PhaseSecret.
     - name: validate
       run: |
         for dir in deploy/overlays/*; do
           echo "::group::$dir"
-          kustomize build "$dir" | ./kubeconform -strict -summary -skip PhaseSecret \
+          ./kustomize build "$dir" | ./kubeconform -strict -summary -skip PhaseSecret \
             -schema-location default \
             -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
           echo "::endgroup::"

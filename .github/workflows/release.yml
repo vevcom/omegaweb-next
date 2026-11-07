@@ -8,13 +8,14 @@ on:
     types: [ published ]
 
 permissions:
-  contents: write
-  packages: write
-  pull-requests: write
+  contents: read
 
 jobs:
   images:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         include:
@@ -52,12 +53,15 @@ jobs:
       uses: actions/checkout@v4
       with:
         ref: main
+        persist-credentials: false
     - name: point prod at the release
       working-directory: deploy/overlays/prod
+      env:
+        RELEASE_TAG: ${{ github.event.release.tag_name }}
       run: |
         kustomize edit set image \
-          omegaweb-next=ghcr.io/vevcom/omegaweb-next:${{ github.event.release.tag_name }} \
-          omegaweb-next-tools=ghcr.io/vevcom/omegaweb-next-tools:${{ github.event.release.tag_name }}
+          "omegaweb-next=ghcr.io/vevcom/omegaweb-next:$RELEASE_TAG" \
+          "omegaweb-next-tools=ghcr.io/vevcom/omegaweb-next-tools:$RELEASE_TAG"
     - uses: peter-evans/create-pull-request@v7
       with:
         # GitHub starts no workflows for a pull request made with the default token, so the checks
