@@ -41,16 +41,19 @@ export default function AddNews() {
                     <VisibilityMatrixEditor
                         requirements={adminRequirements}
                         onChange={setAdminRequirements}
+                        verb="kan administrere nyheten"
                     />
                     <input
                         type="hidden"
                         name="visibilityAdminRequirements"
                         value={JSON.stringify(adminRequirements)}
                     />
-                    <h3>Hvem kan lese nyheten? (tomt betyr alle)</h3>
+                    <h3>Hvem kan lese nyheten?</h3>
                     <VisibilityMatrixEditor
                         requirements={regularRequirements}
                         onChange={setRegularRequirements}
+                        verb="kan lese nyheten"
+                        everyone="Alle"
                     />
                     <input
                         type="hidden"

@@ -25,10 +25,31 @@ function describeGroup(condition: VisibilityCondition, groups: ExpandedGroup[] |
     return condition.type === 'ACTIVE' ? groupName : `${groupName} i orden ${condition.order}`
 }
 
+function listNames(names: string[]) {
+    return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} eller ${names[names.length - 1]}`
+}
+
 /** Who a VisibilityMatrix lets in, as a sentence for those who do not think in requirements. */
 export function describeAudience(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null): string {
     if (visibility.requirements.length === 0) return 'Alle'
     return visibility.requirements
-        .map(requirement => requirement.conditions.map(condition => describeGroup(condition, groups)).join(' eller '))
-        .join(', som også er i ')
+        .map(requirement => listNames(requirement.conditions.map(condition => describeGroup(condition, groups))))
+        .join(' som også er i ')
+}
+
+/** Who gets in, as a whole sentence. `everyone` is what no requirements means where that can be chosen. */
+export function describeAccess(
+    visibility: VisibilityMatrix,
+    groups: ExpandedGroup[] | null,
+    { verb, everyone }: { verb: string, everyone?: string },
+): string {
+    if (visibility.requirements.length === 0) return everyone ? `${everyone} ${verb}.` : 'Velg minst én gruppe.'
+    return `${describeAudience(visibility, groups)} ${verb}.`
+}
+
+/** Someone is only in one class at a time, so two lists of nothing but classes can never both pass. */
+export function listsContradict(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null): boolean {
+    return visibility.requirements.filter(({ conditions }) => conditions.length > 0 && conditions.every(condition => (
+        condition.type === 'ACTIVE' && findGroup(groups, condition.groupId)?.groupType === 'CLASS'
+    ))).length > 1
 }

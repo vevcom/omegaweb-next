@@ -41,7 +41,7 @@ export function eventSetupChecks(event: EventSetup): SetupCheck[] {
     if (event.eventStart >= event.eventEnd) add('about', 'missing', 'Sett når arrangementet starter og slutter.')
     if (!event.location?.trim()) add('about', 'missing', 'Sett hvor arrangementet er.')
     if (event.canBeViewedBy === 'CAN_REGISTER' && !event.variants.some(variant => variant.quotas.length > 0)) {
-        add('rules', 'missing', 'Bare de som kan melde seg på ser arrangementet, men det har ingen kvoter.')
+        add('access', 'missing', 'Bare de som kan melde seg på ser arrangementet, men det har ingen kvoter.')
     }
     if (hasNoAdministrators(event.adminVisibility)) {
         add('access', 'missing', 'Velg hvem som kan administrere arrangementet.')

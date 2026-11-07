@@ -105,6 +105,8 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
         {editingWho && <VisibilityMatrixEditor
             requirements={quota.visibilityRequirements}
             onChange={visibilityRequirements => onChange({ visibilityRequirements })}
+            verb="kan melde seg på"
+            everyone="Alle som er logget inn"
         />}
     </section>
 }

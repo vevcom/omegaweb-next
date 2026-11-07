@@ -36,7 +36,7 @@ describe('eventSetupChecks', () => {
         expect(statuses({ ...ready, location: ' ' }).about.level).toBe('missing')
         expect(statuses({ ...ready, adminVisibility: { requirements: [{ conditions: [] }] } }).access.level).toBe('missing')
         expect(statuses({ ...ready, variants: [paying], ledgerAccount: null }).payment.level).toBe('missing')
-        expect(statuses({ ...ready, canBeViewedBy: 'CAN_REGISTER', variants: [] }).rules.level).toBe('missing')
+        expect(statuses({ ...ready, canBeViewedBy: 'CAN_REGISTER', variants: [] }).access.level).toBe('missing')
     })
 
     test('warns of what is allowed without stopping publishing', () => {

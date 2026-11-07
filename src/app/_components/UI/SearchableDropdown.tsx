@@ -16,6 +16,7 @@ export type SearchableDropdownOption<ValueType> = {
     value: ValueType,
     label?: string,
     key?: string,
+    section?: string,
 }
 
 export type PropTypes<ValueType> = Omit<DropdownPropTypes<ValueType>, 'options'> & {
