@@ -3,8 +3,7 @@ import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { SelectNumber } from '@/components/UI/Select'
 import NotificationMethodSelector from '@/components/NotificationMethodSelector/NotificationMethodSelector'
-import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
-import { createNotificationChannelAction } from '@/services/notifications/channel/actions'
+import { createManualNotificationChannelAction } from '@/services/notifications/channels/manual/actions'
 import { allNotificationMethodsOff, allNotificationMethodsOn } from '@/services/notifications/constants'
 import { configureAction } from '@/services/configureAction'
 import useSiteRouter from '@/hooks/useSiteRouter'
@@ -20,7 +19,6 @@ export default function AddNotificationChannel({ channels }: PropTypes) {
     const { push } = useSiteRouter()
 
     const [availableMethods, setAvailableMethods] = useState<NotificationMethodGeneral>(allNotificationMethodsOn)
-    const [defaultMethods, setDefaultMethods] = useState<NotificationMethodGeneral>(allNotificationMethodsOn)
     const [selectedParentId, setSelectedParentId] = useState(channels.find(channel => channel.special === 'ROOT')?.id)
     const [editableMethods, setEditableMethods] = useState(
         channels.find(channel => channel.id === selectedParentId)?.availableMethods ?? allNotificationMethodsOn
@@ -34,10 +32,9 @@ export default function AddNotificationChannel({ channels }: PropTypes) {
     return <Form
         title="Legg til varslingskanal"
         submitText="Legg til"
-        action={configureAction(createNotificationChannelAction, {
+        action={configureAction(createManualNotificationChannelAction, {
             params: {
                 availableMethods,
-                defaultMethods,
             }
         })}
         successCallback={(data?: ExpandedNotificationChannel) => {
@@ -64,14 +61,5 @@ export default function AddNotificationChannel({ channels }: PropTypes) {
             editable={editableMethods}
             onChange={setAvailableMethods}
         />
-
-        <NotificationMethodSelector
-            formPrefix="defaultMethods"
-            title="Standardmetoder"
-            methods={defaultMethods}
-            editable={booleanOperationOnMethods(editableMethods, availableMethods, 'AND')}
-            onChange={setDefaultMethods}
-        />
-
     </Form>
 }

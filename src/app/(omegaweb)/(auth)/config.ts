@@ -8,4 +8,5 @@ export const omegaAuthPages: AuthPagesConfig = {
     afterLoginPath: '/users/me',
     afterLogoutPath: '',
     accountNotice: null,
+    asksSex: true,
 }

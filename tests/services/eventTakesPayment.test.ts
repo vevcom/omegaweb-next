@@ -71,3 +71,22 @@ describe('variants taking payment', () => {
         })
     })
 })
+
+describe('the channels of an event', () => {
+    test('are renamed with it', async () => {
+        const event = await eventOperations.create({ data: eventData({}), bypassAuth: true })
+        await eventOperations.update({ params: { id: event.id }, data: { name: 'Renamed event' }, bypassAuth: true })
+
+        const channelIds = [event.notificationChannelId, event.infoNotificationChannelId, event.generalNotificationChannelId]
+        const channels = await prisma.notificationChannel.findMany({
+            where: { id: { in: channelIds } },
+            select: { name: true },
+            orderBy: { id: 'asc' },
+        })
+        expect(channels.map(channel => channel.name)).toEqual([
+            `Renamed event (#${event.id})`,
+            `Renamed event (#${event.id}): viktig informasjon`,
+            `Renamed event (#${event.id}): annen informasjon`,
+        ])
+    })
+})

@@ -269,7 +269,7 @@ export const authOperations = {
     linkFeideAccount: defineOperation({
         paramsSchema: authSchemas.params.linkFeideAccount,
         authorizer: () => authAuth.linkFeideAccount,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
             const claims = readLinkFeideAccountClaims(params.token)
 
@@ -284,7 +284,7 @@ export const authOperations = {
     adminLinkFeideAccount: defineOperation({
         dataSchema: authSchemas.data.adminLinkFeideAccount,
         authorizer: () => authAuth.adminLinkFeideAccount,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
             const fromUser = await prisma.user.findUniqueOrThrow({
                 where: { username: data.fromUsername.trim().toLowerCase() },

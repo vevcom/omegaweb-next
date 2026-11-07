@@ -95,20 +95,18 @@ const update = defineOperation({
 const destroy = defineOperation({
     paramsSchema: manualGroupSchemas.params.destroy,
     authorizer: () => manualGroupAuth.destroy,
-    opensTransaction: true,
+    transaction: 'RUNS_IN',
     operation: async ({ prisma, params }) => {
         await assertGroupNotPensioned(prisma, await readGroupIdOfManualGroup(prisma, params.id))
 
-        return prisma.$transaction(async tx => {
-            const manualGroup = await tx.manualGroup.delete({
-                where: { id: params.id },
-            })
-            await groupOperations.destroy.internalCall({
-                prisma: tx,
-                params: { groupId: manualGroup.groupId },
-            })
-            return manualGroup
+        const manualGroup = await prisma.manualGroup.delete({
+            where: { id: params.id },
         })
+        await groupOperations.destroy.internalCall({
+            prisma,
+            params: { groupId: manualGroup.groupId },
+        })
+        return manualGroup
     }
 })
 

@@ -258,6 +258,18 @@ describe('createTrial only accepts a soelle', () => {
         expect(await countTrials(user.id)).toBe(1)
     })
 
+    test('a broken membership stays repaired when the trial is rejected', async () => {
+        const user = await createTestUser('omegamembershiprepair')
+        await setLevel(user.id, 'SYSKEN')
+        await dropOmegaMemberships(user.id)
+
+        await expect(createTrial(user.id)).rejects.toThrow(Smorekopp)
+
+        const levels = (await readOmegaMemberships(user.id))
+            .map(membership => membership.group.omegaMembershipGroup?.omegaMembershipLevel)
+        expect(levels).toEqual(['SYSKEN'])
+    })
+
     test('den gemene hob may not', async () => {
         const user = await createTestUser('omegamembershipten')
         expect((await readOmegaMemberships(user.id))[0]

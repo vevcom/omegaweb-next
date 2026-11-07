@@ -9,7 +9,7 @@ import useActiveNavHref from '@/hooks/useActiveNavHref'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
 import { useRef, useState } from 'react'
-import type { NavLink } from './navDef'
+import type { NavLink } from '@/lib/navDef/navDef'
 
 export type PropTypes = {
     /** The nav items the session may open, as `visibleNavItems` leaves them. */

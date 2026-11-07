@@ -25,7 +25,6 @@ import crypto from 'crypto'
 import type { z } from 'zod'
 import type { BookingFiltered } from './types'
 import type { BookingType, Prisma } from '@/prisma-generated-pn-types'
-import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 
@@ -199,82 +198,80 @@ async function readDestinationLedgerAccountId(prisma: Prisma.TransactionClient) 
  * the availability check and the insert of one never interleave with another's - two bookers
  * cannot both find the same dates free.
  */
-async function reserve(prisma: PrismaClient, { bookingType, bookingProducts, booker, ...booking }: Reservation) {
-    return prisma.$transaction(async (tx) => {
-        await takeAdvisoryLock(tx, 'cabinBooking')
+async function reserve(prisma: Prisma.TransactionClient, { bookingType, bookingProducts, booker, ...booking }: Reservation) {
+    await takeAdvisoryLock(prisma, 'cabinBooking')
 
-        const releasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
-            bypassAuth: true,
-            prisma: tx,
-        })
-        if (releasePeriod === null) {
-            throw new ServiceError('SERVER ERROR', 'Hyttebookingsiden er ikke tilgjengelig.')
-        }
-        // Checked before the dates are held, not first at payment: a reservation that could never
-        // be paid for would only block the calendar until it expired.
-        await readDestinationLedgerAccountId(tx)
-        if (booking.end > releasePeriod.releaseUntil) {
-            throw new ServiceError('BAD PARAMETERS', 'Hytta kan ikke bookes etter siste slippdato.')
-        }
-        if (booking.end.getTime() - booking.start.getTime() > maxCabinBookingNights * dayMs) {
-            throw new ServiceError('BAD PARAMETERS', `Hytta kan bookes for maks ${maxCabinBookingNights} netter om gangen.`)
-        }
+    const releasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
+        bypassAuth: true,
+        prisma,
+    })
+    if (releasePeriod === null) {
+        throw new ServiceError('SERVER ERROR', 'Hyttebookingsiden er ikke tilgjengelig.')
+    }
+    // Checked before the dates are held, not first at payment: a reservation that could never
+    // be paid for would only block the calendar until it expired.
+    await readDestinationLedgerAccountId(prisma)
+    if (booking.end > releasePeriod.releaseUntil) {
+        throw new ServiceError('BAD PARAMETERS', 'Hytta kan ikke bookes etter siste slippdato.')
+    }
+    if (booking.end.getTime() - booking.start.getTime() > maxCabinBookingNights * dayMs) {
+        throw new ServiceError('BAD PARAMETERS', `Hytta kan bookes for maks ${maxCabinBookingNights} netter om gangen.`)
+    }
 
-        const products = await readBookingProducts(tx, bookingType, bookingProducts)
-        const conflict = await findAvailabilityConflict(tx, {
+    const products = await readBookingProducts(prisma, bookingType, bookingProducts)
+    const conflict = await findAvailabilityConflict(prisma, {
+        type: bookingType,
+        start: booking.start,
+        end: booking.end,
+        products: products.map(({ product, quantity }) => ({
+            cabinProductId: product.id,
+            quantity,
+            amount: product.amount,
+        })),
+    })
+    if (conflict) throw new ServiceError('BAD PARAMETERS', conflict)
+
+    const unpaidHolds = await prisma.booking.count({
+        where: {
+            canceled: null,
+            transactionTimeout: { gt: new Date() },
+            ledgerTransactions: { none: validTransactionFilter },
+            ...('userId' in booker ? { userId: booker.userId } : { guestUser: { email: booker.guest.email } }),
+        },
+    })
+    if (unpaidHolds >= maxUnpaidReservationsPerBooker) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            'Du har allerede reservasjoner som venter på betaling. Betal eller frigi dem før du reserverer flere.'
+        )
+    }
+
+    const pricePeriods = await cabinPricePeriodOperations.readMany({ bypassAuth: true, prisma })
+    const totalPrice = calculateTotalCabinBookingPrice(calculateCabinBookingPrice({
+        pricePeriods,
+        products: products.map(({ product }) => product),
+        productAmounts: products.map(({ quantity }) => quantity),
+        startDate: booking.start,
+        endDate: booking.end,
+        numberOfMembers: booking.numberOfMembers,
+        numberOfNonMembers: booking.numberOfNonMembers,
+    }))
+
+    return prisma.booking.create({
+        data: {
             type: bookingType,
-            start: booking.start,
-            end: booking.end,
-            products: products.map(({ product, quantity }) => ({
-                cabinProductId: product.id,
-                quantity,
-                amount: product.amount,
-            })),
-        })
-        if (conflict) throw new ServiceError('BAD PARAMETERS', conflict)
-
-        const unpaidHolds = await tx.booking.count({
-            where: {
-                canceled: null,
-                transactionTimeout: { gt: new Date() },
-                ledgerTransactions: { none: validTransactionFilter },
-                ...('userId' in booker ? { userId: booker.userId } : { guestUser: { email: booker.guest.email } }),
-            },
-        })
-        if (unpaidHolds >= maxUnpaidReservationsPerBooker) {
-            throw new ServiceError(
-                'BAD PARAMETERS',
-                'Du har allerede reservasjoner som venter på betaling. Betal eller frigi dem før du reserverer flere.'
-            )
-        }
-
-        const pricePeriods = await cabinPricePeriodOperations.readMany({ bypassAuth: true, prisma: tx })
-        const totalPrice = calculateTotalCabinBookingPrice(calculateCabinBookingPrice({
-            pricePeriods,
-            products: products.map(({ product }) => product),
-            productAmounts: products.map(({ quantity }) => quantity),
-            startDate: booking.start,
-            endDate: booking.end,
-            numberOfMembers: booking.numberOfMembers,
-            numberOfNonMembers: booking.numberOfNonMembers,
-        }))
-
-        return tx.booking.create({
-            data: {
-                type: bookingType,
-                ...booking,
-                totalPrice,
-                secret: crypto.randomBytes(24).toString('hex'),
-                // The reservation must be paid within this window, or it stops blocking the
-                // calendar for others. Cleared once payment succeeds.
-                transactionTimeout: new Date(Date.now() + cabinReservationWindowMs),
-                BookingProduct: { create: bookingProducts },
-                ...('userId' in booker
-                    ? { user: { connect: { id: booker.userId } } }
-                    : { guestUser: { create: booker.guest } }),
-            },
-            select: { id: true, secret: true, totalPrice: true, transactionTimeout: true },
-        })
+            ...booking,
+            totalPrice,
+            secret: crypto.randomBytes(24).toString('hex'),
+            // The reservation must be paid within this window, or it stops blocking the
+            // calendar for others. Cleared once payment succeeds.
+            transactionTimeout: new Date(Date.now() + cabinReservationWindowMs),
+            BookingProduct: { create: bookingProducts },
+            ...('userId' in booker
+                ? { user: { connect: { id: booker.userId } } }
+                : { guestUser: { create: booker.guest } }),
+        },
+        select: { id: true, secret: true, totalPrice: true, transactionTimeout: true },
     })
 }
 
@@ -283,7 +280,7 @@ export const cabinBookingOperations = {
         paramsSchema: cabinBookingSchemas.params.createCabinBookingUserAttached,
         authorizer: ({ params }) => cabinBookingAuth.createCabinBookingUserAttached.data({ userId: params.userId }),
         dataSchema: cabinBookingSchemas.data.createCabinBookingUserAttached,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: ({ prisma, params, data }) => reserve(prisma, withUser('CABIN', params, data)),
     }),
 
@@ -291,7 +288,7 @@ export const cabinBookingOperations = {
         paramsSchema: cabinBookingSchemas.params.createBedBookingUserAttached,
         authorizer: ({ params }) => cabinBookingAuth.createBedBookingUserAttached.data({ userId: params.userId }),
         dataSchema: cabinBookingSchemas.data.createBedBookingUserAttached,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: ({ prisma, params, data }) => reserve(prisma, withUser('BED', params, data)),
     }),
 
@@ -299,7 +296,7 @@ export const cabinBookingOperations = {
         paramsSchema: cabinBookingSchemas.params.createCabinBookingNoUser,
         authorizer: () => cabinBookingAuth.createCabinBookingNoUser,
         dataSchema: cabinBookingSchemas.data.createCabinBookingNoUser,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: ({ prisma, params, data }) => reserve(prisma, asGuest('CABIN', params, data)),
     }),
 
@@ -307,7 +304,7 @@ export const cabinBookingOperations = {
         paramsSchema: cabinBookingSchemas.params.createBedBookingNoUser,
         authorizer: () => cabinBookingAuth.createBedBookingNoUser,
         dataSchema: cabinBookingSchemas.data.createBedBookingNoUser,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: ({ prisma, params, data }) => reserve(prisma, asGuest('BED', params, data)),
     }),
 
@@ -370,7 +367,7 @@ export const cabinBookingOperations = {
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
         }),
         dataSchema: cabinBookingSchemas.data.connectToLedgerAccount,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
             const account = await prisma.ledgerAccount.findUniqueOrThrow({
                 where: { id: data.ledgerAccountId },
@@ -380,13 +377,11 @@ export const cabinBookingOperations = {
                 throw new ServiceError('BAD PARAMETERS', 'Hytta kan bare knyttes til en gruppekonto.')
             }
 
-            return prisma.$transaction(async tx => {
-                await tx.ledgerAccount.updateMany({ where: { special: 'CABIN' }, data: { special: null } })
-                return tx.ledgerAccount.update({
-                    where: { id: data.ledgerAccountId },
-                    data: { special: 'CABIN' },
-                    select: { id: true, name: true },
-                })
+            await prisma.ledgerAccount.updateMany({ where: { special: 'CABIN' }, data: { special: null } })
+            return prisma.ledgerAccount.update({
+                where: { id: data.ledgerAccountId },
+                data: { special: 'CABIN' },
+                select: { id: true, name: true },
             })
         },
     }),
@@ -427,7 +422,7 @@ export const cabinBookingOperations = {
                 providedSecret: params.secret,
             })
         },
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
             let payment: ExpandedPayment | undefined
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
@@ -548,12 +543,12 @@ export const cabinBookingOperations = {
                 providedSecret: params.secret,
             })
         },
-        opensTransaction: true,
-        operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
-            const booking = await lockBooking(tx, params.bookingId)
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params }) => {
+            const booking = await lockBooking(prisma, params.bookingId)
             if (booking.canceled !== null) return
 
-            const attempt = await tx.ledgerTransaction.findFirst({
+            const attempt = await prisma.ledgerTransaction.findFirst({
                 where: {
                     bookingId: params.bookingId,
                     state: { in: ['PENDING', 'SUCCEEDED'] },
@@ -567,12 +562,12 @@ export const cabinBookingOperations = {
                 // booking, which is the right bar for canceling a payment attempt on it.
                 await ledgerTransactionOperations.cancel({
                     params: { id: attempt.id },
-                    prisma: tx,
+                    prisma,
                     bypassAuth: true,
                 })
             }
 
-            await tx.booking.update({ where: { id: booking.id }, data: { canceled: new Date() } })
-        }),
+            await prisma.booking.update({ where: { id: booking.id }, data: { canceled: new Date() } })
+        },
     }),
 } as const

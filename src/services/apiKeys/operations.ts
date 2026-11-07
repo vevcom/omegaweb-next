@@ -141,21 +141,19 @@ export const apiKeyOperations = {
     destroy: defineOperation({
         authorizer: () => apiKeyAuth.destroy,
         paramsSchema: apiKeySchemas.params.destroy,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }): Promise<void> => {
-            await prisma.$transaction(async (tx) => {
-                const apiKey = await tx.apiKey.findUniqueOrThrow({
-                    where: { id: params.id },
-                    select: { active: true }
-                })
+            const apiKey = await prisma.apiKey.findUniqueOrThrow({
+                where: { id: params.id },
+                select: { active: true }
+            })
 
-                if (apiKey.active) {
-                    throw new ServiceError('BAD PARAMETERS', 'Du kan ikke slette en aktiv nøkkel - deaktiver den først')
-                }
+            if (apiKey.active) {
+                throw new ServiceError('BAD PARAMETERS', 'Du kan ikke slette en aktiv nøkkel - deaktiver den først')
+            }
 
-                await tx.apiKey.delete({
-                    where: { id: params.id }
-                })
+            await prisma.apiKey.delete({
+                where: { id: params.id }
             })
         }
     }),

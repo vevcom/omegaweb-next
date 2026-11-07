@@ -24,9 +24,10 @@ export function eventsArchivePage(config: EventPagesConfig) {
                 : null
             // The tags the visitor picked, which there are none of under a locked tag.
             const pickedTagNames = lockedTag ? null : QueryParams.eventTags.decode(searchParams)
+            const search = QueryParams.search.decode(searchParams) ?? ''
             const eventTags = await eventTagOperations.readAll({})
 
-            return { pickedTagNames, tagNames: lockedTag ? [lockedTag.name] : pickedTagNames, eventTags }
+            return { pickedTagNames, search, tagNames: lockedTag ? [lockedTag.name] : pickedTagNames, eventTags }
         },
         capabilities: () => ({
             canUpdateTags: eventTagAuth.update,
@@ -35,11 +36,11 @@ export function eventsArchivePage(config: EventPagesConfig) {
         }),
         metadata: () => ({ title: config.titles.archive }),
         render: ({ data, capabilities }) => {
-            const { pickedTagNames, tagNames, eventTags } = data
+            const { pickedTagNames, search, tagNames, eventTags } = data
             const pickedTags = eventTags.filter(tag => pickedTagNames?.includes(tag.name))
 
             return (
-                <PageWrapper headerItem={
+                <PageWrapper search={{ value: search, label: 'Søk i arkivet' }} headerItem={
                     <div className="flex justify-between items-center w-full gap-[1em]">
                         <div className="
                             flex items-center gap-[1em]
@@ -54,7 +55,7 @@ export function eventsArchivePage(config: EventPagesConfig) {
                                     .map(pickedTag => pickedTag.name)
 
                                 return (
-                                    <SiteLink key={tag.name} href={links.archive(remainingTagNames)}>
+                                    <SiteLink key={tag.name} href={links.archive(remainingTagNames, search)}>
                                         <EventTag eventTag={tag} />
                                     </SiteLink>
                                 )
@@ -68,10 +69,11 @@ export function eventsArchivePage(config: EventPagesConfig) {
                                     capabilities={capabilities}
                                     config={config}
                                     archive
+                                    search={search}
                                 />
                             )}
                             <SiteLink
-                                href={links.list(pickedTagNames)}
+                                href={links.list(pickedTagNames, search)}
                                 className="
                                     text-text
                                     [&_svg]:size-[30px]!
@@ -85,7 +87,7 @@ export function eventsArchivePage(config: EventPagesConfig) {
                     <EventArchivePagingProvider serverRenderedData={[]} startPage={{
                         page: 0,
                         pageSize: 12
-                    }} details={{ tags: tagNames }}>
+                    }} details={{ tags: tagNames, name: search || undefined }} key={search}>
                         <EventArchiveList config={config} />
                     </EventArchivePagingProvider>
                 </PageWrapper>

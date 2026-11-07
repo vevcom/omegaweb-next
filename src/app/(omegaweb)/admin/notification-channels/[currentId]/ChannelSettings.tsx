@@ -6,12 +6,11 @@ import TextInput from '@/components/UI/TextInput'
 import { SelectNumber } from '@/components/UI/Select'
 import Form from '@/components/Form/Form'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { booleanOperationOnMethods } from '@/services/notifications/methods/helpers'
 import {
-    destroyNotificationChannelAction,
-    updateNotificationChannelAction
-} from '@/services/notifications/channel/actions'
-import { findValidParents } from '@/services/notifications/channel/helpers'
+    destroyManualNotificationChannelAction,
+    updateManualNotificationChannelAction
+} from '@/services/notifications/channels/manual/actions'
+import { findValidParents } from '@/services/notifications/channels/subservice/helpers'
 import { configureAction } from '@/services/configureAction'
 import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
@@ -41,18 +40,12 @@ export default function ChannelSettings({
             w-full
             [&>p]:[font-weight:lighter] [&>p]:mb-[1rem]
         ">
-            {currentChannelState.special ? <p>Spesiell: {currentChannelState.special}</p> : null}
             {capabilities.canUpdate.authorized &&
             <Form
-                action={configureAction(updateNotificationChannelAction, {
+                action={configureAction(updateManualNotificationChannelAction, {
                     params: {
                         id: currentChannelState.id,
                         availableMethods: currentChannelState.availableMethods,
-                        defaultMethods: booleanOperationOnMethods(
-                            currentChannelState.defaultMethods,
-                            currentChannelState.availableMethods,
-                            'AND'
-                        )
                     }
                 })}
                 submitText="Lagre"
@@ -75,17 +68,13 @@ export default function ChannelSettings({
                 </div>
 
                 <div className="max-w-[350px]">
-                    {currentChannelState.special !== 'ROOT' ?
-                        <SelectNumber
-                            label="Overordnet kanal"
-                            name="parentId"
-                            options={selectOptions.map(channel => ({ value: channel.id, label: channel.name }))}
-                            value={currentChannelState.parentId}
-                            onChange={id => setCurrentChannel({ ...currentChannelState, parentId: id })}
-                        />
-                        :
-                        <input type="hidden" name="parentId" value={currentChannelState.parentId} />
-                    }
+                    <SelectNumber
+                        label="Overordnet kanal"
+                        name="parentId"
+                        options={selectOptions.map(channel => ({ value: channel.id, label: channel.name }))}
+                        value={currentChannelState.parentId}
+                        onChange={id => setCurrentChannel({ ...currentChannelState, parentId: id })}
+                    />
                 </div>
 
                 <div className="max-w-[350px]">
@@ -111,30 +100,17 @@ export default function ChannelSettings({
                             })
                         }}
                     />
-                    <NotificationMethodSelector
-                        formPrefix="defaultMethods"
-                        title="Standardmetoder"
-                        methods={currentChannelState.defaultMethods}
-                        editable={currentChannelState.availableMethods}
-                        onChange={(data) => {
-                            setCurrentChannel({
-                                ...currentChannelState,
-                                defaultMethods: data,
-                            })
-                        }}
-                    />
-
                 </div>
 
 
             </Form>
             }
-            {capabilities.canDestroy.authorized && !currentChannel.special &&
+            {capabilities.canDestroy.authorized &&
             <Form
                 title="Slett kanal"
                 submitText="Slett kanal"
                 submitColor="red"
-                action={configureAction(destroyNotificationChannelAction, { params: { id: currentChannel.id } })}
+                action={configureAction(destroyManualNotificationChannelAction, { params: { id: currentChannel.id } })}
                 navigateOnSuccess={appHref('/admin/notification-channels')}
                 confirmation={{
                     confirm: true,

@@ -2,8 +2,8 @@ import '@pn-server-only'
 import { omegaQuotesAuth } from './auth'
 import { omegaquoteSchemas } from './schemas'
 import { omegaQuoteFilterSelection } from './constants'
+import { newOmegaquoteNotificationChannel } from './newOmegaquoteNotificationChannel'
 import { omegaLinks } from '@/app/(omegaweb)/links'
-import { notificationOperations } from '@/services/notifications/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 
@@ -24,10 +24,7 @@ export const omegaquoteOperations = {
                 }
             })
 
-            await notificationOperations.createSpecial.internalCall({
-                params: {
-                    special: 'NEW_OMEGAQUOTE',
-                },
+            await newOmegaquoteNotificationChannel.internalOperations.createNotification.internalCall({
                 data: {
                     title: 'Ny Omegaquote♪',
                     message: `${results.quote}\n - ${results.author}`,

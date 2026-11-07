@@ -147,6 +147,9 @@ export async function notifyPromoted(
     promoted: PromotedRegistration[],
 ) {
     if (promoted.length === 0) return
-    const event = await prisma.event.findUniqueOrThrow({ where: { id: eventId }, select: { id: true, name: true } })
+    const event = await prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { id: true, name: true, infoNotificationChannelId: true },
+    })
     await notifyPromotedFromWaitingList(event, promoted)
 }

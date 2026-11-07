@@ -117,9 +117,9 @@ export const groupOperations = {
         paramsSchema: () => groupSchemas.params.addMembers,
         dataSchema: () => groupSchemas.data.addMembers,
         // Its writes and the session invalidation have to land together.
-        opensTransaction: true,
-        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
-            const group = await readGroupOrderAndType(tx, params.groupId)
+        transaction: 'RUNS_IN',
+        operation: () => async ({ prisma, params, data }) => {
+            const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
             const userIds = data.users.map(user => user.userId)
 
@@ -127,7 +127,7 @@ export const groupOperations = {
                 MigratedStraightAwayOnIncrement[group.groupType]
 
             if (active) {
-                await Promise.all([true, false].map(admin => tx.membership.updateMany({
+                await Promise.all([true, false].map(admin => prisma.membership.updateMany({
                     where: {
                         groupId: params.groupId,
                         userId: { in: data.users.filter(user => user.admin === admin).map(user => user.userId) },
@@ -137,12 +137,12 @@ export const groupOperations = {
                 })))
             }
 
-            const { _max: { position: lastPosition } } = await tx.membership.aggregate({
+            const { _max: { position: lastPosition } } = await prisma.membership.aggregate({
                 where: { groupId: params.groupId, order },
                 _max: { position: true },
             })
 
-            await tx.membership.createMany({
+            await prisma.membership.createMany({
                 data: data.users.map(({ userId, admin }, index) => ({
                     groupId: params.groupId,
                     userId,
@@ -154,8 +154,8 @@ export const groupOperations = {
                 skipDuplicates: true,
             })
 
-            await invalidateManyUserSessionData(tx, userIds)
-        }),
+            await invalidateManyUserSessionData(prisma, userIds)
+        },
     }),
 
     /**
@@ -167,12 +167,12 @@ export const groupOperations = {
         paramsSchema: () => groupSchemas.params.removeMembers,
         dataSchema: () => groupSchemas.data.removeMembers,
         // Its writes and the session invalidation have to land together.
-        opensTransaction: true,
-        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
-            const group = await readGroupOrderAndType(tx, params.groupId)
+        transaction: 'RUNS_IN',
+        operation: () => async ({ prisma, params, data }) => {
+            const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
 
-            await tx.membership.updateMany({
+            await prisma.membership.updateMany({
                 where: {
                     groupId: params.groupId,
                     userId: { in: data.userIds },
@@ -181,8 +181,8 @@ export const groupOperations = {
                 data: { active: false },
             })
 
-            await invalidateManyUserSessionData(tx, data.userIds)
-        }),
+            await invalidateManyUserSessionData(prisma, data.userIds)
+        },
     }),
 
     /**
@@ -196,12 +196,12 @@ export const groupOperations = {
         paramsSchema: () => groupSchemas.params.setMemberAdmin,
         dataSchema: () => groupSchemas.data.setMemberAdmin,
         // Its writes and the session invalidation have to land together.
-        opensTransaction: true,
-        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
-            const group = await readGroupOrderAndType(tx, params.groupId)
+        transaction: 'RUNS_IN',
+        operation: () => async ({ prisma, params, data }) => {
+            const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
 
-            const membership = await tx.membership.update({
+            const membership = await prisma.membership.update({
                 where: {
                     userId_groupId_order: {
                         groupId: params.groupId,
@@ -212,9 +212,9 @@ export const groupOperations = {
                 data: { admin: data.admin },
             })
 
-            await invalidateOneUserSessionData(tx, data.userId)
+            await invalidateOneUserSessionData(prisma, data.userId)
             return membership
-        }),
+        },
     }),
 
     /**
@@ -251,24 +251,24 @@ export const groupOperations = {
     reorderMembers: defineSubOperation({
         paramsSchema: () => groupSchemas.params.reorderMembers,
         dataSchema: () => groupSchemas.data.reorderMembers,
-        opensTransaction: true,
-        operation: () => async ({ prisma, params, data }) => await prisma.$transaction(async tx => {
-            const group = await readGroupOrderAndType(tx, params.groupId)
+        transaction: 'RUNS_IN',
+        operation: () => async ({ prisma, params, data }) => {
+            const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
 
-            const memberships = await tx.membership.findMany({
+            const memberships = await prisma.membership.findMany({
                 where: { groupId: params.groupId, order, user: userPartitions.unarchived },
                 select: { userId: true },
             })
             await applyReordering(
                 data.userIds,
                 memberships.map(membership => membership.userId),
-                (userId, position) => tx.membership.update({
+                (userId, position) => prisma.membership.update({
                     where: { userId_groupId_order: { userId, groupId: params.groupId, order } },
                     data: { position },
                 }),
             )
-        }),
+        },
     }),
 
     /**
@@ -284,7 +284,7 @@ export const groupOperations = {
      * Only the group types that are migrated by hand implement it, so only those can be pensioned.
      */
     pension: defineSubOperation({
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         paramsSchema: () => groupSchemas.params.pension,
         dataSchema: () => groupSchemas.data.pension,
         operation: () => async ({ prisma, params, data }) => {
@@ -297,29 +297,27 @@ export const groupOperations = {
                 )
             }
 
-            await prisma.$transaction(async tx => {
-                await tx.group.update({
-                    where: { id: params.groupId },
-                    data: { pensioned: data.pensioned },
-                })
+            await prisma.group.update({
+                where: { id: params.groupId },
+                data: { pensioned: data.pensioned },
+            })
 
-                if (data.pensioned) {
-                    const endedMemberships = await tx.membership.findMany({
-                        where: { groupId: params.groupId, active: true },
-                        select: { userId: true },
-                    })
-                    await tx.membership.updateMany({
-                        where: { groupId: params.groupId, active: true },
-                        data: { active: false },
-                    })
-                    await invalidateManyUserSessionData(tx, endedMemberships.map(membership => membership.userId))
-                    return
-                }
-
-                await tx.group.update({
-                    where: { id: params.groupId },
-                    data: { order: currentOmegaOrder },
+            if (data.pensioned) {
+                const endedMemberships = await prisma.membership.findMany({
+                    where: { groupId: params.groupId, active: true },
+                    select: { userId: true },
                 })
+                await prisma.membership.updateMany({
+                    where: { groupId: params.groupId, active: true },
+                    data: { active: false },
+                })
+                await invalidateManyUserSessionData(prisma, endedMemberships.map(membership => membership.userId))
+                return
+            }
+
+            await prisma.group.update({
+                where: { id: params.groupId },
+                data: { order: currentOmegaOrder },
             })
         }
     }),
@@ -337,7 +335,7 @@ export const groupOperations = {
      * After this the group holds no active memberships below its own order.
      */
     migrateGroup: defineSubOperation({
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         paramsSchema: () => groupSchemas.params.migrateGroup,
         dataSchema: () => groupSchemas.data.migrateGroup,
         operation: () => async ({ prisma, params, data }) => {
@@ -389,36 +387,34 @@ export const groupOperations = {
                 membership => adminOfKeptUser.has(membership.userId)
             )
 
-            await prisma.$transaction(async tx => {
-                await tx.membership.updateMany({
-                    where: {
-                        groupId: params.groupId,
-                        order: groupOrder,
-                        active: true,
-                    },
-                    data: { active: false },
-                })
-
-                await tx.membership.createMany({
-                    data: keptMemberships.map(membership => ({
-                        groupId: params.groupId,
-                        userId: membership.userId,
-                        admin: adminOfKeptUser.get(membership.userId) ?? false,
-                        title: membership.title,
-                        position: membership.position,
-                        order: currentOmegaOrder,
-                        active: true,
-                    })),
-                    skipDuplicates: true,
-                })
-
-                await tx.group.update({
-                    where: { id: params.groupId },
-                    data: { order: currentOmegaOrder },
-                })
-
-                await invalidateManyUserSessionData(tx, activeUserIds)
+            await prisma.membership.updateMany({
+                where: {
+                    groupId: params.groupId,
+                    order: groupOrder,
+                    active: true,
+                },
+                data: { active: false },
             })
+
+            await prisma.membership.createMany({
+                data: keptMemberships.map(membership => ({
+                    groupId: params.groupId,
+                    userId: membership.userId,
+                    admin: adminOfKeptUser.get(membership.userId) ?? false,
+                    title: membership.title,
+                    position: membership.position,
+                    order: currentOmegaOrder,
+                    active: true,
+                })),
+                skipDuplicates: true,
+            })
+
+            await prisma.group.update({
+                where: { id: params.groupId },
+                data: { order: currentOmegaOrder },
+            })
+
+            await invalidateManyUserSessionData(prisma, activeUserIds)
         }
     }),
 

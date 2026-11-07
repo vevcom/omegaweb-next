@@ -1,6 +1,10 @@
 import { prisma } from '@/prisma-pn-client-instance'
 import { notificationMethodOperations } from '@/services/notifications/methods/operations'
-import { notificationDispatchIncluder, recipientsWhere } from '@/services/notifications/methods/recipients'
+import {
+    notificationDispatchIncluder,
+    readChannelChainIds,
+    recipientsWhere,
+} from '@/services/notifications/methods/recipients'
 import { buildWeeklyDigestText } from '@/services/notifications/methods/dispatchWeekly'
 import { userPrivateSelection } from '@/services/users/constants'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
@@ -8,7 +12,10 @@ import { permissionOperations } from '@/services/permissions/operations'
 import { eventOperations } from '@/services/events/operations'
 import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { eventVariantOperations } from '@/services/events/variants/operations'
-import { afterEach, describe, expect, test } from '@jest/globals'
+import { manualNotificationChannelOperations } from '@/services/notifications/channels/manual/operations'
+import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
+import { allNotificationMethodsOn } from '@/services/notifications/constants'
+import { afterAll, afterEach, beforeAll, describe, expect, test } from '@jest/globals'
 import type { NotificationMethods } from '@/services/notifications/types'
 import type { Permission } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
@@ -104,7 +111,9 @@ async function resolveRecipientIds(notificationId: number, method: NotificationM
     })
     const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })
     const recipients = await prisma.user.findMany({
-        where: recipientsWhere(notification, method, defaultPermissions),
+        where: recipientsWhere(
+            notification, method, defaultPermissions, await readChannelChainIds(prisma, notification.channelId)
+        ),
         select: { id: true },
     })
     return recipients.map(user => user.id).sort()
@@ -292,6 +301,76 @@ describe('notification recipient resolution', () => {
         expect(await resolveRecipientIds(notification.id, 'email'))
             .toEqual([holder.id, formerHolder.id, outsider.id].sort())
         await prisma.defaultPermission.delete({ where: { permission: 'OMBUL_USE' } })
+    })
+})
+
+describe('subscriptions resolve through the channels above', () => {
+    let childId: number
+    let grandchildId: number
+
+    beforeAll(async () => {
+        const rootId = await readRootChannelId()
+        const child = await manualNotificationChannelOperations.create({
+            params: { availableMethods: { email: true, emailWeekly: false, push: true } },
+            data: { name: 'test-inherit-child', description: '', parentId: rootId },
+            bypassAuth: true,
+        })
+        const grandchild = await manualNotificationChannelOperations.create({
+            params: { availableMethods: allNotificationMethodsOn },
+            data: { name: 'test-inherit-grandchild', description: '', parentId: child.id },
+            bypassAuth: true,
+        })
+        childId = child.id
+        grandchildId = grandchild.id
+    })
+
+    afterAll(async () => {
+        await manualNotificationChannelOperations.destroy({ params: { id: grandchildId }, bypassAuth: true })
+        await manualNotificationChannelOperations.destroy({ params: { id: childId }, bypassAuth: true })
+    })
+
+    test('a subscriber of the root receives in a channel two levels down without a row for it', async () => {
+        const rootId = await readRootChannelId()
+        const subscriber = await createTestUser('test-inherit-root')
+        await createTestUser('test-inherit-nobody')
+        await subscribe(subscriber.id, rootId, { email: true })
+
+        const notification = await createTestNotification({ channelId: grandchildId, title: 'test-inherited' })
+        expect(await resolveRecipientIds(notification.id, 'email')).toEqual([subscriber.id])
+        expect(await prisma.notificationSubscription.count({ where: { channelId: grandchildId } })).toBe(0)
+    })
+
+    test('the nearest row decides: off below on, and on below off', async () => {
+        const rootId = await readRootChannelId()
+        const optedOut = await createTestUser('test-inherit-opted-out')
+        const optedIn = await createTestUser('test-inherit-opted-in')
+        await subscribe(optedOut.id, rootId, { email: true })
+        await subscribe(optedOut.id, childId, { email: false })
+        await subscribe(optedIn.id, rootId, { email: false })
+        await subscribe(optedIn.id, childId, { email: true })
+
+        const notification = await createTestNotification({ channelId: grandchildId, title: 'test-nearest' })
+        expect(await resolveRecipientIds(notification.id, 'email')).toEqual([optedIn.id])
+    })
+
+    test('a method the channel does not offer is not inherited, in the resolved read either', async () => {
+        const rootId = await readRootChannelId()
+        const subscriber = await createTestUser('test-inherit-weekly')
+        await subscribe(subscriber.id, rootId, { email: true, emailWeekly: true })
+
+        const notification = await createTestNotification({ channelId: childId, title: 'test-not-offered' })
+        expect(await resolveRecipientIds(notification.id, 'emailWeekly')).toEqual([])
+
+        const resolved = await notificationSubscriptionOperations.read({
+            params: { userId: subscriber.id },
+            bypassAuth: true,
+        })
+        expect(resolved.find(subscription => subscription.channelId === childId)).toEqual({
+            channelId: childId,
+            explicit: false,
+            methods: { email: true, emailWeekly: false, push: false },
+        })
+        expect(resolved.find(subscription => subscription.channelId === rootId)?.explicit).toBe(true)
     })
 })
 

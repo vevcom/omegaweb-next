@@ -10,6 +10,8 @@ import { defineOperation } from '@/services/serviceOperation'
 import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { cmsImageOperations } from '@/cms/images/operations'
+import { implementSearchOperation } from '@/services/search/implement'
+import { careerLinks } from '@/app/(careers)/links'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { SponsorCompany } from './types'
 
@@ -17,20 +19,20 @@ export const companyOperations = {
     create: defineOperation({
         dataSchema: companySchemas.data.create,
         authorizer: () => companyAuth.create,
-        opensTransaction: true,
-        operation: async ({ prisma, data }) => prisma.$transaction(async (tx) => {
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data }) => {
             const logo = await cmsImageOperations.create.internalCall({
                 data: {},
-                prisma: tx,
+                prisma,
                 operationImplementationFields: { special: null },
             })
-            return tx.company.create({
+            return prisma.company.create({
                 data: {
                     ...data,
                     logo: { connect: { id: logo.id } },
                 },
             })
-        }),
+        },
     }),
     readSponsors: defineOperation({
         authorizer: () => companyAuth.readSponsors,
@@ -57,6 +59,22 @@ export const companyOperations = {
             include: logoIncluder,
         })
     }),
+    search: implementSearchOperation({
+        authorizer: () => companyAuth.search,
+        find: ({ prisma, query, take }) => prisma.company.findMany({
+            take,
+            where: { name: { contains: query, mode: 'insensitive' } },
+            orderBy: companySponsorOrdering,
+            include: logoIncluder,
+        }),
+        // A company has no page of its own, so the result opens the company list filtered to it.
+        toSearchResult: company => ({
+            key: `company-${company.id}`,
+            href: careerLinks.companies(company.name),
+            label: company.name,
+            image: company.logo.image,
+        }),
+    }),
     update: defineOperation({
         paramsSchema: companySchemas.params.update,
         dataSchema: companySchemas.data.update,
@@ -72,25 +90,24 @@ export const companyOperations = {
         paramsSchema: companySchemas.params.updateSponsorTier,
         dataSchema: companySchemas.data.updateSponsorTier,
         authorizer: () => companyAuth.updateSponsorTier,
-        opensTransaction: true,
-        operation: async ({ prisma, params: { id }, data: { sponsorTier } }) =>
-            await prisma.$transaction(async tx => {
-                await takeAdvisoryLock(tx, 'companySponsorTier')
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params: { id }, data: { sponsorTier } }) => {
+            await takeAdvisoryLock(prisma, 'companySponsorTier')
 
-                if (sponsorTier === CompanySponsorTier.MAIN) {
-                    await tx.company.updateMany({
-                        where: {
-                            sponsorTier: CompanySponsorTier.MAIN,
-                            id: { not: id },
-                        },
-                        data: { sponsorTier: CompanySponsorTier.SPONSOR },
-                    })
-                }
-                await tx.company.update({
-                    where: { id },
-                    data: { sponsorTier },
+            if (sponsorTier === CompanySponsorTier.MAIN) {
+                await prisma.company.updateMany({
+                    where: {
+                        sponsorTier: CompanySponsorTier.MAIN,
+                        id: { not: id },
+                    },
+                    data: { sponsorTier: CompanySponsorTier.SPONSOR },
                 })
+            }
+            await prisma.company.update({
+                where: { id },
+                data: { sponsorTier },
             })
+        },
     }),
     updateCmsImageLogo: cmsImageOperations.update.implement({
         implementationParamsSchema: companySchemas.params.updateCmsImageLogo,
@@ -104,14 +121,14 @@ export const companyOperations = {
     destroy: defineOperation({
         paramsSchema: companySchemas.params.destroy,
         authorizer: () => companyAuth.destroy,
-        opensTransaction: true,
-        operation: async ({ prisma, params: { id } }) => prisma.$transaction(async (tx) => {
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params: { id } }) => {
             // The logo is on the company's side of the relation, so it does not cascade.
-            const company = await tx.company.delete({
+            const company = await prisma.company.delete({
                 where: { id },
                 select: { logoId: true },
             })
-            await cmsImageOperations.destroy.internalCall({ params: { cmsImageId: company.logoId }, prisma: tx })
-        }),
+            await cmsImageOperations.destroy.internalCall({ params: { cmsImageId: company.logoId }, prisma })
+        },
     }),
 } as const

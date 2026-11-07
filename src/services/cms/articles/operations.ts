@@ -89,16 +89,16 @@ export const articleOperations = {
     addSection: defineSubOperation({
         paramsSchema: () => articleSchemas.params.addSection,
         dataSchema: () => articleSchemas.data.addSection,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         // The section and its parts are written together; each part is made by its own service.
-        operation: () => async ({ prisma, params, data }) => prisma.$transaction(async (tx) => {
-            const article = await tx.article.findUnique({
+        operation: () => async ({ prisma, params, data }) => {
+            const article = await prisma.article.findUnique({
                 where: { id: params.articleId },
                 select: { id: true },
             })
             if (!article) throw new ServiceError('NOT FOUND', 'Artikkel ikke funnet.')
 
-            const sections = await tx.articleSection.aggregate({
+            const sections = await prisma.articleSection.aggregate({
                 where: { articleId: params.articleId },
                 _count: { _all: true },
                 _max: { order: true },
@@ -109,24 +109,24 @@ export const articleOperations = {
 
             const parts = await Promise.all(articleSectionParts
                 .filter(part => data.includeParts[part])
-                .map(part => createArticleSectionPart[part](tx)))
+                .map(part => createArticleSectionPart[part](prisma)))
             const section = parts.reduce<Prisma.ArticleSectionCreateWithoutArticleInput>(
                 (sectionSoFar, part) => ({ ...sectionSoFar, ...part }),
                 { order: (sections._max.order ?? -1) + 1 },
             )
-            return tx.article.update({
+            return prisma.article.update({
                 where: { id: params.articleId },
                 data: { articleSections: { create: section } },
                 include: articleRelationsIncluder,
             })
-        }),
+        },
     }),
     reorderSections: defineSubOperation({
         paramsSchema: () => articleSchemas.params.reorderSections,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         dataSchema: () => articleSchemas.data.reorderSections,
-        operation: () => async ({ prisma, params, data }) => prisma.$transaction(async (tx) => {
-            const section = await tx.articleSection.findUnique({
+        operation: () => async ({ prisma, params, data }) => {
+            const section = await prisma.articleSection.findUnique({
                 where: {
                     articleId: params.articleId,
                     id: params.sectionId,
@@ -135,7 +135,7 @@ export const articleOperations = {
             if (!section) throw new ServiceError('NOT FOUND', 'Seksjon ikke funnet.')
 
             // The neighbour the section swaps places with: the nearest one above or below it.
-            const otherSection = await tx.articleSection.findFirst({
+            const otherSection = await prisma.articleSection.findFirst({
                 where: {
                     articleId: params.articleId,
                     order: data.direction === 'UP' ? { lt: section.order } : { gt: section.order },
@@ -148,19 +148,19 @@ export const articleOperations = {
 
             // Swapped by way of -1: (articleId, order) is unique, so neither section can take the
             // other's order while it is still held.
-            await tx.articleSection.update({
+            await prisma.articleSection.update({
                 where: { id: section.id },
                 data: { order: -1 },
             })
-            await tx.articleSection.update({
+            await prisma.articleSection.update({
                 where: { id: otherSection.id },
                 data: { order: section.order },
             })
-            return tx.articleSection.update({
+            return prisma.articleSection.update({
                 where: { id: section.id },
                 data: { order: otherSection.order },
             })
-        }),
+        },
     }),
 
     read: defineSubOperation({

@@ -2,14 +2,18 @@ import '@pn-server-only'
 import { jobAdAuth } from './auth'
 import { jobAdSchemas } from './schemas'
 import { activeJobAdOrdering, articleAndCompanyIncluder, simpleArticleAndCompanyIncluder } from './constants'
+import { newJobAdNotificationChannel } from './newJobAdNotificationChannel'
 import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { logoIncluder } from '@/services/careers/companies/constants'
+import { jobAdLinks } from '@/pageKits/jobAds/links'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { articleOperations } from '@/cms/articles/operations'
-import { notificationOperations } from '@/services/notifications/operations'
 import { implementUpdateArticleOperations } from '@/cms/articles/implement'
+import { implementSearchOperation } from '@/services/search/implement'
 import type { ExpandedJobAd, SimpleJobAd } from './types'
+import type { SearchFindArgs } from '@/services/search/implement'
+import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
 const read = defineOperation({
     paramsSchema: jobAdSchemas.params.read,
@@ -31,7 +35,7 @@ export const jobAdOperations = {
     create: defineOperation({
         dataSchema: jobAdSchemas.data.create,
         authorizer: () => jobAdAuth.create,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, data: { articleName, companyId, ...data } }) => {
             const jobAd = await prisma.$transaction(async tx => {
                 const article = await articleOperations.create.internalCall({
@@ -65,10 +69,7 @@ export const jobAdOperations = {
                 })
             })
 
-            await notificationOperations.createSpecial.internalCall({
-                params: {
-                    special: 'NEW_JOBAD',
-                },
+            await newJobAdNotificationChannel.internalOperations.createNotification.internalCall({
                 data: {
                     title: `Ny jobbannonse: ${articleName}`,
                     message: `${jobAd.company.name} har lagt ut en ny jobbannonse: ${articleName}`,
@@ -107,6 +108,33 @@ export const jobAdOperations = {
                 companySponsorTier: jobAd.company.sponsorTier,
             }))
         }
+    }),
+    /** The search for a site's job ad pages: the same matches on both sites, linking to the site's own. */
+    search: implementSearchOperation({
+        authorizer: () => jobAdAuth.search,
+        find: ({ prisma, query, take }: SearchFindArgs<undefined, JobAdPagesConfig>) => prisma.jobAd.findMany({
+            take,
+            where: {
+                OR: [
+                    { article: { name: { contains: query, mode: 'insensitive' } } },
+                    { company: { name: { contains: query, mode: 'insensitive' } } },
+                ],
+            },
+            orderBy: [{ active: 'desc' }, ...activeJobAdOrdering],
+            select: {
+                id: true,
+                active: true,
+                article: { select: { name: true } },
+                company: { select: { name: true } },
+            },
+        }),
+        toSearchResult: (jobAd, config) => ({
+            key: `job-ad-${jobAd.id}`,
+            href: jobAdLinks(config).jobAd({ articleName: jobAd.article.name, id: jobAd.id }),
+            label: jobAd.article.name,
+            sublabel: jobAd.active ? jobAd.company.name : `${jobAd.company.name} (utløpt)`,
+            image: null,
+        }),
     }),
     /**
      * This handler reads a page of inactive jobAds

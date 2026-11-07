@@ -13,6 +13,7 @@ export const QueryParams = {
     onlyAdministratedCollections: new BooleanQueryParam('only-administrated-collections'),
     userId: new NumberQueryParam('user-id'),
     companyName: new StringQueryParam('company-name'),
+    search: new StringQueryParam('search'),
     token: new StringQueryParam('token'),
     callbackUrl: new LocalPathQueryParam('callbackUrl'),
     frontpageVersion: new EnumQueryParam('frontpage-version', ['logged-out', 'logged-in']),

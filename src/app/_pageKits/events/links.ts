@@ -7,18 +7,21 @@ import type { EventPagesConfig } from './config'
 type EventRef = { name: string, id: number }
 
 export type EventLinks = {
-    /** The coming events, filtered to the tags named, or unfiltered given none. */
-    list: (tagNames?: string[] | null) => AppHref,
-    archive: (tagNames?: string[] | null) => AppHref,
+    /** The coming events, filtered to the tags named and the search text, or unfiltered given neither. */
+    list: (tagNames?: string[] | null, search?: string) => AppHref,
+    archive: (tagNames?: string[] | null, search?: string) => AppHref,
     event: (event: EventRef) => AppHref,
     attendance: (event: EventRef) => AppHref,
 }
 
-const tagQuery = (tagNames?: string[] | null) => (tagNames?.length ? QueryParams.eventTags.encodeUrl(tagNames) : null)
+const listQuery = (tagNames?: string[] | null, search?: string) => [
+    tagNames?.length ? QueryParams.eventTags.encodeUrl(tagNames) : null,
+    search ? QueryParams.search.encodeUrl(search) : null,
+].filter(param => param !== null).join('&')
 
 export const eventLinks = defineLinks<EventPagesConfig, EventLinks>(href => ({
-    list: tagNames => href('', tagQuery(tagNames)),
-    archive: tagNames => href('/archive', tagQuery(tagNames)),
+    list: (tagNames, search) => href('', listQuery(tagNames, search)),
+    archive: (tagNames, search) => href('/archive', listQuery(tagNames, search)),
     event: event => href(`/${formatVevenUri(event.name, event.id)}`),
     attendance: event => href(`/${formatVevenUri(event.name, event.id)}/attendance`),
 }))

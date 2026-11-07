@@ -5,6 +5,7 @@ export const jobAdAuth = {
     read: Require.permission('JOBAD_USE'),
     readActive: Require.permission('JOBAD_USE'),
     readInactivePage: Require.permission('JOBAD_USE'),
+    search: Require.permission('JOBAD_USE'),
     update: Require.permission('JOBAD_ADMIN'),
     updateArticle: Require.permission('JOBAD_ADMIN'),
     destroy: Require.permission('JOBAD_ADMIN'),

@@ -4,10 +4,10 @@ import { ombulSchemas } from './schemas'
 import { ombulStore } from './store'
 import { expandedOmbulIncluder, ombulOrderBy } from './constants'
 import { ombulCoverImageOperations } from './ombulCoverCollection'
+import { newOmbulNotificationChannel } from './newOmbulNotificationChannel'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { defineOperation } from '@/services/serviceOperation'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import { notificationOperations } from '@/services/notifications/operations'
 import logger from '@/lib/logger'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { File } from 'node:buffer'
@@ -48,7 +48,7 @@ export const ombulOperations = {
     create: defineOperation({
         authorizer: () => ombulAuth.create,
         dataSchema: ombulSchemas.data.create,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ data, prisma }) => {
             const { ombulCoverImage, ombulFile, year, issueNumber, ...rest } = data
 
@@ -89,10 +89,7 @@ export const ombulOperations = {
                 })
             }))
 
-            await notificationOperations.createSpecial.internalCall({
-                params: {
-                    special: 'NEW_OMBUL',
-                },
+            await newOmbulNotificationChannel.internalOperations.createNotification.internalCall({
                 data: {
                     title: 'Ny ombul',
                     message: `Ny ombul er ute! ${ombul.name}`,
@@ -154,7 +151,7 @@ export const ombulOperations = {
         authorizer: () => ombulAuth.updateCoverImage,
         paramsSchema: ombulSchemas.params.updateCoverImage,
         dataSchema: ombulSchemas.data.updateCoverImage,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
             const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
                 const existingOmbul = await tx.ombul.findUniqueOrThrow({
@@ -203,7 +200,7 @@ export const ombulOperations = {
     destroy: defineOperation({
         authorizer: () => ombulAuth.destroy,
         paramsSchema: ombulSchemas.params.destroy,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ params, prisma }) => {
             const { ombul, cleanupCoverImage } = await prisma.$transaction(async tx => {
                 const deleted = await tx.ombul.delete({

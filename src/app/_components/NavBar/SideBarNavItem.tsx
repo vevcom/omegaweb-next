@@ -4,7 +4,7 @@ import { navIconClassName, navIconIconClassName, navIconLabelClassName } from '.
 import NavTooltip from './NavTooltip'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import type { NavLink } from './navDef'
+import type { NavLink } from '@/lib/navDef/navDef'
 
 type PropTypes = {
     item: NavLink

@@ -13,6 +13,7 @@ type PropTypes = {
     config: EventPagesConfig
     /** Whether the tags filter the archive rather than the coming events. */
     archive?: boolean
+    search?: string
 }
 
 export default function TagHeaderItem({
@@ -21,6 +22,7 @@ export default function TagHeaderItem({
     capabilities,
     config,
     archive = false,
+    search,
 }: PropTypes) {
     return (
         <TagHeasderItemPopUp scale={35} popUpKey="TagEventPopUp">
@@ -31,6 +33,7 @@ export default function TagHeaderItem({
                     selectedTags={currentTags}
                     config={config}
                     archive={archive}
+                    search={search}
                 />
             </PopUpProvider>
         </TagHeasderItemPopUp>

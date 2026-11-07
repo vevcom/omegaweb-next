@@ -109,6 +109,7 @@ model ArticleSection {
   cmsParagraph  CmsParagraph?
   cmsLink       CmsLink?
   InterestGroup InterestGroup?
+  revueGroup    RevueGroup?
 
   @@unique([articleId, order]) //There can only be one article section with a given order in an article
 }
@@ -134,6 +135,7 @@ model Article {
   coverImageId        Int                @unique
   JobAd               JobAd?
   Committee           Committee?
+  revue               Revue?
   special             SpecialCmsArticle? @unique
 
   @@unique([name, id])

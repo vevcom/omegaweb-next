@@ -5,7 +5,7 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
 export function defineSeedOperation<ReturnType>(operation: (prisma: PrismaClient) => Promise<ReturnType>) {
     return () => withServiceContext(
         { bypassAuth: true, session: Session.empty() },
-        true,
+        'OPENS',
         async ({ prisma }) => operation(prisma)
     )
 }
