@@ -26,6 +26,8 @@ const { page, generateMetadata } = serverPage({
         return ledgerAccountOperations.read({ params: { ledgerAccountId: accountId } })
     },
     capabilities: (ledgerAccount) => ({
+        // The page is open to the account's owners too, so the fees need a rule of their own.
+        canSeeFees: Require.permission('LEDGER_ADMIN'),
         canUpdate: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership] }),
         canChangeGroups: ledgerAccountAuth.updateAsAdmin({ accounts: [ledgerAccount.ownership] }),
         // Only MANUAL deposits are offered here, and those take the payment rule on top.
@@ -74,7 +76,7 @@ const { page, generateMetadata } = serverPage({
                 ledgerAccount={ledgerAccount}
                 depositPaymentMethods={['MANUAL']}
                 capabilities={capabilities}
-                showFees
+                showFees={capabilities.canSeeFees.authorized}
             />
             {/* Add link to products overview */}
             <LedgerAccountTransactionSummary
