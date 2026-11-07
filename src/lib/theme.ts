@@ -10,6 +10,7 @@ export const themeLabels: Record<Theme, string> = {
     [Theme.HOT_DOG_STAND]: 'Pølsebod',
     [Theme.OW_BASIC]: 'Alt var bedre før',
     [Theme.VALENTINE]: 'Rosa',
+    [Theme.VALENTINE_DARK]: 'Mørk Rosa',
 }
 
 /** A daisyUI theme: its keys are the declarations of a `@plugin "daisyui/theme"` block. */
@@ -198,6 +199,29 @@ export const themes: Record<Theme, ThemeColors> = {
         '--color-warning-content': 'oklch(26% 0.079 36.259)',
         '--color-error': 'oklch(63% 0.237 25.331)',
         '--color-error-content': 'oklch(97% 0.013 17.38)',
+    },
+    [Theme.VALENTINE_DARK]: {
+        'color-scheme': 'dark',
+        '--color-base-100': 'oklch(03% 0.014 343.198)',
+        '--color-base-200': 'oklch(18% 0.028 342.258)',
+        '--color-base-300': 'oklch(24% 0.061 343.231)',
+        '--color-base-content': 'oklch(88% 0.223 3.958)',
+        '--color-primary': 'oklch(70% 0.22 355)',
+        '--color-primary-content': 'oklch(20% 0.05 355)',
+        '--color-secondary': 'oklch(72% 0.17 15)',
+        '--color-secondary-content': 'oklch(20% 0.05 15)',
+        '--color-accent': 'oklch(78% 0.12 300)',
+        '--color-accent-content': 'oklch(25% 0.08 300)',
+        '--color-neutral': 'oklch(35% 0.08 355)',
+        '--color-neutral-content': 'oklch(90% 0.04 355)',
+        '--color-info': 'oklch(80% 0.11 230)',
+        '--color-info-content': 'oklch(30% 0.08 240)',
+        '--color-success': 'oklch(80% 0.14 165)',
+        '--color-success-content': 'oklch(30% 0.08 166)',
+        '--color-warning': 'oklch(80% 0.15 70)',
+        '--color-warning-content': 'oklch(28% 0.07 50)',
+        '--color-error': 'oklch(65% 0.24 25)',
+        '--color-error-content': 'oklch(97% 0.013 17)',
     },
 }
 

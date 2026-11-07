@@ -19,6 +19,7 @@ enum Theme {
   HOT_DOG_STAND
   OW_BASIC
   VALENTINE
+  VALENTINE_DARK
 }
 
 model User {
