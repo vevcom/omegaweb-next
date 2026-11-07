@@ -22,6 +22,12 @@
             nodejs_24
             openssl # Prisma probes it to pick an engine build
             postgresql # psql for poking at the dev database
+            # deploy/k3d/up.sh and the manifests workflow
+            k3d
+            kubectl
+            kubernetes-helm
+            kustomize
+            kubeconform
           ];
 
           env = {
