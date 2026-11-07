@@ -2,10 +2,10 @@ import { linkToNotificationPage, replaceSpecialSymbols } from './helpers'
 import { weeklyDigest } from './constants'
 import { sendMailSchemas } from '@/services/notifications/sendMail/schemas'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
-import { DEFAULT_NOTIFICATION_ALIAS } from '@/lib/email/constants'
+import { defaultNotificationAlias } from '@/lib/email/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { WeeklyDigestNotification } from './types'
@@ -39,7 +39,7 @@ export function buildWeeklyDigestText(user: UserBasicWithEmail, notifications: W
  */
 export async function sendWeeklyEmailDigest(user: UserBasicWithEmail, notifications: WeeklyDigestNotification[]) {
     const parsed = sendMailSchemas.data.notificationMail.safeParse({
-        from: DEFAULT_NOTIFICATION_ALIAS,
+        from: defaultNotificationAlias(),
         to: user.email,
         subject: weeklyDigest.subject,
         text: buildWeeklyDigestText(user, notifications),
@@ -57,7 +57,7 @@ export async function sendWeeklyEmailDigest(user: UserBasicWithEmail, notificati
             html: await wrapInHTML(user, parsed.data.text),
             list: {
                 unsubscribe: {
-                    url: SiteContext.publicUrl(Site.OMEGAWEB, omegaLinks.userNotifications(user)),
+                    url: DomainContext.publicUrl(Site.OMEGAWEB, omegaLinks.userNotifications(user)),
                     comment: 'Varslingsinnstillinger'
                 },
             },

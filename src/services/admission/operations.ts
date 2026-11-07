@@ -48,7 +48,7 @@ export const admissionOperations = {
         authorizer: () => admissionAuth.createTrial,
         paramsSchema: admissionSchemas.params.createTrial,
         dataSchema: admissionSchemas.data.createTrial,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, session, params, data }): Promise<ExpandedAdmissionTrail> => {
             // The last trial makes the user a sysken, so registering one's own would be self-promotion.
             if (data.userId === session.user?.id) {

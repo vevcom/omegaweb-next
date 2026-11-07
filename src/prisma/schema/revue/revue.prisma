@@ -1,0 +1,13 @@
+model Revue {
+  id   Int    @id @default(autoincrement())
+  year Int    @unique
+  name String @unique
+
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  articleId Int     @unique
+
+  groups RevueGroup[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

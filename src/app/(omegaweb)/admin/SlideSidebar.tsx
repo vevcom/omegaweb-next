@@ -2,16 +2,16 @@
 import useOnNavigation from '@/hooks/useOnNavigation'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import useKeyPress from '@/hooks/useKeyPress'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { Fragment, useState } from 'react'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
-import type { AdminNavGroup, AdminNavLink } from '@/app/(omegaweb)/admin/adminNavDef'
+import type { NavGroupLinks } from '@/lib/navDef/groupedNavDef'
 
 type PropTypes = {
-    /** The groups of `adminNavDef` the session may open, as `visibleAdminNav` leaves them. */
-    navigation: (Omit<AdminNavGroup, 'links'> & { links: Pick<AdminNavLink, 'title' | 'path'>[] })[]
+    /** The groups of `adminNavDef` the session may open. */
+    navigation: NavGroupLinks[]
 }
 
 /**
@@ -85,17 +85,17 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                             </h3>
                             {
                                 group.links.map(link => (
-                                    <Link
-                                        key={link.title}
-                                        href={`/admin/${link.path}`}
+                                    <SiteLink
+                                        key={link.key}
+                                        href={link.href}
                                         className={`
                                             no-underline py-3 px-4 ml-6 transition-colors duration-300
                                             hover:text-accent-blue
-                                            ${link.path === currentPath ? 'text-accent-blue' : 'text-text'}
+                                            ${link.key === currentPath ? 'text-accent-blue' : 'text-text'}
                                         `}
                                     >
-                                        {link.title}
-                                    </Link>
+                                        {link.name}
+                                    </SiteLink>
                                 ))
                             }
                         </Fragment>

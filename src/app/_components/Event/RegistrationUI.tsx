@@ -13,10 +13,10 @@ import {
 import { configureAction } from '@/services/configureAction'
 import { authLinks } from '@/pageKits/auth/links'
 import { eventLinks } from '@/pageKits/events/links'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import type { EventExpanded, EventVariantSummary } from '@/services/events/types'
 import type { DotPunishment } from '@/services/events/registration/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
@@ -105,7 +105,7 @@ export default function RegistrationUI({
 
     // The rest of the page, such as the payment section, is rendered on the server from the
     // registration, so it is refreshed once the registration changes.
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
 
     useEffect(() => {
         const timeUntilRegistration = registrationStart.getTime() - Date.now()
@@ -124,8 +124,8 @@ export default function RegistrationUI({
     })
 
     if (!session.data) {
-        const loginHref = authLinks(config.authPages).login(eventLinks(config).event(event))
-        return <Link href={loginHref}>Logg inn for å melde deg på</Link>
+        const loginHref = authLinks(config.authPages).login({ callbackUrl: eventLinks(config).event(event) })
+        return <SiteLink href={loginHref}>Logg inn for å melde deg på</SiteLink>
     }
 
     const userId = session.data.user.id

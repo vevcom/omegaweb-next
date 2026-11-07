@@ -9,11 +9,11 @@ export const cabinPricePeriodOperations = {
     create: defineOperation({
         authorizer: () => cabinPricePeriodAuth.create,
         dataSchema: cabinPricePeriodSchemas.data.create,
-        opensTransaction: true,
-        operation: async ({ prisma, data }) => prisma.$transaction(async (tx) => {
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data }) => {
             const currentReleaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
                 bypassAuth: true,
-                prisma: tx,
+                prisma,
             })
 
             if (currentReleaseDate && currentReleaseDate.releaseUntil >= data.validFrom) {
@@ -23,7 +23,7 @@ export const cabinPricePeriodOperations = {
                 )
             }
 
-            const latestPricePeriod = await tx.pricePeriod.findFirst({
+            const latestPricePeriod = await prisma.pricePeriod.findFirst({
                 orderBy: {
                     validFrom: 'desc',
                 },
@@ -34,20 +34,20 @@ export const cabinPricePeriodOperations = {
                 throw new ServiceError('BAD DATA', 'Kan ikke sette en prisperiode til å være gyldig før en annen periode.')
             }
 
-            const result = await tx.pricePeriod.create({
+            const result = await prisma.pricePeriod.create({
                 data: {
                     validFrom: data.validFrom
                 }
             })
 
             if (data.copyPreviousPrices && latestPricePeriod) {
-                const products = await tx.cabinProductPrice.findMany({
+                const products = await prisma.cabinProductPrice.findMany({
                     where: {
                         pricePeriodId: latestPricePeriod.id,
                     }
                 })
 
-                await tx.cabinProductPrice.createMany({
+                await prisma.cabinProductPrice.createMany({
                     data: products.map(product => ({
                         ...product,
                         id: undefined,
@@ -57,7 +57,7 @@ export const cabinPricePeriodOperations = {
             }
 
             return result
-        }),
+        },
     }),
 
     destroy: defineOperation({

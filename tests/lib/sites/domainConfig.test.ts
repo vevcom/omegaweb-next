@@ -1,5 +1,6 @@
 import { DomainConfig } from '@/lib/sites/domainConfig'
-import { readDomainConfig } from '@/lib/sites/loadDomainConfig'
+import { readDomainConfig } from '@/lib/sites/domainConfigFile'
+import { requireOmegaMainDomain } from '@/lib/sites/loadDomainConfig'
 import { Site } from '@/lib/sites/site'
 import { describe, expect, test } from '@jest/globals'
 import { mkdtempSync, writeFileSync } from 'node:fs'
@@ -8,7 +9,7 @@ import { join } from 'node:path'
 import type { SiteDomain } from '@/lib/sites/domainConfig'
 
 const json = {
-    'omega.ntnu.no': { site: 'OMEGAWEB', main: true },
+    'omega.ntnu.no': { site: 'OMEGAWEB', main: true, aliases: ['www.omega.ntnu.no'] },
     'contactor.no': { site: 'CAREERS', main: true },
     'www.contactor.no': { site: 'CAREERS' },
     'localhost:3000': { site: 'OMEGAWEB', protocol: 'http' },
@@ -27,6 +28,37 @@ describe('DomainConfig', () => {
         expect(config.domainOfHost('Contactor.no')).toMatchObject({ host: 'contactor.no', site: 'CAREERS', main: true })
         expect(config.domainOfHost('localhost:3000')?.site).toBe('OMEGAWEB')
         expect(config.domainOfHost('evil.example')).toBeNull()
+    })
+
+    test('finds the domain a host is an alias of, whatever its case, and none for a domain or an unknown host', () => {
+        const config = DomainConfig.parse(json)
+        expect(config.domainOfAlias('WWW.omega.ntnu.no')?.host).toBe('omega.ntnu.no')
+        expect(config.domainOfAlias('omega.ntnu.no')).toBeNull()
+        expect(config.domainOfAlias('www.evil.example')).toBeNull()
+        expect(config.domainOfHost('www.omega.ntnu.no')).toBeNull()
+    })
+
+    test('rejects an alias that is also a domain, and one listed twice', () => {
+        expect(() => DomainConfig.parse({
+            'contactor.no': { site: 'CAREERS', main: true, aliases: ['www.contactor.no'] },
+            'www.contactor.no': { site: 'CAREERS' },
+        })).toThrow(/www.contactor.no is an alias and a domain/)
+        expect(() => DomainConfig.parse({
+            'omega.ntnu.no': { site: 'OMEGAWEB', main: true, aliases: ['www.omega.ntnu.no'] },
+            'contactor.no': { site: 'CAREERS', main: true, aliases: ['www.omega.ntnu.no'] },
+        })).toThrow(/an alias twice/)
+    })
+
+    test('gives the host names without ports, once each, for the dev server', () => {
+        const config = DomainConfig.parse({ ...json, 'localhost:4000': { site: 'OMEGAWEB', protocol: 'http' } })
+        expect(config.hostNames()).toEqual(['omega.ntnu.no', 'contactor.no', 'www.contactor.no', 'localhost'])
+    })
+
+    test('the app runs only on a config giving Omega\'s site a main domain', () => {
+        expect(requireOmegaMainDomain(DomainConfig.parse(json), 'sites.json').domains).toHaveLength(4)
+        expect(() => requireOmegaMainDomain(DomainConfig.parse({}), 'sites.json')).toThrow(/no main domain/)
+        expect(() => requireOmegaMainDomain(DomainConfig.parse({ 'contactor.no': { site: 'CAREERS', main: true } }), 'x'))
+            .toThrow(/no main domain/)
     })
 
     test('knows each site\'s main origin, null without domains', () => {
@@ -54,6 +86,13 @@ describe('DomainConfig', () => {
         const config = DomainConfig.parse(json)
         const inBrowser = DomainConfig.fromJSON(JSON.parse(JSON.stringify(config)) as SiteDomain[])
         expect(inBrowser.domains).toEqual(config.domains)
+    })
+
+    test('the example for development names the three dev hosts, each a site\'s main', () => {
+        const config = readDomainConfig(join(process.cwd(), 'sites.example.json'))
+        expect(config.mainOriginOfSite(Site.OMEGAWEB)).toBe('http://localhost:3000')
+        expect(config.mainOriginOfSite(Site.CAREERS)).toBe('http://career.localhost:3000')
+        expect(config.mainOriginOfSite(Site.REVUE)).toBe('http://revue.localhost:3000')
     })
 
     test('reads a file, and treats a missing file as no domains', () => {

@@ -1,4 +1,4 @@
-import { validMailAddressDomains } from '@/services/mail/constants'
+import { isOwnMailAddress, validMailAddressDomains } from '@/services/mail/constants'
 import { z } from 'zod'
 import { zfd } from 'zod-form-data'
 import type Mail from 'nodemailer/lib/mailer'
@@ -6,8 +6,8 @@ import type React from 'react'
 
 const dataFieldSchemas = z.object({
     from: z.string().email('Ikke en gyldig e-post').refine(
-        address => validMailAddressDomains.some(domain => address.toLowerCase().endsWith(`@${domain}`)),
-        `Avsenderen må være en adresse på ${validMailAddressDomains.join(' eller ')}`
+        isOwnMailAddress,
+        () => ({ message: `Avsenderen må være en adresse på ${validMailAddressDomains().join(' eller ')}` })
     ),
     to: z.string().email('Ikke en gyldig e-post'),
     // Typed as one field, separated by commas, semicolons, spaces or new lines.

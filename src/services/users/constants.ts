@@ -4,8 +4,6 @@ import type { UserPartition } from './types'
 
 export const maxNumberOfGroupsInFilter = 7
 
-export const defaultSearchResultLimit = 5
-
 /**
  * The levels of who a read of users covers, as user filters. Reads that any member may run
  * cover the active omega students: users who are in a class and admitted. Reads of everyone

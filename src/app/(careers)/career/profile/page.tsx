@@ -1,24 +1,20 @@
 import ContactInfoForm from './ContactInfoForm'
-import ContactorNotifications from './ContactorNotifications'
 import { careersAuthLinks } from '@/app/(careers)/career/(auth)/links'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
 import { badgeClassName, sectionHeadingClassName } from '@/app/(careers)/_lib/careersClassNames'
 import { userOperations } from '@/services/users/operations'
+import { ClassLevelConfig } from '@/services/groups/constants'
 import { dotOperations } from '@/services/dots/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
-import { notificationChannelOperations } from '@/services/notifications/channel/operations'
+import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
+import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { Smorekopp } from '@/services/error'
 import { displayDate } from '@/lib/dates/displayDate'
-import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { serverPage } from '@/app/ServerPage'
-import Link from 'next/link'
-import type { NotificationMethodGeneral } from '@/services/notifications/types'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import UpdateNotificationSubscription from '@/components/Notifications/UpdateNotificationSubscription'
 import type { ReactNode } from 'react'
-
-const pickMethods = ({ email, emailWeekly, push }: NotificationMethodGeneral): NotificationMethodGeneral => (
-    { email, emailWeekly, push }
-)
 
 function Section({ title, children }: { title: string, children: ReactNode }) {
     return (
@@ -38,21 +34,21 @@ const { page, generateMetadata } = serverPage({
         if (!session.user) throw new Smorekopp('UNAUTHENTICATED')
         const userId = session.user.id
 
-        const [user, registrations, dots, channel, subscriptions] = await Promise.all([
+        const channel = await contactorNotificationChannel.readChannel({})
+        const [user, profile, registrations, dots, [subscription]] = await Promise.all([
             userOperations.read({ params: { id: userId } }),
+            userOperations.readProfile({ params: { username: session.user.username } }),
             eventRegistrationOperations.readUpcomingOfUser({
                 params: { userId, specialTag: 'COMPANY_PRESENTATION' },
             }),
             dotOperations.readForUser({ params: { userId, onlyActive: true } }),
-            notificationChannelOperations.readSpecial({ params: { special: 'CONTACTOR' } }),
-            notificationSubscriptionOperations.read({ params: { userId } }),
+            notificationSubscriptionOperations.read({ params: { userId, channelIds: [channel.id] } }),
         ])
-        const subscription = subscriptions.find(candidate => candidate.channelId === channel.id)
 
-        return { user, registrations, dots, channel, subscription }
+        return { user, profile, registrations, dots, channel, subscription }
     },
     metadata: () => ({ title: 'Min side' }),
-    render: ({ data: { user, registrations, dots, channel, subscription } }) => (
+    render: ({ data: { user, profile, registrations, dots, channel, subscription } }) => (
         <div className="flex flex-col gap-8 max-w-3xl py-16">
             <div>
                 <span className={`
@@ -70,18 +66,18 @@ const { page, generateMetadata } = serverPage({
                 {registrations.length === 0 ? (
                     <p className="text-m text-text-muted">
                         Du er ikke påmeldt noen kommende bedriftspresentasjoner.{' '}
-                        <Link href={companyPresentationLinks.list()}>Se bedriftspresentasjonene</Link>
+                        <SiteLink href={companyPresentationLinks.list()}>Se bedriftspresentasjonene</SiteLink>
                     </p>
                 ) : (
                     <ul className="flex flex-col list-none divide-y divide-careers-line">
                         {registrations.map(registration => (
                             <li key={registration.id} className="flex flex-wrap items-baseline gap-x-4 py-3">
-                                <Link
+                                <SiteLink
                                     href={companyPresentationLinks.event(registration.event)}
                                     className="text-m font-semibold text-careers-navy"
                                 >
                                     {registration.event.name}
-                                </Link>
+                                </SiteLink>
                                 <span className="text-s text-text-muted">
                                     {displayDate(registration.event.eventStart)}
                                     {registration.event.location && ` · ${registration.event.location}`}
@@ -95,17 +91,37 @@ const { page, generateMetadata } = serverPage({
                 )}
             </Section>
 
+            <Section title="Studie">
+                <dl className="
+                    grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-m
+                    [&>dt]:text-text-muted
+                ">
+                    <dt>Klasse</dt>
+                    <dd>{profile.class ? ClassLevelConfig[profile.class.level].name : 'Ingen klasse registrert'}</dd>
+                    <dt>Studieprogram</dt>
+                    <dd>
+                        {profile.groups.activeStudyProgrammes.length === 0
+                            ? 'Ingen studieprogram registrert'
+                            : profile.groups.activeStudyProgrammes.map(({ studyProgramme }) => (
+                                <span key={studyProgramme.id} className="block">
+                                    {studyProgramme.name} ({studyProgramme.code})
+                                </span>
+                            ))}
+                    </dd>
+                </dl>
+            </Section>
+
             <Section title="Kontaktinfo og mat">
                 <ContactInfoForm username={user.username} mobile={user.mobile} allergies={user.allergies} />
             </Section>
 
             <Section title="E-post fra Contactor">
-                <p className="mb-4 text-m text-text-muted">{channel.description}</p>
-                <ContactorNotifications
+                <UpdateNotificationSubscription
                     userId={user.id}
-                    channelId={channel.id}
-                    availableMethods={pickMethods(channel.availableMethods)}
-                    methods={pickMethods(subscription?.methods ?? allNotificationMethodsOff)}
+                    channel={channel}
+                    methods={subscription?.methods ?? allNotificationMethodsOff}
+                    inherited={!subscription?.explicit}
+                    hasChildren={false}
                 />
             </Section>
 
@@ -127,7 +143,7 @@ const { page, generateMetadata } = serverPage({
                 )}
             </Section>
 
-            <Link href={careersAuthLinks.logout()} className="self-start text-m text-text-muted">Logg ut</Link>
+            <SiteLink href={careersAuthLinks.logout()} className="self-start text-m text-text-muted">Logg ut</SiteLink>
         </div>
     ),
 })

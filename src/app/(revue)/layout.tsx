@@ -1,5 +1,7 @@
 import RevueNavBar from './_components/RevueNavBar'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
+import WorkInProgressBanner from '@/components/WorkInProgressBanner/WorkInProgressBanner'
+import { externalHref } from '@/lib/sites/href'
 import { Theme, themes } from '@/lib/theme'
 import { serverLayout } from '@/app/ServerPage'
 import type { LayoutOperationArgs } from '@/app/ServerPage'
@@ -23,6 +25,7 @@ export default serverLayout({
     render: ({ data, children }) => (
         <div className="min-h-dvh flex flex-col bg-surface-base text-text">
             <SiteTheme colors={themes[Theme.STANDARD]} />
+            <WorkInProgressBanner siteName="Omegarevyen" currentSiteHref={externalHref('https://omegarevyen.no')} />
             <RevueNavBar loggedIn={data.loggedIn} />
             <main className="flex-1 w-full max-w-[1100px] mx-auto px-[clamp(1rem,4vw,3rem)] py-8">
                 {children}

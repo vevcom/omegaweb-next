@@ -23,9 +23,9 @@ import {
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
 import { configureAction } from '@/services/configureAction'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowDown, faArrowUp } from '@fortawesome/free-solid-svg-icons'
-import Link from 'next/link'
 import { useState } from 'react'
 import type { EventFiltered } from '@/services/events/types'
 import type { EventRegistrationNotAttended } from '@/services/events/registration/types'
@@ -86,9 +86,9 @@ function DetailedTable({
                         pagingContext={EventRegistrationDetailedPagingContext}
                         loadingInfoWrapper={loadingInfo => <tr><td colSpan={columns}>{loadingInfo}</td></tr>}
                         renderer={row => {
-                            const name = row.user ? <Link href={omegaLinks.user(row.user)}>
+                            const name = row.user ? <SiteLink href={omegaLinks.user(row.user)}>
                                 <UserDisplayName user={row.user} width={20} />
-                            </Link> : row.contact?.name
+                            </SiteLink> : row.contact?.name
                             return <tr key={row.id}>
                                 <td>
                                     <div className="flex gap-1">

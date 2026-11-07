@@ -3,10 +3,10 @@ import Form from '@/components/Form/Form'
 import { createApiKeyAction } from '@/services/apiKeys/actions'
 import TextInput from '@/components/UI/TextInput'
 import { PopUpContext } from '@/contexts/PopUp'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useContext, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCopy } from '@fortawesome/free-solid-svg-icons'
-import { useRouter } from 'next/navigation'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 
 type Color = 'red' | 'green' | null
@@ -32,7 +32,7 @@ export default function CreateApiKeyForm({ popUpKey }: PropTypes) {
         message: string | null
     }>({ color: null, message: null })
     const popUpContext = useContext(PopUpContext)
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
 
     const setCopySuccess = (message: string | null, color: Color) => {
         setCopySuccess_({

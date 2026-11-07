@@ -10,6 +10,32 @@ import { getDefaultSelectors } from 'eslint-plugin-better-tailwindcss/api/defaul
 // naming-convention rules below instead of flagged as violations.
 const nextSpecialFilenames = '!(page|layout|template|default|loading|error|global-error|not-found)'
 
+// Imports no file makes: relative paths out of its folder, and the Next primitives that SiteLink and
+// useSiteRouter wrap, which resolve an app path for the domain the visitor is on.
+const noRelativeImports = { group: ['../'], message: 'Relative imports are not allowed.' }
+const noNextLink = {
+    name: 'next/link',
+    message: 'Link with SiteLink from @/components/SiteLink/SiteLink, '
+        + 'which resolves the href for the domain the visitor is on.',
+}
+const noNextRouter = {
+    name: 'next/navigation',
+    importNames: ['useRouter'],
+    message: 'Navigate with useSiteRouter from @/hooks/useSiteRouter, '
+        + 'which resolves an app path for the domain the visitor is on.',
+}
+const noNextRedirect = {
+    name: 'next/navigation',
+    importNames: ['redirect', 'permanentRedirect'],
+    message: 'Redirect with siteRedirect from @/app/domainContextOfRequest, '
+        + 'which resolves an app path for the domain the request came to.',
+}
+const noResolvedHrefTagging = {
+    group: ['**/sites/href', '@/lib/sites/href'],
+    importNames: ['domainContextResolvedHref'],
+    message: 'Only DomainContext.resolveHref marks an href as resolved for the domain.',
+}
+
 const eslintConfig = defineConfig([
     {
         files: ['**/*.{ts,tsx}'],
@@ -550,17 +576,12 @@ const eslintConfig = defineConfig([
                     indent: 4,
                 }
             ],
-            // dissallow relative imports (e.g. '../'), imports from same folder are stil allowed
             'no-restricted-imports': [
                 'error',
                 {
-                    patterns: [
-                        {
-                            group: ['../'],
-                            message: 'Relative imports are not allowed.'
-                        }
-                    ]
-                }
+                    patterns: [noRelativeImports, noResolvedHrefTagging],
+                    paths: [noNextLink, noNextRouter, noNextRedirect],
+                },
             ],
             // import statement order
             'import/order': [
@@ -625,6 +646,37 @@ const eslintConfig = defineConfig([
                         + 'etc.) instead of a raw <input>. type="hidden" inputs are exempt.'
                 }
             ]
+        }
+    },
+    {
+        // The one place next/link is used: SiteLink wraps it.
+        files: ['src/app/_components/SiteLink/SiteLink.tsx'],
+        rules: {
+            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextRouter, noNextRedirect] }],
+        }
+    },
+    {
+        // The one place useRouter is used: useSiteRouter wraps it.
+        files: ['src/hooks/useSiteRouter.ts'],
+        rules: {
+            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextLink, noNextRedirect] }],
+        }
+    },
+    {
+        // The one place an href is marked as resolved for the domain.
+        files: ['src/lib/sites/context.ts'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                { patterns: [noRelativeImports], paths: [noNextLink, noNextRouter, noNextRedirect] },
+            ],
+        }
+    },
+    {
+        // The one place redirect is used: siteRedirect wraps it.
+        files: ['src/app/domainContextOfRequest.ts'],
+        rules: {
+            'no-restricted-imports': ['error', { patterns: [noRelativeImports], paths: [noNextLink, noNextRouter] }],
         }
     },
     {

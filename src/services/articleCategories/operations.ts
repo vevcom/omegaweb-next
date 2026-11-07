@@ -59,18 +59,18 @@ export const articleCategoryOperations = {
     create: defineOperation({
         authorizer: () => articleCategoryAuth.create,
         dataSchema: articleCategorySchemas.data.create,
-        opensTransaction: true,
-        operation: async ({ prisma, data }) => prisma.$transaction(async tx => {
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data }) => {
             const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
-                prisma: tx,
+                prisma,
                 data: { requirements: data.visibilityRegularRequirements },
             })
             const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
-                prisma: tx,
+                prisma,
                 data: { requirements: data.visibilityAdminRequirements },
             })
 
-            return await tx.articleCategory.create({
+            return await prisma.articleCategory.create({
                 data: {
                     name: data.name,
                     description: data.description,
@@ -89,35 +89,35 @@ export const articleCategoryOperations = {
                     articles: true
                 },
             })
-        })
+        }
     }),
 
     destroy: defineOperation({
         authorizer: () => articleCategoryAuth.destroy,
         paramsSchema: articleCategorySchemas.params.destroy,
-        opensTransaction: true,
-        operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params }) => {
             // The articles cascade with the category, but their cover images would stay behind:
             // the relation is on the article. Destroying each article takes its cover with it.
-            const articles = await tx.article.findMany({
+            const articles = await prisma.article.findMany({
                 where: { articleCategoryId: params.id },
                 select: { id: true },
             })
             await Promise.all(articles.map(article =>
-                articleOperations.destroy.internalCall({ params: { articleId: article.id }, prisma: tx })
+                articleOperations.destroy.internalCall({ params: { articleId: article.id }, prisma })
             ))
 
-            const category = await tx.articleCategory.delete({ where: { id: params.id } })
+            const category = await prisma.articleCategory.delete({ where: { id: params.id } })
             await visibilityOperations.destroy.internalCall({
-                prisma: tx,
+                prisma,
                 params: { visibilityId: category.visibilityAdminId },
             })
             await visibilityOperations.destroy.internalCall({
-                prisma: tx,
+                prisma,
                 params: { visibilityId: category.visibilityRegularId },
             })
             return category
-        }),
+        },
     }),
 
     update: defineOperation({
@@ -143,29 +143,28 @@ export const articleCategoryOperations = {
             visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
         }),
         paramsSchema: articleCategorySchemas.params.addArticleToCategory,
-        opensTransaction: true,
-        operation: ({ prisma, params }) =>
-            prisma.$transaction(async (tx) => {
-                const article = await articleOperations.create.internalCall({
-                    data: {},
-                    prisma: tx,
-                    dataSchemaImplementationFields: { maxNameLength: 30 },
-                    operationImplementationFields: { special: null }
-                })
-                await tx.articleCategory.update({
-                    where: {
-                        id: params.id
-                    },
-                    data: {
-                        articles: {
-                            connect: {
-                                id: article.id
-                            }
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params }) => {
+            const article = await articleOperations.create.internalCall({
+                data: {},
+                prisma,
+                dataSchemaImplementationFields: { maxNameLength: 30 },
+                operationImplementationFields: { special: null }
+            })
+            await prisma.articleCategory.update({
+                where: {
+                    id: params.id
+                },
+                data: {
+                    articles: {
+                        connect: {
+                            id: article.id
                         }
                     }
-                })
-                return article
+                }
             })
+            return article
+        }
     }),
 
     removeArticleFromCategory: articleOperations.destroy.implement({

@@ -2,7 +2,6 @@ import '@pn-server-only'
 import { userSchemas } from './schemas'
 import { userAuth } from './auth'
 import {
-    defaultSearchResultLimit,
     maxNumberOfGroupsInFilter,
     standardMembershipSelection,
     userBasicSelection,
@@ -12,10 +11,11 @@ import {
     userProfileSelection
 } from './constants'
 import { userProfileImageOperations } from './profileImageCollection'
+import { implementSearchOperation } from '@/services/search/implement'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import { Site } from '@/lib/sites/site'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { classOperations } from '@/services/groups/classes/operations'
 import { feideEmailDomainsTrustedAsVerified } from '@/lib/feide/constants'
 import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
@@ -244,18 +244,16 @@ export const userOperations = {
     }),
 
     /**
-     * The user half of the global search: the few users best matching a free text query, for a
-     * search box to show while the user types. Every word of the query must occur in some part of
+     * The users matching a free text query. Every word of the query must occur in some part of
      * the name of the user, so that "ola nor" finds "Ola Nordmann".
      */
-    search: defineOperation({
-        paramsSchema: userSchemas.params.search,
+    search: implementSearchOperation({
         authorizer: () => userAuth.search,
-        operation: async ({ prisma, params }) => {
-            const words = params.query.split(/\s+/).filter(Boolean)
+        find: async ({ prisma, query, take }) => {
+            const words = query.split(/\s+/).filter(Boolean)
 
             const users = await prisma.user.findMany({
-                take: params.limit ?? defaultSearchResultLimit,
+                take,
                 select: {
                     id: true,
                     username: true,
@@ -280,7 +278,14 @@ export const userOperations = {
             })
 
             return users.map(user => ({ ...user, image: user.image ?? defaultProfileImage }))
-        }
+        },
+        toSearchResult: user => ({
+            key: `user-${user.id}`,
+            href: omegaLinks.user(user),
+            label: `${user.firstname} ${user.lastname}`,
+            sublabel: `@${user.username}`,
+            image: user.image,
+        }),
     }),
 
     connectStudentCard: defineOperation({
@@ -463,10 +468,11 @@ export const userOperations = {
         paramsSchema: userSchemas.params.register,
         dataSchema: userSchemas.data.register,
         authorizer: ({ params }) => userAuth.register.data({ userId: params.id }),
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, data, params }) => {
             const { sex, password, allergies, imageConsent } = data
 
+            // Hashed before the transaction, so it does not use up the transaction's timeout.
             const passwordHash = await hashAndEncryptPassword(password)
 
             // Everything registration writes stands or falls together, so a failure part of the way
@@ -516,15 +522,6 @@ export const userOperations = {
                     update: {
                         passwordHash,
                     },
-                })
-
-                // Skips the channels the user is already subscribed to, which a user whose accepted
-                // terms were reset has kept.
-                await notificationSubscriptionOperations.createDefault.internalCall({
-                    params: {
-                        userId: params.id,
-                    },
-                    prisma: tx,
                 })
 
                 // What someone studies is what decides where they come in; anything above that is
@@ -602,19 +599,17 @@ export const userOperations = {
     destroy: defineOperation({
         paramsSchema: userSchemas.params.destroy,
         authorizer: () => userAuth.destroy,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
-            await prisma.$transaction(async tx => {
-                const user = await tx.user.delete({
-                    where: {
-                        id: params.id,
-                    },
-                    select: { bioParagraphId: true },
-                })
-                await cmsParagraphOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { paragraphId: user.bioParagraphId },
-                })
+            const user = await prisma.user.delete({
+                where: {
+                    id: params.id,
+                },
+                select: { bioParagraphId: true },
+            })
+            await cmsParagraphOperations.destroy.internalCall({
+                prisma,
+                params: { paragraphId: user.bioParagraphId },
             })
         }
     }),
@@ -650,7 +645,7 @@ export const userOperations = {
         authorizer: ({ params }) => userAuth.updateProfileImage.data({ userField: { username: params.username } }),
         paramsSchema: userSchemas.params.updateProfileImage,
         dataSchema: userSchemas.data.updateProfileImage,
-        opensTransaction: true,
+        transaction: 'OPENS',
         // uploadImage resizes to 3 sizes, converts to avif and writes several files to store
         // before any db write happens - comfortably slower than the default 5000ms interactive
         // transaction timeout under load, hence the raised timeout below.
@@ -730,6 +725,7 @@ async function readUserPage(
         ...cursorPagingSelection(page),
         select: {
             ...userCardSelection,
+            image: { include: expandedImageIncluder },
             memberships: {
                 select: {
                     admin: true,
@@ -791,6 +787,9 @@ async function readUserPage(
         // value is undefined behaviour in postgresql.
         orderBy
     })
+    const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
+        params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
+    })
     return users.map(user => {
         const clas = user.memberships.find(
             membership => membership.group.class !== null)?.group.class?.level
@@ -806,6 +805,7 @@ async function readUserPage(
             membership => membership.groupId === details.selectedGroup?.groupId)?.admin
         return {
             ...user,
+            image: user.image ?? defaultProfileImage,
             class: clas,
             studyProgramme,
             membershipType,

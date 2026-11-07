@@ -22,7 +22,7 @@ import type { StandardImage } from '@/prisma-generated-pn-types'
 export const imageOperations = {
     destroyCollection: defineSubOperation({
         paramsSchema: () => imageSchemas.params.destroyCollection,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: () => async ({ prisma, params }) => {
             const collection = await prisma.imageCollection.findUnique({
                 where: uniqueCollectionWhere(params),
@@ -187,7 +187,7 @@ export const imageOperations = {
     replaceImageFile: defineSubOperation({
         paramsSchema: () => imageSchemas.params.replaceImageFile,
         dataSchema: () => imageSchemas.data.replaceImageFile,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: (
             { allowedExtensions }: { allowedExtensions: readonly ImageExtension[] }
         ) => async ({ prisma, params, data: { imageFile } }) => {

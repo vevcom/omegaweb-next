@@ -38,7 +38,7 @@ export const ledgerMovementOperations = {
         authorizer: async ({ params, prisma }) => ledgerMovementAuth.createDeposit.data({
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.ledgerAccountId })],
         }),
-        opensTransaction: true,
+        transaction: 'OPENS',
         paramsSchema: ledgerMovementSchemas.params.createDeposit,
         operation: async ({ prisma, params }) => {
             const created = await prisma.$transaction(async tx => {
@@ -94,8 +94,8 @@ export const ledgerMovementOperations = {
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.ledgerAccountId })],
         }),
         paramsSchema: ledgerMovementSchemas.params.createPayout,
-        opensTransaction: true,
-        operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params }) => {
             const payment = await paymentOperations.create({
                 params: {
                     provider: 'MANUAL',
@@ -104,7 +104,7 @@ export const ledgerMovementOperations = {
                     funds: -params.funds,
                     manualFees: -params.fees,
                 },
-                prisma: tx,
+                prisma,
             })
 
             // A payout is a MANUAL payment, which paymentAuth.create reserves for LEDGER_ADMIN, so the
@@ -120,11 +120,11 @@ export const ledgerMovementOperations = {
                     paymentId: payment.id,
                     description: params.description,
                 },
-                prisma: tx,
+                prisma,
             })
 
             // The caller's own modal reads payment.stripePayment off this response directly.
             return withFullPayment(transaction, payment)
-        })
+        }
     }),
 } as const

@@ -1,0 +1,41 @@
+model RevueGroup {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  revue   Revue @relation(fields: [revueId], references: [id], onDelete: Restrict)
+  revueId Int
+
+  articleSection   ArticleSection @relation(fields: [articleSectionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  articleSectionId Int            @unique
+
+  members RevueGroupMember[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([revueId, name])
+}
+
+enum RevueGroupMemberType {
+  USER
+  DETAILS
+}
+
+model RevueGroupMember {
+  id   Int                  @id @default(autoincrement())
+  type RevueGroupMemberType
+
+  // A check constraint gives USER a user and no name, and DETAILS a name and no user.
+  name String?
+
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int?
+
+  group   RevueGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([groupId, userId])
+}

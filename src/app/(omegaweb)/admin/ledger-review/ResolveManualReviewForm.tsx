@@ -3,10 +3,10 @@ import Form from '@/components/Form/Form'
 import Textarea from '@/components/UI/Textarea'
 import { configureAction } from '@/services/configureAction'
 import { resolveManualReviewAction } from '@/services/ledger/transactions/manualReviews/actions'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 
 export default function ResolveManualReviewForm({ reviewId }: { reviewId: number }) {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
 
     return (
         <Form

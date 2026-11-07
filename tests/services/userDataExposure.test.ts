@@ -3,6 +3,7 @@ import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { userOperations } from '@/services/users/operations'
 import { userPrivateSelection } from '@/services/users/constants'
+import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
 import { afterAll, beforeAll, describe, expect, test } from '@jest/globals'
@@ -63,42 +64,31 @@ beforeAll(async () => {
         select: userPrivateSelection,
     })
 
-    const event = await prisma.event.create({
+    const event = await eventOperations.create({
         data: {
             name: 'Exposure test',
-            published: true,
-            paragraph: { create: {} },
-            coverImage: { create: {} },
+            location: 'Here',
             eventStart: new Date(),
             eventEnd: new Date(),
             canBeViewedBy: 'ALL',
+            takesRegistration: true,
+            places: 10,
             waitingList: false,
-            visibilityAdmin: { create: { requirements: { create: [{}] } } },
-            variants: {
-                create: {
-                    order: 0,
-                    name: 'Påmelding',
-                    registrationStart: new Date(),
-                    registrationEnd: new Date(),
-                    quotas: {
-                        create: {
-                            order: 0,
-                            name: 'Påmelding',
-                            places: 10,
-                            visibility: { create: {} },
-                            registrations: { create: [{ state: 'IN_QUOTA', user: { connect: { id: target.id } } }] },
-                        },
-                    },
-                },
-            },
+            tagIds: [],
+            visibilityAdminRequirements: [{ conditions: [] }],
         },
+        bypassAuth: true,
     })
     eventId = event.id
+    await eventOperations.setPublished({ params: { id: eventId }, data: { published: true }, bypassAuth: true })
+    await eventRegistrationOperations.createAsAdmin({
+        params: { userId: target.id, eventId },
+        bypassAuth: true,
+    })
 })
 
 afterAll(async () => {
-    await prisma.eventRegistration.deleteMany({ where: { quota: { variant: { eventId } } } })
-    await prisma.event.delete({ where: { id: eventId } })
+    await eventOperations.destroy({ params: { id: eventId }, bypassAuth: true })
     await prisma.user.deleteMany({ where: { username: { in: ['exposure-target', 'exposure-viewer'] } } })
 })
 

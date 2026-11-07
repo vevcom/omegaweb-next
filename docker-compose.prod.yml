@@ -10,9 +10,16 @@ services:
             target: prod
         networks:
             - dokploy-network
+        # The domains of the sites, which the app refuses to start without. See README.md.
         volumes:
             - store:/usr/src/app/store
             - logs:/usr/src/app/logs
+            - type: bind
+              source: ${SITES_JSON_PATH:-./sites.json}
+              target: /usr/src/app/sites.json
+              read_only: true
+              bind:
+                  create_host_path: false
         deploy:
             replicas: 2
         restart: always
@@ -38,6 +45,12 @@ services:
         volumes:
             - store:/usr/src/app/store
             - logs:/usr/src/app/logs
+            - type: bind
+              source: ${SITES_JSON_PATH:-./sites.json}
+              target: /usr/src/app/sites.json
+              read_only: true
+              bind:
+                  create_host_path: false
         restart: "no"
 
     # Runs every background worker in one process: image processing, notification sending, payment
@@ -64,6 +77,12 @@ services:
         volumes:
             - store:/usr/src/app/store
             - logs:/usr/src/app/logs
+            - type: bind
+              source: ${SITES_JSON_PATH:-./sites.json}
+              target: /usr/src/app/sites.json
+              read_only: true
+              bind:
+                  create_host_path: false
         deploy:
             replicas: 1
         restart: always

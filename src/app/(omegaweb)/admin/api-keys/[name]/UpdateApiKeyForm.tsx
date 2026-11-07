@@ -2,6 +2,7 @@
 import { updateApiKeyAction } from '@/services/apiKeys/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/app/_components/Form/Form'
+import { appHref } from '@/lib/sites/href'
 import type { ReactNode } from 'react'
 
 type PropTypes = {
@@ -21,7 +22,7 @@ export default function UpdateApiKeyForm({ id, children }: PropTypes) {
         <Form
             action={updateAction}
             submitText="Oppdater"
-            navigateOnSuccess={data => (data ? `/admin/api-keys/${data.name}` : '/admin/api-keys')}
+            navigateOnSuccess={data => appHref(data ? `/admin/api-keys/${data.name}` : '/admin/api-keys')}
             refreshOnSuccess
         >
             {children}

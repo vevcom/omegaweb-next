@@ -1,11 +1,13 @@
 import AddNotificationChannel from './AddNotificationChannel'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import { notificationChannelOperations } from '@/services/notifications/channel/operations'
-import { notificationChannelAuth } from '@/services/notifications/channel/auth'
+import { manualNotificationChannelOperations } from '@/services/notifications/channels/manual/operations'
+import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
+import { manualNotificationChannelAuth } from '@/services/notifications/channels/manual/auth'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -47,10 +49,14 @@ function orderByHierarchy(channels: ExpandedNotificationChannel[]): ChannelRow[]
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
         authorizeAdminPage('notification-channels', session)
-        return notificationChannelOperations.readMany({})
+        const [special, manual] = await Promise.all([
+            specialNotificationChannelOperations.readMany({}),
+            manualNotificationChannelOperations.readMany({}),
+        ])
+        return [...special, ...manual]
     },
     capabilities: () => ({
-        canCreateChannel: notificationChannelAuth.create,
+        canCreateChannel: manualNotificationChannelAuth.create,
     }),
     metadata: () => ({ title: 'Varslingskanaler' }),
     render: ({ data: channels, capabilities }) => {
@@ -73,9 +79,9 @@ const { page, generateMetadata } = serverPage({
                     </thead>
                     <tbody>
                         {rows.map(({ channel, depth }) => (
-                            <Link
+                            <SiteLink
                                 key={channel.id}
-                                href={`/admin/notification-channels/${channel.id}`}
+                                href={appHref(`/admin/notification-channels/${channel.id}`)}
                                 className="contents no-underline text-inherit"
                             >
                                 <tr>
@@ -108,7 +114,7 @@ const { page, generateMetadata } = serverPage({
                                     </td>
                                     <td className="text-text-muted">{channel.description || '—'}</td>
                                 </tr>
-                            </Link>
+                            </SiteLink>
                         ))}
                     </tbody>
                 </table>

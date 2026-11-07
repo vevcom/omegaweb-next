@@ -128,7 +128,7 @@ export const ledgerTransactionOperations = {
     initiate: defineOperation({
         authorizer: () => ledgerTransactionAuth.initiate,
         paramsSchema: ledgerTransactionSchemas.params.initiate,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params }): Promise<ExpandedPayment | null> => {
             const transaction = await ledgerTransactionOperations.read({
                 params: { id: params.id },
@@ -167,13 +167,12 @@ export const ledgerTransactionOperations = {
     cancelOwn: defineOperation({
         authorizer: () => ledgerTransactionAuth.cancel,
         paramsSchema: ledgerTransactionSchemas.params.cancel,
-        opensTransaction: true,
-        operation: async ({ prisma, params }): Promise<ExpandedLedgerTransaction> => prisma.$transaction(tx =>
-            ledgerTransactionOperations.cancel({
-                params,
-                prisma: tx,
-                bypassAuth: true,
-            })),
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params }): Promise<ExpandedLedgerTransaction> => ledgerTransactionOperations.cancel({
+            params,
+            prisma,
+            bypassAuth: true,
+        }),
     }),
 
     /**

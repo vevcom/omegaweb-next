@@ -4,7 +4,9 @@ import EditModeProvider from '@/contexts/EditMode'
 import PopUpProvider from '@/contexts/PopUp'
 import ClientDataProvider from '@/contexts/ClientData'
 import { PageTitleProvider } from '@/contexts/PageTitle'
-import GlobalSearchProvider from '@/contexts/GlobalSearch'
+import DomainContextProvider from '@/contexts/DomainContextProvider'
+import { DomainContext } from '@/lib/sites/context'
+import { domainContextOfRequest } from '@/app/domainContextOfRequest'
 import { permissionOperations } from '@/services/permissions/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
@@ -61,6 +63,7 @@ type PropTypes = {
  */
 export default async function RootLayout({ children }: PropTypes) {
     const nextAuthSession = await getServerSession(authOptions)
+    const domainContext = await domainContextOfRequest()
 
     const { serverSession, defaultPermissions, standardImages } = await withPageSession(async (session) => {
         const [defaultPermissions_, standardImages_] = await Promise.all([
@@ -80,12 +83,12 @@ export default async function RootLayout({ children }: PropTypes) {
             <body className={inter.className}>
                 <ServiceWorkerRegister />
                 <SessionProvider session={nextAuthSession}>
-                    <ClientDataProvider
-                        session={serverSession.toJsObject()}
-                        defaultPermissions={defaultPermissions}
-                        standardImages={standardImages}
-                    >
-                        <GlobalSearchProvider>
+                    <DomainContextProvider domains={DomainContext.domainsForBrowser()} data={domainContext.toData()}>
+                        <ClientDataProvider
+                            session={serverSession.toJsObject()}
+                            defaultPermissions={defaultPermissions}
+                            standardImages={standardImages}
+                        >
                             <EditModeProvider>
                                 <PopUpProvider>
                                     <PageTitleProvider>
@@ -93,8 +96,8 @@ export default async function RootLayout({ children }: PropTypes) {
                                     </PageTitleProvider>
                                 </PopUpProvider>
                             </EditModeProvider>
-                        </GlobalSearchProvider>
-                    </ClientDataProvider>
+                        </ClientDataProvider>
+                    </DomainContextProvider>
                 </SessionProvider>
             </body>
         </html>

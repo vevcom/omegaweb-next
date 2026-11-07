@@ -13,6 +13,9 @@ import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { Require } from '@/auth/authorizer/Require'
+import { omegaLinks } from '@/app/(omegaweb)/links'
+import { defineNavDef } from '@/lib/navDef/navDef'
+import { appHref } from '@/lib/sites/href'
 import {
     faCalendarCheck,
     faCircleDot,
@@ -27,8 +30,6 @@ import {
     faUser,
     faUsers,
 } from '@fortawesome/free-solid-svg-icons'
-import type { Authorizer } from '@/auth/authorizer/Authorizer'
-import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 
 /** The user a page is about - everything a page's authorizers are allowed to key off. */
 export type UserNavSubject = {
@@ -36,62 +37,57 @@ export type UserNavSubject = {
     userId: number,
 }
 
-export type UserNavItem = {
-    name: string,
-    icon: IconDefinition,
-    /** Appended to `/users/${username}`. The profile itself is the bare path, so it has none. */
-    path?: string,
-    /**
-     * One authorizer per thing the page lets you do, and passing **any** of them is enough to be
-     * shown it - a page you can do something on is a page worth a link. The page then decides which
-     * of its parts to render, since being able to do one thing there says nothing about the rest.
-     *
-     * The same list is what `getProfileForUserPage` guards the page with, so a link is never shown
-     * to a page that would turn the viewer away.
-     */
-    authorizers: (subject: UserNavSubject) => Authorizer[],
-}
-
 /**
- * The pages that make up a user's own corner of the site, in two groups and in the order they are shown.
+ * The pages that make up a user's own corner of the site, in two navs and in the order they are
+ * shown, with `all` for what goes for both.
+ *
+ * Each item has one authorizer per thing the page lets you do, as a page you can do something on is
+ * a page worth a link. The page then decides which of its parts to render, since being able to do
+ * one thing there says nothing about the rest.
  */
-export const userNavDef = {
+export function userNavDef({ username, userId }: UserNavSubject) {
     /**
      * What being a member is about: who you are, your ID, your money, your standing and your groups.
      * Shown in the island at the bottom of every user page.
      */
-    membership: [
+    const membership = defineNavDef([
         {
+            key: 'profile',
             name: 'Profil',
+            href: omegaLinks.user({ username }),
             icon: faUser,
-            authorizers: ({ username }) => [userAuth.readProfile.data({ userField: { username } })],
+            authorizers: () => [userAuth.readProfile.data({ userField: { username } })],
         },
         {
+            key: 'omegaid',
             name: 'Omega-ID',
+            href: appHref(`/users/${username}/omegaid`),
             icon: faQrcode,
-            path: 'omegaid',
-            authorizers: ({ userId }) => [omegaIdAuth.generate.data({ userId })],
+            authorizers: () => [omegaIdAuth.generate.data({ userId })],
         },
         {
+            key: 'registrations',
             name: 'Påmeldinger',
+            href: appHref(`/users/${username}/registrations`),
             icon: faCalendarCheck,
-            path: 'registrations',
-            authorizers: ({ userId }) => [eventRegistrationAuth.readUpcomingOfUser.data({ userId })],
+            authorizers: () => [eventRegistrationAuth.readUpcomingOfUser.data({ userId })],
         },
         {
+            key: 'account',
             // The page only ever shows the session user's own account.
             name: 'Konto',
+            href: appHref(`/users/${username}/account`),
             icon: faMoneyBill,
-            path: 'account',
-            authorizers: ({ userId }) => [Require.userId().data({ userId })],
+            authorizers: () => [Require.userId().data({ userId })],
         },
         {
+            key: 'membership-status',
             // Reading the trials is the floor: the level itself is on the profile anyway, so it is the
             // trials - and being able to act on them - that make this page worth opening.
             name: 'Medlemsstatus',
+            href: appHref(`/users/${username}/membership-status`),
             icon: faIdCard,
-            path: 'membership-status',
-            authorizers: ({ userId }) => [
+            authorizers: () => [
                 admissionAuth.readTrial.data({ userId }),
                 admissionAuth.createTrial,
                 omegaMembershipGroupAuth.updateUserLevel,
@@ -99,11 +95,12 @@ export const userNavDef = {
             ],
         },
         {
+            key: 'groups',
             // Every group type guards its own memberships, and any one of them is something to show.
             name: 'Grupper',
+            href: appHref(`/users/${username}/groups`),
             icon: faUsers,
-            path: 'groups',
-            authorizers: ({ userId }) => [
+            authorizers: () => [
                 omegaMembershipGroupAuth.readMembershipsOfUser.data({ userId }),
                 classAuth.readMembershipsOfUser.data({ userId }),
                 studyProgrammeAuth.readMembershipsOfUser.data({ userId }),
@@ -113,26 +110,29 @@ export const userNavDef = {
             ],
         },
         {
+            key: 'dots',
             name: 'Prikker',
+            href: appHref(`/users/${username}/dots`),
             icon: faCircleDot,
-            path: 'dots',
-            authorizers: ({ userId }) => [
+            authorizers: () => [
                 dotAuth.readForUser.data({ userId }),
                 dotAuth.create.data({ userId }),
             ],
         },
-    ],
+    ])
+
     /**
      * How the user is set up on the site: its settings, what it may do and its flairs, which is also
      * where administrators manage someone. Shown on the profile as one settings button under the log
      * out button, which unfolds into these.
      */
-    settings: [
+    const settings = defineNavDef([
         {
+            key: 'settings',
             name: 'Generelt',
+            href: appHref(`/users/${username}/settings`),
             icon: faSliders,
-            path: 'settings',
-            authorizers: ({ username, userId }) => [
+            authorizers: () => [
                 userAuth.updateProfile.data({ userField: { username } }),
                 userAuth.updateBioParagraphContent.data({ userId }),
                 userAuth.registerNewEmail.data({ userId }),
@@ -143,50 +143,40 @@ export const userNavDef = {
             ],
         },
         {
+            key: 'notifications',
             name: 'Varslinger',
+            href: appHref(`/users/${username}/notifications`),
             icon: faPaperPlane,
-            path: 'notifications',
-            authorizers: ({ userId }) => [
+            authorizers: () => [
                 notificationSubscriptionAuth.read.data({ userId }),
                 notificationSubscriptionAuth.update.data({ userId }),
             ],
         },
         {
+            key: 'theme',
             name: 'Tema',
+            href: appHref(`/users/${username}/theme`),
             icon: faSwatchbook,
-            path: 'theme',
-            authorizers: ({ username }) => [userAuth.updateTheme.data({ userField: { username } })],
+            authorizers: () => [userAuth.updateTheme.data({ userField: { username } })],
         },
         {
+            key: 'permissions',
             name: 'Tilganger',
+            href: appHref(`/users/${username}/permissions`),
             icon: faKey,
-            path: 'permissions',
-            authorizers: ({ userId }) => [permissionsAuth.readPermissionsOfUser.data({ userId })],
+            authorizers: () => [permissionsAuth.readPermissionsOfUser.data({ userId })],
         },
         {
+            key: 'flairs',
             name: 'Kapper',
+            href: appHref(`/users/${username}/flairs`),
             icon: faHatWizard,
-            path: 'flairs',
             authorizers: () => [flairAuth.assignToUser],
         },
-    ],
-} as const satisfies Record<string, readonly UserNavItem[]>
+    ])
 
-export type UserNavGroup = keyof typeof userNavDef
-
-export type UserNavPath = Extract<(typeof userNavDef)[UserNavGroup][number], { path: string }>['path']
-
-export function userNavHref(username: string, item: UserNavItem) {
-    return `/users/${username}${item.path ? `/${item.path}` : ''}`
+    return { membership, settings, all: defineNavDef([...membership.items, ...settings.items]) }
 }
 
-/**
- * The items of a group the session may open, in order.
- */
-export function visibleUserNavItems(
-    group: UserNavGroup,
-    subject: UserNavSubject,
-    authorize: (authorizer: Authorizer) => boolean,
-): UserNavItem[] {
-    return userNavDef[group].filter(item => item.authorizers(subject).some(authorize))
-}
+/** The keys of the pages under a user, which are their paths there. The profile is the user itself. */
+export type UserNavPath = Exclude<Parameters<ReturnType<typeof userNavDef>['all']['authorize']>[0], 'profile'>

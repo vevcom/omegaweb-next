@@ -16,20 +16,20 @@ export const productOperations = {
     create: defineOperation({
         authorizer: () => productAuth.create,
         dataSchema: productSchemas.data.create,
-        opensTransaction: true,
-        operation: async ({ prisma, data }) => prisma.$transaction(async tx => {
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data }) => {
             const image = await cmsImageOperations.create.internalCall({
                 data: {},
-                prisma: tx,
+                prisma,
                 operationImplementationFields: { special: null },
             })
-            return tx.product.create({
+            return prisma.product.create({
                 data: {
                     ...data,
                     image: { connect: { id: image.id } },
                 },
             })
-        }),
+        },
     }),
 
     readMany: defineOperation({

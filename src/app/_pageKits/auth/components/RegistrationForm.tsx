@@ -8,19 +8,23 @@ import TextInput from '@/components/UI/TextInput'
 import { sexConfig } from '@/services/users/constants'
 import { authLinks } from '@/pageKits/auth/links'
 import { Sex, type User } from '@/prisma-generated-pn-types'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import useDomainContext from '@/hooks/useDomainContext'
 import { signIn } from 'next-auth/react'
-import Link from 'next/link'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     config: AuthPagesConfig,
     userData: Pick<User, 'id' | 'username' | 'allergies' | 'sex'>,
-    callbackUrl: string,
+    callbackUrl: AppHref,
 }
 
-export default function RegistrationForm({ config, userData, callbackUrl }: PropTypes) {
+export default function RegistrationForm({ config, userData, callbackUrl: callbackAppPath }: PropTypes) {
     const [lastPassword, setLastPassword] = useState('')
+    // NextAuth sends the browser there, so it must be a url of the domain the visitor is on.
+    const callbackUrl = useDomainContext().resolveHref(callbackAppPath)
     const [sexValue, setSexValue] = useState<Sex | undefined>(userData.sex ?? undefined)
 
     const sexOptions = Object.values(Sex).map(sex => ({
@@ -42,12 +46,14 @@ export default function RegistrationForm({ config, userData, callbackUrl }: Prop
         <TextInput label="Allergier / diett" name="allergies" defaultValue={userData.allergies ?? ''} />
         <TextInput type="password" label="Passord" name="password" onChange={(e) => { setLastPassword(e.target.value) }} />
         <TextInput type="password" label="Gjenta passord" name="confirmPassword" />
-        <SelectString
-            label="Kjønn"
-            name="sex"
-            options={sexOptions}
-            value={sexValue}
-            onChange={(e) => setSexValue(e as Sex)} />
+        {config.asksSex && (
+            <SelectString
+                label="Kjønn"
+                name="sex"
+                options={sexOptions}
+                value={sexValue}
+                onChange={(e) => setSexValue(e as Sex)} />
+        )}
         <Checkbox label="Jeg samtykker til å bli tatt bilde av" name="imageConsent" />
         {config.accountNotice && <p className="p-2 border-l-3 border-accent-blue">{config.accountNotice}</p>}
         <Checkbox name="acceptedTerms">
@@ -58,11 +64,11 @@ export default function RegistrationForm({ config, userData, callbackUrl }: Prop
                     checkbox as well - hence the stopPropagation. It opens in a new tab to leave the
                     half-filled form standing.
                 */}
-                <Link
+                <SiteLink
                     href={authLinks(config).terms()}
                     target="_blank"
                     onClick={event => event.stopPropagation()}
-                >vilkårene og personvernerklæringen</Link>
+                >vilkårene og personvernerklæringen</SiteLink>
             </span>
         </Checkbox>
     </Form>

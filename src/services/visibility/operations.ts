@@ -82,7 +82,7 @@ export const visibilityOperations = {
     update: defineSubOperation({
         paramsSchema: () => visibilitySchemas.params.update,
         dataSchema: () => visibilitySchemas.data.update,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: () => async ({ prisma, params, data }) => {
             const requirements = await buildRequirementsCreateInput(data.requirements)
 

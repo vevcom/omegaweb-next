@@ -5,12 +5,10 @@ import { Smorekopp } from '@/services/error'
 import { withServiceContext } from '@/services/serviceOperation'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
-import { CURRENT_PATH_HEADER } from '@/proxy'
-import { Site } from '@/lib/sites/site'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/lib/sites/authPagesOf'
-import { notFound, redirect, unstable_rethrow as unstableRethrow } from 'next/navigation'
-import { headers } from 'next/headers'
+import { domainContextOfRequest, siteRedirect } from '@/app/domainContextOfRequest'
+import { notFound, unstable_rethrow as unstableRethrow } from 'next/navigation'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
 import type { Capabilities, CapabilityAuthorizers, CapabilityKey } from '@/auth/authorizer/capabilities'
@@ -64,7 +62,7 @@ export async function handleServiceError(error: unknown): Promise<Smorekopp> {
     unstableRethrow(error)
     if (!(error instanceof Smorekopp)) throw error
     if (error.errorCode === 'NOT FOUND') notFound()
-    if (error.errorCode === 'UNAUTHENTICATED') redirect(await authUrlWithCallback('login'))
+    if (error.errorCode === 'UNAUTHENTICATED') await siteRedirect(await authPathWithCallback('login'))
     return error
 }
 
@@ -77,19 +75,17 @@ export async function handleServiceError(error: unknown): Promise<Smorekopp> {
  * `allowUnregistered` on {@link serverPage}).
  */
 async function redirectUnregistered(session: ServerPageSession) {
-    if (session.user && !session.user.acceptedTerms) redirect(await authUrlWithCallback('register'))
+    if (session.user && !session.user.acceptedTerms) await siteRedirect(await authPathWithCallback('register'))
 }
 
 /**
  * The given auth page of the site the current page belongs to, with the current page as
- * callbackUrl, so the user lands back where they were once they are through it. The current path
- * comes from the header stamped by the proxy (src/proxy.ts) - a server component cannot read its
- * own URL. Should the header be missing, Omega's page is used, plain.
+ * callbackUrl, so the user lands back where they were once they are through it.
  */
-async function authUrlWithCallback(page: 'login' | 'register') {
-    const currentPath = (await headers()).get(CURRENT_PATH_HEADER)
-    const links = authLinks(authPagesOf(currentPath ? Site.ofPath(currentPath) : Site.root))
-    return links[page](currentPath ?? undefined)
+async function authPathWithCallback(page: 'login' | 'register') {
+    const context = await domainContextOfRequest()
+    const links = authLinks(authPagesOf(context.site()))
+    return links[page]({ callbackUrl: context.path })
 }
 
 /**
@@ -183,7 +179,7 @@ export function serverPage<
         if (!allowUnregistered) await redirectUnregistered(session)
         const data = await withServiceContext(
             { session },
-            false,
+            'NONE',
             () => operation({ params, searchParams, session })
         )
         return { data, session, capabilities: pageCapabilities(capabilities, data, session) }
@@ -338,5 +334,5 @@ export async function withPageSession<Result>(
     callback: (session: ServerPageSession) => Awaitable<Result>
 ): Promise<Result> {
     const session = await ServerSession.fromNextAuth()
-    return withServiceContext({ session }, false, () => callback(session))
+    return withServiceContext({ session }, 'NONE', () => callback(session))
 }

@@ -4,7 +4,8 @@ import SimpleTable from '@/app/_components/Table/SimpleTable'
 import { serverPage } from '@/app/ServerPage'
 import { displayDate } from '@/lib/dates/displayDate'
 import { formatVevenUri } from '@/lib/urlEncoding'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import React from 'react'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -34,18 +35,18 @@ const { page, generateMetadata } = serverPage({
                     {trHelper('Notater fra leietaker', booking.tenantNotes)}
                     {trHelper('Type', booking.type)}
                     {booking.user &&
-                        trHelper('Leietaker', <Link
-                            href={`/users/${booking.user.username}`}
+                        trHelper('Leietaker', <SiteLink
+                            href={appHref(`/users/${booking.user.username}`)}
                         >
                             {booking.user.firstname} {booking.user.lastname}
-                        </Link>)
+                        </SiteLink>)
                     }
                     {booking.event &&
-                        trHelper('Arrangement', <Link
-                            href={`/event/${formatVevenUri(booking.event.name, booking.event.id)}`}
+                        trHelper('Arrangement', <SiteLink
+                            href={appHref(`/event/${formatVevenUri(booking.event.name, booking.event.id)}`)}
                         >
                             {booking.event.name}
-                        </Link>)
+                        </SiteLink>)
                     }
                     {booking.guestUser && <>
                         { trHelper('Gjest', `${booking.guestUser.firstname} ${booking.guestUser.lastname}`) }

@@ -9,6 +9,7 @@ import { defineOperation } from '@/services/serviceOperation'
 import {
     implementGroupType,
     implementManualMigrationPerGroup,
+    implementReorderMembersOperation,
     implementSimpleAddRemoveMembersOperation,
 } from '@/services/groups/implementGroupType'
 import { articleRelationsIncluder } from '@/cms/articles/constants'
@@ -17,8 +18,11 @@ import { articleOperations } from '@/cms/articles/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
+import { applyReordering } from '@/lib/reordering'
 import { GroupType } from '@/prisma-generated-pn-types'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
+import { implementSearchOperation } from '@/services/search/implement'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -29,6 +33,7 @@ const readAll = defineOperation({
 
         const committees = await prisma.committee.findMany({
             include: committeeLogoIncluder,
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
         })
 
         return committees.map(committee => ({
@@ -36,6 +41,38 @@ const readAll = defineOperation({
             logoImage: committee.logoImage ?? defaultCommitteeLogo
         }))
     }
+})
+
+const search = implementSearchOperation({
+    authorizer: () => committeeAuth.search,
+    find: async ({ prisma, query, take }) => {
+        const defaultCommitteeLogo = await readDefaultCommitteeLogo()
+
+        const committees = await prisma.committee.findMany({
+            take,
+            where: {
+                OR: [
+                    { name: { contains: query, mode: 'insensitive' } },
+                    { shortName: { contains: query, mode: 'insensitive' } },
+                ],
+            },
+            include: committeeLogoIncluder,
+            // The order the admins set, which the committees page keeps and the global search shows.
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+        })
+
+        return committees.map(committee => ({
+            ...committee,
+            logoImage: committee.logoImage ?? defaultCommitteeLogo
+        }))
+    },
+    toSearchResult: committee => ({
+        key: `committee-${committee.id}`,
+        href: omegaLinks.committee(committee),
+        label: committee.name,
+        sublabel: committee.group.pensioned ? 'Pensjonert' : undefined,
+        image: committee.logoImage,
+    }),
 })
 
 const read = defineOperation({
@@ -107,7 +144,7 @@ const updateLogo = defineOperation({
         }),
     paramsSchema: committeeSchemas.params.updateLogo,
     dataSchema: committeeSchemas.data.updateLogo,
-    opensTransaction: true,
+    transaction: 'OPENS',
     operation: async ({ prisma, params, data }) => {
         await assertGroupNotPensioned(prisma, await readGroupIdOfCommittee(prisma, { shortName: params.shortName }))
 
@@ -147,7 +184,7 @@ const updateLogo = defineOperation({
 const destroy = defineOperation({
     authorizer: () => committeeAuth.destroy,
     paramsSchema: committeeSchemas.params.destroy,
-    opensTransaction: true,
+    transaction: 'OPENS',
     operation: async ({ prisma, params }) => {
         await assertGroupNotPensioned(prisma, await readGroupIdOfCommittee(prisma, { id: params.id }))
 
@@ -188,68 +225,69 @@ const destroy = defineOperation({
 const create = defineOperation({
     authorizer: () => committeeAuth.create,
     dataSchema: committeeSchemas.data.create,
-    opensTransaction: true,
-    operation: ({ prisma, data }) =>
-        prisma.$transaction(async tx => {
-            const logoImage = data.imageFile
-                ? await committeeLogoImageOperations.uploadImage.internalCall({
-                    prisma: tx,
-                    data: {
-                        imageFile: data.imageFile,
-                        imageAlt: data.imageAlt || `Komitélogoen til ${data.name}`,
-                        imageName: data.imageName,
-                        imageLicenseId: data.imageLicenseId,
-                        imageCredit: data.imageCredit,
-                    }
-                })
-                : null
-
-            const article = await articleOperations.create.internalCall({
-                prisma: tx,
-                data: {},
-                dataSchemaImplementationFields: { maxNameLength: 30 },
-                operationImplementationFields: { special: null }
-            })
-
-            const paragraph = await cmsParagraphOperations.create.internalCall({
-                prisma: tx,
-                data: { name: `Paragraph for ${data.name}` },
-                operationImplementationFields: { special: null }
-            })
-
-            const order = (await omegaOrderOperations.readCurrent({ bypassAuth: true })).order
-
-            return await tx.committee.create({
+    transaction: 'RUNS_IN',
+    operation: async ({ prisma, data }) => {
+        const logoImage = data.imageFile
+            ? await committeeLogoImageOperations.uploadImage.internalCall({
+                prisma,
                 data: {
-                    name: data.name,
-                    shortName: data.shortName,
-                    logoImage: logoImage ? {
-                        connect: {
-                            id: logoImage.id,
-                        },
-                    } : undefined,
-                    paragraph: {
-                        connect: {
-                            id: paragraph.id,
-                        }
+                    imageFile: data.imageFile,
+                    imageAlt: data.imageAlt || `Komitélogoen til ${data.name}`,
+                    imageName: data.imageName,
+                    imageLicenseId: data.imageLicenseId,
+                    imageCredit: data.imageCredit,
+                }
+            })
+            : null
+
+        const article = await articleOperations.create.internalCall({
+            prisma,
+            data: {},
+            dataSchemaImplementationFields: { maxNameLength: 30 },
+            operationImplementationFields: { special: null }
+        })
+
+        const paragraph = await cmsParagraphOperations.create.internalCall({
+            prisma,
+            data: { name: `Paragraph for ${data.name}` },
+            operationImplementationFields: { special: null }
+        })
+
+        const order = (await omegaOrderOperations.readCurrent({ bypassAuth: true })).order
+        const { _max: { position: lastPosition } } = await prisma.committee.aggregate({ _max: { position: true } })
+
+        return await prisma.committee.create({
+            data: {
+                name: data.name,
+                shortName: data.shortName,
+                position: (lastPosition ?? -1) + 1,
+                logoImage: logoImage ? {
+                    connect: {
+                        id: logoImage.id,
                     },
-                    group: {
-                        create: {
-                            groupType: GroupType.COMMITTEE,
-                            order,
-                        }
-                    },
-                    committeeArticle: {
-                        connect: {
-                            id: article.id
-                        }
+                } : undefined,
+                paragraph: {
+                    connect: {
+                        id: paragraph.id,
                     }
                 },
-                include: {
-                    logoImage: { include: expandedImageIncluder },
+                group: {
+                    create: {
+                        groupType: GroupType.COMMITTEE,
+                        order,
+                    }
                 },
-            })
+                committeeArticle: {
+                    connect: {
+                        id: article.id
+                    }
+                }
+            },
+            include: {
+                logoImage: { include: expandedImageIncluder },
+            },
         })
+    }
 })
 
 const update = defineOperation({
@@ -275,6 +313,27 @@ const update = defineOperation({
             logoImage: committee.logoImage ?? defaultCommitteeLogo
         }
     }
+})
+
+/**
+ * Sets the order committees are listed in. Pensioned committees are listed apart from the rest, so
+ * they are left out of the list and keep their positions.
+ */
+const reorder = defineOperation({
+    authorizer: () => committeeAuth.reorder,
+    dataSchema: committeeSchemas.data.reorder,
+    transaction: 'RUNS_IN',
+    operation: async ({ prisma, data }) => {
+        const committees = await prisma.committee.findMany({
+            where: { group: { pensioned: false } },
+            select: { id: true },
+        })
+        await applyReordering(
+            data.committeeIds,
+            committees.map(committee => committee.id),
+            (id, position) => prisma.committee.update({ where: { id }, data: { position } }),
+        )
+    },
 })
 
 const updateArticle = implementUpdateArticleOperations({
@@ -311,6 +370,13 @@ const memberManagement = implementSimpleAddRemoveMembersOperation({
     },
 })
 
+const memberOrdering = implementReorderMembersOperation({
+    type: GroupType.COMMITTEE,
+    auth: {
+        reorderMembers: ({ groupId }) => committeeAuth.reorderMembers.data({ groupId }),
+    },
+})
+
 const migration = implementManualMigrationPerGroup({
     type: GroupType.COMMITTEE,
     auth: {
@@ -322,8 +388,10 @@ const migration = implementManualMigrationPerGroup({
 export const committeeOperations = {
     create,
     update,
+    reorder,
     updateLogo,
     readAll,
+    search,
     read,
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
@@ -332,6 +400,7 @@ export const committeeOperations = {
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,
     setMemberTitle: memberManagement.setMemberTitle,
+    reorderMembers: memberOrdering.reorderMembers,
     migrateGroup: migration.migrateGroup,
     pension: migration.pension,
     readArticle,

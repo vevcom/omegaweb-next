@@ -1,5 +1,5 @@
 import { SubPageNavBar, SubPageNavBarItem } from '@/components/NavBar/SubPageNavBar/SubPageNavBar'
-import { userNavHref, visibleUserNavItems } from '@/app/(omegaweb)/users/[username]/userNavDef'
+import { userNavDef } from '@/app/(omegaweb)/users/[username]/userNavDef'
 import { ServerSession } from '@/auth/session/ServerSession'
 import type { UserNavSubject } from '@/app/(omegaweb)/users/[username]/userNavDef'
 
@@ -10,11 +10,7 @@ import type { UserNavSubject } from '@/app/(omegaweb)/users/[username]/userNavDe
  */
 export default async function UserNavBar({ username, userId }: UserNavSubject) {
     const session = await ServerSession.fromNextAuth()
-    const items = visibleUserNavItems(
-        'membership',
-        { username, userId },
-        authorizer => authorizer.auth(session).authorized,
-    )
+    const items = userNavDef({ username, userId }).membership.visible(session)
 
     // only view one thing -> nav not needed
     if (items.length < 2) return null
@@ -23,9 +19,9 @@ export default async function UserNavBar({ username, userId }: UserNavSubject) {
         <SubPageNavBar>
             {items.map(item => (
                 <SubPageNavBarItem
-                    key={item.name}
+                    key={item.key}
                     icon={item.icon}
-                    href={userNavHref(username, item)}
+                    href={item.href}
                 >
                     {item.name}
                 </SubPageNavBarItem>

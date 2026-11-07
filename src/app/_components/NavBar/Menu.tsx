@@ -3,14 +3,14 @@ import styles from './Menu.module.scss'
 import useKeyPress from '@/hooks/useKeyPress'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import useOnNavigation from '@/hooks/useOnNavigation'
-import { useGlobalSearch } from '@/contexts/GlobalSearch'
+import { useOmegaGlobalSearch } from '@/app/(omegaweb)/GlobalSearch'
 import { useNavMenu } from '@/contexts/NavMenu'
 import useActiveNavHref from '@/hooks/useActiveNavHref'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
-import Link from 'next/link'
-import type { NavLink } from './navDef'
+import type { NavLink } from '@/lib/navDef/navDef'
 
 type PropTypes = {
     openBtnVariant: 'mobile' | 'desktop',
@@ -39,7 +39,7 @@ const burgerLineClassName = `
 
 export default function Menu({ items, openBtnVariant }: PropTypes) {
     const { isOpen, setIsOpen } = useNavMenu()
-    const globalSearch = useGlobalSearch()
+    const globalSearch = useOmegaGlobalSearch()
     const activeHref = useActiveNavHref(items.map(item => item.href))
     function closeMenu(ref: React.RefObject<HTMLDivElement | null>) {
         ref?.current?.classList.add(styles.closeMenu)
@@ -83,14 +83,14 @@ export default function Menu({ items, openBtnVariant }: PropTypes) {
                                 </div>
                                 {items.map((item) => (
                                     <div key={item.name} className={entryClassName}>
-                                        <Link
+                                        <SiteLink
                                             href={item.href}
                                             className={entryLinkClassName}
                                             aria-current={item.href === activeHref ? 'page' : undefined}
                                         >
                                             <FontAwesomeIcon icon={item.icon}/>
                                             {item.name}
-                                        </Link>
+                                        </SiteLink>
                                     </div>
                                 ))}
                             </div>

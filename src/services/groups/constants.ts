@@ -53,14 +53,15 @@ export const CLASS_LEVEL_ORDERING = [
     'GRADUATED',
 ] as const satisfies readonly ClassLevel[]
 
+/** `year` is the class as a number, for a table column, and null once graduated. */
 export const ClassLevelConfig = {
-    ONE: { name: '1. klasse' },
-    TWO: { name: '2. klasse' },
-    THREE: { name: '3. klasse' },
-    FOUR: { name: '4. klasse' },
-    FIVE: { name: '5. klasse' },
-    GRADUATED: { name: 'Uteksaminert' },
-} as const satisfies Record<ClassLevel, { name: string }>
+    ONE: { name: '1. klasse', year: 1 },
+    TWO: { name: '2. klasse', year: 2 },
+    THREE: { name: '3. klasse', year: 3 },
+    FOUR: { name: '4. klasse', year: 4 },
+    FIVE: { name: '5. klasse', year: 5 },
+    GRADUATED: { name: 'Uteksaminert', year: null },
+} as const satisfies Record<ClassLevel, { name: string, year: number | null }>
 
 export const OmegaMembershipLevelConfig = {
     SOELLE: {

@@ -1,33 +1,39 @@
 import { defineLinks } from '@/lib/sites/defineLinks'
 import { QueryParams } from '@/lib/queryParams/queryParams'
+import type { AppHref } from '@/lib/sites/href'
 import type { AuthPagesConfig } from './config'
 
-export type AuthLinks = {
-    /** The login, coming back to `callbackUrl` once logged in, or landing on the site's after-login page. */
-    login: (callbackUrl?: string) => string,
-    logout: () => string,
-    register: (callbackUrl?: string) => string,
-    registerEmail: (callbackUrl?: string) => string,
-    sendResetPasswordEmail: () => string,
-    terms: () => string,
-    /** The pages reached from an email, carrying its token. */
-    verifyEmail: (token: string) => string,
-    resetPasswordForm: (token: string) => string,
-    linkOwUser: (token: string) => string,
-    /** Where a login lands when there is no page to come back to. */
-    afterLogin: () => string,
-    afterLogout: () => string,
+export type CallbackOptions = {
+    /** The app path to come back to once through the page. Without it the site's after-login page. */
+    callbackUrl?: AppHref,
 }
 
-const callback = (callbackUrl?: string) => (callbackUrl ? QueryParams.callbackUrl.encodeUrl(callbackUrl) : null)
+export type AuthLinks = {
+    login: (options?: CallbackOptions) => AppHref,
+    logout: () => AppHref,
+    register: (options?: CallbackOptions) => AppHref,
+    registerEmail: (options?: CallbackOptions) => AppHref,
+    sendResetPasswordEmail: () => AppHref,
+    terms: () => AppHref,
+    /** The pages reached from an email, carrying its token. */
+    verifyEmail: (token: string) => AppHref,
+    resetPasswordForm: (token: string) => AppHref,
+    linkOwUser: (token: string) => AppHref,
+    /** Where a login lands when there is no page to come back to. */
+    afterLogin: () => AppHref,
+    afterLogout: () => AppHref,
+}
+
+const callback = (options?: CallbackOptions) =>
+    (options?.callbackUrl ? QueryParams.callbackUrl.encodeUrl(options.callbackUrl) : null)
 const token = (jwt: string) => QueryParams.token.encodeUrl(jwt)
 
 /** The auth pages sit at every site's root. */
 export const authLinks = defineLinks<AuthPagesConfig, AuthLinks>((href, config) => ({
-    login: callbackUrl => href('/login', callback(callbackUrl)),
+    login: options => href('/login', callback(options)),
     logout: () => href('/logout'),
-    register: callbackUrl => href('/register', callback(callbackUrl)),
-    registerEmail: callbackUrl => href('/register-email', callback(callbackUrl)),
+    register: options => href('/register', callback(options)),
+    registerEmail: options => href('/register-email', callback(options)),
     sendResetPasswordEmail: () => href('/send-reset-password-email'),
     terms: () => href('/terms'),
     verifyEmail: jwt => href('/verify-email', token(jwt)),

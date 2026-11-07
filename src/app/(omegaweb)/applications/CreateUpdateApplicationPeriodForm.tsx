@@ -5,6 +5,7 @@ import Form from '@/components/Form/Form'
 import Checkbox from '@/components/UI/Checkbox'
 import DateInput from '@/components/UI/DateInput'
 import TextInput from '@/components/UI/TextInput'
+import { appHref } from '@/lib/sites/href'
 import type { ExpandedApplicationPeriod } from '@/services/applications/periods/types'
 import type { ExpandedCommittee } from '@/services/groups/committees/types'
 
@@ -27,7 +28,7 @@ export default function CreateUpdateApplicationPeriodForm({ committees, period, 
             refreshOnSuccess
             className="min-w-[50vw]"
             closePopUpOnSuccess={closePopUpOnSuccess}
-            navigateOnSuccess={data => (data?.name ? `/applications/${encodeURIComponent(data.name)}` : null)}
+            navigateOnSuccess={data => (data?.name ? appHref(`/applications/${encodeURIComponent(data.name)}`) : null)}
         >
             <TextInput name="name" label="Navn" defaultValue={period ? period.name : undefined} />
             <DateInput

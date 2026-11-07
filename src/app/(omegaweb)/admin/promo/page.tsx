@@ -14,6 +14,7 @@ import SimpleTable from '@/components/Table/SimpleTable'
 import Image from '@/components/Image/Image'
 import DateDisplay from '@/components/Date/Date'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -66,7 +67,7 @@ const { page, generateMetadata } = serverPage({
                         </>,
                         promo.startDate <= now && promo.endDate >= now ? 'Aktiv' : 'Inaktiv',
                     ])}
-                    links={promos.map(promo => `/admin/promo/${promo.id}`)}
+                    links={promos.map(promo => appHref(`/admin/promo/${promo.id}`))}
                 />
             </PageWrapper>
         )

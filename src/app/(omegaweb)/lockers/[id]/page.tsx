@@ -18,6 +18,7 @@ import { inferGroupName } from '@/lib/groups/inferGroupName'
 import { displayDate } from '@/lib/dates/displayDate'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const lockerClassName = 'flex flex-wrap items-start gap-4 my-4'
@@ -80,7 +81,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: (data) => ({ title: data.locker ? `Skap ${data.lockerId}` : 'Skap' }),
     render: ({ data, capabilities }) => {
-        const header = <BackLink href="/lockers" label="Alle skap" />
+        const header = <BackLink href={appHref('/lockers')} label="Alle skap" />
 
         if (!data.locker) {
             return (
@@ -176,7 +177,7 @@ const { page, generateMetadata } = serverPage({
                                     className="mt-4"
                                     submitText="Slett skapet"
                                     submitColor="red"
-                                    navigateOnSuccess="/lockers"
+                                    navigateOnSuccess={appHref('/lockers')}
                                     action={configureAction(destroyLockerAction, { params: { id: lockerId } })}
                                     confirmation={{
                                         confirm: true,

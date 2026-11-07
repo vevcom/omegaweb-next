@@ -15,6 +15,8 @@ import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { implementUpdateArticleSectionOperations } from '@/cms/articleSections/implement'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { articleSectionOperations } from '@/cms/articleSections/operations'
+import { implementSearchOperation } from '@/services/search/implement'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 const commonGroupOperations = implementGroupType({
@@ -58,26 +60,24 @@ export const interestGroupOperations = {
     create: defineOperation({
         dataSchema: interestGroupSchemas.data.create,
         authorizer: () => interestGroupAuth.create,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
             const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
-            return await prisma.$transaction(async tx => {
-                const articleSection = await articleSectionOperations.create.internalCall({ data: {}, prisma: tx })
-                return await tx.interestGroup.create({
-                    data: {
-                        ...data,
-                        articleSection: {
-                            connect: { id: articleSection.id },
-                        },
-                        group: {
-                            create: {
-                                groupType: 'INTEREST_GROUP',
-                                order,
-                            }
+            const articleSection = await articleSectionOperations.create.internalCall({ data: {}, prisma })
+            return await prisma.interestGroup.create({
+                data: {
+                    ...data,
+                    articleSection: {
+                        connect: { id: articleSection.id },
+                    },
+                    group: {
+                        create: {
+                            groupType: 'INTEREST_GROUP',
+                            order,
                         }
                     }
-                })
+                }
             })
         }
     }),
@@ -96,6 +96,27 @@ export const interestGroupOperations = {
                 { id: 'asc' },
             ]
         })
+    }),
+
+    search: implementSearchOperation({
+        authorizer: () => interestGroupAuth.search,
+        find: ({ prisma, query, take }) => prisma.interestGroup.findMany({
+            take,
+            where: { name: { contains: query, mode: 'insensitive' } },
+            select: {
+                id: true,
+                name: true,
+                group: { select: { pensioned: true } },
+            },
+            orderBy: [{ group: { pensioned: 'asc' } }, { name: 'asc' }],
+        }),
+        toSearchResult: interestGroup => ({
+            key: `interest-group-${interestGroup.id}`,
+            href: omegaLinks.interestGroup(interestGroup),
+            label: interestGroup.name,
+            sublabel: interestGroup.group.pensioned ? 'Pensjonert' : undefined,
+            image: null,
+        }),
     }),
 
     read: defineOperation({
@@ -133,23 +154,21 @@ export const interestGroupOperations = {
     destroy: defineOperation({
         paramsSchema: interestGroupSchemas.params.destroy,
         authorizer: () => interestGroupAuth.destroy,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params: { id } }) => {
             await assertGroupNotPensioned(prisma, await readGroupIdOfInterestGroup(prisma, id))
 
-            await prisma.$transaction(async tx => {
-                const interestGroup = await tx.interestGroup.delete({
-                    where: { id }
-                })
-                // The section's image, paragraph and link go with it.
-                await articleSectionOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { articleSectionId: interestGroup.articleSectionId },
-                })
-                await groupOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { groupId: interestGroup.groupId },
-                })
+            const interestGroup = await prisma.interestGroup.delete({
+                where: { id }
+            })
+            // The section's image, paragraph and link go with it.
+            await articleSectionOperations.destroy.internalCall({
+                prisma,
+                params: { articleSectionId: interestGroup.articleSectionId },
+            })
+            await groupOperations.destroy.internalCall({
+                prisma,
+                params: { groupId: interestGroup.groupId },
             })
         }
     }),

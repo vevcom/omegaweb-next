@@ -1,10 +1,11 @@
-import NotificationSettings from './NotificationSettings'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
-import { notificationChannelOperations } from '@/services/notifications/channel/operations'
+import { manualNotificationChannelOperations } from '@/services/notifications/channels/manual/operations'
+import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { browserPushSubscriptionAuth } from '@/services/notifications/browserPushSubscription/auth'
 import { pushIsConfigured, vapid } from '@/services/notifications/methods/constants'
 import PushDeviceSettings from '@/components/PushNotifications/PushDeviceSettings'
+import NotificationSubscriptionTree from '@/components/Notifications/NotificationSubscriptionTree'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -12,8 +13,9 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
         const { profile } = await getProfileForUserPage(params, 'notifications', session)
 
-        const [channels, subscriptions] = await Promise.all([
-            notificationChannelOperations.readMany({}),
+        const [special, manual, subscriptions] = await Promise.all([
+            specialNotificationChannelOperations.readMany({}),
+            manualNotificationChannelOperations.readMany({}),
             notificationSubscriptionOperations.read({
                 params: {
                     userId: profile.user.id
@@ -21,7 +23,7 @@ const { page, generateMetadata } = serverPage({
             }),
         ])
 
-        return { profile, channels, subscriptions }
+        return { profile, channels: [...special, ...manual], subscriptions }
     },
     capabilities: (data) => ({
         canManagePushDevice: browserPushSubscriptionAuth.create.data({ userId: data.profile.user.id }),
@@ -35,8 +37,8 @@ const { page, generateMetadata } = serverPage({
                     vapidPublicKey={pushIsConfigured ? vapid.publicKey : null}
                 />
             )}
-            <NotificationSettings
-                user={data.profile.user}
+            <NotificationSubscriptionTree
+                userId={data.profile.user.id}
                 channels={data.channels}
                 subscriptions={data.subscriptions}
             />

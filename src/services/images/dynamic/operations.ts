@@ -95,15 +95,15 @@ export const dynamicImageOperations = {
     createCollection: defineOperation({
         dataSchema: dynamicImageSchemas.data.createCollection,
         authorizer: () => dynamicImageAuth.createCollection,
-        opensTransaction: true,
-        operation: async ({ prisma, data }) => prisma.$transaction(async tx => {
-            const visibilityRegular = await visibilityOperations.create.internalCall({ prisma: tx })
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, data }) => {
+            const visibilityRegular = await visibilityOperations.create.internalCall({ prisma })
             const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
-                prisma: tx,
+                prisma,
                 data: { requirements: data.visibilityAdminRequirements },
             })
 
-            return await tx.imageCollection.create({
+            return await prisma.imageCollection.create({
                 data: {
                     name: data.collectionName,
                     description: data.collectionDescription,
@@ -119,7 +119,7 @@ export const dynamicImageOperations = {
                     }
                 }
             })
-        })
+        }
     }),
 
     destroyCollection: imageOperations.destroyCollection.implement({

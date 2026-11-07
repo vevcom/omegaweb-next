@@ -1,5 +1,10 @@
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { DomainContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
+import { appHref } from '@/lib/sites/href'
+import { externalHref } from '@/lib/sites/href'
 import type { ReactNode } from 'react'
+import type { ExternalHref } from '@/lib/sites/href'
 
 const LAST_UPDATED = '21. oktober 2026'
 
@@ -12,19 +17,20 @@ const boxClassName = `
  * Lovdata publishes personvernforordningen (GDPR) as part of personopplysningsloven with one page
  * per article, so every article reference below can point straight at the article's own text.
  */
-const gdprArticle = (article: number) => `https://lovdata.no/lov/2018-06-15-38/gdpr/a${article}`
+const gdprArticle = (article: number) => externalHref(`https://lovdata.no/lov/2018-06-15-38/gdpr/a${article}`)
 
-const PERSONOPPLYSNINGSLOVEN = 'https://lovdata.no/lov/2018-06-15-38'
-const BOKFORINGSLOVEN_OPPBEVARING = 'https://lovdata.no/lov/2004-11-19-73/§13'
-const DATATILSYNET_KLAGE = 'https://www.datatilsynet.no/om-datatilsynet/kontakt-oss/klage-til-datatilsynet/'
+const PERSONOPPLYSNINGSLOVEN = externalHref('https://lovdata.no/lov/2018-06-15-38')
+const BOKFORINGSLOVEN_OPPBEVARING = externalHref('https://lovdata.no/lov/2004-11-19-73/§13')
+const DATATILSYNET = externalHref('https://www.datatilsynet.no')
+const DATATILSYNET_KLAGE = externalHref('https://www.datatilsynet.no/om-datatilsynet/kontakt-oss/klage-til-datatilsynet/')
 
 /** A reference to a law: opens in a new tab so a reader checking a paragraph keeps this page. */
-function LawLink({ href, children }: { href: string, children: ReactNode }) {
+function LawLink({ href, children }: { href: ExternalHref, children: ReactNode }) {
     return <a href={href} target="_blank" rel="noreferrer">{children}</a>
 }
 
 export default function TermsArticle() {
-    const emailDomain = process.env.EMAIL_DOMAIN
+    const emailDomain = DomainContext.mailDomainOf(Site.root)
 
     return (
         <article className="
@@ -461,14 +467,14 @@ export default function TermsArticle() {
                     for kjøp, betalinger og transaksjoner.
                 </li>
                 <li>
-                    <LawLink href="https://www.datatilsynet.no">Datatilsynet</LawLink> - tilsynsmyndigheten for
+                    <LawLink href={DATATILSYNET}>Datatilsynet</LawLink> - tilsynsmyndigheten for
                     personvern i Norge.
                 </li>
             </ul>
 
             <h3>Varsling</h3>
             <p>
-                Opplever du noe som ikke skal skje i Omega, kan du <Link href="/report">varsle her</Link>.
+                Opplever du noe som ikke skal skje i Omega, kan du <SiteLink href={appHref('/report')}>varsle her</SiteLink>.
             </p>
         </article>
     )

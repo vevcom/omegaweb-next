@@ -1,3 +1,5 @@
+import { appHref } from '@/lib/sites/href'
+import type { AppHref } from '@/lib/sites/href'
 import type { SearchParamsServerSide } from './types'
 
 export abstract class QueryParam<Type> {
@@ -42,16 +44,21 @@ export class StringQueryParam extends QueryParam<string> {
  * a full URL, a protocol-relative one (`//evil.example`) or one a browser would read as such - so
  * a link cannot be crafted to make the site redirect its visitor somewhere else.
  */
-export class LocalPathQueryParam extends StringQueryParam {
-    decodeValue(value: string | string[] | undefined): string | null {
-        const path = super.decodeValue(value)
+/** A path of the app, such as where to come back to after a login: anything leaving the site is dropped. */
+export class LocalPathQueryParam extends QueryParam<AppHref> {
+    encode(value: AppHref): string {
+        return value
+    }
+
+    decodeValue(value: string | string[] | undefined): AppHref | null {
+        const path = Array.isArray(value) ? value[0] : value
         if (!path?.startsWith('/')) return null
 
         // Resolved against a stand-in origin the way a browser would resolve it, which also reads
         // `/\` and `/<tab>/` as `//`. A path that stays on the site keeps that origin.
         const origin = 'http://local.invalid'
         try {
-            return new URL(path, origin).origin === origin ? path : null
+            return new URL(path, origin).origin === origin ? appHref(path) : null
         } catch {
             return null
         }

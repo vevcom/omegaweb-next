@@ -4,8 +4,9 @@ import { FormContext, FormInputSlot, flattenChildren, inputName } from './FormCo
 import FormSection from './FormSection'
 import { PopUpContext } from '@/contexts/PopUp'
 import SubmitButton from '@/components/UI/SubmitButton'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import React, { Children, isValidElement, useContext, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import type { AppHref } from '@/lib/sites/href'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
 import type { FormHTMLAttributes, ReactNode, DetailedHTMLProps } from 'react'
@@ -22,10 +23,12 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     action: ActionFormData<ReturnType>,
     successCallback?: (data?: ReturnType) => void,
     refreshOnSuccess?: boolean,
-    navigateOnSuccess?: string | ((data?: ReturnType) => string | null),
+    navigateOnSuccess?: AppHref | ((data?: ReturnType) => AppHref | null),
     closePopUpOnSuccess?: PopUpKeyType,
     buttonClassName?: string,
     disabled?: boolean,
+    /** A second way to submit, sent along as the field named, with 'on' as its value. */
+    secondarySubmit?: { text: ReactNode, name: string, color?: Colors },
 }
 /** The names of every input among the children, those inside sections included, so their errors find them. */
 function collectInputNames(children: ReactNode): string[] {
@@ -54,14 +57,17 @@ export default function Form<GiveActionReturn>({
     closePopUpOnSuccess,
     buttonClassName,
     disabled,
+    secondarySubmit,
     ...props
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
     const [inputErrors, setInputErrors] = useState<Partial<Record<string, ErrorMessage[]>>>({})
     const [success, setSuccess] = useState(false)
     const [pending, setPending] = useState(false)
+    // Which button submitted, so only it shows the wait and the check mark.
+    const [submitter, setSubmitter] = useState<'primary' | 'secondary'>('primary')
     const PopUpCtx = useContext(PopUpContext)
-    const { refresh, push } = useRouter()
+    const { refresh, push } = useSiteRouter()
 
     const actionWithError = async (formData: FormData) => {
         setGeneralErrors(undefined)
@@ -81,6 +87,7 @@ export default function Form<GiveActionReturn>({
                 setSuccess(false)
                 if (refreshOnSuccess) refresh()
                 if (navigateOnSuccess) {
+                    // An app path, rendered for the domain the visitor is on.
                     if (typeof navigateOnSuccess === 'string') {
                         push(navigateOnSuccess)
                     } else if (typeof navigateOnSuccess === 'function') {
@@ -123,7 +130,10 @@ export default function Form<GiveActionReturn>({
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (pending) return
-        const formData = new FormData(event.currentTarget)
+        // With the button that submitted, so its name and value are sent as a field.
+        const button = (event.nativeEvent as SubmitEvent).submitter
+        const formData = new FormData(event.currentTarget, button instanceof HTMLButtonElement ? button : null)
+        setSubmitter(button instanceof HTMLButtonElement && button.name === secondarySubmit?.name ? 'secondary' : 'primary')
         setPending(true)
         try {
             await actionWithError(formData)
@@ -149,20 +159,38 @@ export default function Form<GiveActionReturn>({
                         pending={pending}
                     />
                 })}
-                <SubmitButton
-                    color={submitColor}
-                    success={success}
-                    generalErrors={generalErrors}
-                    confirmation={confirmation}
-                    pending={pending}
-                    className={`
-                        ${buttonClassName}
-                        m-0
-                    `}
-                    disabled={disabled}
-                >
-                    {submitText}
-                </SubmitButton>
+                {/* The two buttons stay together, on one line wherever there is room for both. */}
+                <div className={secondarySubmit ? 'flex flex-wrap items-start gap-x-2' : 'contents'}>
+                    <SubmitButton
+                        color={submitColor}
+                        success={success && submitter === 'primary'}
+                        generalErrors={generalErrors}
+                        confirmation={confirmation}
+                        pending={pending && submitter === 'primary'}
+                        className={`
+                            ${buttonClassName}
+                            m-0
+                        `}
+                        disabled={disabled || (pending && submitter !== 'primary')}
+                    >
+                        {submitText}
+                    </SubmitButton>
+                    {secondarySubmit && <SubmitButton
+                        color={secondarySubmit.color ?? 'secondary'}
+                        success={success && submitter === 'secondary'}
+                        confirmation={confirmation}
+                        pending={pending && submitter === 'secondary'}
+                        className={`
+                            ${buttonClassName}
+                            m-0
+                        `}
+                        disabled={disabled || (pending && submitter !== 'secondary')}
+                        name={secondarySubmit.name}
+                        value="on"
+                    >
+                        {secondarySubmit.text}
+                    </SubmitButton>}
+                </div>
             </form>
         </FormContext.Provider>
     )

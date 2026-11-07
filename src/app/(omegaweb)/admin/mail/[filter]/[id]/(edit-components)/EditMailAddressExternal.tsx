@@ -12,7 +12,8 @@ import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/aut
 import { mailAuth } from '@/services/mail/auth'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import { appHref } from '@/lib/sites/href'
 import type { MailingList } from '@/prisma-generated-pn-types'
 import type { MailFlowObject } from '@/services/mail/types'
 
@@ -25,7 +26,7 @@ export default function EditMailAddressExternal({
     data: MailFlowObject,
     mailingLists: MailingList[],
 }) {
-    const { push, refresh } = useRouter()
+    const { push, refresh } = useSiteRouter()
 
     const focusedExternal = data.mailaddressExternal.find(external => external.id === id)
     if (!focusedExternal) throw new Error('Fant ikke den eksterne adressen')
@@ -69,7 +70,7 @@ export default function EditMailAddressExternal({
 
         {canDestroyExternal && <Form
             action={configureAction(destroyMailAddressExternalAction, { params: { id: focusedExternal.id } })}
-            successCallback={() => push('/admin/mail/mailaddressExternal')}
+            successCallback={() => push(appHref('/admin/mail/mailaddressExternal'))}
             submitText="Slett adressen"
             submitColor="red"
             confirmation={{

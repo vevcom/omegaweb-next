@@ -76,11 +76,11 @@ export const articleSectionOperations = {
     addPart: defineSubOperation({
         paramsSchema: () => articleSectionSchemas.params.addPart,
         dataSchema: () => articleSectionSchemas.data.addPart,
-        opensTransaction: true,
-        operation: () => async ({ prisma, params, data }) => prisma.$transaction(async (tx) => {
+        transaction: 'RUNS_IN',
+        operation: () => async ({ prisma, params, data }) => {
             const where = articleSectionWhere(params)
 
-            const articleSection = await tx.articleSection.findUnique({
+            const articleSection = await prisma.articleSection.findUnique({
                 where,
                 select: { [data.part]: { select: { id: true } } },
             })
@@ -91,12 +91,12 @@ export const articleSectionOperations = {
                 throw new ServiceError('BAD PARAMETERS', `ArticleSection already has ${data.part}`)
             }
 
-            return tx.articleSection.update({
+            return prisma.articleSection.update({
                 where,
-                data: await createArticleSectionPart[data.part](tx),
+                data: await createArticleSectionPart[data.part](prisma),
                 include: articleSectionsRelationsIncluder,
             })
-        }),
+        },
     }),
 
     /**

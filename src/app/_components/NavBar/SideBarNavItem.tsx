@@ -2,9 +2,9 @@
 
 import { navIconClassName, navIconIconClassName, navIconLabelClassName } from './sideBarClassNames'
 import NavTooltip from './NavTooltip'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import type { NavLink } from './navDef'
+import type { NavLink } from '@/lib/navDef/navDef'
 
 type PropTypes = {
     item: NavLink
@@ -16,7 +16,7 @@ type PropTypes = {
 export default function SideBarNavItem({ item, expanded, active }: PropTypes) {
     return (
         <NavTooltip content={item.name} disabled={expanded}>
-            <Link
+            <SiteLink
                 href={item.href}
                 className={navIconClassName}
                 aria-label={item.name}
@@ -24,7 +24,7 @@ export default function SideBarNavItem({ item, expanded, active }: PropTypes) {
             >
                 <FontAwesomeIcon icon={item.icon} className={navIconIconClassName} />
                 <span className={navIconLabelClassName}>{item.name}</span>
-            </Link>
+            </SiteLink>
         </NavTooltip>
     )
 }

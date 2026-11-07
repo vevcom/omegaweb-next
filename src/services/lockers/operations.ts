@@ -104,45 +104,43 @@ export const lockerOperations = {
     destroy: defineOperation({
         authorizer: () => lockerAuth.destroy,
         paramsSchema: lockersSchemas.params.destroy,
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
             await lockerReservationOperations.deactivateExpiredReservations.internalCall({
                 prisma,
                 params: { lockerId: params.id },
             })
 
-            await prisma.$transaction(async tx => {
-                await tx.locker.findUniqueOrThrow({
-                    where: {
-                        id: params.id,
-                    },
-                })
-                const activeReservations = await tx.lockerReservation.count({
-                    where: {
-                        lockerId: params.id,
-                        active: true,
-                    },
-                })
-                if (activeReservations > 0) {
-                    throw new ServiceError(
-                        'UNPERMITTED CASCADE',
-                        'Skapet er reservert. Frigi skapet før det slettes.'
-                    )
-                }
+            await prisma.locker.findUniqueOrThrow({
+                where: {
+                    id: params.id,
+                },
+            })
+            const activeReservations = await prisma.lockerReservation.count({
+                where: {
+                    lockerId: params.id,
+                    active: true,
+                },
+            })
+            if (activeReservations > 0) {
+                throw new ServiceError(
+                    'UNPERMITTED CASCADE',
+                    'Skapet er reservert. Frigi skapet før det slettes.'
+                )
+            }
 
-                // A reservation made in the meantime is active, so it is not deleted here, and the
-                // locker it points at cannot be deleted either: the transaction then rolls back.
-                await tx.lockerReservation.deleteMany({
-                    where: {
-                        lockerId: params.id,
-                        active: false,
-                    },
-                })
-                await tx.locker.delete({
-                    where: {
-                        id: params.id,
-                    },
-                })
+            // A reservation made in the meantime is active, so it is not deleted here, and the
+            // locker it points at cannot be deleted either: the transaction then rolls back.
+            await prisma.lockerReservation.deleteMany({
+                where: {
+                    lockerId: params.id,
+                    active: false,
+                },
+            })
+            await prisma.locker.delete({
+                where: {
+                    id: params.id,
+                },
             })
         }
     }),
