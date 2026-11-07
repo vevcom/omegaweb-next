@@ -237,7 +237,7 @@ export function eventPage(config: EventPagesConfig) {
 
             const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${formatICSDate(event.eventStart)}/${formatICSDate(event.eventEnd)}&details=${encodeURIComponent(`Arrangement: ${event.name}`)}&location=${encodeURIComponent(event.location || '')}`
 
-            const icsContent = [
+            const icsContent = `${[
                 'BEGIN:VCALENDAR',
                 'VERSION:2.0',
                 'PRODID:-//Veven//NONSGML Event Calendar//EN',
@@ -251,7 +251,7 @@ export function eventPage(config: EventPagesConfig) {
                 `LOCATION:${escapeICSText(event.location || '')}`,
                 'END:VEVENT',
                 'END:VCALENDAR',
-            ].join('\r\n')
+            ].join('\r\n')}\r\n`
 
             const icsHref = `data:text/calendar;charset=utf-8,${encodeURIComponent(icsContent)}`
 
