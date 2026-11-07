@@ -1,0 +1,57 @@
+# Must stay at one replica, and Recreate keeps a rollout from briefly running two:
+# the weekly digest is only guarded against repeats by its date cutoff.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: omegaweb-next-worker
+spec:
+    replicas: 1
+    strategy:
+        type: Recreate
+    selector:
+        matchLabels:
+            app.kubernetes.io/name: omegaweb-next-worker
+    template:
+        metadata:
+            labels:
+                app.kubernetes.io/name: omegaweb-next-worker
+        spec:
+            volumes:
+                - name: sites
+                  configMap:
+                      name: omegaweb-next-sites
+            containers:
+                - name: worker
+                  image: omegaweb-next-tools
+                  command: [./node_modules/.bin/tsx, src/workers/main.ts]
+                  envFrom:
+                      - secretRef:
+                            name: omegaweb-next-env
+                      - configMapRef:
+                            name: omegaweb-next-config
+                  volumeMounts:
+                      - name: sites
+                        mountPath: /etc/omegaweb-next
+                        readOnly: true
+                  env:
+                      - name: IGNORE_SERVER_ONLY
+                        value: "true"
+                      - name: DB_URI
+                        valueFrom:
+                            secretKeyRef:
+                                name: omegaweb-next-db-app
+                                key: uri
+                  # The workers rewrite the file every 30 seconds unless a tick is stuck, see
+                  # src/workers/main.ts. Failing three times in a row covers the start.
+                  livenessProbe:
+                      exec:
+                          command: [sh, -c, find /tmp/worker-heartbeat -mmin -2 | grep -q .]
+                      periodSeconds: 30
+                      timeoutSeconds: 5
+                      failureThreshold: 3
+                  resources:
+                      requests:
+                          cpu: 50m
+                          memory: 256Mi
+                      limits:
+                          memory: 1Gi
