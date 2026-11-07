@@ -71,10 +71,16 @@ export default function TextInput({
                 id={inputId}
                 type={type}
                 className={`
-                    peer w-full border-2 border-transparent rounded-inner outline-0 text-m
-                    leading-[calc(var(--text-m)*1.25)] px-4 transition-[border-color,background-color] duration-300 z-1
+                    peer w-full rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] px-4
+                    transition-[border-color,background-color,box-shadow] duration-300 z-1
                     placeholder:opacity-0
-                    ${compact ? 'pt-3.5 pb-0.5' : 'pt-6 pb-2'}
+                    ${compact
+            ? 'border-2 border-transparent pt-3.5 pb-0.5'
+            : `
+                border border-surface-subtle
+                focus:ring-3 focus:ring-accent-blue/25
+                pt-6 pb-2.5
+            `}
                     ${colorClassNames[color].field}
                     ${backgroundClassNames[background]}
                 `}

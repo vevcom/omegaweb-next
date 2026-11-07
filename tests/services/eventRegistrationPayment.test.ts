@@ -99,7 +99,6 @@ async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number }
         },
         bypassAuth: true,
     })
-    await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
     if (ledgerAccountId) {
         await eventOperations.connectToLedgerAccount({
             params: { id: event.id },
@@ -107,6 +106,8 @@ async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number }
             bypassAuth: true,
         })
     }
+    // Directly, since the tests of an event without an account still need it published.
+    await prisma.event.update({ where: { id: event.id }, data: { published: true } })
     return event.id
 }
 

@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { visibilitySchemas } from './schemas'
-import { defineSubOperation } from '@/services/serviceOperation'
+import { defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import type { visibilityRequirementsSchema } from './schemas'
 import type { VisibilityRequirementGroupType } from '@/prisma-generated-pn-types'
@@ -52,6 +52,19 @@ async function buildRequirementsCreateInput(requirements: z.infer<typeof visibil
     }))
 }
 
+async function replaceRequirements(
+    tx: PrismaPossibleTransaction<false>,
+    visibilityId: number,
+    requirements: Awaited<ReturnType<typeof buildRequirementsCreateInput>>,
+) {
+    // The conditions go with their requirement by cascade.
+    await tx.visibilityRequirement.deleteMany({ where: { visibilityId } })
+    return await tx.visibility.update({
+        where: { id: visibilityId },
+        data: { requirements: { create: requirements } },
+    })
+}
+
 export const visibilityOperations = {
     create: defineSubOperation({
         operation: () => ({ prisma }) =>
@@ -85,18 +98,18 @@ export const visibilityOperations = {
         transaction: 'OPENS',
         operation: () => async ({ prisma, params, data }) => {
             const requirements = await buildRequirementsCreateInput(data.requirements)
-
-            return await prisma.$transaction(async (tx) => {
-                //Remove all current visibilityRequirements (and by cascade all visibilityRequirementGroups)
-                await tx.visibilityRequirement.deleteMany({
-                    where: { visibilityId: params.visibilityId }
-                })
-
-                return await tx.visibility.update({
-                    where: { id: params.visibilityId },
-                    data: { requirements: { create: requirements } }
-                })
-            })
+            return await prisma.$transaction(tx => replaceRequirements(tx, params.visibilityId, requirements))
         }
+    }),
+
+    /** The same as `update`, for a caller that already holds a transaction. */
+    updateInTransaction: defineSubOperation({
+        paramsSchema: () => visibilitySchemas.params.update,
+        dataSchema: () => visibilitySchemas.data.update,
+        operation: () => async ({ prisma, params, data }) => replaceRequirements(
+            prisma,
+            params.visibilityId,
+            await buildRequirementsCreateInput(data.requirements),
+        ),
     })
 } as const

@@ -1,5 +1,5 @@
 import { eventLinks } from '@/pageKits/events/links'
-import CreateOrUpdateEventForm from '@/components/Event/CreateOrUpdateEventForm'
+import CreateEventForm from '@/components/Event/CreateEventForm'
 import TagHeaderItem from '@/components/Event/TagHeaderItem'
 import EventCard from '@/components/Event/EventCard'
 import EventTag from '@/components/Event/EventTag'
@@ -97,7 +97,7 @@ export function eventsPage(config: EventPagesConfig) {
                             {capabilities.canCreate.authorized && (
                                 <AddHeaderItemPopUp popUpKey="CreateEventPopUp">
                                     <div className="min-w-[50vw] grid place-content-center">
-                                        <CreateOrUpdateEventForm
+                                        <CreateEventForm
                                             config={config}
                                             eventTags={eventTags}
                                             committees={committees}

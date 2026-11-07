@@ -87,8 +87,10 @@ export default function ColorInput({
                 onChange={handleChange}
             />
             <label htmlFor={inputId} className={`
-                relative w-full flex items-center gap-2 border-2 border-transparent rounded-inner outline-0 text-m
-                text-left pt-6 px-4 pb-2 transition-[border-color,background-color] duration-300 cursor-pointer
+                relative w-full flex items-center gap-2 border border-surface-subtle
+                peer-focus:ring-3 peer-focus:ring-accent-blue/25
+                rounded-inner outline-0 text-m text-left pt-6 px-4 pb-2.5
+                transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                 peer-focus:border-accent-blue
                 peer-disabled:cursor-not-allowed peer-disabled:opacity-60
                 ${backgroundClassNames[background]}

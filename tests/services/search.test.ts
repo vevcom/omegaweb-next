@@ -301,7 +301,8 @@ describe('search respects a provider\'s own visibility filter', () => {
             },
             bypassAuth: true,
         })
-        await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
+        // Directly, since an event only EVENT_ADMIN administrates cannot be published the usual way.
+        await prisma.event.update({ where: { id: event.id }, data: { published: true } })
 
         const { rows: memberRows } = await eventOperations.search(omegaEventPages)({
             params: { query: 'søketest begrenset' },

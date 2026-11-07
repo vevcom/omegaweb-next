@@ -1,4 +1,3 @@
-import EventSidebarSection from './EventSidebarSection'
 import EventInfoRow from './EventInfoRow'
 import CountDown from '@/components/CountDown/CountDown'
 import DateDisplay from '@/components/Date/Date'
@@ -45,10 +44,11 @@ export default function EventPaymentSection({
     const paymentOpen = paymentStart <= now && now <= deadline
     const status = paymentStatus(registration)
 
-    return <EventSidebarSection title="Betaling">
+    return <section className="flex flex-col gap-3 pt-3 border-t border-surface-hover">
+        <h3 className="m-0 text-l font-bold">Betaling</h3>
         <EventInfoRow label="Pris">{displayAmount(price, false)}</EventInfoRow>
-        <EventInfoRow label="Betalingsstart"><DateDisplay date={paymentStart} includeTime /></EventInfoRow>
-        <EventInfoRow label="Betalingsslutt"><DateDisplay date={deadline} includeTime /></EventInfoRow>
+        <EventInfoRow label="Betalingsstart"><DateDisplay date={paymentStart} includeSeconds={false} /></EventInfoRow>
+        <EventInfoRow label="Betalingsslutt"><DateDisplay date={deadline} includeSeconds={false} /></EventInfoRow>
 
         {status === 'PAID' && (
             <p className="
@@ -94,5 +94,5 @@ export default function EventPaymentSection({
         {status === 'NOT_REGISTERED' && (
             <p className="m-0 text-text-muted">Betales etter påmelding.</p>
         )}
-    </EventSidebarSection>
+    </section>
 }

@@ -445,6 +445,8 @@ Forms typically use Server Actions with FormData:
 3. Wrap it with `makeAction()`
 4. Call from a client component with FormData
 
+A long form is split with `Tabs` and `FormTab`: the one `Form` holds every value across its tabs and saves them together, and a tab with a refused input is brought forward. See `EventAdmin`. Panels stay mounted, so nothing is lost moving between tabs. A `Form` cannot hold another `Form`, so a tab that saves on its own is a `TabPanel` next to it.
+
 ## Testing
 
 - Tests located in `tests/` directory

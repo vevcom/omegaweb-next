@@ -40,11 +40,9 @@ export default function EventLocationInput({ name, defaultValue }: PropTypes) {
     return <fieldset
         className="
             min-w-0 m-0 p-0 border-none flex flex-col gap-4
-            [&_legend]:mb-2 [&_legend]:font-bold
             [&>button]:self-start
         "
     >
-        <legend>Kart til arrangementet</legend>
         <Dropdown
             name={`${name}Provider`}
             label="Karttype"

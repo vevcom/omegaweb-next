@@ -10,6 +10,7 @@ export type EventAccess = {
     published: boolean,
     canBeViewedBy: EventCanView,
     adminVisibility: VisibilityMatrix,
+    creatorId: number | null,
     quotaVisibilities: VisibilityMatrix[],
 }
 

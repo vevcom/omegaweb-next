@@ -9,7 +9,6 @@ import {
     faCreditCard,
     faEye,
     faLayerGroup,
-    faPen,
     faPlus,
     faQrcode,
     faQuestionCircle,
@@ -22,7 +21,7 @@ import type { PropTypes as PopUpProps } from '@/components/PopUp/PopUp'
 
 type PropTypes = Omit<PopUpProps, 'showButtonContent'> & { scale?: number, label?: React.ReactNode }
 
-function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'], scale = 40, defaultLabel?: string) {
+function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'] | null, scale = 40, defaultLabel?: string) {
     return function HeadItemPopUp({ showButtonClass, children, scale: overrideScale, label = defaultLabel, ...props }:
                                   PropTypes) {
         const buttonScale = overrideScale ?? scale
@@ -35,9 +34,9 @@ function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'], scale = 40, d
                 label ? (
                     <>
                         <span className="text-m font-medium whitespace-nowrap">{label}</span>
-                        <FontAwesomeIcon style={iconStyle} icon={icon} />
+                        {icon && <FontAwesomeIcon style={iconStyle} icon={icon} />}
                     </>
-                ) : (
+                ) : icon && (
                     <FontAwesomeIcon style={iconStyle} icon={icon} />
                 )
             }
@@ -50,7 +49,7 @@ function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'], scale = 40, d
                 duration-300
                 hover:bg-surface-subtle hover:text-ink-strong
                 ${label
-        ? 'flex flex-row items-center gap-3 pr-3.5 pl-5 text-ink-strong [&_svg]:text-text '
+        ? `flex flex-row items-center gap-3 ${icon ? 'pr-3.5 pl-5' : 'px-5'} text-ink-strong [&_svg]:text-text `
                         + '[&_svg]:transition-colors [&_svg]:duration-300 hover:[&_svg]:text-accent-blue'
         : 'grid place-items-center text-text'}
                 ${showButtonClass ?? ''}
@@ -106,9 +105,9 @@ export const ArchiveHeaderItemPopUp = createHeaderItemPopUp(faArchive, 40, 'Arki
 export const ScanHeaderItemPopUp = createHeaderItemPopUp(faQrcode, 40, 'Skann')
 
 /**
- * Component that can be used to show the form that edits a page's subject in a pop up
+ * Component that can be used to open everything there is to administrate on a page, by name
  */
-export const EditHeaderItemPopUp = createHeaderItemPopUp(faPen, 18)
+export const AdminHeaderItemPopUp = createHeaderItemPopUp(null, 40, 'Administrer')
 
 /**
  * Component that can be used to show payment settings, such as the account paid into, in a pop up

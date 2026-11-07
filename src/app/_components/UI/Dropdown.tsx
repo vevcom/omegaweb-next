@@ -253,12 +253,12 @@ export default function Dropdown<ValueType extends string | number>({
                 type="button"
                 id={domId}
                 className={`
-                    relative w-full flex items-center border-2 rounded-inner outline-0 text-m text-left pt-6 pr-10 pb-2
-                    pl-4 transition-[border-color,background-color] duration-300 cursor-pointer
+                    relative w-full flex items-center border rounded-inner outline-0 text-m text-left pt-6 pr-10 pb-2.5
+                    pl-4 transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                     disabled:cursor-not-allowed disabled:opacity-60
-                    focus-visible:border-accent-blue
+                    focus-visible:border-accent-blue focus-visible:ring-3 focus-visible:ring-accent-blue/25
                     ${dropdownColorClassNames[color]}
-                    ${open ? 'border-accent-blue' : 'border-transparent'}
+                    ${open ? 'border-accent-blue ring-3 ring-accent-blue/25' : 'border-surface-subtle'}
                     ${triggerBackgroundClassNames[background][open ? 'open' : 'closed']}
                 `}
                 disabled={disabled}
