@@ -2,6 +2,8 @@ import '@pn-server-only'
 
 import { displayDate } from '@/lib/dates/displayDate'
 import { displayAmount } from '@/lib/currency/convert'
+import { DomainContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
 import { Html } from '@react-email/components'
 import type { ConfirmedBooking } from '@/lib/email/systemMail/cabinBookingConfirmation'
 
@@ -17,7 +19,7 @@ export function CabinBookingConfirmationTemplate({
             <p>Hei {firstname},</p>
 
             <p>
-                Takk for bookingen din hos {process.env.WEBSITE_DOMAIN}. Betalingen er mottatt, og bookingen er
+                Takk for bookingen din hos {DomainContext.mailDomainOf(Site.root)}. Betalingen er mottatt, og bookingen er
                 bekreftet.
             </p>
 

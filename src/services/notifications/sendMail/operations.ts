@@ -6,6 +6,7 @@ import { defineSubOperation } from '@/services/serviceOperation'
 import { resolveMailRecipients } from '@/services/mail/recipients'
 import { replaceSpecialSymbols } from '@/services/notifications/methods/helpers'
 import { Smorekopp } from '@/services/error'
+import { defaultNotificationAlias } from '@/lib/email/constants'
 import { render } from '@react-email/render'
 import type { UserBasic } from '@/services/users/types'
 
@@ -63,7 +64,7 @@ const internal = {
             await getMailHandler().sendSingleMail({
                 to: data.to,
                 subject: data.subject,
-                from: `noreply@${process.env.EMAIL_DOMAIN}`,
+                from: defaultNotificationAlias(),
                 html: (typeof data.body === 'string') ? data.body : await render(data.body),
             })
         },

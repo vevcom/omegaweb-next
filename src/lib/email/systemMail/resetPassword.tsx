@@ -4,7 +4,7 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'
 import { generateJWT } from '@/jwt/jwt'
 import { userOperations } from '@/services/users/operations'
-import { SiteContext } from '@/lib/sites/context'
+import { DomainContext } from '@/lib/sites/context'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/lib/sites/authPagesOf'
 import { z } from 'zod'
@@ -24,7 +24,7 @@ export async function sendResetPasswordMail(email: string, site: Site) {
         email: user.email,
     }, resetPasswordExpiration)
 
-    const link = SiteContext.publicUrl(site, authLinks(authPagesOf(site)).resetPasswordForm(jwt))
+    const link = DomainContext.publicUrl(site, authLinks(authPagesOf(site)).resetPasswordForm(jwt))
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {

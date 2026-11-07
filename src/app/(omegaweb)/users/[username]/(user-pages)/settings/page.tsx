@@ -18,6 +18,8 @@ import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { studyProgrammeOperations } from '@/services/groups/studyProgrammes/operations'
 import { serverPage } from '@/app/ServerPage'
 import { configureAction } from '@/services/configureAction'
+import { DomainContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 /**
@@ -92,7 +94,7 @@ const { page, generateMetadata } = serverPage({
                 )}
                 {privateUser && capabilities.canUpdateProfile.authorized && (
                     <UserProfileSettingsCard>
-                        <UserSettingsForm user={privateUser} emailDomain={process.env.EMAIL_DOMAIN} />
+                        <UserSettingsForm user={privateUser} emailDomain={DomainContext.mailDomainOf(Site.root)} />
                     </UserProfileSettingsCard>
                 )}
                 {privateUser && capabilities.canRegisterNewEmail.authorized && (

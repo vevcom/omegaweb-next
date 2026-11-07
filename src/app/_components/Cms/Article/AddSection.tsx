@@ -2,7 +2,7 @@
 import AddParts from '@/cms/AddParts'
 import { maxSections } from '@/cms/articles/constants'
 import useEditMode from '@/hooks/useEditMode'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import type { ArticleSectionPart } from '@/cms/articleSections/types'
 import type { AddSectionToArticleAction } from '@/cms/articles/types'
 import type { ConfiguredAction } from '@/services/actionTypes'
@@ -19,7 +19,7 @@ export default function AddSection({
     addSectionToArticleAction,
     capabilities,
 }: PropTypes) {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
     const editable = useEditMode({ authResult: capabilities.canEdit })
 
     const handleAdd = async (includePart: ArticleSectionPart) => {

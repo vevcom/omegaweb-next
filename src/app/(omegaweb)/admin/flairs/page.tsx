@@ -15,6 +15,7 @@ import ImageUploader from '@/components/Image/ImageUploader'
 import PopUp from '@/components/PopUp/PopUp'
 import { configureAction } from '@/services/configureAction'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
+import { appHref } from '@/lib/sites/href'
 import type { FlairRow } from './FlairTable'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -56,7 +57,7 @@ const { page, generateMetadata } = serverPage({
             </>,
             name: flair.name,
             colorStyle: { backgroundColor: `rgb(${flair.colorR}, ${flair.colorG}, ${flair.colorB})` },
-            editHref: `/admin/flairs/${flair.id}`,
+            editHref: appHref(`/admin/flairs/${flair.id}`),
         }))
 
         return (

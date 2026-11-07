@@ -10,7 +10,7 @@ import {
     updateCareersTeamDepartmentAction,
 } from '@/services/careers/team/actions'
 import { careersTeamAuth } from '@/services/careers/team/auth'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowDown, faArrowUp, faPencil } from '@fortawesome/free-solid-svg-icons'
 
@@ -28,7 +28,7 @@ const controlClassName = `
 
 export default function TeamDepartmentEditor({ department, canMoveUp, canMoveDown }: PropTypes) {
     const editable = useEditMode({ authorizer: careersTeamAuth.updateDepartment })
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
     const popUpKey = `EditCareersTeamDepartment${department.id}`
     const params = { params: { departmentId: department.id } }
 

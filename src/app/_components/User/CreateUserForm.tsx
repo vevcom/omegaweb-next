@@ -2,15 +2,15 @@
 import { createUserAction } from '@/services/users/actions'
 import TextInput from '@/components/UI/TextInput'
 import Form from '@/components/Form/Form'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import React from 'react'
-import { useRouter } from 'next/navigation'
 
 type PropTypes = {
     className?: string
 }
 
 export default function CreateUserForm({ className }: PropTypes) {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
 
     return (
         <div className={`

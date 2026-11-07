@@ -18,9 +18,12 @@ import { frontpageAuth } from '@/services/frontpage/auth'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { omegaAuthLinks } from '@/app/(omegaweb)/(auth)/links'
+import { careerLinks } from '@/app/(careers)/links'
+import { appHref, externalHref } from '@/lib/sites/href'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import Link from 'next/link'
 
 // Important flags: btn/secondary-btn set their own margin and padding at the same specificity.
 const ctaLayout = 'w-full m-0! py-5! px-6!'
@@ -50,22 +53,22 @@ export default async function LoggedOutLandingPage() {
                             />
                         </div>
 
-                        <Link className={`
+                        <SiteLink className={`
                             secondary-btn font-medium
                             ${ctaLayout}
-                        `} href="login">Logg inn</Link>
-                        <Link className={`
+                        `} href={omegaAuthLinks.login()}>Logg inn</SiteLink>
+                        <SiteLink className={`
                             btn font-bold
                             ${ctaLayout}
-                        `} href="/new-student">Ny student</Link>
-                        <Link className={`
+                        `} href={appHref('/new-student')}>Ny student</SiteLink>
+                        <SiteLink className={`
                             secondary-btn font-medium
                             ${ctaLayout}
-                        `} href="https://contactor.no">For bedrifter</Link>
+                        `} href={careerLinks.frontpage()} toMainDomainServingSite>For bedrifter</SiteLink>
 
-                        <Link className={scrollDownClassName} href="#firstSection">
+                        <SiteLink className={scrollDownClassName} href={externalHref('#firstSection')}>
                             <FontAwesomeIcon icon={faAngleDown} />
-                        </Link>
+                        </SiteLink>
                     </div>
                 </div>
                 <Section

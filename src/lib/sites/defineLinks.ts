@@ -1,4 +1,6 @@
+import { appHref } from './href'
 import { Site } from './site'
+import type { AppHref } from './href'
 import type { SiteName } from './site'
 
 /**
@@ -14,7 +16,7 @@ export type PagesMount = {
 }
 
 /** The href of a page under the mount: a sub path, with a query string when given. */
-export type Href = (subPath?: string, query?: string | null) => string
+export type Href = (subPath?: string, query?: string | null) => AppHref
 
 /**
  * Defines the links of a page kit as a function of a site's config for it. Pages and components
@@ -28,6 +30,10 @@ export function defineLinks<Config extends PagesMount, Links>(
     return config => {
         const base = Site.of(config.site).pagesPath(config.mountPath)
         // The root of the site at the root of the app is '', which is no href.
-        return define((subPath = '', query) => `${`${base}${subPath}` || '/'}${query ? `?${query}` : ''}`, config)
+        const href: Href = (subPath = '', query) => {
+            const path = `${base}${subPath}` || '/'
+            return appHref(`${path}${query ? `?${query}` : ''}`)
+        }
+        return define(href, config)
     }
 }

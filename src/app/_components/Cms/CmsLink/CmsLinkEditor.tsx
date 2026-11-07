@@ -5,7 +5,7 @@ import useEditMode from '@/hooks/useEditMode'
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import { configureAction } from '@/services/configureAction'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import type { CmsLink } from '@/prisma-generated-pn-types'
 import type { UpdateCmsLinkAction } from '@/cms/links/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
@@ -18,7 +18,7 @@ type PropTypes = {
 
 export default function CmsLinkEditor({ cmsLink, updateCmsLinkAction, capabilities }: PropTypes) {
     const editable = useEditMode({ authResult: capabilities.canEdit })
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
 
     if (!editable) return null
     return (

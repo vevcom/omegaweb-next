@@ -3,7 +3,7 @@
 import { SelectNumber } from '@/components/UI/Select'
 import Button from '@/components/UI/Button'
 import { updateLedgerAccountAsAdminAction } from '@/services/ledger/accounts/actions'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
 import type { ExpandedGroup } from '@/services/groups/types'
 
@@ -13,7 +13,7 @@ type Props = {
 }
 
 export default function AddGroupToLedgerAccount({ ledgerAccountId, availableGroups }: Props) {
-    const router = useRouter()
+    const router = useSiteRouter()
     const [selectedGroupId, setSelectedGroupId] = useState(availableGroups[0]?.id)
     const [error, setError] = useState<string | null>(null)
 

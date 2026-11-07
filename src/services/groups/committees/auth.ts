@@ -8,6 +8,7 @@ const adminOrGroupAdmin = Require.permission('COMMITTEE_ADMIN').or().groupAdmin(
 export const committeeAuth = {
     create: Require.permission('COMMITTEE_ADMIN'),
     update: Require.permission('COMMITTEE_ADMIN'),
+    reorder: Require.permission('COMMITTEE_ADMIN'),
     readAll: Require.permission('COMMITTEE_USE'),
     read: Require.permission('COMMITTEE_USE'),
     readMembers: requireReadManagedGroupMembers('COMMITTEE_USE'),
@@ -17,6 +18,7 @@ export const committeeAuth = {
     removeMembers: adminOrGroupAdmin,
     setMemberAdmin: adminOrGroupAdmin,
     setMemberTitle: adminOrGroupAdmin,
+    reorderMembers: adminOrGroupAdmin,
     migrateGroup: adminOrGroupAdmin,
     readArticle: Require.permission('COMMITTEE_USE'),
     readParagraph: Require.permission('COMMITTEE_USE'),

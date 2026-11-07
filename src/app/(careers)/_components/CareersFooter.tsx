@@ -7,7 +7,7 @@ import {
     readCareersFrontpageSpecialCmsLinkAction,
     updateCareersFrontpageSpecialCmsLinkAction,
 } from '@/services/careers/frontpage/actions'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFacebookSquare, faInstagram, faLinkedin } from '@fortawesome/free-brands-svg-icons'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
@@ -43,15 +43,15 @@ export default function CareersFooter({ capabilities, showOmegaLink }: PropTypes
                         [&_a:hover]:text-white
                         [&_svg]:text-inherit
                     ">
-                        <Link href={CAREERS_SOCIALS.facebook} target="_blank" aria-label="Contactor på Facebook">
+                        <SiteLink href={CAREERS_SOCIALS.facebook} target="_blank" aria-label="Contactor på Facebook">
                             <FontAwesomeIcon icon={faFacebookSquare} />
-                        </Link>
-                        <Link href={CAREERS_SOCIALS.linkedin} target="_blank" aria-label="Contactor på LinkedIn">
+                        </SiteLink>
+                        <SiteLink href={CAREERS_SOCIALS.linkedin} target="_blank" aria-label="Contactor på LinkedIn">
                             <FontAwesomeIcon icon={faLinkedin} />
-                        </Link>
-                        <Link href={CAREERS_SOCIALS.instagram} target="_blank" aria-label="Contactor på Instagram">
+                        </SiteLink>
+                        <SiteLink href={CAREERS_SOCIALS.instagram} target="_blank" aria-label="Contactor på Instagram">
                             <FontAwesomeIcon icon={faInstagram} />
-                        </Link>
+                        </SiteLink>
                     </div>
                 </div>
                 <div>
@@ -82,10 +82,10 @@ export default function CareersFooter({ capabilities, showOmegaLink }: PropTypes
                 `}>
                     <span className="text-s text-white/80">© Contactor NTNU</span>
                     {showOmegaLink && (
-                        <Link href={omegaLinks.frontpage()} className="
+                        <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className="
                             text-s text-white/80
                             hover:text-white
-                        ">Til Omegaveven</Link>
+                        ">Til Omegaveven</SiteLink>
                     )}
                 </div>
             </div>

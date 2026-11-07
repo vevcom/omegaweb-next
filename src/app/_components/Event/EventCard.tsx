@@ -2,8 +2,8 @@ import SmallEventTag from './SmallEventTag'
 import { eventLinks } from '@/pageKits/events/links'
 import Image from '@/components/Image/Image'
 import { osloDateTime } from '@/lib/dates/oslo'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import React from 'react'
-import Link from 'next/link'
 import type { EventExpanded } from '@/services/events/types'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 
@@ -23,7 +23,7 @@ export default function EventCard({ event, config }: PropTypes) {
     const from = event.registrationStart ?? event.eventStart
     const to = event.registrationEnd ?? event.eventEnd
 
-    return <Link href={eventLinks(config).event(event)} className="list-row">
+    return <SiteLink href={eventLinks(config).event(event)} className="list-row">
         <div className="list-row-thumb">
             {event.coverImage.image && (
                 <Image width={200} image={event.coverImage.image} />
@@ -57,5 +57,5 @@ export default function EventCard({ event, config }: PropTypes) {
                 <div style={{ width: attendance }}></div>
             </div>
         )}
-    </Link>
+    </SiteLink>
 }

@@ -1,4 +1,6 @@
 import { userBasicSelection } from '@/services/users/constants'
+import { DomainContext } from '@/lib/sites/context'
+import { Site } from '@/lib/sites/site'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 /**
@@ -44,8 +46,10 @@ export const pushDispatch = {
 export const vapid = {
     publicKey: process.env.VAPID_PUBLIC_KEY ?? '',
     privateKey: process.env.VAPID_PRIVATE_KEY ?? '',
-    subject: `mailto:vevcom@${process.env.EMAIL_DOMAIN}`,
 }
+
+/** Who push services may contact about the pushes: Omega's web committee. */
+export const vapidSubject = () => `mailto:vevcom@${DomainContext.mailDomainOf(Site.root)}`
 
 export const pushIsConfigured = Boolean(vapid.publicKey && vapid.privateKey)
 

@@ -1,6 +1,7 @@
 import { inferGroupNameIfValid } from '@/lib/groups/inferGroupName'
 import { displayDate } from '@/lib/dates/displayDate'
-import Link from 'next/link'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { LockerWithReservation } from '@/services/lockers/types'
 
 export const lockerRowClassName = `
@@ -33,8 +34,8 @@ export default function LockerRow({ locker }: PropTypes) {
     const endDateText = reservation ? endDateOf(reservation.endDate) : ''
 
     return (
-        <Link
-            href={`/lockers/${locker.id}`}
+        <SiteLink
+            href={appHref(`/lockers/${locker.id}`)}
             className={`
                 ${lockerRowClassName}
                 even:bg-[color-mix(in_srgb,var(--surface-raised),white_3%)]
@@ -52,7 +53,7 @@ export default function LockerRow({ locker }: PropTypes) {
             </span>
             <span className={lockerColumnClassName.group} role="cell">{groupName}</span>
             <span className={lockerColumnClassName.end} role="cell">{endDateText}</span>
-        </Link>
+        </SiteLink>
     )
 }
 

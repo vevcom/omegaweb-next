@@ -2,7 +2,7 @@
 import Form from '@/components/Form/Form'
 import useEditMode from '@/hooks/useEditMode'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
-import { useRouter } from 'next/navigation'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
 import { faX } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -17,7 +17,7 @@ type PropTypes = {
 }
 
 export default function RemovePart({ part, removePartFromArticleSectionAction, capabilities }: PropTypes) {
-    const { refresh } = useRouter()
+    const { refresh } = useSiteRouter()
     const editable = useEditMode({ authResult: capabilities.canEdit })
     const [confirmOpen, setConfirmOpen] = useState(false)
     const confirmRef = useClickOutsideRef(() => setConfirmOpen(false))

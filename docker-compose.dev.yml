@@ -13,6 +13,12 @@ services:
             - ${PROJECT_ROOT:-.}/package.json:/usr/src/app/package.json
             - ${PROJECT_ROOT:-.}/package-lock.json:/usr/src/app/package-lock.json
             - ${PROJECT_ROOT:-.}/logs:/usr/src/app/logs
+            - type: bind
+              source: ${PROJECT_ROOT:-.}/sites.json
+              target: /usr/src/app/sites.json
+              read_only: true
+              bind:
+                  create_host_path: false
             - devstore:/usr/src/app/store
             - dotnext:/usr/src/app/.next
 
@@ -30,6 +36,12 @@ services:
             - ${PROJECT_ROOT:-.}/package.json:/usr/src/app/package.json
             - ${PROJECT_ROOT:-.}/package-lock.json:/usr/src/app/package-lock.json
             - ${PROJECT_ROOT:-.}/logs:/usr/src/app/logs
+            - type: bind
+              source: ${PROJECT_ROOT:-.}/sites.json
+              target: /usr/src/app/sites.json
+              read_only: true
+              bind:
+                  create_host_path: false
             - devstore:/usr/src/app/store
 
     db:
