@@ -39,6 +39,12 @@ model Event {
 
   published Boolean @default(false)
 
+  // Guests can wish for who to sit with until this. Null until the wishes have been opened.
+  seatingWishesEnd   DateTime?
+  // Guests see their table from this on.
+  seatingPublishedAt DateTime?
+  seatingTables      EventTable[]
+
   // The notifications sent to those who may register, or are registered, resolved when they are sent.
   notificationsToWhoCanRegister Notification[]
   notificationsToRegistered     Notification[] @relation(name: "NotificationRegisteredForEvent")
@@ -155,6 +161,31 @@ enum EventRegistrationState {
   WAITING_LIST
 }
 
+model EventTable {
+  id      Int   @id @default(autoincrement())
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int
+  order   Int
+  seats   Int
+
+  registrations EventRegistration[]
+
+  @@unique([eventId, order])
+}
+
+model EventSeatingWish {
+  registration         EventRegistration @relation(name: "wishFrom", fields: [registrationId], references: [id], onDelete: Cascade)
+  registrationId       Int
+  wishedRegistration   EventRegistration @relation(name: "wishFor", fields: [wishedRegistrationId], references: [id], onDelete: Cascade)
+  wishedRegistrationId Int
+  // The most wanted first, from 0.
+  rank                 Int
+
+  @@id([registrationId, wishedRegistrationId])
+  @@unique([registrationId, rank])
+  @@index([wishedRegistrationId])
+}
+
 model EventRegistration {
   id                   Int                    @id @default(autoincrement())
   state                EventRegistrationState
@@ -186,6 +217,13 @@ model EventRegistration {
   company          Boolean @default(false) // This is if a registrations has a plus one.
   extraFieldChoices Json?   @db.Json
 
+  table       EventTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableId     Int?
+  // Kept at its table when a new seating draft is made.
+  seatLocked  Boolean     @default(false)
+  seatingWishes     EventSeatingWish[] @relation(name: "wishFrom")
+  seatingWishedBy   EventSeatingWish[] @relation(name: "wishFor")
+
   ledgerTransactions LedgerTransaction[]
 
   @@unique([quotaId, userId])
@@ -193,4 +231,5 @@ model EventRegistration {
   @@index([quotaId, queuedAt])
   @@index([waitingListVariantId, queuedAt])
   @@index([userId])
+  @@index([tableId])
 }

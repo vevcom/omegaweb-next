@@ -1,5 +1,6 @@
 'use client'
 import EventPublishing from './EventPublishing'
+import EventSeating from './EventSeating'
 import EventSetupForm, { eventSetupTabs } from './EventSetupForm'
 import EventStatistics from './EventStatistics'
 import ManualRegistrationForm from './ManualRegistrationForm'
@@ -8,6 +9,7 @@ import { publishProblems } from '@/services/events/publishProblems'
 import { useState } from 'react'
 import type { ComponentProps } from 'react'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
+import type { SeatingBoard } from '@/services/events/seating/types'
 import type { VariantStatistics } from '@/services/events/statistics'
 
 type SetupProps = ComponentProps<typeof EventSetupForm>
@@ -16,13 +18,15 @@ type PropTypes = Omit<SetupProps, 'event' | 'onDiscard'> & {
     capabilities: CapabilitiesJsObject<'canUpdate' | 'canDestroy' | 'canRegisterAsAdmin' | 'canRegisterGuest'>,
     /** Null when the event takes no registration, or they could not be read. */
     statistics: VariantStatistics[] | null,
+    /** Null when the event takes no registration, or they could not be read. */
+    seatingBoard: SeatingBoard | null,
 }
 
 /**
  * Everything those who administrate an event can do with it, on one set of tabs. Setting it up is
  * one form over several tabs. Registering others, publishing and deleting are done on the spot, next to the statistics.
  */
-export default function EventAdmin({ event, capabilities, statistics, ...setup }: PropTypes) {
+export default function EventAdmin({ event, capabilities, statistics, seatingBoard, ...setup }: PropTypes) {
     const canUpdate = capabilities.canUpdate.authorized
     const canRegisterOthers = capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
     const showRegisterOthers = event.takesRegistration && canRegisterOthers
@@ -47,6 +51,7 @@ export default function EventAdmin({ event, capabilities, statistics, ...setup }
                 ...(canUpdate ? eventSetupTabs : []),
                 ...(showRegisterOthers ? [{ key: 'others', label: 'Meld på andre' }] : []),
                 ...(statistics ? [{ key: 'statistics', label: 'Statistikk' }] : []),
+                ...(seatingBoard ? [{ key: 'seating', label: 'Bordplassering' }] : []),
                 ...(showPublishing ? [{ key: 'publishing', label: 'Publisering', dot: publishingDot() }] : []),
             ]}
         >
@@ -72,6 +77,10 @@ export default function EventAdmin({ event, capabilities, statistics, ...setup }
 
             {statistics && <TabPanel tab="statistics">
                 <EventStatistics variants={statistics} />
+            </TabPanel>}
+
+            {seatingBoard && <TabPanel tab="seating">
+                <EventSeating eventId={event.id} board={seatingBoard} />
             </TabPanel>}
 
             {showPublishing && <TabPanel tab="publishing">

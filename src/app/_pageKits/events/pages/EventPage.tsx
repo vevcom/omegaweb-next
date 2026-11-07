@@ -7,6 +7,7 @@ import RegistrationsList from '@/components/Event/RegistrationsList'
 import EventAdmin from '@/components/Event/EventAdmin'
 import EventQuotaList from '@/components/Event/EventQuotaList'
 import EventPaymentSection from '@/components/Event/EventPaymentSection'
+import EventSeatingWishes from '@/components/Event/EventSeatingWishes'
 import EventSection from '@/components/Event/EventSection'
 import EventInfoRow from '@/components/Event/EventInfoRow'
 import EventNotificationsAdmin from '@/components/Event/EventNotificationsAdmin'
@@ -28,6 +29,7 @@ import {
 import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
+import { eventSeatingOperations } from '@/services/events/seating/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { configureAction } from '@/services/configureAction'
@@ -151,6 +153,12 @@ export function eventPage(config: EventPagesConfig) {
             const statistics = event.takesRegistration
                 ? await withFallback(eventOperations.readStatistics({ params: { id: event.id } }), null)
                 : null
+            const seatingBoard = event.takesRegistration
+                ? await withFallback(eventSeatingOperations.readBoard({ params: { id: event.id } }), null)
+                : null
+            const ownSeating = event.takesRegistration && session.user
+                ? await withFallback(eventSeatingOperations.readOwn({ params: { id: event.id } }), null)
+                : null
 
             return {
                 event,
@@ -167,6 +175,8 @@ export function eventPage(config: EventPagesConfig) {
                 channelsOfEvent,
                 subscriptions,
                 statistics,
+                seatingBoard,
+                ownSeating,
             }
         },
         capabilities: (data, session) => ({
@@ -280,6 +290,7 @@ export function eventPage(config: EventPagesConfig) {
                                             capabilities.canConnectToLedgerAccount.authorized ? ledgerAccounts : []
                                         }
                                         statistics={data.statistics}
+                                        seatingBoard={data.seatingBoard}
                                         capabilities={capabilitiesToJsObject({
                                             canUpdate: capabilities.canUpdate,
                                             canDestroy: capabilities.canDestroy,
@@ -386,6 +397,9 @@ export function eventPage(config: EventPagesConfig) {
                                     <p className="text-text-muted">Dette arrangementet tar ikke påmelding.</p>
                                 </EventSection>
                             )}
+                            {data.ownSeating && <EventSection title="Bordplassering">
+                                <EventSeatingWishes eventId={event.id} seating={data.ownSeating} />
+                            </EventSection>}
 
                             {session.user && (
                                 <EventSection title="Varslinger">
