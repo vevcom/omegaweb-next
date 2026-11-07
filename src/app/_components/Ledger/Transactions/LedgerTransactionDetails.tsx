@@ -16,13 +16,27 @@ type Props = {
     accountId: number,
 }
 
-export const transactionPurposeNames: Record<LedgerTransactionPurpose, string> = {
-    SHOP_PURCHASE: 'Kjøp i butikk (for eksempel Kiogeskabet)',
-    EVENT_PAYMENT: 'Arrangementsbetaling',
-    CABIN_BOOKING: 'Hyttebooking',
-    DEPOSIT: 'Innskudd',
-    PAYOUT: 'Utbetaling',
-    REFUND: 'Refusjon',
+// The relations are nullable, for example on transactions migrated from OmegaWeb Basic, so each
+// title falls back to naming the purpose alone.
+export const transactionTitles: Record<LedgerTransactionPurpose, (transaction: ExpandedLedgerTransaction) => string> = {
+    SHOP_PURCHASE: transaction => (
+        transaction.purchase ? `Kjøp i ${transaction.purchase.shop.name}` : 'Kjøp i butikk'
+    ),
+    EVENT_PAYMENT: transaction => {
+        const event = (
+            transaction.eventRegistration?.quota?.variant ?? transaction.eventRegistration?.waitingListVariant
+        )?.event
+        return event ? `Påmelding til ${event.name}` : 'Arrangementsbetaling'
+    },
+    CABIN_BOOKING: transaction => (
+        transaction.booking
+            ? `Hyttebooking ${displayDate(transaction.booking.start, false)} `
+                + `– ${displayDate(transaction.booking.end, false)}`
+            : 'Hyttebooking'
+    ),
+    DEPOSIT: () => 'Innskudd',
+    PAYOUT: () => 'Utbetaling',
+    REFUND: () => 'Refusjon',
 }
 
 export const transactionStateNames: Record<LedgerTransactionState, string> = {
@@ -58,7 +72,7 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
         ?? transaction.eventRegistration?.waitingListVariant
 
     return <div className="w-[min(500px,90vw)] m-6 flex flex-col gap-2">
-        <h3>{transactionPurposeNames[transaction.purpose]}</h3>
+        <h3>{transactionTitles[transaction.purpose](transaction)}</h3>
 
         <DetailRow label="Dato" value={displayDate(transaction.createdAt)} />
         <DetailRow label="Status" value={transactionStateNames[transaction.state]} />

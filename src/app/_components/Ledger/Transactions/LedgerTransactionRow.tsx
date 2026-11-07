@@ -1,6 +1,6 @@
 'use client'
 
-import LedgerTransactionDetails, { transactionPurposeNames, transactionStateNames } from './LedgerTransactionDetails'
+import LedgerTransactionDetails, { transactionStateNames, transactionTitles } from './LedgerTransactionDetails'
 import PopUp from '@/components/PopUp/PopUp'
 import { displayAmount } from '@/lib/currency/convert'
 import { displayDate } from '@/lib/dates/displayDate'
@@ -39,7 +39,7 @@ export default function LedgerTransactionRow({ transaction, accountId }: Props) 
         customShowButton={open => (
             <tr className={rowClassName} onClick={open}>
                 <td>{displayDate(transaction.createdAt)}</td>
-                <td>{transaction.description ?? transactionPurposeNames[transaction.purpose]}</td>
+                <td>{transaction.description ?? transactionTitles[transaction.purpose](transaction)}</td>
                 <td>{transactionStateNames[transaction.state]}</td>
                 <td className="text-right"><b>{displayAmount(totalFunds)}</b></td>
                 <td className="text-right">
