@@ -4,7 +4,7 @@ import MobileNavBarItems from './MobileNavBarItems'
 import MobileMagicHat from './MobileMagicHat'
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
-import type { NavLink } from './navDef'
+import type { NavLink } from '@/lib/navDef/navDef'
 
 type PropTypes = {
     isLoggedIn: boolean

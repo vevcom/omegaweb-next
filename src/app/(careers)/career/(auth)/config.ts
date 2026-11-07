@@ -9,4 +9,5 @@ export const careersAuthPages: AuthPagesConfig = {
     afterLogoutPath: '',
     accountNotice: 'Contactor er karrieresiden til linjeforeningen Omega ved NTNU, og brukeren du lager her er en '
         + 'bruker på Omegas nettsider. Den samme brukeren gjelder både på Contactor og på Omegaveven.',
+    asksSex: false,
 }

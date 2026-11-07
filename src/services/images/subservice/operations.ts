@@ -15,13 +15,14 @@ import { uniqueCollectionWhere } from './collections'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError, Smorekopp } from '@/services/error'
+import { StoreUnavailableError } from '@/lib/store/implementStore'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import type { StandardImage } from '@/prisma-generated-pn-types'
 
 export const imageOperations = {
     destroyCollection: defineSubOperation({
         paramsSchema: () => imageSchemas.params.destroyCollection,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: () => async ({ prisma, params }) => {
             const collection = await prisma.imageCollection.findUnique({
                 where: uniqueCollectionWhere(params),
@@ -186,7 +187,7 @@ export const imageOperations = {
     replaceImageFile: defineSubOperation({
         paramsSchema: () => imageSchemas.params.replaceImageFile,
         dataSchema: () => imageSchemas.data.replaceImageFile,
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: (
             { allowedExtensions }: { allowedExtensions: readonly ImageExtension[] }
         ) => async ({ prisma, params, data: { imageFile } }) => {
@@ -280,10 +281,12 @@ export const imageOperations = {
                 })
                 return { success: true }
             } catch (error) {
+                // A store outage says nothing about the image, so the attempt the claim counted is
+                // given back, and the image is tried again once its claim goes stale.
                 await prisma.image.update({
                     where: { id: image.id },
                     data: {
-                        processingAttempts: { increment: 1 },
+                        processingAttempts: error instanceof StoreUnavailableError ? { decrement: 1 } : undefined,
                         processingError: String(error),
                     }
                 })

@@ -4,7 +4,6 @@ import EditModeProvider from '@/contexts/EditMode'
 import PopUpProvider from '@/contexts/PopUp'
 import ClientDataProvider from '@/contexts/ClientData'
 import { PageTitleProvider } from '@/contexts/PageTitle'
-import GlobalSearchProvider from '@/contexts/GlobalSearch'
 import DomainContextProvider from '@/contexts/DomainContextProvider'
 import { DomainContext } from '@/lib/sites/context'
 import { domainContextOfRequest } from '@/app/domainContextOfRequest'
@@ -90,15 +89,13 @@ export default async function RootLayout({ children }: PropTypes) {
                             defaultPermissions={defaultPermissions}
                             standardImages={standardImages}
                         >
-                            <GlobalSearchProvider>
-                                <EditModeProvider>
-                                    <PopUpProvider>
-                                        <PageTitleProvider>
-                                            {children}
-                                        </PageTitleProvider>
-                                    </PopUpProvider>
-                                </EditModeProvider>
-                            </GlobalSearchProvider>
+                            <EditModeProvider>
+                                <PopUpProvider>
+                                    <PageTitleProvider>
+                                        {children}
+                                    </PageTitleProvider>
+                                </PopUpProvider>
+                            </EditModeProvider>
                         </ClientDataProvider>
                     </DomainContextProvider>
                 </SessionProvider>

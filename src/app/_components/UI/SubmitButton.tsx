@@ -37,6 +37,8 @@ export default function SubmitButton({
     pending,
     onClick,
     disabled,
+    name,
+    value,
 }: {
     children: ReactNode,
     generalErrors?: ErrorMessage[],
@@ -47,6 +49,9 @@ export default function SubmitButton({
     pending?: boolean,
     onClick?: React.MouseEventHandler<HTMLButtonElement>,
     disabled?: boolean,
+    /** Sent as a field when this button submits, for a form with more than one way to submit. */
+    name?: string,
+    value?: string,
 }) {
     const formStatus = useFormStatus()
     pending ??= formStatus.pending
@@ -96,6 +101,8 @@ export default function SubmitButton({
                 type="submit"
                 onClick={onClick}
                 disabled={disabled}
+                name={name}
+                value={value}
             >
                 {renderButtonContent(label)}
             </Button>
@@ -188,6 +195,8 @@ export default function SubmitButton({
                 <button
                     ref={realSubmitRef}
                     type="submit"
+                    name={name}
+                    value={value}
                     onClick={onClick}
                     disabled={disabled}
                     aria-hidden="true"

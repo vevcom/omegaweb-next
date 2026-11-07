@@ -1,5 +1,6 @@
 import getCommittee from './getCommittee'
 import Nav from './Nav'
+import { committeeNavDef } from './committeeNavDef'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
@@ -10,10 +11,11 @@ import { Require } from '@/auth/authorizer/Require'
 import type { LayoutOperationArgs } from '@/app/ServerPage'
 
 export default serverLayout({
-    operation: async ({ params }: LayoutOperationArgs<{ shortName: string }>) => ({
-        committee: await getCommittee(params.shortName),
-        shortNameParam: params.shortName,
-    }),
+    operation: async ({ params, session }: LayoutOperationArgs<{ shortName: string }>) => {
+        const committee = await getCommittee(params.shortName)
+        const navDef = committeeNavDef({ shortName: params.shortName, groupId: committee.groupId })
+        return { committee, navLinks: navDef.visible(session) }
+    },
     capabilities: ({ committee }) => ({
         // A pensioned committee is history: the service refuses every change to it, so the
         // editing controls are not offered on any of its pages either.
@@ -22,7 +24,7 @@ export default serverLayout({
             Require.custom(() => !committee.group.pensioned, { errorMessage: 'Komitéen er pensjonert' }),
         ),
     }),
-    render: ({ data: { committee, shortNameParam }, capabilities, children }) => (
+    render: ({ data: { committee, navLinks }, capabilities, children }) => (
         <div className="grid grid-rows-[1fr_auto] h-full min-h-0">
             <ScrollArea className="min-h-0 rounded-round mb-2 overflow-hidden">
                 <CommitteeImage
@@ -42,7 +44,7 @@ export default serverLayout({
                     { children }
                 </PageWrapper>
             </ScrollArea>
-            <Nav shortName={shortNameParam} groupId={committee.groupId} />
+            <Nav links={navLinks} />
         </div>
     ),
 })

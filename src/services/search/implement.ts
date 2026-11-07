@@ -5,7 +5,7 @@ import type { SearchResult, SearchReturn } from './types'
 import type { AuthorizerGetter, PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Awaitable } from '@/lib/awaitable'
 
-export type SearchFindArgs<PrismaWhereFilter extends object | undefined> = {
+export type SearchFindArgs<PrismaWhereFilter extends object | undefined, Config = void> = {
     prisma: PrismaPossibleTransaction<boolean>,
     /** What to match, trimmed. Empty narrows nothing, so every row is then a match. */
     query: string,
@@ -13,6 +13,8 @@ export type SearchFindArgs<PrismaWhereFilter extends object | undefined> = {
     take: number | undefined,
     /** What the authorizer attached, such as the filter of `Require.visibilityFilter()`. */
     prismaWhereFilter: PrismaWhereFilter | undefined,
+    /** What the operation was made for, such as the page-kit config of the site searching. */
+    config: Config,
 }
 
 /**
@@ -23,8 +25,12 @@ export type SearchFindArgs<PrismaWhereFilter extends object | undefined> = {
  * `toSearchResult` is how the service shows up in the global search. A page passes its search
  * box through as it is and no limit: an empty query narrows nothing, and without a limit every
  * match is returned. The global search always has a query and passes a limit.
+ *
+ * The operation is made for a config, which `find` and `toSearchResult` get: a service with pages
+ * on several sites takes the page-kit config of the site, so the results link to its pages and
+ * match only what it shows. A service with nothing to vary takes no config, and is called with `()`.
  */
-export function implementSearchOperation<Row, PrismaWhereFilter extends object | undefined = undefined>({
+export function implementSearchOperation<Row, Config = void, PrismaWhereFilter extends object | undefined = undefined>({
     authorizer,
     find,
     toSearchResult,
@@ -32,10 +38,10 @@ export function implementSearchOperation<Row, PrismaWhereFilter extends object |
     authorizer: AuthorizerGetter<
         boolean, typeof searchSchemas.params.search, undefined, undefined, PrismaWhereFilter | undefined
     >,
-    find: (args: SearchFindArgs<PrismaWhereFilter>) => Awaitable<Row[]>,
-    toSearchResult: (row: Row) => SearchResult,
+    find: (args: SearchFindArgs<PrismaWhereFilter, Config>) => Awaitable<Row[]>,
+    toSearchResult: (row: Row, config: Config) => SearchResult,
 }) {
-    return defineOperation({
+    return (config: Config) => defineOperation({
         paramsSchema: searchSchemas.params.search,
         authorizer,
         operation: async ({ prisma, params }, prismaWhereFilter): Promise<SearchReturn<Row>> => {
@@ -44,8 +50,9 @@ export function implementSearchOperation<Row, PrismaWhereFilter extends object |
                 query: params.query,
                 take: params.limit,
                 prismaWhereFilter,
+                config,
             })
-            return { rows, searchResults: rows.map(toSearchResult) }
+            return { rows, searchResults: rows.map(row => toSearchResult(row, config)) }
         },
     })
 }

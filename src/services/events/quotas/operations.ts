@@ -77,7 +77,7 @@ export const eventQuotaOperations = {
         authorizer: async ({ params, prisma }) => eventQuotaAuth.create.data(
             await readEventAccess(prisma, await readEventIdOfVariant(prisma, params.variantId))
         ),
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
             const eventId = await readEventIdOfVariant(prisma, params.variantId)
             const { quota, promoted } = await prisma.$transaction(async tx => {
@@ -96,7 +96,7 @@ export const eventQuotaOperations = {
         authorizer: async ({ params, prisma }) => eventQuotaAuth.update.data(
             await readEventAccess(prisma, await readEventIdOfQuota(prisma, params.id))
         ),
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
             const quota = await prisma.eventQuota.findUniqueOrThrow({
                 where: { id: params.id },
@@ -117,7 +117,7 @@ export const eventQuotaOperations = {
         authorizer: async ({ params, prisma }) => eventQuotaAuth.destroy.data(
             await readEventAccess(prisma, await readEventIdOfQuota(prisma, params.id))
         ),
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
             const quota = await prisma.eventQuota.findUniqueOrThrow({
                 where: { id: params.id },
@@ -134,14 +134,12 @@ export const eventQuotaOperations = {
                 )
             }
 
-            await prisma.$transaction(async tx => {
-                await tx.eventQuota.delete({ where: { id: params.id } })
-                await visibilityOperations.destroy.internalCall({
-                    prisma: tx,
-                    params: { visibilityId: quota.visibilityId },
-                })
-                await assertSeenThroughQuotas(tx, quota.variant.eventId)
+            await prisma.eventQuota.delete({ where: { id: params.id } })
+            await visibilityOperations.destroy.internalCall({
+                prisma,
+                params: { visibilityId: quota.visibilityId },
             })
+            await assertSeenThroughQuotas(prisma, quota.variant.eventId)
         },
     }),
 
@@ -151,7 +149,7 @@ export const eventQuotaOperations = {
         authorizer: async ({ params, prisma }) => eventQuotaAuth.reorder.data(
             await readEventAccess(prisma, await readEventIdOfVariant(prisma, params.variantId))
         ),
-        opensTransaction: true,
+        transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
             const eventId = await readEventIdOfVariant(prisma, params.variantId)
             const promoted = await prisma.$transaction(async tx => {

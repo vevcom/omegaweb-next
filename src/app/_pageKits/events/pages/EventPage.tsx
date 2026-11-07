@@ -12,6 +12,8 @@ import ConnectEventToLedgerForm from '@/components/Event/ConnectEventToLedgerFor
 import EventPaymentSection from '@/components/Event/EventPaymentSection'
 import EventSidebarSection from '@/components/Event/EventSidebarSection'
 import EventInfoRow from '@/components/Event/EventInfoRow'
+import EventNotificationsAdmin from '@/components/Event/EventNotificationsAdmin'
+import NotificationSubscriptionTree from '@/components/Notifications/NotificationSubscriptionTree'
 import EventLocationMap from '@/components/Event/EventLocationMap'
 import CreateOrUpdateEventForm from '@/components/Event/CreateOrUpdateEventForm'
 import EventTag from '@/components/Event/EventTag'
@@ -23,6 +25,7 @@ import DraftBanner from '@/components/UI/DraftBanner'
 import {
     DeleteHeaderItemPopUp,
     EditHeaderItemPopUp,
+    NotificationHeaderItemPopUp,
     PaymentHeaderItemPopUp,
     UsersHeaderItemPopUp,
     VariantsHeaderItemPopUp,
@@ -38,6 +41,7 @@ import {
 } from '@/services/events/actions'
 import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
+import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { configureAction } from '@/services/configureAction'
@@ -45,6 +49,7 @@ import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { eventAuth } from '@/services/events/auth'
 import { eventVariantAuth } from '@/services/events/variants/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
+import { eventNotificationAuth } from '@/services/events/notifications/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { Require } from '@/auth/authorizer/Require'
@@ -140,6 +145,17 @@ export function eventPage(config: EventPagesConfig) {
                 eventPaymentCustomerSessionSecret = customerSession?.customerSessionClientSecret
             }
 
+            const channelsOfEvent = [
+                event.notificationChannel,
+                event.infoNotificationChannel,
+                event.generalNotificationChannel,
+            ]
+            const subscriptions = session.user
+                ? await notificationSubscriptionOperations.read({
+                    params: { userId: session.user.id, channelIds: channelsOfEvent.map(channel => channel.id) },
+                })
+                : []
+
             // For giving dots after the event; readable by those administrating it.
             const eventHasEnded = event.eventEnd < new Date()
             const notAttended = event.takesRegistration && eventHasEnded
@@ -158,6 +174,8 @@ export function eventPage(config: EventPagesConfig) {
                 eventPaymentBalance,
                 eventPaymentCustomerSessionSecret,
                 notAttended,
+                channelsOfEvent,
+                subscriptions,
             }
         },
         capabilities: (data, session) => ({
@@ -174,6 +192,7 @@ export function eventPage(config: EventPagesConfig) {
                 ...data.access,
                 accounts: data.ledgerAccounts.map(account => account.ownership),
             }),
+            canCreateNotification: eventNotificationAuth.createNotification.data(data.access),
             canReadRegistrations: eventRegistrationAuth.readPage.data(data.access),
             canReadRegistrationsDetailed: eventRegistrationAuth.readPageDetailed.data(data.access),
             canRegisterAsAdmin: eventRegistrationAuth.createAsAdmin.data(data.access),
@@ -302,6 +321,11 @@ export function eventPage(config: EventPagesConfig) {
                                     />
                                 </UsersHeaderItemPopUp>
                             )}
+                            {capabilities.canCreateNotification.authorized && (
+                                <NotificationHeaderItemPopUp scale={30} popUpKey="EventNotifications" ariaLabel="Varsle">
+                                    <EventNotificationsAdmin event={event} eventHref={links.event(event)} />
+                                </NotificationHeaderItemPopUp>
+                            )}
                             {event.takesRegistration && capabilities.canTakeAttendance.authorized && (
                                 <HeaderItemLink
                                     href={links.attendance(event)}
@@ -427,6 +451,16 @@ export function eventPage(config: EventPagesConfig) {
                         )) : (
                             <EventSidebarSection title="Påmelding">
                                 <p className="text-base-content/80">Dette arrangementet tar ikke påmelding.</p>
+                            </EventSidebarSection>
+                        )}
+
+                        {session.user && (
+                            <EventSidebarSection title="Varslinger">
+                                <NotificationSubscriptionTree
+                                    userId={session.user.id}
+                                    channels={data.channelsOfEvent}
+                                    subscriptions={data.subscriptions}
+                                />
                             </EventSidebarSection>
                         )}
                     </aside>

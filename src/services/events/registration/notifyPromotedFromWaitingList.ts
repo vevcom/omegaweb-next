@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { notificationOperations } from '@/services/notifications/operations'
+import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
 import logger from '@/lib/logger'
@@ -7,11 +7,11 @@ import { escapeHtml } from '@/lib/html/escapeHtml'
 
 /**
  * Tells the ones whose registrations were promoted from the waiting list of an event to one of its
- * places: users through the notification channel for it, guests by mail to the address they left,
+ * places: users through the info channel of the event, guests by mail to the address they left,
  * if any. Call it only once the change that promoted them is saved.
  */
 export async function notifyPromotedFromWaitingList(
-    event: { id: number, name: string },
+    event: { id: number, name: string, infoNotificationChannelId: number },
     registrations: { userId: number | null, contact: { email: string | null } | null }[],
 ) {
     const title = 'Opprykk fra venteliste ved Omegas nettsider'
@@ -27,10 +27,8 @@ export async function notifyPromotedFromWaitingList(
     ))
 
     if (userIds.length) {
-        await notificationOperations.createSpecial.internalCall({
-            params: {
-                special: 'EVENT_WAITINGLIST_PROMOTION',
-            },
+        await eventNotificationOperations.internal.createInfoNotification.internalCall({
+            params: { channelId: event.infoNotificationChannelId },
             data: {
                 title,
                 message,

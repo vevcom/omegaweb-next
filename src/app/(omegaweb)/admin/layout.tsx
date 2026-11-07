@@ -1,15 +1,11 @@
 import SlideSidebar from './SlideSidebar'
-import { visibleAdminNav } from '@/app/(omegaweb)/admin/adminNavDef'
+import { adminNavDef } from '@/app/(omegaweb)/admin/adminNavDef'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { serverLayout } from '@/app/ServerPage'
 import type { LayoutOperationArgs } from '@/app/ServerPage'
 
 export default serverLayout({
-    // Only what the sidebar renders crosses into it - the authorizers stay on the server.
-    operation: ({ session }: LayoutOperationArgs) => visibleAdminNav(session).map(group => ({
-        header: group.header,
-        links: group.links.map(({ title, path }) => ({ title, path })),
-    })),
+    operation: ({ session }: LayoutOperationArgs) => adminNavDef.visible(session),
     render: ({ data: navigation, children }) => (
         <div className="
             max-w-full flex flex-row relative p-0

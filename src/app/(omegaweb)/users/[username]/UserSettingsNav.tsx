@@ -1,5 +1,5 @@
 import Button from '@/components/UI/Button'
-import { userNavHref, visibleUserNavItems } from '@/app/(omegaweb)/users/[username]/userNavDef'
+import { userNavDef } from '@/app/(omegaweb)/users/[username]/userNavDef'
 import { ServerSession } from '@/auth/session/ServerSession'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -12,11 +12,7 @@ import type { UserNavSubject } from '@/app/(omegaweb)/users/[username]/userNavDe
  */
 export default async function UserSettingsNav({ username, userId }: UserNavSubject) {
     const session = await ServerSession.fromNextAuth()
-    const items = visibleUserNavItems(
-        'settings',
-        { username, userId },
-        authorizer => authorizer.auth(session).authorized,
-    )
+    const items = userNavDef({ username, userId }).settings.visible(session)
 
     if (items.length === 0) return null
 
@@ -37,7 +33,7 @@ export default async function UserSettingsNav({ username, userId }: UserNavSubje
             </summary>
             <div className="flex flex-col items-center gap-2">
                 {items.map(item => (
-                    <SiteLink key={item.name} href={userNavHref(username, item)}>
+                    <SiteLink key={item.key} href={item.href}>
                         <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
                             <FontAwesomeIcon icon={item.icon} />
                             <p className="w-[8em]">{item.name}</p>

@@ -116,7 +116,7 @@ const changeClassOfUser = defineOperation({
     paramsSchema: classSchemas.params.changeClassOfUser,
     dataSchema: classSchemas.data.changeClassOfUser,
     authorizer: () => classAuth.changeClassOfUser,
-    opensTransaction: true,
+    transaction: 'RUNS_IN',
     operation: async ({ prisma, params, data }) => {
         const targetClass = await prisma.class.findUniqueOrThrow({
             where: { level: data.level },
@@ -127,71 +127,69 @@ const changeClassOfUser = defineOperation({
         })
         const order = params.order ?? targetClass.group.order
 
-        const membership = await prisma.$transaction(async tx => {
-            const classMembershipsOfUser = {
-                userId: params.userId,
-                group: { groupType: GroupType.CLASS },
-            }
+        const classMembershipsOfUser = {
+            userId: params.userId,
+            group: { groupType: GroupType.CLASS },
+        }
 
-            // One per order: any other class the user is registered in for this order makes way.
-            await tx.membership.deleteMany({
-                where: {
-                    ...classMembershipsOfUser,
-                    order,
-                    groupId: { not: targetClass.groupId },
-                },
-            })
+        // One per order: any other class the user is registered in for this order makes way.
+        await prisma.membership.deleteMany({
+            where: {
+                ...classMembershipsOfUser,
+                order,
+                groupId: { not: targetClass.groupId },
+            },
+        })
 
-            await tx.membership.upsert({
-                where: {
-                    userId_groupId_order: {
-                        userId: params.userId,
-                        groupId: targetClass.groupId,
-                        order,
-                    },
-                },
-                create: {
+        await prisma.membership.upsert({
+            where: {
+                userId_groupId_order: {
                     userId: params.userId,
                     groupId: targetClass.groupId,
                     order,
-                    admin: false,
-                    active: false,
                 },
-                update: {},
-            })
+            },
+            create: {
+                userId: params.userId,
+                groupId: targetClass.groupId,
+                order,
+                admin: false,
+                active: false,
+            },
+            update: {},
+        })
 
-            // One active, and it is the membership of the highest order - which is the one just
-            // placed unless the user already had a later one.
-            await tx.membership.updateMany({
-                where: classMembershipsOfUser,
-                data: { active: false },
-            })
-            const highest = await tx.membership.findFirstOrThrow({
-                where: classMembershipsOfUser,
-                orderBy: { order: 'desc' },
-                select: { groupId: true, order: true },
-            })
-            await tx.membership.update({
-                where: {
-                    userId_groupId_order: {
-                        userId: params.userId,
-                        groupId: highest.groupId,
-                        order: highest.order,
-                    },
+        // One active, and it is the membership of the highest order - which is the one just
+        // placed unless the user already had a later one.
+        await prisma.membership.updateMany({
+            where: classMembershipsOfUser,
+            data: { active: false },
+        })
+        const highest = await prisma.membership.findFirstOrThrow({
+            where: classMembershipsOfUser,
+            orderBy: { order: 'desc' },
+            select: { groupId: true, order: true },
+        })
+        await prisma.membership.update({
+            where: {
+                userId_groupId_order: {
+                    userId: params.userId,
+                    groupId: highest.groupId,
+                    order: highest.order,
                 },
-                data: { active: true },
-            })
+            },
+            data: { active: true },
+        })
 
-            await invalidateOneUserSessionData(tx, params.userId)
-            return tx.membership.findUniqueOrThrow({
-                where: {
-                    userId_groupId_order: {
-                        userId: params.userId,
-                        groupId: targetClass.groupId,
-                        order,
-                    },
+        await invalidateOneUserSessionData(prisma, params.userId)
+        const membership = prisma.membership.findUniqueOrThrow({
+            where: {
+                userId_groupId_order: {
+                    userId: params.userId,
+                    groupId: targetClass.groupId,
+                    order,
                 },
-            })
+            },
         })
 
         return membership
@@ -215,7 +213,7 @@ const changeClassOfUser = defineOperation({
  */
 const bumpClasses = defineOperation({
     authorizer: () => classAuth.bumpClasses,
-    opensTransaction: true,
+    transaction: 'RUNS_IN',
     operation: async ({ prisma }) => {
         const { order: currentOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -279,27 +277,25 @@ const bumpClasses = defineOperation({
             }]
         })
 
-        const { deactivated } = await prisma.$transaction(async tx => {
-            const { count } = await tx.membership.updateMany({
-                where: {
-                    active: true,
-                    order: { lt: currentOrder },
-                    group: {
-                        groupType: GroupType.CLASS,
-                        class: { level: { not: 'GRADUATED' } },
-                    },
+        const { count } = await prisma.membership.updateMany({
+            where: {
+                active: true,
+                order: { lt: currentOrder },
+                group: {
+                    groupType: GroupType.CLASS,
+                    class: { level: { not: 'GRADUATED' } },
                 },
-                data: { active: false },
-            })
-
-            await tx.membership.createMany({
-                data: newMemberships,
-                skipDuplicates: true,
-            })
-            await invalidateManyUserSessionData(tx, userIds)
-
-            return { deactivated: count }
+            },
+            data: { active: false },
         })
+
+        await prisma.membership.createMany({
+            data: newMemberships,
+            skipDuplicates: true,
+        })
+        await invalidateManyUserSessionData(prisma, userIds)
+
+        const { deactivated } = { deactivated: count }
 
         return { bumped: newMemberships.length, deactivated }
     }

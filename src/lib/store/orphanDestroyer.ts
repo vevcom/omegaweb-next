@@ -51,9 +51,13 @@ export function createOrphanDestroyer(store: Store, {
 
     /**
      * @param now The time of the run. Only tests pass it.
+     * @param onBatch Called after each batch, since a large store takes a while to go through.
      * @returns how many files were destroyed.
      */
-    return async function destroyOrphans(now: number = Date.now()): Promise<number> {
+    return async function destroyOrphans({ now = Date.now(), onBatch }: {
+        now?: number,
+        onBatch?: () => void,
+    } = {}): Promise<number> {
         const stillUnreferenced = new Map<string, number>()
         let removed = 0
         let failed: unknown[] = []
@@ -80,6 +84,7 @@ export function createOrphanDestroyer(store: Store, {
                 // Tried again on the next run.
                 stillUnreferenced.set(orphans[index], unreferencedSince.get(orphans[index]) ?? now)
             }
+            onBatch?.()
         }
 
         unreferencedSince = stillUnreferenced

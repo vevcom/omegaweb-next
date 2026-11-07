@@ -3,16 +3,15 @@ import useOnNavigation from '@/hooks/useOnNavigation'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import useKeyPress from '@/hooks/useKeyPress'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import { appHref } from '@/lib/sites/href'
 import { Fragment, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBars, faXmark } from '@fortawesome/free-solid-svg-icons'
-import type { AdminNavGroup, AdminNavLink } from '@/app/(omegaweb)/admin/adminNavDef'
+import type { NavGroupLinks } from '@/lib/navDef/groupedNavDef'
 
 type PropTypes = {
-    /** The groups of `adminNavDef` the session may open, as `visibleAdminNav` leaves them. */
-    navigation: (Omit<AdminNavGroup, 'links'> & { links: Pick<AdminNavLink, 'title' | 'path'>[] })[]
+    /** The groups of `adminNavDef` the session may open. */
+    navigation: NavGroupLinks[]
 }
 
 /**
@@ -86,15 +85,15 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                             {
                                 group.links.map(link => (
                                     <SiteLink
-                                        key={link.title}
-                                        href={appHref(`/admin/${link.path}`)}
+                                        key={link.key}
+                                        href={link.href}
                                         className={`
                                             no-underline py-3 px-4 ml-6 transition-colors duration-300
                                             hover:text-primary
-                                            ${link.path === currentPath ? 'text-primary' : 'text-base-content'}
+                                            ${link.key === currentPath ? 'text-primary' : 'text-base-content'}
                                         `}
                                     >
-                                        {link.title}
+                                        {link.name}
                                     </SiteLink>
                                 ))
                             }

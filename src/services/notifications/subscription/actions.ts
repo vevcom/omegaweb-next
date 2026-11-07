@@ -2,4 +2,4 @@
 import { makeAction } from '@/services/serverAction'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 
-export const updateNotificationSubscriptionsAction = makeAction(notificationSubscriptionOperations.update)
+export const updateNotificationSubscriptionAction = makeAction(notificationSubscriptionOperations.update)

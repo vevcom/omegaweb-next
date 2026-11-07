@@ -186,12 +186,10 @@ const writeUserLevel = defineSubOperation({
 const updateUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.params.updateUserLevel,
     authorizer: () => omegaMembershipGroupAuth.updateUserLevel,
-    opensTransaction: true,
+    transaction: 'RUNS_IN',
     operation: async ({ prisma, params }) => {
-        await prisma.$transaction(async tx => {
-            await writeUserLevel.internalCall({ params, prisma: tx })
-            await invalidateOneUserSessionData(tx, params.userId)
-        })
+        await writeUserLevel.internalCall({ params, prisma })
+        await invalidateOneUserSessionData(prisma, params.userId)
     }
 })
 
@@ -213,8 +211,6 @@ const updateUserLevel = defineOperation({
 const readUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.params.readUserLevel,
     authorizer: ({ params }) => omegaMembershipGroupAuth.readUserLevel.data({ userId: params.userId }),
-    // Putting a broken membership right goes through updateUserLevel, which opens a transaction.
-    opensTransaction: true,
     operation: async ({ prisma, params }): Promise<{ level: OmegaMembershipLevel, order: number }> => {
         const omegaMemberships = await readActiveOmegaMemberships(prisma, params.userId)
 
@@ -261,10 +257,9 @@ const updateUserOrder = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.params.updateUserOrder,
     dataSchema: omegaMembershipGroupSchemas.data.updateUserOrder,
     authorizer: () => omegaMembershipGroupAuth.updateUserOrder,
-    opensTransaction: true,
+    transaction: 'RUNS_IN',
     operation: async ({ prisma, params, data }) => {
-        // Read before the transaction is opened: a user whose memberships are in a broken state is
-        // put right first, and that writes.
+        // A user whose memberships are in a broken state is put right first, and that writes.
         const current = await readUserLevel({
             params: { userId: params.userId },
             bypassAuth: true,
@@ -283,27 +278,25 @@ const updateUserOrder = defineOperation({
             throw new ServiceError('BAD DATA', `Den ${data.order}'dis orden finnes ikke.`)
         }
 
-        await prisma.$transaction([
-            // The membership is unique on user, group and order, so anything already sitting where
-            // this one is moving to is the same membership recorded twice and makes way for it.
-            prisma.membership.deleteMany({
-                where: {
+        // The membership is unique on user, group and order, so anything already sitting where
+        // this one is moving to is the same membership recorded twice and makes way for it.
+        await prisma.membership.deleteMany({
+            where: {
+                userId: params.userId,
+                groupId: group.groupId,
+                order: data.order,
+            },
+        })
+        await prisma.membership.update({
+            where: {
+                userId_groupId_order: {
                     userId: params.userId,
                     groupId: group.groupId,
-                    order: data.order,
+                    order: current.order,
                 },
-            }),
-            prisma.membership.update({
-                where: {
-                    userId_groupId_order: {
-                        userId: params.userId,
-                        groupId: group.groupId,
-                        order: current.order,
-                    },
-                },
-                data: { order: data.order },
-            }),
-        ])
+            },
+            data: { order: data.order },
+        })
 
         // The memberships a session carries hold the order they are of.
         await invalidateOneUserSessionData(prisma, params.userId)

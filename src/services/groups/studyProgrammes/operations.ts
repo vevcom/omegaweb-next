@@ -70,7 +70,7 @@ const create = defineOperation({
 const upsertMany = defineOperation({
     dataSchema: studyProgrammeSchemas.data.upsertMany,
     authorizer: () => studyProgrammeAuth.upsertMany,
-    opensTransaction: true,
+    transaction: 'RUNS_IN',
     operation: async ({ prisma, data }) => {
         if (data.studyProgrammes.length === 0) return []
 
@@ -91,7 +91,7 @@ const upsertMany = defineOperation({
 
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
-        const created = await prisma.$transaction(
+        const created = await Promise.all(
             missing.map(studyProgramme => prisma.studyProgramme.create({
                 data: {
                     ...studyProgramme,
@@ -135,17 +135,17 @@ const update = defineOperation({
 const destroy = defineOperation({
     paramsSchema: studyProgrammeSchemas.params.destroy,
     authorizer: () => studyProgrammeAuth.destroy,
-    opensTransaction: true,
-    operation: async ({ prisma, params }) => prisma.$transaction(async tx => {
-        const studyProgramme = await tx.studyProgramme.delete({
+    transaction: 'RUNS_IN',
+    operation: async ({ prisma, params }) => {
+        const studyProgramme = await prisma.studyProgramme.delete({
             where: { id: params.id },
         })
         await groupOperations.destroy.internalCall({
-            prisma: tx,
+            prisma,
             params: { groupId: studyProgramme.groupId },
         })
         return studyProgramme
-    })
+    }
 })
 
 /**

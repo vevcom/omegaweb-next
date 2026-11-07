@@ -80,13 +80,13 @@ export const omegaOrderOperations = {
      * @throws BAD PARAMETERS if any requirement from `readRequirements` is unfulfilled.
      */
     create: defineOperation({
-        opensTransaction: true,
+        transaction: 'RUNS_IN',
         authorizer: () => omegaOrderAuth.create,
         // The requirements are read on the transaction that writes the new order, so the order they
         // were checked against is the one incremented. Two increments at once still race; the loser
         // runs into the unique order and is turned away as a duplicate.
-        operation: async ({ prisma }) => await prisma.$transaction(async tx => {
-            const requirements = await omegaOrderOperations.readRequirements({ prisma: tx, bypassAuth: true })
+        operation: async ({ prisma }) => {
+            const requirements = await omegaOrderOperations.readRequirements({ prisma, bypassAuth: true })
             const unfulfilled = requirements.filter(requirement => !requirement.fulfilled)
 
             if (unfulfilled.length) {
@@ -98,15 +98,15 @@ export const omegaOrderOperations = {
                 )
             }
 
-            const { order: oldOrder } = await omegaOrderOperations.readCurrent({ prisma: tx, bypassAuth: true })
+            const { order: oldOrder } = await omegaOrderOperations.readCurrent({ prisma, bypassAuth: true })
             const newOrder = oldOrder + 1
 
-            await tx.omegaOrder.create({
+            await prisma.omegaOrder.create({
                 data: {
                     order: newOrder
                 }
             })
-            await tx.group.updateMany({
+            await prisma.group.updateMany({
                 where: {
                     groupType: { in: groupTypesMigratedStraightAway },
                     order: { lt: newOrder },
@@ -115,7 +115,7 @@ export const omegaOrderOperations = {
                     order: newOrder
                 }
             })
-        }),
+        },
     }),
     readCurrent: defineOperation({
         authorizer: () => omegaOrderAuth.readCurrent,

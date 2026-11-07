@@ -54,7 +54,7 @@ const generateStandardImageFromConfig = defineSubOperation({
  */
 const updateStandardImageFromConfig = defineSubOperation({
     paramsSchema: () => standardImageCollectionSchemas.params.updateStandardImageFromConfig,
-    opensTransaction: true,
+    transaction: 'OPENS',
     operation: () => async ({ prisma, params }) => {
         const config = standardImageConfig[params.standardImage]
         const image = await prisma.image.findUniqueOrThrow({

@@ -18,7 +18,7 @@ export const allNotificationMethodsOff: NotificationMethodGeneral = {
     push: false,
 }
 
-export const notificationMethodTypes = ['availableMethods', 'defaultMethods'] as const
+export const notificationMethodTypes = ['availableMethods'] as const
 export const notificationMethodsArray = [
     'email',
     'emailWeekly',

@@ -43,6 +43,7 @@ const dataFieldSchemas = z.object({
     tagIds: Zpn.numberListCheckboxFriendly({ label: 'Tagger' }),
 
     published: Zpn.checkboxOrBoolean({ label: 'Publisert' }),
+    notifyAboutChange: Zpn.checkboxOrBoolean({ label: 'Varsle de påmeldte' }).default(false),
 
     // Created with an empty admin visibility the event would be administrable by anyone until
     // someone narrowed it. A requirement with no conditions can never be satisfied, and so means
@@ -114,7 +115,7 @@ export const eventSchemas = {
         })
             .refine(waitingListRefiner, waitingListMessage)
             .refine(bindingRegistrationRefiner, bindingRegistrationMessage),
-        update: dataFieldSchemas.pick(eventFields).partial(),
+        update: dataFieldSchemas.pick({ ...eventFields, notifyAboutChange: true }).partial(),
         setPublished: dataFieldSchemas.pick({
             published: true,
         }),

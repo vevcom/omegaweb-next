@@ -128,6 +128,14 @@ export default function CreateOrUpdateEventForm({ event, config, eventTags, comm
                 </>}
             </FormSection>
 
+            {event && <FormSection legend="Varsling">
+                <Checkbox name="notifyAboutChange" label="Varsle de påmeldte om endringen" />
+                <p className="m-0 text-s text-base-content/80">
+                    Endrer du tid eller sted, bør de som er meldt på få beskjed. De får varselet i kanalen for viktig
+                    informasjon om arrangementet.
+                </p>
+            </FormSection>}
+
             {event ? (
                 <FormSection legend="Påmelding" columns={2}>
                     <p className="m-0 col-span-full text-s text-base-content/80">
