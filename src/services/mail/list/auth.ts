@@ -17,9 +17,14 @@ export const mailingListAuth = {
         .or()
         .permission('MAIL_LIST_CREATE')
         .visibility({ key: 'ownerVisibility', errorMessage: 'Du må selv være blant eierne av e-postlisten' }),
-    readMany: Require.allOf(marksOwnedBySelf, Require.permission('MAILSERVER_USE').or().user()).filter(({ session }) => ({
-        ownerVisibility: visibilityFilter(session.memberships),
-    })),
+    /** Listing takes owning at least one, given every list's owner matrix, and lists those; MAILSERVER_USE lists all. */
+    readMany: Require.allOf(
+        marksOwnedBySelf,
+        Require.permission('MAILSERVER_USE').or().anyVisibility({
+            key: 'mailingListOwnerVisibilities',
+            errorMessage: 'Bare eierne av en e-postliste ser e-postlistene',
+        }),
+    ).filter(({ session }) => ({ ownerVisibility: visibilityFilter(session.memberships) })),
     readTraversal: Require.allOf(readsMailingList, marksOwnedBySelf),
     readVisibility: readsMailingList,
     update: ownsMailingList,

@@ -1,6 +1,8 @@
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { Session } from '@/auth/session/Session'
+import { adminNavDef } from '@/app/(omegaweb)/admin/adminNavDef'
+import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operations'
@@ -10,6 +12,7 @@ import { userPrivateSelection } from '@/services/users/constants'
 import { COMMITTEE_PERMISSIONS } from '@/seeder/src/permissions'
 import { afterEach, describe, expect, test } from '@jest/globals'
 import type { Permission } from '@/prisma-generated-pn-types'
+import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { UserFiltered } from '@/services/users/types'
 
@@ -120,8 +123,10 @@ describe('reading the mail server as an owner', () => {
         )
 
         const asOther = memberSession(member, [others.membership])
-        expect(await aliasOperations.readMany({ params: {}, session: asOther })).toStrictEqual([])
-        expect(await mailingListOperations.readMany({ params: {}, session: asOther })).toStrictEqual([])
+        await rejectsSaying(aliasOperations.readMany({ params: {}, session: asOther }), 'eierne av et alias')
+        await rejectsSaying(mailingListOperations.readMany({ params: {}, session: asOther }), 'eierne av en e-postliste')
+        expect(await mailOperations.readMailOptions({ session: asOther }))
+            .toStrictEqual({ alias: [], mailingList: [], mailaddressExternal: [] })
         await expect(aliasOperations.visibility.readMatrix({ params: { id: ownAlias.id }, session: asOther }))
             .rejects.toThrow(Smorekopp)
         await expect(mailTraversalReadOfType.mailingList({
@@ -168,6 +173,28 @@ describe('reading the mail server as an owner', () => {
         const asMember = memberSession(member, [])
         await rejectsSaying(mailAddressExternalOperations.readMany({ session: asMember }), 'eierne av en e-postliste')
         expect((await mailOperations.readMailOptions({ session: asMember })).mailaddressExternal).toStrictEqual([])
+    })
+
+    test('the admin navs offer the mail server to the owners of a list, and to no other plain member', async () => {
+        const owners = await createGroup('nav-owners')
+        const others = await createGroup('nav-others')
+        const member = await createUser('nav-member')
+        await mailingListOperations.create({
+            data: {
+                name: 'test-nav',
+                description: '',
+                ownerRequirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId: owners.id }] }],
+            },
+            bypassAuth: true,
+        })
+
+        const keysOf = async (session: SessionMaybeUser) =>
+            (await adminNavDef.visible(session)).flatMap(group => group.links.map(link => link.key))
+        expect(await keysOf(memberSession(member, [owners.membership]))).toContain('mail/mailingList')
+        expect(await keysOf(memberSession(member, [others.membership]))).not.toContain('mail/mailingList')
+        expect((await careerAdminNavDef.visible(memberSession(member, [owners.membership]))).map(link => link.key))
+            .toContain('mail')
+        await expect(careerAdminNavDef.authorizeAny(memberSession(member, [others.membership]))).rejects.toThrow(Smorekopp)
     })
 
     test('a group\'s members and a user themselves read their own traversal', async () => {

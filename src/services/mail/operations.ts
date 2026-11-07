@@ -181,7 +181,10 @@ export const mailOperations = {
         operationImplementationFields: { type: 'user' },
     }),
 
-    /** What the session may wire: the aliases and lists it reads, and the external addresses if it may list them. */
+    /**
+     * What the session may wire: of aliases, lists and external addresses, those it may list, and
+     * none of a kind it may not.
+     */
     readMailOptions: defineOperation({
         authorizer: () => mailAuth.readMailOptions,
         operation: async (): Promise<{
@@ -190,12 +193,9 @@ export const mailOperations = {
             mailaddressExternal: MailAddressExternal[],
         }> => {
             const [alias, mailingList, mailaddressExternal] = await Promise.all([
-                aliasOperations.readMany({ params: {} }),
-                mailingListOperations.readMany({ params: {} }),
-                mailAddressExternalOperations.readMany({}).catch((error: unknown) => {
-                    if (error instanceof Smorekopp && error.errorCode === 'UNAUTHORIZED') return []
-                    throw error
-                }),
+                noneWhenUnauthorized(aliasOperations.readMany({ params: {} })),
+                noneWhenUnauthorized(mailingListOperations.readMany({ params: {} })),
+                noneWhenUnauthorized(mailAddressExternalOperations.readMany({})),
             ])
 
             return { alias, mailingList, mailaddressExternal }
@@ -211,3 +211,10 @@ export const mailTraversalReadOfType = {
     group: mailOperations.readGroupTraversal,
     user: mailOperations.readUserTraversal,
 } as const satisfies Record<MailListTypes, unknown>
+
+function noneWhenUnauthorized<Row>(read: Promise<Row[]>): Promise<Row[]> {
+    return read.catch((error: unknown) => {
+        if (error instanceof Smorekopp && error.errorCode === 'UNAUTHORIZED') return []
+        throw error
+    })
+}

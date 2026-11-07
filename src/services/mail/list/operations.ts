@@ -5,7 +5,9 @@ import { defineOperation } from '@/services/serviceOperation'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementVisibilityOperations } from '@/services/visibility/implement'
 import { mailTraversalOperations } from '@/services/mail/traversal/operations'
-import { markOwned, ownerVisibilityIncluder, readMembershipsToMark } from '@/services/mail/owned'
+import {
+    markOwned, ownerVisibilityIncluder, readMailingListOwnerMatrices, readMembershipsToMark,
+} from '@/services/mail/owned'
 import type { MailingList } from '@/prisma-generated-pn-types'
 import type { MailingListWithOwned } from '@/services/mail/types'
 
@@ -54,7 +56,10 @@ export const mailingListOperations = {
 
     readMany: defineOperation({
         paramsSchema: mailingListSchemas.params.readMany,
-        authorizer: ({ params }) => mailingListAuth.readMany.data({ markOwnedByUserId: params.markOwnedByUserId }),
+        authorizer: async ({ params, prisma }) => mailingListAuth.readMany.data({
+            mailingListOwnerVisibilities: await readMailingListOwnerMatrices({ prisma }),
+            markOwnedByUserId: params.markOwnedByUserId,
+        }),
         operation: async ({ prisma, params }, prismaWhereFilter): Promise<MailingListWithOwned[]> => {
             const [lists, memberships] = await Promise.all([
                 prisma.mailingList.findMany({ where: prismaWhereFilter, include: ownerVisibilityIncluder }),

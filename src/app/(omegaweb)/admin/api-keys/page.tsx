@@ -14,7 +14,7 @@ const popUpKey = 'createApiKey'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('api-keys', session)
+        await authorizeAdminPage('api-keys', session)
         return apiKeyOperations.readMany({})
     },
     capabilities: () => ({

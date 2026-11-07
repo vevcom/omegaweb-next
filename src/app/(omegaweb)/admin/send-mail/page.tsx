@@ -15,7 +15,7 @@ const { page, generateMetadata } = serverPage({
         // The aliases the session reads are the ones it may send from. Owning one is enough to send
         // from it, so an owner opens the page without the permission that puts it in the nav.
         const aliases = await withFallback(aliasOperations.readMany({ params: {} }), [])
-        if (aliases.length === 0) authorizeAdminPage('send-mail', session)
+        if (aliases.length === 0) await authorizeAdminPage('send-mail', session)
         const mailingLists = await withFallback(mailingListOperations.readMany({ params: {} }), [])
         const fromAliasId = Number(searchParams.from) || null
         return { aliases, mailingLists, fromAliasId }

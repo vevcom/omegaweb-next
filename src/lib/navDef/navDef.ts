@@ -1,9 +1,22 @@
+import '@pn-server-only'
+import { prisma } from '@/prisma-pn-client-instance'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
+import type { Awaitable } from '@/lib/awaitable'
+import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { AppHref, ExternalHref } from '@/lib/sites/href'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 
 export type NavAuthorizer = Authorizer<UserRequiredOutOpt, object | undefined>
+
+/**
+ * What an item builds its authorizers with: the database, for a rule that needs data from it, such
+ * as the owner matrices of every mailing list. The same as an operation's authorizer gets, so an
+ * item supplies a rule its data the way the operation of the page does.
+ */
+export type NavAuthorizerContext = {
+    prisma: PrismaPossibleTransaction<false>,
+}
 
 export type NavItem = {
     /** What the code calls the item: `href` and `authorize` take it. */
@@ -15,8 +28,9 @@ export type NavItem = {
      * The authorizers of the page the item points at, and passing **any** of them is enough to be
      * shown it, so a link is never offered to a page that would turn the viewer away. Filtering
      * authorizers are welcome: only whether they pass is looked at, not the filter they hand back.
+     * A rule that needs data reads it through the context, as the page's operation would.
      */
-    authorizers: () => NavAuthorizer[],
+    authorizers: (context: NavAuthorizerContext) => Awaitable<NavAuthorizer[]>,
     /**
      * Who the entry is worded for, not who may open it: some pages are offered under one name to
      * visitors and another to members. Left out, the entry is for everyone the authorizers let in.
@@ -42,10 +56,18 @@ export type AppNavLink = NavLink<NavItem & { href: AppHref }>
 export function defineNavDef<const Item extends NavItem>(items: readonly Item[]) {
     type Key = Item['key']
 
-    function authorizers({ except }: { except?: Key } = {}): NavAuthorizer[] {
-        return items
+    const context: NavAuthorizerContext = { prisma }
+
+    async function authorizers({ except }: { except?: Key } = {}): Promise<NavAuthorizer[]> {
+        const ofItems = await Promise.all(items
             .filter(item => item.key !== except)
-            .flatMap(item => item.authorizers())
+            .map(async item => item.authorizers(context)))
+        return ofItems.flat()
+    }
+
+    async function opens(item: Item, session: SessionMaybeUser): Promise<boolean> {
+        const itemAuthorizers = await item.authorizers(context)
+        return itemAuthorizers.some(authorizer => authorizer.auth(session).authorized)
     }
 
     function itemOf<ItemKey extends Key>(key: ItemKey): Extract<Item, { key: ItemKey }> {
@@ -58,11 +80,13 @@ export function defineNavDef<const Item extends NavItem>(items: readonly Item[])
         items,
 
         /** The items the session may open and is the audience of, in order. */
-        visible(session: SessionMaybeUser): NavLink<Item>[] {
+        async visible(session: SessionMaybeUser): Promise<NavLink<Item>[]> {
             const loggedIn = session.user !== null
-            return items
+            const ofAudience = items
                 .filter(item => item.audience === undefined || (item.audience === 'loggedIn') === loggedIn)
-                .filter(item => item.authorizers().some(authorizer => authorizer.auth(session).authorized))
+            const opened = await Promise.all(ofAudience.map(item => opens(item, session)))
+            return ofAudience
+                .filter((item, index) => opened[index])
                 .map(({ key, name, href, icon }) => ({ key, name, href, icon }))
         },
 
@@ -81,13 +105,13 @@ export function defineNavDef<const Item extends NavItem>(items: readonly Item[])
          *
          * @throws A service error when the session passes none of them.
          */
-        authorize(key: Key, session: SessionMaybeUser) {
-            requireAny(itemOf(key).authorizers(), session)
+        async authorize(key: Key, session: SessionMaybeUser): Promise<void> {
+            requireAny(await itemOf(key).authorizers(context), session)
         },
 
         /** Guards a page that anyone with any item of the nav to open may see. */
-        authorizeAny(session: SessionMaybeUser) {
-            requireAny(authorizers(), session)
+        async authorizeAny(session: SessionMaybeUser): Promise<void> {
+            requireAny(await authorizers(), session)
         },
     }
 }

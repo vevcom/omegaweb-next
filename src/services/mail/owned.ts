@@ -38,6 +38,14 @@ export function administrates(groupId: number, memberships: MembershipFiltered[]
     return memberships.some(membership => membership.groupId === groupId && membership.active && membership.admin)
 }
 
+/** The owner matrices of every alias, for a rule that asks whether the session owns any alias at all. */
+export async function readAliasOwnerMatrices({ prisma }: {
+    prisma: PrismaPossibleTransaction<false>,
+}): Promise<VisibilityMatrix[]> {
+    const aliases = await prisma.mailAlias.findMany({ select: ownerVisibilityIncluder })
+    return aliases.map(alias => toMatrix(alias.ownerVisibility))
+}
+
 /** The owner matrices of every mailing list, for a rule that asks whether the session owns any list at all. */
 export async function readMailingListOwnerMatrices({ prisma }: {
     prisma: PrismaPossibleTransaction<false>,

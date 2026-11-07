@@ -17,9 +17,14 @@ export const mailAliasAuth = {
         .or()
         .permission('MAIL_ALIAS_CREATE')
         .visibility({ key: 'ownerVisibility', errorMessage: 'Du må selv være blant eierne av aliaset' }),
-    readMany: Require.allOf(marksOwnedBySelf, Require.permission('MAILSERVER_USE').or().user()).filter(({ session }) => ({
-        ownerVisibility: visibilityFilter(session.memberships),
-    })),
+    /** Listing takes owning at least one, given every alias's owner matrix, and lists those; MAILSERVER_USE lists all. */
+    readMany: Require.allOf(
+        marksOwnedBySelf,
+        Require.permission('MAILSERVER_USE').or().anyVisibility({
+            key: 'aliasOwnerVisibilities',
+            errorMessage: 'Bare eierne av et alias ser aliasene',
+        }),
+    ).filter(({ session }) => ({ ownerVisibility: visibilityFilter(session.memberships) })),
     readTraversal: Require.allOf(readsAlias, marksOwnedBySelf),
     readVisibility: readsAlias,
     update: ownsAlias,

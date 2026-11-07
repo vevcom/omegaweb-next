@@ -12,7 +12,7 @@ const allowedAsDefault = permissionsAllowedAsDefault()
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('default-permissions', session)
+        await authorizeAdminPage('default-permissions', session)
         return permissionOperations.readDefaultPermissions({})
     },
     capabilities: () => ({

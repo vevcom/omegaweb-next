@@ -18,7 +18,7 @@ function statusOf(highlight: ExpandedCareerFrontpageHighlight, now: Date) {
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        careerAdminNavDef.authorize('highlights', session)
+        await careerAdminNavDef.authorize('highlights', session)
         const [highlights, targets] = await Promise.all([
             careerFrontpageHighlightOperations.readMany({}),
             careerFrontpageHighlightOperations.readTargets({}),

@@ -22,9 +22,9 @@ export const metadata: Metadata = {
  */
 export default serverLayout({
     allowUnregistered: true,
-    operation: ({ session }: LayoutOperationArgs) => ({
+    operation: async ({ session }: LayoutOperationArgs) => ({
         loggedIn: session.user !== null,
-        hasAdminPages: revueAdminNavDef.visible(session).length > 0,
+        hasAdminPages: (await revueAdminNavDef.visible(session)).length > 0,
     }),
     render: ({ data, children }) => (
         <div className="min-h-dvh flex flex-col bg-base-100 text-base-content">
