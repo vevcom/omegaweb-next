@@ -12,8 +12,6 @@ import { apiKeyAuth } from '@/services/apiKeys/auth'
 import { sendMailAuth } from '@/services/notifications/sendMail/auth'
 import { omegaMailServerLinks } from '@/app/(omegaweb)/admin/mail/links'
 import { manualNotificationChannelAuth } from '@/services/notifications/channels/manual/auth'
-import { mailAliasAuth } from '@/services/mail/alias/auth'
-import { mailingListAuth } from '@/services/mail/list/auth'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
 import { dotAuth } from '@/services/dots/auth'
 import { dotFreezePeriodAuth } from '@/services/dots/freezePeriods/auth'
@@ -205,19 +203,19 @@ export const adminNavDef = defineGroupedNavDef([
                 key: 'mail/mailingList',
                 name: 'E-postlister',
                 href: omegaMailServerLinks.part('mailingList'),
-                authorizers: () => [mailAliasAuth.create, mailingListAuth.create, mailAddressExternalAuth.readMany],
+                authorizers: () => [mailAddressExternalAuth.readMany],
             },
             {
                 key: 'mail/alias',
                 name: 'E-postalias',
                 href: omegaMailServerLinks.part('alias'),
-                authorizers: () => [mailAliasAuth.create, mailingListAuth.create, mailAddressExternalAuth.readMany],
+                authorizers: () => [mailAddressExternalAuth.readMany],
             },
             {
                 key: 'mail/mailaddressExternal',
                 name: 'Eksterne adresser',
                 href: omegaMailServerLinks.part('mailaddressExternal'),
-                authorizers: () => [mailAliasAuth.create, mailingListAuth.create, mailAddressExternalAuth.readMany],
+                authorizers: () => [mailAddressExternalAuth.readMany],
             },
         ],
     },

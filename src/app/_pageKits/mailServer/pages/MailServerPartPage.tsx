@@ -20,9 +20,11 @@ import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 import type { MailServerPart } from '@/pageKits/mailServer/links'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
+// Whether the create form is offered. Who the creator makes the owners is checked when they submit,
+// so an empty matrix, which passes everyone, asks about the permissions alone.
 const createAuth = {
-    alias: () => mailAliasAuth.create,
-    mailingList: () => mailingListAuth.create,
+    alias: () => mailAliasAuth.create.data({ ownerVisibility: { requirements: [] } }),
+    mailingList: () => mailingListAuth.create.data({ ownerVisibility: { requirements: [] } }),
     mailaddressExternal: () => mailAddressExternalAuth.create,
 } as const
 

@@ -12,7 +12,6 @@ import {
     destroyMailAliasAction,
 } from '@/services/mail/alias/actions'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
-import { mailAuth } from '@/services/mail/auth'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import useSiteRouter from '@/hooks/useSiteRouter'
@@ -46,11 +45,10 @@ export default function EditMailAlias({
     // An alias on a domain that has since left the config stays editable as it is.
     const domainOptions = domains.includes(domain) ? domains : [domain, ...domains]
 
-    const canUpdateAlias = useAuthorizer({ authorizer: mailAliasAuth.update }).authorized
-    const canDestroyAlias = useAuthorizer({ authorizer: mailAliasAuth.destroy }).authorized
-    const canUpdateOwners = useAuthorizer({ authorizer: mailAliasAuth.updateVisibility }).authorized
-    const canAddRelation = useAuthorizer({
-        authorizer: mailAuth.createAliasMailingListRelation
+    const canUpdateAlias = useAuthorizer({ authorizer: mailAliasAuth.update.data({ visibility: owners }) }).authorized
+    const canDestroyAlias = useAuthorizer({ authorizer: mailAliasAuth.destroy.data({ visibility: owners }) }).authorized
+    const canUpdateOwners = useAuthorizer({
+        authorizer: mailAliasAuth.updateVisibility.data({ visibility: owners }),
     }).authorized
 
     const connectedListIds = new Set(data.mailingList.map(list => list.id))
@@ -84,7 +82,7 @@ export default function EditMailAlias({
             />
         </div>}
 
-        {canAddRelation && availableLists.length > 0 && <Form
+        {availableLists.length > 0 && <Form
             title="Koble til e-postliste"
             submitText="Legg til"
             action={createAliasMailingListRelationAction}

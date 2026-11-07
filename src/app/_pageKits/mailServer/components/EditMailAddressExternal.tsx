@@ -10,7 +10,6 @@ import {
     destroyMailAddressExternalAction
 } from '@/services/mail/mailAddressExternal/actions'
 import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
-import { mailAuth } from '@/services/mail/auth'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import useSiteRouter from '@/hooks/useSiteRouter'
@@ -41,9 +40,6 @@ export default function EditMailAddressExternal({
     const canDestroyExternal = useAuthorizer({
         authorizer: mailAddressExternalAuth.destroy
     }).authorized
-    const canAddRelation = useAuthorizer({
-        authorizer: mailAuth.createMailingListExternalRelation
-    }).authorized
 
     const connectedListIds = new Set(data.mailingList.map(list => list.id))
     const availableLists = mailingLists.filter(list => !connectedListIds.has(list.id))
@@ -58,7 +54,7 @@ export default function EditMailAddressExternal({
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedExternal.description ?? ''} />
         </Form>}
 
-        {canAddRelation && availableLists.length > 0 && <Form
+        {availableLists.length > 0 && <Form
             title="Sett på e-postliste"
             submitText="Legg til"
             action={createMailingListExternalRelationAction}

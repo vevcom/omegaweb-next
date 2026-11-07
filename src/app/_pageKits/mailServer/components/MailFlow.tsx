@@ -6,8 +6,6 @@ import {
     destroyMailingListGroupRelationAction,
     destroyMailingListUserRelationAction
 } from '@/services/mail/actions'
-import { mailAuth } from '@/services/mail/auth'
-import useAuthorizer from '@/hooks/useAuthorizer'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
@@ -62,27 +60,15 @@ export default function MailFlow({
     const links = mailServerLinks(config)
     const [error, setError] = useState<string | null>(null)
 
-    const canDestroyAliasMailingListRelation = useAuthorizer({
-        authorizer: mailAuth.destroyAliasMailingListRelation
-    }).authorized
-    const canDestroyMailingListExternalRelation = useAuthorizer({
-        authorizer: mailAuth.destroyMailingListExternalRelation
-    }).authorized
-    const canDestroyMailingListUserRelation = useAuthorizer({
-        authorizer: mailAuth.destroyMailingListUserRelation
-    }).authorized
-    const canDestroyMailingListGroupRelation = useAuthorizer({
-        authorizer: mailAuth.destroyMailingListGroupRelation
-    }).authorized
-
     // Which relations are removable depends on which item is in focus - only relations directly
-    // to the focused item can be removed here, and never ones that follow from a via-path.
+    // to the focused item can be removed here, and never ones that follow from a via-path. Whether
+    // the viewer may remove one is the server's call, which answers with the rule.
     const aliasChips: Chip[] = data.alias.map(alias => ({
         type: 'alias',
         id: alias.id,
         label: alias.address,
         via: alias.via,
-        destroy: (filter === 'mailingList' && !alias.via && canDestroyAliasMailingListRelation)
+        destroy: (filter === 'mailingList' && !alias.via)
             ? () => destroyAliasMailingListRelationAction({ data: { mailingListId: id, mailAliasId: alias.id } })
             : undefined,
     }))
@@ -90,15 +76,15 @@ export default function MailFlow({
     const mailingListChips: Chip[] = data.mailingList.map(list => {
         let destroy
         if (!list.via) {
-            if (filter === 'alias' && canDestroyAliasMailingListRelation) {
+            if (filter === 'alias') {
                 destroy = () => destroyAliasMailingListRelationAction({ data: { mailAliasId: id, mailingListId: list.id } })
-            } else if (filter === 'mailaddressExternal' && canDestroyMailingListExternalRelation) {
+            } else if (filter === 'mailaddressExternal') {
                 destroy = () => destroyMailingListExternalRelationAction({
                     data: { mailAddressExternalId: id, mailingListId: list.id },
                 })
-            } else if (filter === 'user' && canDestroyMailingListUserRelation) {
+            } else if (filter === 'user') {
                 destroy = () => destroyMailingListUserRelationAction({ data: { userId: id, mailingListId: list.id } })
-            } else if (filter === 'group' && canDestroyMailingListGroupRelation) {
+            } else if (filter === 'group') {
                 destroy = () => destroyMailingListGroupRelationAction({ data: { groupId: id, mailingListId: list.id } })
             }
         }
@@ -116,7 +102,7 @@ export default function MailFlow({
         id: group.id,
         label: group.name,
         via: group.via,
-        destroy: (filter === 'mailingList' && !group.via && canDestroyMailingListGroupRelation)
+        destroy: (filter === 'mailingList' && !group.via)
             ? () => destroyMailingListGroupRelationAction({ data: { mailingListId: id, groupId: group.id } })
             : undefined,
     }))
@@ -131,7 +117,7 @@ export default function MailFlow({
             id: user.id,
             label: `${user.firstname} ${user.lastname}`,
             via: user.via,
-            destroy: (filter === 'mailingList' && !user.via && canDestroyMailingListUserRelation)
+            destroy: (filter === 'mailingList' && !user.via)
                 ? () => destroyMailingListUserRelationAction({ data: { mailingListId: id, userId: user.id } })
                 : undefined,
         }))
@@ -141,7 +127,7 @@ export default function MailFlow({
         id: external.id,
         label: external.address,
         via: external.via,
-        destroy: (filter === 'mailingList' && !external.via && canDestroyMailingListExternalRelation)
+        destroy: (filter === 'mailingList' && !external.via)
             ? () => destroyMailingListExternalRelationAction({
                 data: { mailingListId: id, mailAddressExternalId: external.id },
             })
@@ -152,7 +138,7 @@ export default function MailFlow({
         if (!chip.destroy) return
         const result = await chip.destroy()
         if (!result.success) {
-            setError(`Kunne ikke fjerne ${chip.label}.`)
+            setError(result.error?.map(message => message.message).join(' ') ?? `Kunne ikke fjerne ${chip.label}.`)
             return
         }
         setError(null)

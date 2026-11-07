@@ -19,6 +19,12 @@ const sessionWith = (permissions: Permission[]) => Session.fromJsObject({
     user: null,
 })
 
+/** The rule a refused call answers with, which the forms show. */
+const rejectsSaying = (call: Promise<unknown>, rule: string) => expect(call).rejects.toMatchObject({
+    errorCode: 'UNAUTHORIZED',
+    errors: expect.arrayContaining([expect.objectContaining({ message: expect.stringContaining(rule) })]),
+})
+
 /** A logged in user with no permissions, a member of the groups given. */
 const memberSession = (user: UserFiltered, memberships: MembershipFiltered[]) => Session.fromJsObject({
     memberships,
@@ -198,5 +204,99 @@ describe('mail server permissions', () => {
             session,
         })
         expect(await prisma.mailAliasMailingList.count({ where: { mailAliasId: alias.id } })).toBe(0)
+    })
+})
+
+describe('wiring the mail server as an owner', () => {
+    const activeIn = (groupId: number) => [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }]
+
+    test('a connection needs authority over both ends, cutting it over either', async () => {
+        const owners = await createGroup('wire-owners')
+        const led = await createGroup('wire-led')
+        const member = await createUser('wire-member')
+        const other = await createUser('wire-other')
+        const ownAlias = await aliasOperations.create({
+            data: {
+                localPart: 'test-wire', domain: 'omega.ntnu.no', description: '', ownerRequirements: activeIn(owners.id),
+            },
+            bypassAuth: true,
+        })
+        const ownList = await mailingListOperations.create({
+            data: { name: 'test-wire', description: '', ownerRequirements: activeIn(owners.id) },
+            bypassAuth: true,
+        })
+        const { alias: foreignAlias, list: foreignList } = await createAliasAndList('wire-foreign')
+        const external = await mailAddressExternalOperations.create({
+            data: { address: 'test-wire@example.com', description: '' },
+            bypassAuth: true,
+        })
+        const asOwner = memberSession(member, [owners.membership, { ...led.membership, admin: true }])
+
+        await mailOperations.createAliasMailingListRelation({
+            data: { mailAliasId: ownAlias.id, mailingListId: ownList.id }, session: asOwner,
+        })
+        await rejectsSaying(mailOperations.createAliasMailingListRelation({
+            data: { mailAliasId: ownAlias.id, mailingListId: foreignList.id }, session: asOwner,
+        }), 'Du kan bare koble til en e-postliste du eier')
+        await rejectsSaying(mailOperations.createAliasMailingListRelation({
+            data: { mailAliasId: foreignAlias.id, mailingListId: ownList.id }, session: asOwner,
+        }), 'Du kan bare koble til et alias du eier')
+
+        await mailOperations.createMailingListGroupRelation({
+            data: { mailingListId: ownList.id, groupId: led.id }, session: asOwner,
+        })
+        await rejectsSaying(mailOperations.createMailingListGroupRelation({
+            data: { mailingListId: ownList.id, groupId: owners.id }, session: asOwner,
+        }), 'gruppeleder')
+        await mailOperations.createMailingListUserRelation({
+            data: { mailingListId: ownList.id, userId: member.id }, session: asOwner,
+        })
+        await rejectsSaying(mailOperations.createMailingListUserRelation({
+            data: { mailingListId: ownList.id, userId: other.id }, session: asOwner,
+        }), 'Du kan bare sette deg selv på listen')
+        await mailOperations.createMailingListExternalRelation({
+            data: { mailingListId: ownList.id, mailAddressExternalId: external.id }, session: asOwner,
+        })
+
+        // A group's admin takes their group off a list they do not own; a member of neither cannot.
+        await mailOperations.createMailingListGroupRelation({
+            data: { mailingListId: foreignList.id, groupId: led.id }, bypassAuth: true,
+        })
+        await expect(mailOperations.destroyMailingListGroupRelation({
+            data: { mailingListId: foreignList.id, groupId: led.id }, session: memberSession(other, []),
+        })).rejects.toThrow(Smorekopp)
+        await mailOperations.destroyMailingListGroupRelation({
+            data: { mailingListId: foreignList.id, groupId: led.id }, session: asOwner,
+        })
+        expect(await prisma.mailingListGroup.count({ where: { mailingListId: foreignList.id } })).toBe(0)
+    })
+
+    test('a creator with the permission must be among the owners, and owners change what they own', async () => {
+        const owners = await createGroup('create-owners')
+        const others = await createGroup('create-others')
+        const member = await createUser('create-member')
+        const asCreator = Session.fromJsObject({
+            memberships: [owners.membership], permissions: ['MAIL_LIST_CREATE'], user: member,
+        })
+
+        await rejectsSaying(mailingListOperations.create({
+            data: { name: 'test-create-unowned', description: '' }, session: asCreator,
+        }), 'Du må selv være blant eierne')
+        await rejectsSaying(mailingListOperations.create({
+            data: { name: 'test-create-others', description: '', ownerRequirements: activeIn(others.id) },
+            session: asCreator,
+        }), 'Du må selv være blant eierne')
+        const list = await mailingListOperations.create({
+            data: { name: 'test-create-own', description: '', ownerRequirements: activeIn(owners.id) }, session: asCreator,
+        })
+
+        await mailingListOperations.update({
+            params: { id: list.id }, data: { name: 'test-create-own', description: 'Vår' }, session: asCreator,
+        })
+        await rejectsSaying(mailingListOperations.update({
+            params: { id: list.id },
+            data: { name: 'test-create-own', description: 'Deres' },
+            session: memberSession(member, [others.membership]),
+        }), 'Bare eierne av e-postlisten kan endre den')
     })
 })
