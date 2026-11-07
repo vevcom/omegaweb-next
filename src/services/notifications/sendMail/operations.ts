@@ -2,7 +2,8 @@ import '@pn-server-only'
 import { sendMailAuth } from './auth'
 import { sendMailSchemas } from './schemas'
 import { getMailHandler } from '@/lib/email/mailHandler'
-import { defineSubOperation } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import { aliasOperations } from '@/services/mail/alias/operations'
 import { resolveMailRecipients } from '@/services/mail/recipients'
 import { replaceSpecialSymbols } from '@/services/notifications/methods/helpers'
 import { Smorekopp } from '@/services/error'
@@ -81,5 +82,24 @@ export const sendMailOperations = {
         dataSchemaImplementationFields: undefined,
         paramsSchemaImplementationFields: undefined,
         operationImplementationFields: undefined,
+    }),
+
+    sendMailFromAlias: defineOperation({
+        paramsSchema: sendMailSchemas.params.sendMailFromAlias,
+        dataSchema: sendMailSchemas.data.sendMailFromAlias,
+        authorizer: async ({ params, prisma }) => sendMailAuth.sendMailFromAlias.data({
+            visibility: await aliasOperations.visibility.readMatrixInternal({ prisma, params: { id: params.aliasId } }),
+        }),
+        operation: async ({ prisma, params, data }) => {
+            const alias = await prisma.mailAlias.findUniqueOrThrow({
+                where: { id: params.aliasId },
+                select: { address: true },
+            })
+            // The sender takes its recipients as typed, so the parsed ones go back to one field.
+            return internal.sendMail.internalCall({
+                prisma,
+                data: { ...data, recipients: data.recipients.join(' '), from: alias.address },
+            })
+        },
     }),
 } as const

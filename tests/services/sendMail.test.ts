@@ -1,6 +1,8 @@
 import { prisma } from '@/prisma-pn-client-instance'
 import { Smorekopp } from '@/services/error'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { aliasOperations } from '@/services/mail/alias/operations'
+import { Session } from '@/auth/session/Session'
 import { userOperations } from '@/services/users/operations'
 import { recordSentMail } from 'tests/utils'
 import { beforeEach, describe, expect, test } from '@jest/globals'
@@ -102,5 +104,51 @@ describe('sending mail', () => {
             bypassAuth: true,
         })).rejects.toThrow()
         expect(sendBulkMail).not.toHaveBeenCalled()
+    })
+})
+
+describe('sending mail from an alias', () => {
+    const mail = { recipients: 'noen@example.com', mailingListIds: [], subject: 'Hei', text: 'Hei' }
+
+    test('the owners of an alias send from it; others may not, unless they may send from anything', async () => {
+        const { order } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+        const owners = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'sendmail-owners', shortName: 'sendmail-owners' } },
+            },
+        })
+        const user = await createUser('Eier')
+        const alias = await aliasOperations.create({
+            data: {
+                localPart: 'sendmail-owned',
+                domain: 'omega.ntnu.no',
+                description: '',
+                ownerRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: owners.id }] }],
+            },
+            bypassAuth: true,
+        })
+        const sessionOf = (memberships: { groupId: number }[], permissions: 'MAIL_USE'[] = []) => Session.fromJsObject({
+            memberships: memberships.map(membership => ({ ...membership, order, active: true, admin: false })),
+            permissions,
+            user,
+        })
+
+        await sendMailOperations.sendMailFromAlias({
+            params: { aliasId: alias.id }, data: mail, session: sessionOf([{ groupId: owners.id }]),
+        })
+        expect(sentMails().at(-1)).toMatchObject({ from: alias.address, to: 'noen@example.com' })
+
+        await expect(sendMailOperations.sendMailFromAlias({
+            params: { aliasId: alias.id }, data: mail, session: sessionOf([]),
+        })).rejects.toMatchObject({
+            errors: [{ message: expect.stringContaining('Du kan bare sende fra et alias du eier') }],
+        })
+
+        await sendMailOperations.sendMailFromAlias({
+            params: { aliasId: alias.id }, data: mail, session: sessionOf([], ['MAIL_USE']),
+        })
+        expect(sentMails()).toHaveLength(2)
     })
 })

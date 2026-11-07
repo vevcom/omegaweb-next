@@ -20,14 +20,11 @@ export const mailAuth = {
     createMailingListUserRelation: Require.permission('MAILSERVER_ADMIN')
         .or()
         .visibility(ownsList)
-        .userId({ errorMessage: 'Du kan bare sette deg selv på listen. E-posttjeneradministratorer kan sette på alle' }),
+        .userId({ errorMessage: 'Du kan bare sette deg selv på listen' }),
     createMailingListGroupRelation: Require.permission('MAILSERVER_ADMIN')
         .or()
         .visibility(ownsList)
-        .groupAdmin({
-            errorMessage: 'Du kan bare sette på en gruppe du er gruppeleder for.'
-                + ' E-posttjeneradministratorer kan sette på alle',
-        }),
+        .groupAdmin({ errorMessage: 'Du kan bare sette på en gruppe du er gruppeleder for' }),
     destroyAliasMailingListRelation: Require.permission('MAILSERVER_ADMIN')
         .or()
         .visibility({ key: 'aliasVisibility' })
