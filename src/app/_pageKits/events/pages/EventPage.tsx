@@ -56,7 +56,7 @@ import { Require } from '@/auth/authorizer/Require'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { notFound } from 'next/navigation'
-import { faCalendar, faLocationDot, faLock, faPeopleGroup, faQrcode } from '@fortawesome/free-solid-svg-icons'
+import { faCalendar, faCalendarPlus, faLocationDot, faLock, faPeopleGroup, faQrcode } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { EventAccess } from '@/services/events/types'
@@ -220,6 +220,40 @@ export function eventPage(config: EventPagesConfig) {
             const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
             const dotGiverId = capabilities.canGiveDots.authorized && session.user ? session.user.id : null
             const severalVariants = event.variants.length > 1
+
+            const formatICSDate = (date: globalThis.Date) => {
+                try {
+                    const parsedDate = new globalThis.Date(date)
+                    return `${parsedDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`
+                } catch {
+                    return ''
+                }
+            }
+
+            const escapeICSText = (value: string) => value
+                .replace(/\\/g, '\\\\')
+                .replace(/\r\n|\r|\n/g, '\\n')
+                .replace(/[,;]/g, character => `\\${character}`)
+
+            const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${formatICSDate(event.eventStart)}/${formatICSDate(event.eventEnd)}&details=${encodeURIComponent(`Arrangement: ${event.name}`)}&location=${encodeURIComponent(event.location || '')}`
+
+            const icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Veven//NONSGML Event Calendar//EN',
+                'BEGIN:VEVENT',
+                `UID:event-${event.id}@veven`,
+                `DTSTAMP:${formatICSDate(new globalThis.Date())}`,
+                `SUMMARY:${escapeICSText(event.name)}`,
+                `DTSTART:${formatICSDate(event.eventStart)}`,
+                `DTEND:${formatICSDate(event.eventEnd)}`,
+                `DESCRIPTION:Arrangement: ${escapeICSText(event.name)}`,
+                `LOCATION:${escapeICSText(event.location || '')}`,
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\r\n')
+
+            const icsHref = `data:text/calendar;charset=utf-8,${encodeURIComponent(icsContent)}`
 
             return (
                 <div className="w-full flex flex-wrap items-stretch gap-2">
@@ -387,6 +421,37 @@ export function eventPage(config: EventPagesConfig) {
                                     <DateDisplay date={event.eventEnd} includeTime />
                                 </span>
                             </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', margin: '4px 0 8px 0', fontSize: '0.9em' }}>
+                                <span style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <FontAwesomeIcon icon={faCalendarPlus} /> Legg til i kalender:
+                                </span>
+                                <div style={{ display: 'flex', gap: '8px', paddingLeft: '20px' }}>
+                                    <a
+                                        href={googleCalendarUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            color: 'var(--primary-color, #0070f3)',
+                                            textDecoration: 'underline',
+                                            fontWeight: '500'
+                                        }}
+                                    >
+                                        Google
+                                    </a>
+                                    <span>|</span>
+                                    <a
+                                        href={icsHref}
+                                        download={`${event.name}.ics`}
+                                        style={{
+                                            color: 'var(--primary-color, #0070f3)',
+                                            textDecoration: 'underline',
+                                            fontWeight: '500'
+                                        }}
+                                    >
+                                        iCal / Outlook
+                                    </a>
+                                </div>
+                            </div>
                             <p className={iconRowClassName}>
                                 <FontAwesomeIcon icon={faLocationDot} />
                                 <span>{event.location}</span>
