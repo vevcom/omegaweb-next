@@ -81,7 +81,7 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
         {canViewFees && accountEntry?.fees !== null && accountEntry?.fees !== undefined && (
             <DetailRow label="Gebyrendring" value={displayAmount(accountEntry.fees, false, true)} />
         )}
-        {transaction.description && <DetailRow label="Beskrivelse" value={transaction.description} />}
+        {transaction.description && <DetailRow label="Kommentar" value={transaction.description} />}
         {transaction.reason && <DetailRow label="Årsak" value={transaction.reason} />}
         {transaction.payment && (
             <DetailRow
