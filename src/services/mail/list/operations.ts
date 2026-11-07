@@ -12,7 +12,7 @@ const visibility = implementVisibilityOperations({
     implementationParamsSchema: mailingListSchemas.params.visibility,
     authorizers: {
         readMatrix: ({ matrix }) => mailingListAuth.readVisibility.data({ visibility: matrix }),
-        update: () => mailingListAuth.updateVisibility,
+        update: ({ matrix }) => mailingListAuth.updateVisibility.data({ visibility: matrix }),
     },
     readVisibility: async ({ prisma, implementationParams, include }) => (
         await prisma.mailingList.findUniqueOrThrow({
@@ -28,7 +28,7 @@ export const mailingListOperations = {
 
     create: defineOperation({
         dataSchema: mailingListSchemas.data.create,
-        authorizer: () => mailingListAuth.create,
+        authorizer: ({ data }) => mailingListAuth.create.data({ ownerVisibility: { requirements: data.ownerRequirements } }),
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data: { ownerRequirements, ...data } }): Promise<MailingList> => {
             const ownerVisibility = await visibilityOperations.createWithRequirements.internalCall({
@@ -58,7 +58,9 @@ export const mailingListOperations = {
     update: defineOperation({
         paramsSchema: mailingListSchemas.params.update,
         dataSchema: mailingListSchemas.data.update,
-        authorizer: () => mailingListAuth.update,
+        authorizer: async ({ params, prisma }) => mailingListAuth.update.data({
+            visibility: await visibility.readMatrixInternal({ prisma, params }),
+        }),
         operation: async ({ prisma, params, data }): Promise<MailingList> =>
             prisma.mailingList.update({
                 where: { id: params.id },
@@ -68,7 +70,9 @@ export const mailingListOperations = {
 
     destroy: defineOperation({
         paramsSchema: mailingListSchemas.params.destroy,
-        authorizer: () => mailingListAuth.destroy,
+        authorizer: async ({ params, prisma }) => mailingListAuth.destroy.data({
+            visibility: await visibility.readMatrixInternal({ prisma, params }),
+        }),
         transaction: 'RUNS_IN',
         operation: async ({ prisma, params }): Promise<MailingList> => {
             const destroyed = await prisma.mailingList.delete({

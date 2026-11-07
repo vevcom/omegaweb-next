@@ -13,7 +13,7 @@ const visibility = implementVisibilityOperations({
     implementationParamsSchema: mailAliasSchemas.params.visibility,
     authorizers: {
         readMatrix: ({ matrix }) => mailAliasAuth.readVisibility.data({ visibility: matrix }),
-        update: () => mailAliasAuth.updateVisibility,
+        update: ({ matrix }) => mailAliasAuth.updateVisibility.data({ visibility: matrix }),
     },
     readVisibility: async ({ prisma, implementationParams, include }) => (
         await prisma.mailAlias.findUniqueOrThrow({
@@ -29,7 +29,7 @@ export const aliasOperations = {
 
     create: defineOperation({
         dataSchema: mailAliasSchemas.data.create,
-        authorizer: () => mailAliasAuth.create,
+        authorizer: ({ data }) => mailAliasAuth.create.data({ ownerVisibility: { requirements: data.ownerRequirements } }),
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data: { ownerRequirements, ...data } }): Promise<MailAlias> => {
             const ownerVisibility = await visibilityOperations.createWithRequirements.internalCall({
@@ -59,7 +59,9 @@ export const aliasOperations = {
     update: defineOperation({
         paramsSchema: mailAliasSchemas.params.update,
         dataSchema: mailAliasSchemas.data.update,
-        authorizer: () => mailAliasAuth.update,
+        authorizer: async ({ params, prisma }) => mailAliasAuth.update.data({
+            visibility: await visibility.readMatrixInternal({ prisma, params }),
+        }),
         operation: async ({ prisma, params, data }): Promise<MailAlias> =>
             prisma.mailAlias.update({
                 where: { id: params.id },
@@ -69,7 +71,9 @@ export const aliasOperations = {
 
     destroy: defineOperation({
         paramsSchema: mailAliasSchemas.params.destroy,
-        authorizer: () => mailAliasAuth.destroy,
+        authorizer: async ({ params, prisma }) => mailAliasAuth.destroy.data({
+            visibility: await visibility.readMatrixInternal({ prisma, params }),
+        }),
         transaction: 'RUNS_IN',
         operation: async ({ prisma, params }): Promise<MailAlias> => {
             const alias = await prisma.mailAlias.findUniqueOrThrow({

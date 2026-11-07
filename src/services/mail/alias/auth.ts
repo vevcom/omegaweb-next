@@ -5,15 +5,23 @@ import { visibilityFilter } from '@/auth/visibility/visibilityFilter'
 const readsAlias = Require.permission('MAILSERVER_USE').or().visibility({
     errorMessage: 'Bare eierne av aliaset ser det',
 })
+/** An alias is changed by those who pass its owner visibility; MAILSERVER_ADMIN changes them all. */
+const ownsAlias = Require.permission('MAILSERVER_ADMIN').or().visibility({
+    errorMessage: 'Bare eierne av aliaset kan endre det',
+})
 
 export const mailAliasAuth = {
-    create: Require.permission('MAILSERVER_ADMIN'),
+    /** A creator with the permission must be among the owners they set, so the alias is theirs to go on with. */
+    create: Require.permission('MAILSERVER_ADMIN')
+        .or()
+        .permission('MAIL_ALIAS_CREATE')
+        .visibility({ key: 'ownerVisibility', errorMessage: 'Du må selv være blant eierne av aliaset' }),
     readMany: Require.permission('MAILSERVER_USE').or().user().filter(({ session }) => ({
         ownerVisibility: visibilityFilter(session.memberships),
     })),
     readTraversal: readsAlias,
     readVisibility: readsAlias,
-    update: Require.permission('MAILSERVER_ADMIN'),
-    updateVisibility: Require.permission('MAILSERVER_ADMIN'),
-    destroy: Require.permission('MAILSERVER_ADMIN'),
+    update: ownsAlias,
+    updateVisibility: ownsAlias,
+    destroy: ownsAlias,
 } as const

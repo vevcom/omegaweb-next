@@ -5,15 +5,23 @@ import { visibilityFilter } from '@/auth/visibility/visibilityFilter'
 const readsMailingList = Require.permission('MAILSERVER_USE').or().visibility({
     errorMessage: 'Bare eierne av e-postlisten ser den',
 })
+/** A mailing list is changed by those who pass its owner visibility; MAILSERVER_ADMIN changes them all. */
+const ownsMailingList = Require.permission('MAILSERVER_ADMIN').or().visibility({
+    errorMessage: 'Bare eierne av e-postlisten kan endre den',
+})
 
 export const mailingListAuth = {
-    create: Require.permission('MAILSERVER_ADMIN'),
+    /** A creator with the permission must be among the owners they set, so the list is theirs to go on with. */
+    create: Require.permission('MAILSERVER_ADMIN')
+        .or()
+        .permission('MAIL_LIST_CREATE')
+        .visibility({ key: 'ownerVisibility', errorMessage: 'Du må selv være blant eierne av e-postlisten' }),
     readMany: Require.permission('MAILSERVER_USE').or().user().filter(({ session }) => ({
         ownerVisibility: visibilityFilter(session.memberships),
     })),
     readTraversal: readsMailingList,
     readVisibility: readsMailingList,
-    update: Require.permission('MAILSERVER_ADMIN'),
-    updateVisibility: Require.permission('MAILSERVER_ADMIN'),
-    destroy: Require.permission('MAILSERVER_ADMIN'),
+    update: ownsMailingList,
+    updateVisibility: ownsMailingList,
+    destroy: ownsMailingList,
 } as const

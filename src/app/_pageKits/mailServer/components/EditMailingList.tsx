@@ -17,7 +17,6 @@ import {
     destroyMailingListAction,
 } from '@/services/mail/list/actions'
 import { mailingListAuth } from '@/services/mail/list/auth'
-import { mailAuth } from '@/services/mail/auth'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import useSiteRouter from '@/hooks/useSiteRouter'
@@ -50,20 +49,14 @@ export default function EditMailingList({
     const focusedMailingList = data.mailingList.find(list => list.id === id)
     if (!focusedMailingList) throw new Error('Fant ikke e-postlisten')
 
-    const canUpdateMailingList = useAuthorizer({ authorizer: mailingListAuth.update }).authorized
-    const canDestroyMailingList = useAuthorizer({ authorizer: mailingListAuth.destroy }).authorized
-    const canUpdateOwners = useAuthorizer({ authorizer: mailingListAuth.updateVisibility }).authorized
-    const canAddAliasRelation = useAuthorizer({
-        authorizer: mailAuth.createAliasMailingListRelation
+    const canUpdateMailingList = useAuthorizer({
+        authorizer: mailingListAuth.update.data({ visibility: owners }),
     }).authorized
-    const canAddGroupRelation = useAuthorizer({
-        authorizer: mailAuth.createMailingListGroupRelation
+    const canDestroyMailingList = useAuthorizer({
+        authorizer: mailingListAuth.destroy.data({ visibility: owners }),
     }).authorized
-    const canAddExternalRelation = useAuthorizer({
-        authorizer: mailAuth.createMailingListExternalRelation
-    }).authorized
-    const canAddUserRelation = useAuthorizer({
-        authorizer: mailAuth.createMailingListUserRelation
+    const canUpdateOwners = useAuthorizer({
+        authorizer: mailingListAuth.updateVisibility.data({ visibility: owners }),
     }).authorized
 
     // Only offer what is not already connected - the flow graphic is where existing
@@ -97,7 +90,7 @@ export default function EditMailingList({
             />
         </div>}
 
-        {canAddAliasRelation && availableAliases.length > 0 && <Form
+        {availableAliases.length > 0 && <Form
             title="Koble til alias"
             submitText="Legg til"
             action={createAliasMailingListRelationAction}
@@ -111,7 +104,7 @@ export default function EditMailingList({
             />
         </Form>}
 
-        {canAddGroupRelation && availableGroups.length > 0 && <Form
+        {availableGroups.length > 0 && <Form
             title="Legg til gruppe"
             submitText="Legg til"
             action={createMailingListGroupRelationAction}
@@ -125,7 +118,7 @@ export default function EditMailingList({
             />
         </Form>}
 
-        {canAddExternalRelation && availableExternal.length > 0 && <Form
+        {availableExternal.length > 0 && <Form
             title="Legg til ekstern adresse"
             submitText="Legg til"
             action={createMailingListExternalRelationAction}
@@ -150,6 +143,6 @@ export default function EditMailingList({
             }}
         />}
 
-        {canAddUserRelation && <AddUserToMailingList mailingListId={focusedMailingList.id} />}
+        <AddUserToMailingList mailingListId={focusedMailingList.id} />
     </>
 }

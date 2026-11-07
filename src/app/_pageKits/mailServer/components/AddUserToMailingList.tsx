@@ -22,7 +22,8 @@ export default function AddUserToMailingList({ mailingListId }: { mailingListId:
             data: { mailingListId, userId: user.id },
         })
         if (!result.success) {
-            setError(`Kunne ikke legge til ${user.firstname} ${user.lastname}.`)
+            setError(result.error?.map(message => message.message).join(' ')
+                ?? `Kunne ikke legge til ${user.firstname} ${user.lastname}.`)
             return
         }
         setError(null)

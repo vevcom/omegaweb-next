@@ -3,9 +3,12 @@ import { Require } from '@/auth/authorizer/Require'
 /**
  * External addresses have no owners: they are the pool any list owner may pick from. Reading them
  * takes a mail server permission, since an operation's authorizer cannot tell whether the session
- * owns a list. Only MAILSERVER_ADMIN changes them.
+ * owns a list, which also makes it what the admin navs offer the mail server pages on. Only
+ * MAILSERVER_ADMIN changes them.
  */
 const readsExternalAddresses = Require.permission('MAILSERVER_USE')
+    .or()
+    .permission('MAILSERVER_ADMIN')
     .or()
     .permission('MAIL_ALIAS_CREATE')
     .or()
