@@ -12,11 +12,13 @@ resources:
     - store-pvc.yaml
 
 configMapGenerator:
-    - name: omegaweb-next-config
-      behavior: merge
-      literals:
-          - WEBSITE_URL=http://omegaweb-next.localhost:8080
-          - NEXTAUTH_URL=http://omegaweb-next.localhost:8080
+    - name: omegaweb-next-sites
+      files:
+          - sites.json
+      # The migrate job in wave -1 mounts it too.
+      options:
+          annotations:
+              argocd.argoproj.io/sync-wave: "-3"
 
 images:
     - name: omegaweb-next
@@ -42,13 +44,13 @@ patches:
           kind: (Deployment|Job)
       patch: |-
           - op: add
-            path: /spec/template/spec/volumes
+            path: /spec/template/spec/volumes/-
             value:
-                - name: store
-                  persistentVolumeClaim:
-                      claimName: omegaweb-next-store
+                name: store
+                persistentVolumeClaim:
+                    claimName: omegaweb-next-store
           - op: add
-            path: /spec/template/spec/containers/0/volumeMounts
+            path: /spec/template/spec/containers/0/volumeMounts/-
             value:
-                - name: store
-                  mountPath: /usr/src/app/store
+                name: store
+                mountPath: /usr/src/app/store

@@ -15,6 +15,10 @@ spec:
             labels:
                 app.kubernetes.io/name: omegaweb-next
         spec:
+            volumes:
+                - name: sites
+                  configMap:
+                      name: omegaweb-next-sites
             containers:
                 - name: omegaweb-next
                   image: omegaweb-next
@@ -26,6 +30,10 @@ spec:
                             name: omegaweb-next-env
                       - configMapRef:
                             name: omegaweb-next-config
+                  volumeMounts:
+                      - name: sites
+                        mountPath: /etc/omegaweb-next
+                        readOnly: true
                   env:
                       - name: DB_URI
                         valueFrom:

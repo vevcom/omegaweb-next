@@ -15,8 +15,8 @@ spec:
     backup:
         retentionPolicy: 30d
         barmanObjectStore:
-            destinationPath: s3://CHANGE-ME/omegaweb-next-db
-            endpointURL: https://s3.stack.it.ntnu.no
+            destinationPath: s3://argo-prod-backup/omegaweb-next-db
+            endpointURL: https://s3.trd1.stack.it.ntnu.no
             # EC2 keys reach every bucket in the OpenStack project, so the store keys do.
             s3Credentials:
                 accessKeyId:

@@ -10,7 +10,7 @@ deploy/
 ├── base/              # The app, the worker, the migrate job and the database
 ├── overlays/
 │   ├── local/         # k3d on a workstation: locally built images, no TLS, store on disk or S3
-│   └── prod/          # sctomega.com: release images, TLS, backups, Phase secrets, S3 store
+│   └── prod/          # omega.ntnu.no and its sites: release images, TLS, backups, Phase secrets, S3 store
 └── k3d/               # Local cluster config and up.sh
 ```
 
@@ -65,11 +65,16 @@ The operator does not restart the app, so after changing a secret in Phase run
 
 Locally, `up.sh` makes `omegaweb-next-env` from `.env` instead.
 
+## Domains
+
+The sites' domains are in `sites.json` in each overlay, which every pod mounts and none start
+without. A changed file rolls the pods. A new host also goes in the overlay's ingress.
+
 ## The store
 
 Uploaded images, ombul pdfs and the release countdown's files go to S3 when
 `STORE_S3_BUCKET` is set, and to the `store/` directory otherwise. Prod uses NTNU's
-object storage at `https://s3.stack.it.ntnu.no`, and k3d and compose use the disk.
+object storage at `https://s3.trd1.stack.it.ntnu.no`, and k3d and compose use the disk.
 Object keys are the paths under `store/`, so a directory can be copied to the bucket as it is.
 
 Turn on versioning for the bucket, so a deleted file can be brought back after a database
@@ -77,7 +82,7 @@ restore:
 
 ```bash
 aws s3api put-bucket-versioning --bucket <bucket> --versioning-configuration Status=Enabled \
-    --endpoint-url https://s3.stack.it.ntnu.no
+    --endpoint-url https://s3.trd1.stack.it.ntnu.no
 ```
 
 NTNU does not back the bucket up, so copy it somewhere else nightly with `rclone copy`.
@@ -89,7 +94,7 @@ Use `copy`, not `sync`, so deletes never reach the copy.
    Traefik on Docker Swarm, so either use a fresh VM or plan a short outage
    for the switch.
 2. **Install Argo CD** with Helm, as in the local steps.
-3. **Fill in the TODOs.** Set the backup bucket in `overlays/prod/database-patch.yaml`, the store bucket in
+3. **Fill in the TODOs.** Check that `overlays/prod/sites.json` and `overlays/prod/ingress-patch.yaml` list the same hosts. Set the backup bucket in `overlays/prod/database-patch.yaml`, the store bucket in
    `overlays/prod/kustomization.yaml` and the Phase app id in `overlays/prod/phase-secret.yaml`.
 4. **Set up S3.** Create the store and backup buckets on stack.it, turn on versioning for
    the store, and make keys with `openstack ec2 credentials create`. Add the store keys to
@@ -125,4 +130,6 @@ Use `copy`, not `sync`, so deletes never reach the copy.
    ```
 
    Copy the `store` volume to the bucket with `rclone copy <store volume> s3:<bucket>`. Then
-   point DNS at the new box.
+   point DNS for every host in `overlays/prod/sites.json` at the new box, since one host that does
+   not resolve there keeps the shared certificate from being issued. Register
+   `https://<domain>/api/auth/callback/feide` at Feide for each domain.

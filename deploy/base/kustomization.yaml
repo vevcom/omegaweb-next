@@ -26,3 +26,7 @@ configMapGenerator:
           - LOG_TO_FILE=false
           - LOG_TO_FOLDER=false
           - HOSTNAME=0.0.0.0
+          # NextAuth serves every domain in sites.json on its own, so NEXTAUTH_URL stays unset.
+          - AUTH_TRUST_HOST=true
+          # Each overlay generates the omegaweb-next-sites ConfigMap this comes from.
+          - SITES_CONFIG=/etc/omegaweb-next/sites.json

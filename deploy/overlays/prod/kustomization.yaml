@@ -11,14 +11,19 @@ resources:
     - redirect-https.yaml
 
 configMapGenerator:
+    - name: omegaweb-next-sites
+      files:
+          - sites.json
+      # The migrate job in wave -1 mounts it too.
+      options:
+          annotations:
+              argocd.argoproj.io/sync-wave: "-3"
     - name: omegaweb-next-config
       behavior: merge
       literals:
-          - WEBSITE_URL=https://sctomega.com
-          - NEXTAUTH_URL=https://sctomega.com
           # The store keys, STORE_S3_ACCESS_KEY_ID and STORE_S3_SECRET_ACCESS_KEY, come from Phase.
-          - STORE_S3_ENDPOINT=https://s3.stack.it.ntnu.no
-          - STORE_S3_BUCKET=CHANGE-ME
+          - STORE_S3_ENDPOINT=https://s3.trd1.stack.it.ntnu.no
+          - STORE_S3_BUCKET=argo-prod-bucket
 
 # The tags are bumped by .github/workflows/release.yml through a pull request.
 images:

@@ -16,6 +16,10 @@ spec:
                 app.kubernetes.io/name: omegaweb-next-migrate
         spec:
             restartPolicy: Never
+            volumes:
+                - name: sites
+                  configMap:
+                      name: omegaweb-next-sites
             containers:
                 - name: migrate
                   image: omegaweb-next-tools
@@ -25,6 +29,10 @@ spec:
                             name: omegaweb-next-env
                       - configMapRef:
                             name: omegaweb-next-config
+                  volumeMounts:
+                      - name: sites
+                        mountPath: /etc/omegaweb-next
+                        readOnly: true
                   env:
                       - name: DB_URI
                         valueFrom:
