@@ -54,7 +54,7 @@ function partOf(filter: MailListTypes): MailServerPart | null {
 
 /** One node of the mail flow: how mail reaches it and where it goes on, and the forms changing that. */
 export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage({
-    operation: async ({ params }: PageOperationArgs<{ filter: string, id: string }>) => {
+    operation: async ({ params, session }: PageOperationArgs<{ filter: string, id: string }>) => {
         if (!MailListTypeArray.includes(params.filter as MailListTypes)) {
             notFound()
         }
@@ -66,7 +66,7 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
         }
 
         const [results, mailOptions, allGroupTypes, owners] = await Promise.all([
-            mailTraversalReadOfType[filter]({ params: { id } }),
+            mailTraversalReadOfType[filter]({ params: { id, markOwnedByUserId: session.user?.id } }),
             mailOperations.readMailOptions({}),
             readExpandedOfAllTypes({}),
             readOwners(filter, id),

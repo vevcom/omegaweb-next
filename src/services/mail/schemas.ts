@@ -13,6 +13,14 @@ export const mailOwnerRequirements = Zpn.json({
     schema: visibilityRequirementsSchema,
 }).default([]).transform(requirements => (requirements.length ? requirements : [{ conditions: [] }]))
 
+/**
+ * Params the mail services share: the reader whose aliases, lists and groups a read marks as
+ * theirs, which other services' schemas pick from here.
+ */
+export const mailParamsFieldSchemas = z.object({
+    markOwnedByUserId: z.coerce.number().min(1).optional(),
+})
+
 const dataFieldSchemas = z.object({
     mailAliasId: z.coerce.number().min(1),
     mailingListId: z.coerce.number().min(1),

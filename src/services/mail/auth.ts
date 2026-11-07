@@ -3,6 +3,16 @@ import { Require } from '@/auth/authorizer/Require'
 const isActiveMemberOf = (memberships: { groupId: number, active: boolean }[], groupId: number) =>
     memberships.some(membership => membership.groupId === groupId && membership.active)
 
+/**
+ * A read marks what one user owns, aliases and lists by their owner visibility and groups by being
+ * their admin, by that user's memberships alone, so MAILSERVER_ADMIN sees the same as anyone. The
+ * user is the reader themself; left out, nothing is marked.
+ */
+export const marksOwnedBySelf = Require.custom<{ markOwnedByUserId?: number }>(
+    ({ session, markOwnedByUserId }) => markOwnedByUserId === undefined || session.user?.id === markOwnedByUserId,
+    { errorMessage: 'Du kan bare få merket det du selv eier' },
+)
+
 const ownsAlias = { key: 'aliasVisibility', errorMessage: 'Du kan bare koble til et alias du eier' } as const
 const ownsList = { key: 'listVisibility', errorMessage: 'Du kan bare koble til en e-postliste du eier' } as const
 
@@ -43,12 +53,18 @@ export const mailAuth = {
         .visibility({ key: 'listVisibility' })
         .or()
         .groupAdmin({ errorMessage: 'Bare eierne av listen og gruppens ledere kan ta gruppen av den' }),
-    readGroupTraversal: Require.permission('MAILSERVER_USE').or().custom<{ groupId: number }>(
-        ({ session, groupId }) => isActiveMemberOf(session.memberships, groupId),
-        { errorMessage: 'Bare medlemmer av gruppen ser hvor e-posten dens kommer fra' },
+    readGroupTraversal: Require.allOf(
+        Require.permission('MAILSERVER_USE').or().custom<{ groupId: number }>(
+            ({ session, groupId }) => isActiveMemberOf(session.memberships, groupId),
+            { errorMessage: 'Bare medlemmer av gruppen ser hvor e-posten dens kommer fra' },
+        ),
+        marksOwnedBySelf,
     ),
-    readUserTraversal: Require.permission('MAILSERVER_USE').or().userId({
-        errorMessage: 'Bare brukeren selv ser hvor e-posten deres kommer fra',
-    }),
+    readUserTraversal: Require.allOf(
+        Require.permission('MAILSERVER_USE').or().userId({
+            errorMessage: 'Bare brukeren selv ser hvor e-posten deres kommer fra',
+        }),
+        marksOwnedBySelf,
+    ),
     readMailOptions: Require.permission('MAILSERVER_USE').or().user(),
 } as const

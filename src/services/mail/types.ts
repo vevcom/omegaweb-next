@@ -11,19 +11,30 @@ export type ViaType = {
     label: string,
 }
 
-export type ViaArrayType = {
-    via?: ViaType[],
+/**
+ * How a node of the flow is reached from the one in focus: `direct` when it is connected straight
+ * to it, and `via` lists each node it is reached through besides. A user on a list and in one of
+ * its groups is both.
+ */
+export type MailFlowPaths = {
+    direct: boolean,
+    via: ViaType[],
 }
 
-/** A group in the flow, named after its type-specific relation so the flow needs no group lookup. */
-export type MailFlowGroup = Group & { name: string }
+/** An alias or a mailing list with whether the session passes its owner visibility. */
+export type MailAliasWithOwned = MailAlias & { owned: boolean }
+export type MailingListWithOwned = MailingList & { owned: boolean }
 
-// The via property sits on each item: the traversal annotates every node it reaches
-// indirectly (e.g. a user on a list through a group) with how it got there.
+/**
+ * A group in the flow, named after its type-specific relation so the flow needs no group lookup,
+ * and with whether the session administrates it.
+ */
+export type MailFlowGroup = Group & { name: string, admin: boolean }
+
 export type MailFlowObject = {
-    alias: (MailAlias & ViaArrayType)[],
-    mailingList: (MailingList & ViaArrayType)[],
-    group: (MailFlowGroup & ViaArrayType)[],
-    user: (UserBasic & ViaArrayType)[],
-    mailaddressExternal: (MailAddressExternal & ViaArrayType)[],
+    alias: (MailAliasWithOwned & MailFlowPaths)[],
+    mailingList: (MailingListWithOwned & MailFlowPaths)[],
+    group: (MailFlowGroup & MailFlowPaths)[],
+    user: (UserBasic & MailFlowPaths)[],
+    mailaddressExternal: (MailAddressExternal & MailFlowPaths)[],
 }

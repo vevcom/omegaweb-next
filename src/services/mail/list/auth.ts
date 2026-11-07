@@ -1,5 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 import { visibilityFilter } from '@/auth/visibility/visibilityFilter'
+import { marksOwnedBySelf } from '@/services/mail/auth'
 
 /** A mailing list is read by those who pass its owner visibility; MAILSERVER_USE reads them all. */
 const readsMailingList = Require.permission('MAILSERVER_USE').or().visibility({
@@ -16,10 +17,10 @@ export const mailingListAuth = {
         .or()
         .permission('MAIL_LIST_CREATE')
         .visibility({ key: 'ownerVisibility', errorMessage: 'Du må selv være blant eierne av e-postlisten' }),
-    readMany: Require.permission('MAILSERVER_USE').or().user().filter(({ session }) => ({
+    readMany: Require.allOf(marksOwnedBySelf, Require.permission('MAILSERVER_USE').or().user()).filter(({ session }) => ({
         ownerVisibility: visibilityFilter(session.memberships),
     })),
-    readTraversal: readsMailingList,
+    readTraversal: Require.allOf(readsMailingList, marksOwnedBySelf),
     readVisibility: readsMailingList,
     update: ownsMailingList,
     updateVisibility: ownsMailingList,

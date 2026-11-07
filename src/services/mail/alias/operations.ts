@@ -6,7 +6,9 @@ import { ServiceError } from '@/services/error'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementVisibilityOperations } from '@/services/visibility/implement'
 import { mailTraversalOperations } from '@/services/mail/traversal/operations'
+import { markOwned, ownerVisibilityIncluder, readMembershipsToMark } from '@/services/mail/owned'
 import type { MailAlias } from '@/prisma-generated-pn-types'
+import type { MailAliasWithOwned } from '@/services/mail/types'
 
 /** The owners of an alias: pass it, or hold MAILSERVER_ADMIN. */
 const visibility = implementVisibilityOperations({
@@ -45,15 +47,22 @@ export const aliasOperations = {
     readTraversal: mailTraversalOperations.read.implement({
         authorizer: async ({ params, prisma }) => mailAliasAuth.readTraversal.data({
             visibility: await visibility.readMatrixInternal({ prisma, params }),
+            markOwnedByUserId: params.markOwnedByUserId,
         }),
         ownershipCheck: () => true,
         operationImplementationFields: { type: 'alias' },
     }),
 
     readMany: defineOperation({
-        authorizer: () => mailAliasAuth.readMany,
-        operation: async ({ prisma }, prismaWhereFilter): Promise<MailAlias[]> =>
-            prisma.mailAlias.findMany({ where: prismaWhereFilter }),
+        paramsSchema: mailAliasSchemas.params.readMany,
+        authorizer: ({ params }) => mailAliasAuth.readMany.data({ markOwnedByUserId: params.markOwnedByUserId }),
+        operation: async ({ prisma, params }, prismaWhereFilter): Promise<MailAliasWithOwned[]> => {
+            const [aliases, memberships] = await Promise.all([
+                prisma.mailAlias.findMany({ where: prismaWhereFilter, include: ownerVisibilityIncluder }),
+                readMembershipsToMark({ prisma, userId: params.markOwnedByUserId }),
+            ])
+            return aliases.map(alias => markOwned(alias, memberships))
+        },
     }),
 
     update: defineOperation({

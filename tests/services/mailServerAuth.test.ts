@@ -97,18 +97,31 @@ describe('reading the mail server as an owner', () => {
         await createAliasAndList('not-own')
 
         const asOwner = memberSession(member, [owners.membership])
-        expect((await aliasOperations.readMany({ session: asOwner })).map(alias => alias.id))
-            .toStrictEqual([ownAlias.id])
-        expect((await mailingListOperations.readMany({ session: asOwner })).map(list => list.id))
-            .toStrictEqual([ownList.id])
+        // Marking reads the memberships from the database, not off the session.
+        await prisma.membership.create({ data: { userId: member.id, ...owners.membership } })
+        const markingOwn = { markOwnedByUserId: member.id }
+        const ownedAliases = await aliasOperations.readMany({ params: markingOwn, session: asOwner })
+        expect(ownedAliases.map(alias => [alias.id, alias.owned])).toStrictEqual([[ownAlias.id, true]])
+        const ownedLists = await mailingListOperations.readMany({ params: markingOwn, session: asOwner })
+        expect(ownedLists.map(list => [list.id, list.owned])).toStrictEqual([[ownList.id, true]])
         expect(await aliasOperations.visibility.readMatrix({ params: { id: ownAlias.id }, session: asOwner }))
             .toStrictEqual({ requirements: ownerRequirements })
-        expect((await mailTraversalReadOfType.alias({ params: { id: ownAlias.id }, session: asOwner }))
-            .alias.map(alias => alias.id)).toStrictEqual([ownAlias.id])
+        expect((await mailTraversalReadOfType.alias({ params: { id: ownAlias.id, ...markingOwn }, session: asOwner }))
+            .alias.map(alias => [alias.id, alias.owned])).toStrictEqual([[ownAlias.id, true]])
+        // A read marks what the reader owns, never what someone else does.
+        const other = await createUser('other-member')
+        await rejectsSaying(
+            aliasOperations.readMany({ params: { markOwnedByUserId: other.id }, session: asOwner }),
+            'det du selv eier',
+        )
+        await rejectsSaying(
+            mailTraversalReadOfType.alias({ params: { id: ownAlias.id, markOwnedByUserId: other.id }, session: asOwner }),
+            'det du selv eier',
+        )
 
         const asOther = memberSession(member, [others.membership])
-        expect(await aliasOperations.readMany({ session: asOther })).toStrictEqual([])
-        expect(await mailingListOperations.readMany({ session: asOther })).toStrictEqual([])
+        expect(await aliasOperations.readMany({ params: {}, session: asOther })).toStrictEqual([])
+        expect(await mailingListOperations.readMany({ params: {}, session: asOther })).toStrictEqual([])
         await expect(aliasOperations.visibility.readMatrix({ params: { id: ownAlias.id }, session: asOther }))
             .rejects.toThrow(Smorekopp)
         await expect(mailTraversalReadOfType.mailingList({
@@ -117,7 +130,10 @@ describe('reading the mail server as an owner', () => {
         })).rejects.toThrow(Smorekopp)
 
         const asUse = sessionWith(['MAILSERVER_USE'])
-        expect((await aliasOperations.readMany({ session: asUse })).length).toBeGreaterThanOrEqual(2)
+        // Reading everything is not owning it, and with no reader asked for nothing is marked.
+        const allAliases = await aliasOperations.readMany({ params: {}, session: asUse })
+        expect(allAliases.length).toBeGreaterThanOrEqual(2)
+        expect(allAliases.every(alias => !alias.owned)).toBe(true)
         expect(await aliasOperations.visibility.readMatrix({ params: { id: ownAlias.id }, session: asUse }))
             .toStrictEqual({ requirements: ownerRequirements })
     })

@@ -5,7 +5,9 @@ import { defineOperation } from '@/services/serviceOperation'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementVisibilityOperations } from '@/services/visibility/implement'
 import { mailTraversalOperations } from '@/services/mail/traversal/operations'
+import { markOwned, ownerVisibilityIncluder, readMembershipsToMark } from '@/services/mail/owned'
 import type { MailingList } from '@/prisma-generated-pn-types'
+import type { MailingListWithOwned } from '@/services/mail/types'
 
 /** The owners of a mailing list: pass it, or hold MAILSERVER_ADMIN. */
 const visibility = implementVisibilityOperations({
@@ -44,15 +46,22 @@ export const mailingListOperations = {
     readTraversal: mailTraversalOperations.read.implement({
         authorizer: async ({ params, prisma }) => mailingListAuth.readTraversal.data({
             visibility: await visibility.readMatrixInternal({ prisma, params }),
+            markOwnedByUserId: params.markOwnedByUserId,
         }),
         ownershipCheck: () => true,
         operationImplementationFields: { type: 'mailingList' },
     }),
 
     readMany: defineOperation({
-        authorizer: () => mailingListAuth.readMany,
-        operation: async ({ prisma }, prismaWhereFilter): Promise<MailingList[]> =>
-            prisma.mailingList.findMany({ where: prismaWhereFilter }),
+        paramsSchema: mailingListSchemas.params.readMany,
+        authorizer: ({ params }) => mailingListAuth.readMany.data({ markOwnedByUserId: params.markOwnedByUserId }),
+        operation: async ({ prisma, params }, prismaWhereFilter): Promise<MailingListWithOwned[]> => {
+            const [lists, memberships] = await Promise.all([
+                prisma.mailingList.findMany({ where: prismaWhereFilter, include: ownerVisibilityIncluder }),
+                readMembershipsToMark({ prisma, userId: params.markOwnedByUserId }),
+            ])
+            return lists.map(list => markOwned(list, memberships))
+        },
     }),
 
     update: defineOperation({

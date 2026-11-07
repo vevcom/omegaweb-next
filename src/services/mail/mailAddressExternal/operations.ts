@@ -19,7 +19,9 @@ export const mailAddressExternalOperations = {
     }),
 
     readTraversal: mailTraversalOperations.read.implement({
-        authorizer: () => mailAddressExternalAuth.readTraversal,
+        authorizer: ({ params }) => mailAddressExternalAuth.readTraversal.data({
+            markOwnedByUserId: params.markOwnedByUserId,
+        }),
         ownershipCheck: () => true,
         operationImplementationFields: { type: 'mailaddressExternal' },
     }),

@@ -1,4 +1,5 @@
 'use client'
+import MailServerTag from './MailServerTag'
 import { mailServerLinks } from '@/pageKits/mailServer/links'
 import {
     destroyAliasMailingListRelationAction,
@@ -16,7 +17,7 @@ import {
 import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import type { ActionReturn } from '@/services/actionTypes'
-import type { MailFlowObject, MailListTypes, ViaType } from '@/services/mail/types'
+import type { MailFlowObject, MailFlowPaths, MailListTypes } from '@/services/mail/types'
 
 const typeIcons: Record<MailListTypes, IconDefinition> = {
     alias: faAt,
@@ -30,9 +31,13 @@ type Chip = {
     type: MailListTypes,
     id: number,
     label: string,
-    via?: ViaType[],
+    paths: MailFlowPaths,
+    /** What the viewer is to the node, shown as a tag: its owner, or the group's leader. */
+    tag?: string,
     destroy?: () => Promise<ActionReturn<unknown>>,
 }
+
+const ownerTag = (owned: boolean) => (owned ? 'Eier' : undefined)
 
 type ChipSection = {
     label?: string,
@@ -43,7 +48,8 @@ type ChipSection = {
  * The mail flow graphic: every mail follows alias → e-postliste → mottakere, and this renders
  * those three stages with the focused item highlighted. The recipient stage is sectioned by type,
  * and a group stands in for its members - users that are only on a list through a group are not
- * listed. Direct relations to the focused item can be removed right in the graphic.
+ * listed. Direct relations to the focused item can be removed right in the graphic. What the
+ * viewer owns or leads is tagged, by their memberships alone, so a server admin sees the same.
  */
 export default function MailFlow({
     config,
@@ -67,15 +73,16 @@ export default function MailFlow({
         type: 'alias',
         id: alias.id,
         label: alias.address,
-        via: alias.via,
-        destroy: (filter === 'mailingList' && !alias.via)
+        paths: alias,
+        tag: ownerTag(alias.owned),
+        destroy: (filter === 'mailingList' && alias.direct)
             ? () => destroyAliasMailingListRelationAction({ data: { mailingListId: id, mailAliasId: alias.id } })
             : undefined,
     }))
 
     const mailingListChips: Chip[] = data.mailingList.map(list => {
         let destroy
-        if (!list.via) {
+        if (list.direct) {
             if (filter === 'alias') {
                 destroy = () => destroyAliasMailingListRelationAction({ data: { mailAliasId: id, mailingListId: list.id } })
             } else if (filter === 'mailaddressExternal') {
@@ -92,7 +99,8 @@ export default function MailFlow({
             type: 'mailingList',
             id: list.id,
             label: list.name,
-            via: list.via,
+            paths: list,
+            tag: ownerTag(list.owned),
             destroy,
         }
     })
@@ -101,23 +109,25 @@ export default function MailFlow({
         type: 'group',
         id: group.id,
         label: group.name,
-        via: group.via,
-        destroy: (filter === 'mailingList' && !group.via)
+        paths: group,
+        tag: group.admin ? 'Gruppeleder' : undefined,
+        destroy: (filter === 'mailingList' && group.direct)
             ? () => destroyMailingListGroupRelationAction({ data: { mailingListId: id, groupId: group.id } })
             : undefined,
     }))
 
     // A group stands in for its members, so users that are only reached via a group are left
     // out - except the focused user, who must stay visible on their own page.
-    const reachedThroughGroupAlone = (via: ViaType[]) => via.every(viaItem => viaItem.type === 'group')
+    const reachedThroughGroupAlone = (user: MailFlowPaths) =>
+        !user.direct && user.via.every(viaItem => viaItem.type === 'group')
     const userChips: Chip[] = data.user
-        .filter(user => !user.via || !reachedThroughGroupAlone(user.via) || (filter === 'user' && user.id === id))
+        .filter(user => !reachedThroughGroupAlone(user) || (filter === 'user' && user.id === id))
         .map(user => ({
             type: 'user',
             id: user.id,
             label: `${user.firstname} ${user.lastname}`,
-            via: user.via,
-            destroy: (filter === 'mailingList' && !user.via)
+            paths: user,
+            destroy: (filter === 'mailingList' && user.direct)
                 ? () => destroyMailingListUserRelationAction({ data: { mailingListId: id, userId: user.id } })
                 : undefined,
         }))
@@ -126,8 +136,8 @@ export default function MailFlow({
         type: 'mailaddressExternal',
         id: external.id,
         label: external.address,
-        via: external.via,
-        destroy: (filter === 'mailingList' && !external.via)
+        paths: external,
+        destroy: (filter === 'mailingList' && external.direct)
             ? () => destroyMailingListExternalRelationAction({
                 data: { mailingListId: id, mailAddressExternalId: external.id },
             })
@@ -148,6 +158,9 @@ export default function MailFlow({
     const renderChip = (chip: Chip) => {
         const focused = chip.type === filter && chip.id === id
         const removable = Boolean(chip.destroy) && !focused
+        const viaLabels = chip.paths.via.map(viaItem => viaItem.label).join(', ')
+        // Both paths are named when the node is connected directly and reached through others too.
+        const pathsLabel = chip.paths.direct ? `direkte og via ${viaLabels}` : `via ${viaLabels}`
 
         return <li
             key={`${chip.type}-${chip.id}`}
@@ -169,8 +182,9 @@ export default function MailFlow({
                     {chip.label}
                 </SiteLink>
             }
-            {chip.via && chip.via.length > 0 && <span className="text-[0.8rem] text-base-content/80 italic">
-                via {chip.via.map(viaItem => viaItem.label).join(', ')}
+            {chip.tag && <MailServerTag>{chip.tag}</MailServerTag>}
+            {chip.paths.via.length > 0 && !focused && <span className="text-[0.8rem] text-base-content/80 italic">
+                {pathsLabel}
             </span>}
             {removable && <button
                 type="button"

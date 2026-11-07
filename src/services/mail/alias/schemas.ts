@@ -1,5 +1,5 @@
 import { validMailAddressDomains } from '@/services/mail/constants'
-import { mailOwnerRequirements } from '@/services/mail/schemas'
+import { mailOwnerRequirements, mailParamsFieldSchemas } from '@/services/mail/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -17,6 +17,7 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     id: z.coerce.number().min(1),
+    markOwnedByUserId: mailParamsFieldSchemas.shape.markOwnedByUserId,
 })
 
 /** The address comes as what stands before and after the @, with the domain picked from ours, and is stored joined. */
@@ -42,6 +43,7 @@ export const mailAliasSchemas = {
         }).transform(joinAddress),
     },
     params: {
+        readMany: paramsFieldSchemas.pick({ markOwnedByUserId: true }),
         update: alias,
         visibility: alias,
         destroy: alias,

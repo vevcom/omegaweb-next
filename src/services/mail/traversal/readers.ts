@@ -3,9 +3,10 @@ import { userBasicSelection, userPartitions } from '@/services/users/constants'
 import { groupsWithRelationsIncluder } from '@/services/groups/constants'
 import { assertGroupValidity } from '@/services/groups/assertGroupValidity'
 import { inferGroupName } from '@/lib/groups/inferGroupName'
+import { administrates, markOwned, ownerVisibilityIncluder } from '@/services/mail/owned'
 import type { Prisma } from '@/prisma-generated-pn-client'
-import type { GroupWithDumbRelations } from '@/services/groups/types'
-import type { MailFlowGroup, MailFlowObject, ViaArrayType, ViaType } from '@/services/mail/types'
+import type { GroupWithDumbRelations, MembershipFiltered } from '@/services/groups/types'
+import type { MailFlowGroup, MailFlowObject, MailFlowPaths, ViaType } from '@/services/mail/types'
 
 
 /**
@@ -20,16 +21,18 @@ import type { MailFlowGroup, MailFlowObject, ViaArrayType, ViaType } from '@/ser
  * Each of the traversal functions is divided in four parts
  *  1. Fetch the data from the database
  *  2. Parse the data into arrays with only one type of object
- *       This step also adds a via object (next paragraph) if it is necessary
+ *       This step also marks how each node was reached (next paragraph)
  *  3. Delete unnecessary fields
  *  4. Combine duplicate nodes
  *
  *
- * Since some nodes may have different paths to itself, a via property is used.
- * For example a user can be directly connected to a mailinglist or via a group.
- * We only want the user to appear once, but we want to return
- * all the paths to the users (both via the group and direct).
+ * Since some nodes may have different paths to itself, every node says how it was reached:
+ * directly, or via which other nodes. For example a user can be directly connected to a
+ * mailinglist and be on it via a group too. We only want the user to appear once, but we want
+ * to return all the paths to the user (both direct and via the group).
  *
+ * Aliases and lists also say whether the memberships given own them, and groups whether they
+ * administrate them, so the flow can mark what the viewer has authority over.
  *
  * The end results should be an object that can be displayed to the user to show
  * how mail is routed though an arbitrary node in the network.
@@ -44,7 +47,7 @@ const includeUser = {
 const includeAliases = {
     mailAliases: {
         include: {
-            mailAlias: true,
+            mailAlias: { include: ownerVisibilityIncluder },
         },
     },
 } as const satisfies Prisma.MailingListInclude
@@ -53,7 +56,7 @@ const includeMailingListsWithAliases = {
     mailingLists: {
         include: {
             mailingList: {
-                include: includeAliases,
+                include: { ...includeAliases, ...ownerVisibilityIncluder },
             },
         },
     },
@@ -104,8 +107,12 @@ function membersOf<User>(group: { memberships: { user: User }[] }): User[] {
     return group.memberships.map(membership => membership.user)
 }
 
-function withVia<Node extends object>(node: Node, via: ViaType): Node & { via: ViaType[] } {
-    return { ...node, via: [via] }
+function direct<Node extends object>(node: Node): Node & MailFlowPaths {
+    return { ...node, direct: true, via: [] }
+}
+
+function reachedVia<Node extends object>(node: Node, via: ViaType): Node & MailFlowPaths {
+    return { ...node, direct: false, via: [via] }
 }
 
 type GroupWithNameRelations = GroupWithDumbRelations<'name', 'name', 'level', 'name', 'omegaMembershipLevel', 'name'>
@@ -114,14 +121,16 @@ const groupTypeRelations = [
 ] as const
 
 /**
- * A group as the flow shows it: named after its type-specific relation, which is then dropped.
+ * A group as the flow shows it: named after its type-specific relation, which is then dropped,
+ * and marked when the memberships administrate it.
  */
 function toFlowGroup<Group extends GroupWithNameRelations>(
     group: Group,
+    memberships: MembershipFiltered[],
 ): MailFlowGroup & Omit<Group, typeof groupTypeRelations[number]> {
     const name = inferGroupName(assertGroupValidity(group))
     // On a copy, since the same group is named once per path that reaches it.
-    return { ...withoutRelations({ ...group }, ...groupTypeRelations), name }
+    return { ...withoutRelations({ ...group }, ...groupTypeRelations), name, admin: administrates(group.id, memberships) }
 }
 
 /**
@@ -131,7 +140,7 @@ function throughMailingLists<MailingList extends { id: number, name: string }, N
     mailingLists: MailingList[],
     nodesOf: (mailingList: MailingList) => Node[],
 ) {
-    return mailingLists.flatMap(mailingList => nodesOf(mailingList).map(node => withVia(node, {
+    return mailingLists.flatMap(mailingList => nodesOf(mailingList).map(node => reachedVia(node, {
         type: 'mailingList',
         id: mailingList.id,
         label: mailingList.name,
@@ -145,7 +154,7 @@ function throughGroups<Group extends { id: number, name: string }, Node extends 
     groups: Group[],
     nodesOf: (group: Group) => Node[],
 ) {
-    return groups.flatMap(group => nodesOf(group).map(node => withVia(node, {
+    return groups.flatMap(group => nodesOf(group).map(node => reachedVia(node, {
         type: 'group',
         id: group.id,
         label: group.name,
@@ -164,43 +173,41 @@ function withoutRelations<Node extends object, Relation extends keyof Node>(
 }
 
 /**
- * Removes duplicates from an array of objects based on their `id` property.
- * If multiple objects have the same `id`, the first object encountered is kept,
- * and the `via` property of subsequent objects with the same `id` is merged into the first object's `via` array.
- * @param objects An array of objects to remove duplicates from.
- * @returns An array of objects with duplicates removed.
+ * Keeps each node once, by `id`, with every path to it: the first one encountered is kept, and the
+ * paths of later ones with the same `id` are merged into it.
  */
-function removeDuplicates<T extends {
-    id: number,
-} & ViaArrayType>(objects: T[]): T[] {
-    const unique: T[] = []
+function mergePaths<Node extends { id: number } & MailFlowPaths>(nodes: Node[]): Node[] {
+    const unique: Node[] = []
 
-    objects.forEach(object => {
-        const existingObject = unique.find(item => item.id === object.id)
-        if (!existingObject) {
-            unique.push(object)
+    nodes.forEach(node => {
+        const existing = unique.find(item => item.id === node.id)
+        if (!existing) {
+            unique.push(node)
             return
         }
-        if (!existingObject.via || !object.via) return
-
-        const via = object.via[0]
-        const alreadyAdded = existingObject.via.find(item => (item.type === via.type && item.id === via.id))
-        if (!alreadyAdded) {
-            existingObject.via.push(via)
-        }
+        existing.direct = existing.direct || node.direct
+        node.via.forEach(via => {
+            const alreadyAdded = existing.via.some(item => item.type === via.type && item.id === via.id)
+            if (!alreadyAdded) existing.via.push(via)
+        })
     })
 
     return unique
 }
 
-export async function readAliasTraversal(prisma: Prisma.TransactionClient, id: number): Promise<MailFlowObject> {
+export async function readAliasTraversal(
+    prisma: Prisma.TransactionClient,
+    id: number,
+    memberships: MembershipFiltered[],
+): Promise<MailFlowObject> {
     const alias = await prisma.mailAlias.findUniqueOrThrow({
         where: { id },
         include: {
+            ...ownerVisibilityIncluder,
             mailingLists: {
                 include: {
                     mailingList: {
-                        include: includeRecipients,
+                        include: { ...includeRecipients, ...ownerVisibilityIncluder },
                     },
                 },
             },
@@ -208,7 +215,9 @@ export async function readAliasTraversal(prisma: Prisma.TransactionClient, id: n
     })
 
     const mailingList = mailingListsOf(alias)
-    const groupsOf = (list: typeof mailingList[number]) => list.groups.map(groupItem => toFlowGroup(groupItem.group))
+    const groupsOf = (list: typeof mailingList[number]) => list.groups.map(
+        groupItem => toFlowGroup(groupItem.group, memberships),
+    )
     const group = throughMailingLists(mailingList, groupsOf)
     const user = [
         ...throughMailingLists(mailingList, list => list.users.map(userItem => userItem.user)),
@@ -220,43 +229,55 @@ export async function readAliasTraversal(prisma: Prisma.TransactionClient, id: n
     )
 
     return {
-        alias: [withoutRelations(alias, 'mailingLists')],
-        mailingList: mailingList.map(list => withoutRelations(list, 'users', 'groups', 'mailAddressExternal')),
-        group: removeDuplicates(group.map(groupItem => withoutRelations(groupItem, 'memberships'))),
-        user: removeDuplicates(user),
-        mailaddressExternal: removeDuplicates(mailaddressExternal),
+        alias: [direct(markOwned(withoutRelations(alias, 'mailingLists'), memberships))],
+        mailingList: mailingList.map(list => direct(markOwned(
+            withoutRelations(list, 'users', 'groups', 'mailAddressExternal'),
+            memberships,
+        ))),
+        group: mergePaths(group.map(groupItem => withoutRelations(groupItem, 'memberships'))),
+        user: mergePaths(user),
+        mailaddressExternal: mergePaths(mailaddressExternal),
     }
 }
 
-export async function readMailingListTraversal(prisma: Prisma.TransactionClient, id: number): Promise<MailFlowObject> {
+export async function readMailingListTraversal(
+    prisma: Prisma.TransactionClient,
+    id: number,
+    memberships: MembershipFiltered[],
+): Promise<MailFlowObject> {
     const mailingList = await prisma.mailingList.findUniqueOrThrow({
         where: { id },
         include: {
             ...includeAliases,
             ...includeRecipients,
+            ...ownerVisibilityIncluder,
         },
     })
 
     const alias = aliasesOf(mailingList)
-    const group = mailingList.groups.map(groupItem => toFlowGroup(groupItem.group))
+    const group = mailingList.groups.map(groupItem => toFlowGroup(groupItem.group, memberships))
     const user = [
-        ...mailingList.users.map(userItem => userItem.user),
+        ...mailingList.users.map(userItem => direct(userItem.user)),
         ...throughGroups(group, membersOf),
     ]
     const mailaddressExternal = mailingList.mailAddressExternal.map(address => address.mailAddressExternal)
 
     return {
-        mailingList: [withoutRelations(mailingList, 'mailAliases', 'groups', 'users', 'mailAddressExternal')],
-        alias,
-        group: group.map(groupItem => withoutRelations(groupItem, 'memberships')),
-        user: removeDuplicates(user),
-        mailaddressExternal,
+        mailingList: [direct(markOwned(
+            withoutRelations(mailingList, 'mailAliases', 'groups', 'users', 'mailAddressExternal'),
+            memberships,
+        ))],
+        alias: alias.map(aliasItem => direct(markOwned(aliasItem, memberships))),
+        group: group.map(groupItem => direct(withoutRelations(groupItem, 'memberships'))),
+        user: mergePaths(user),
+        mailaddressExternal: mailaddressExternal.map(direct),
     }
 }
 
 export async function readMailaddressExternalTraversal(
     prisma: Prisma.TransactionClient,
     id: number,
+    memberships: MembershipFiltered[],
 ): Promise<MailFlowObject> {
     const mailaddressExternal = await prisma.mailAddressExternal.findUniqueOrThrow({
         where: { id },
@@ -267,15 +288,19 @@ export async function readMailaddressExternalTraversal(
     const alias = throughMailingLists(mailingList, aliasesOf)
 
     return {
-        mailaddressExternal: [withoutRelations(mailaddressExternal, 'mailingLists')],
-        mailingList: mailingList.map(list => withoutRelations(list, 'mailAliases')),
-        alias: removeDuplicates(alias),
+        mailaddressExternal: [direct(withoutRelations(mailaddressExternal, 'mailingLists'))],
+        mailingList: mailingList.map(list => direct(markOwned(withoutRelations(list, 'mailAliases'), memberships))),
+        alias: mergePaths(alias).map(aliasItem => markOwned(aliasItem, memberships)),
         user: [],
         group: [],
     }
 }
 
-export async function readGroupTraversal(prisma: Prisma.TransactionClient, id: number): Promise<MailFlowObject> {
+export async function readGroupTraversal(
+    prisma: Prisma.TransactionClient,
+    id: number,
+    memberships: MembershipFiltered[],
+): Promise<MailFlowObject> {
     const group = await prisma.group.findUniqueOrThrow({
         where: { id },
         include: {
@@ -291,14 +316,18 @@ export async function readGroupTraversal(prisma: Prisma.TransactionClient, id: n
 
     return {
         mailaddressExternal: [],
-        mailingList: mailingList.map(list => withoutRelations(list, 'mailAliases')),
-        alias: removeDuplicates(alias),
-        user,
-        group: [withoutRelations(toFlowGroup(group), 'memberships', 'mailingLists')],
+        mailingList: mailingList.map(list => direct(markOwned(withoutRelations(list, 'mailAliases'), memberships))),
+        alias: mergePaths(alias).map(aliasItem => markOwned(aliasItem, memberships)),
+        user: user.map(direct),
+        group: [direct(withoutRelations(toFlowGroup(group, memberships), 'memberships', 'mailingLists'))],
     }
 }
 
-export async function readUserTraversal(prisma: Prisma.TransactionClient, id: number): Promise<MailFlowObject> {
+export async function readUserTraversal(
+    prisma: Prisma.TransactionClient,
+    id: number,
+    memberships: MembershipFiltered[],
+): Promise<MailFlowObject> {
     const user = await prisma.user.findUniqueOrThrow({
         where: { id },
         select: {
@@ -318,10 +347,10 @@ export async function readUserTraversal(prisma: Prisma.TransactionClient, id: nu
         },
     })
 
-    const groups = user.memberships.map(membership => toFlowGroup(membership.group))
+    const groups = user.memberships.map(membership => toFlowGroup(membership.group, memberships))
     const directMailingLists = mailingListsOf(user)
     const mailingList = [
-        ...directMailingLists,
+        ...directMailingLists.map(direct),
         ...throughGroups(groups, mailingListsOf),
     ]
     const alias = [
@@ -331,9 +360,10 @@ export async function readUserTraversal(prisma: Prisma.TransactionClient, id: nu
 
     return {
         mailaddressExternal: [],
-        mailingList: removeDuplicates(mailingList.map(list => withoutRelations(list, 'mailAliases'))),
-        alias: removeDuplicates(alias),
-        user: [withoutRelations(user, 'mailingLists', 'memberships')],
-        group: groups.map(group => withoutRelations(group, 'mailingLists')),
+        mailingList: mergePaths(mailingList.map(list => withoutRelations(list, 'mailAliases')))
+            .map(list => markOwned(list, memberships)),
+        alias: mergePaths(alias).map(aliasItem => markOwned(aliasItem, memberships)),
+        user: [direct(withoutRelations(user, 'mailingLists', 'memberships'))],
+        group: groups.map(group => direct(withoutRelations(group, 'mailingLists'))),
     }
 }

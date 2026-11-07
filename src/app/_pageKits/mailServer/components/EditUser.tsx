@@ -22,7 +22,7 @@ export default function EditUser({
 
     // Lists the user is on via a group are still selectable - a direct relation outlives the
     // group membership. Only already-direct relations are left out.
-    const directListIds = new Set(data.mailingList.filter(list => !list.via).map(list => list.id))
+    const directListIds = new Set(data.mailingList.filter(list => list.direct).map(list => list.id))
     const availableLists = mailingLists.filter(list => !directListIds.has(list.id))
 
     return <>

@@ -1,4 +1,5 @@
 import { Require } from '@/auth/authorizer/Require'
+import { marksOwnedBySelf } from '@/services/mail/auth'
 
 /**
  * External addresses have no owners: they are the pool any list owner may pick from. Reading them
@@ -18,6 +19,6 @@ export const mailAddressExternalAuth = {
     create: Require.permission('MAILSERVER_ADMIN'),
     destroy: Require.permission('MAILSERVER_ADMIN'),
     readMany: readsExternalAddresses,
-    readTraversal: readsExternalAddresses,
+    readTraversal: Require.allOf(readsExternalAddresses, marksOwnedBySelf),
     update: Require.permission('MAILSERVER_ADMIN'),
 } as const

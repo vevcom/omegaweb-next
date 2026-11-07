@@ -164,13 +164,19 @@ export const mailOperations = {
     }),
 
     readGroupTraversal: mailTraversalOperations.read.implement({
-        authorizer: ({ params }) => mailAuth.readGroupTraversal.data({ groupId: params.id }),
+        authorizer: ({ params }) => mailAuth.readGroupTraversal.data({
+            groupId: params.id,
+            markOwnedByUserId: params.markOwnedByUserId,
+        }),
         ownershipCheck: () => true,
         operationImplementationFields: { type: 'group' },
     }),
 
     readUserTraversal: mailTraversalOperations.read.implement({
-        authorizer: ({ params }) => mailAuth.readUserTraversal.data({ userId: params.id }),
+        authorizer: ({ params }) => mailAuth.readUserTraversal.data({
+            userId: params.id,
+            markOwnedByUserId: params.markOwnedByUserId,
+        }),
         ownershipCheck: () => true,
         operationImplementationFields: { type: 'user' },
     }),
@@ -184,8 +190,8 @@ export const mailOperations = {
             mailaddressExternal: MailAddressExternal[],
         }> => {
             const [alias, mailingList, mailaddressExternal] = await Promise.all([
-                aliasOperations.readMany({}),
-                mailingListOperations.readMany({}),
+                aliasOperations.readMany({ params: {} }),
+                mailingListOperations.readMany({ params: {} }),
                 mailAddressExternalAuth.readMany.auth(session).authorized
                     ? mailAddressExternalOperations.readMany({})
                     : [],

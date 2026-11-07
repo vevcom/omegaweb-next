@@ -1,4 +1,4 @@
-import { mailOwnerRequirements } from '@/services/mail/schemas'
+import { mailOwnerRequirements, mailParamsFieldSchemas } from '@/services/mail/schemas'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -9,6 +9,7 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     id: z.coerce.number().min(1),
+    markOwnedByUserId: mailParamsFieldSchemas.shape.markOwnedByUserId,
 })
 
 const mailingList = paramsFieldSchemas.pick({
@@ -28,6 +29,7 @@ export const mailingListSchemas = {
         }),
     },
     params: {
+        readMany: paramsFieldSchemas.pick({ markOwnedByUserId: true }),
         update: mailingList,
         visibility: mailingList,
         destroy: mailingList,
