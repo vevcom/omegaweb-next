@@ -16,6 +16,8 @@ type PropTypes = {
     /** The form field the matrix is posted in, as JSON, which `Zpn.json` on the schema side reads. */
     name: string,
     defaultValue?: VisibilityRequirement[],
+    /** What no requirements at all means for this matrix, where it is not that everyone passes. */
+    emptyMeans?: string,
 }
 
 /**
@@ -23,7 +25,7 @@ type PropTypes = {
  * Whether that creates the thing it will guard or updates an existing visibility is the form's
  * business.
  */
-export default function VisibilityMatrixEditor({ name, defaultValue = [] }: PropTypes) {
+export default function VisibilityMatrixEditor({ name, defaultValue = [], emptyMeans }: PropTypes) {
     const [requirements, onChange] = useState<VisibilityRequirement[]>(defaultValue)
     const groupsResult = useGroups()
     const groups = groupsResult.status === 'success' ? flattenExpandedGroups(groupsResult.groups) : null
@@ -97,7 +99,11 @@ export default function VisibilityMatrixEditor({ name, defaultValue = [] }: Prop
     return (
         <div className="flex flex-col gap-[0.5em]">
             <input type="hidden" name={name} value={JSON.stringify(requirements)} />
-            <p className="italic">{describeMatrix({ requirements }, groups)}</p>
+            <p className="italic">
+                {emptyMeans !== undefined && requirements.length === 0
+                    ? emptyMeans
+                    : describeMatrix({ requirements }, groups)}
+            </p>
             {
                 groups === null ? (
                     <p>Laster grupper...</p>
