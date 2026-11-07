@@ -7,7 +7,7 @@ import { writeFile } from 'fs/promises'
 import type { Worker, WorkerName } from './types'
 
 /**
- * Rewritten every HEARTBEAT_INTERVAL_MS while no tick has run longer than MAX_TICK_MS. The worker's
+ * Rewritten every HEARTBEAT_INTERVAL_MS while no tick has gone MAX_TICK_MS without progress. The worker's
  * liveness probe (deploy/base/worker.yaml) restarts the container once it goes stale, which catches
  * a tick stuck on a call that never returns as well as a blocked event loop.
  */
@@ -42,18 +42,19 @@ async function runWorkers(selected: Worker[]) {
         wakeUps.add(wakeUp)
     })
 
-    const tickStartedAt = new Map<string, number>()
+    const lastProgressAt = new Map<string, number>()
 
     async function loop({ name, intervalMs, tick }: Worker) {
         logger.info(`${name} started`)
         while (!stopping) {
-            tickStartedAt.set(name, Date.now())
+            const progress = () => lastProgressAt.set(name, Date.now())
+            progress()
             try {
-                if (await tick()) continue
+                if (await tick(progress)) continue
             } catch (error) {
                 logger.error(`${name} tick failed: ${error}`)
             } finally {
-                tickStartedAt.delete(name)
+                lastProgressAt.delete(name)
             }
             if (!stopping) await sleep(intervalMs)
         }
@@ -61,9 +62,9 @@ async function runWorkers(selected: Worker[]) {
     }
 
     async function beat() {
-        const stuck = Array.from(tickStartedAt).filter(([, startedAt]) => Date.now() - startedAt > MAX_TICK_MS)
+        const stuck = Array.from(lastProgressAt).filter(([, progressAt]) => Date.now() - progressAt > MAX_TICK_MS)
         if (stuck.length > 0) {
-            logger.error(`Workers stopped their heartbeat, since a tick has run too long: ${
+            logger.error(`Workers stopped their heartbeat, since a tick has stopped making progress: ${
                 stuck.map(([name]) => name).join(', ')
             }`)
             return

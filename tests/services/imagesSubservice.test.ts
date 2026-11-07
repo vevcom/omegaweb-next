@@ -333,18 +333,37 @@ describe('createOrphanDestroyer', () => {
         const destroyOrphans = orphanDestroyerOfOwnFiles([orphan, seededLater], state)
         const start = Date.now()
 
-        expect(await destroyOrphans(start)).toBe(0)
+        expect(await destroyOrphans({ now: start })).toBe(0)
 
         // A row for it turns up between two runs, as it would once seeding gets to it.
         state.referenced.add(seededLater)
-        expect(await destroyOrphans(start + 12 * hourMs)).toBe(0)
+        expect(await destroyOrphans({ now: start + 12 * hourMs })).toBe(0)
         state.referenced.delete(seededLater)
 
-        expect(await destroyOrphans(start + dayMs)).toBe(1)
+        expect(await destroyOrphans({ now: start + dayMs })).toBe(1)
         expect(await fileExists(orphan)).toBe(false)
         // Unreferenced again, but only since the last run - its wait starts over.
         expect(await fileExists(seededLater)).toBe(true)
 
         await removeLeftovers([orphan, seededLater])
+    })
+
+    test('reports each batch, so a long run is not taken for stuck', async () => {
+        const onBatch = jest.fn()
+        const destroyOrphans = createOrphanDestroyer({
+            // eslint-disable-next-line @typescript-eslint/require-await
+            async *listFiles() {
+                yield ['first.png']
+                yield ['second.png']
+            },
+            destroyFile: () => { throw new Error('Nothing here is an orphan') },
+        }, {
+            context: 'a store',
+            referenced: fsLocations => new Set(fsLocations),
+        })
+
+        await destroyOrphans({ onBatch })
+
+        expect(onBatch).toHaveBeenCalledTimes(2)
     })
 })
