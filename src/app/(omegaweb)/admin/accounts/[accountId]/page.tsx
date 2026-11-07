@@ -7,6 +7,7 @@ import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
 import { paymentAuth } from '@/services/ledger/payments/auth'
+import { ledgerTransactionAuth } from '@/services/ledger/transactions/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/ServerPage'
 import { appHref } from '@/lib/sites/href'
@@ -28,6 +29,8 @@ const { page, generateMetadata } = serverPage({
     capabilities: (ledgerAccount) => ({
         // The page is open to the account's owners too, so the fees need a rule of their own.
         canSeeFees: Require.permission('LEDGER_ADMIN'),
+        // Every transaction listed involves this account, so owning it makes the viewer a party.
+        canCancel: ledgerTransactionAuth.cancel.data({ accounts: [ledgerAccount.ownership] }),
         canUpdate: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership] }),
         canChangeGroups: ledgerAccountAuth.updateAsAdmin({ accounts: [ledgerAccount.ownership] }),
         // Only MANUAL deposits are offered here, and those take the payment rule on top.
@@ -82,6 +85,7 @@ const { page, generateMetadata } = serverPage({
             <LedgerAccountTransactionSummary
                 accountId={ledgerAccount.id}
                 transactionsHref={appHref(`/admin/accounts/${ledgerAccount.id}/transactions`)}
+                capabilities={capabilities}
             />
         </div>
     ),

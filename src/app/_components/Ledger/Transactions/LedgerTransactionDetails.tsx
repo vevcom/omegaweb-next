@@ -5,15 +5,16 @@ import { displayDate } from '@/lib/dates/displayDate'
 import { Require } from '@/auth/authorizer/Require'
 import { configureAction } from '@/services/configureAction'
 import { cancelLedgerTransactionAction } from '@/services/ledger/transactions/actions'
-import { ledgerTransactionAuth } from '@/services/ledger/transactions/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { LedgerTransactionPurpose, LedgerTransactionState, PaymentProvider } from '@/prisma-generated-pn-types'
 import type { ReactNode } from 'react'
 
 type Props = {
     transaction: ExpandedLedgerTransaction,
     accountId: number,
+    capabilities: CapabilitiesJsObject<'canCancel'>,
 }
 
 // The relations are nullable, for example on transactions migrated from OmegaWeb Basic, so each
@@ -58,9 +59,8 @@ function DetailRow({ label, value }: { label: string, value: ReactNode }) {
     </div>
 }
 
-export default function LedgerTransactionDetails({ transaction, accountId }: Props) {
+export default function LedgerTransactionDetails({ transaction, accountId, capabilities }: Props) {
     const canViewFees = useAuthorizer({ authorizer: Require.permission('LEDGER_ADMIN') }).authorized
-    const canCancel = useAuthorizer({ authorizer: ledgerTransactionAuth.cancel }).authorized
     const totalFunds = (
         transaction.ledgerEntries.reduce((sum, entry) => sum + Math.abs(entry.funds), 0)
         + Math.abs(transaction.payment?.funds ?? 0)
@@ -156,7 +156,7 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
             </div>
         )}
 
-        {transaction.state === 'PENDING' && canCancel && (
+        {transaction.state === 'PENDING' && capabilities.canCancel.authorized && (
             <Form
                 submitText="Avbryt betaling"
                 submitColor="red"

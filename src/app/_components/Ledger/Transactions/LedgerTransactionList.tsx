@@ -5,9 +5,11 @@ import LedgerTransactionTable, { emptyTransactionsText } from './LedgerTransacti
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { LedgerTransactionPagingProvider, LedgerTransactionPagingContext } from '@/contexts/paging/LedgerTransactionPaging'
 import { useContext } from 'react'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type Props = {
     accountId: number,
+    capabilities: CapabilitiesJsObject<'canCancel'>,
 }
 
 function EmptyState() {
@@ -19,7 +21,7 @@ function EmptyState() {
     return <p>{emptyTransactionsText}</p>
 }
 
-export default function TransactionList({ accountId }: Props) {
+export default function TransactionList({ accountId, capabilities }: Props) {
     return <LedgerTransactionPagingProvider
         startPage={{ page: 0, pageSize: 10 }}
         details={{ accountId }} serverRenderedData={[]}
@@ -32,6 +34,7 @@ export default function TransactionList({ accountId }: Props) {
                     key={transaction.id}
                     accountId={accountId}
                     transaction={transaction}
+                    capabilities={capabilities}
                 />
             }
             wrapper={children => <LedgerTransactionTable>{children}</LedgerTransactionTable>}

@@ -75,7 +75,9 @@ export const ledgerTransactionOperations = {
      * Throws if the transaction has already resolved, even when that happens during the cancel.
      */
     cancel: defineOperation({
-        authorizer: () => ledgerTransactionAuth.cancel,
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
+            accounts: await resolveTransactionAccounts(prisma, params.id),
+        }),
         paramsSchema: ledgerTransactionSchemas.params.cancel,
         operation: async ({ prisma, params }) => {
             const transaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
@@ -165,7 +167,9 @@ export const ledgerTransactionOperations = {
      * the exact same check and shape, not a different operation that happens to look similar.
      */
     cancelOwn: defineOperation({
-        authorizer: () => ledgerTransactionAuth.cancel,
+        authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
+            accounts: await resolveTransactionAccounts(prisma, params.id),
+        }),
         paramsSchema: ledgerTransactionSchemas.params.cancel,
         transaction: 'RUNS_IN',
         operation: async ({ prisma, params }): Promise<ExpandedLedgerTransaction> => ledgerTransactionOperations.cancel({
