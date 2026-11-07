@@ -189,4 +189,72 @@ describe('paying for an event', () => {
         expect(payment).toBeNull()
         expect(await balanceOf(committeeAccountId)).toBe(committeeBalanceBefore + EVENT_PRICE_ORE)
     })
+
+    describe('after the payment period has ended', () => {
+        async function createEventWithWaitingList(firstName: string, secondName: string) {
+            const eventId = await createPaidEvent({ ledgerAccountId: committeeAccountId })
+            await prisma.event.update({ where: { id: eventId }, data: { waitingList: true } })
+            await prisma.eventQuota.updateMany({ where: { variant: { eventId } }, data: { places: 1 } })
+
+            const seated = await createPayer(firstName)
+            const waiting = await createPayer(secondName)
+            const seatedRegistration = await eventRegistrationOperations.create({
+                params: { userId: seated.id, eventId },
+                session: sessionOf(seated),
+            })
+            const { id: waitingRegistrationId } = await eventRegistrationOperations.create({
+                params: { userId: waiting.id, eventId },
+                session: sessionOf(waiting),
+            })
+            await prisma.eventVariant.updateMany({
+                where: { eventId },
+                data: { paymentStart: new Date(Date.now() - 2 * HOUR), paymentEnd: new Date(Date.now() - HOUR) },
+            })
+            return { eventId, seated, seatedRegistration, waiting, waitingRegistrationId }
+        }
+
+        const pay = (payer: UserFiltered, eventId: number) => eventRegistrationOperations.createPayment({
+            params: { userId: payer.id, eventId, amountFromBalance: EVENT_PRICE_ORE },
+            session: payerSessionOf(payer),
+        })
+
+        test('the one who kept their place cannot pay', async () => {
+            const { eventId, seated } = await createEventWithWaitingList('eventpaykept', 'eventpaykeptwaiting')
+
+            await expect(pay(seated, eventId)).rejects.toThrow(Smorekopp)
+        })
+
+        test('someone promoted when a place is freed can pay', async () => {
+            const { eventId, seatedRegistration, waiting } = await createEventWithWaitingList(
+                'eventpayflushed',
+                'eventpaypromoted',
+            )
+
+            await eventRegistrationOperations.destroyAsAdmin({
+                params: { registrationId: seatedRegistration.id },
+                bypassAuth: true,
+            })
+            const { payment } = await pay(waiting, eventId)
+
+            expect(payment).toBeNull()
+        })
+
+        test('someone promoted over 24 hours ago cannot pay', async () => {
+            const { eventId, seatedRegistration, waiting, waitingRegistrationId } = await createEventWithWaitingList(
+                'eventpayflushedearly',
+                'eventpaypromotedearly',
+            )
+
+            await eventRegistrationOperations.destroyAsAdmin({
+                params: { registrationId: seatedRegistration.id },
+                bypassAuth: true,
+            })
+            await prisma.eventRegistration.update({
+                where: { id: waitingRegistrationId },
+                data: { promotedAt: new Date(Date.now() - 25 * HOUR) },
+            })
+
+            await expect(pay(waiting, eventId)).rejects.toThrow(Smorekopp)
+        })
+    })
 })
