@@ -2,27 +2,41 @@ import TransactionList from '@/components/Ledger/Transactions/LedgerTransactionL
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerTransactionAuth } from '@/services/ledger/transactions/auth'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ params }: PageOperationArgs<{ accountId: string }>) => {
+    operation: async ({ params, searchParams }: PageOperationArgs<{ accountId: string }>) => {
         const accountId = Number(params.accountId)
 
         if (!accountId) {
             notFound()
         }
 
-        return ledgerAccountOperations.read({ params: { ledgerAccountId: accountId } })
+        return {
+            ledgerAccount: await ledgerAccountOperations.read({ params: { ledgerAccountId: accountId } }),
+            filters: {
+                search: QueryParams.search.decode(searchParams) ?? undefined,
+                purpose: QueryParams.transactionPurpose.decode(searchParams) ?? undefined,
+                direction: QueryParams.transactionDirection.decode(searchParams) ?? undefined,
+                minAmount: QueryParams.minAmount.decode(searchParams) ?? undefined,
+                maxAmount: QueryParams.maxAmount.decode(searchParams) ?? undefined,
+            },
+        }
     },
-    capabilities: (ledgerAccount) => ({
+    capabilities: ({ ledgerAccount }) => ({
         // Every transaction listed involves this account, so owning it makes the viewer a party.
         canCancel: ledgerTransactionAuth.cancel.data({ accounts: [ledgerAccount.ownership] }),
     }),
-    render: ({ data: ledgerAccount, capabilities }) => (
+    render: ({ data: { ledgerAccount, filters }, capabilities }) => (
         <div className="bg-surface-base rounded-round p-(--card-padding)">
-            <TransactionList accountId={ledgerAccount.id} capabilities={capabilitiesToJsObject(capabilities)} />
+            <TransactionList
+                accountId={ledgerAccount.id}
+                filters={filters}
+                capabilities={capabilitiesToJsObject(capabilities)}
+            />
         </div>
     ),
 })

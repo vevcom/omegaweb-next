@@ -1,4 +1,6 @@
+import { ledgerTransactionDirections } from './constants'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
+import { searchMaxLength } from '@/services/search/constants'
 import { LedgerTransactionPurpose } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
@@ -18,6 +20,11 @@ const paramsFieldSchemas = z.object({
     eventRegistrationId: z.number().optional(),
     bookingId: z.number().optional(),
     purchaseId: z.number().optional(),
+    search: z.string().trim().max(searchMaxLength),
+    direction: z.enum(ledgerTransactionDirections),
+    // In øre. They bound the size of the account's balance change, whichever way it goes.
+    minAmount: z.number().int().min(0),
+    maxAmount: z.number().int().min(0),
 })
 
 const transaction = paramsFieldSchemas.pick({
@@ -36,7 +43,13 @@ export const ledgerTransactionSchemas = {
             }),
             paramsFieldSchemas.pick({
                 accountId: true,
-            }),
+            }).merge(paramsFieldSchemas.pick({
+                purpose: true,
+                search: true,
+                direction: true,
+                minAmount: true,
+                maxAmount: true,
+            }).partial()),
         ),
         advance: transaction,
         create: paramsFieldSchemas.pick({

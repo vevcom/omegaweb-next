@@ -5,6 +5,7 @@ import { displayDate } from '@/lib/dates/displayDate'
 import { Require } from '@/auth/authorizer/Require'
 import { configureAction } from '@/services/configureAction'
 import { cancelLedgerTransactionAction } from '@/services/ledger/transactions/actions'
+import { transactionPurposeNames } from '@/services/ledger/transactions/constants'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
@@ -21,23 +22,23 @@ type Props = {
 // title falls back to naming the purpose alone.
 export const transactionTitles: Record<LedgerTransactionPurpose, (transaction: ExpandedLedgerTransaction) => string> = {
     SHOP_PURCHASE: transaction => (
-        transaction.purchase ? `Kjøp i ${transaction.purchase.shop.name}` : 'Kjøp i butikk'
+        transaction.purchase ? `Kjøp i ${transaction.purchase.shop.name}` : transactionPurposeNames.SHOP_PURCHASE
     ),
     EVENT_PAYMENT: transaction => {
         const event = (
             transaction.eventRegistration?.quota?.variant ?? transaction.eventRegistration?.waitingListVariant
         )?.event
-        return event ? `Påmelding til ${event.name}` : 'Arrangementsbetaling'
+        return event ? `Påmelding til ${event.name}` : transactionPurposeNames.EVENT_PAYMENT
     },
     CABIN_BOOKING: transaction => (
         transaction.booking
             ? `Hyttebooking ${displayDate(transaction.booking.start, false)} `
                 + `– ${displayDate(transaction.booking.end, false)}`
-            : 'Hyttebooking'
+            : transactionPurposeNames.CABIN_BOOKING
     ),
-    DEPOSIT: () => 'Innskudd',
-    PAYOUT: () => 'Utbetaling',
-    REFUND: () => 'Refusjon',
+    DEPOSIT: () => transactionPurposeNames.DEPOSIT,
+    PAYOUT: () => transactionPurposeNames.PAYOUT,
+    REFUND: () => transactionPurposeNames.REFUND,
 }
 
 export const transactionStateNames: Record<LedgerTransactionState, string> = {

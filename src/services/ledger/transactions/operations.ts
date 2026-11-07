@@ -8,7 +8,11 @@ import {
 import { hasPaymentCompletionHook } from './paymentCompletionHooks'
 import { ledgerTransactionAuth } from './auth'
 import { ledgerTransactionSchemas } from './schemas'
-import { expandedLedgerTransactionIncluder } from './constants'
+import {
+    expandedLedgerTransactionIncluder,
+    ledgerTransactionDirectionFilters,
+    transactionPurposeNames,
+} from './constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { paymentIncluder } from '@/services/ledger/payments/constants'
@@ -21,7 +25,8 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { Prisma as PrismaRuntime } from '@/prisma-generated-pn-client'
-import type { ExpandedLedgerTransaction } from './types'
+import type { ExpandedLedgerTransaction, LedgerTransactionFilters } from './types'
+import type { LedgerTransactionPurpose, Prisma } from '@/prisma-generated-pn-types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 
 // Nested calls to other operations are not bypassed unless noted: the checks involved are cheap,
@@ -189,11 +194,14 @@ export const ledgerTransactionOperations = {
         paramsSchema: ledgerTransactionSchemas.params.readPage,
         operation: async ({ prisma, params }) => await prisma.ledgerTransaction.findMany({
             where: {
+                purpose: params.paging.details.purpose,
                 ledgerEntries: {
                     some: {
                         ledgerAccountId: params.paging.details.accountId,
+                        AND: accountEntryFilters(params.paging.details),
                     },
                 },
+                ...(params.paging.details.search ? { OR: searchFilters(params.paging.details.search) } : {}),
             },
             include: expandedLedgerTransactionIncluder,
             orderBy: [
@@ -408,3 +416,40 @@ export const ledgerTransactionOperations = {
         }
     }),
 } as const
+
+/**
+ * Narrows the entry of the account whose transactions are listed, so the amount is the size of its
+ * balance change and the direction is the sign of it.
+ */
+function accountEntryFilters(
+    { direction, minAmount = 0, maxAmount }: LedgerTransactionFilters
+): Prisma.LedgerEntryWhereInput[] {
+    const filters: Prisma.LedgerEntryWhereInput[] = direction ? [ledgerTransactionDirectionFilters[direction]] : []
+    if (minAmount > 0 || maxAmount !== undefined) {
+        filters.push({
+            OR: [
+                { funds: { gte: minAmount, lte: maxAmount } },
+                { funds: { gte: maxAmount === undefined ? undefined : -maxAmount, lte: -minAmount } },
+            ],
+        })
+    }
+    return filters
+}
+
+/** Matches what a transaction's title and details name, so a search finds what the list shows. */
+function searchFilters(search: string): Prisma.LedgerTransactionWhereInput[] {
+    const contains = { contains: search, mode: 'insensitive' } as const
+    const variantMatches = { OR: [{ name: contains }, { event: { name: contains } }] }
+    const matchingPurposes = (Object.keys(transactionPurposeNames) as LedgerTransactionPurpose[]).filter(
+        purpose => transactionPurposeNames[purpose].toLowerCase().includes(search.toLowerCase())
+    )
+    return [
+        { purpose: { in: matchingPurposes } },
+        { description: contains },
+        { purchase: { shop: { name: contains } } },
+        { purchase: { PurchaseProduct: { some: { product: { name: contains } } } } },
+        { eventRegistration: { quota: { variant: variantMatches } } },
+        { eventRegistration: { waitingListVariant: variantMatches } },
+        { booking: { event: { name: contains } } },
+    ]
+}
