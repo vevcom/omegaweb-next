@@ -134,10 +134,10 @@ const { page, generateMetadata } = serverPage({
                 )}
 
                 <h2>Medlemmer</h2>
-                {ordersDescending.length === 0 && <p className="text-text-muted italic">Ingen medlemmer</p>}
+                {ordersDescending.length === 0 && <p className="text-base-content/80 italic">Ingen medlemmer</p>}
                 {ordersDescending.map(order => (
                     <div key={order}>
-                        <h3 className="mt-6 text-text-muted">{order}. Orden</h3>
+                        <h3 className="mt-6 text-base-content/80">{order}. Orden</h3>
                         <hr />
                         <div className="image-card-list">
                             {membersByOrder[order].map(member => (

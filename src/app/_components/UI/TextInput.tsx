@@ -6,53 +6,49 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
     name: string,
     label: string,
     type?: 'text' | 'password',
-    color?: 'primary' | 'secondary' | 'red' | 'black' | 'white',
-    background?: 'base' | 'raised',
+    color?: 'base' | 'primary' | 'secondary' | 'error',
+    background?: 'base100' | 'base200',
     /** 40px tall instead of 56px, to sit in a row of header pills. */
     compact?: boolean,
 }
 
 const colorClassNames = {
-    black: { field: `
-        text-ink-strong
-        focus:border-accent-blue
-    `, label: 'peer-focus:text-accent-blue' },
+    base: { field: `
+        text-base-content
+        focus:border-base-content
+    `, label: 'peer-focus:text-base-content' },
     primary: { field: `
-        text-accent-blue
-        focus:border-accent-blue
-    `, label: 'peer-focus:text-accent-blue' },
+        text-primary
+        focus:border-primary
+    `, label: 'peer-focus:text-primary' },
     secondary: { field: `
-        text-surface-base
-        focus:border-surface-base
-    `, label: 'peer-focus:text-surface-base' },
-    red: { field: `
-        text-accent-red
-        focus:border-accent-red
-    `, label: 'peer-focus:text-accent-red' },
-    white: { field: `
-        text-white
-        focus:border-accent-blue
-    `, label: 'peer-focus:text-accent-blue' },
+        text-secondary
+        focus:border-secondary
+    `, label: 'peer-focus:text-secondary' },
+    error: { field: `
+        text-error
+        focus:border-error
+    `, label: 'peer-focus:text-error' },
 } as const
 
 const backgroundClassNames = {
-    base: `
-        bg-surface-raised
-        hover:bg-surface-hover
-        focus:bg-surface-hover
+    base100: `
+        bg-base-100
+        hover:bg-base-200
+        focus:bg-base-200
     `,
-    raised: `
-        bg-surface-hover
-        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-        focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+    base200: `
+        bg-base-200
+        hover:bg-base-300
+        focus:bg-base-300
     `,
 } as const
 
 export default function TextInput({
     label = 'default',
     type = 'text',
-    color = 'black',
-    background = 'base',
+    color = 'base',
+    background = 'base200',
     compact = false,
     className,
     id,
@@ -77,8 +73,8 @@ export default function TextInput({
                     ${compact
             ? 'border-2 border-transparent pt-3.5 pb-0.5'
             : `
-                border border-surface-subtle
-                focus:ring-3 focus:ring-accent-blue/25
+                border border-base-300
+                focus:ring-3 focus:ring-primary/25
                 pt-6 pb-2.5
             `}
                     ${colorClassNames[color].field}
@@ -87,7 +83,7 @@ export default function TextInput({
                 placeholder={label}
             />
             <label htmlFor={inputId} className={`
-                absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-2
+                absolute left-4 block text-base-content/80 transition-all duration-300 pointer-events-none z-2
                 peer-placeholder-shown:text-m peer-placeholder-shown:cursor-text
                 ${compact ? `
                     top-0.5 text-[length:calc(var(--text-s)*0.7)]

@@ -25,7 +25,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: product, capabilities }) => (
         <PageWrapper>
             <div className="mb-6 flex flex-wrap items-start gap-6">
-                <div className="w-full max-w-[320px] aspect-square overflow-hidden rounded-round bg-surface-hover">
+                <div className="w-full max-w-[320px] aspect-square overflow-hidden rounded-round bg-base-300">
                     <CmsImage
                         cmsImage={product.image}
                         updateCmsImageAction={configureAction(
@@ -43,7 +43,7 @@ const { page, generateMetadata } = serverPage({
                     />
                 </div>
                 <div className="min-w-[260px] flex-1">
-                    {product.description && <p className="mt-0 text-m text-text-muted">{product.description}</p>}
+                    {product.description && <p className="mt-0 text-m text-base-content/80">{product.description}</p>}
                     {capabilities.canUpdateProduct.authorized && <ProductForm product={product} />}
                 </div>
             </div>

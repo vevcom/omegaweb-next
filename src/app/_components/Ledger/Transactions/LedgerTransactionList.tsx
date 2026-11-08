@@ -16,7 +16,7 @@ function EmptyState() {
 
     if (!context.state.allLoaded || context.state.data.length > 0) return null
 
-    return <p>{emptyTransactionsText}</p>
+    return <p className="text-base-content">{emptyTransactionsText}</p>
 }
 
 export default function TransactionList({ accountId }: Props) {

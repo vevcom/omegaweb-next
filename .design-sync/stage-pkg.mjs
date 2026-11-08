@@ -333,7 +333,7 @@ export default function OhmaProviders({ children }: { children: React.ReactNode 
 `)
 
 // The preview card harness hard-codes `body{background:#fff}`, but this design
-// system is dark-only: `globals.css` paints `html` with --surface-base and
+// system is dark-only: `globals.css` paints `html` with --color-base-100 and
 // --text is near-white. On a white card, text and icons render invisible. This
 // re-establishes the surface the app actually renders components on. Used only
 // as the outer half of `cfg.provider` — it never wraps a real design, which
@@ -344,8 +344,8 @@ write('src/_shims/Surface.tsx', `import React from 'react'
 export default function OhmaPreviewSurface({ children }: { children: React.ReactNode }) {
     return (
         <div style={{
-            background: 'var(--surface-base)',
-            color: 'var(--text)',
+            background: 'var(--color-base-100)',
+            color: 'var(--color-base-content)',
             padding: '1.25rem',
             borderRadius: '0.5rem',
         }}>

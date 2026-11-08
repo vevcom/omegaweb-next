@@ -33,7 +33,7 @@ const quietLinkClassName = `
 
 const accountItemClassName = `
     px-3 py-2.5 text-s font-medium text-careers-navy transition-colors
-    hover:bg-surface-base hover:text-careers-accent hover:no-underline
+    hover:bg-base-100 hover:text-careers-accent hover:no-underline
 `
 
 const mobileItemClassName = `
@@ -75,7 +75,7 @@ export default function CareersNavBar({ links, accountLinks, loggedIn, showOmega
     )
 
     return (
-        <header className="relative z-3 bg-surface-raised border-b border-careers-line">
+        <header className="relative z-3 bg-base-200 border-b border-careers-line">
             <div className={`
                 ${innerClassName}
                 h-20 flex items-center justify-between gap-6

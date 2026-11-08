@@ -16,7 +16,9 @@ export default function DotExpieries({ dot }: PropTypes) {
         <div className="flex flex-col max-h-[8em] overflow-y-auto">
             {
                 dot.expiryForEachDotValue.map((expiry, index) => (
-                    <span key={expiry.toISOString()} className={index < expiredValues ? 'line-through text-text-muted' : ''}>
+                    <span key={expiry.toISOString()} className={index < expiredValues ? `
+                        line-through text-base-content/80
+                    ` : ''}>
                         <DateDisplay date={expiry} includeTime={false} />
                     </span>
                 ))

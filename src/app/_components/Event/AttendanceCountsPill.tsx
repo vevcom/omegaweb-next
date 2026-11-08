@@ -7,11 +7,11 @@ export default function AttendanceCountsPill() {
     return <div className="header-pill items-baseline! px-4 whitespace-nowrap leading-[40px]">
         <span className="
             text-m
-            [&>strong]:text-l [&>strong]:text-accent-green
+            [&>strong]:text-l [&>strong]:text-success
         ">
             <strong>{counts.attended}</strong> / {counts.total}
         </span>
-        {counts.attendedFromWaitingList > 0 && <span className="text-s text-text-muted">
+        {counts.attendedFromWaitingList > 0 && <span className="text-s text-base-content/80">
             + {counts.attendedFromWaitingList} fra venteliste
         </span>}
     </div>

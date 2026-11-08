@@ -36,7 +36,7 @@ const { page, generateMetadata } = serverPage({
             }
         >
             {shops.length === 0 ? (
-                <p className="text-text-muted">Det finnes ingen butikker ennå.</p>
+                <p className="text-base-content/80">Det finnes ingen butikker ennå.</p>
             ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
                     {sortObjectsByName(shops).map(shop => (
@@ -44,26 +44,24 @@ const { page, generateMetadata } = serverPage({
                             key={shop.id}
                             href={appHref(`/shop/${shop.id}`)}
                             className="
-                                group flex flex-col gap-3 rounded-round bg-surface-raised p-5 text-text no-underline
+                                group flex flex-col gap-3 rounded-round bg-base-200 p-5 text-base-content no-underline
                                 transition-colors duration-300
-                                hover:bg-surface-hover hover:no-underline
+                                hover:bg-base-300 hover:no-underline
                             "
                         >
                             <span className="
-                                grid size-12 place-items-center rounded-full bg-accent-blue text-text-inv
+                                grid size-12 place-items-center rounded-full bg-primary text-primary-content
                                 [&_svg]:text-inherit
-                                [&_path]:text-inherit
                             ">
                                 <FontAwesomeIcon icon={faStore} className="size-5!" />
                             </span>
                             <h2 className="m-0 text-l">{shop.name}</h2>
                             {shop.description && (
-                                <p className="m-0 text-s text-text-muted line-clamp-3">{shop.description}</p>
+                                <p className="m-0 text-s text-base-content/80 line-clamp-3">{shop.description}</p>
                             )}
                             <span className="
-                                mt-auto flex items-center gap-2 pt-2 text-s font-medium text-accent-blue
+                                mt-auto flex items-center gap-2 pt-2 text-s font-medium text-primary
                                 [&_svg]:text-inherit
-                                [&_path]:text-inherit
                             ">
                                 Gå til butikken
                                 <FontAwesomeIcon icon={faArrowRight} className="

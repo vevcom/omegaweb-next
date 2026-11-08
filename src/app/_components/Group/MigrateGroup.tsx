@@ -56,7 +56,7 @@ export default function MigrateGroup({
     if (groupOrder >= currentOmegaOrder) {
         return (
             <div className="flex flex-col gap-2">
-                <p className="text-accent-green">Gruppen er i orden {groupOrder} og trenger ingen migrering.</p>
+                <p className="text-success">Gruppen er i orden {groupOrder} og trenger ingen migrering.</p>
             </div>
         )
     }
@@ -86,7 +86,7 @@ export default function MigrateGroup({
 
     return (
         <div className="flex flex-col gap-2">
-            <p className="text-text-muted max-w-[70ch]">
+            <p className="text-base-content/80 max-w-[70ch]">
                 Gruppen står i orden {groupOrder}, mens Omega er i orden {currentOmegaOrder}. Velg
                 hvem som skal være med videre, og hvem av dem som skal være admin i den nye ordenen.
                 De som ikke velges beholder medlemskapet sitt i orden {groupOrder}, men det blir satt
@@ -94,7 +94,7 @@ export default function MigrateGroup({
             </p>
 
             {candidates.length === 0 ? (
-                <p className="text-text-muted italic">Gruppen har ingen aktive medlemmer i orden {groupOrder}.</p>
+                <p className="text-base-content/80 italic">Gruppen har ingen aktive medlemmer i orden {groupOrder}.</p>
             ) : (
                 <div className="flex flex-col gap-1 max-h-[24em] overflow-y-auto p-2 rounded-round layer">
                     {candidates.map(candidate => (
@@ -121,13 +121,13 @@ export default function MigrateGroup({
                 </div>
             )}
 
-            <span className="text-text-muted text-s">
+            <span className="text-base-content/80 text-s">
                 {kept.length} av {candidates.length} blir med videre til orden {currentOmegaOrder}
                 {kept.length > 0 && `, ${admins.length} som admin`}
             </span>
 
             {missingAdmin && (
-                <p className="text-accent-red text-s">
+                <p className="text-error text-s">
                     Minst ett medlem må være admin i orden {currentOmegaOrder}.
                 </p>
             )}

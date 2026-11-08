@@ -1,5 +1,5 @@
 export const committeeCardClassName = `
-    bg-surface-raised p-2 h-[calc(26*var(--gap))] flex items-stretch gap-4 rounded-inner overflow-hidden
+    bg-base-200 p-2 h-[calc(26*var(--gap))] flex items-stretch gap-4 rounded-inner overflow-hidden
     max-mobile:h-auto max-mobile:min-h-[calc(26*var(--gap))]
 `
 

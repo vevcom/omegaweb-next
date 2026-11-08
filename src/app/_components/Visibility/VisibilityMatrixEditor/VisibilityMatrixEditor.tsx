@@ -34,9 +34,9 @@ const NOW = -1
 
 const modeClassName = (active: boolean) => `
     py-1 px-3 border-none rounded-[calc(var(--rounding)/2)] text-s cursor-pointer
-    ${active ? 'bg-accent-blue text-white font-medium' : `
-        bg-transparent text-text
-        hover:bg-surface-raised
+    ${active ? 'bg-primary text-white font-medium' : `
+        bg-transparent text-base-content
+        hover:bg-base-200
     `}
 `
 
@@ -59,27 +59,27 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
 
     return <li className="flex flex-col gap-1 min-w-0">
         <span className={`
-            inline-flex items-center self-start max-w-full rounded-round border bg-surface-raised text-s
-            ${condition.type === 'ORDER' ? 'border-dashed border-text-muted' : 'border-surface-subtle'}
+            inline-flex items-center self-start max-w-full rounded-round border bg-base-200 text-s
+            ${condition.type === 'ORDER' ? 'border-dashed border-base-content/80' : 'border-base-300'}
         `}>
             <button
                 type="button"
                 title="Velg om dette gjelder nå eller et tidligere år"
                 aria-expanded={choosingWhen}
                 onClick={() => setChoosingWhen(!choosingWhen)}
-                className="py-1 pl-3 pr-1 border-none bg-transparent text-text text-left cursor-pointer"
+                className="py-1 pl-3 pr-1 border-none bg-transparent text-base-content text-left cursor-pointer"
             >
                 {name}
-                {condition.type === 'ORDER' && <span className="text-text-muted"> · {condition.order}. orden</span>}
+                {condition.type === 'ORDER' && <span className="text-base-content/80"> · {condition.order}. orden</span>}
             </button>
             <button
                 type="button"
                 aria-label={`Fjern ${name}`}
                 onClick={onRemove}
                 className="
-                    flex items-center justify-center size-6 mr-1 border-none rounded-full bg-transparent text-text-muted
+                    flex items-center justify-center size-6 mr-1 border-none rounded-full bg-transparent text-base-content/80
                     cursor-pointer
-                    hover:text-accent-red
+                    hover:text-error
                 "
             >
                 <FontAwesomeIcon icon={faXmark} />
@@ -131,13 +131,13 @@ export default function VisibilityMatrixEditor({ requirements, onChange, verb, e
             aria-live="polite"
             className={`
                 m-0 py-2 px-3 rounded-inner font-medium
-                ${unfinished ? 'bg-accent-yellow/15' : 'bg-accent-blue/15'}
+                ${unfinished ? 'bg-warning/15' : 'bg-primary/15'}
             `}
         >
             {nobody ? 'Ingen slipper inn ennå. Velg minst én gruppe.' : sentence}
         </p>
 
-        {everyone !== undefined && <div className="flex flex-wrap gap-1 self-start p-1 rounded-inner bg-surface-hover">
+        {everyone !== undefined && <div className="flex flex-wrap gap-1 self-start p-1 rounded-inner bg-base-300">
             <button
                 type="button"
                 aria-pressed={!specific}
@@ -160,8 +160,8 @@ export default function VisibilityMatrixEditor({ requirements, onChange, verb, e
 
         {specific && (groups === null ? <p className="m-0">Laster grupper...</p> : <>
             {lists.map((list, listIndex) => <div key={listIndex} className="flex flex-col gap-2 min-w-0">
-                {listIndex > 0 && <span className="text-s text-text-muted">og</span>}
-                <div className="flex flex-col gap-2 p-3 rounded-inner border border-surface-subtle">
+                {listIndex > 0 && <span className="text-s text-base-content/80">og</span>}
+                <div className="flex flex-col gap-2 p-3 rounded-inner border border-base-300">
                     <div className="flex justify-between gap-2">
                         <span className="text-s font-medium">
                             {list.conditions.length > 1 ? 'Må være i én av disse' : 'Må være i'}
@@ -170,8 +170,8 @@ export default function VisibilityMatrixEditor({ requirements, onChange, verb, e
                             type="button"
                             onClick={() => onChange(lists.filter((_, index) => index !== listIndex))}
                             className="
-                                p-0 border-none bg-transparent text-s text-text-muted underline cursor-pointer
-                                hover:text-accent-red
+                                p-0 border-none bg-transparent text-s text-base-content/80 underline cursor-pointer
+                                hover:text-error
                             "
                         >
                             Fjern
@@ -212,7 +212,7 @@ export default function VisibilityMatrixEditor({ requirements, onChange, verb, e
                 </div>
             </div>)}
             {listsContradict({ requirements: lists }, groups) && <p className="
-                m-0 py-2 px-3 rounded-inner bg-accent-yellow/15 text-s
+                m-0 py-2 px-3 rounded-inner bg-warning/15 text-s
             ">
                 Ingen går i to klasser samtidig. Skal begge klassene med, legg dem i samme liste.
             </p>}

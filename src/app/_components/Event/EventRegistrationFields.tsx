@@ -17,21 +17,21 @@ import type { QuotaDraft, VariantDraft } from './eventSetupDraft'
 import type { ReactNode } from 'react'
 
 const sectionClassName = `
-    flex flex-col gap-3 p-4 rounded-round bg-surface-raised
+    flex flex-col gap-3 p-4 rounded-round bg-base-200
     [&>h3]:m-0 [&>h3]:text-l [&>h3]:font-bold
 `
 
-const flowStepClassName = 'm-0 py-1 pl-3 text-s text-text-muted'
+const flowStepClassName = 'm-0 py-1 pl-3 text-s text-base-content/80'
 
 const linkButtonClassName = `
-    shrink-0 border-none bg-transparent p-0 text-s text-accent-blue cursor-pointer
+    shrink-0 border-none bg-transparent p-0 text-s text-primary cursor-pointer
     hover:underline
 `
 
 const removeButtonClassName = `
-    shrink-0 border-none bg-transparent p-0 text-s text-accent-red cursor-pointer
+    shrink-0 border-none bg-transparent p-0 text-s text-error cursor-pointer
     enabled:hover:underline
-    disabled:text-text-muted disabled:cursor-not-allowed
+    disabled:text-base-content/80 disabled:cursor-not-allowed
 `
 
 function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
@@ -48,11 +48,11 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
     const groups = groupsResult.status === 'success' ? flattenExpandedGroups(groupsResult.groups) : null
     const over = quota.numOfRegistrations - quota.places
 
-    return <section className="flex flex-col gap-2 p-3 rounded-inner bg-surface-base">
+    return <section className="flex flex-col gap-2 p-3 rounded-inner bg-base-100">
         <div className="flex flex-wrap items-center gap-2">
             {several && handle}
             {several && <span className="
-                grid place-items-center size-6 shrink-0 rounded-full bg-accent-blue text-text-inv text-s font-bold
+                grid place-items-center size-6 shrink-0 rounded-full bg-primary text-primary-content text-s font-bold
             ">{index + 1}</span>}
             {several
                 ? <TextInput
@@ -74,7 +74,7 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
         </div>
         <EventQuotaBar taken={quota.numOfRegistrations} places={quota.places} />
         <div className="flex flex-wrap items-center justify-between gap-2 text-s">
-            <span className="text-text-muted">
+            <span className="text-base-content/80">
                 {quota.numOfRegistrations} påmeldt.{' '}
                 {describeAudience({ requirements: quota.visibilityRequirements }, groups)}
             </span>
@@ -99,7 +99,7 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
                 </button>}
             </div>
         </div>
-        {over > 0 && <p className="m-0 text-s text-accent-orange">
+        {over > 0 && <p className="m-0 text-s text-warning">
             Når du lagrer, flyttes {over} til neste kvote de kan melde seg på, eller til ventelisten.
         </p>}
         {editingWho && <VisibilityMatrixEditor
@@ -147,7 +147,7 @@ function QuotaFlow({ variant, waitingList, addLabel, onChange }: {
             />
             {waitingList && <>
                 <p className={flowStepClassName}>↓ Når alt er fullt</p>
-                <div className="flex items-center justify-between gap-2 p-3 rounded-inner bg-surface-base">
+                <div className="flex items-center justify-between gap-2 p-3 rounded-inner bg-base-100">
                     <h4 className="m-0">Venteliste</h4>
                     <span className="tabular-nums">{variant.numOnWaitingList} venter</span>
                 </div>
@@ -266,23 +266,23 @@ export default function EventRegistrationFields({ variants, waitingList, eventSt
                     disabled={blocked !== null}
                     onClick={() => onChange(variantsInShape(option.shape, variants, eventStart))}
                     className={`
-                        flex flex-col gap-0.5 p-2.5 rounded-inner border text-left cursor-pointer bg-surface-raised
+                        flex flex-col gap-0.5 p-2.5 rounded-inner border text-left cursor-pointer bg-base-200
                         disabled:cursor-not-allowed disabled:opacity-50
                         ${current === option.shape
-        ? 'border-accent-blue ring-1 ring-accent-blue'
+        ? 'border-primary ring-1 ring-primary'
         : `
-            border-surface-subtle
-            hover:bg-surface-hover
+            border-base-300
+            hover:bg-base-300
         `}
                     `}
                 >
                     <span className="font-bold">{option.name}</span>
-                    <span className="text-s text-text-muted">{blocked ?? option.hint}</span>
+                    <span className="text-s text-base-content/80">{blocked ?? option.hint}</span>
                 </button>
             })}
         </div>
 
-        {current === 'NONE' && <p className="m-0 text-text-muted">Arrangementet vises uten påmelding.</p>}
+        {current === 'NONE' && <p className="m-0 text-base-content/80">Arrangementet vises uten påmelding.</p>}
 
         {variants.length === 1 && <section className={sectionClassName}>
             <RegistrationPeriod variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />

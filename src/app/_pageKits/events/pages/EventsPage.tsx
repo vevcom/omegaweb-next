@@ -54,7 +54,7 @@ export function eventsPage(config: EventPagesConfig) {
             const { pickedTagNames, search, currentEvents, eventTags, committees } = data
             const pickedTags = eventTags.filter(tag => pickedTagNames?.includes(tag.name))
             const noEvents = search ? (
-                <div className="flex flex-col items-center gap-3 mt-12 text-text-muted">
+                <div className="flex flex-col items-center gap-3 mt-12 text-base-content/80">
                     <FontAwesomeIcon icon={faMagnifyingGlass} className="text-4xl" />
                     <i>Ingen kommende arrangementer matcher søket</i>
                 </div>
@@ -68,9 +68,9 @@ export function eventsPage(config: EventPagesConfig) {
                         <div className="
                             flex items-center gap-[1em]
                             [&_a]:no-underline [&_a]:relative
-                            [&_a:hover]:after:content-['✖'] [&_a:hover]:after:text-[4em] [&_a:hover]:after:text-text
-                            [&_a:hover]:after:absolute [&_a:hover]:after:left-1/2 [&_a:hover]:after:top-1/2
-                            [&_a:hover]:after:-translate-1/2
+                            [&_a:hover]:after:content-['✖'] [&_a:hover]:after:text-[4em]
+                            [&_a:hover]:after:text-base-content [&_a:hover]:after:absolute [&_a:hover]:after:left-1/2
+                            [&_a:hover]:after:top-1/2 [&_a:hover]:after:-translate-1/2
                         ">
                             {pickedTags.map(tag => {
                                 const remainingTagNames = pickedTags

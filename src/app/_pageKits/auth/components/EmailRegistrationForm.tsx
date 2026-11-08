@@ -24,9 +24,9 @@ type PropTypes = {
 
 // A rule on each side of the text.
 const dividerClassName = `
-    flex justify-center items-center my-2 text-text-muted
-    before:m-2 before:flex-1 before:h-0 before:border-b before:border-text-muted
-    after:m-2 after:flex-1 after:h-0 after:border-b after:border-text-muted
+    flex justify-center items-center my-2 text-base-content/80
+    before:m-2 before:flex-1 before:h-0 before:border-b before:border-base-content/80
+    after:m-2 after:flex-1 after:h-0 after:border-b after:border-base-content/80
 `
 
 export default function EmailRegistrationForm({ config, user, feideLoginMatch, callbackUrl }: PropTypes) {
@@ -41,7 +41,7 @@ export default function EmailRegistrationForm({ config, user, feideLoginMatch, c
 
     const welcome = <>
         <h1>Velkommen til {config.siteName}!</h1>
-        {config.accountNotice && <p className="p-2 border-l-3 border-accent-blue">{config.accountNotice}</p>}
+        {config.accountNotice && <p className="p-2 border-l-3 border-primary">{config.accountNotice}</p>}
     </>
 
     const emailForm = <>
@@ -91,7 +91,7 @@ export default function EmailRegistrationForm({ config, user, feideLoginMatch, c
     if (!feideLoginMatch.createdByFeideLoginOnOmegawebNext) {
         return <>
             <h1>Vi fant brukeren din!</h1>
-            <p className="p-2 border-l-3 border-accent-blue">
+            <p className="p-2 border-l-3 border-primary">
                 Feide-innloggingen din ({feideLoginMatch.feideEmail}) er koblet til den eksisterende
                 brukeren din fra gamle Omegaveven, <strong>{user.firstname} {user.lastname}
                 ({user.username})</strong>{user.email === feideLoginMatch.feideEmail && ', fordi e-posten stemte'}.
@@ -106,7 +106,7 @@ export default function EmailRegistrationForm({ config, user, feideLoginMatch, c
 
     return <>
         {welcome}
-        <p className="p-2 border-l-3 border-accent-blue">
+        <p className="p-2 border-l-3 border-primary">
             Vi fant ingen bruker fra gamle Omegaveven med Feide-e-posten din
             ({feideLoginMatch.feideEmail}). Hadde du bruker der, var den trolig registrert med en annen
             e-post. Du har to valg:

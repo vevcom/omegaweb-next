@@ -19,7 +19,7 @@ export default async function UserSettingsNav({ username, userId }: UserNavSubje
     return (
         <details className="group">
             <summary className="
-                secondary-btn flex items-center gap-[0.5em] list-none
+                btn-neutral flex items-center gap-[0.5em] list-none
                 [&::-webkit-details-marker]:hidden
             ">
                 <FontAwesomeIcon icon={faCog} />

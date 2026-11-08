@@ -198,7 +198,7 @@ export default function Form<GiveActionReturn>({
                 [&>h2]:mb-2
                 ${className}
             `} {...props} onSubmit={handleSubmit}>
-                {title && <h2>{title}</h2>}
+                {title && <h2 className="text-base-content">{title}</h2>}
                 {Children.toArray(children).map((child, index) => {
                     if (isValidElement(child) && child.type === FormTab) return child
                     const name = inputName(child)
@@ -211,9 +211,9 @@ export default function Form<GiveActionReturn>({
                 })}
                 {saveBar ? <div className="
                     sticky -bottom-1 z-2 flex items-start justify-between gap-3 mt-auto pt-3 pb-1 border-t
-                    border-surface-subtle bg-surface-base
+                    border-base-300 bg-base-100
                 ">
-                    <p className="m-0 py-2 text-text-muted">
+                    <p className="m-0 py-2 text-base-content/80">
                         {dirty ? 'Du har ulagrede endringer.' : 'Alt er lagret.'}
                     </p>
                     <div className="flex items-start gap-2">

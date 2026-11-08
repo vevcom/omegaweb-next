@@ -84,8 +84,8 @@ export default function EditCategory({ category }: PropTypes) {
                         showButtonClass="
                             w-[30px] h-[30px] absolute top-[2em] right-[1em]
                             max-mobile:top-[1em]
-                            bg-transparent border-none text-text transition-colors duration-300 ease-in-out
-                            hover:cursor-pointer hover:text-accent-blue
+                            bg-transparent border-none text-base-content transition-colors duration-300 ease-in-out
+                            hover:cursor-pointer hover:text-primary
                         "
                         showButtonContent={
                             <FontAwesomeIcon icon={faCog} />

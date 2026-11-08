@@ -1,12 +1,13 @@
 'use client'
 import {
     DropdownPanel,
+    dropdownBorderClassNames,
     dropdownChevronClassName,
     dropdownColorClassNames,
     dropdownLabelClassName,
     useDropdown,
 } from './Dropdown'
-import { backgroundClassNames, focusBorderClassNames } from './SearchableDropdown'
+import { backgroundClassNames } from './SearchableDropdown'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -37,8 +38,8 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
     hideSelected = false,
     options,
     onChange,
-    color = 'black',
-    background = 'base',
+    color = 'base',
+    background = 'base200',
     className,
     disabled,
 }: PropTypes<ValueType>) {
@@ -95,13 +96,13 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                     id={domId}
                     type="text"
                     className={`
-                        w-full border border-surface-subtle
-                        focus:ring-3 focus:ring-accent-blue/25
+                        w-full border border-base-300
+                        focus:ring-3 focus:ring-primary/25
                         rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] pt-6 pr-10 pb-2.5 pl-4
                         transition-[border-color,background-color,box-shadow] duration-300
                         disabled:cursor-not-allowed disabled:opacity-60
                         ${dropdownColorClassNames[color]}
-                        ${focusBorderClassNames[color]}
+                        ${dropdownBorderClassNames[color]}
                         ${backgroundClassNames[background]}
                     `}
                     autoComplete="off"
@@ -143,15 +144,15 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                     {selectedOptions.map(option => (
                         <li
                             key={option.key ?? String(option.value)}
-                            className="flex items-center gap-1 rounded-inner bg-surface-hover py-1 pl-3 pr-1 text-s"
+                            className="flex items-center gap-1 rounded-inner bg-base-300 py-1 pl-3 pr-1 text-s"
                         >
                             {option.label ?? String(option.value)}
                             <button
                                 type="button"
                                 className="
                                     flex items-center justify-center size-6 border-none rounded-full bg-transparent
-                                    text-text-muted cursor-pointer
-                                    hover:text-accent-red
+                                    text-base-content/80 cursor-pointer
+                                    hover:text-error
                                 "
                                 aria-label={`Fjern ${option.label ?? String(option.value)}`}
                                 disabled={disabled}

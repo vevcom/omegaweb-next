@@ -19,14 +19,14 @@ export const HoursAndMinutes = () => (
 
 export const InHeroPanel = () => (
     <div style={{
-        background: 'var(--surface-raised)',
+        background: 'var(--color-base-200)',
         padding: '1.5rem',
         borderRadius: 'var(--cardRounding, var(--rounding))',
         textAlign: 'center',
         display: 'grid',
         gap: '0.5rem',
     }}>
-        <span style={{ color: 'var(--text-muted)' }}>Immatrikuleringsballet starter om</span>
+        <span style={{ color: 'var(--color-base-content)' }}>Immatrikuleringsballet starter om</span>
         <strong style={{ fontSize: '1.75rem' }}>
             <CountDown referenceDate={inDays(3)} />
         </strong>

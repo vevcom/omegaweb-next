@@ -19,7 +19,7 @@ export default function RadioLarge<ValueType extends number | string>({
         flex flex-row m-[1rem] text-l
         [&>div>label]:p-[5px] [&>div>label]:border-3 [&>div>label]:border-[#ccc]
         [&_input[type=radio]]:hidden
-        [&_input[type=radio]:checked+label]:border-accent-blue
+        [&_input[type=radio]:checked+label]:border-primary
         [&>div:first-child>label]:rounded-l-round
         [&>div:last-child>label]:rounded-r-round
     ">

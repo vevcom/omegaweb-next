@@ -5,6 +5,8 @@ import { updateUserThemeAction } from '@/services/users/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
 
+type ColorKey = 'base-100' | 'base-content' | 'primary'
+
 type PropTypes = {
     username: string,
     activeTheme: Theme,
@@ -41,26 +43,26 @@ export default function ThemeForm({ username, activeTheme }: PropTypes) {
         <div className="flex flex-col gap-2">
             {Object.values(Theme).map(theme => {
                 const colors = themes[theme]
-                const bg = (key: keyof typeof colors) => ({ backgroundColor: colors[key] })
+                const bg = (key: ColorKey) => ({ backgroundColor: colors[`--color-${key}`] })
                 return (
                     <Form
                         key={theme}
                         className={`
-                            w-full bg-surface-base rounded-round border-2 p-4 transition-[border-color,box-shadow]
+                            w-full bg-base-100 rounded-round border-2 p-4 transition-[border-color,box-shadow]
                             duration-300 ease-[ease] overflow-hidden flex flex-col gap-4
-                            ${theme === activeTheme ? 'border-accent-blue' : 'border-transparent'}
+                            ${theme === activeTheme ? 'border-primary' : 'border-transparent'}
                         `}
                         action={action}
                         refreshOnSuccess
                         submitText="Velg tema"
                     >
                         <input type="hidden" name="theme" value={theme} />
-                        <div className="bg-surface-raised -mx-4 -mt-4 mb-0 p-4 text-xl text-ink-hover">
+                        <div className="bg-base-200 -mx-4 -mt-4 mb-0 p-4 text-xl text-base-content/80">
                             {themeLabels[theme]}
                         </div>
                         <div className="flex flex-wrap items-start justify-between gap-4">
                             <div className="flex-1 flex flex-wrap content-start gap-1.5">
-                                {Object.entries(colors).map(([key, value]) => (
+                                {Object.entries(colors).filter(([key]) => key.startsWith('--')).map(([key, value]) => (
                                     <div
                                         key={key}
                                         className="shrink-0 rounded-round size-8"
@@ -73,30 +75,30 @@ export default function ThemeForm({ username, activeTheme }: PropTypes) {
                                 className={preview.root}
                                 style={{
                                     background: 'linear-gradient(125deg, '
-                                        + `color-mix(in srgb, ${colors['accent-blue']}, transparent 70%) 0%, `
-                                        + `color-mix(in srgb, ${colors['surface-base']}, transparent 80%) 70%), ${
-                                            colors['surface-raised']}`,
+                                        + `color-mix(in srgb, ${colors['--color-primary']}, transparent 70%) 0%, `
+                                        + `color-mix(in srgb, ${colors['--color-base-100']}, transparent 80%) 70%), ${
+                                            colors['--color-base-200']}`,
                                 }}
                             >
-                                <div className={preview.navBar} style={bg('surface-base')}>
-                                    <span className={preview.logo} style={bg('accent-blue')} />
-                                    <span className={preview.title} style={bg('text-muted')} />
+                                <div className={preview.navBar} style={bg('base-100')}>
+                                    <span className={preview.logo} style={bg('primary')} />
+                                    <span className={preview.title} style={bg('base-content')} />
                                     <span className={preview.navGrower} />
-                                    <span className={preview.navIcon} style={bg('text-muted')} />
-                                    <span className={preview.navIcon} style={bg('accent-blue')} />
+                                    <span className={preview.navIcon} style={bg('base-content')} />
+                                    <span className={preview.navIcon} style={bg('primary')} />
                                 </div>
                                 <div className={preview.body}>
-                                    <div className={preview.sideBar} style={bg('surface-base')}>
-                                        <span className={preview.sideIcon} style={bg('accent-blue')} />
-                                        <span className={preview.sideIcon} style={bg('text-muted')} />
-                                        <span className={preview.sideIcon} style={bg('text-muted')} />
-                                        <span className={preview.sideIcon} style={bg('text-muted')} />
+                                    <div className={preview.sideBar} style={bg('base-100')}>
+                                        <span className={preview.sideIcon} style={bg('primary')} />
+                                        <span className={preview.sideIcon} style={bg('base-content')} />
+                                        <span className={preview.sideIcon} style={bg('base-content')} />
+                                        <span className={preview.sideIcon} style={bg('base-content')} />
                                     </div>
-                                    <div className={preview.card} style={bg('surface-base')}>
-                                        <span className={preview.heading} style={bg('ink-strong')} />
-                                        <span className={preview.text} style={bg('text-muted')} />
-                                        <span className={preview.text} style={bg('text-muted')} />
-                                        <span className={preview.button} style={bg('accent-blue')} />
+                                    <div className={preview.card} style={bg('base-100')}>
+                                        <span className={preview.heading} style={bg('base-content')} />
+                                        <span className={preview.text} style={bg('base-content')} />
+                                        <span className={preview.text} style={bg('base-content')} />
+                                        <span className={preview.button} style={bg('primary')} />
                                     </div>
                                 </div>
                             </div>

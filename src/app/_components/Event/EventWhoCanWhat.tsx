@@ -17,7 +17,7 @@ const registersText: Record<Registers, string> = { yes: 'Ja', no: 'Nei', login: 
 function Answer({ text, yes }: { text: string, yes: boolean }) {
     return <td className={`
         px-2 py-1
-        ${yes ? 'font-medium' : 'text-text-muted'}
+        ${yes ? 'font-medium' : 'text-base-content/80'}
     `}>{text}</td>
 }
 
@@ -27,11 +27,11 @@ export function EventQuotaAudiences({ variants }: { variants: VariantDraft[] }) 
     const groups = groupsResult.status === 'success' ? flattenExpandedGroups(groupsResult.groups) : null
     const quotas = variants.flatMap(variant => variant.quotas.map(quota => ({ variant, quota })))
 
-    if (quotas.length === 0) return <p className="m-0 text-text-muted">Arrangementet har ikke påmelding.</p>
+    if (quotas.length === 0) return <p className="m-0 text-base-content/80">Arrangementet har ikke påmelding.</p>
     return <>
         <ul className="m-0 pl-5">
             {quotas.map(({ variant, quota }) => <li key={quota.key}>
-                {quotas.length > 1 && <span className="text-text-muted">
+                {quotas.length > 1 && <span className="text-base-content/80">
                     {variants.length > 1 ? `${variant.name}, ${quota.name}` : quota.name}:{' '}
                 </span>}
                 {quota.visibilityRequirements.length > 0
@@ -39,7 +39,7 @@ export function EventQuotaAudiences({ variants }: { variants: VariantDraft[] }) 
                     : 'Alle som er logget inn'}
             </li>)}
         </ul>
-        <p className="m-0 text-s text-text-muted">Dette endres under Påmelding.</p>
+        <p className="m-0 text-s text-base-content/80">Dette endres under Påmelding.</p>
     </>
 }
 
@@ -63,7 +63,7 @@ export default function EventWhoCanWhat({ access }: { access: EventAccess }) {
                     {whoCanWhat(access).map(row => {
                         const audience = row.audience ?? { requirements: [] }
                         const name = row.label ? labels[row.label] : describeAudience(audience, groups)
-                        return <tr key={name} className="border-t border-surface-subtle">
+                        return <tr key={name} className="border-t border-base-300">
                             <th scope="row" className="px-2 py-1 font-medium">{name}</th>
                             <Answer text={row.sees ? 'Ja' : 'Nei'} yes={row.sees} />
                             <Answer text={registersText[row.registers]} yes={row.registers === 'yes'} />
@@ -73,7 +73,7 @@ export default function EventWhoCanWhat({ access }: { access: EventAccess }) {
                 </tbody>
             </table>
         </div>
-        {!access.published && <p className="m-0 text-s text-text-muted">
+        {!access.published && <p className="m-0 text-s text-base-content/80">
             Arrangementet er et utkast, så foreløpig ser bare de som administrerer det. Den som opprettet utkastet
             administrerer det også.
         </p>}

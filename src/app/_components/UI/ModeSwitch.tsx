@@ -21,7 +21,7 @@ export default function ModeSwitch<ValueType extends string>({ options, value, o
 
     return (
         <div className="
-            inline-flex items-center gap-1 p-1 bg-surface-hover rounded-(--gap) h-14 mt-2
+            inline-flex items-center gap-1 p-1 bg-base-300 rounded-(--gap) h-14 mt-2
             max-mobile:w-full
         ">
             {options.map(option => {
@@ -34,9 +34,9 @@ export default function ModeSwitch<ValueType extends string>({ options, value, o
                             h-full relative border-none bg-transparent m-0 py-2 px-4 text-m cursor-pointer
                             transition-colors duration-300
                             max-mobile:flex-1
-                            ${active ? 'text-text-inv' : `
-                                text-text
-                                hover:text-ink-hover
+                            ${active ? 'text-primary-content' : `
+                                text-base-content
+                                hover:text-base-content/80
                             `}
                         `}
                         aria-pressed={active}
@@ -45,7 +45,7 @@ export default function ModeSwitch<ValueType extends string>({ options, value, o
                         {active && (
                             <motion.span
                                 layoutId={layoutId}
-                                className="absolute inset-0 z-0 bg-accent-blue rounded-[calc(0.5*var(--gap))]"
+                                className="absolute inset-0 z-0 bg-primary rounded-[calc(0.5*var(--gap))]"
                                 transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
                             />
                         )}

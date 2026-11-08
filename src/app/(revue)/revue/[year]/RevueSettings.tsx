@@ -26,8 +26,8 @@ export default function RevueSettings({ revue }: PropTypes) {
         <PopUp
             popUpKey={popUpKey}
             showButtonClass="
-                p-2 text-text-muted bg-transparent border-none cursor-pointer
-                hover:text-text
+                p-2 text-base-content/80 bg-transparent border-none cursor-pointer
+                hover:text-base-content
             "
             showButtonContent={<FontAwesomeIcon icon={faGear} />}
             ariaLabel={`Innstillinger for ${revue.name}`}

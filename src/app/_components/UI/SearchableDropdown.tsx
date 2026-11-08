@@ -4,6 +4,7 @@ import {
     dropdownChevronClassName,
     dropdownColorClassNames,
     dropdownLabelClassName,
+    dropdownBorderClassNames,
     useDropdown,
 } from './Dropdown'
 import { useState } from 'react'
@@ -23,24 +24,16 @@ export type PropTypes<ValueType> = Omit<DropdownPropTypes<ValueType>, 'options'>
     options: SearchableDropdownOption<ValueType>[],
 }
 
-export const focusBorderClassNames = {
-    black: 'focus:border-accent-blue',
-    primary: 'focus:border-accent-blue',
-    secondary: 'focus:border-accent-blue',
-    red: 'focus:border-accent-red',
-    white: 'focus:border-accent-blue',
-} as const
-
 export const backgroundClassNames = {
-    base: `
-        bg-surface-raised
-        hover:bg-surface-hover
-        focus:bg-surface-hover
+    base100: `
+        bg-base-100
+        hover:bg-base-200
+        focus:bg-base-200
     `,
-    raised: `
-        bg-surface-hover
-        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-        focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+    base200: `
+        bg-base-200
+        hover:bg-base-300
+        focus:bg-base-300
     `,
 } as const
 
@@ -55,8 +48,8 @@ export default function SearchableDropdown<ValueType extends string | number>({
     value: controlledValue,
     options,
     onChange,
-    color = 'black',
-    background = 'base',
+    color = 'base',
+    background = 'base200',
     className,
     disabled,
 }: PropTypes<ValueType>) {
@@ -111,13 +104,13 @@ export default function SearchableDropdown<ValueType extends string | number>({
                 id={domId}
                 type="text"
                 className={`
-                    w-full border border-surface-subtle
-                    focus:ring-3 focus:ring-accent-blue/25
+                    w-full border border-base-300
+                    focus:ring-3 focus:ring-primary/25
                     rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] pt-6 pr-10 pb-2.5 pl-4
                     transition-[border-color,background-color,box-shadow] duration-300
                     disabled:cursor-not-allowed disabled:opacity-60
                     ${dropdownColorClassNames[color]}
-                    ${focusBorderClassNames[color]}
+                    ${dropdownBorderClassNames[color]}
                     ${backgroundClassNames[background]}
                 `}
                 autoComplete="off"

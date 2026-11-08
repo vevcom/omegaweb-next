@@ -34,9 +34,11 @@ async function claimNextImage(): Promise<number | null> {
     // Taking the claim re-checks the same conditions, which is what makes it atomic: postgres
     // makes a concurrent update of this row wait, then re-evaluates the where against the
     // committed result, so a worker that lost the race updates nothing and gets count 0.
+    // The attempt is counted here rather than on failure, since an image that kills the process,
+    // for example by running it out of memory, never gets to record a failure.
     const { count } = await prisma.image.updateMany({
         where: { id: candidate.id, ...claimable },
-        data: { processingStartedAt: new Date() },
+        data: { processingStartedAt: new Date(), processingAttempts: { increment: 1 } },
     })
     return count === 1 ? candidate.id : null
 }

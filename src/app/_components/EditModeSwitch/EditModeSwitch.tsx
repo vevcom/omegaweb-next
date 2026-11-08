@@ -41,10 +41,9 @@ export default function EditModeSwitch() {
                     className="hidden peer"
                 />
                 <FontAwesomeIcon className="
-                    size-[var(--edit-mode-icon-size,20px)] text-text transition-all duration-200
-                    [&_path]:text-inherit
-                    peer-checked:text-accent-blue
-                    group-hover/switch:peer-not-checked:text-[color-mix(in_srgb,var(--accent-blue),var(--text))]
+                    size-[var(--edit-mode-icon-size,20px)] text-base-content transition-all duration-200
+                    peer-checked:text-primary
+                    group-hover/switch:peer-not-checked:text-primary
                 " icon={faPencil} />
             </label>
         </div>

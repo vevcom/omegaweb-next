@@ -27,10 +27,10 @@ const { page } = serverPage({
                 return (
                     <div className="relative">
                         <SiteLink
-                            className="absolute top-2 right-2 z-2 secondary-btn"
+                            className="absolute top-2 right-2 z-2 btn-neutral"
                             href={appHref(`/?${QueryParams.frontpageVersion.encodeUrl('logged-in')}`)}
                         >
-                            <span>Gå til innlogget forside</span>
+                            <span className="text-neutral-content">Gå til innlogget forside</span>
                         </SiteLink>
                         <LoggedOutLandingPage />
                     </div>
@@ -42,10 +42,10 @@ const { page } = serverPage({
                         {
                             capabilities.canEditFrontpage.authorized && (
                                 <SiteLink
-                                    className="absolute top-2 right-2 z-2 secondary-btn"
+                                    className="absolute top-2 right-2 z-2 btn-neutral"
                                     href={appHref(`/?${QueryParams.frontpageVersion.encodeUrl('logged-out')}`)}
                                 >
-                                    <span>Gå til utlogget forside</span>
+                                    <span className="text-neutral-content">Gå til utlogget forside</span>
                                 </SiteLink>
                             )
                         }

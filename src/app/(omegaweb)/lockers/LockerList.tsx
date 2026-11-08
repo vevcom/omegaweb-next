@@ -8,7 +8,7 @@ export default function LockerList() {
         <div className="w-full my-4 rounded-round overflow-hidden shadow-soft text-m" role="table">
             <div className={`
                 ${lockerRowClassName}
-                text-ink-strong font-medium
+                text-base-content font-medium
             `} role="row">
                 <span className={lockerColumnClassName.id} role="columnheader">Skap</span>
                 <span className={lockerColumnClassName.location} role="columnheader">Sted</span>

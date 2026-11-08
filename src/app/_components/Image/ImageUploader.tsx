@@ -36,9 +36,9 @@ export default function ImageUploader({
             refreshOnSuccess={refreshOnSuccess}
             closePopUpOnSuccess={closePopUpOnSuccess}
         >
-            <TextInput color="black" label="Navn" name="imageName" />
-            <TextInput color="black" label="Alternativ tekst" name="imageAlt" />
-            <TextInput color="black" label="Kreditert" name="imageCredit" />
+            <TextInput color="base" label="Navn" name="imageName" />
+            <TextInput color="base" label="Alternativ tekst" name="imageAlt" />
+            <TextInput color="base" label="Kreditert" name="imageCredit" />
             <LicenseChooser name="imageLicenseId" />
             <FileInput label="Fil" name="imageFile" color="primary" />
         </Form>

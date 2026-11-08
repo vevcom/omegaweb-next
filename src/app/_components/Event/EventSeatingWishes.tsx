@@ -22,7 +22,7 @@ export default function EventSeatingWishes({ eventId, seating }: { eventId: numb
         return <>
             <p className="m-0 text-l font-bold">Du sitter på bord {seating.table.number}</p>
             {seating.table.guests.length > 0 && <>
-                <p className="m-0 text-text-muted">Sammen med</p>
+                <p className="m-0 text-base-content/80">Sammen med</p>
                 <ul className="m-0 pl-5">
                     {seating.table.guests.map(name => <li key={name}>{name}</li>)}
                 </ul>
@@ -33,7 +33,7 @@ export default function EventSeatingWishes({ eventId, seating }: { eventId: numb
     if (!open) {
         const names = seating.wishes.flatMap(wish => seating.options.find(option => option.id === wish)?.name ?? [])
         return <>
-            <p className="m-0 text-text-muted">Bordplasseringen kommer her når den er klar.</p>
+            <p className="m-0 text-base-content/80">Bordplasseringen kommer her når den er klar.</p>
             {names.length > 0 && <p className="m-0">Du ønsket deg {names.join(', ')}.</p>}
         </>
     }
@@ -43,7 +43,7 @@ export default function EventSeatingWishes({ eventId, seating }: { eventId: numb
         submitText="Lagre ønskene"
         className="flex flex-col gap-1"
     >
-        <p className="m-0 text-text-muted">
+        <p className="m-0 text-base-content/80">
             Hvem vil du sitte med? Svar innen <DateDisplay date={seating.wishesEnd ?? new Date()} includeSeconds={false} />.
         </p>
         <input type="hidden" name="wishes" value={JSON.stringify(chosen)} />

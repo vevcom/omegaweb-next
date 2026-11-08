@@ -3,10 +3,11 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { imageOperations } from '@/services/images/subservice/operations'
 import { imageStore, referencedImageFiles } from '@/services/images/subservice/imageFiles'
 import { createOrphanDestroyer } from '@/lib/store/orphanDestroyer'
+import { storeBackend } from '@/lib/store/backend'
 import { allowedExtensions } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { imageSourceForResolution, srcSetForImage } from '@/lib/images/imageSource'
-import { beforeEach, describe, expect, test } from '@jest/globals'
+import { beforeEach, describe, expect, jest, test } from '@jest/globals'
 import { access, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { File } from 'node:buffer'
@@ -150,6 +151,37 @@ describe('processImageVariants', () => {
         expect(tinySource).toBe(`/store/images/${image.processedFiles.fsLocationTinySize}`)
         // micro is smaller than tiny, so a missing micro falls back up to tiny instead of down.
         expect(microSource).toBe(`/store/images/${image.processedFiles.fsLocationTinySize}`)
+    })
+
+    test('a store outage costs no attempt, but a missing original does', async () => {
+        const { id } = await uploadAndProcessImage('Unprocessed Image')
+        await prisma.processedImageFiles.delete({ where: { imageId: id } })
+        const attempts = async () => (await prisma.image.findUniqueOrThrow({ where: { id } })).processingAttempts
+        // The worker counts an attempt when it claims an image, before processing it.
+        const processClaimed = async () => {
+            await prisma.image.update({ where: { id }, data: { processingAttempts: { increment: 1 } } })
+            return await imageOperations.processImageVariants.internalCall({ prisma, params: { imageId: id } })
+        }
+        const read = jest.spyOn(storeBackend, 'read')
+        const write = jest.spyOn(storeBackend, 'write')
+
+        read.mockRejectedValueOnce(new Error('The store did not answer'))
+        const unreadable = await processClaimed()
+        expect(unreadable.success).toBe(false)
+        expect(await attempts()).toBe(0)
+
+        write.mockRejectedValueOnce(new Error('The store did not answer'))
+        const unwritable = await processClaimed()
+        expect(unwritable.success).toBe(false)
+        expect(await attempts()).toBe(0)
+
+        read.mockResolvedValueOnce(null)
+        const missing = await processClaimed()
+        expect(missing.success).toBe(false)
+        expect(await attempts()).toBe(1)
+
+        read.mockRestore()
+        write.mockRestore()
     })
 })
 
@@ -301,18 +333,37 @@ describe('createOrphanDestroyer', () => {
         const destroyOrphans = orphanDestroyerOfOwnFiles([orphan, seededLater], state)
         const start = Date.now()
 
-        expect(await destroyOrphans(start)).toBe(0)
+        expect(await destroyOrphans({ now: start })).toBe(0)
 
         // A row for it turns up between two runs, as it would once seeding gets to it.
         state.referenced.add(seededLater)
-        expect(await destroyOrphans(start + 12 * hourMs)).toBe(0)
+        expect(await destroyOrphans({ now: start + 12 * hourMs })).toBe(0)
         state.referenced.delete(seededLater)
 
-        expect(await destroyOrphans(start + dayMs)).toBe(1)
+        expect(await destroyOrphans({ now: start + dayMs })).toBe(1)
         expect(await fileExists(orphan)).toBe(false)
         // Unreferenced again, but only since the last run - its wait starts over.
         expect(await fileExists(seededLater)).toBe(true)
 
         await removeLeftovers([orphan, seededLater])
+    })
+
+    test('reports each batch, so a long run is not taken for stuck', async () => {
+        const onBatch = jest.fn()
+        const destroyOrphans = createOrphanDestroyer({
+            // eslint-disable-next-line @typescript-eslint/require-await
+            async *listFiles() {
+                yield ['first.png']
+                yield ['second.png']
+            },
+            destroyFile: () => { throw new Error('Nothing here is an orphan') },
+        }, {
+            context: 'a store',
+            referenced: fsLocations => new Set(fsLocations),
+        })
+
+        await destroyOrphans({ onBatch })
+
+        expect(onBatch).toHaveBeenCalledTimes(2)
     })
 })

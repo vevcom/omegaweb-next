@@ -96,7 +96,7 @@ const { page, generateMetadata } = serverPage({
                 </div>
             }
         >
-            {shop.description && <p className="mt-0 mb-6 max-w-[70ch] text-m text-text-muted">{shop.description}</p>}
+            {shop.description && <p className="mt-0 mb-6 max-w-[70ch] text-m text-base-content/80">{shop.description}</p>}
             <ShopUI
                 shop={shop}
                 userId={userId}

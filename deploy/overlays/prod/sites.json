@@ -1,0 +1,5 @@
+{
+    "omega.ntnu.no": { "site": "OMEGAWEB", "main": true, "aliases": ["www.omega.ntnu.no"] },
+    "contactor.omega.ntnu.no": { "site": "CAREERS", "main": true, "aliases": ["www.contactor.omega.ntnu.no"] },
+    "revyen.omega.ntnu.no": { "site": "REVUE", "main": true, "aliases": ["www.revyen.omega.ntnu.no"] }
+}

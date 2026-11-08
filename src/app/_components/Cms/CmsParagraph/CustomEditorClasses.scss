@@ -7,37 +7,37 @@
 .EasyMDEContainer .CodeMirror {
     border: none;
     background-color: transparent;
-    color: ohma.$colors-text;
+    color: ohma.$colors-base-content;
 }
 
 .EasyMDEContainer .CodeMirror-cursor {
-    border-left-color: ohma.$colors-text;
+    border-left-color: ohma.$colors-base-content;
 }
 
 .EasyMDEContainer .CodeMirror-selected,
 .EasyMDEContainer .CodeMirror-focused .CodeMirror-selected {
-    background: ohma.$colors-surface-hover;
+    background: ohma.$colors-base-300;
 }
 
 .EasyMDEContainer .cm-s-easymde {
     .cm-link, .cm-tag {
-        color: ohma.$colors-accent-blue;
+        color: ohma.$colors-primary;
     }
     .cm-url {
-        color: ohma.$colors-accent-cyan;
+        color: ohma.$colors-info;
     }
     .cm-string, .cm-attribute {
-        color: ohma.$colors-accent-violet;
+        color: ohma.$colors-secondary;
     }
     .cm-quote {
-        color: ohma.$colors-text-muted;
+        color: ohma.$colors-base-content;
     }
     .cm-comment {
-        background: ohma.$colors-surface-subtle;
-        color: ohma.$colors-accent-orange;
+        background: ohma.$colors-base-300;
+        color: ohma.$colors-warning;
     }
     .cm-hr {
-        color: ohma.$colors-text-muted;
+        color: ohma.$colors-base-content;
     }
 }
 
@@ -47,7 +47,7 @@
         .cm-header {
             font-size: ohma.$fonts-s;
             font-weight: 600;
-            color: ohma.$colors-text;
+            color: ohma.$colors-base-content;
         }
         .cm-formatting-header {
             font-weight: 900;

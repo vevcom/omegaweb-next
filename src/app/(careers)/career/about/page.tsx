@@ -77,7 +77,7 @@ const { page, generateMetadata } = serverPage({
                             key={department.id}
                             href={`#${departmentAnchor(department.id)}`}
                             className="
-                                text-s font-semibold tracking-[0.1em] uppercase whitespace-nowrap text-text-muted
+                                text-s font-semibold tracking-[0.1em] uppercase whitespace-nowrap text-base-content/80
                                 transition-colors
                                 hover:text-careers-accent hover:no-underline
                             "

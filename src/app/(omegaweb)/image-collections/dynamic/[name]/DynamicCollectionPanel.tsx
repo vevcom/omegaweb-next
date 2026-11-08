@@ -55,7 +55,7 @@ export default function DynamicCollectionPanel({ collection, doubleLevelVisibili
         >
             <PageTitleSetter title={collection.name} />
             <div className="flex flex-col gap-1 mb-4">
-                {collection.description && <p className="text-m text-text-muted">{collection.description}</p>}
+                {collection.description && <p className="text-m text-base-content/80">{collection.description}</p>}
                 {doubleLevelVisibility && (
                     <DoubleLevelVisibilityDescription doubleLevelVisibility={doubleLevelVisibility} />
                 )}

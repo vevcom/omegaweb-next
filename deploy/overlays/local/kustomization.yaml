@@ -1,0 +1,56 @@
+# For a k3d cluster on a workstation. The images are built locally and imported
+# with `k3d image import`, and the omegaweb-next-env secret is created by hand from
+# a .env file, see deploy/README.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: omegaweb-next
+
+resources:
+    - namespace.yaml
+    - ../../base
+    - store-pvc.yaml
+
+configMapGenerator:
+    - name: omegaweb-next-sites
+      files:
+          - sites.json
+      # The migrate job in wave -1 mounts it too.
+      options:
+          annotations:
+              argocd.argoproj.io/sync-wave: "-3"
+
+images:
+    - name: omegaweb-next
+      newName: ghcr.io/vevcom/omegaweb-next
+      newTag: local
+    - name: omegaweb-next-tools
+      newName: ghcr.io/vevcom/omegaweb-next-tools
+      newTag: local
+
+replicas:
+    - name: omegaweb-next
+      count: 2
+
+patches:
+    - target:
+          kind: Ingress
+          name: omegaweb-next
+      patch: |-
+          - op: replace
+            path: /spec/rules/0/host
+            value: omegaweb-next.localhost
+    - target:
+          kind: (Deployment|Job)
+      patch: |-
+          - op: add
+            path: /spec/template/spec/volumes/-
+            value:
+                name: store
+                persistentVolumeClaim:
+                    claimName: omegaweb-next-store
+          - op: add
+            path: /spec/template/spec/containers/0/volumeMounts/-
+            value:
+                name: store
+                mountPath: /usr/src/app/store
