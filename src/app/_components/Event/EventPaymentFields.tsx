@@ -20,13 +20,13 @@ export default function EventPaymentFields({ variants, ledgerAccount, ledgerAcco
     onChange: (key: number, changes: Partial<VariantDraft>) => void,
 }) {
     if (variants.length === 0) {
-        return <p className="m-0 text-base-content/80">Arrangementet har ikke påmelding, så det er ingenting å betale for.</p>
+        return <p className="m-0 text-base-content/80">
+            Arrangementet har ikke påmelding, så det er ingenting å betale for.
+        </p>
     }
 
     return <div className="flex flex-col gap-4 min-w-0 pb-4">
-        {variants.map(variant => <section key={variant.key} className="
-            flex flex-col gap-3 p-4 rounded-round bg-base-200
-        ">
+        {variants.map(variant => <section key={variant.key} className="flex flex-col gap-3 p-4 rounded-round bg-base-200">
             <Slider
                 label={variants.length > 1 ? `${variant.name} koster penger` : 'Påmeldingen koster penger'}
                 name={`takesPayment${variant.key}`}

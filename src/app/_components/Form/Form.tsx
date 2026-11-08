@@ -210,8 +210,8 @@ export default function Form<GiveActionReturn>({
                     />
                 })}
                 {saveBar ? <div className="
-                    sticky -bottom-1 z-2 flex items-start justify-between gap-3 mt-auto pt-3 pb-1 border-t
-                    border-base-300 bg-base-100
+                    sticky -bottom-1 z-2 flex items-start justify-between gap-3 mt-auto pt-3 pb-1 border-t border-base-300
+                    bg-base-100
                 ">
                     <p className="m-0 py-2 text-base-content/80">
                         {dirty ? 'Du har ulagrede endringer.' : 'Alt er lagret.'}
