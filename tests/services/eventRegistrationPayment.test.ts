@@ -211,7 +211,7 @@ describe('paying for an event', () => {
             })
             await prisma.eventVariant.updateMany({
                 where: { eventId },
-                data: { paymentStart: new Date(Date.now() - 2 * HOUR), paymentEnd: new Date(Date.now() - HOUR) },
+                data: { paymentStart: new Date(Date.now() - 48 * HOUR), paymentEnd: new Date(Date.now() - HOUR) },
             })
             return { eventId, seated, seatedRegistration, waiting, waitingRegistrationId }
         }
@@ -295,7 +295,7 @@ describe('paying for an event', () => {
             await prisma.eventVariant.updateMany({
                 where: { eventId },
                 data: {
-                    paymentStart: new Date(Date.now() - 2 * HOUR),
+                    paymentStart: new Date(Date.now() - 48 * HOUR),
                     paymentEnd: new Date(Date.now() - HOUR),
                     requeueUnpaidRegistrations: enabled,
                 },
@@ -328,6 +328,22 @@ describe('paying for an event', () => {
             await requeueAllDue()
 
             expect(await stateOf(waitingRegistration.id)).toBe('WAITING_LIST')
+            expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
+        })
+
+        test('gives someone promoted before payment opened 24 hours from the opening', async () => {
+            const { eventId, seatedRegistration } = await createExpiredEvent('requeueearlypromotion')
+            await prisma.eventRegistration.update({
+                where: { id: seatedRegistration.id },
+                data: { promotedAt: new Date(Date.now() - 25 * HOUR) },
+            })
+            await prisma.eventVariant.updateMany({
+                where: { eventId },
+                data: { paymentStart: new Date(Date.now() - 2 * HOUR) },
+            })
+
+            await requeueAllDue()
+
             expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
         })
 
