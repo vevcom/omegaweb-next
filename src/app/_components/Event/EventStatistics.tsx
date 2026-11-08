@@ -193,7 +193,9 @@ function BucketChart({ statistics }: { statistics: VariantStatistics }) {
             at: (hovered + 0.5) / buckets.length,
             content: <>
                 <strong>{hoveredBucket.count} påmeldt</strong>
-                <span className="text-s text-base-content/80">{displayMoment(hoveredBucket.start, bucketFormats[unit])}</span>
+                <span className="text-s text-base-content/80">
+                    {displayMoment(hoveredBucket.start, bucketFormats[unit])}
+                </span>
             </>,
         } : null}
         onPointerMove={(x, plotWidth) => setHovered(
@@ -231,7 +233,9 @@ function BucketChart({ statistics }: { statistics: VariantStatistics }) {
                 <text y={height + 18} className="fill-base-content/80 text-s">
                     {displayMoment(buckets[0].start, bucketFormats[unit])}
                 </text>
-                {buckets.length > 1 && <text x={width} y={height + 18} textAnchor="end" className="fill-base-content/80 text-s">
+                {buckets.length > 1 && <text x={width} y={height + 18} textAnchor="end" className="
+                    fill-base-content/80 text-s
+                ">
                     {displayMoment(buckets[buckets.length - 1].start, bucketFormats[unit])}
                 </text>}
             </>
