@@ -124,18 +124,9 @@ The file also sets its own compose project name, `projectnext-prod`, kept from b
 
 ### Mail
 
-Mail is **not** part of this compose stack. It runs as its own Dokploy application, built from `containers/postfix/` in this repository.
+Mail is **not** part of this stack. Inbound mail is received by the Postfix server in [mail-infrastructure](https://github.com/vevcom/mail-infrastructure), which resolves every alias against this app's database and forwards it to the members behind it. That repo documents the setup, the DNS and the alias query. The app only allows aliases on the domains in `sites.json`, so a site's domain is received there once it has an alias and an MX record. The query reads `MailAlias`, `MailingList`, `MailAddressExternal`, `Group`, `Membership`, `User` and their join tables, so a schema change to those must be mirrored there.
 
-It is separate because the two directions of mail need different things from the network. Outbound is handled by the app itself - it authenticates directly against `EMAIL_SERVER` (e.g. SMTP2GO) over TLS using `EMAIL_PORT`, `EMAIL_USER` and `EMAIL_PASSWORD`, see `src/lib/email/constants.ts`. Postfix plays no part in outbound mail. Inbound is what the `MailAlias` feature actually depends on: Postfix resolves every alias against the database (`virtual_alias_maps`, see `containers/postfix/pgsql-aliases.cf.tmpl`) and forwards it to the members behind it, which only works if the domain's MX can reach port 25. The stack's ingress is a Cloudflare Tunnel in front of Traefik and carries HTTP only, so a Postfix service inside it could never receive that mail - it would have quietly relayed outbound while every alias silently black-holed.
-
-Deploying it:
-
-1. Create a Dokploy application built from `containers/postfix/`, attached to `dokploy-network` so it can reach the database resource.
-2. Give it `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (the alias lookups read the same database as the app), plus `EMAIL_HOSTNAME`, the mail server's own name, and `EMAIL_RELAY_HOST`, where it relays. The app reads neither.
-3. Expose port 25 on the host and point the MX record of every mail domain at it. Postfix receives mail for every domain an alias is on (`containers/postfix/pgsql-domains.cf.tmpl`), and for its own name, `EMAIL_HOSTNAME`. The app only allows aliases on the domains in `sites.json`, so a site's domain is received here once it has an alias and an MX record, with no change to this deployment.
-4. Provision a certificate for the mail domain and turn `smtpd_use_tls` back on in `containers/postfix/main.cf.tmpl`. It is `no` there because the old certbot flow lived in the nginx container that this setup removed, and pointing Postfix at cert files that don't exist stops it from starting. Inbound SMTP on a published port should not stay plaintext.
-
-`EMAIL_SERVER` on the stack is unrelated to this Postfix deployment - it points the app at its own outbound provider (e.g. SMTP2GO), configured with `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` and `EMAIL_SECURE`. Senders may be on any domain in `sites.json`, so verify every domain mail is sent from at the provider (SPF and DKIM), or it lands in spam.
+Outbound mail is sent by the app itself. It authenticates directly against `EMAIL_SERVER` using `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASSWORD` and `EMAIL_SECURE`, see `src/lib/email/constants.ts`. That can be a provider such as SMTP2GO, or the Postfix above with `EMAIL_TLS_ALLOW_SELF_SIGNED=true`, since its certificate is self-signed. Senders may be on any domain in `sites.json`, so verify every domain mail is sent from at the provider (SPF and DKIM), or it lands in spam.
 
 ## Lint
 
