@@ -30,3 +30,24 @@ configMapGenerator:
           - AUTH_TRUST_HOST=true
           # Each overlay generates the omegaweb-next-sites ConfigMap this comes from.
           - SITES_CONFIG=/etc/omegaweb-next/sites.json
+    # Only exists to carry POSTGRES_IMAGE from postgres.env into the replacement below.
+    # local-config keeps it out of the cluster.
+    - name: postgres
+      envs:
+          - postgres.env
+      options:
+          disableNameSuffixHash: true
+          annotations:
+              config.kubernetes.io/local-config: "true"
+
+replacements:
+    - source:
+          kind: ConfigMap
+          name: postgres
+          fieldPath: data.POSTGRES_IMAGE
+      targets:
+          - select:
+                kind: Cluster
+                name: omegaweb-next-db
+            fieldPaths:
+                - spec.imageName

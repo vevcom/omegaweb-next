@@ -8,7 +8,8 @@ metadata:
         argocd.argoproj.io/sync-wave: "-3"
 spec:
     instances: 1
-    imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+    # Kustomize replaces this with POSTGRES_IMAGE from postgres.env.
+    imageName: postgres.env
     bootstrap:
         initdb:
             database: omegaweb
