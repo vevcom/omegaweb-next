@@ -9,7 +9,6 @@ import EventQuotaList from '@/components/Event/EventQuotaList'
 import EventPaymentSection from '@/components/Event/EventPaymentSection'
 import EventSection from '@/components/Event/EventSection'
 import EventInfoRow from '@/components/Event/EventInfoRow'
-import EventNotificationsAdmin from '@/components/Event/EventNotificationsAdmin'
 import NotificationSubscriptionTree from '@/components/Notifications/NotificationSubscriptionTree'
 import EventLocationMap from '@/components/Event/EventLocationMap'
 import EventTag from '@/components/Event/EventTag'
@@ -17,7 +16,7 @@ import DateDisplay from '@/components/Date/Date'
 import CmsImage from '@/components/Cms/CmsImage/CmsImage'
 import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
 import DraftBanner from '@/components/UI/DraftBanner'
-import { AdminHeaderItemPopUp, NotificationHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import { AdminHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import HeaderItemLink from '@/components/HeaderItems/HeaderItemLink'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { committeeOperations } from '@/services/groups/committees/operations'
@@ -267,10 +266,12 @@ export function eventPage(config: EventPagesConfig) {
                         `}>
                             {(capabilities.canUpdate.authorized || capabilities.canDestroy.authorized
                                 || capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
+                                || capabilities.canCreateNotification.authorized
                             ) && (
                                 <AdminHeaderItemPopUp popUpKey="EventAdmin">
                                     <EventAdmin
                                         event={event}
+                                        eventHref={links.event(event)}
                                         access={access}
                                         adminVisibilityKnown={data.adminVisibilityKnown}
                                         config={config}
@@ -285,14 +286,10 @@ export function eventPage(config: EventPagesConfig) {
                                             canDestroy: capabilities.canDestroy,
                                             canRegisterAsAdmin: capabilities.canRegisterAsAdmin,
                                             canRegisterGuest: capabilities.canRegisterGuest,
+                                            canCreateNotification: capabilities.canCreateNotification,
                                         })}
                                     />
                                 </AdminHeaderItemPopUp>
-                            )}
-                            {capabilities.canCreateNotification.authorized && (
-                                <NotificationHeaderItemPopUp popUpKey="EventNotifications" ariaLabel="Varsle">
-                                    <EventNotificationsAdmin event={event} eventHref={links.event(event)} />
-                                </NotificationHeaderItemPopUp>
                             )}
                             {event.takesRegistration && capabilities.canTakeAttendance.authorized && (
                                 <HeaderItemLink

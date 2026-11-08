@@ -1,4 +1,5 @@
 'use client'
+import EventNotificationsAdmin from './EventNotificationsAdmin'
 import EventPublishing from './EventPublishing'
 import EventSetupForm, { eventSetupTabs } from './EventSetupForm'
 import EventStatistics from './EventStatistics'
@@ -9,11 +10,16 @@ import { useState } from 'react'
 import type { ComponentProps } from 'react'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { VariantStatistics } from '@/services/events/statistics'
+import type { AppHref } from '@/lib/sites/href'
 
 type SetupProps = ComponentProps<typeof EventSetupForm>
 type PropTypes = Omit<SetupProps, 'event' | 'onDiscard'> & {
-    event: SetupProps['event'] & ComponentProps<typeof EventPublishing>['event'] & { takesRegistration: boolean },
-    capabilities: CapabilitiesJsObject<'canUpdate' | 'canDestroy' | 'canRegisterAsAdmin' | 'canRegisterGuest'>,
+    event: SetupProps['event'] & ComponentProps<typeof EventPublishing>['event']
+        & ComponentProps<typeof EventNotificationsAdmin>['event'] & { takesRegistration: boolean },
+    eventHref: AppHref,
+    capabilities: CapabilitiesJsObject<
+        'canUpdate' | 'canDestroy' | 'canRegisterAsAdmin' | 'canRegisterGuest' | 'canCreateNotification'
+    >,
     /** Null when the event takes no registration, or they could not be read. */
     statistics: VariantStatistics[] | null,
 }
@@ -22,11 +28,12 @@ type PropTypes = Omit<SetupProps, 'event' | 'onDiscard'> & {
  * Everything those who administrate an event can do with it, on one set of tabs. Setting it up is
  * one form over several tabs. Registering others, publishing and deleting are done on the spot, next to the statistics.
  */
-export default function EventAdmin({ event, capabilities, statistics, ...setup }: PropTypes) {
+export default function EventAdmin({ event, eventHref, capabilities, statistics, ...setup }: PropTypes) {
     const canUpdate = capabilities.canUpdate.authorized
     const canRegisterOthers = capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
     const showRegisterOthers = event.takesRegistration && canRegisterOthers
     const showPublishing = canUpdate || capabilities.canDestroy.authorized
+    const canNotify = capabilities.canCreateNotification.authorized
     const [discards, setDiscards] = useState(0)
     // Registering someone changes the counts, which must not throw away what is being set up.
     const setupFormKey = JSON.stringify(
@@ -47,6 +54,7 @@ export default function EventAdmin({ event, capabilities, statistics, ...setup }
                 ...(canUpdate ? eventSetupTabs : []),
                 ...(showRegisterOthers ? [{ key: 'others', label: 'Meld på andre' }] : []),
                 ...(statistics ? [{ key: 'statistics', label: 'Statistikk' }] : []),
+                ...(canNotify ? [{ key: 'notifications', label: 'Varsle' }] : []),
                 ...(showPublishing ? [{ key: 'publishing', label: 'Publisering', dot: publishingDot() }] : []),
             ]}
         >
@@ -72,6 +80,10 @@ export default function EventAdmin({ event, capabilities, statistics, ...setup }
 
             {statistics && <TabPanel tab="statistics">
                 <EventStatistics variants={statistics} />
+            </TabPanel>}
+
+            {canNotify && <TabPanel tab="notifications">
+                <EventNotificationsAdmin event={event} eventHref={eventHref} />
             </TabPanel>}
 
             {showPublishing && <TabPanel tab="publishing">

@@ -4,7 +4,6 @@ import React from 'react'
 import { FontAwesomeIcon, type FontAwesomeIconProps } from '@fortawesome/react-fontawesome'
 import {
     faArchive,
-    faBell,
     faCog,
     faCreditCard,
     faEye,
@@ -121,5 +120,3 @@ export const DeleteHeaderItemPopUp = createHeaderItemPopUp(faTrash, 18)
 
 /** For the variants and quotas of an event. */
 export const VariantsHeaderItemPopUp = createHeaderItemPopUp(faLayerGroup, 18)
-
-export const NotificationHeaderItemPopUp = createHeaderItemPopUp(faBell, 18)
