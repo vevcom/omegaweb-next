@@ -14,6 +14,7 @@ enum RelationshipStatus {
 enum Theme {
   STANDARD
   LIGHT
+  LUXURY
   SOLARIZED
   STJERNE_INNBYGGER
   HOT_DOG_STAND
