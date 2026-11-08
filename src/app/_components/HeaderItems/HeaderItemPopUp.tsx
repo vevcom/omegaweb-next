@@ -34,7 +34,7 @@ function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'], scale = 40, d
             showButtonContent = {
                 label ? (
                     <>
-                        <span className="text-m font-medium whitespace-nowrap">{label}</span>
+                        <span className="text-m text-base-content font-medium whitespace-nowrap">{label}</span>
                         <FontAwesomeIcon style={iconStyle} icon={icon} />
                     </>
                 ) : (
@@ -46,13 +46,13 @@ function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'], scale = 40, d
                 ...(label ? {} : { width: `${buttonScale}px` }),
             }}
             showButtonClass={`
-                border-none rounded-inner bg-surface-hover cursor-pointer transition-[background-color,color,box-shadow]
-                duration-300
-                hover:bg-surface-subtle hover:text-ink-strong
+                border-none rounded-inner bg-base-200 cursor-pointer transition-[background-color,color,box-shadow]
+                duration-300 text-base-content
+                hover:bg-base-300
                 ${label
-        ? 'flex flex-row items-center gap-3 pr-3.5 pl-5 text-ink-strong [&_svg]:text-text '
-                        + '[&_svg]:transition-colors [&_svg]:duration-300 hover:[&_svg]:text-accent-blue'
-        : 'grid place-items-center text-text'}
+        ? 'flex flex-row items-center gap-3 pr-3.5 pl-5 text-base-content [&_svg]:text-base-content '
+                        + '[&_svg]:transition-colors [&_svg]:duration-300 hover:[&_svg]:text-base-content'
+        : 'grid place-items-center text-base-content'}
                 ${showButtonClass ?? ''}
             `}
         >

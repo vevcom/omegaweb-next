@@ -67,8 +67,8 @@ export default function EditableTextField<ReturnType>({
         <div className="relative">
             <div
                 className="
-                    relative p-[0.8rem] border border-solid border-accent-blue rounded-round
-                    focus:outline-2 focus:outline-accent-blue
+                    relative p-[0.8rem] border border-solid border-primary rounded-round
+                    focus:outline-2 focus:outline-primary
                 "
                 contentEditable={true}
                 onInput={handleInput}
@@ -77,7 +77,7 @@ export default function EditableTextField<ReturnType>({
             >
                 {children}
             </div>
-            <FontAwesomeIcon className="absolute right-[0.4rem] top-[0.4rem] text-accent-blue" icon={faPencil} />
+            <FontAwesomeIcon className="absolute right-[0.4rem] top-[0.4rem] text-primary" icon={faPencil} />
             <Form
                 {...formProps}
                 className={

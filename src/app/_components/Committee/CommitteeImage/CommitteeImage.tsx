@@ -26,12 +26,12 @@ export default function CommitteeImage({
     return (
         <div className="
             flex items-stretch gap-2 w-full mb-2
-            max-mobile:relative max-mobile:h-[180px] max-mobile:bg-surface-base max-mobile:rounded-round
+            max-mobile:relative max-mobile:h-[180px] max-mobile:bg-base-100 max-mobile:rounded-round
             max-mobile:overflow-hidden
         ">
             <div className="
-                shrink-0 flex items-center justify-center bg-surface-base rounded-round p-4
-                max-mobile:relative max-mobile:z-1 max-mobile:m-auto max-mobile:bg-surface-base/70 max-mobile:p-2
+                shrink-0 flex items-center justify-center bg-base-100 rounded-round p-4
+                max-mobile:relative max-mobile:z-1 max-mobile:m-auto max-mobile:bg-base-100/70 max-mobile:p-2
                 max-mobile:pointer-events-none
                 max-mobile:[&>*]:w-[120px]!
             ">
@@ -42,7 +42,7 @@ export default function CommitteeImage({
                 />
             </div>
             <div className="
-                relative flex-1 min-w-0 h-80 bg-surface-base rounded-round overflow-hidden
+                relative flex-1 min-w-0 h-80 bg-base-100 rounded-round overflow-hidden
                 max-mobile:absolute max-mobile:inset-0 max-mobile:h-auto max-mobile:rounded-none
             ">
                 <CmsImage

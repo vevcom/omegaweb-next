@@ -19,17 +19,17 @@ import type { CompanyExpanded } from '@/services/careers/companies/types'
 
 const sponsorTierClass = {
     MAIN: `
-        border-[color-mix(in_srgb,var(--accent-yellow),transparent_50%)]
-        bg-[color-mix(in_srgb,var(--accent-yellow),var(--surface-raised)_94%)]
-        hover:bg-[color-mix(in_srgb,var(--accent-yellow),var(--surface-hover)_94%)]
+        border-[color-mix(in_srgb,var(--color-warning),transparent_50%)]
+        bg-[color-mix(in_srgb,var(--color-warning),var(--color-base-200)_94%)]
+        hover:bg-[color-mix(in_srgb,var(--color-warning),var(--color-base-300)_94%)]
     `,
     SPONSOR: `
-        border-[color-mix(in_srgb,var(--accent-cyan),transparent_65%)] bg-surface-raised
-        hover:bg-surface-hover
+        border-[color-mix(in_srgb,var(--color-info),transparent_65%)] bg-base-200
+        hover:bg-base-300
     `,
     NONE: `
-        border-transparent bg-surface-raised
-        hover:bg-surface-hover
+        border-transparent bg-base-200
+        hover:bg-base-300
     `,
 } satisfies Record<CompanySponsorTier, string>
 
@@ -75,7 +75,7 @@ export default function Company({
                     capabilities={{ canEdit: canEditCmsImageLogo }}
                     disableEditor={disableEdit}
                     className={`
-                        overflow-hidden flex items-center bg-surface-base rounded-inner
+                        overflow-hidden flex items-center bg-base-100 rounded-inner
                         tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180
                         ${squareLogo ? `
                             aspect-square
@@ -94,7 +94,7 @@ export default function Company({
             <div className={`
                 mx-2 pb-2 relative flex-1
                 [&_h2]:text-l [&_h2]:truncate
-                [&_p]:text-text-muted
+                [&_p]:text-base-content/80
                 ${showSettings ? 'pr-10' : ''}
             `}>
                 <h2>{company.name}</h2>
@@ -102,7 +102,7 @@ export default function Company({
                 {
                     showSettings ? (
                         <SettingsHeaderItemPopUp
-                            showButtonClass="text-text absolute top-0 right-0 z-2"
+                            showButtonClass="text-base-content absolute top-0 right-0 z-2"
                             popUpKey={`Edit ${company.id}`}
                         >
                             {

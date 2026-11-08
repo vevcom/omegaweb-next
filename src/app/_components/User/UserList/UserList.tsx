@@ -88,7 +88,7 @@ function getOrdereOptions(group: ExpandedGroup): { value: number | 'NULL', label
 
 const sortableClassName = `
     p-0! select-none whitespace-nowrap
-    hover:text-accent-blue
+    hover:underline
 `
 const sortButtonClassName = `
     w-full h-auto block py-3 px-4 [font:inherit] text-inherit [text-align:inherit] border-none bg-transparent
@@ -212,11 +212,13 @@ export default function UserList({
     }
 
     const sortIcon = (field: SortField) => {
-        if (currentSort?.field !== field) return <FontAwesomeIcon icon={faSort} className="ml-1 text-[0.85em]" />
+        if (currentSort?.field !== field) {
+            return <FontAwesomeIcon icon={faSort} className="ml-1 text-primary-content text-[0.85em]" />
+        }
         return (
             <FontAwesomeIcon
                 icon={currentSort.direction === 'asc' ? faSortUp : faSortDown}
-                className="ml-1 text-[0.85em]"
+                className="text-primary-content ml-1 text-[0.85em]"
             />
         )
     }
@@ -425,7 +427,7 @@ export default function UserList({
                                 { usersSelection &&
                                     <td>
                                         <button
-                                            className={usersSelection.includes(user) ? 'bg-accent-blue!' : ''}
+                                            className={usersSelection.includes(user) ? 'bg-primary!' : ''}
                                             aria-label={`Velg ${user.firstname} ${user.lastname}`}
                                             aria-pressed={usersSelection.includes(user)}
                                             onClick={(event) => {
@@ -439,7 +441,7 @@ export default function UserList({
                                 { userSelection &&
                                     <td>
                                         <button
-                                            className={userSelection.user?.id === user.id ? 'bg-accent-blue!' : ''}
+                                            className={userSelection.user?.id === user.id ? 'bg-primary!' : ''}
                                             aria-label={`Velg ${user.firstname} ${user.lastname}`}
                                             aria-pressed={userSelection.user?.id === user.id}
                                             onClick={(event) => {

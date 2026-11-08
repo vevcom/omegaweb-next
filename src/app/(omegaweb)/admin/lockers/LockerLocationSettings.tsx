@@ -41,7 +41,7 @@ export default function LockerLocationSettings({ location, capabilities }: PropT
                     </Form>
                 )}
                 {capabilities.canDestroy.authorized && (location._count.lockers > 0 ? (
-                    <p className="max-w-[360px] text-text-muted">
+                    <p className="max-w-[360px] text-base-content/80">
                         Lokasjonen har {location._count.lockers} skap, og kan ikke slettes før de er slettet.
                     </p>
                 ) : (

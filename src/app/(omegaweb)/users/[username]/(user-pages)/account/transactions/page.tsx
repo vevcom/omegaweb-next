@@ -27,7 +27,7 @@ const { page, generateMetadata } = serverPage({
         canCancel: ledgerTransactionAuth.cancel.data({ accounts: [ledgerAccount.ownership] }),
     }),
     render: ({ data: { ledgerAccount, filters }, capabilities }) => (
-        <div className="bg-surface-base rounded-round p-(--card-padding) overflow-x-auto">
+        <div className="bg-base-100 rounded-round p-(--card-padding) overflow-x-auto">
             <TransactionList
                 accountId={ledgerAccount.id}
                 filters={filters}

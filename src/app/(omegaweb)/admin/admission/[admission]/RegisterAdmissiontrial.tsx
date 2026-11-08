@@ -48,7 +48,7 @@ export default function RegisterAdmissiontrial({
 
         <h4>Søk opp soellen</h4>
         {canSearchUsers ? <>
-            <p className="text-text-muted">
+            <p className="text-base-content/80">
                 Kun en soelle kan ta opptaksprøver. Filtrer på medlemskap for å finne dem.
             </p>
             {/* A button per row rather than a box to type an id into: who is being registered is then
@@ -67,7 +67,7 @@ export default function RegisterAdmissiontrial({
                 )}
             />
         </> : (
-            <p className="text-text-muted">
+            <p className="text-base-content/80">
                 Du mangler tilgangen «Les bruker», og kan derfor ikke søke opp soellen.
                 Registrer med Omega-ID i stedet.
             </p>

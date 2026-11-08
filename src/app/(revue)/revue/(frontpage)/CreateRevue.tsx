@@ -20,9 +20,9 @@ export default function CreateRevue() {
         <PopUp
             popUpKey={popUpKey}
             showButtonClass="
-                flex items-center justify-center gap-2 w-full p-4 mt-4 border border-dashed border-surface-subtle
-                bg-transparent text-text-muted cursor-pointer transition-colors
-                hover:bg-surface-hover
+                flex items-center justify-center gap-2 w-full p-4 mt-4 border border-dashed border-base-300 bg-transparent
+                text-base-content/80 cursor-pointer transition-colors
+                hover:bg-base-300
             "
             showButtonContent={<>
                 <FontAwesomeIcon icon={faPlus} />

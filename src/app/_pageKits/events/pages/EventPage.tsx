@@ -64,7 +64,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const iconRowClassName = `
     m-0 flex items-center gap-3 text-m
-    [&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-text-muted
+    [&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-base-content/80
 `
 
 /** The page of one event, rendered under the config's path on Omega's site and on the career site. */
@@ -233,7 +233,7 @@ export function eventPage(config: EventPagesConfig) {
                         ${styles.coverImage}
                         flex-[0_0_100%] block relative h-[20em]
                         max-mobile:h-auto max-mobile:aspect-video
-                        bg-surface-base rounded-round overflow-hidden
+                        bg-base-100 rounded-round overflow-hidden
                     `}>
                         <CmsImage
                             capabilities={{ canEdit: capabilities.canEditCmsCoverImage }}
@@ -407,7 +407,7 @@ export function eventPage(config: EventPagesConfig) {
                                 title={severalVariants ? `Påmelding: ${view.variant.name}` : 'Påmelding'}
                             >
                                 {!view.variant.takesRegistration && (
-                                    <p className="m-0 text-text-muted">Varianten har ingen plasser ennå.</p>
+                                    <p className="m-0 text-base-content/80">Varianten har ingen plasser ennå.</p>
                                 )}
                                 <EventQuotaList quotas={view.variant.quotas} eligibleQuotaIds={view.eligibleQuotaIds} />
                                 {event.waitingList && (
@@ -450,7 +450,7 @@ export function eventPage(config: EventPagesConfig) {
                             </EventSidebarSection>
                         )) : (
                             <EventSidebarSection title="Påmelding">
-                                <p className="text-text-muted">Dette arrangementet tar ikke påmelding.</p>
+                                <p className="text-base-content/80">Dette arrangementet tar ikke påmelding.</p>
                             </EventSidebarSection>
                         )}
 
@@ -467,7 +467,7 @@ export function eventPage(config: EventPagesConfig) {
                     <main className="
                         flex-[999_1_420px]
                         max-mobile:basis-full
-                        min-w-0 p-4 bg-surface-base rounded-round
+                        min-w-0 p-4 bg-base-100 rounded-round
                     ">
                         <CmsParagraph
                             capabilities={{ canEdit: capabilities.canEditCmsParagraph }}
@@ -487,7 +487,7 @@ export function eventPage(config: EventPagesConfig) {
 
                     {event.takesRegistration && capabilities.canReadRegistrations.authorized && (
                         <div className="
-                            flex-[0_0_100%] bg-surface-base p-2 rounded-round
+                            flex-[0_0_100%] bg-base-100 p-2 rounded-round
                             [&>h4]:text-xl [&>h4]:font-bold
                         ">
                             <RegistrationsList

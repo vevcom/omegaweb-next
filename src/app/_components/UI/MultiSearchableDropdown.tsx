@@ -1,12 +1,13 @@
 'use client'
 import {
     DropdownPanel,
+    dropdownBorderClassNames,
     dropdownChevronClassName,
     dropdownColorClassNames,
     dropdownLabelClassName,
     useDropdown,
 } from './Dropdown'
-import { backgroundClassNames, focusBorderClassNames } from './SearchableDropdown'
+import { backgroundClassNames } from './SearchableDropdown'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -31,8 +32,8 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
     defaultValues = [],
     options,
     onChange,
-    color = 'black',
-    background = 'base',
+    color = 'base',
+    background = 'base200',
     className,
     disabled,
 }: PropTypes<ValueType>) {
@@ -93,7 +94,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                         duration-300
                         disabled:cursor-not-allowed disabled:opacity-60
                         ${dropdownColorClassNames[color]}
-                        ${focusBorderClassNames[color]}
+                        ${dropdownBorderClassNames[color]}
                         ${backgroundClassNames[background]}
                     `}
                     autoComplete="off"
@@ -135,15 +136,15 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                     {selectedOptions.map(option => (
                         <li
                             key={option.key ?? String(option.value)}
-                            className="flex items-center gap-1 rounded-inner bg-surface-hover py-1 pl-3 pr-1 text-s"
+                            className="flex items-center gap-1 rounded-inner bg-base-300 py-1 pl-3 pr-1 text-s"
                         >
                             {option.label ?? String(option.value)}
                             <button
                                 type="button"
                                 className="
                                     flex items-center justify-center size-6 border-none rounded-full bg-transparent
-                                    text-text-muted cursor-pointer
-                                    hover:text-accent-red
+                                    text-base-content/80 cursor-pointer
+                                    hover:text-error
                                 "
                                 aria-label={`Fjern ${option.label ?? String(option.value)}`}
                                 disabled={disabled}

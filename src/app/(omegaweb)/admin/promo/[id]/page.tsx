@@ -35,7 +35,7 @@ const { page, generateMetadata } = serverPage({
                 <PopUp
                     popUpKey="EditPromoImage"
                     showButtonContent="Endre bilde"
-                    showButtonClass="secondary-btn block py-[0.25em]! px-[0.5em]! text-s! whitespace-nowrap"
+                    showButtonClass="btn-neutral block py-[0.25em]! px-[0.5em]! text-s! whitespace-nowrap"
                 >
                     <ImageUploader
                         title="Endre bilde for promo"

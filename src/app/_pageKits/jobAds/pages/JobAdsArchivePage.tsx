@@ -17,7 +17,7 @@ export function jobAdsArchivePage(config: JobAdPagesConfig) {
         render: () => (
             <PageWrapper headerItem={
                 <SiteLink href={links.list()} className="
-                    text-text
+                    text-base-content
                     [&_svg]:size-[30px]!
                 ">
                     <FontAwesomeIcon icon={faArrowLeft} />

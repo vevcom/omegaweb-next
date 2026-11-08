@@ -56,11 +56,11 @@ const { page, generateMetadata } = serverPage({
                 <PopUp
                     popUpKey="editLedgerAccountDetails"
                     showButtonClass="
-                        self-end size-[20px] bg-white border-none rounded-full cursor-pointer transition-[background]
-                        duration-500 flex justify-center items-center
-                        hover:bg-[color-mix(in_srgb,white,black_10%)]
+                        self-end size-[20px] bg-base-100 border-none rounded-full cursor-pointer transition-[background]
+                        duration-500 flex justify-center items-center text-base-content
+                        hover:bg-base-200
                     "
-                    showButtonContent={<FontAwesomeIcon icon={faPencil} />}
+                    showButtonContent={<FontAwesomeIcon icon={faPencil} className="text-base-content" />}
                 >
                     <EditLedgerAccountDetailsForm
                         ledgerAccount={ledgerAccount}

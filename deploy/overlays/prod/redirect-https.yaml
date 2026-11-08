@@ -1,0 +1,9 @@
+# Applied to the app's ingress only, so cert-manager's HTTP challenge is still answered on port 80.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+    name: redirect-https
+spec:
+    redirectScheme:
+        scheme: https
+        permanent: true

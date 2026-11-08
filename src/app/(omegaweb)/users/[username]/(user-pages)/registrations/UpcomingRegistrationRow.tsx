@@ -37,8 +37,8 @@ export default function UpcomingRegistrationRow({ registration, config }: PropTy
                 <p>
                     {event._count.variants > 1 && <>{variant.name} · </>}
                     {registration.onWaitingList
-                        ? <span className="text-accent-orange">På venteliste</span>
-                        : <span className="text-accent-green">Påmeldt</span>}
+                        ? <span className="text-warning">På venteliste</span>
+                        : <span className="text-success">Påmeldt</span>}
                 </p>
             </div>
 

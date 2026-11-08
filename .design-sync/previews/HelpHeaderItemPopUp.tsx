@@ -14,7 +14,7 @@ function OpenOnMount({ children }: { children: ReactNode }) {
 const panel = (
     <div style={{ display: 'grid', gap: '1rem', minWidth: '17rem' }}>
         <h2 style={{ margin: 0 }}>Hjelp</h2>
-        <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+        <p style={{ margin: 0, color: 'var(--color-base-content)' }}>
             Trykk på pluss-ikonet for å legge til et nytt arrangement. Endringer lagres først når du trykker Opprett.
         </p>
     </div>

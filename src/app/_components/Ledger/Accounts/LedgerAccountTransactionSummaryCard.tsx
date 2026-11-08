@@ -20,8 +20,8 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
         params: { paging: { page: { page: 0, pageSize: 5, cursor: null }, details: { accountId } } },
     }))
 
-    return <div className="bg-surface-base rounded-round p-(--card-padding)">
-        <h2>Transaksjoner</h2>
+    return <div className="bg-base-100 rounded-round p-(--card-padding)">
+        <h2 className="text-base-content">Transaksjoner</h2>
         {
             transactions.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -36,11 +36,11 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
                         ))}
                     </LedgerTransactionTable>
                 </div>
-            ) : <p>{emptyTransactionsText}</p>
+            ) : <p className="text-base-content">{emptyTransactionsText}</p>
         }
         {
             transactionsHref &&
-            <SiteLink href={transactionsHref} className="inline-flex items-center gap-2">
+            <SiteLink href={transactionsHref} className="btn-primary inline-flex items-center gap-2">
                 Se alle transaksjoner <FontAwesomeIcon icon={faArrowRight} />
             </SiteLink>
         }

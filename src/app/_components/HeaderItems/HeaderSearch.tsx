@@ -84,7 +84,7 @@ export default function HeaderSearch({ defaultValue, label = 'Søk' }: PropTypes
                         type="button"
                         className="
                             absolute right-3 top-1/2 -translate-y-1/2 z-3 border-none bg-transparent p-1 cursor-pointer
-                            text-text-muted
+                            text-base-content/80
                         "
                         aria-label="Tøm søk"
                         onClick={clear}

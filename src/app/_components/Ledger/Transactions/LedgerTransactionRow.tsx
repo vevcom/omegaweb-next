@@ -32,7 +32,9 @@ export default function LedgerTransactionRow({ transaction, accountId, capabilit
 
     const rowClassName = `
         cursor-pointer
-        hover:bg-surface-hover
+        hover:bg-base-300
+        [&_td]:text-base-content
+        [&_b]:text-base-content
         ${stateStyle(transaction.state)}
     `
 

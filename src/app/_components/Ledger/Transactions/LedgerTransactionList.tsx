@@ -21,7 +21,9 @@ function EmptyState({ filtered }: { filtered: boolean }) {
 
     if (!context.state.allLoaded || context.state.data.length > 0) return null
 
-    return <p>{filtered ? 'Ingen transaksjoner passer filtrene.' : emptyTransactionsText}</p>
+    return <p className="text-base-content">
+        {filtered ? 'Ingen transaksjoner passer filtrene.' : emptyTransactionsText}
+    </p>
 }
 
 export default function TransactionList({ accountId, filters, capabilities }: Props) {

@@ -23,8 +23,8 @@ export default function RevueGroupMemberEditor({ member }: { member: ExpandedRev
         <PopUp
             popUpKey={popUpKey}
             showButtonClass="
-                p-1 text-text-muted bg-transparent border-none cursor-pointer
-                hover:text-text
+                p-1 text-base-content/80 bg-transparent border-none cursor-pointer
+                hover:text-base-content
             "
             showButtonContent={<FontAwesomeIcon icon={faPencil} />}
             ariaLabel={`Rediger ${member.name}`}

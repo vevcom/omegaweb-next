@@ -3,9 +3,9 @@ import { committeeOperations } from '@/services/groups/committees/operations'
 import SearchBar from '@/UI/SearchBar'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage } from '@/app/ServerPage'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
-import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
@@ -40,7 +40,7 @@ const { page, generateMetadata } = serverPage({
         )
 
         return (
-            <div className="w-full h-full text-text self-start">
+            <div className="w-full h-full text-base-content self-start">
                 <div className="mb-2">
                     <SearchBar defaultValue={search} label="Søk etter komité" />
                 </div>
@@ -50,13 +50,13 @@ const { page, generateMetadata } = serverPage({
                             {committeeCards(active)}
                             {pensioned.length > 0 && (
                                 <>
-                                    <h2 className="mt-8 text-text-muted">Pensjonerte</h2>
+                                    <h2 className="mt-8 text-base-content/80">Pensjonerte</h2>
                                     {committeeCards(pensioned)}
                                 </>
                             )}
                         </>
                     ) : (
-                        <div className="flex flex-col items-center gap-3 mt-12 text-text-muted">
+                        <div className="flex flex-col items-center gap-3 mt-12 text-base-content/80">
                             <FontAwesomeIcon icon={faMagnifyingGlass} className="text-4xl" />
                             <i>{search ? 'Ingen komitéer matcher søket' : 'Ingen komitéer å vise'}</i>
                         </div>

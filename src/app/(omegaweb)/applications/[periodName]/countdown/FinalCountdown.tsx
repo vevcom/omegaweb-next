@@ -30,9 +30,9 @@ export default function FinalCountdown({ periodName }: PropTypes) {
     return (
         <div ref={ref} className="
             fixed top-0 left-0 w-screen h-screen flex justify-center items-center scale-0
-            [&_h1]:text-[10rem] [&_h1]:text-accent-red
+            [&_h1]:text-[10rem] [&_h1]:text-error
         ">
-            { timeLeft === null ? <h1 className="text-[8rem]! text-ink-strong! text-center">
+            { timeLeft === null ? <h1 className="text-[8rem]! text-base-content! text-center">
                 {applicants} <br /> søknader
             </h1> : <h1>{timeLeft}</h1> }
 
