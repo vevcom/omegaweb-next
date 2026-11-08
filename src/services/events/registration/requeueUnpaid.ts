@@ -29,7 +29,14 @@ function unpaidPastDeadline(now: Date): Prisma.EventRegistrationWhereInput {
             },
         },
         ledgerTransactions: { none: { OR: [{ state: 'PENDING' }, validTransactionFilter] } },
-        OR: [{ promotedAt: null }, { promotedAt: { lt: promotionWindowStart } }],
+        // The time to pay after a promotion counts from when payment opens, as in paymentDeadline.
+        OR: [
+            { promotedAt: null },
+            {
+                promotedAt: { lt: promotionWindowStart },
+                quota: { variant: { paymentStart: { lt: promotionWindowStart } } },
+            },
+        ],
     }
 }
 
@@ -65,12 +72,17 @@ export async function requeueNextUnpaidRegistration() {
         const { variantId, variant: { paymentEnd, event } } = candidate.quota
         if (candidate.promotedAt === null && paymentEnd && candidate.createdAt > paymentEnd) continue
 
-        const promoted = await moveToBackOfQueue(candidate.id, event.id, variantId, now)
-        if (!promoted) continue
+        // One registration that keeps failing must not hold up the others.
+        try {
+            const promoted = await moveToBackOfQueue(candidate.id, event.id, variantId, now)
+            if (!promoted) continue
 
-        await notifyPromoted(prisma, event.id, promoted)
-        if (candidate.user) await tellRequeued(candidate.user.email, event.name)
-        return true
+            await notifyPromoted(prisma, event.id, promoted)
+            if (candidate.user) await tellRequeued(candidate.id, candidate.user.email, event.name)
+            return true
+        } catch (error) {
+            logger.error(`Could not requeue unpaid registration ${candidate.id} to the waiting list`, { error })
+        }
     }
     return false
 }
@@ -99,7 +111,9 @@ async function moveToBackOfQueue(registrationId: number, eventId: number, varian
                 },
             })
             const promoted = await fixVariantPlaces(tx, variantId)
-            if (promoted.some(registration => registration.id === registrationId)) throw new SeatedAgain()
+            if (promoted.length === 0 || promoted.some(registration => registration.id === registrationId)) {
+                throw new SeatedAgain()
+            }
             return promoted
         })
     } catch (error) {
@@ -108,7 +122,7 @@ async function moveToBackOfQueue(registrationId: number, eventId: number, varian
     }
 }
 
-async function tellRequeued(email: string, eventName: string) {
+async function tellRequeued(registrationId: number, email: string, eventName: string) {
     try {
         await sendMailOperations.internal.sendSystemMail.internalCall({
             data: {
@@ -119,6 +133,9 @@ async function tellRequeued(email: string, eventName: string) {
             },
         })
     } catch (error) {
-        logger.error(`Could not mail ${email} about being moved to the waiting list of ${eventName}`, { error })
+        logger.error(
+            `Could not mail registration ${registrationId} about being moved to the waiting list of ${eventName}`,
+            { error },
+        )
     }
 }
