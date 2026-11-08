@@ -77,8 +77,8 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
                 aria-label={`Fjern ${name}`}
                 onClick={onRemove}
                 className="
-                    flex items-center justify-center size-6 mr-1 border-none rounded-full bg-transparent text-base-content/80
-                    cursor-pointer
+                    flex items-center justify-center size-6 mr-1 border-none rounded-full bg-transparent
+                    text-base-content/80 cursor-pointer
                     hover:text-error
                 "
             >
