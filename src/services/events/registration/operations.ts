@@ -687,7 +687,7 @@ export const eventRegistrationOperations = {
             const now = new Date()
             if (
                 !variant.paymentStart || !variant.paymentEnd || now < variant.paymentStart
-                || now > paymentDeadline(variant.paymentEnd, registration.promotedAt)
+                || now > paymentDeadline(variant.paymentStart, variant.paymentEnd, registration.promotedAt)
             ) {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
             }
