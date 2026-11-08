@@ -198,7 +198,7 @@ function DetailedTable({
 function NoMatches({ search }: { search: string }) {
     const paging = useContext(EventRegistrationPagingContext)
     if (!search || !paging?.state.allLoaded || paging.state.data.length > 0) return null
-    return <p className="m-0 text-text-muted">Ingen treff.</p>
+    return <p className="m-0 text-base-content/80">Ingen treff.</p>
 }
 
 function RegistrationCards({ eventId, type, variantId, search }: {
@@ -254,7 +254,7 @@ function DefaultList({ event, type, search }: {
             className="flex flex-col gap-2"
         >
             <h5 className="m-0 text-l font-bold">
-                {variant.name} {!search && <span className="font-normal text-text-muted">({countOf(variant)})</span>}
+                {variant.name} {!search && <span className="font-normal text-base-content/80">({countOf(variant)})</span>}
             </h5>
             <RegistrationCards
                 eventId={event.id}
