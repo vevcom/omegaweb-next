@@ -17,10 +17,10 @@ export const InFooterRow = () => (
         justifyContent: 'space-between',
         gap: '2rem',
         padding: '1.25rem',
-        background: 'var(--surface-raised)',
+        background: 'var(--color-base-200)',
         borderRadius: 'var(--rounding)',
     }}>
-        <span style={{ color: 'var(--text-muted)' }}>Sanctus Omega Broderskab</span>
+        <span style={{ color: 'var(--color-base-content)' }}>Sanctus Omega Broderskab</span>
         <div style={{ display: 'flex', gap: '1.25rem', fontSize: '1.35rem' }}>
             <SocialIcons />
         </div>

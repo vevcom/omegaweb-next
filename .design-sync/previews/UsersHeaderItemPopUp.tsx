@@ -14,7 +14,7 @@ function OpenOnMount({ children }: { children: ReactNode }) {
 const panel = (
     <div style={{ display: 'grid', gap: '1rem', minWidth: '17rem' }}>
         <h2 style={{ margin: 0 }}>Legg til medlemmer</h2>
-        <TextInput name="memberSearch" label="Søk etter medlem" background="raised" />
+        <TextInput name="memberSearch" label="Søk etter medlem" background="base200" />
         <Button color="primary">Legg til</Button>
     </div>
 )

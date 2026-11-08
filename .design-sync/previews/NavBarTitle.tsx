@@ -13,7 +13,7 @@ const Bar = ({ children }: { children: ReactNode }) => (
         alignItems: 'center',
         height: '64px',
         padding: '0 1rem',
-        background: 'var(--surface-raised)',
+        background: 'var(--color-base-200)',
         borderRadius: 'var(--rounding)',
     }}>
         {children}
@@ -31,7 +31,7 @@ export const WithPageTitle = () => (
 
 export const PlaceholderWithNoTitle = () => (
     <>
-        <p style={{ margin: '0 0 0.5rem', color: 'var(--text-muted)' }}>
+        <p style={{ margin: '0 0 0.5rem', color: 'var(--color-base-content)' }}>
             No page title set — renders a reserved-space placeholder:
         </p>
         <Bar><NavBarTitle /></Bar>

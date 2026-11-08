@@ -20,7 +20,7 @@ export default function AuthLayout({ children }: PropTypes) {
             ">
                 <div className="
                     flex-[0_0_min(460px,100%)] flex flex-col items-center justify-center gap-2 py-8 px-6 rounded-round
-                    bg-surface-base overflow-y-auto
+                    bg-base-100 overflow-y-auto
                     [&>*]:w-full
                     max-mobile:flex-1
                     [@media(max-height:700px)]:justify-start

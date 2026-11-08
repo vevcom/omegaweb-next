@@ -48,7 +48,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: interestGroups, capabilities, session }) => (
         <PageWrapper transparent>
             <div>
-                <div className="bg-surface-base rounded-round p-4">
+                <div className="bg-base-100 rounded-round p-4">
                     {capabilities.canCreate.authorized && (
                         <AddHeaderItemPopUp popUpKey="Create interest group">
                             <CreateInterestGroupForm/>

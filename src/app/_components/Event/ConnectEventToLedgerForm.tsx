@@ -27,7 +27,7 @@ export default function ConnectEventToLedgerForm({ eventId, ledgerAccount, ledge
                 : 'Arrangementet er ikke knyttet til en konto, så betaling fungerer ikke ennå.'}
         </p>
         {ledgerAccounts.length === 0
-            ? <p className="text-text-muted">Du har ingen gruppekontoer å knytte arrangementet til.</p>
+            ? <p className="text-base-content/80">Du har ingen gruppekontoer å knytte arrangementet til.</p>
             : <Form
                 action={configureAction(connectEventToLedgerAccountAction, { params: { id: eventId } })}
                 submitText="Knytt til konto"

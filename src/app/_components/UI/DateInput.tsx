@@ -10,30 +10,29 @@ type PropTypes = Omit<PropTypesInput, 'type' | 'defaultValue'> & {
 }
 
 const colorClassNames = {
-    white: 'text-text-inv',
-    primary: 'text-accent-blue',
-    secondary: 'text-surface-base',
-    red: 'text-accent-red',
-    black: 'text-text',
+    base: 'text-base-content',
+    primary: 'text-primary',
+    secondary: 'text-secondary',
+    error: 'text-error',
 } as const
 
 const backgroundClassNames = {
-    base: `
-        bg-surface-raised
-        hover:bg-surface-hover
-        focus:bg-surface-hover
+    base100: `
+        bg-base-100
+        hover:bg-base-200
+        focus:bg-base-200
     `,
-    raised: `
-        bg-surface-hover
-        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-        focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+    base200: `
+        bg-base-200
+        hover:bg-base-300
+        focus:bg-base-300
     `,
 } as const
 
 export default function DateInput({
     label = 'default',
-    color = 'black',
-    background = 'base',
+    color = 'base',
+    background = 'base200',
     className,
     defaultValue,
     includeTime = false,
@@ -64,21 +63,20 @@ export default function DateInput({
                 `
             }
         >
-            <label htmlFor={inputId} className="text-s text-text-muted">{label}</label>
+            <label htmlFor={inputId} className="text-s text-base-content/80">{label}</label>
             <input
                 onChange={setUtc}
                 defaultValue={defaultValueTransformedLocal}
                 type={includeTime ? 'datetime-local' : 'date'}
                 className={`
-                    scheme-dark w-full border-2 border-transparent rounded-inner h-14 p-4
-                    leading-[calc(var(--text-m)*1.25)] text-m text-ink-strong transition-[border-color,background-color]
-                    duration-300
-                    focus:outline-0 focus:border-accent-blue
+                    w-full border-2 border-transparent rounded-inner h-14 p-4 leading-[calc(var(--text-m)*1.25)] text-m
+                    text-base-content transition-[border-color,background-color] duration-300
+                    focus:outline-0 focus:border-primary
                     [&::-webkit-calendar-picker-indicator]:cursor-pointer
                     [&::-webkit-calendar-picker-indicator]:rounded-[calc(var(--gap)/2)]
                     [&::-webkit-calendar-picker-indicator]:transition-colors
                     [&::-webkit-calendar-picker-indicator]:duration-300
-                    [&::-webkit-calendar-picker-indicator]:hover:bg-surface-subtle
+                    [&::-webkit-calendar-picker-indicator]:hover:bg-base-300
                     ${backgroundClassNames[background]}
                 `}
                 {...props}

@@ -10,7 +10,7 @@ export const On = () => (
 
 /**
  * `secondary` and `black` are deliberately omitted: they map the track to
- * --surface-base, which is invisible against the app's own surface.
+ * --base-100, which is invisible against the app's own surface.
  * See NOTES.md.
  */
 export const Colors = () => (

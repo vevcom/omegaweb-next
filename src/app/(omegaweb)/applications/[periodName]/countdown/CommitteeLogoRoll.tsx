@@ -124,8 +124,8 @@ export default function CommitteeLogoRoll({ committees, periodName }: PropTypes)
                         ref={refProp}
                         className="
                             absolute w-screen h-screen flex justify-center items-center flex-col scale-0
-                            [&_span]:text-ink-strong [&_span]:text-[15rem]
-                            [&_h1]:text-ink-strong
+                            [&_span]:text-base-content [&_span]:text-[15rem]
+                            [&_h1]:text-base-content
                             [&_h1:first-child]:text-[10rem]
                             [&_h1:nth-child(2)]:text-[16rem]
                         "

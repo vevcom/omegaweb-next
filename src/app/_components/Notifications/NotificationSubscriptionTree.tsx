@@ -32,7 +32,7 @@ export default function NotificationSubscriptionTree({
         const hidden = countChildren(channel) - shown.length
         const subscription = subscriptions.find(candidate => candidate.channelId === channel.id)
         return <div key={channel.id} className="flex flex-col">
-            <div className="border-b border-surface-hover">
+            <div className="border-b border-base-300">
                 <UpdateNotificationSubscription
                     userId={userId}
                     channel={channel}
@@ -43,10 +43,10 @@ export default function NotificationSubscriptionTree({
                 />
             </div>
             {(shown.length > 0 || hidden > 0) && (
-                <div className="flex flex-col ml-6 pl-6 border-l-[3px] border-text-muted/40 rounded-bl-inner">
+                <div className="flex flex-col ml-6 pl-6 border-l-[3px] border-base-content/40 rounded-bl-inner">
                     {shown.map(child => node(child, depth + 1))}
                     {hidden > 0 && (
-                        <p className="m-0 py-3 text-s text-text-muted">
+                        <p className="m-0 py-3 text-s text-base-content/80">
                             <span className={treeConnectorClassName} aria-hidden="true" />
                             … {hidden} {hidden === 1 ? 'kanal' : 'kanaler'} til, som ikke vises her
                         </p>

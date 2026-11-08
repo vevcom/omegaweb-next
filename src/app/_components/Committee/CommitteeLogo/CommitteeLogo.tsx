@@ -29,7 +29,7 @@ export default function CommitteeLogo({ logoImage, width, className }: PropTypes
         <div
             className={`
                 aspect-square mask-(--committee-logo-mask) mask-contain mask-no-repeat mask-center
-                bg-[var(--committee-logo-color,var(--text))]
+                bg-[var(--committee-logo-color,var(--color-base-content))]
                 ${className ?? ''}
             `}
             // The mask url is set from here rather than the stylesheet because it differs per

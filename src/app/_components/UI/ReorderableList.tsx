@@ -1,9 +1,9 @@
 'use client'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { Reorder, useDragControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
-import useSiteRouter from '@/hooks/useSiteRouter'
 import type { ActionReturn } from '@/services/actionTypes'
 import type { CSSProperties, PointerEvent, ReactNode } from 'react'
 
@@ -29,9 +29,9 @@ function ReorderableItem<Item>({
     const handle = (
         <span
             className="
-                flex items-center justify-center size-6 rounded-[var(--gap)] text-text-muted cursor-grab touch-none
+                flex items-center justify-center size-6 rounded-[var(--gap)] text-base-content/80 cursor-grab touch-none
                 select-none transition-colors duration-300
-                hover:bg-surface-hover hover:text-ink-strong
+                hover:bg-base-300 hover:text-base-content
                 active:cursor-grabbing
             "
             aria-label="Dra for å flytte"
@@ -130,7 +130,7 @@ export default function ReorderableList<Item>({
                     />
                 ))}
             </Reorder.Group>
-            {error && <i className="text-accent-red">{error}</i>}
+            {error && <i className="text-error">{error}</i>}
         </>
     )
 }

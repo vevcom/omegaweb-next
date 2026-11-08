@@ -1,0 +1,7 @@
+-- AlterEnum
+ALTER TYPE "Theme" ADD VALUE 'VALENTINE';
+-- AlterEnum
+ALTER TYPE "Theme" ADD VALUE 'VALENTINE_DARK';
+-- AlterEnum
+ALTER TYPE "Theme" ADD VALUE 'LUXURY';
+

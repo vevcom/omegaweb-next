@@ -19,7 +19,7 @@ type PropTypes = Omit<AddPartsPropTypes, 'onClick'> & {
 }
 
 const wrapperClassName = `
-    relative border-3 border-surface-base rounded-round min-h-[100px] p-4
+    relative border-3 border-base-100 rounded-round min-h-[100px] p-4
     [&>*:last-child]:absolute [&>*:last-child]:bottom-[3px] [&>*:last-child]:right-[3px]
 `
 

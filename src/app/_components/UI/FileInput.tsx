@@ -12,40 +12,40 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
 }
 
 const valueColorClassNames = {
-    black: 'text-ink-strong',
-    primary: 'text-accent-blue',
-    secondary: 'text-text',
-    red: 'text-accent-red',
+    black: 'text-base-content',
+    primary: 'text-primary',
+    secondary: 'text-base-content',
+    red: 'text-error',
     white: 'text-white',
 } as const
 
 const focusClassNames = {
     blue: {
         trigger: `
-            peer-focus:border-accent-blue
-            peer-focus:[&_svg]:text-accent-blue
+            peer-focus:border-primary
+            peer-focus:[&_svg]:text-primary
         `,
-        label: 'peer-focus:text-accent-blue',
+        label: 'peer-focus:text-primary',
     },
     red: {
         trigger: `
-            peer-focus:border-accent-red
-            peer-focus:[&_svg]:text-accent-red
+            peer-focus:border-error
+            peer-focus:[&_svg]:text-error
         `,
-        label: 'peer-focus:text-accent-red',
+        label: 'peer-focus:text-error',
     },
 } as const
 
 const backgroundClassNames = {
     base: `
-        bg-surface-raised
-        hover:bg-surface-hover
-        peer-focus:bg-surface-hover
+        bg-base-200
+        hover:bg-base-300
+        peer-focus:bg-base-300
     `,
     raised: `
-        bg-surface-hover
-        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-        peer-focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        bg-base-300
+        hover:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
+        peer-focus:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
     `,
 } as const
 
@@ -98,7 +98,7 @@ export default function FileInput({
                 htmlFor={inputId}
                 className={`
                     relative w-full flex items-center border-2 border-transparent rounded-inner outline-0 text-m text-left
-                    text-ink-strong pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300
+                    text-base-content pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300
                     cursor-pointer
                     peer-disabled:cursor-not-allowed peer-disabled:opacity-60
                     ${backgroundClassNames[background]}
@@ -116,13 +116,15 @@ export default function FileInput({
                 </span>
                 <FontAwesomeIcon
                     icon={faPaperclip}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted transition-colors duration-300"
+                    className="
+                        absolute right-4 top-1/2 -translate-y-1/2 text-base-content/80 transition-colors duration-300
+                    "
                 />
             </label>
             <label
                 htmlFor={inputId}
                 className={`
-                    absolute left-4 block text-text-muted transition-all duration-300 pointer-events-none z-1
+                    absolute left-4 block text-base-content/80 transition-all duration-300 pointer-events-none z-1
                     ${value ? 'top-2 text-[length:calc(var(--text-s)*0.85)]' : 'top-1/2 -translate-y-1/2 text-m'}
                     peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[length:calc(var(--text-s)*0.85)]
                     ${focus.label}

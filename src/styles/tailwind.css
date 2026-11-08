@@ -3,6 +3,30 @@
 
 @custom-variant tone-light ([data-tone="light"] &);
 
+/* The Mørk theme as a fallback. SiteTheme sets a theme's values on :root, so these stay variables. */
+@theme static {
+    --color-base-100: hsl(240, 8%, 8%);
+    --color-base-200: hsl(240, 6%, 12%);
+    --color-base-300: hsl(210, 8%, 18%);
+    --color-base-content: hsl(0, 0%, 80%);
+    --color-primary: hsl(210, 70%, 50%);
+    --color-primary-content: hsl(0, 0%, 10%);
+    --color-secondary: hsl(260, 80%, 60%);
+    --color-secondary-content: hsl(0, 0%, 100%);
+    --color-accent: hsl(300, 80%, 60%);
+    --color-accent-content: hsl(0, 0%, 10%);
+    --color-neutral: hsl(210, 8%, 35%);
+    --color-neutral-content: hsl(0, 0%, 100%);
+    --color-info: hsl(180, 80%, 60%);
+    --color-info-content: hsl(0, 0%, 10%);
+    --color-success: hsl(120, 80%, 60%);
+    --color-success-content: hsl(0, 0%, 10%);
+    --color-warning: hsl(60, 80%, 60%);
+    --color-warning-content: hsl(0, 0%, 10%);
+    --color-error: hsl(0, 80%, 60%);
+    --color-error-content: hsl(0, 0%, 10%);
+}
+
 @theme inline {
     --spacing: calc(var(--gap) / 2);
 
@@ -11,25 +35,17 @@
     --radius-round: var(--rounding);
     --radius-inner: calc(var(--rounding) - var(--gap));
 
-    --color-text: var(--text);
-    --color-text-muted: var(--text-muted);
-    --color-text-inv: var(--text-inv);
-    --color-surface-base: var(--surface-base);
-    --color-surface-raised: var(--surface-raised);
-    --color-surface-hover: var(--surface-hover);
-    --color-surface-subtle: var(--surface-subtle);
-    --color-ink-hover: var(--ink-hover);
-    --color-ink-strong: var(--ink-strong);
+    --radius-selector: 1rem;
+    --radius-field: 2rem;
+    --radius-box: 1rem;
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 1px;
+    --depth: 0;
+    --noise: 0;
+
     --color-layer: var(--layer);
     --color-shadow: var(--boxShadow);
-    --color-accent-red: var(--accent-red);
-    --color-accent-orange: var(--accent-orange);
-    --color-accent-yellow: var(--accent-yellow);
-    --color-accent-green: var(--accent-green);
-    --color-accent-cyan: var(--accent-cyan);
-    --color-accent-blue: var(--accent-blue);
-    --color-accent-magenta: var(--accent-magenta);
-    --color-accent-violet: var(--accent-violet);
 
     --font-primary: 'Inter', sans-serif;
     --font-secondary: 'PlayfairDisplay', serif;
@@ -74,32 +90,68 @@
     transition: box-shadow 0.3s;
 }
 
-@utility btn {
+@utility btn-primary {
     text-align: center;
     text-decoration: none;
     font-size: var(--text-m);
-    background: var(--btn-color, var(--accent-blue));
+    background: var(--btn-color, var(--color-primary));
     padding: calc(2 * var(--gap));
     margin: var(--gap);
-    color: var(--text-inv);
+    color: var(--btn-fg, var(--color-primary-content));
     border: none;
     border-radius: calc(var(--rounding) - var(--gap));
     transition: .5s background;
 
     &:hover {
-        background-color: color-mix(in srgb, var(--btn-color, var(--accent-blue)), white 10%);
+        background-color: color-mix(in oklab, var(--btn-color, var(--color-primary)), #000 7%);
         cursor: pointer;
     }
 }
 
-@utility secondary-btn {
-    @apply btn;
-    --btn-color: var(--surface-hover);
-    color: var(--text);
+@utility btn-neutral {
+    @apply btn-primary;
+    --btn-color: var(--color-neutral);
+    --btn-fg: var(--color-neutral-content);
+}
+
+@utility btn-base {
+    @apply btn-primary;
+    --btn-color: var(--color-base-200);
+    --btn-fg: var(--color-base-content);
+}
+
+@utility btn-secondary {
+    @apply btn-primary;
+    --btn-color: var(--color-secondary);
+    --btn-fg: var(--color-secondary-content);
+}
+
+@utility btn-info {
+    @apply btn-primary;
+    --btn-color: var(--color-info);
+    --btn-fg: var(--color-info-content);
+}
+
+@utility btn-success {
+    @apply btn-primary;
+    --btn-color: var(--color-success);
+    --btn-fg: var(--color-success-content);
+}
+
+@utility btn-warning {
+    @apply btn-primary;
+    --btn-color: var(--color-warning);
+    --btn-fg: var(--color-warning-content);
+}
+
+@utility btn-error {
+    @apply btn-primary;
+    --btn-color: var(--color-error);
+    --btn-fg: var(--color-error-content);
 }
 
 @utility close-btn {
-    background-color: var(--accent-red);
+    background-color: var(--color-error);
     border: none;
     border-radius: var(--gap);
     width: 48px;
@@ -109,17 +161,17 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--text-inv);
+    color: var(--color-error-content);
     transition: background-color .5s;
 
     &:hover {
-        background-color: color-mix(in srgb, var(--accent-red), white 20%);
+        background-color: color-mix(in oklab, var(--color-error), #000 7%);
     }
 
     & > svg {
         width: 40%;
         height: 40%;
-        color: var(--text-inv);
+        color: var(--color-error-content);
     }
 }
 
@@ -130,8 +182,8 @@
     gap: calc(1.5 * var(--gap));
     height: 40px;
     border-radius: calc(var(--rounding) - var(--gap));
-    background-color: var(--surface-hover);
-    color: var(--ink-strong);
+    background-color: var(--color-base-300);
+    color: var(--color-base-content);
 }
 
 @utility header-pill-link {
@@ -141,8 +193,8 @@
     transition: background-color .3s, color .3s, box-shadow .3s;
 
     &:hover {
-        background-color: var(--surface-subtle);
-        color: var(--ink-strong);
+        background-color: var(--color-base-300);
+        color: var(--color-base-content);
         text-decoration: none;
     }
 
@@ -155,18 +207,19 @@
     & svg {
         width: 16px;
         height: 16px;
-        color: var(--text);
+        color: var(--color-base-content);
         transition: color .3s;
     }
 
     &:hover svg {
-        color: var(--accent-blue);
+        color: var(--color-primary);
     }
 }
 
 @utility ohma-table {
     width: 100%;
     border-collapse: collapse;
+    border-radius: var(--gap);
     border: none;
     margin: calc(2 * var(--gap)) 0;
     font-size: var(--text-m);
@@ -178,21 +231,22 @@
     }
 
     & th {
-        background-color: var(--surface-raised);
-        color: var(--ink-strong);
+        background-color: var(--color-primary);
+        color: var(--color-primary-content);
         font-weight: 500;
     }
 
     & tbody tr {
-        background-color: var(--surface-raised);
+        background-color: var(--color-base-100);
         transition: background-color .3s;
+        color: var(--color-base-content);
 
         &:nth-child(even) {
-            background-color: color-mix(in srgb, var(--surface-raised), white 3%);
+            background-color: var(--color-base-200);
         }
 
         &:hover {
-            background-color: var(--surface-hover);
+            background-color: var(--color-base-300);
         }
     }
 
@@ -240,11 +294,11 @@
     text-decoration: none;
     color: unset;
     border-radius: var(--rounding);
-    background-color: var(--surface-raised);
+    background-color: var(--color-base-200);
     transition: background-color 300ms;
 
     &:hover {
-        background-color: var(--surface-hover);
+        background-color: var(--color-base-300);
         text-decoration: none;
     }
 
@@ -281,13 +335,13 @@
 
         & b {
             font-size: var(--text-xl);
-            color: var(--text);
+            color: var(--color-base-content);
         }
 
         & span {
             font-size: var(--text-s);
             text-transform: uppercase;
-            color: var(--text-muted);
+            color: color-mix(in oklch, var(--color-base-content) 80%, transparent);
         }
     }
 
@@ -304,7 +358,7 @@
             margin: 0;
             font-size: var(--text-l);
             font-weight: 500;
-            color: var(--text);
+            color: var(--color-base-content);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -313,7 +367,7 @@
         & p {
             margin: 0;
             font-size: var(--text-s);
-            color: var(--text-muted);
+            color: color-mix(in oklch, var(--color-base-content) 80%, transparent);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -330,7 +384,7 @@
         gap: calc(0.5 * var(--gap));
         padding: 0 calc(2 * var(--gap));
         font-size: var(--text-s);
-        color: var(--text-muted);
+        color: color-mix(in oklch, var(--color-base-content) 80%, transparent);
         text-align: right;
 
         & > * {
@@ -347,11 +401,11 @@
         right: 0;
         bottom: 0;
         height: calc(0.5 * var(--gap));
-        background-color: var(--surface-subtle);
+        background-color: var(--color-base-300);
 
         & > div {
             height: 100%;
-            background: var(--accent-blue);
+            background: var(--color-primary);
         }
     }
 
