@@ -161,14 +161,15 @@ Rules:
 
 Work that runs outside requests lives in `src/workers/`:
 
-- **`definitions.ts`** defines every worker (`images`, `notifications`, `paymentCompletion`, `unpaidRegistrations`, `store`, `ledger`) as `{ name, intervalMs, tick }`: what it does, in what order and how often.
+- **`definitions.ts`** defines every worker (`images`, `notifications`, `paymentCompletion`, `unpaidRegistrations`, `store`, `ledger`, `mail`) as `{ name, intervalMs, tick }`: what it does, in what order and how often.
 - **`types.ts`** holds the `Worker` type that shape follows and `WorkerName`, the names `main.ts` accepts.
 - **`main.ts`** is the entrypoint of the `worker` compose service (`npm run worker`). It runs the workers side by side in one process: the loops, the wait between ticks and shutting down on SIGTERM/SIGINT. Naming workers as arguments (`tsx src/workers/main.ts images`) runs only those, so one can be moved into a container of its own from compose alone.
 
 Nothing outside `src/workers/` is called a worker.
 
-- **Services** export the units of work, named for what they do, next to the domain logic they use: `processNextImage` (`images/subservice/processingQueue.ts`), `dispatchNextEmailNotification`, `dispatchNextPushNotification` and `sendDueWeeklyDigests` (`notifications/methods/dispatchQueue.ts`), `runNextPaymentCompletionHook` (`ledger/transactions/paymentCompletionHooks.ts`), `requeueNextUnpaidRegistration` (`events/registration/requeueUnpaid.ts`), `destroyImageOrphans` and `destroyOmbulOrphans`, and the ledger sweeper's checks (`ledger/sweeper.ts`).
+- **Services** export the units of work, named for what they do, next to the domain logic they use: `processNextImage` (`images/subservice/processingQueue.ts`), `dispatchNextEmailNotification`, `dispatchNextPushNotification` and `sendDueWeeklyDigests` (`notifications/methods/dispatchQueue.ts`), `runNextPaymentCompletionHook` (`ledger/transactions/paymentCompletionHooks.ts`), `requeueNextUnpaidRegistration` (`events/registration/requeueUnpaid.ts`), `destroyImageOrphans` and `destroyOmbulOrphans`, the ledger sweeper's checks (`ledger/sweeper.ts`), and `syncMailServer` (`mail/server/sync.ts`).
 - A unit of work that handles one item at a time returns `true` when there may be more waiting, so the worker comes straight back instead of waiting out its interval.
+- The mail server sync is how aliases reach the mail server, Stalwart, which cannot read them from the database the way Postfix did. Every minute it makes the server's domains match the sites' mail domains, its mailing lists match the aliases, with the addresses each alias reaches as recipients, and the app's sender account (`EMAIL_USER`) exist with its password. It runs when `EMAIL_ADMIN_URL`, `EMAIL_ADMIN_USER` and `EMAIL_ADMIN_PASSWORD` are set (`mail/server/constants.ts`); the client for the server's JMAP management API is `mail/server/client.ts`. Code changing aliases, mailing lists or memberships leaves the server to it.
 - The ledger sweeper is the ledger's common failure path. It cancels stale PENDING transactions, reimburses succeeded payments no transaction claimed, and flags what it can't fix for admins at `/admin/ledger-review`. Code using the ledger leaves these cases to it instead of handling them itself.
 
 ### Prisma Schema Organization

@@ -14,6 +14,8 @@ import {
     reimburseUnclaimedPayments,
 } from '@/services/ledger/sweeper'
 import { runNextPaymentCompletionHook } from '@/services/ledger/transactions/paymentCompletionHooks'
+import { syncMailServer } from '@/services/mail/server/sync'
+import { mailServerIsManaged } from '@/services/mail/server/constants'
 import { requeueNextUnpaidRegistration } from '@/services/events/registration/requeueUnpaid'
 import logger from '@/lib/logger'
 import type { Worker } from './types'
@@ -21,6 +23,10 @@ import type { Worker } from './types'
 // Logged once, when the worker process loads its definitions.
 if (!pushIsConfigured) {
     logger.warn('Notification worker will not push notifications, since the VAPID keys are not set')
+}
+if (!mailServerIsManaged) {
+    logger.warn('Mail server sync will not run, since EMAIL_ADMIN_URL, EMAIL_ADMIN_USER and EMAIL_ADMIN_PASSWORD '
+        + 'are not all set')
 }
 
 /**
@@ -127,6 +133,20 @@ export const workers = {
             } catch (error) {
                 logger.error(`Ledger sweeper failed to flag unbalanced transactions: ${error}`)
             }
+        },
+    },
+
+    /**
+     * Keeps the mail server's domains, mailing lists and sender account in step with the aliases
+     * here, see mail/server/sync.ts. Does nothing while the server is not managed.
+     */
+    mail: {
+        name: 'Mail server sync',
+        // How long a changed alias or membership takes to reach the mail server, at most.
+        intervalMs: 60 * 1000,
+        tick: () => {
+            if (!mailServerIsManaged) return false
+            return syncMailServer()
         },
     },
 } as const satisfies Record<string, Worker>
