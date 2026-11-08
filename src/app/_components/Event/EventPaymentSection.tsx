@@ -41,7 +41,7 @@ export default function EventPaymentSection({
     if (!variant.takesPayment || price === null || !paymentStart || !paymentEnd) return null
 
     const now = new Date()
-    const deadline = paymentDeadline(paymentEnd, registration?.promotedAt ?? null)
+    const deadline = paymentDeadline(paymentStart, paymentEnd, registration?.promotedAt ?? null)
     const paymentOpen = paymentStart <= now && now <= deadline
     const status = paymentStatus(registration)
 

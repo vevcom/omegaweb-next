@@ -208,7 +208,7 @@ describe('paying for an event', () => {
             })
             await prisma.eventVariant.updateMany({
                 where: { eventId },
-                data: { paymentStart: new Date(Date.now() - 2 * HOUR), paymentEnd: new Date(Date.now() - HOUR) },
+                data: { paymentStart: new Date(Date.now() - 48 * HOUR), paymentEnd: new Date(Date.now() - HOUR) },
             })
             return { eventId, seated, seatedRegistration, waiting, waitingRegistrationId }
         }
