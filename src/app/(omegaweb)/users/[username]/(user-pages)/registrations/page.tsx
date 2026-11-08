@@ -16,7 +16,7 @@ const { page, generateMetadata } = serverPage({
         return { profile, registrations }
     },
     render: ({ data }) => (
-        <div className="min-h-full bg-surface-base rounded-round p-(--card-padding)">
+        <div className="min-h-full bg-base-100 rounded-round p-(--card-padding)">
             <h2>Påmeldinger</h2>
             {data.registrations.length === 0 ? (
                 <p>

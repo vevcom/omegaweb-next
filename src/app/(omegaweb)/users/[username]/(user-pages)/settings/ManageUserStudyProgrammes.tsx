@@ -121,7 +121,7 @@ export default function ManageUserStudyProgrammes({
             <h2>Studieprogram</h2>
 
             {memberOf.length === 0 ? (
-                <p className="text-text-muted italic">Brukeren står ikke på noe studieprogram.</p>
+                <p className="text-base-content/80 italic">Brukeren står ikke på noe studieprogram.</p>
             ) : (
                 <div className="flex flex-col gap-1">
                     {memberOf.map(programme => (

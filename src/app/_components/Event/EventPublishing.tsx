@@ -18,7 +18,7 @@ type PropTypes = {
 }
 
 const sectionClassName = `
-    flex flex-col gap-3 p-4 rounded-round bg-surface-raised
+    flex flex-col gap-3 p-4 rounded-round bg-base-200
     [&>h3]:m-0 [&>h3]:text-l [&>h3]:font-bold
     [&>p]:m-0
 `

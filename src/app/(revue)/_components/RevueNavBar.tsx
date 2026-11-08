@@ -11,16 +11,18 @@ type PropTypes = {
 }
 
 const linkClassName = `
-    text-m font-medium text-text-muted
-    hover:text-text hover:no-underline
+    text-m font-medium text-base-content/80
+    hover:text-base-content hover:no-underline
 `
 
 /** The revue site's navigation: for now the wordmark, the way over to Omega's site and the login or logout. */
 export default function RevueNavBar({ loggedIn }: PropTypes) {
     return (
-        <header className="sticky top-0 z-3 bg-surface-raised border-b border-surface-subtle">
+        <header className="sticky top-0 z-3 bg-base-200 border-b border-base-300">
             <nav className="w-full max-w-[1100px] mx-auto px-[clamp(1rem,4vw,3rem)] min-h-[64px] flex items-center gap-6">
-                <SiteLink href={revueLinks.frontpage()} className="mr-auto text-xl font-semibold text-text no-underline">
+                <SiteLink href={revueLinks.frontpage()} className="
+                    mr-auto text-xl font-semibold text-base-content no-underline
+                ">
                     Omegarevyen
                 </SiteLink>
                 <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className={linkClassName}>

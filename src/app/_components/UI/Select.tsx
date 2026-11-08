@@ -6,8 +6,8 @@ import { useId, type SelectHTMLAttributes } from 'react'
 export type PropTypes<ValueType> = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> & {
     name: string,
     label?: string,
-    color?: 'primary' | 'secondary' | 'red' | 'black' | 'white',
-    background?: 'base' | 'raised',
+    color?: 'base' | 'primary' | 'secondary' | 'error',
+    background?: 'base100' | 'base200',
     onChange?: (value: ValueType) => void,
     options: {
         value: ValueType,
@@ -21,38 +21,34 @@ export type PropTypes<ValueType> = Omit<SelectHTMLAttributes<HTMLSelectElement>,
 })
 
 const colorClassNames = {
-    black: { field: `
-        text-ink-strong
-        focus:border-accent-blue
-    `, accent: 'peer-focus:text-accent-blue' },
+    base: { field: `
+        text-base-content
+        focus:border-base-content
+    `, accent: 'peer-focus:text-base-content' },
     primary: { field: `
-        text-accent-blue
-        focus:border-accent-blue
-    `, accent: 'peer-focus:text-accent-blue' },
+        text-primary
+        focus:border-primary
+    `, accent: 'peer-focus:text-primary' },
     secondary: { field: `
-        text-text
-        focus:border-accent-blue
-    `, accent: 'peer-focus:text-accent-blue' },
-    red: { field: `
-        text-accent-red
-        focus:border-accent-red
-    `, accent: 'peer-focus:text-accent-red' },
-    white: { field: `
-        text-white
-        focus:border-accent-blue
-    `, accent: 'peer-focus:text-accent-blue' },
+        text-secondary
+        focus:border-secondary
+    `, accent: 'peer-focus:text-secondary' },
+    error: { field: `
+        text-error
+        focus:border-error
+    `, accent: 'peer-focus:text-error' },
 } as const
 
 const backgroundClassNames = {
-    base: `
-        bg-surface-raised
-        hover:bg-surface-hover
-        focus:bg-surface-hover
+    base100: `
+        bg-base-100
+        hover:bg-base-200
+        focus:bg-base-200
     `,
-    raised: `
-        bg-surface-hover
-        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-        focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+    base200: `
+        bg-base-200
+        hover:bg-base-300
+        focus:bg-base-300
     `,
 } as const
 
@@ -64,8 +60,8 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
         value,
         options,
         onChange,
-        color = 'black',
-        background = 'base',
+        color = 'base',
+        background = 'base200',
         className,
         id,
         ...props
@@ -87,12 +83,12 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                     id={selectId}
                     name={name}
                     className={`
-                        peer appearance-none relative w-full flex items-center border border-surface-subtle
-                        focus:ring-3 focus:ring-accent-blue/25
+                        peer appearance-none relative w-full flex items-center border border-base-300
+                        focus:ring-3 focus:ring-primary/25
                         rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] text-left pt-6 pr-10 pb-2.5 pl-4
                         transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                         disabled:cursor-not-allowed disabled:opacity-60
-                        [&_option]:bg-surface-raised [&_option]:text-text
+                        [&_option]:bg-base-200 [&_option]:text-base-content
                         ${colorClassNames[color].field}
                         ${backgroundClassNames[background]}
                     `}
@@ -120,7 +116,7 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                 <FontAwesomeIcon
                     icon={faChevronDown}
                     className={`
-                        absolute right-4 top-1/2 -translate-y-1/2 text-text-muted transition-colors duration-300
+                        absolute right-4 top-1/2 -translate-y-1/2 text-base-content/80 transition-colors duration-300
                         pointer-events-none
                         ${colorClassNames[color].accent}
                     `}
@@ -128,8 +124,8 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                 <label
                     htmlFor={selectId}
                     className={`
-                        absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-text-muted transition-all
-                        duration-300 pointer-events-none z-1
+                        absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-base-content/80
+                        transition-all duration-300 pointer-events-none z-1
                         ${colorClassNames[color].accent}
                     `}
                 >{label ?? name}</label>

@@ -63,7 +63,7 @@ export default function PdfDocument({ src, className }: PropTypes) {
     if (typeof window !== 'undefined' && !window.Promise.withResolvers) {
         return (
             <>
-                <p className="text-accent-red">
+                <p className="text-error">
                 Din nettleser støtter ikke vevens fantastiske PDF-løsning. Bruker alternativ løsning.
                 </p>
                 <embed className="w-[70%] h-[90vh]" src={src} type="application/pdf" />
@@ -82,11 +82,11 @@ export default function PdfDocument({ src, className }: PropTypes) {
                 <div className="flex">
                     <div className="
                         w-1/2 flex
-                        [&>button]:bg-surface-raised [&>button]:border-none [&>button]:p-[1em]
-                        [&>button_svg]:text-text
+                        [&>button]:bg-base-200 [&>button]:border-none [&>button]:p-[1em]
+                        [&>button_svg]:text-base-content
                         [&>button]:transition-[background-color] [&>button]:duration-300
                         [&>button_svg]:size-[25px]
-                        [&>button:hover]:bg-surface-hover [&>button:hover]:cursor-pointer
+                        [&>button:hover]:bg-base-300 [&>button:hover]:cursor-pointer
                         [&>button]:rounded-l-round
                     ">
                         {
@@ -123,11 +123,11 @@ export default function PdfDocument({ src, className }: PropTypes) {
                     </div>
                     <div className="
                         w-1/2 flex
-                        [&>button]:bg-surface-raised [&>button]:border-none [&>button]:p-[1em]
-                        [&>button_svg]:text-text
+                        [&>button]:bg-base-200 [&>button]:border-none [&>button]:p-[1em]
+                        [&>button_svg]:text-base-content
                         [&>button]:transition-[background-color] [&>button]:duration-300
                         [&>button_svg]:size-[25px]
-                        [&>button:hover]:bg-surface-hover [&>button:hover]:cursor-pointer
+                        [&>button:hover]:bg-base-300 [&>button:hover]:cursor-pointer
                         [&>button]:rounded-r-round
                     ">
                         <div ref={rightPageRef} className="

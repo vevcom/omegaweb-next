@@ -21,15 +21,15 @@ const statusBadge = 'py-[0.2em] px-[0.6em] rounded-[0.4em] whitespace-nowrap'
 const statusClass: Record<FreezePeriodStatus['style'], string> = {
     upcoming: `
         ${statusBadge}
-        bg-[color-mix(in_srgb,var(--accent-blue),white_50%)] text-accent-blue
+        bg-[color-mix(in_srgb,var(--color-primary),white_50%)] text-primary
     `,
     active: `
         ${statusBadge}
-        bg-[color-mix(in_srgb,var(--accent-green),white_50%)] text-accent-green
+        bg-[color-mix(in_srgb,var(--color-success),white_50%)] text-success
     `,
     finished: `
         ${statusBadge}
-        bg-surface-subtle text-text-muted
+        bg-base-300 text-base-content/80
     `,
 }
 

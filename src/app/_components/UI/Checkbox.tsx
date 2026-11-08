@@ -3,15 +3,15 @@ import { useId } from 'react'
 import type { InputHTMLAttributes, ReactNode } from 'react'
 
 const inputClassName = `
-    appearance-none inline-grid place-content-center shrink-0 size-5 mr-2 border-2 border-text-muted
+    appearance-none inline-grid place-content-center shrink-0 size-5 mr-2 border-2 border-base-content/80
     rounded-[calc(var(--gap)*0.75)] bg-transparent cursor-pointer transition-[background-color,border-color] duration-300
-    after:w-[5px] after:h-[9px] after:border-solid after:border-text-inv after:border-t-0 after:border-l-0
+    after:w-[5px] after:h-[9px] after:border-solid after:border-primary-content after:border-t-0 after:border-l-0
     after:border-r-2 after:border-b-2 after:[transform:rotate(45deg)_translate(-1px,-1px)] after:opacity-0
     after:transition-opacity after:duration-300
-    hover:border-accent-blue
-    checked:bg-accent-blue checked:border-accent-blue
+    hover:border-primary
+    checked:bg-primary checked:border-primary
     checked:after:opacity-100
-    focus-visible:outline-2 focus-visible:outline-accent-blue focus-visible:outline-offset-2
+    focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2
     disabled:cursor-not-allowed disabled:opacity-50
 `
 
@@ -35,7 +35,7 @@ function Checkbox({ label, children, id, ...props }: PropTypes) {
 
     return (
         <div className="
-            text-m text-ink-strong my-1 mr-1 ml-0 inline-flex items-center
+            text-m text-base-content my-1 mr-1 ml-0 inline-flex items-center
             [&>label]:cursor-pointer
         ">
             {

@@ -21,7 +21,7 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'Standardtilganger' }),
     render: ({ data: defaultPermissions, capabilities }) => (
         <>
-            <h1>Standardtilganger</h1>
+            <h1 className="text-base-content">Standardtilganger</h1>
             <i>Dette er tilganger alle har på nettsiden, uavhengig av innlogging og gruppetilhørighet.</i>
             {capabilities.canUpdateDefaultPermissions.authorized &&
             <Form submitText="Lagre" action={updateDefaultPermissionsAction}>

@@ -109,7 +109,7 @@ const { page, generateMetadata } = serverPage({
                                 Der <span className="text-careers-accent">bedrifter</span> &amp;{' '}
                                 {'teknologi­studenter'} møtes
                             </h1>
-                            <p className="max-w-[36rem] mt-6 text-l leading-[1.6] text-text-muted">
+                            <p className="max-w-[36rem] mt-6 text-l leading-[1.6] text-base-content/80">
                                 Broen mellom studenter og næringslivet
                             </p>
                             <div className="flex flex-wrap gap-4 mt-10">
@@ -205,7 +205,7 @@ const { page, generateMetadata } = serverPage({
                                 special="CAREER_ABOUT"
                                 className={`
                                     ${paragraphClassName}
-                                    [&_:is(p,li)]:text-l [&_:is(p,li)]:text-text-muted
+                                    [&_:is(p,li)]:text-l [&_:is(p,li)]:text-base-content/80
                                 `}
                                 {...paragraphActions}
                             />

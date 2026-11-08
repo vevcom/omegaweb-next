@@ -39,7 +39,7 @@ const { page, generateMetadata } = serverPage({
                     popUpKey={`EditFlairImage${flair.id}`}
                     showButtonContent="Endre bilde"
                     showButtonClass="
-                        secondary-btn block mt-[0.5em]! py-[0.25em]! px-[0.5em]! text-s! whitespace-nowrap
+                        btn-neutral block mt-[0.5em]! py-[0.25em]! px-[0.5em]! text-s! whitespace-nowrap
                         max-mobile:whitespace-normal
                     "
                 >

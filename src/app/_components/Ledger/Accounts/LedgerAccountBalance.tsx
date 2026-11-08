@@ -4,7 +4,7 @@ import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { withPageSession } from '@/app/ServerPage'
 
 const currencyClassName = `
-    text-left text-text-muted
+    text-left text-base-content/80
     max-mobile:hidden
 `
 
@@ -24,16 +24,16 @@ export default async function LedgerAccountBalance({ ledgerAccountId: accountId,
         max-mobile:grid-cols-[auto_1fr]
     ">
         <div className="contents text-xxl">
-            <div>Saldo</div>
-            <div className="text-right">{displayAmount(balance.amount)}</div>
+            <div className="text-base-content">Saldo</div>
+            <div className="text-right text-base-content">{displayAmount(balance.amount)}</div>
             <div className={`
                 ${currencyClassName}
                 text-l
             `}>{currencySymbol}</div>
         </div>
         {showFees && <div className="contents text-l">
-            <div>Avgifter</div>
-            <div className="text-right">{displayAmount(balance.fees)}</div>
+            <div className="text-base-content">Avgifter</div>
+            <div className="text-right text-base-content">{displayAmount(balance.fees)}</div>
             {/* Scaled from the balance's currency by text-l / text-xxl, which is about a half. */}
             <div className={`
                 ${currencyClassName}

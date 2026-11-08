@@ -7,16 +7,18 @@ import {
 
 const bubbleClassName = 'm-10 flex flex-col items-center justify-start'
 const iconClassName = `
-    size-[150px] rounded-full bg-accent-blue flex items-center justify-center mb-4
-    [&>svg]:size-[75px] [&>svg]:text-text
+    size-[150px] rounded-full bg-primary flex items-center justify-center mb-4
+    [&>svg]:size-[75px] [&>svg]:text-primary-content
+    text-primary-content
 `
-const heading = 'text-xl font-bold'
-const text = 'text-m font-light leading-[1.7em] text-center'
+const heading = 'text-xl text-white font-bold'
+const text = 'text-m text-white font-light leading-[1.7em] text-center'
 
 function InfoBubbles() {
     return (
         <div className="
-            w-full bg-layer backdrop-brightness-[0.2] text-text py-40 px-[10vw] flex flex-row justify-around items-start
+            w-full bg-layer backdrop-brightness-[0.2] text-base-content py-40 px-[10vw] flex flex-row justify-around
+            items-start
             max-mobile:flex-col
         ">
             <div className={bubbleClassName}>

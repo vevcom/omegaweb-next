@@ -44,9 +44,11 @@ export default function UpdateNotificationSubscription({
                     {depth > 0 && <span className={treeConnectorClassName} aria-hidden="true" />}
                     <b>{channel.name}</b>
                 </span>
-                {channel.description && <span className="block mt-1 text-s text-text-muted">{channel.description}</span>}
+                {channel.description && (
+                    <span className="block mt-1 text-s text-base-content/80">{channel.description}</span>
+                )}
                 {inherited && (
-                    <span className="block mt-1 text-s text-text-muted">Følger kanalen over til du lagrer her.</span>
+                    <span className="block mt-1 text-s text-base-content/80">Følger kanalen over til du lagrer her.</span>
                 )}
             </div>
             {/*

@@ -34,7 +34,7 @@ const { page, generateMetadata } = serverPage({
                     <p>Sist oppdatert: <Date date={apiKey.updatedAt} /></p>
                 </div>
 
-                <div className="mt-[1em] pt-[1em] border-t-[.3em] border-surface-subtle">
+                <div className="mt-[1em] pt-[1em] border-t-[.3em] border-base-300">
                     <h2>Endre nøkkelen</h2>
                     {capabilities.canUpdateApiKey.authorized &&
                     <UpdateApiKeyForm id={apiKey.id}>

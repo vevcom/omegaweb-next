@@ -63,7 +63,7 @@ const { page, generateMetadata } = serverPage({
         return (
             <PageWrapper>
                 <div className="flex flex-col gap-6">
-                    <div className="flex gap-6 text-text-muted">
+                    <div className="flex gap-6 text-base-content/80">
                         <span>Kortnavn: {manualGroup.shortName}</span>
                         <span>Orden: {expanded.order}</span>
                         <span>Aktive medlemmer: {expanded.members}</span>

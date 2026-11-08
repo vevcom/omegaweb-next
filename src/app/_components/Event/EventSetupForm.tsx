@@ -155,7 +155,7 @@ export default function EventSetupForm({
             </FormSection>
             <FormSection legend="Varsling">
                 <Checkbox name="notifyAboutChange" label="Varsle de påmeldte om endringen" />
-                <p className="m-0 text-s text-text-muted">
+                <p className="m-0 text-s text-base-content/80">
                     Endrer du tid eller sted, bør de som er meldt på få beskjed. De får varselet i kanalen for viktig
                     informasjon om arrangementet.
                 </p>
@@ -216,12 +216,12 @@ export default function EventSetupForm({
         <FormTab tab="access">
             {adminVisibilityKnown ? <div className="flex flex-col gap-3 pb-4">
                 <p className="m-0 font-medium">Hvem kan administrere arrangementet</p>
-                <p className="m-0 text-s text-text-muted">
+                <p className="m-0 text-s text-base-content/80">
                     Uten krav kan bare de med rettigheten EVENT_ADMIN administrere arrangementet.
                 </p>
                 <input type="hidden" name="adminRequirements" value={JSON.stringify(adminRequirements)} />
                 <VisibilityMatrixEditor requirements={adminRequirements} onChange={setAdminRequirements} />
-            </div> : <p className="m-0 text-text-muted">Du kan ikke se hvem som administrerer arrangementet.</p>}
+            </div> : <p className="m-0 text-base-content/80">Du kan ikke se hvem som administrerer arrangementet.</p>}
         </FormTab>
     </Form>
 }

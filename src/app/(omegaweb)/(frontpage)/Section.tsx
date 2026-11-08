@@ -72,8 +72,8 @@ async function Section({
             mobile:grid-cols-[auto_auto]
             max-mobile:grid-cols-[auto] max-mobile:grid-rows-[auto_auto]
             ${position === 'right'
-            ? 'bg-[color-mix(in_srgb,var(--surface-base),black_15%)]'
-            : 'bg-surface-base text-text'}
+            ? 'bg-base-100 text-base-content'
+            : 'bg-base-300 text-base-content'}
         `}>
             {position === 'left' && imgContainer}
             <div className="
@@ -84,7 +84,7 @@ async function Section({
             ">
                 <SpecialCmsParagraph
                     capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
-                    className={position === 'right' ? '[&_:is(h1,h2,h3,h4,h5,h6,p,i)]:text-text' : ''}
+                    className={position === 'right' ? '[&_:is(h1,h2,h3,h4,h5,h6,p,i)]:text-base-content' : ''}
                     special={specialCmsParagraph}
                     readSpecialCmsParagraphAction={readSpecialCmsParagraphFrontpageSectionAction}
                     updateCmsParagraphAction={updateSpecialCmsParagraphFrontpageSectionAction}

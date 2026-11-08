@@ -84,7 +84,7 @@ function MemberRegistrationForm({ eventId, placement }: { eventId: number, place
         disabled={!user}
         refreshOnSuccess
         successCallback={() => setUser(null)}
-        className="sticky -bottom-1 z-2 pt-3 pb-1 bg-surface-base"
+        className="sticky -bottom-1 z-2 pt-3 pb-1 bg-base-100"
         buttonClassName="w-full!"
     />
 }

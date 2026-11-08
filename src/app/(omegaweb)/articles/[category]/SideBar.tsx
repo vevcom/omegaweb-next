@@ -51,12 +51,12 @@ export default function SideBar({ category, children }: PropTypes) {
             flex relative h-full
             mobile:gap-2
         ">
-            <aside className="mobile:bg-surface-base mobile:rounded-round mobile:w-[300px] mobile:left-0 mobile:z-2">
+            <aside className="mobile:bg-base-100 mobile:rounded-round mobile:w-[300px] mobile:left-0 mobile:z-2">
                 <div ref={measure} className="mobile:h-[calc(100%-2em)]">
                     <div ref={ref} className="
                         max-mobile:hidden
-                        opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out] overflow-auto text-text
-                        m-[1em_0em_1em_1em] p-[calc(3*var(--rounding))]
+                        opacity-0 h-full [transition:opacity_300ms,transform_0.05s_ease-out] overflow-auto
+                        text-base-content m-[1em_0em_1em_1em] p-[calc(3*var(--rounding))]
                         [&_h2]:text-l
                     ">
                         <h2>{category.name.toUpperCase()}</h2>
@@ -66,7 +66,7 @@ export default function SideBar({ category, children }: PropTypes) {
             </aside>
 
             <main className="
-                mobile:bg-surface-base mobile:rounded-round mobile:z-1 mobile:overflow-hidden
+                mobile:bg-base-100 mobile:rounded-round mobile:z-1 mobile:overflow-hidden
                 mobile:w-[calc(100%-300px-var(--gap))]
                 max-mobile:w-full
             ">
@@ -91,9 +91,9 @@ export default function SideBar({ category, children }: PropTypes) {
                 >
                     <FontAwesomeIcon
                         icon={faChevronUp}
-                        className="size-[40px]! m-[5px] text-text transition-transform duration-[0.35s]"
+                        className="size-[40px]! m-[5px] text-base-content transition-transform duration-[0.35s]"
                     />
-                    <h1 className="my-0 mx-2 text-text">{category.name.toUpperCase()}</h1>
+                    <h1 className="my-0 mx-2 text-base-content">{category.name.toUpperCase()}</h1>
                 </button>
                 <MainListContent category={category} />
             </span>
@@ -122,7 +122,7 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
         <ul className="
             list-none p-0
             [&_li]:my-[1em] [&_li]:flex [&_li]:justify-between
-            [&_li_a]:text-text [&_li_a]:no-underline
+            [&_li_a]:text-base-content [&_li_a]:no-underline
             [&_li_a:hover]:underline
         ">
             {
@@ -135,9 +135,9 @@ function MainListContent({ category }: { category: ExpandedArticleCategoryWithVi
                             canRemoveArticle && (
                                 <button
                                     className="
-                                        w-[20px] h-[20px] bg-accent-red border-none rounded-full cursor-pointer
+                                        w-[20px] h-[20px] bg-error border-none rounded-full cursor-pointer
                                         transition-[background] duration-500 flex justify-center items-center
-                                        hover:bg-[color-mix(in_srgb,var(--accent-red),black_10%)]
+                                        hover:bg-[color-mix(in_srgb,var(--color-error),black_10%)]
                                     "
                                     onClick={() => handleDestroy(article.id)}
                                 >

@@ -10,9 +10,9 @@ const { page, generateMetadata } = serverPage({
         <div className="w-full h-full flex flex-col items-center">
             <FontAwesomeIcon
                 icon={faScrewdriverWrench}
-                className="pt-[calc(50vh-50px-5em)] w-[10em]! h-[10em]! text-text m-[1em]"
+                className="pt-[calc(50vh-50px-5em)] w-[10em]! h-[10em]! text-base-content m-[1em]"
             />
-            <p className="text-text-muted text-[1.5em] text-center">Velg hva du vil administrere i menyen</p>
+            <p className="text-base-content/80 text-[1.5em] text-center">Velg hva du vil administrere i menyen</p>
         </div>
     ),
 })

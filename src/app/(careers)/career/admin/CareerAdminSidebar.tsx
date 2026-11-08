@@ -24,7 +24,7 @@ export default function CareerAdminSidebar({ links }: PropTypes) {
                         flex items-center gap-2 py-2 no-underline transition-colors duration-300
                         hover:text-careers-accent
                         [&_svg]:size-[0.9em] [&_svg]:text-inherit
-                        ${isOnPage(link.href) ? 'text-careers-accent' : 'text-text'}
+                        ${isOnPage(link.href) ? 'text-careers-accent' : 'text-base-content'}
                     `}
                 >
                     <FontAwesomeIcon icon={link.icon} />

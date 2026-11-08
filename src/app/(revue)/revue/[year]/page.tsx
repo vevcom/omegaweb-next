@@ -72,8 +72,8 @@ const { page, generateMetadata } = serverPage({
                                 key={group.id}
                                 href={revueLinks.revueGroup(revue, group)}
                                 className="
-                                    block p-4 rounded-round bg-surface-raised text-inherit transition-colors
-                                    hover:bg-surface-hover hover:no-underline
+                                    block p-4 rounded-round bg-base-200 text-inherit transition-colors
+                                    hover:bg-base-300 hover:no-underline
                                 "
                             >
                                 {group.name}

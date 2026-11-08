@@ -96,12 +96,9 @@ export default function ShopUI({ shop, userId, capabilities }: {
         ">
             {products.length === 0 ? (
                 <div className="
-                    grid place-items-center gap-2 rounded-round bg-surface-raised p-12 text-center text-text-muted
+                    grid place-items-center gap-2 rounded-round bg-base-200 p-12 text-center text-base-content/80
                 ">
-                    <FontAwesomeIcon icon={faBasketShopping} className="
-                        size-10! text-inherit
-                        [&_path]:text-inherit
-                    " />
+                    <FontAwesomeIcon icon={faBasketShopping} className="size-10! text-inherit" />
                     <p className="m-0">Butikken har ingen varer ennå.</p>
                 </div>
             ) : (
@@ -121,18 +118,15 @@ export default function ShopUI({ shop, userId, capabilities }: {
             )}
 
             <aside className="
-                sticky z-2 flex flex-col gap-4 rounded-round bg-surface-raised p-5
+                sticky z-2 flex flex-col gap-4 rounded-round bg-base-200 p-5
                 mobile:top-0
                 max-mobile:bottom-0 max-mobile:max-h-[60dvh] max-mobile:overflow-y-auto
             ">
                 {receipt ? (
                     <>
-                        <div className="flex items-center gap-3 text-accent-green">
-                            <FontAwesomeIcon icon={faCircleCheck} className="
-                                size-7! text-inherit
-                                [&_path]:text-inherit
-                            " />
-                            <h2 className="m-0 text-l text-text">Takk for kjøpet!</h2>
+                        <div className="flex items-center gap-3 text-success">
+                            <FontAwesomeIcon icon={faCircleCheck} className="size-7! text-inherit" />
+                            <h2 className="m-0 text-l text-base-content">Takk for kjøpet!</h2>
                         </div>
                         <ul className="m-0 flex list-none flex-col gap-2 p-0">
                             {receipt.lines.map(line => (
@@ -142,7 +136,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                                 </li>
                             ))}
                         </ul>
-                        <p className="m-0 flex justify-between border-t border-surface-hover pt-3 text-s text-text-muted">
+                        <p className="m-0 flex justify-between border-t border-base-300 pt-3 text-s text-base-content/80">
                             <span>Gjenstående saldo</span>
                             <span className="tabular-nums">{displayAmount(receipt.remainingBalance, false)}</span>
                         </p>
@@ -152,21 +146,18 @@ export default function ShopUI({ shop, userId, capabilities }: {
                     <>
                         <div className="flex items-center justify-between">
                             <h2 className="m-0 flex items-center gap-2 text-l">
-                                <FontAwesomeIcon icon={faBasketShopping} className="
-                                    size-5! text-inherit
-                                    [&_path]:text-inherit
-                                " />
+                                <FontAwesomeIcon icon={faBasketShopping} className="size-5! text-inherit" />
                                 Handlekurv
                             </h2>
                             {itemCount > 0 && (
-                                <span className="text-s text-text-muted">
+                                <span className="text-s text-base-content/80">
                                     {itemCount} {itemCount === 1 ? 'vare' : 'varer'}
                                 </span>
                             )}
                         </div>
                         {cart.length === 0 ? (
                             <p className="
-                                m-0 text-s text-text-muted
+                                m-0 text-s text-base-content/80
                                 max-mobile:hidden
                             ">Legg til varer for å handle.</p>
                         ) : (
@@ -184,7 +175,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                                 ))}
                             </ul>
                         )}
-                        <div className="flex items-baseline justify-between border-t border-surface-hover pt-3">
+                        <div className="flex items-baseline justify-between border-t border-base-300 pt-3">
                             <span className="font-medium">Totalt</span>
                             <span className="text-xl font-bold tabular-nums">{displayAmount(total)}</span>
                         </div>
@@ -197,11 +188,11 @@ export default function ShopUI({ shop, userId, capabilities }: {
                                 {purchasing ? 'Kjøper...' : 'Kjøp'}
                             </Button>
                         ) : (
-                            <p className="m-0 text-s text-text-muted">
+                            <p className="m-0 text-s text-base-content/80">
                                 {userId === null ? 'Logg inn for å handle.' : 'Du har ikke tilgang til å handle her.'}
                             </p>
                         )}
-                        {purchaseError && <p className="m-0 text-s text-accent-red">{purchaseError}</p>}
+                        {purchaseError && <p className="m-0 text-s text-error">{purchaseError}</p>}
                     </>
                 )}
             </aside>
