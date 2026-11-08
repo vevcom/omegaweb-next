@@ -73,8 +73,8 @@
         }
     }
 
-    // Cards and icon links take the surrounding colour rather than turning link blue.
-    a:has(> *) {
+    // Icon links take the surrounding colour rather than turning link blue.
+    a:has(> svg, > img) {
         color: inherit;
     }
 
