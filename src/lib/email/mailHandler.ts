@@ -7,6 +7,8 @@ import type Mail from 'nodemailer/lib/mailer'
 
 const isProd = process.env.NODE_ENV === 'production'
 const isTest = process.env.NODE_ENV === 'test'
+// A configured server is used in every environment. Without one, development sends through Ethereal.
+const hasConfiguredServer = Boolean(process.env.EMAIL_SERVER)
 
 type Transporter = MailTransporter<SMTPPoolSentMessageInfo>
 
@@ -44,10 +46,10 @@ class MailHandler {
     }
 
     async setupTransporter() {
-        if (isProd) {
+        if (isProd || hasConfiguredServer) {
             this.transporter = nodemailer.createTransport(TRANSPORT_OPTIONS)
             this.resolveSetup()
-            logger.debug('Email setup for production.')
+            logger.debug(`Email setup against ${process.env.EMAIL_SERVER}.`)
             return
         }
 
@@ -105,10 +107,19 @@ class MailHandler {
         responses.forEach(response => {
             logger.debug('Mail sent.', { response })
 
-            if (!isProd) {
+            if (!isProd && !hasConfiguredServer) {
                 logger.info(`Mail preview: ${nodemailer.getTestMessageUrl(response)}`)
             }
         })
+    }
+
+    /**
+     * Outside production every mail goes out from the account it is sent with, since a mail server
+     * only accepts its own addresses as sender: the configured user, or Ethereal's test account.
+     */
+    private async senderOutsideProduction(): Promise<string | undefined> {
+        if (hasConfiguredServer) return process.env.EMAIL_USER
+        return (await this.getTestAccount()).user
     }
 
     async sendSingleMail(data: Mail.Options) {
@@ -116,7 +127,7 @@ class MailHandler {
     }
 
     async sendBulkMail(data: Mail.Options[]) {
-        const testSender = isProd ? null : (await this.getTestAccount()).user
+        const testSender = isProd ? null : await this.senderOutsideProduction()
 
         const queue = data
             .map(mailData => ({
