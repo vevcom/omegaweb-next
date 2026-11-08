@@ -80,7 +80,8 @@ beforeAll(async () => {
         bypassAuth: true,
     })
     eventId = event.id
-    await eventOperations.setPublished({ params: { id: eventId }, data: { published: true }, bypassAuth: true })
+    // Directly, since an event only EVENT_ADMIN administrates cannot be published the usual way.
+    await prisma.event.update({ where: { id: eventId }, data: { published: true } })
     await eventRegistrationOperations.createAsAdmin({
         params: { userId: target.id, eventId },
         bypassAuth: true,
