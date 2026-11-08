@@ -1,0 +1,9 @@
+# The mail server for development, from the mail-infrastructure submodule. Added on top of the dev
+# file when wanted, so the dev stack never depends on the submodule being checked out:
+#
+#     npm run docker:dev -- --mail
+#
+# See README.md for how the app connects to it.
+include:
+    - path: ${PROJECT_ROOT:-.}/mail-infrastructure/dev/compose.yaml
+      project_directory: ${PROJECT_ROOT:-.}/mail-infrastructure/dev

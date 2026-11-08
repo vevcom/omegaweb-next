@@ -7,7 +7,7 @@ For getting started please refer to our [Getting Started Guide](https://github.c
 
 ## Development
 
-Copy `sites.example.json` to `sites.json`, which maps the development hosts to the sites and is mounted into the stack; the app does not start without it. Have the docker deamon running, then run:
+Copy `sites.example.json` to `sites.json`, which maps the development hosts to the sites and is mounted into the stack; the app does not start without it. Omega's site answers at http://omegaweb.localhost:3000, a name every browser resolves to your machine, and http://localhost:3000 sends you there. Have the docker deamon running, then run:
 
 ```bash
 npm run docker:dev
@@ -20,6 +20,16 @@ docker compose --env-file .env --env-file deploy/base/postgres.env -f docker-com
 ```
 
 The second env file names the Postgres version, shared with the production manifests in `deploy/`. The npm scripts pass it for you.
+
+#### Mail
+
+By default the app sends mail through Ethereal and logs a preview url for every mail instead. To run the real mail server, the one production runs, start the stack with it:
+
+```bash
+npm run docker:dev -- --mail
+```
+
+It comes from the [mail-infrastructure](https://github.com/vevcom/mail-infrastructure) repo, which is the `mail-infrastructure/` submodule that `--mail` checks out, so the mail server in development is the one production runs. Without `--mail` nothing depends on the submodule. Then set `EMAIL_SERVER=stalwart` and `EMAIL_ADMIN_URL=http://stalwart:8080` in `.env`; the other mail values in `.env.default` already match. The app sends through the server as `dev@omegaweb.localhost`, an account it creates itself, and keeps a mailing list per alias on the server, so a mail to an alias reaches the members behind it: in [Mailpit](http://localhost:8025) for an external address, in a mailbox for a local one, which the [webmail](http://localhost:8081) shows. The addresses and credentials are in `mail-infrastructure/dev/README.md`. The version of the mail server is the submodule's commit, which is bumped like any dependency.
 
 #### DevContainer
 
