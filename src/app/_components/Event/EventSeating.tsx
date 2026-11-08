@@ -31,15 +31,15 @@ import type { SeatingBoard } from '@/services/events/seating/types'
 const DEFAULT_SEATS_PER_TABLE = 8
 
 const sectionClassName = `
-    flex flex-col gap-2 p-3 rounded-inner bg-surface-raised
+    flex flex-col gap-2 p-3 rounded-inner bg-base-200
     [&>h3]:m-0 [&>h3]:text-m
     [&>p]:m-0 [&>p]:text-s
 `
 
 function Stat({ label, value }: { label: string, value: ReactNode }) {
-    return <div className="flex flex-col p-3 rounded-inner bg-surface-raised">
+    return <div className="flex flex-col p-3 rounded-inner bg-base-200">
         <strong className="text-l">{value}</strong>
-        <span className="text-s text-text-muted">{label}</span>
+        <span className="text-s text-base-content/80">{label}</span>
     </div>
 }
 
@@ -152,8 +152,8 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                 }}
                 className={`
                     flex items-center gap-1 pr-1 rounded-inner cursor-grab
-                    ${isSelected ? 'bg-accent-blue text-white' : 'hover:bg-surface-hover'}
-                    ${isWished ? 'outline-2 outline-accent-yellow' : ''}
+                    ${isSelected ? 'bg-primary text-primary-content' : 'hover:bg-base-300'}
+                    ${isWished ? 'outline-2 outline-warning' : ''}
                 `}
             >
                 <button
@@ -173,8 +173,8 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                         title="Antall ønsker som er oppfylt"
                         className={`
                             text-s
-                            ${fulfilled === 0 && wishCount > 0 ? 'text-accent-red font-bold' : ''}
-                            ${isSelected ? '' : 'text-text-muted'}
+                            ${fulfilled === 0 && wishCount > 0 ? 'text-error font-bold' : ''}
+                            ${isSelected ? '' : 'text-base-content/80'}
                         `}
                     >
                         {fulfilled}/{wishCount}
@@ -204,14 +204,14 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
         disabled={tableIndex !== null && tableIsFull(tableIndex)}
         onClick={() => moveTo(selected, tableIndex)}
         className="
-            border-none bg-transparent text-s text-accent-blue underline cursor-pointer
-            disabled:text-text-muted disabled:no-underline disabled:cursor-default
+            border-none bg-transparent text-s text-primary underline cursor-pointer
+            disabled:text-base-content/80 disabled:no-underline disabled:cursor-default
         "
     >
         Flytt hit
     </button>
 
-    if (guests.length === 0) return <p className="m-0 text-text-muted">Ingen har fått plass ennå.</p>
+    if (guests.length === 0) return <p className="m-0 text-base-content/80">Ingen har fått plass ennå.</p>
 
     return <MotionConfig reducedMotion="user">
         <div className="flex flex-col gap-3">
@@ -246,7 +246,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                             ? 'Gjestene ser bordet sitt. Det du lagrer vises for dem med en gang.'
                             : 'Gjestene ser ikke bordene før du publiserer, og får beskjed når du gjør det.'}
                     </p>
-                    {hasUnsavedPlan && <p className="text-text-muted">Lagre plasseringen før du publiserer.</p>}
+                    {hasUnsavedPlan && <p className="text-base-content/80">Lagre plasseringen før du publiserer.</p>}
                     <Form
                         action={() => configureAction(setEventSeatingPublishedAction, { params: { id: eventId } })({
                             data: { published: !board.publishedAt },
@@ -279,9 +279,9 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                         <Button type="button" onClick={draft} className="m-0!">
                             {plan.tables.flat().length === 0 ? 'Lag utkast' : 'Lag nytt utkast'}
                         </Button>
-                        <span className="pb-2 text-s text-text-muted">{guests.length} gjester, {places} plasser</span>
+                        <span className="pb-2 text-s text-base-content/80">{guests.length} gjester, {places} plasser</span>
                     </div>
-                    {!parseSeats(seatsText) && <p className="m-0 text-s text-accent-red">
+                    {!parseSeats(seatsText) && <p className="m-0 text-s text-error">
                         Skriv bordene som 5x8, eller hvert bord for seg som 10, 10, 8, 8.
                     </p>}
 
@@ -303,7 +303,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                             : 'Velg noen for å se ønskene, og dra dem til et annet bord eller oppå en de skal bytte med.'}
                     </p>
 
-                    <section {...dropZone(null)} className="p-3 rounded-inner bg-surface-raised">
+                    <section {...dropZone(null)} className="p-3 rounded-inner bg-base-200">
                         <div className="flex justify-between gap-2 mb-1">
                             <h3 className="m-0 text-m">Uten bord ({plan.unseated.length})</h3>
                             {moveHereButton(null)}
@@ -323,11 +323,11 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                         {plan.tables.map((members, index) => <section
                             key={index}
                             {...dropZone(index)}
-                            className="min-h-24 p-3 rounded-inner bg-surface-raised"
+                            className="min-h-24 p-3 rounded-inner bg-base-200"
                         >
                             <div className="flex justify-between gap-2 mb-1">
                                 <h3 className="m-0 text-m">Bord {index + 1}</h3>
-                                {moveHereButton(index) || <span className="text-s text-text-muted">
+                                {moveHereButton(index) || <span className="text-s text-base-content/80">
                                     {members.length}/{seats[index]}
                                 </span>}
                             </div>
