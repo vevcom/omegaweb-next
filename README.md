@@ -16,8 +16,10 @@ npm run docker:dev
 or run
 
 ```bash
-docker compose -f docker-compose.dev.yml up --build
+docker compose --env-file .env --env-file deploy/base/postgres.env -f docker-compose.dev.yml up --build
 ```
+
+The second env file names the Postgres version, shared with the production manifests in `deploy/`. The npm scripts pass it for you.
 
 #### DevContainer
 
@@ -29,6 +31,8 @@ docker exec -it -w /workspaces/omegaweb-next pn-dev /bin/bash
 ```
 
 #### Working with the DB
+
+The database runs the Postgres version in `deploy/base/postgres.env`. A development database made on an older major version does not open on a newer one, so after a bump, reset it once with `docker compose --env-file .env --env-file deploy/base/postgres.env -f docker-compose.dev.yml down -v` and start as usual.
 
 To remigrate the db, just rerun the prisma container
 To regenerate the client-libary from the schema file run:

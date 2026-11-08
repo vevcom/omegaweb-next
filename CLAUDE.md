@@ -15,7 +15,7 @@ npm run docker:dev
 ```
 or
 ```bash
-docker compose -f docker-compose.dev.yml up --build
+docker compose --env-file .env --env-file deploy/base/postgres.env -f docker-compose.dev.yml up --build
 ```
 
 ### Testing

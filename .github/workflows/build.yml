@@ -36,9 +36,9 @@ jobs:
     - name: site domains
       run: cp sites.example.json sites.json
     - name: build
-      run: docker compose --env-file .env.default -f docker-compose.prod.yml --profile localdb build
+      run: docker compose --env-file .env.default --env-file deploy/base/postgres.env -f docker-compose.prod.yml --profile localdb build
     # localdb stands in for the Dokploy Postgres resource, which lives outside the
     # stack in production. --wait makes this step assert the stack actually comes up:
     # migrations have to exit 0 before the app starts, and the app has to go healthy.
     - name: up
-      run: docker compose --env-file .env.default -f docker-compose.prod.yml --profile localdb up -d --wait --wait-timeout 300
+      run: docker compose --env-file .env.default --env-file deploy/base/postgres.env -f docker-compose.prod.yml --profile localdb up -d --wait --wait-timeout 300

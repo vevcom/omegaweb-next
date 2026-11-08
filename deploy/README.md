@@ -8,6 +8,7 @@ stay for development and tests.
 ```
 deploy/
 ├── base/              # The app, the worker, the migrate job and the database
+│   └── postgres.env   # The Postgres version, read here and by the compose files
 ├── overlays/
 │   ├── local/         # k3d on a workstation: locally built images, no TLS, store on disk or S3
 │   └── prod/          # omega.ntnu.no and its sites: release images, TLS, backups, Phase secrets, S3 store

@@ -58,7 +58,8 @@ services:
                 required: false
 
     db:
-        image: postgres:16.0-alpine
+        # The version lives in deploy/base/postgres.env, which every compose command is given.
+        image: postgres:${POSTGRES_VERSION:?pass --env-file deploy/base/postgres.env}-alpine
         environment:
             POSTGRES_DB: ${DB_NAME}
             POSTGRES_USER: ${DB_USERNAME}
