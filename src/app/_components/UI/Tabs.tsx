@@ -81,7 +81,7 @@ export default function Tabs({ tabs, label, children }: {
                     className={`
                         flex items-center justify-between gap-2 px-3 py-2 shrink-0 border-none rounded-inner text-left
                         whitespace-nowrap cursor-pointer
-                        ${isActive ? 'bg-primary text-white font-bold' : `
+                        ${isActive ? 'bg-primary text-primary-content font-bold' : `
                             bg-transparent text-base-content
                             hover:bg-base-300
                         `}
