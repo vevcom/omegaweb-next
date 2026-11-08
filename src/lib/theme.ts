@@ -87,7 +87,7 @@ export const themes: Record<Theme, ThemeColors> = {
         '--color-error-content': 'hsl(0, 0%, 100%)',
     },
     [Theme.LUXURY]: {
-        'color-scheme': "dark",
+        'color-scheme': 'dark',
         '--color-base-100': 'oklch(14.076% 0.004 285.822)',
         '--color-base-200': 'oklch(20.219% 0.004 308.229)',
         '--color-base-300': 'oklch(23.219% 0.004 308.229)',
@@ -110,7 +110,7 @@ export const themes: Record<Theme, ThemeColors> = {
         '--color-error-content': 'oklch(14.35% 0.035 22.568)',
     },
     [Theme.SOLARIZED]: {
-        'color-scheme': "light",
+        'color-scheme': 'light',
         '--color-base-100': 'hsl(44, 87%, 94%)',
         '--color-base-200': 'hsl(44, 87%, 90%)',
         '--color-base-300': 'hsl(44, 87%, 86%)',
