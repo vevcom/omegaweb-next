@@ -7,9 +7,9 @@ import { useState } from 'react'
 import type { AppHref } from '@/lib/sites/href'
 
 const sectionClassName = `
-    flex flex-col gap-3 p-4 bg-surface-subtle rounded-inner
+    flex flex-col gap-3 p-4 bg-base-300 rounded-inner
     [&>h3]:m-0 [&>h3]:text-l
-    [&>p]:m-0 [&>p]:text-s [&>p]:text-text-muted
+    [&>p]:m-0 [&>p]:text-s [&>p]:text-base-content/80
 `
 
 /** What the organisers send to those the event concerns: a reminder to pay, and whatever else they have to say. */

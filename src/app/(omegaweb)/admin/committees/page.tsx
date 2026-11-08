@@ -51,7 +51,9 @@ const { page, generateMetadata } = serverPage({
                 {capabilities.canReorder.authorized && (
                     <section className="mt-8">
                         <h2>Rekkefølge</h2>
-                        <p className="text-text-muted">Rekkefølgen komitéene vises i på komitésiden. Dra for å flytte.</p>
+                        <p className="text-base-content/80">
+                            Rekkefølgen komitéene vises i på komitésiden. Dra for å flytte.
+                        </p>
                         <CommitteeOrder committees={data.committees
                             .filter(committee => !committee.group.pensioned)
                             .map(committee => ({ id: committee.id, name: committee.name }))}

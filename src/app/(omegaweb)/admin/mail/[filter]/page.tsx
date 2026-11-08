@@ -67,26 +67,26 @@ const { page, generateMetadata } = serverPage({
     metadata: ({ filter }) => ({ title: mailParts[filter].title }),
     render: ({ data: { filter, items }, capabilities }) => <PageWrapper>
         <div className="p-4 flex flex-col gap-4">
-            <p className="text-text-muted max-w-[60ch]">{mailParts[filter].intro}</p>
+            <p className="text-base-content/80 max-w-[60ch]">{mailParts[filter].intro}</p>
             <div className="flex flex-row flex-wrap gap-6 items-start">
                 <ul className="flex-[1_1_300px] list-none p-0 m-0 flex flex-col gap-2 max-w-[40rem]">
                     {items.map(item => <li key={item.id}>
                         <SiteLink href={appHref(`/admin/mail/${filter}/${item.id}`)}
                             className="
-                                flex flex-col gap-1 p-4 rounded-round bg-surface-raised text-text no-underline
+                                flex flex-col gap-1 p-4 rounded-round bg-base-200 text-base-content no-underline
                                 transition-[background-color] duration-300
-                                hover:bg-surface-hover
-                                [&_span]:text-text-muted [&_span]:text-[0.9rem]
+                                hover:bg-base-300
+                                [&_span]:text-base-content/80 [&_span]:text-[0.9rem]
                             "
                         >
                             <strong>{item.label}</strong>
                             {item.description && <span>{item.description}</span>}
                         </SiteLink>
                     </li>)}
-                    {items.length === 0 && <li className="text-text-muted italic">Ingen enda.</li>}
+                    {items.length === 0 && <li className="text-base-content/80 italic">Ingen enda.</li>}
                 </ul>
                 {capabilities.canCreate.authorized && <aside
-                    className="flex-[0_1_20rem] bg-surface-raised rounded-[calc(3*var(--rounding))] p-(--card-padding)"
+                    className="flex-[0_1_20rem] bg-base-200 rounded-[calc(3*var(--rounding))] p-(--card-padding)"
                 >
                     {filter === 'alias' && <CreateMailAlias />}
                     {filter === 'mailingList' && <CreateMailingList />}

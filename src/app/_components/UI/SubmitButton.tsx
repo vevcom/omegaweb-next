@@ -27,9 +27,6 @@ const submitButtonClassName = 'w-40 m-0 transition-colors duration-300 ease-in-o
 // style the button that asks the question.
 const confirmationButtonClassName = 'w-24 m-0 transition-colors duration-300 ease-in-out'
 
-// The secondary button sits on a light surface and keeps the regular text colour.
-const textColorClassName = (color: Colors) => (color === 'secondary' ? '' : 'text-text-inv')
-
 export default function SubmitButton({
     children,
     generalErrors,
@@ -97,7 +94,6 @@ export default function SubmitButton({
             <Button
                 className={isConfirmation ? confirmationButtonClassName : `
                     ${submitButtonClassName}
-                    ${textColorClassName(idleColor)}
                     ${className ?? ''}
                 `}
                 aria-disabled={pending || success}
@@ -134,7 +130,6 @@ export default function SubmitButton({
         <Button
             className={`
                 ${submitButtonClassName}
-                ${textColorClassName(color)}
                 ${className ?? ''}
             `}
             color={color}
@@ -217,7 +212,7 @@ export default function SubmitButton({
             {renderButtons()}
 
             <p className={`
-                flex flex-col min-h-[1.15em] mb-[3px] text-accent-red
+                flex flex-col min-h-[1.15em] mb-[3px] text-error
                 ${pending ? 'invisible' : ''}
             `}>
                 {

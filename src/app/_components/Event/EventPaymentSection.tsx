@@ -44,7 +44,7 @@ export default function EventPaymentSection({
     const paymentOpen = paymentStart <= now && now <= deadline
     const status = paymentStatus(registration)
 
-    return <section className="flex flex-col gap-3 pt-3 border-t border-surface-hover">
+    return <section className="flex flex-col gap-3 pt-3 border-t border-base-300">
         <h3 className="m-0 text-l font-bold">Betaling</h3>
         <EventInfoRow label="Pris">{displayAmount(price, false)}</EventInfoRow>
         <EventInfoRow label="Betalingsstart"><DateDisplay date={paymentStart} includeSeconds={false} /></EventInfoRow>
@@ -52,7 +52,7 @@ export default function EventPaymentSection({
 
         {status === 'PAID' && (
             <p className="
-                m-0 flex items-center gap-2 text-l font-bold text-accent-green
+                m-0 flex items-center gap-2 text-l font-bold text-success
                 [&>svg]:size-5
             ">
                 <FontAwesomeIcon icon={faCircleCheck} />
@@ -61,7 +61,7 @@ export default function EventPaymentSection({
         )}
         {status === 'UNPAID' && <>
             <p className="
-                m-0 flex items-center gap-2 text-l font-bold text-accent-orange
+                m-0 flex items-center gap-2 text-l font-bold text-warning
                 [&>svg]:size-5
             ">
                 <FontAwesomeIcon icon={faCircleExclamation} />
@@ -79,20 +79,20 @@ export default function EventPaymentSection({
                 />
             )}
             {variant.requeueUnpaidRegistrations && deadline >= now && (
-                <p className="m-0 text-text-muted">Betaler du ikke innen fristen, flyttes du bakerst på ventelisten.</p>
+                <p className="m-0 text-base-content/80">Betaler du ikke innen fristen, flyttes du bakerst på ventelisten.</p>
             )}
             {paymentStart > now && (
-                <p className="m-0 text-text-muted">Betaling åpner om <CountDown referenceDate={paymentStart} /></p>
+                <p className="m-0 text-base-content/80">Betaling åpner om <CountDown referenceDate={paymentStart} /></p>
             )}
             {deadline < now && (
-                <p className="m-0 text-text-muted">Betalingsperioden er over. Ta kontakt med arrangørene.</p>
+                <p className="m-0 text-base-content/80">Betalingsperioden er over. Ta kontakt med arrangørene.</p>
             )}
         </>}
         {status === 'WAITING_LIST' && (
-            <p className="m-0 text-text-muted">Du står på ventelisten og betaler når du får plass.</p>
+            <p className="m-0 text-base-content/80">Du står på ventelisten og betaler når du får plass.</p>
         )}
         {status === 'NOT_REGISTERED' && (
-            <p className="m-0 text-text-muted">Betales etter påmelding.</p>
+            <p className="m-0 text-base-content/80">Betales etter påmelding.</p>
         )}
     </section>
 }

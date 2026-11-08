@@ -35,7 +35,7 @@ export default function PensionGroup({
 }: PropTypes) {
     return (
         <div className="flex flex-col gap-2">
-            <p className="text-text-muted max-w-[70ch]">
+            <p className="text-base-content/80 max-w-[70ch]">
                 {pensioned
                     ? `${groupName} er pensjonert. Gruppen har ingen aktive medlemmer, kan ikke endres, `
                         + 'og holder ikke igjen inkrementering av Omega.'

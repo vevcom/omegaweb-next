@@ -19,12 +19,12 @@ export default function Requirements({ requirements }: PropTypes) {
             <div
                 className="
                     flex justify-between items-center gap-2
-                    [&_p]:m-0 [&_p]:text-text-muted
+                    [&_p]:m-0 [&_p]:text-base-content/80
                     [&>span]:font-bold [&>span]:whitespace-nowrap
                 "
             >
                 <p>For å kunne opprette neste orden må følgende ha skjedd:</p>
-                <span className={allFulfilled ? 'text-accent-green' : 'text-accent-red'}>
+                <span className={allFulfilled ? 'text-success' : 'text-error'}>
                     {fulfilledCount} / {requirements.length}
                 </span>
             </div>
@@ -34,15 +34,15 @@ export default function Requirements({ requirements }: PropTypes) {
                         key={requirement.key}
                         className={`
                             flex items-center gap-4 py-2 px-4 rounded-round layer
-                            [&_span]:text-text
+                            [&_span]:text-base-content
                             [&_svg]:shrink-0 [&_svg]:w-[1.2em]! [&_svg]:h-[1.2em]!
-                            ${requirement.fulfilled ? 'text-accent-green' : 'text-accent-red'}
+                            ${requirement.fulfilled ? 'text-success' : 'text-error'}
                         `}
                     >
                         <FontAwesomeIcon icon={requirement.fulfilled ? faCheck : faXmark} />
                         <span>{requirement.description}</span>
                         {requirement.detail && <i
-                            className="ml-auto text-text-muted text-s whitespace-nowrap"
+                            className="ml-auto text-base-content/80 text-s whitespace-nowrap"
                         >{requirement.detail}</i>}
                     </li>
                 ))}

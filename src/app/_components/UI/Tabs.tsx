@@ -5,9 +5,9 @@ import type { ReactNode } from 'react'
 export type TabDot = { level: 'ok' | 'warning' | 'missing', label: string }
 
 const dotClassNames: Record<TabDot['level'], string> = {
-    ok: 'bg-accent-green',
-    warning: 'bg-accent-yellow',
-    missing: 'bg-accent-red',
+    ok: 'bg-success',
+    warning: 'bg-warning',
+    missing: 'bg-error',
 }
 
 type TabsContextType = {
@@ -62,7 +62,7 @@ export default function Tabs({ tabs, label, children }: {
         max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:grid-rows-[auto_minmax(0,1fr)]
     ">
         <div role="tablist" aria-label={label} aria-orientation="vertical" className="
-            flex gap-1 min-w-0 p-2 rounded-inner bg-surface-raised
+            flex gap-1 min-w-0 p-2 rounded-inner bg-base-200
             mobile:flex-col
             max-mobile:overflow-x-auto
         ">
@@ -81,9 +81,9 @@ export default function Tabs({ tabs, label, children }: {
                     className={`
                         flex items-center justify-between gap-2 px-3 py-2 shrink-0 border-none rounded-inner text-left
                         whitespace-nowrap cursor-pointer
-                        ${isActive ? 'bg-accent-blue text-white font-bold' : `
-                            bg-transparent text-text
-                            hover:bg-surface-hover
+                        ${isActive ? 'bg-primary text-white font-bold' : `
+                            bg-transparent text-base-content
+                            hover:bg-base-300
                         `}
                     `}
                 >

@@ -4,50 +4,46 @@ import type { InputHTMLAttributes } from 'react'
 export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name'> & {
     name: string,
     label: string,
-    color?: 'primary' | 'secondary' | 'red' | 'black' | 'white',
-    background?: 'base' | 'raised',
+    color?: 'primary' | 'secondary' | 'error' | 'base',
+    background?: 'base100' | 'base200',
 }
 
 const colorClassNames = {
-    black: { field: `
-        text-ink-strong
-        focus:border-accent-blue
-    `, label: 'peer-focus:text-accent-blue' },
+    base: { field: `
+        text-base-content
+        focus:border-base-content
+    `, label: 'peer-focus:text-base-content' },
     primary: { field: `
-        text-accent-blue
-        focus:border-accent-blue
-    `, label: 'peer-focus:text-accent-blue' },
+        text-primary
+        focus:border-primary
+    `, label: 'peer-focus:text-primary' },
     secondary: { field: `
-        text-text
-        focus:border-accent-blue
-    `, label: 'peer-focus:text-accent-blue' },
-    red: { field: `
-        text-accent-red
-        focus:border-accent-red
-    `, label: 'peer-focus:text-accent-red' },
-    white: { field: `
-        text-white
-        focus:border-accent-blue
-    `, label: 'peer-focus:text-accent-blue' },
+        text-secondary
+        focus:border-secondary
+    `, label: 'peer-focus:text-secondary' },
+    error: { field: `
+        text-error
+        focus:border-error
+    `, label: 'peer-focus:text-error' },
 } as const
 
 const backgroundClassNames = {
-    base: `
-        bg-surface-raised
-        hover:bg-surface-hover
-        focus:bg-surface-hover
+    base100: `
+        bg-base-100
+        hover:bg-base-200
+        focus:bg-base-200
     `,
-    raised: `
-        bg-surface-hover
-        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-        focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+    base200: `
+        bg-base-200
+        hover:bg-base-300
+        focus:bg-base-300
     `,
 } as const
 
 export default function NumberInput({
     label,
-    color = 'black',
-    background = 'base',
+    color = 'base',
+    background = 'base200',
     className,
     id,
     ...props
@@ -65,8 +61,8 @@ export default function NumberInput({
                 id={inputId}
                 type="number"
                 className={`
-                    peer w-full border border-surface-subtle
-                    focus:ring-3 focus:ring-accent-blue/25
+                    peer w-full border border-base-300
+                    focus:ring-3 focus:ring-primary/25
                     rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] pt-6 px-4 pb-2.5
                     transition-[border-color,background-color,box-shadow] duration-300 z-1 [appearance:textfield]
                     [&::-webkit-inner-spin-button]:appearance-none
@@ -78,7 +74,7 @@ export default function NumberInput({
                 placeholder={label}
             />
             <label htmlFor={inputId} className={`
-                absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-text-muted transition-all
+                absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-base-content/80 transition-all
                 duration-300 pointer-events-none z-2
                 peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-m
                 peer-placeholder-shown:cursor-text

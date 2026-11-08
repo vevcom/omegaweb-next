@@ -9,14 +9,14 @@ type PropTypes = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'name'> & {
 
 const backgroundClassNames = {
     base: `
-        bg-surface-raised
-        hover:bg-surface-hover
-        focus:bg-surface-hover
+        bg-base-200
+        hover:bg-base-300
+        focus:bg-base-300
     `,
     raised: `
-        bg-surface-hover
-        hover:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
-        focus:bg-[color-mix(in_srgb,var(--surface-hover),white_10%)]
+        bg-base-300
+        hover:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
+        focus:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
     `,
 } as const
 
@@ -29,16 +29,16 @@ export default function Textarea({ label, background = 'base', className, id, ..
             flex flex-col gap-1 mt-2 w-full
             ${className ?? ''}
         `}>
-            <label htmlFor={inputId} className="text-s text-text-muted">{ label }</label>
+            <label htmlFor={inputId} className="text-s text-base-content/80">{ label }</label>
             <textarea
                 {...props}
                 id={inputId}
                 className={`
-                    min-h-[60px] w-full max-h-[60vh] resize-y field-sizing-content text-m text-ink-strong border
-                    border-surface-subtle
-                    focus:ring-3 focus:ring-accent-blue/25
+                    min-h-[60px] w-full max-h-[60vh] resize-y field-sizing-content text-m text-base-content border
+                    border-base-300
+                    focus:ring-3 focus:ring-primary/25
                     rounded-inner py-3 px-4 transition-[border-color,background-color,box-shadow] duration-300
-                    focus:outline-0 focus:border-accent-blue
+                    focus:outline-0 focus:border-primary
                     ${backgroundClassNames[background]}
                 `}
             ></textarea>

@@ -29,7 +29,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: serverRendered }) => (
         <PageWrapper headerItem={
             <SiteLink href={appHref('/news')} className="
-                text-text
+                text-base-content
                 [&_svg]:size-[30px]!
             ">
                 <FontAwesomeIcon icon={faArrowLeft} />

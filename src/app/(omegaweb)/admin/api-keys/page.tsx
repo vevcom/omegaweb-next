@@ -48,8 +48,8 @@ const { page, generateMetadata } = serverPage({
                             >
                                 <tr
                                     className={apiKey.active
-                                        ? 'bg-[color-mix(in_srgb,var(--accent-green),white_50%)] text-accent-green'
-                                        : 'bg-[color-mix(in_srgb,var(--accent-red),white_50%)] text-accent-red'}
+                                        ? 'bg-[color-mix(in_srgb,var(--color-success),white_50%)] text-success'
+                                        : 'bg-[color-mix(in_srgb,var(--color-error),white_50%)] text-error'}
                                 >
                                     <td>{apiKey.name}</td>
                                     <td><Date date={apiKey.createdAt} /></td>

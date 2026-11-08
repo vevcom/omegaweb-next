@@ -21,7 +21,7 @@ const { page, generateMetadata } = serverPage({
                     className="
                         align-bottom
                         [&_th]:whitespace-nowrap [&_th]:px-[0.2rem] [&_th]:pb-[0.3rem] [&_th]:sticky [&_th]:top-0
-                        [&_th]:z-2 [&_th]:bg-surface-base [&_th]:border-b-2 [&_th]:border-black
+                        [&_th]:z-2 [&_th]:bg-base-100 [&_th]:border-b-2 [&_th]:border-primary [&_th]:text-base-content
                     "
                 >
                     <tr>
@@ -31,10 +31,11 @@ const { page, generateMetadata } = serverPage({
                                 key={i}
                                 className="
                                     [&>span]:[writing-mode:vertical-rl] [&>span]:rotate-180 [&>span]:whitespace-nowrap
+                                    text-base-content
                                 "
                                 title={permissionConfig[permission as Permission].description}
                             >
-                                <span>{permissionConfig[permission as Permission].name}</span>
+                                <span className="text-base-content">{permissionConfig[permission as Permission].name}</span>
                             </th>
                         )}
                     </tr>
@@ -45,8 +46,8 @@ const { page, generateMetadata } = serverPage({
                         <tr key={i}>
                             <td
                                 className="
-                                    text-nowrap text-right sticky pr-[0.3rem] left-0 z-1 bg-surface-base border-r-2
-                                    border-black
+                                    text-nowrap text-right sticky pr-[0.3rem] left-0 z-1 bg-base-100 text-base-content
+                                    border-r-2 border-primary
                                 "
                             >
                                 {group.name}

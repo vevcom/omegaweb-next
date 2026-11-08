@@ -31,10 +31,10 @@ function roundTicks(highest: number) {
 }
 
 function Tile({ label, value, detail }: { label: string, value: ReactNode, detail?: string }) {
-    return <div className="flex flex-col gap-1 p-3 rounded-inner bg-surface-raised">
-        <span className="text-s text-text-muted">{label}</span>
+    return <div className="flex flex-col gap-1 p-3 rounded-inner bg-base-200">
+        <span className="text-s text-base-content/80">{label}</span>
         <span className="text-l font-bold">{value}</span>
-        {detail && <span className="text-s text-text-muted">{detail}</span>}
+        {detail && <span className="text-s text-base-content/80">{detail}</span>}
     </div>
 }
 
@@ -81,8 +81,8 @@ function Chart({ title, label, ticks, tooltip, children, onPointerMove, onPointe
             >
                 <g transform={`translate(${MARGIN.left} ${MARGIN.top})`}>
                     {ticks.map(tick => <g key={tick}>
-                        <line x1={0} x2={width} y1={y(tick)} y2={y(tick)} className="stroke-surface-subtle" />
-                        <text x={-8} y={y(tick) + 4} textAnchor="end" className="fill-text-muted text-s tabular-nums">
+                        <line x1={0} x2={width} y1={y(tick)} y2={y(tick)} className="stroke-base-300" />
+                        <text x={-8} y={y(tick) + 4} textAnchor="end" className="fill-base-content/80 text-s tabular-nums">
                             {tick}
                         </text>
                     </g>)}
@@ -97,8 +97,8 @@ function Chart({ title, label, ticks, tooltip, children, onPointerMove, onPointe
                     ),
                 }}
                 className="
-                    absolute top-0 -translate-x-1/2 flex flex-col px-2 py-1 rounded-inner bg-surface-base border
-                    border-surface-subtle pointer-events-none whitespace-nowrap
+                    absolute top-0 -translate-x-1/2 flex flex-col px-2 py-1 rounded-inner bg-base-100 border
+                    border-base-300 pointer-events-none whitespace-nowrap
                 "
             >
                 {tooltip.content}
@@ -128,7 +128,7 @@ function CumulativeChart({ statistics }: { statistics: VariantStatistics }) {
             at: fraction(hoveredAt),
             content: <>
                 <strong>{hovered + 1} påmeldt</strong>
-                <span className="text-s text-text-muted">{displayMoment(hoveredAt)}</span>
+                <span className="text-s text-base-content/80">{displayMoment(hoveredAt)}</span>
             </>,
         } : null}
         onPointerMove={(x, plotWidth) => {
@@ -147,31 +147,31 @@ function CumulativeChart({ statistics }: { statistics: VariantStatistics }) {
             const steps = registeredAt.map((date, index) => `H${x(date)}V${y(index + 1)}`).join('')
             const line = `M0 ${y(0)}${steps}`
             return <>
-                <path d={`${line}V${height}Z`} className="fill-accent-blue/10" />
+                <path d={`${line}V${height}Z`} className="fill-primary/10" />
                 {places > 0 && <>
-                    <line x1={0} x2={width} y1={y(places)} y2={y(places)} className="stroke-text-muted" />
-                    <text x={4} y={y(places) - 4} className="fill-text-muted text-s">{places} plasser</text>
+                    <line x1={0} x2={width} y1={y(places)} y2={y(places)} className="stroke-base-content/80" />
+                    <text x={4} y={y(places) - 4} className="fill-base-content/80 text-s">{places} plasser</text>
                 </>}
-                <path d={line} fill="none" strokeWidth={2} strokeLinejoin="round" className="stroke-accent-blue" />
+                <path d={line} fill="none" strokeWidth={2} strokeLinejoin="round" className="stroke-primary" />
                 {filled && <circle
                     cx={x(filled)}
                     cy={y(registeredAt.filter(date => date <= filled).length)}
                     r={5}
                     strokeWidth={2}
-                    className="fill-accent-blue stroke-surface-base"
+                    className="fill-primary stroke-base-100"
                 />}
                 {hoveredAt && hovered !== null && <>
-                    <line x1={x(hoveredAt)} x2={x(hoveredAt)} y1={0} y2={height} className="stroke-text-muted" />
+                    <line x1={x(hoveredAt)} x2={x(hoveredAt)} y1={0} y2={height} className="stroke-base-content/80" />
                     <circle
                         cx={x(hoveredAt)}
                         cy={y(hovered + 1)}
                         r={5}
                         strokeWidth={2}
-                        className="fill-accent-blue stroke-surface-base"
+                        className="fill-primary stroke-base-100"
                     />
                 </>}
-                <text y={height + 18} className="fill-text-muted text-s">{displayMoment(new Date(first))}</text>
-                <text x={width} y={height + 18} textAnchor="end" className="fill-text-muted text-s">
+                <text y={height + 18} className="fill-base-content/80 text-s">{displayMoment(new Date(first))}</text>
+                <text x={width} y={height + 18} textAnchor="end" className="fill-base-content/80 text-s">
                     {displayMoment(registeredAt[total - 1])}
                 </text>
             </>
@@ -193,7 +193,7 @@ function BucketChart({ statistics }: { statistics: VariantStatistics }) {
             at: (hovered + 0.5) / buckets.length,
             content: <>
                 <strong>{hoveredBucket.count} påmeldt</strong>
-                <span className="text-s text-text-muted">{displayMoment(hoveredBucket.start, bucketFormats[unit])}</span>
+                <span className="text-s text-base-content/80">{displayMoment(hoveredBucket.start, bucketFormats[unit])}</span>
             </>,
         } : null}
         onPointerMove={(x, plotWidth) => setHovered(
@@ -216,7 +216,7 @@ function BucketChart({ statistics }: { statistics: VariantStatistics }) {
                                 H${left + barWidth - radius}Q${left + barWidth} ${top} ${left + barWidth} ${top + radius}
                                 V${height}Z`}
                             className={`
-                                fill-accent-blue
+                                fill-primary
                                 ${hovered === index ? 'opacity-80' : ''}
                             `}
                         />
@@ -224,14 +224,14 @@ function BucketChart({ statistics }: { statistics: VariantStatistics }) {
                             x={left + barWidth / 2}
                             y={top - 4}
                             textAnchor="middle"
-                            className="fill-text-muted text-s"
+                            className="fill-base-content/80 text-s"
                         >{highest}</text>}
                     </g>
                 })}
-                <text y={height + 18} className="fill-text-muted text-s">
+                <text y={height + 18} className="fill-base-content/80 text-s">
                     {displayMoment(buckets[0].start, bucketFormats[unit])}
                 </text>
-                {buckets.length > 1 && <text x={width} y={height + 18} textAnchor="end" className="fill-text-muted text-s">
+                {buckets.length > 1 && <text x={width} y={height + 18} textAnchor="end" className="fill-base-content/80 text-s">
                     {displayMoment(buckets[buckets.length - 1].start, bucketFormats[unit])}
                 </text>}
             </>
@@ -257,7 +257,7 @@ function VariantSection({ statistics, showName }: { statistics: VariantStatistic
             {paid !== null && <Tile label="Betalt" value={`${paid} av ${inQuota}`} />}
             {attended > 0 && <Tile label="Oppmøte" value={`${attended} av ${inQuota}`} />}
         </div>
-        {registeredAt.length === 0 ? <p className="m-0 text-text-muted">Ingen er påmeldt ennå.</p> : <>
+        {registeredAt.length === 0 ? <p className="m-0 text-base-content/80">Ingen er påmeldt ennå.</p> : <>
             <CumulativeChart statistics={statistics} />
             <BucketChart statistics={statistics} />
             <details>
@@ -289,7 +289,7 @@ export default function EventStatistics({ variants }: { variants: VariantStatist
             statistics={variant}
             showName={variants.length > 1}
         />)}
-        <p className="m-0 text-s text-text-muted">
+        <p className="m-0 text-s text-base-content/80">
             Regnet ut fra dem som fortsatt er påmeldt. De som har meldt seg av telles ikke, så plassene kan ha gått
             raskere enn det ser ut.
         </p>

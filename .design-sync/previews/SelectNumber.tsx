@@ -34,7 +34,7 @@ export const WithLabels = () => (
 
 export const OnRaisedSurface = () => (
     <div style={{
-        background: 'var(--surface-raised)',
+        background: 'var(--color-base-200)',
         padding: '1.5rem',
         borderRadius: 'var(--rounding)',
         maxWidth: '22rem',
@@ -42,7 +42,7 @@ export const OnRaisedSurface = () => (
         <SelectNumber
             name="issueNumber"
             label="Utgavenummer"
-            background="raised"
+            background="base100"
             defaultValue={3}
             options={[{ value: 1, key: '1' }, { value: 2, key: '2' }, { value: 3, key: '3' }]}
         />

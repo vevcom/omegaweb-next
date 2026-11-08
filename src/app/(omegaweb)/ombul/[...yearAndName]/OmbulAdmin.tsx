@@ -60,14 +60,14 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
 
     return (
         <div className="
-            mt-8 p-6 border border-surface-subtle rounded-round flex flex-row flex-wrap items-start gap-8
-            [&>h2]:flex-[1_1_100%] [&>h2]:text-m [&>h2]:font-medium [&>h2]:text-text-muted [&>h2]:uppercase
+            mt-8 p-6 border border-base-300 rounded-round flex flex-row flex-wrap items-start gap-8
+            [&>h2]:flex-[1_1_100%] [&>h2]:text-m [&>h2]:font-medium [&>h2]:text-base-content/80 [&>h2]:uppercase
             [&>h2]:tracking-[0.08em]
         ">
             <h2>Administrasjon</h2>
             <div className="
                 flex-[0_1_auto]
-                [&>*:not(:last-child)]:border-b [&>*:not(:last-child)]:border-surface-subtle [&>*:not(:last-child)]:pb-6
+                [&>*:not(:last-child)]:border-b [&>*:not(:last-child)]:border-base-300 [&>*:not(:last-child)]:pb-6
                 [&>*:not(:last-child)]:mb-6
             ">
                 {

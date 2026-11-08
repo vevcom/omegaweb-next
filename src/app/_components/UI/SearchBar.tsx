@@ -15,7 +15,7 @@ export default function SearchBar({ defaultValue, label = 'Søk' }: PropTypes) {
     const setSearch = useSearchQueryParam()
 
     return (
-        <span className="flex flex-row flex-nowrap items-center gap-3 w-full p-2 bg-surface-base rounded-round">
+        <span className="flex flex-row flex-nowrap items-center gap-3 w-full p-2 bg-base-100 rounded-round">
             <TextInput
                 className="max-w-none! mt-0!"
                 name="search"
