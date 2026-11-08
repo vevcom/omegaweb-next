@@ -90,7 +90,8 @@ describe('DomainConfig', () => {
 
     test('the example for development names the three dev hosts, each a site\'s main', () => {
         const config = readDomainConfig(join(process.cwd(), 'sites.example.json'))
-        expect(config.mainOriginOfSite(Site.OMEGAWEB)).toBe('http://localhost:3000')
+        expect(config.mainOriginOfSite(Site.OMEGAWEB)).toBe('http://omegaweb.localhost:3000')
+        expect(config.domainOfAlias('localhost:3000')?.host).toBe('omegaweb.localhost:3000')
         expect(config.mainOriginOfSite(Site.CAREERS)).toBe('http://career.localhost:3000')
         expect(config.mainOriginOfSite(Site.REVUE)).toBe('http://revue.localhost:3000')
     })
