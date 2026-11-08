@@ -14,6 +14,7 @@ import {
 } from './constants'
 import { createVariant } from './variants/createVariant'
 import { createQuota } from './quotas/createQuota'
+import { lockEvent } from './registration/queue'
 import { eventNotificationOperations } from './notifications/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { eventLinks } from '@/pageKits/events/links'
@@ -568,8 +569,10 @@ export const eventOperations = {
                 OR: [{ quota: { variant: { eventId: params.id } } }, { waitingListVariant: { eventId: params.id } }],
             }
 
-            // The registrations are locked first, as createPayment does, so no payment can start
-            // between this check and the delete.
+            // The event lock comes first, as everywhere registrations move, so this cannot deadlock
+            // with a move. The registrations are then locked as createPayment does, so no payment
+            // can start between this check and the delete.
+            await lockEvent(prisma, params.id)
             await prisma.$queryRaw`
                 SELECT r."id" FROM "EventRegistration" r
                 LEFT JOIN "EventQuota" q ON q."id" = r."quotaId"
