@@ -34,7 +34,7 @@ const NOW = -1
 
 const modeClassName = (active: boolean) => `
     py-1 px-3 border-none rounded-[calc(var(--rounding)/2)] text-s cursor-pointer
-    ${active ? 'bg-primary text-white font-medium' : `
+    ${active ? 'bg-primary text-primary-content font-medium' : `
         bg-transparent text-base-content
         hover:bg-base-200
     `}
