@@ -104,7 +104,7 @@ export default function Image({
             )}
             {image.credit && !hideCredit && (
                 <p className={`
-                    absolute bg-surface-base opacity-50 p-[.5em]
+                    absolute bg-base-100 text-base-content opacity-50 p-[.5em]
                     ${creditPlacementClassName[creditPlacement]}
                 `}>
                     {image.credit}
@@ -112,14 +112,15 @@ export default function Image({
             )}
             {!hideCopyRight && image.licenseLink && (
                 <div className="
-                    group absolute right-0 top-0 z-2 flex flex-row items-center justify-around no-underline text-text
-                    hover:bg-surface-base hover:opacity-80
+                    group absolute right-0 top-0 z-2 flex flex-row items-center justify-around no-underline
+                    text-base-content
+                    hover:bg-base-100 hover:opacity-50
                 ">
                     {disableLinkingToLicense ? (
                         <p className="
                             hidden
                             group-hover:inline
-                            text-s ml-[.5em]
+                            text-base-content text-s ml-[.5em]
                         ">{image.licenseName}</p>
                     ) : (
                         <SiteLink
@@ -127,7 +128,7 @@ export default function Image({
                             target="_blank"
                             referrerPolicy="no-referrer"
                             className="
-                                hidden
+                                text-base-content hidden
                                 group-hover:inline
                                 text-s ml-[.5em]
                             "
@@ -135,7 +136,7 @@ export default function Image({
                             {image.licenseName}
                         </SiteLink>
                     )}
-                    <FontAwesomeIcon icon={faCopyright} className="text-text w-[20px]! h-[20px]! m-[.6em]"/>
+                    <FontAwesomeIcon icon={faCopyright} className="text-base-content w-[20px]! h-[20px]! m-[.6em]"/>
                 </div>
             )}
         </div>

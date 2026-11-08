@@ -1,7 +1,7 @@
 @use '@/styles/ohma';
 
 .loader > div {
-    background-color: ohma.$colors-text-inv;
+    background-color: ohma.$colors-primary-content;
     width: 1em;
     height: 1em;
     border-radius: 50%;

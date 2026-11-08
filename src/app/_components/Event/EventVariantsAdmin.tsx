@@ -37,7 +37,7 @@ type PropTypes = {
 const sectionClassName = `
     flex flex-col gap-3 p-4 rounded-round layer
     [&>h3]:m-0 [&>h3]:text-l [&>h3]:font-bold
-    [&>p]:m-0 [&>p]:text-s [&>p]:text-text-muted
+    [&>p]:m-0 [&>p]:text-s [&>p]:text-base-content/80
 `
 
 /** The ids with the item at `index` swapped one step in `direction`. */
@@ -142,7 +142,7 @@ function QuotaAdmin({ quota, index, quotaIds, variantId }: {
     quotaIds: number[],
     variantId: number,
 }) {
-    return <section className="flex flex-col gap-2 p-3 rounded-inner bg-surface-raised">
+    return <section className="flex flex-col gap-2 p-3 rounded-inner bg-base-200">
         <div className="flex flex-wrap items-center justify-between gap-2">
             <h4 className="m-0">{index + 1}. {quota.name} · {quota.numOfRegistrations} / {quota.places}</h4>
             <ReorderButtons
@@ -178,7 +178,7 @@ function QuotaAdmin({ quota, index, quotaIds, variantId }: {
             submitColor="red"
             confirmation={{ confirm: true, text: 'Er du sikker på at du vil fjerne denne kvoten?' }}
             refreshOnSuccess
-        /> : <p className="m-0 text-s text-text-muted">
+        /> : <p className="m-0 text-s text-base-content/80">
             Sett plassene til 0 for å tømme kvoten før du fjerner den. De påmeldte flyttes til neste kvote de kan
             melde seg på, eller til ventelisten.
         </p>}

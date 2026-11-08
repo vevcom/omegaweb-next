@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 
 const Panel = ({ children }: { children: ReactNode }) => (
     <div style={{
-        background: 'var(--surface-raised)',
+        background: 'var(--color-base-200)',
         padding: '1.25rem',
         borderRadius: 'var(--rounding)',
     }}>
@@ -28,7 +28,7 @@ export const WithRichContent = () => (
     <SlideInOnView direction="left">
         <Panel>
             <h3 style={{ margin: '0 0 0.5rem' }}>Om Omega</h3>
-            <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+            <p style={{ margin: 0, color: 'var(--color-base-content)' }}>
                 Sanctus Omega Broderskab ble stiftet i Trondheim og samler studenter
                 gjennom komitéer, arrangementer og tradisjoner.
             </p>

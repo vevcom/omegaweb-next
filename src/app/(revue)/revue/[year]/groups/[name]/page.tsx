@@ -75,7 +75,7 @@ const { page, generateMetadata } = serverPage({
                                 />
                             ))}
                         </ul>
-                    ) : <p className="mt-2 text-text-muted">Ingen medlemmer enda</p>}
+                    ) : <p className="mt-2 text-base-content/80">Ingen medlemmer enda</p>}
                     <AddRevueGroupMember groupId={group.id} />
                 </section>
             </PageWrapper>

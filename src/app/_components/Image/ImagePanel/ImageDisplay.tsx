@@ -41,9 +41,9 @@ type PropTypes = {
 }
 
 const navButtonClassName = `
-    size-10 grid place-items-center rounded-full border-none cursor-pointer bg-surface-raised text-text
+    size-10 grid place-items-center rounded-full border-none cursor-pointer bg-base-200 text-base-content
     transition-[background-color] duration-300
-    hover:bg-surface-hover
+    hover:bg-base-300
     [&>svg]:w-[45%]! [&>svg]:h-[45%]!
 `
 
@@ -81,7 +81,7 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
             z-5 fixed top-0 left-0 w-screen h-dvh grid place-items-center bg-[rgba(0,0,0,0.55)] backdrop-blur-[2px]
         ">
             <div
-                className="relative w-[95vw] h-[95dvh] flex flex-col gap-4 p-4 rounded-round bg-surface-base"
+                className="relative w-[95vw] h-[95dvh] flex flex-col gap-4 p-4 rounded-round bg-base-100"
                 ref={panelRef}
             >
                 <div className="shrink-0 flex items-start justify-between gap-4">
@@ -90,9 +90,9 @@ export default function ImageDisplay({ image, loading, onClose, onNavigateLeft, 
                             {image.name}
                         </h2>
                         <dl className="
-                            mt-2 flex flex-wrap gap-x-4 gap-y-0 text-s text-text-muted
+                            mt-2 flex flex-wrap gap-x-4 gap-y-0 text-s text-base-content/80
                             [&>div]:flex [&>div]:gap-[0.4em] [&>div]:min-w-0
-                            [&_dt]:text-ink-hover
+                            [&_dt]:text-base-content/80
                             [&_dd]:overflow-hidden [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap
                         ">
                             <div>

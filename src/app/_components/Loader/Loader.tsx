@@ -10,7 +10,7 @@ function Loader() {
             <StandardImageServer
                 standardImage="LOGO_SIMPLE"
                 width={100}
-                tint="var(--text)"
+                tint="var(--color-base-content)"
             />
         </div>
     )

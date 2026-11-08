@@ -65,11 +65,11 @@ const { page, generateMetadata } = serverPage({
             <PageWrapper>
                 <div className="p-4 flex flex-col gap-4">
                     <div className="flex flex-row flex-wrap items-center gap-2">
-                        <SiteLink className="btn font-light m-0!" href={appHref('/admin/dots')}>
+                        <SiteLink className="btn-primary font-light m-0!" href={appHref('/admin/dots')}>
                             Velg en annen bruker
                         </SiteLink>
                         <SiteLink
-                            className="btn font-light m-0!"
+                            className="btn-primary font-light m-0!"
                             href={appHref(
                                 `/admin/dots?${QueryParams.userId.encodeUrl(data.userId)}` +
                                 `&${QueryParams.onlyActive.encodeUrl(!data.onlyActive)}`

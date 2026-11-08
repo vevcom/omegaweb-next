@@ -64,25 +64,27 @@ const { page, generateMetadata } = serverPage({
             })))
     },
     render: ({ data: sections }) => (
-        <div className="bg-surface-base rounded-round p-(--card-padding)">
+        <div className="bg-base-100 rounded-round p-(--card-padding)">
             <h2>Grupper</h2>
             {sections.map(({ type, memberships }) =>
                 <section key={type} className="mt-(--card-padding) overflow-x-auto">
                     <h3>{groupTypesConfig[type].namePlural}</h3>
                     {memberships.length === 0 ? (
-                        <p className="text-text-muted">Ingen medlemskap.</p>
+                        <p className="text-base-content/80">Ingen medlemskap.</p>
                     ) : (
                         <SimpleTable
                             header={['Gruppe', 'Orden', 'Status']}
                             body={memberships.map(membership => [
                                 <>
                                     {membership.groupName}
-                                    <span className="block text-text-muted text-s">{membership.title}</span>
+                                    <span className="block text-base-content/80 text-s">{membership.title}</span>
                                 </>,
                                 membership.order,
                                 <>
                                     {membership.active ? 'Aktiv' : 'Inaktiv'}
-                                    {membership.admin && <span className="block text-text-muted text-s">Administrator</span>}
+                                    {membership.admin && (
+                                        <span className="block text-base-content/80 text-s">Administrator</span>
+                                    )}
                                 </>,
                             ])}
                         />

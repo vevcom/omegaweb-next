@@ -10,7 +10,7 @@ export default async function ArticleCategory({ params }: PropTypes) {
     return (
         <div className="
             w-full h-full flex items-center justify-center
-            [&>p]:border-l [&>p]:border-surface-subtle [&>p]:ml-2 [&>p]:pl-2
+            [&>p]:border-l [&>p]:border-base-300 [&>p]:ml-2 [&>p]:pl-2
         ">
             <h2>{category.toUpperCase()}</h2>
             <p>Velg en artikkel i navigasjonsmenyen</p>

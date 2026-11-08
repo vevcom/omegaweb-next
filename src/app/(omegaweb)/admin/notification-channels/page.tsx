@@ -93,7 +93,7 @@ const { page, generateMetadata } = serverPage({
                                             {depth > 0 ? <span
                                                 className="
                                                     inline-block size-[0.6em] mr-[0.6em] border-l-2 border-b-2
-                                                    border-text-muted
+                                                    border-base-content/80
                                                 "
                                                 aria-hidden="true"
                                             /> : null}
@@ -103,8 +103,8 @@ const { page, generateMetadata } = serverPage({
                                             ? <span
                                                 className="
                                                     ml-[0.6em] py-[0.1em] px-[0.6em] rounded-full
-                                                    bg-[color-mix(in_srgb,var(--accent-blue),transparent_80%)]
-                                                    text-accent-blue text-s font-medium uppercase tracking-[0.03em]
+                                                    bg-[color-mix(in_srgb,var(--color-primary),transparent_80%)]
+                                                    text-primary text-s font-medium uppercase tracking-[0.03em]
                                                     whitespace-nowrap
                                                 "
                                             >
@@ -112,7 +112,7 @@ const { page, generateMetadata } = serverPage({
                                             </span>
                                             : null}
                                     </td>
-                                    <td className="text-text-muted">{channel.description || '—'}</td>
+                                    <td className="text-base-content/80">{channel.description || '—'}</td>
                                 </tr>
                             </SiteLink>
                         ))}

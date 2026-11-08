@@ -75,9 +75,9 @@ export default function EventTagsAdmin({
                                 className={
                                     selectedTags.map(tagItem => tagItem.name).includes(tag.name) ? `
                                         relative
-                                        hover:after:content-['✖'] hover:after:text-[length:4em] hover:after:text-text
-                                        hover:after:absolute hover:after:left-1/2 hover:after:top-1/2
-                                        hover:after:-translate-x-1/2 hover:after:-translate-y-1/2
+                                        hover:after:content-['✖'] hover:after:text-[length:4em]
+                                        hover:after:text-base-content hover:after:absolute hover:after:left-1/2
+                                        hover:after:top-1/2 hover:after:-translate-x-1/2 hover:after:-translate-y-1/2
                                     ` : ''
                                 }
                                 href={
@@ -91,7 +91,7 @@ export default function EventTagsAdmin({
                                 capabilities.canUpdateTags.authorized || capabilities.canDestroyTags.authorized ? (
                                     <SettingsHeaderItemPopUp scale={25} popUpKey={`EventTagPopUp${tag.id}`}>
                                         {capabilities.canUpdateTags.authorized && <span
-                                            className="border-b-3 border-surface-subtle"
+                                            className="border-b-3 border-base-300"
                                         >
                                             <Form
                                                 refreshOnSuccess

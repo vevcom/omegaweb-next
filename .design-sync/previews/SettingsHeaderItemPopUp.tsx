@@ -14,7 +14,7 @@ function OpenOnMount({ children }: { children: ReactNode }) {
 const panel = (
     <div style={{ display: 'grid', gap: '1rem', minWidth: '17rem' }}>
         <h2 style={{ margin: 0 }}>Innstillinger for siden</h2>
-        <TextInput name="pageTitle" label="Sidetittel" background="raised" defaultValue="Arrangementer" />
+        <TextInput name="pageTitle" label="Sidetittel" background="base200" defaultValue="Arrangementer" />
         <Button color="primary">Lagre</Button>
     </div>
 )

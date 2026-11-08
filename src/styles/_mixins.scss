@@ -27,7 +27,7 @@
 // The close affordance shared by the app's overlay surfaces (PopUp, ImageDisplay), so dismissing
 // one looks the same as dismissing the other. Placement is up to the consumer.
 @mixin closeBtn {
-    background-color: colors.$accent-red;
+    background-color: colors.$error;
     border: none;
     border-radius: variables.$gap;
     width: 48px;
@@ -37,17 +37,17 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: colors.$text-inv;
+    color: colors.$primary-content;
     transition: background-color .5s;
 
     &:hover {
-        background-color: color-mix(in srgb, colors.$accent-red, white 20%);
+        background-color: color-mix(in srgb, colors.$error, white 20%);
     }
 
     > svg {
         width: 40%;
         height: 40%;
-        color: colors.$text-inv;
+        color: colors.$primary-content;
     }
 }
 
@@ -71,19 +71,19 @@
     }
 
     th {
-        background-color: colors.$surface-raised;
-        color: colors.$ink-strong;
+        background-color: colors.$base-200;
+        color: colors.$base-content;
         font-weight: fonts.$weight-m;
     }
 
     tbody tr {
-        background-color: colors.$surface-raised;
+        background-color: colors.$base-200;
         transition: background-color .3s;
         &:nth-child(even) {
-            background-color: color-mix(in srgb, colors.$surface-raised, white 3%);
+            background-color: color-mix(in srgb, colors.$base-200, white 3%);
         }
         &:hover {
-            background-color: colors.$surface-hover;
+            background-color: colors.$base-300;
         }
     }
 
@@ -115,7 +115,7 @@
     background: $color;
     padding: calc(2 * #{variables.$gap});
     margin: variables.$gap;
-    color: colors.$text-inv;
+    color: colors.$primary-content;
     border: none;
     border-radius: calc(#{variables.$rounding} - #{variables.$gap});
     transition: .5s background;
@@ -128,30 +128,30 @@
 // The secondary action tier: a filled button that recedes next to btn().
 // NOTE: also made to work for <Link /> (<a> tag)
 @mixin secondaryBtn {
-    @include btn(colors.$surface-hover);
-    color: colors.$text;
+    @include btn(colors.$base-300);
+    color: colors.$base-content;
     &:hover {
-        background-color: color-mix(in srgb, colors.$surface-hover, white 10%);
+        background-color: color-mix(in srgb, colors.$base-300, white 10%);
     }
 }
 
 @mixin roundAdminSvgBtn() {
     width: 45px;
     height: 45px;
-    background-color: colors.$accent-blue;
+    background-color: colors.$primary;
     border: none;
     border-radius: 50%;
     display: grid;
     place-items: center;
     text-decoration: none;
     svg {
-        color: colors.$text-inv;
+        color: colors.$primary-content;
         transition: color 0.6s;
         width: 31px;
         height: 31px;
     }
     &:hover svg {
-        color: colors.$ink-hover;
+        color: colors.$base-content;
         cursor: pointer;
     }
 }
@@ -179,8 +179,8 @@
     gap: calc(1.5 * #{variables.$gap});
     height: 40px;
     border-radius: calc(#{variables.$rounding} - #{variables.$gap});
-    background-color: colors.$surface-hover;
-    color: colors.$ink-strong;
+    background-color: colors.$base-300;
+    color: colors.$base-content;
 }
 
 @mixin headerPillLink {
@@ -190,8 +190,8 @@
     transition: background-color variables.$transitionTime, color variables.$transitionTime, box-shadow 0.3s;
 
     &:hover {
-        background-color: colors.$surface-subtle;
-        color: colors.$ink-strong;
+        background-color: colors.$base-300;
+        color: colors.$base-content;
         text-decoration: none;
     }
 
@@ -204,22 +204,22 @@
     svg {
         width: 16px;
         height: 16px;
-        color: colors.$text;
+        color: colors.$base-content;
         transition: color variables.$transitionTime;
     }
 
     &:hover svg {
-        color: colors.$accent-blue;
+        color: colors.$primary;
     }
 }
 
 @mixin primaryIconLink {
-    color: colors.$accent-blue;
+    color: colors.$primary;
     padding: variables.$gap;
     width: 30px;
     height: 30px;
     &:hover {
-        color: color-mix(in srgb, colors.$accent-blue, black 10%); // TODO Perhaps change
+        color: color-mix(in srgb, colors.$primary, black 10%); // TODO Perhaps change
         cursor: pointer;
     }
 }
@@ -294,13 +294,13 @@
     text-decoration: none;
     color: unset;
     border-radius: variables.$rounding;
-    background-color: colors.$surface-raised;
+    background-color: colors.$base-200;
     transition: background-color variables.$transitionTime;
 
     // The whole row is one anchor, so globals' `a:hover { text-decoration:
     // underline }` would otherwise underline every text run inside it.
     &:hover {
-        background-color: colors.$surface-hover;
+        background-color: colors.$base-300;
         text-decoration: none;
     }
 
@@ -341,13 +341,13 @@
 
         b {
             font-size: fonts.$xl;
-            color: colors.$text;
+            color: colors.$base-content;
         }
 
         span {
             font-size: fonts.$s;
             text-transform: uppercase;
-            color: colors.$text-muted;
+            color: colors.$base-content;
         }
     }
 
@@ -364,7 +364,7 @@
             margin: 0;
             font-size: fonts.$l;
             font-weight: fonts.$weight-m;
-            color: colors.$text;
+            color: colors.$base-content;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -373,7 +373,7 @@
         p {
             margin: 0;
             font-size: fonts.$s;
-            color: colors.$text-muted;
+            color: colors.$base-content;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -390,7 +390,7 @@
         gap: calc(0.5 * #{variables.$gap});
         padding: 0 calc(2 * #{variables.$gap});
         font-size: fonts.$s;
-        color: colors.$text-muted;
+        color: colors.$base-content;
         text-align: right;
 
         > * {
@@ -407,11 +407,11 @@
         right: 0;
         bottom: 0;
         height: calc(0.5 * #{variables.$gap});
-        background-color: colors.$surface-subtle;
+        background-color: colors.$base-300;
 
         > div {
             height: 100%;
-            background: colors.$accent-blue;
+            background: colors.$primary;
         }
     }
 

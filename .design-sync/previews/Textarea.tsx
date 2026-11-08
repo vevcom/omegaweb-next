@@ -15,7 +15,7 @@ export const Empty = () => (
 )
 
 export const OnRaisedSurface = () => (
-    <div style={{ background: 'var(--surface-raised)', padding: '1.5rem', borderRadius: 'var(--rounding)' }}>
+    <div style={{ background: 'var(--color-base-200)', padding: '1.5rem', borderRadius: 'var(--rounding)' }}>
         <Textarea
             name="quote"
             label="Sitat"

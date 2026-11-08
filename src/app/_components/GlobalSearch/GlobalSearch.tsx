@@ -63,7 +63,7 @@ type GlobalSearchConfig = {
 
 const kbdClassName = `
     inline-flex items-center justify-center min-w-4 py-[calc(0.15*var(--gap))] px-[calc(0.4*var(--gap))]
-    mr-[calc(0.3*var(--gap))] bg-surface-hover rounded-[calc(0.35*var(--gap))] text-s text-text
+    mr-[calc(0.3*var(--gap))] bg-base-300 rounded-[calc(0.35*var(--gap))] text-s text-base-content
 `
 
 /**
@@ -113,9 +113,8 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
             >
                 <FontAwesomeIcon
                     className="
-                        size-5! text-text transition-colors duration-300
-                        [&_path]:text-inherit
-                        group-hover:text-accent-blue
+                        size-5! text-base-content transition-colors duration-300
+                        group-hover:text-primary
                     "
                     icon={faMagnifyingGlass}
                 />
@@ -303,18 +302,18 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
             ">
                 <div className="
                     w-[min(800px,90vw)] max-h-[70svh] h-[70svh]
-                    bg-[color-mix(in_srgb,var(--surface-base),transparent_40%)] backdrop-blur-[8px]
+                    bg-[color-mix(in_srgb,var(--color-base-100),transparent_40%)] backdrop-blur-[8px]
                     backdrop-saturate-[140%] rounded-round flex flex-col gap-2 p-4 overflow-hidden
                     max-mobile:w-screen max-mobile:max-h-svh max-mobile:h-svh max-mobile:rounded-none
                 " ref={ref}>
                     <div className="flex items-center gap-2 shrink-0">
-                        <FontAwesomeIcon icon={faMagnifyingGlass} className="shrink-0 text-text-muted" />
+                        <FontAwesomeIcon icon={faMagnifyingGlass} className="shrink-0 text-base-content/80" />
                         <input
                             ref={inputRef}
                             type="text"
                             className="
-                                flex-1 min-w-0 border-none bg-transparent outline-none text-l text-text
-                                placeholder:text-text-muted
+                                flex-1 min-w-0 border-none bg-transparent outline-none text-l text-base-content
+                                placeholder:text-base-content/80
                             "
                             placeholder={placeholder}
                             autoComplete="off"
@@ -322,7 +321,7 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
                             onChange={handleQueryChange}
                             onKeyDown={handleKeyDown}
                         />
-                        {loading && <FontAwesomeIcon icon={faSpinner} spin className="shrink-0 text-text-muted" />}
+                        {loading && <FontAwesomeIcon icon={faSpinner} spin className="shrink-0 text-base-content/80" />}
                         <button
                             type="button"
                             className="
@@ -347,12 +346,12 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
                     <div className="overflow-y-auto flex-1 min-h-0 flex flex-col gap-3">
                         {
                             flatItems.length === 0 ? (
-                                <p className="my-4 text-center text-text-muted">
+                                <p className="my-4 text-center text-base-content/80">
                                     {trimmedQuery || debouncedQuery ? 'Ingen treff' : 'Begynn å skrive for å søke'}
                                 </p>
                             ) : sections.map(section => (
                                 <div key={section.label} className="flex flex-col gap-1">
-                                    <span className="text-s uppercase text-text-muted">{section.label}</span>
+                                    <span className="text-s uppercase text-base-content/80">{section.label}</span>
                                     <ul className="list-none m-0 p-0 flex flex-col gap-0.5">
                                         {section.items.map(item => {
                                             const index = flatItems.indexOf(item)
@@ -364,10 +363,10 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
                                                             flex items-center gap-2 p-2 rounded-[calc(0.5*var(--gap))]
                                                             no-underline transition-colors duration-300
                                                             ${index === safeActiveIndex
-                                                    ? 'bg-accent-blue text-text-inv'
+                                                    ? 'bg-primary text-base-content-inv'
                                                     : `
-                                                        text-text
-                                                        hover:bg-surface-hover
+                                                        text-base-content
+                                                        hover:bg-base-300
                                                     `}
                                                         `}
                                                         onMouseEnter={() => setActiveIndex(index)}
@@ -375,8 +374,8 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
                                                     >
                                                         <span className="
                                                             relative shrink-0 size-10 rounded-[calc(0.5*var(--gap))]
-                                                            overflow-hidden flex items-center justify-center
-                                                            bg-surface-hover text-text-muted
+                                                            overflow-hidden flex items-center justify-center bg-base-300
+                                                            text-base-content/80
                                                             [&_div]:w-full [&_div]:h-full
                                                             [&_img]:absolute [&_img]:inset-0 [&_img]:w-full [&_img]:h-full
                                                             [&_img]:object-cover
@@ -412,7 +411,7 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
                         }
                     </div>
                     <div className="
-                        shrink-0 flex flex-wrap gap-3 pt-2 border-t border-surface-hover text-s text-text-muted
+                        shrink-0 flex flex-wrap gap-3 pt-2 border-t border-base-300 text-s text-base-content/80
                     ">
                         <span><kbd className={kbdClassName}>↑</kbd><kbd className={kbdClassName}>↓</kbd> Naviger</span>
                         <span><kbd className={kbdClassName}>↵</kbd> Velg</span>

@@ -25,11 +25,11 @@ type PropTypes = {
  * i.e move it left or right and size it
  */
 const moveButtonClassName = `
-    absolute -translate-y-1/2 w-[30%] h-full -top-1/2 bg-surface-raised flex justify-center items-center border-none
+    absolute -translate-y-1/2 w-[30%] h-full -top-1/2 bg-base-200 flex justify-center items-center border-none
     [&_svg]:text-white [&_svg]:w-[40%] [&_svg]:h-[40%]
     [&_path]:[translate:10px_0]
-    hover:bg-surface-hover hover:cursor-pointer
-    hover:[&_svg]:text-accent-blue
+    hover:bg-base-300 hover:cursor-pointer
+    hover:[&_svg]:text-primary
 `
 
 const sizeButtonClassName = `
@@ -39,7 +39,7 @@ const sizeButtonClassName = `
 `
 
 const sizeButtonStateClassName = (disabled: boolean) => (
-    disabled ? 'opacity-50' : 'hover:cursor-pointer hover:[&_svg]:text-accent-blue'
+    disabled ? 'opacity-50' : 'hover:cursor-pointer hover:[&_svg]:text-primary'
 )
 
 export default function ImageControls({ articleSection, className, updateArticleSectionAction, capabilities }: PropTypes) {
@@ -101,9 +101,9 @@ export default function ImageControls({ articleSection, className, updateArticle
             <div
                 className={
                     articleSection.imagePosition === 'LEFT' ?
-                        'absolute -top-full bg-surface-raised p-[.5em] left-0 rounded-tl-round' :
+                        'absolute -top-full bg-base-200 p-[.5em] left-0 rounded-tl-round' :
                         // Extra top/right padding keeps clear of the remove-image button.
-                        'absolute -top-full bg-surface-raised p-[.5em] right-0 rounded-tr-round pt-[1.2em] pr-[1.2em]'
+                        'absolute -top-full bg-base-200 p-[.5em] right-0 rounded-tr-round pt-[1.2em] pr-[1.2em]'
                 }
             >
                 <button onClick={increaseSize} className={`

@@ -14,10 +14,13 @@ enum RelationshipStatus {
 enum Theme {
   STANDARD
   LIGHT
+  LUXURY
   SOLARIZED
   STJERNE_INNBYGGER
   HOT_DOG_STAND
   OW_BASIC
+  VALENTINE
+  VALENTINE_DARK
 }
 
 model User {

@@ -14,7 +14,7 @@ function OpenOnMount({ children }: { children: ReactNode }) {
 const panel = (
     <div style={{ display: 'grid', gap: '1rem', minWidth: '17rem' }}>
         <h2 style={{ margin: 0 }}>Arkiv</h2>
-        <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+        <p style={{ margin: 0, color: 'var(--color-base-content)' }}>
             Arkiverte arrangementer vises ikke i oversikten, men beholdes.
         </p>
         <Button color="secondary">Vis arkiverte</Button>

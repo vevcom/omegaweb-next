@@ -47,7 +47,7 @@ const { page, generateMetadata } = serverPage({
         const showTrialRegistration = capabilities.canRegisterTrial.authorized && currentLevel === 'SOELLE'
 
         return (
-            <div className="bg-surface-base rounded-round p-(--card-padding)">
+            <div className="bg-base-100 rounded-round p-(--card-padding)">
                 <h2>Medlemsstatus</h2>
 
                 {/* Highest standing first, so the ladder is read from the top down. */}
@@ -57,8 +57,8 @@ const { page, generateMetadata } = serverPage({
                             <div className={`
                                 flex items-center justify-between gap-2 p-(--card-padding) border-2 rounded-round
                                 ${level === currentLevel
-                            ? 'border-accent-blue bg-surface-hover text-ink-strong font-bold'
-                            : 'border-transparent bg-surface-raised text-text-muted'}
+                            ? 'border-primary bg-base-300 text-base-content font-bold'
+                            : 'border-transparent bg-base-200 text-base-content/80'}
                             `}
                             >
                                 <span>
@@ -67,9 +67,9 @@ const { page, generateMetadata } = serverPage({
                                         : OmegaMembershipLevelConfig[level].name}
                                 </span>
                                 {level === currentLevel
-                                    ? <span className="
-                                        text-[0.8rem] font-normal uppercase tracking-[0.05em] text-accent-blue
-                                    ">Du er her</span>
+                                    ? <span className="text-[0.8rem] font-normal uppercase tracking-[0.05em] text-primary">
+                                        Du er her
+                                    </span>
                                     : capabilities.canChangeLevel.authorized && (
                                         <Form
                                             className="m-0! p-0! text-[0.8rem]!"
@@ -101,8 +101,8 @@ const { page, generateMetadata } = serverPage({
                                                 p-[calc(2*var(--rounding))] text-center border-2 rounded-round
                                                 max-mobile:basis-full
                                                 ${sittedTrials.has(admission)
-                                            ? 'border-solid border-accent-green text-ink-strong'
-                                            : 'border-dashed border-[#adb5bd] text-text-muted'}
+                                            ? 'border-solid border-success text-base-content'
+                                            : 'border-dashed border-[#adb5bd] text-base-content/80'}
                                             `}
                                         >
                                             <span>{admissionDisplayNames[admission]}</span>
@@ -128,7 +128,7 @@ const { page, generateMetadata } = serverPage({
                 </ol>
 
                 <section className="
-                    mt-(--card-padding) pt-(--card-padding) border-t border-surface-hover
+                    mt-(--card-padding) pt-(--card-padding) border-t border-base-300
                     [&_h3]:mt-0 [&_h3]:mx-0 [&_h3]:mb-2
                 ">
                     <h3>Orden</h3>
