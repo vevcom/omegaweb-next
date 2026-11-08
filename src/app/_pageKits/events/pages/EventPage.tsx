@@ -290,7 +290,7 @@ export function eventPage(config: EventPagesConfig) {
                                 </AdminHeaderItemPopUp>
                             )}
                             {capabilities.canCreateNotification.authorized && (
-                                <NotificationHeaderItemPopUp scale={30} popUpKey="EventNotifications" ariaLabel="Varsle">
+                                <NotificationHeaderItemPopUp popUpKey="EventNotifications" ariaLabel="Varsle">
                                     <EventNotificationsAdmin event={event} eventHref={links.event(event)} />
                                 </NotificationHeaderItemPopUp>
                             )}
