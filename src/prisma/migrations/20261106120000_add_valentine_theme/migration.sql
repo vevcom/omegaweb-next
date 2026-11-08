@@ -1,2 +1,0 @@
--- AlterEnum
-ALTER TYPE "Theme" ADD VALUE 'VALENTINE';
