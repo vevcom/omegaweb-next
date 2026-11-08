@@ -10,7 +10,7 @@ export default function AddTeamDepartment() {
 
     if (!editable) return null
     return (
-        <div className="max-w-md p-6 border border-dashed border-surface-subtle">
+        <div className="max-w-md p-6 border border-dashed border-base-300">
             <Form
                 title="Ny avdeling"
                 action={createCareersTeamDepartmentAction}

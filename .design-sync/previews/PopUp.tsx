@@ -26,8 +26,8 @@ export const Opened = () => (
         <PopUp popUpKey="opened-demo" showButtonContent={<Button color="primary">Rediger profil</Button>}>
             <div style={{ display: 'grid', gap: '1rem', minWidth: '18rem' }}>
                 <h2 style={{ margin: 0 }}>Rediger profil</h2>
-                <TextInput name="firstname" label="Fornavn" defaultValue="Ola" background="raised" />
-                <TextInput name="lastname" label="Etternavn" defaultValue="Nordmann" background="raised" />
+                <TextInput name="firstname" label="Fornavn" defaultValue="Ola" background="base200" />
+                <TextInput name="lastname" label="Etternavn" defaultValue="Nordmann" background="base200" />
                 <Button color="primary">Lagre</Button>
             </div>
         </PopUp>

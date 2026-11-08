@@ -13,7 +13,7 @@ export const WithRange = () => (
 )
 
 export const OnRaisedSurface = () => (
-    <div style={{ background: 'var(--surface-raised)', padding: '1.5rem', borderRadius: 'var(--rounding)' }}>
+    <div style={{ background: 'var(--color-base-200)', padding: '1.5rem', borderRadius: 'var(--rounding)' }}>
         <NumberInput name="price" label="Pris (kr)" background="raised" defaultValue={250} />
     </div>
 )

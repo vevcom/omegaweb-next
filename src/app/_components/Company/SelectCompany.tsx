@@ -27,8 +27,8 @@ export default function SelectCompany({ company }: PropTypes) {
                 companyCtx.setSelectedCompany(company)
             }} />
             <div className={`
-                absolute top-0 right-0 size-[1.5em] text-text-inv rounded-full flex justify-center items-center
-                ${isSelected ? 'bg-accent-blue' : 'bg-surface-raised'}
+                absolute top-0 right-0 size-[1.5em] rounded-full flex justify-center items-center
+                ${isSelected ? 'bg-primary text-primary-content' : 'bg-base-200'}
             `}>
                 <FontAwesomeIcon icon={faCheck} />
             </div>

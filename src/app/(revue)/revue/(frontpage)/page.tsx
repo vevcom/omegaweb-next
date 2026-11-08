@@ -37,11 +37,11 @@ const { page, generateMetadata } = serverPage({
                 <SiteLink
                     href={revueLinks.revue(currentRevue)}
                     className="
-                        block mb-4 p-4 rounded-round bg-surface-raised text-inherit transition-colors
-                        hover:bg-surface-hover hover:no-underline
+                        block mb-4 p-4 rounded-round bg-base-200 text-inherit transition-colors
+                        hover:bg-base-300 hover:no-underline
                     "
                 >
-                    <span className="block text-s text-text-muted">Nyeste revy</span>
+                    <span className="block text-s text-base-content/80">Nyeste revy</span>
                     <span className="block text-xl font-semibold">{currentRevue.name} ({currentRevue.year})</span>
                 </SiteLink>
             )}

@@ -38,7 +38,7 @@ export default function GiveDotsToAbsentees({ eventId, accuserId, notAttended }:
         <PopUp
             popUpKey={popUpKey}
             showButtonContent="Gi prikker til de som ikke møtte opp"
-            showButtonClass="btn"
+            showButtonClass="btn-primary"
         >
             <div className="min-w-[min(28rem,85vw)]">
                 <Form
@@ -61,7 +61,7 @@ export default function GiveDotsToAbsentees({ eventId, accuserId, notAttended }:
                         [&>li]:flex [&>li]:items-center [&>li]:justify-between [&>li]:gap-2 [&>li]:py-1 [&>li]:border-b
                         [&>li]:border-[#adb5bd]
                         [&>li>button]:bg-transparent [&>li>button]:border-none [&>li>button]:cursor-pointer
-                        [&>li>button]:text-accent-red [&>li>button]:p-1
+                        [&>li>button]:text-error [&>li>button]:p-1
                     " aria-label="Får prikker">
                         {receiving.map(registration => (
                             <li key={registration.id}>
@@ -77,7 +77,7 @@ export default function GiveDotsToAbsentees({ eventId, accuserId, notAttended }:
                             </li>
                         ))}
                     </ul>
-                    {receiving.length === 0 && <p className="text-text-muted">Ingen igjen å gi prikker til.</p>}
+                    {receiving.length === 0 && <p className="text-base-content/80">Ingen igjen å gi prikker til.</p>}
                 </Form>
             </div>
         </PopUp>

@@ -40,7 +40,7 @@ export function FormInputSlot({ input, errors, pending }: {
                 {input}
             </div>
             <p className={`
-                text-accent-red flex flex-col min-h-[1.15em] mb-[3px]
+                text-error flex flex-col min-h-[1.15em] mb-[3px]
                 ${pending ? 'invisible' : ''}
             `}>
                 {errors[0]?.message}

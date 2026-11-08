@@ -13,7 +13,7 @@ export const InNavBarRow = () => (
         justifyContent: 'space-between',
         gap: '1rem',
         padding: '0.75rem 1rem',
-        background: 'var(--surface-raised)',
+        background: 'var(--color-base-200)',
         borderRadius: 'var(--rounding)',
     }}>
         <strong>Omega</strong>

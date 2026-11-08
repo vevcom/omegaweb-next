@@ -17,7 +17,7 @@ export default serverLayout({
                 <CareerAdminSidebar links={links} />
             </aside>
             <div className="
-                grow min-w-0 p-8 bg-surface-raised border border-careers-line
+                grow min-w-0 p-8 bg-base-200 border border-careers-line
                 max-mobile:p-6
             ">
                 {children}

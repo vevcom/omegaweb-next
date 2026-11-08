@@ -29,7 +29,7 @@ type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name' | '
 const trashClassName = `
     bg-transparent border-none
     hover:cursor-pointer
-    [&>svg]:size-[20px] [&>svg]:text-accent-red
+    [&>svg]:size-[20px] [&>svg]:text-error
 `
 
 const byteToUnderstandable = (bytes: number): string => {
@@ -111,7 +111,7 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 className={`
-                    w-full relative border-2 border-dashed border-accent-blue p-6 flex justify-center items-center
+                    w-full relative border-2 border-dashed border-primary p-6 flex justify-center items-center
                     ${styles.uploader}
                 `}
             >
@@ -142,7 +142,7 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
                     "
                 />
             </div>
-            <span className="mt-4 p-[.5em] bg-[color-mix(in_srgb,var(--accent-blue),white_15%)]">
+            <span className="mt-4 p-[.5em] bg-[color-mix(in_srgb,var(--color-primary),white_15%)]">
                 <div
                     className="
                         flex justify-between content-center p-[.5em]
@@ -166,7 +166,7 @@ export default function Dropzone({ label, name, files, setFiles, ...props }: Pro
                             key={`fileInfo${index}`}
                             className="
                                 flex justify-between rounded-round p-[.5em] my-[.3em]
-                                bg-[color-mix(in_srgb,var(--accent-blue),white_40%)]
+                                bg-[color-mix(in_srgb,var(--color-primary),white_40%)]
                             "
                         >
                             <img

@@ -16,6 +16,6 @@ export default function MobileMagicHat({ children }: { children: ReactNode }) {
 
     return <div className={`
         relative
-        ${active ? '[--magic-hat-tint:var(--accent-blue)]' : ''}
+        ${active ? '[--magic-hat-tint:var(--color-primary)]' : ''}
     `}>{children}</div>
 }

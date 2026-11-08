@@ -12,8 +12,8 @@ import type { PopUpKeyType } from '@/contexts/PopUp'
 type Color = 'red' | 'green' | null
 
 const copySuccessColorClass = {
-    red: 'text-accent-red',
-    green: 'text-accent-green',
+    red: 'text-error',
+    green: 'text-success',
 }
 
 type PropTypes = {
@@ -80,7 +80,7 @@ export default function CreateApiKeyForm({ popUpKey }: PropTypes) {
                         <button
                             className="
                                 bg-transparent border-none
-                                [&_svg]:text-text-muted [&_svg]:w-[1.5em]! [&_svg]:h-[1.5em]!
+                                [&_svg]:text-base-content/80 [&_svg]:w-[1.5em]! [&_svg]:h-[1.5em]!
                             "
                             onClick={copyAPIKeyToClipboard}
                         >

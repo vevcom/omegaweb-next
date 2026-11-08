@@ -40,17 +40,17 @@ const { page, generateMetadata } = serverPage({
                         <ChangeName ombulId={ombul.id}>
                             <h1>{ombul.name}</h1>
                         </ChangeName>
-                        <p className="mt-1 text-text-muted text-m">{ombul.year} &middot; utgave {ombul.issueNumber}</p>
+                        <p className="mt-1 text-base-content/80 text-m">{ombul.year} &middot; utgave {ombul.issueNumber}</p>
                         {ombul.description && <p className="mt-2 max-w-[75ch]">{ombul.description}</p>}
                     </div>
                     {/* Beside the title rather than in the wrapper's header slot, which sits above it -
                         the actions would otherwise be read before the issue they act on. */}
                     <div className="flex flex-row flex-wrap items-center gap-2">
-                        <a className="btn m-0!" href={path} download>Last ned</a>
-                        <SiteLink className="secondary-btn m-0!" href={path} target="blank">Åpne i ny fane</SiteLink>
+                        <a className="btn-primary m-0!" href={path} download>Last ned</a>
+                        <SiteLink className="btn-neutral m-0!" href={path} target="blank">Åpne i ny fane</SiteLink>
                         <PopUp
                             popUpKey={`OmbulPdfViewer${ombul.id}`}
-                            showButtonClass="secondary-btn m-0!"
+                            showButtonClass="btn-neutral m-0!"
                             showButtonContent="Les PDF"
                         >
                             <PdfDocument src={path} className="block w-[min(calc(100vw-4rem),calc(130svh-6rem))]" />
@@ -66,8 +66,7 @@ const { page, generateMetadata } = serverPage({
                         back to the page you are already on and repeated the name and issue printed
                         right above it. */}
                     <div className="
-                        relative w-full max-w-[calc(33*var(--gap))] aspect-[5/7] rounded-round overflow-hidden
-                        bg-surface-raised
+                        relative w-full max-w-[calc(33*var(--gap))] aspect-[5/7] rounded-round overflow-hidden bg-base-200
                         [&_div]:absolute [&_div]:inset-0 [&_div]:w-full [&_div]:h-full
                         [&_img]:w-full [&_img]:h-full [&_img]:object-cover
                     ">

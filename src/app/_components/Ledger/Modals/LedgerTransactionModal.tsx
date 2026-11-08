@@ -193,7 +193,7 @@ export default function LedgerTransactionModal({
 
                 {showChooser && resolvedMethod && (
                     <div className="flex flex-col">
-                        <span className="text-s mb-2 text-text-muted">Betal med</span>
+                        <span className="text-s mb-2 text-base-content/80">Betal med</span>
                         <HorizontalSelector
                             name="paymentMethod"
                             value={resolvedMethod}
@@ -247,7 +247,7 @@ export default function LedgerTransactionModal({
                     </div>
                 )}
                 {amountFromBalance > 0 && (
-                    <div className="flex justify-between text-text-muted">
+                    <div className="flex justify-between text-base-content/80">
                         <span>Fra kontosaldo</span>
                         <span>-{displayAmount(amountFromBalance, false)}</span>
                     </div>

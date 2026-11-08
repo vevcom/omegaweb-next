@@ -15,7 +15,7 @@ const Rail = ({ children }: { children: ReactNode }) => (
         display: 'grid',
         gap: '0.25rem',
         padding: '0.75rem',
-        background: 'var(--surface-raised)',
+        background: 'var(--color-base-200)',
         borderRadius: 'var(--rounding)',
     }}>
         {children}

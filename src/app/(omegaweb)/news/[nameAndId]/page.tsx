@@ -54,7 +54,7 @@ const { page, generateMetadata } = serverPage({
                 </DraftBanner>}
                 <Article
                     capabilities={capabilities}
-                    articleClassName="bg-surface-base grow"
+                    articleClassName="bg-base-100 grow"
                     article={news.article}
                     actions={{
                         updateArticleAction: configureAction(
@@ -101,11 +101,11 @@ const { page, generateMetadata } = serverPage({
                         }
                     }}
                 />
-                <div className="bg-surface-base rounded-b-round border-t border-t-surface-hover">
+                <div className="bg-base-100 rounded-b-round border-t border-t-base-300">
                     <SlideInOnView>
                         <EditNews news={news} doubleLevelVisibility={doubleLevelVisibility}>
                             <div className="
-                                bg-surface-base rounded-b-round overflow-y-auto flex flex-col p-4 min-h-[80px]
+                                bg-base-100 rounded-b-round overflow-y-auto flex flex-col p-4 min-h-[80px]
                                 [&>div>*]:flex-[0_0_min(75%,300px)]
                             ">
                                 <h1>Flere nyheter</h1>

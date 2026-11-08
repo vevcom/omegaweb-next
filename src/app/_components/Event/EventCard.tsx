@@ -48,7 +48,7 @@ export default function EventCard({ event, config }: PropTypes) {
             {event.location && <span>{event.location}</span>}
             <span>{twoDigitHour(from)}–{twoDigitHour(to)}</span>
             {event.takesRegistration && (
-                <span className="text-text font-medium">{event.numOfRegistrations} / {event.places}</span>
+                <span className="text-base-content font-medium">{event.numOfRegistrations} / {event.places}</span>
             )}
         </div>
 

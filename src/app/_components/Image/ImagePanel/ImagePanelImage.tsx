@@ -20,9 +20,9 @@ export default function ImagePanelImage({ image, selected, onOpenDisplay, onTogg
 
     return (
         <div className="
-            relative size-[200px] overflow-hidden rounded-round p-0 border-3 border-solid border-surface-subtle
+            relative size-[200px] overflow-hidden rounded-round p-0 border-3 border-solid border-base-300
             transition-[border-color] duration-300
-            hover:border-accent-blue
+            hover:border-primary
             [&>*:first-child]:absolute [&>*:first-child]:top-0 [&>*:first-child]:left-0 [&>*:first-child]:w-full
             [&>*:first-child]:h-full
             [&>*:first-child>img]:absolute [&>*:first-child>img]:top-0 [&>*:first-child>img]:left-0
@@ -42,14 +42,14 @@ export default function ImagePanelImage({ image, selected, onOpenDisplay, onTogg
                 <button
                     onClick={onToggleSelect}
                     className={`
-                        z-1 absolute top-0 right-0 size-[2em] m-[0.3em] rounded-full border-none text-ink-strong
+                        z-1 absolute top-0 right-0 size-[2em] m-[0.3em] rounded-full border-none text-base-content
                         transition-[background-color] duration-300
                         hover:cursor-pointer
                         [&>svg]:absolute [&>svg]:top-1/2 [&>svg]:left-1/2 [&>svg]:-translate-1/2 [&>svg]:w-[80%]!
                         [&>svg]:h-[80%]!
-                        ${selected ? 'bg-accent-blue' : `
-                            bg-surface-subtle
-                            hover:bg-surface-hover
+                        ${selected ? 'bg-primary' : `
+                            bg-base-300
+                            hover:bg-base-300
                         `}
                     `}
                 >

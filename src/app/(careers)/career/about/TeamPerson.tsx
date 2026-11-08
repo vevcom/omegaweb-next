@@ -13,7 +13,7 @@ export default function TeamPerson({ person, canMoveBack, canMoveForward }: Prop
     return (
         <article className="flex flex-col">
             <div className="
-                [--image-width:100%] aspect-4/5 overflow-hidden bg-surface-hover
+                [--image-width:100%] aspect-4/5 overflow-hidden bg-base-300
                 [&>div]:block [&>div]:size-full
                 [&_img]:size-full
             ">
@@ -36,13 +36,13 @@ export default function TeamPerson({ person, canMoveBack, canMoveForward }: Prop
                 )}
             </div>
             <p className="mt-4 text-m font-semibold leading-snug">{person.name}</p>
-            <p className="mt-0.5 text-s text-text-muted">{person.title}</p>
+            <p className="mt-0.5 text-s text-base-content/80">{person.title}</p>
             {person.email && (
                 <a
                     href={`mailto:${person.email}`}
                     className="
-                        mt-1.5 text-s text-text-muted break-all transition-colors
-                        hover:text-accent-blue
+                        mt-1.5 text-s text-base-content/80 break-all transition-colors
+                        hover:text-primary
                     "
                 >
                     {person.email}

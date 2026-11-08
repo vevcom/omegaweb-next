@@ -23,7 +23,7 @@ export default serverLayout({
     allowUnregistered: true,
     operation: ({ session }: LayoutOperationArgs) => ({ loggedIn: session.user !== null }),
     render: ({ data, children }) => (
-        <div className="min-h-dvh flex flex-col bg-surface-base text-text">
+        <div className="min-h-dvh flex flex-col bg-base-100 text-base-content">
             <SiteTheme colors={themes[Theme.STANDARD]} />
             <WorkInProgressBanner siteName="Omegarevyen" currentSiteHref={externalHref('https://omegarevyen.no')} />
             <RevueNavBar loggedIn={data.loggedIn} />

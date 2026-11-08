@@ -18,7 +18,7 @@ export default function SiteTheme({ colors }: PropTypes) {
     return (
         <>
             {/* Hoisted into <head> by React, and removed again when the layout unmounts. */}
-            <meta name="theme-color" content={colors['surface-base']} />
+            <meta name="theme-color" content={colors['--color-base-100']} />
             <style>{themeCss(colors)}</style>
         </>
     )

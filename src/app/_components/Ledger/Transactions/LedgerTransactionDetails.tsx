@@ -39,8 +39,8 @@ const paymentProviderNames: Record<PaymentProvider, string> = {
 
 function DetailRow({ label, value }: { label: string, value: ReactNode }) {
     return <div className="flex justify-between gap-2">
-        <span className="text-text-muted">{label}</span>
-        <span>{value}</span>
+        <span className="text-base-content/80">{label}</span>
+        <span className="text-base-content/80">{value}</span>
     </div>
 }
 
@@ -58,7 +58,7 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
         ?? transaction.eventRegistration?.waitingListVariant
 
     return <div className="w-[min(500px,90vw)] m-6 flex flex-col gap-2">
-        <h3>{transactionPurposeNames[transaction.purpose]}</h3>
+        <h3 className="text-base-content">{transactionPurposeNames[transaction.purpose]}</h3>
 
         <DetailRow label="Dato" value={displayDate(transaction.createdAt)} />
         <DetailRow label="Status" value={transactionStateNames[transaction.state]} />

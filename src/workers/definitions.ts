@@ -79,15 +79,15 @@ export const workers = {
         // A file is only destroyed after a day unreferenced, so looking more often than hourly gains
         // nothing.
         intervalMs: 60 * 60 * 1000,
-        tick: async () => {
+        tick: async progress => {
             try {
-                await destroyImageOrphans()
+                await destroyImageOrphans({ onBatch: progress })
             } catch (error) {
                 logger.error(`Store worker failed to destroy the orphans of the images store: ${error}`)
             }
 
             try {
-                await destroyOmbulOrphans()
+                await destroyOmbulOrphans({ onBatch: progress })
             } catch (error) {
                 logger.error(`Store worker failed to destroy the orphans of the ombul store: ${error}`)
             }
