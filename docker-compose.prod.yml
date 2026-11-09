@@ -101,7 +101,8 @@ services:
             - dokploy-network
         restart: always
         volumes:
-            - proddb:/var/lib/postgresql/data
+            # Postgres 18 keeps its data in a subdirectory of this mount, see its image notes.
+            - proddb:/var/lib/postgresql
 
 networks:
     dokploy-network:
