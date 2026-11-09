@@ -23,7 +23,7 @@ export const GET = providerRoute(async request => {
     const redirectUri = query.get('redirect_uri') ?? ''
     const client = oidcClientOf(clientId)
     // Nothing is sent to a uri the client has not registered, section 4.1.2.1: these errors are answered here.
-    if (!client?.redirectUris.includes(redirectUri)) {
+    if (!client?.acceptsRedirectUri(redirectUri)) {
         return oauthError(400, 'invalid_request', 'Unknown client_id, or a redirect_uri it has not registered')
     }
 

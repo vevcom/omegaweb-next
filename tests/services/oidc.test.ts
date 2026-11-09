@@ -4,6 +4,10 @@ import { discoveryDocument } from '@/services/auth/oidc/discovery'
 import { userClaims } from '@/services/auth/oidc/claims'
 import { jwks, signAccessToken, signIdToken, verifyAccessToken } from '@/services/auth/oidc/tokens'
 import { userOperations } from '@/services/users/operations'
+import { aliasOperations } from '@/services/mail/alias/operations'
+import { mailingListOperations } from '@/services/mail/list/operations'
+import { mailOperations } from '@/services/mail/operations'
+import { OIDC_MAIL_SCOPE } from '@/services/auth/oidc/constants'
 import { prisma } from '@/prisma-pn-client-instance'
 import { Session } from '@/auth/session/Session'
 import { Site } from '@/lib/sites/site'
@@ -17,6 +21,9 @@ import type { z } from 'zod'
 const ISSUER = 'https://omega.ntnu.no'
 const CLIENT = 'omega.ntnu.no'
 const REDIRECT_URI = `${ISSUER}/api/sso/callback`
+// The webmail of .env.default, which the tests run with: its host is the client and the mailbox domain.
+const WEBMAIL = 'http://mail.omegaweb.localhost:8081'
+const WEBMAIL_CLIENT = 'mail.omegaweb.localhost'
 
 const hashOf = (value: string) => createHash('sha256').update(value).digest('base64url')
 
@@ -68,7 +75,27 @@ const exchange = (code: string, verifier: string, overrides: { clientId?: string
 
 const refused = (call: Promise<unknown>, errorCode: string) => expect(call).rejects.toMatchObject({ errorCode })
 
+/** An alias whose one mailing list the user is on, so the user receives its mail. */
+async function createAliasReceivedBy(userId: number, localPart: string) {
+    const alias = await aliasOperations.create({
+        data: { localPart, domain: 'omega.ntnu.no', description: '' },
+        bypassAuth: true,
+    })
+    const list = await mailingListOperations.create({
+        data: { name: `${localPart}-list`, description: '' },
+        bypassAuth: true,
+    })
+    await mailOperations.createAliasMailingListRelation({
+        data: { mailAliasId: alias.id, mailingListId: list.id },
+        bypassAuth: true,
+    })
+    await mailOperations.createMailingListUserRelation({ data: { userId, mailingListId: list.id }, bypassAuth: true })
+    return alias
+}
+
 afterEach(async () => {
+    await prisma.mailAlias.deleteMany({ where: { address: { startsWith: 'test-oidc-' } } })
+    await prisma.mailingList.deleteMany({ where: { name: { startsWith: 'test-oidc-' } } })
     await prisma.user.deleteMany({ where: { username: { startsWith: 'test-oidc-' } } })
 })
 
@@ -104,6 +131,21 @@ describe('the OpenID Connect provider', () => {
         const { code } = await issue(actor, challenge, { scope: 'openid offline_access email', nonce: null })
         await expect(exchange(code, verifier)).resolves.toMatchObject({ scopes: ['openid', 'email'], nonce: null })
         await refused(issue(actor, challenge, { scope: 'profile email' }), 'BAD PARAMETERS')
+    })
+
+    test('gives the mail scope to the webmail alone', async () => {
+        const actor = await createUser('mail-scope')
+        const forSite = pkce()
+        const { code: siteCode } = await issue(actor, forSite.challenge, { scope: `openid ${OIDC_MAIL_SCOPE}` })
+        await expect(exchange(siteCode, forSite.verifier)).resolves.toMatchObject({ scopes: ['openid'] })
+
+        const forWebmail = pkce()
+        const webmail = { clientId: WEBMAIL_CLIENT, redirectUri: `${WEBMAIL}/en/auth/callback` }
+        const { code } = await issue(actor, forWebmail.challenge, { ...webmail, scope: `openid ${OIDC_MAIL_SCOPE}` })
+        await expect(exchange(code, forWebmail.verifier, webmail)).resolves.toMatchObject({
+            clientId: WEBMAIL_CLIENT,
+            scopes: ['openid', OIDC_MAIL_SCOPE],
+        })
     })
 
     test('refuses a code to an unknown client, to an unregistered redirect uri, and to a plain challenge', async () => {
@@ -161,7 +203,9 @@ describe('the OpenID Connect provider', () => {
 
     test('the clients are the sites\' domains, taking the code back at their SSO callback', () => {
         const client = oidcClientOf(CLIENT)
-        expect(client).toMatchObject({ id: CLIENT, redirectUris: [REDIRECT_URI], site: Site.OMEGAWEB })
+        expect(client).toMatchObject({ id: CLIENT, site: Site.OMEGAWEB, scopes: ['openid', 'profile', 'email'] })
+        expect(client?.acceptsRedirectUri(REDIRECT_URI)).toBe(true)
+        expect(client?.acceptsRedirectUri(`${ISSUER}/elsewhere`)).toBe(false)
         // A domain of Omega's serves every site, so the login may render as any of them.
         expect(client?.rendersSite(Site.CAREERS)).toBe(true)
         expect(oidcClientOf('contactor.no')).toBeNull()
@@ -171,6 +215,21 @@ describe('the OpenID Connect provider', () => {
         expect(isPostLogoutRedirectUri('not a url')).toBe(false)
     })
 
+    test('the webmail is a client too, taking the code back under any locale, and the one given the mail scope', () => {
+        const client = oidcClientOf(WEBMAIL_CLIENT)
+        expect(client).toMatchObject({ id: WEBMAIL_CLIENT, site: Site.OMEGAWEB })
+        expect(client?.scopes).toContain(OIDC_MAIL_SCOPE)
+        expect(client?.acceptsRedirectUri(`${WEBMAIL}/en/auth/callback`)).toBe(true)
+        expect(client?.acceptsRedirectUri(`${WEBMAIL}/nb-NO/auth/callback`)).toBe(true)
+        expect(client?.acceptsRedirectUri(`${WEBMAIL}/auth/callback`)).toBe(false)
+        expect(client?.acceptsRedirectUri(`${WEBMAIL}/en/auth/callback?next=x`)).toBe(false)
+        expect(client?.acceptsRedirectUri(`https://${WEBMAIL_CLIENT}:8081/en/auth/callback`)).toBe(false)
+        expect(client?.acceptsRedirectUri(`${ISSUER}/en/auth/callback`)).toBe(false)
+        // The webmail has no site of its own, so the login renders as Omega's.
+        expect(client?.rendersSite(Site.CAREERS)).toBe(false)
+        expect(isPostLogoutRedirectUri(`${WEBMAIL}/`)).toBe(true)
+    })
+
     test('signs tokens the published key verifies, naming the key by the id the JWKS gives it', async () => {
         const { user } = await createUser('tokens')
         const { keys } = jwks()
@@ -178,9 +237,15 @@ describe('the OpenID Connect provider', () => {
         expect(keys[0]).toMatchObject({ kty: 'EC', crv: 'P-256', alg: 'ES256', use: 'sig' })
         expect(keys[0].kid).toMatch(/^[A-Za-z0-9_-]{43}$/)
 
-        const accessToken = signAccessToken({ clientId: CLIENT, userId: user.id, scopes: ['openid', 'email'] })
+        const accessToken = signAccessToken({
+            clientId: CLIENT, userId: user.id, scopes: ['openid', 'email'], claims: { email: user.email, groups: ['a@b'] },
+        })
         expect(decode(accessToken, { complete: true })?.header)
             .toMatchObject({ alg: 'ES256', typ: 'at+jwt', kid: keys[0].kid })
+        // The client is among the audiences, which is what the mail server is told to accept a token by.
+        expect(decode(accessToken)).toMatchObject({
+            iss: ISSUER, aud: [ISSUER, CLIENT], sub: String(user.id), email: user.email, groups: ['a@b'],
+        })
         expect(verifyAccessToken(accessToken)).toEqual({ userId: user.id, clientId: CLIENT, scopes: ['openid', 'email'] })
         expect(() => verifyAccessToken(`${accessToken}x`)).toThrow()
 
@@ -209,6 +274,23 @@ describe('the OpenID Connect provider', () => {
         ])
     })
 
+    test('the mail scope gives the mailboxes of the aliases the user receives mail on and that have one', async () => {
+        const { user } = await createUser('groups')
+        const { user: other } = await createUser('groups-other')
+        await createAliasReceivedBy(user.id, 'test-oidc-styret')
+        const unboxed = await createAliasReceivedBy(user.id, 'test-oidc-unboxed')
+        await aliasOperations.updateMailbox({ params: { id: unboxed.id }, data: { hasMailbox: false }, bypassAuth: true })
+        await createAliasReceivedBy(other.id, 'test-oidc-theirs')
+
+        expect(await userClaims(user.id, ['openid', OIDC_MAIL_SCOPE])).toEqual({
+            groups: [`test-oidc-styret@${WEBMAIL_CLIENT}`],
+        })
+        expect(await userClaims(other.id, ['openid', OIDC_MAIL_SCOPE])).toEqual({
+            groups: [`test-oidc-theirs@${WEBMAIL_CLIENT}`],
+        })
+        expect(await userClaims(user.id, ['openid', 'email'])).not.toHaveProperty('groups')
+    })
+
     test('the discovery document names the endpoints on the issuer', () => {
         expect(discoveryDocument()).toMatchObject({
             issuer: ISSUER,
@@ -221,5 +303,8 @@ describe('the OpenID Connect provider', () => {
             code_challenge_methods_supported: ['S256'],
             id_token_signing_alg_values_supported: ['ES256'],
         })
+        // The mail scope is listed so the webmail asks for it, and groups so the mail server knows to read it.
+        expect(discoveryDocument().scopes_supported).toContain(OIDC_MAIL_SCOPE)
+        expect(discoveryDocument().claims_supported).toContain('groups')
     })
 })

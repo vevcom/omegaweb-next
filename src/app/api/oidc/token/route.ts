@@ -8,7 +8,8 @@ import { NextResponse } from 'next/server'
 
 /**
  * The token endpoint, RFC 6749 section 4.1.3: the client trades the code it was sent, proving it
- * with its PKCE verifier, for an ID token saying who signed in and an access token for userinfo.
+ * with its PKCE verifier, for an ID token saying who signed in and an access token for userinfo,
+ * which the webmail also hands the mail server.
  */
 export const POST = providerRoute(async request => {
     const form = await request.formData().catch(() => null)
@@ -32,7 +33,7 @@ export const POST = providerRoute(async request => {
         })
         const claims = await userClaims(grant.userId, grant.scopes)
         return NextResponse.json({
-            access_token: signAccessToken({ clientId: grant.clientId, userId: grant.userId, scopes: grant.scopes }),
+            access_token: signAccessToken({ clientId: grant.clientId, userId: grant.userId, scopes: grant.scopes, claims }),
             token_type: 'Bearer',
             expires_in: OIDC_TOKEN_LIFETIME_S,
             scope: grant.scopes.join(' '),

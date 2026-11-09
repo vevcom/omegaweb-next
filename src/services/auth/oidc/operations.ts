@@ -14,8 +14,9 @@ const hashOf = (value: string) => createHash('sha256').update(value).digest('bas
 export const oidcOperations = {
     /**
      * A code for the signed in user, which the client exchanges for tokens at the token endpoint. The
-     * client and its redirect uri are checked here, before anything is sent to that uri. The code
-     * is stored hashed, with what the exchange must match, and lives OIDC_CODE_LIFETIME_MS.
+     * client and its redirect uri are checked here, before anything is sent to that uri, and the
+     * scopes are cut to those the client may have. The code is stored hashed, with what the exchange
+     * must match, and lives OIDC_CODE_LIFETIME_MS.
      */
     issueCode: defineOperation({
         paramsSchema: oidcSchemas.params.issueCode,
@@ -23,9 +24,10 @@ export const oidcOperations = {
         operation: async ({ params, prisma }) => {
             const client = oidcClientOf(params.clientId)
             if (!client) throw new ServiceError('BAD PARAMETERS', 'Ukjent klient')
-            if (!client.redirectUris.includes(params.redirectUri)) {
+            if (!client.acceptsRedirectUri(params.redirectUri)) {
                 throw new ServiceError('BAD PARAMETERS', 'Klienten har ingen slik redirect_uri')
             }
+            const scopes = params.scope.filter(scope => client.scopes.includes(scope))
             // Expired codes are no use to anyone, so each new one sweeps them out.
             await prisma.oidcAuthorizationCode.deleteMany({ where: { expiresAt: { lt: new Date() } } })
             const code = randomBytes(32).toString('base64url')
@@ -36,7 +38,7 @@ export const oidcOperations = {
                     provider: params.provider,
                     clientId: client.id,
                     redirectUri: params.redirectUri,
-                    scope: params.scope.join(' '),
+                    scope: scopes.join(' '),
                     nonce: params.nonce,
                     codeChallenge: params.codeChallenge,
                     expiresAt: new Date(Date.now() + OIDC_CODE_LIFETIME_MS),
