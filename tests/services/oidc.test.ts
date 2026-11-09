@@ -1,13 +1,12 @@
 import { oidcOperations } from '@/services/auth/oidc/operations'
 import { isPostLogoutRedirectUri, oidcClientOf } from '@/services/auth/oidc/clients'
 import { discoveryDocument } from '@/services/auth/oidc/discovery'
-import { userClaims } from '@/services/auth/oidc/claims'
+import { OIDC_CLAIMS, OIDC_MAIL_SCOPE, OIDC_SCOPES, oidcScopes, userClaims } from '@/services/auth/oidc/scopes'
 import { jwks, signAccessToken, signIdToken, verifyAccessToken } from '@/services/auth/oidc/tokens'
 import { userOperations } from '@/services/users/operations'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailOperations } from '@/services/mail/operations'
-import { OIDC_MAIL_SCOPE } from '@/services/auth/oidc/constants'
 import { prisma } from '@/prisma-pn-client-instance'
 import { Session } from '@/auth/session/Session'
 import { Site } from '@/lib/sites/site'
@@ -335,8 +334,11 @@ describe('the OpenID Connect provider', () => {
             code_challenge_methods_supported: ['S256'],
             id_token_signing_alg_values_supported: ['ES256'],
         })
-        // The mail scope is listed so the webmail asks for it, and groups so the mail server knows to read it.
-        expect(discoveryDocument().scopes_supported).toContain(OIDC_MAIL_SCOPE)
-        expect(discoveryDocument().claims_supported).toContain('groups')
+        // The scopes and the claims it lists are the table's: the mail scope so the webmail asks for it, and groups.
+        expect(discoveryDocument().scopes_supported).toEqual(OIDC_SCOPES)
+        expect(discoveryDocument().claims_supported).toEqual(OIDC_CLAIMS)
+        expect(OIDC_SCOPES).toEqual(['openid', 'profile', 'email', OIDC_MAIL_SCOPE])
+        expect(OIDC_CLAIMS).toEqual(['sub', ...Object.values(oidcScopes).flatMap(claims => Object.keys(claims))])
+        expect(OIDC_CLAIMS).toContain('groups')
     })
 })

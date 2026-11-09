@@ -4,7 +4,7 @@ import { readPemEnvBase64 } from '@/lib/jwt/readPemEnvBase64'
 import { ServiceError } from '@/services/error'
 import { TokenExpiredError, sign, verify } from 'jsonwebtoken'
 import { createHash, createPublicKey, randomBytes } from 'node:crypto'
-import type { UserClaims } from './claims'
+import type { UserClaims } from './scopes'
 
 /**
  * The tokens of the provider, signed with the Omega ID key pair (JWT_PRIVATE_KEY and JWT_PUBLIC_KEY):

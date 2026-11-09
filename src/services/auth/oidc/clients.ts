@@ -1,8 +1,9 @@
-import { OIDC_MAIL_SCOPE, SSO_CALLBACK_PATH, oidcIssuer } from './constants'
+import { SSO_CALLBACK_PATH, oidcIssuer } from './constants'
+import { OIDC_MAIL_SCOPE } from './scopes'
 import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import { mailServerWebmail } from '@/services/mail/server/constants'
-import type { OidcScope } from './constants'
+import type { OidcScope } from './scopes'
 
 export type OidcClient = {
     /** The client_id: the host of a site's domain, or of the webmail. */

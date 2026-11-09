@@ -1,8 +1,5 @@
-import { OIDC_SCOPES } from './constants'
+import { isOidcScope } from './scopes'
 import { z } from 'zod'
-import type { OidcScope } from './constants'
-
-const isScope = (scope: string): scope is OidcScope => (OIDC_SCOPES as readonly string[]).includes(scope)
 
 /** The login a session on the auth domain came from, as the NextAuth token names it. */
 export const loginProviderSchema = z.enum(['credentials', 'feide'])
@@ -17,7 +14,7 @@ const paramsFieldSchemas = z.object({
     responseType: z.string().refine(value => value === 'code', 'Only the authorization code flow is supported'),
     /** The scopes asked for, space separated. Unknown ones are ignored, as section 3.1.2.1 says; `openid` must be there. */
     scope: z.string()
-        .transform(scope => scope.split(' ').filter(isScope))
+        .transform(scope => scope.split(' ').filter(isOidcScope))
         .refine(scopes => scopes.includes('openid'), 'An OpenID Connect request asks for the openid scope'),
     /** The client's own value, which it gets back with the code and ties the answer to its request by. */
     state: z.string().min(1, 'state is required'),

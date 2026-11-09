@@ -1,4 +1,5 @@
-import { OIDC_CLAIMS, OIDC_SCOPES, oidcIssuer, oidcPaths } from './constants'
+import { oidcIssuer, oidcPaths } from './constants'
+import { OIDC_CLAIMS, OIDC_SCOPES } from './scopes'
 
 /**
  * The document at `oidcPaths.discovery`, by which a client finds the endpoints and what they
