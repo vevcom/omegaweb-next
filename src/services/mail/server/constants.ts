@@ -30,7 +30,10 @@ export const mailServerIsManaged = Boolean(mailServerAdmin.url && mailServerAdmi
  */
 export const mailServerWebmail = webmailOf(envValue('EMAIL_WEBMAIL_URL'))
 
-function webmailOf(url: string | undefined): { origin: string, domain: string } | null {
+/** The webmail's origin, which links to it point at, and its host, the mail domain of the mailboxes. */
+export type MailServerWebmail = { origin: string, domain: string }
+
+function webmailOf(url: string | undefined): MailServerWebmail | null {
     if (!url) return null
     const parsed = URL.parse(url)
     if (!parsed) throw new Error(`EMAIL_WEBMAIL_URL is not a url: ${url}`)

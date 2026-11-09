@@ -6,6 +6,7 @@ import { mailAddressExternalOperations } from '@/services/mail/mailAddressExtern
 import { mailOperations } from '@/services/mail/operations'
 import { MailServerClient } from '@/services/mail/server/client'
 import { syncMailServer } from '@/services/mail/server/sync'
+import { mailboxAddressOf } from '@/services/mail/server/mailboxes'
 import { afterEach, describe, expect, test } from '@jest/globals'
 import type {
     JmapMethodCall,
@@ -15,6 +16,8 @@ import type {
 } from '@/services/mail/server/client'
 
 const TEST_DOMAIN = 'omega.ntnu.no'
+/** The webmail the mailbox tests run with; the other tests pass none, as the env of the tests gives none. */
+const webmail = { origin: 'https://mail.omega.ntnu.no', domain: 'mail.omega.ntnu.no' }
 
 type StoredObject = {
     id: string,
@@ -440,6 +443,122 @@ describe('syncing mailing lists', () => {
         ])
         expect(touched).not.toContain(foreignList.id)
         expect(server.setCallsFor('Domain')).toEqual([])
+    })
+})
+
+describe('syncing mailboxes', () => {
+    const mailboxOf = (localPart: string) => `${localPart}@${webmail.domain}`
+    const storedMailboxId = async (aliasId: number) =>
+        (await prisma.mailAlias.findUniqueOrThrow({ where: { id: aliasId } })).mailboxAccountId
+
+    test('the mailbox address keeps the local part on the main domain and carries any other domain', () => {
+        expect(mailboxAddressOf('styret@omega.ntnu.no', webmail.domain)).toBe('styret@mail.omega.ntnu.no')
+        expect(mailboxAddressOf('Styret@Omega.NTNU.no', webmail.domain)).toBe('styret@mail.omega.ntnu.no')
+        expect(mailboxAddressOf('styret@contactor.no', webmail.domain)).toBe('styret--contactor.no@mail.omega.ntnu.no')
+    })
+
+    test('an alias with a mailbox gets a group on the mailbox domain, which its list delivers to', async () => {
+        const user = await createTestUser('test-box-user', 'test-box-user@test.test')
+        const { alias, list } = await createTestAlias('test-boxed', 'Boxed')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), sender: null, webmail })
+
+        expect(server.domain(webmail.domain)).toBeDefined()
+        const group = server.account(mailboxOf('test-boxed'))
+        expect(group).toBeDefined()
+        expect(group?.['@type']).toBe('Group')
+        expect(group?.description).toBe(alias.address)
+        expect(group?.credentials).toBeUndefined()
+        expect(recipientsOf(server.mailingList(alias.address))).toEqual(['test-box-user@test.test', mailboxOf('test-boxed')])
+        expect(await storedMailboxId(alias.id)).toBe(group?.id)
+
+        server.setCalls.length = 0
+        await syncMailServer({ client: server.client(), sender: null, webmail })
+        expect(server.setCalls).toEqual([])
+    })
+
+    test('without a webmail, no mailbox and no mailbox domain is made', async () => {
+        await createTestAlias('test-unboxed')
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), sender: null })
+        expect(server.objects.Account.size).toBe(0)
+        expect(server.objects.Domain.size).toBe(1)
+    })
+
+    test('switching the mailbox off destroys the group and drops it from the list, and on makes a new one', async () => {
+        const { alias } = await createTestAlias('test-switched')
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), sender: null, webmail })
+        const first = server.account(mailboxOf('test-switched'))
+        expect(first).toBeDefined()
+
+        await aliasOperations.updateMailbox({ params: { id: alias.id }, data: { hasMailbox: false }, bypassAuth: true })
+        server.setCalls.length = 0
+        await syncMailServer({ client: server.client(), sender: null, webmail })
+        expect(server.account(mailboxOf('test-switched'))).toBeUndefined()
+        expect(recipientsOf(server.mailingList(alias.address))).toEqual([])
+        expect(await storedMailboxId(alias.id)).toBeNull()
+        expect(server.setCallsFor('Account')).toHaveLength(1)
+        expect(server.setCallsFor('Account')[0].args.destroy).toEqual([first?.id])
+
+        await aliasOperations.updateMailbox({ params: { id: alias.id }, data: { hasMailbox: true }, bypassAuth: true })
+        await syncMailServer({ client: server.client(), sender: null, webmail })
+        const second = server.account(mailboxOf('test-switched'))
+        expect(second).toBeDefined()
+        expect(second?.id).not.toBe(first?.id)
+        expect(await storedMailboxId(alias.id)).toBe(second?.id)
+    })
+
+    test('renaming the alias renames its group in place, so the mail stays', async () => {
+        const { alias } = await createTestAlias('test-before')
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), sender: null, webmail })
+        const group = server.account(mailboxOf('test-before'))
+
+        await aliasOperations.update({
+            params: { id: alias.id },
+            data: { localPart: 'test-after', domain: TEST_DOMAIN, description: '' },
+            bypassAuth: true,
+        })
+        server.setCalls.length = 0
+        await syncMailServer({ client: server.client(), sender: null, webmail })
+        expect(server.account(mailboxOf('test-before'))).toBeUndefined()
+        const renamed = server.account(mailboxOf('test-after'))
+        expect(renamed?.id).toBe(group?.id)
+        expect(renamed?.description).toBe(`test-after@${TEST_DOMAIN}`)
+        expect(server.setCallsFor('Account')).toHaveLength(1)
+        expect(Object.keys(server.setCallsFor('Account')[0].args.update ?? {})).toEqual([group?.id])
+        expect(recipientsOf(server.mailingList(`test-after@${TEST_DOMAIN}`))).toEqual([mailboxOf('test-after')])
+    })
+
+    test('a deleted alias loses its group, and a group no alias remembers goes to the alias of its name', async () => {
+        const { alias: doomed } = await createTestAlias('test-doomed-box')
+        const { alias: orphaned } = await createTestAlias('test-orphaned')
+        const server = serverWithOurDomain()
+        const mailboxDomain = server.add('Domain', { name: webmail.domain })
+        const orphan = server.add('Account', {
+            '@type': 'Group', name: 'test-orphaned', domainId: mailboxDomain.id, description: 'Made by a run that failed',
+        })
+        const user = server.add('Account', { '@type': 'User', name: 'test-orphaned', domainId: mailboxDomain.id })
+
+        await syncMailServer({ client: server.client(), sender: null, webmail })
+        expect(await storedMailboxId(orphaned.id)).toBe(orphan.id)
+        expect(server.objects.Account.get(orphan.id)?.description).toBe(orphaned.address)
+        expect(server.account(mailboxOf('test-doomed-box'))).toBeDefined()
+        // A user account on the mailbox domain, such as a member's, is not a mailbox and is left alone.
+        expect(server.objects.Account.get(user.id)).toEqual(user)
+
+        await aliasOperations.destroy({ params: { id: doomed.id }, bypassAuth: true })
+        server.setCalls.length = 0
+        await syncMailServer({ client: server.client(), sender: null, webmail })
+        expect(server.account(mailboxOf('test-doomed-box'))).toBeUndefined()
+        expect(server.objects.Account.get(orphan.id)).toBeDefined()
+        expect(server.objects.Account.get(user.id)).toEqual(user)
     })
 })
 

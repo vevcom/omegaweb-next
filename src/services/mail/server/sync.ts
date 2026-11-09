@@ -1,11 +1,19 @@
 import '@pn-server-only'
 import { mailServerClientFromEnv } from './client'
-import { mailServerSender } from './constants'
+import { mailServerSender, mailServerWebmail, mailboxesAreAvailable } from './constants'
+import { mailboxAddressOf, syncMailboxes } from './mailboxes'
 import { validMailAddressDomains } from '@/services/mail/constants'
 import { resolveMailRecipients } from '@/services/mail/recipients'
 import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
-import type { MailServerClient, MailServerMailingList, MailServerPasswordCredentials } from './client'
+import type { MailServerWebmail } from './constants'
+import type { MailboxChanges } from './mailboxes'
+import type {
+    MailServerAccount,
+    MailServerClient,
+    MailServerMailingList,
+    MailServerPasswordCredentials,
+} from './client'
 
 /** The account the app sends as, which the sync keeps on the server. */
 export type MailServerSenderAccount = {
@@ -18,6 +26,13 @@ export type SyncMailServerOptions = {
     client?: MailServerClient,
     /** The sender account to keep. Defaults to EMAIL_USER and EMAIL_PASSWORD; null keeps none. */
     sender?: MailServerSenderAccount | null,
+    /** The webmail whose host the mailboxes are on. Defaults to EMAIL_WEBMAIL_URL; null keeps no mailboxes. */
+    webmail?: MailServerWebmail | null,
+}
+
+type WantedDomain = {
+    name: string,
+    description: string,
 }
 
 /** A list as the sync wants it on the server. */
@@ -36,33 +51,72 @@ type MailingListChanges = {
 }
 
 const DOMAIN_DESCRIPTION = 'A domain of the sites, created by omegaweb-next'
+const MAILBOX_DOMAIN_DESCRIPTION = 'The domain of the mailboxes of the aliases, created by omegaweb-next'
 const SENDER_DESCRIPTION = 'The account omegaweb-next sends mail as'
+
+const NO_MAILBOX_CHANGES: MailboxChanges = { created: 0, updated: 0, destroyed: 0 }
 
 /**
  * Brings the mail server in step with the database: every mail domain of the sites exists as a
- * domain, every alias as a mailing list with the addresses it reaches as recipients, and the
- * sender account exists with its password. What the server holds under other domains is left
- * alone. Run by the mail worker (src/workers/definitions.ts).
+ * domain, and so does the mailbox domain; every alias with a mailbox has its group account there
+ * (see mailboxes.ts); every alias is a mailing list with the addresses it reaches, and its mailbox,
+ * as recipients; and the sender account exists with its password. What the server holds under
+ * other domains is left alone. Run by the mail worker (src/workers/definitions.ts).
  *
  * @returns false, since one run does all the work there is.
  */
 export async function syncMailServer(options: SyncMailServerOptions = {}): Promise<false> {
     const client = options.client ?? mailServerClientFromEnv()
     const sender = options.sender === undefined ? senderFromEnv() : options.sender
+    const webmail = options.webmail === undefined ? webmailFromEnv() : options.webmail
 
-    const domains = await syncDomains(client)
-    const lists = await syncMailingLists(client, domains.idsByName)
-    const senderCreated = await syncSenderAccount(client, domains.idsByName, sender)
+    const siteDomains = validMailAddressDomains().map(name => ({ name, description: DOMAIN_DESCRIPTION }))
+    const domains = await syncDomains(client, [
+        ...siteDomains,
+        ...(webmail ? [{ name: webmail.domain, description: MAILBOX_DOMAIN_DESCRIPTION }] : []),
+    ])
+    const siteDomainIdsByName = new Map(siteDomains.flatMap(({ name }) => {
+        const id = domains.idsByName.get(name)
+        return id === undefined ? [] : [[name, id] as const]
+    }))
 
-    const changes = domains.created + lists.created + lists.updated + lists.destroyed + (senderCreated ? 1 : 0)
+    const accounts = await client.listAll('Account')
+    const mailboxes = await syncMailboxesOn(client, accounts, domains.idsByName, webmail)
+    const lists = await syncMailingLists(client, siteDomainIdsByName, webmail)
+    const senderCreated = await syncSenderAccount(client, siteDomainIdsByName, sender, accounts)
+
+    const changes = domains.created + mailboxes.created + mailboxes.updated + mailboxes.destroyed
+        + lists.created + lists.updated + lists.destroyed + (senderCreated ? 1 : 0)
     if (changes > 0) {
-        logger.info(`Mail server sync created ${domains.created} domains, created ${lists.created}, updated ${
+        logger.info(`Mail server sync created ${domains.created} domains; created ${mailboxes.created}, updated ${
+            mailboxes.updated} and destroyed ${mailboxes.destroyed} mailboxes; created ${lists.created}, updated ${
             lists.updated} and destroyed ${lists.destroyed} mailing lists${
-            senderCreated ? ', and created the sender account' : ''}`)
+            senderCreated ? '; and created the sender account' : ''}`)
     } else {
         logger.debug('Mail server sync found the server in step with the database')
     }
     return false
+}
+
+/** The webmail of the env when the installation keeps mailboxes, which takes a managed server too. */
+function webmailFromEnv(): MailServerWebmail | null {
+    return mailboxesAreAvailable ? mailServerWebmail : null
+}
+
+/** The mailboxes, when there is a webmail to read them in and the domain for them was made. */
+async function syncMailboxesOn(
+    client: MailServerClient,
+    accounts: MailServerAccount[],
+    domainIdsByName: Map<string, string>,
+    webmail: MailServerWebmail | null,
+): Promise<MailboxChanges> {
+    if (!webmail) return NO_MAILBOX_CHANGES
+    const mailboxDomainId = domainIdsByName.get(webmail.domain)
+    if (mailboxDomainId === undefined) {
+        logger.warn(`Mail server sync keeps no mailboxes, since the mailbox domain ${webmail.domain} could not be made`)
+        return NO_MAILBOX_CHANGES
+    }
+    return syncMailboxes(client, accounts, mailboxDomainId, webmail)
 }
 
 function senderFromEnv(): MailServerSenderAccount | null {
@@ -89,31 +143,35 @@ function creationId(address: string, index: number): string {
 }
 
 /**
- * Creates the mail domains of the sites that the server lacks. Domains are never destroyed: one
- * the server has that is not ours is only warned about, since mail for it may still be arriving.
+ * Creates the domains wanted that the server lacks: the mail domains of the sites, and the mailbox
+ * domain. Domains are never destroyed: one the server has that is not ours is only warned about,
+ * since mail for it may still be arriving.
  */
-async function syncDomains(client: MailServerClient): Promise<{ idsByName: Map<string, string>, created: number }> {
-    const ours = validMailAddressDomains().map(domain => domain.toLowerCase())
+async function syncDomains(
+    client: MailServerClient,
+    wanted: WantedDomain[],
+): Promise<{ idsByName: Map<string, string>, created: number }> {
+    const ours = new Map(wanted.map(domain => [domain.name.toLowerCase(), domain.description]))
     const existing = await client.listAll('Domain')
 
     const idsByName = new Map<string, string>()
     const foreign: string[] = []
     for (const domain of existing) {
         const name = domain.name.toLowerCase()
-        if (ours.includes(name)) idsByName.set(name, domain.id)
+        if (ours.has(name)) idsByName.set(name, domain.id)
         else foreign.push(domain.name)
     }
     if (foreign.length > 0) {
         logger.warn(`Mail server has domains that are not ours, which are left alone: ${foreign.join(', ')}`)
     }
 
-    const missing = ours.filter(name => !idsByName.has(name))
+    const missing = Array.from(ours.keys()).filter(name => !idsByName.has(name))
     if (missing.length > 0) {
         const namesByCreationId = new Map(missing.map((name, index) => [creationId(name, index), name]))
         const result = await client.set('Domain', {
             create: Object.fromEntries(Array.from(namesByCreationId, ([id, name]) => [
                 id,
-                { name, description: DOMAIN_DESCRIPTION },
+                { name, description: ours.get(name) },
             ])),
         })
         for (const [id, created] of Object.entries(result.created ?? {})) {
@@ -124,12 +182,19 @@ async function syncDomains(client: MailServerClient): Promise<{ idsByName: Map<s
     return { idsByName, created: missing.length }
 }
 
-/** Every alias as the list it should be on the server, by its address. */
-async function wantedMailingLists(domainIdsByName: Map<string, string>): Promise<Map<string, WantedMailingList>> {
+/**
+ * Every alias as the list it should be on the server, by its address. Besides the addresses the
+ * alias reaches, the list delivers to the alias's mailbox when it has one.
+ */
+async function wantedMailingLists(
+    domainIdsByName: Map<string, string>,
+    webmail: MailServerWebmail | null,
+): Promise<Map<string, WantedMailingList>> {
     const aliases = await prisma.mailAlias.findMany({
         select: {
             address: true,
             description: true,
+            hasMailbox: true,
             mailingLists: { select: { mailingListId: true } },
         },
     })
@@ -147,11 +212,15 @@ async function wantedMailingLists(domainIdsByName: Map<string, string>): Promise
             addresses: [],
             mailingListIds: alias.mailingLists.map(relation => relation.mailingListId),
         })
+        const mailbox = webmail && alias.hasMailbox ? [mailboxAddressOf(alias.address, webmail.domain)] : []
         wanted.set(alias.address.toLowerCase(), {
             name: localPart.toLowerCase(),
             domainId,
             description: alias.description === '' ? null : alias.description,
-            recipients: Object.fromEntries(recipients.map(recipient => [recipient.address.toLowerCase(), true as const])),
+            recipients: Object.fromEntries(
+                [...recipients.map(recipient => recipient.address), ...mailbox]
+                    .map(address => [address.toLowerCase(), true as const]),
+            ),
         })
     }
     if (unplaced.length > 0) {
@@ -187,8 +256,9 @@ function changesTo(list: MailServerMailingList, target: WantedMailingList): Part
 async function syncMailingLists(
     client: MailServerClient,
     domainIdsByName: Map<string, string>,
+    webmail: MailServerWebmail | null,
 ): Promise<MailingListChanges> {
-    const wanted = await wantedMailingLists(domainIdsByName)
+    const wanted = await wantedMailingLists(domainIdsByName, webmail)
     const existing = await client.listAll('MailingList')
     const domainNamesById = new Map(Array.from(domainIdsByName, ([name, id]) => [id, name]))
 
@@ -247,6 +317,7 @@ async function syncSenderAccount(
     client: MailServerClient,
     domainIdsByName: Map<string, string>,
     sender: MailServerSenderAccount | null,
+    accounts: MailServerAccount[],
 ): Promise<boolean> {
     if (sender === null) return false
 
@@ -259,7 +330,6 @@ async function syncSenderAccount(
     }
 
     const credentials: MailServerPasswordCredentials = { 0: { '@type': 'Password', secret: sender.password } }
-    const accounts = await client.listAll('Account')
     const existing = accounts.find(account =>
         account.domainId === domainId && account.name.toLowerCase() === localPart.toLowerCase()
     )
