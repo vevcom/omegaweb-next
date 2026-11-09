@@ -6,6 +6,10 @@ model MailAlias {
   description       String     @default("")
   ownerVisibility   Visibility @relation(name: "MailAliasOwnerVisibility", fields: [ownerVisibilityId], references: [id], onDelete: Restrict)
   ownerVisibilityId Int        @unique
+  /// Whether the alias also keeps its mail in a shared mailbox on the mail server, which everyone who receives it may open.
+  hasMailbox        Boolean    @default(true)
+  /// The id of that mailbox's group account on the mail server, once the sync has created it.
+  mailboxAccountId  String?    @unique
 
   mailingLists        MailAliasMailingList[]
   notificationChannel NotificationChannel[]

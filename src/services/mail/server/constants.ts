@@ -24,6 +24,23 @@ export const mailServerAdmin = {
 export const mailServerIsManaged = Boolean(mailServerAdmin.url && mailServerAdmin.user && mailServerAdmin.password)
 
 /**
+ * The webmail of that server, where everyone who receives an alias's mail reads its mailbox, unless
+ * the owners have switched the mailbox off. Its host is also the mail domain the mailboxes are on,
+ * so one value names both, see mailboxes.ts. Left unset, no alias keeps a mailbox.
+ */
+export const mailServerWebmail = webmailOf(envValue('EMAIL_WEBMAIL_URL'))
+
+function webmailOf(url: string | undefined): { origin: string, domain: string } | null {
+    if (!url) return null
+    const parsed = URL.parse(url)
+    if (!parsed) throw new Error(`EMAIL_WEBMAIL_URL is not a url: ${url}`)
+    return { origin: parsed.origin, domain: parsed.hostname.toLowerCase() }
+}
+
+/** Whether aliases keep mailboxes: a managed server, and a webmail to read them in. */
+export const mailboxesAreAvailable = mailServerIsManaged && mailServerWebmail !== null
+
+/**
  * The account the app sends mail as, which the sync keeps on the server with this password. The
  * same credentials sending uses, see src/lib/email/constants.ts.
  */

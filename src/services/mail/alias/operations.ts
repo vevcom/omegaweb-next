@@ -94,6 +94,25 @@ export const aliasOperations = {
             }),
     }),
 
+    /**
+     * Switches the alias's mailbox off or back on; a new alias has one. The flag is all that changes
+     * here: the mail server sync creates or destroys the mailbox on its next run (see
+     * mail/server/mailboxes.ts), and the token everyone who receives the alias's mail signs in to
+     * the webmail with lists it from then on.
+     */
+    updateMailbox: defineOperation({
+        paramsSchema: mailAliasSchemas.params.updateMailbox,
+        dataSchema: mailAliasSchemas.data.updateMailbox,
+        authorizer: async ({ params, prisma }) => mailAliasAuth.updateMailbox.data({
+            visibility: await visibility.readMatrixInternal({ prisma, params }),
+        }),
+        operation: async ({ prisma, params, data }): Promise<MailAlias> =>
+            prisma.mailAlias.update({
+                where: { id: params.id },
+                data,
+            }),
+    }),
+
     destroy: defineOperation({
         paramsSchema: mailAliasSchemas.params.destroy,
         authorizer: async ({ params, prisma }) => mailAliasAuth.destroy.data({

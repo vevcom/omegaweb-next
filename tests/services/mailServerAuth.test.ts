@@ -392,4 +392,29 @@ describe('wiring the mail server as an owner', () => {
             params: { id: alias.id }, data: renamed, session: sessionWith(['MAILSERVER_ADMIN']),
         })
     })
+
+    test('a new alias has a mailbox, which any owner switches off and on', async () => {
+        const owners = await createGroup('mailbox-owners')
+        const others = await createGroup('mailbox-others')
+        const member = await createUser('mailbox-member')
+        const alias = await aliasOperations.create({
+            data: {
+                localPart: 'test-mailbox', domain: 'omega.ntnu.no', description: '', ownerRequirements: activeIn(owners.id),
+            },
+            bypassAuth: true,
+        })
+        expect(alias.hasMailbox).toBe(true)
+
+        await rejectsSaying(aliasOperations.updateMailbox({
+            params: { id: alias.id }, data: { hasMailbox: false }, session: memberSession(member, [others.membership]),
+        }), 'Bare eierne av aliaset kan endre det')
+        const switchedOff = await aliasOperations.updateMailbox({
+            params: { id: alias.id }, data: { hasMailbox: false }, session: memberSession(member, [owners.membership]),
+        })
+        expect(switchedOff.hasMailbox).toBe(false)
+        const switchedOn = await aliasOperations.updateMailbox({
+            params: { id: alias.id }, data: { hasMailbox: true }, session: sessionWith(['MAILSERVER_ADMIN']),
+        })
+        expect(switchedOn.hasMailbox).toBe(true)
+    })
 })
