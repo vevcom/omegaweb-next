@@ -6,7 +6,7 @@ import { describe, expect, test } from '@jest/globals'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { SiteDomain } from '@/lib/sites/domainConfig'
+import type { DomainConfigData } from '@/lib/sites/domainConfig'
 
 const json = {
     'omega.ntnu.no': { site: 'OMEGAWEB', main: true, aliases: ['www.omega.ntnu.no'] },
@@ -84,8 +84,44 @@ describe('DomainConfig', () => {
 
     test('survives the trip to the browser', () => {
         const config = DomainConfig.parse(json)
-        const inBrowser = DomainConfig.fromJSON(JSON.parse(JSON.stringify(config)) as SiteDomain[])
+        const inBrowser = DomainConfig.fromJSON(JSON.parse(JSON.stringify(config)) as DomainConfigData)
         expect(inBrowser.domains).toEqual(config.domains)
+        expect(inBrowser.authDomain).toBeNull()
+        const withAuth = DomainConfig.parse({ ...json, 'login.omega.ntnu.no': { auth: true } })
+        expect(DomainConfig.fromJSON(JSON.parse(JSON.stringify(withAuth)) as DomainConfigData).authOrigin())
+            .toBe('https://login.omega.ntnu.no')
+    })
+
+    test('signs users in on the auth domain when there is one, else on Omega\'s main domain', () => {
+        const config = DomainConfig.parse({ ...json, 'login.omega.ntnu.no': { auth: true } })
+        expect(config.authDomain).toEqual({ host: 'login.omega.ntnu.no', origin: 'https://login.omega.ntnu.no' })
+        expect(config.authOrigin()).toBe('https://login.omega.ntnu.no')
+        expect(config.isAuthHost('Login.omega.ntnu.no')).toBe(true)
+        expect(config.isAuthHost('omega.ntnu.no')).toBe(false)
+        // The auth domain is no site's, so it is not a domain, and no mail is on it.
+        expect(config.domainOfHost('login.omega.ntnu.no')).toBeNull()
+        expect(config.hostNames()).toEqual(['omega.ntnu.no', 'contactor.no', 'www.contactor.no', 'localhost'])
+        expect(config.allHostNames()).toContain('login.omega.ntnu.no')
+        expect(config.hasDomains()).toBe(true)
+
+        const without = DomainConfig.parse(json)
+        expect(without.authDomain).toBeNull()
+        expect(without.authOrigin()).toBe('https://omega.ntnu.no')
+        expect(without.isAuthHost('omega.ntnu.no')).toBe(false)
+        expect(DomainConfig.parse({}).authOrigin()).toBeNull()
+        expect(DomainConfig.parse({}).hasDomains()).toBe(false)
+        expect(DomainConfig.parse({ 'login.omega.ntnu.no': { auth: true, protocol: 'http' } }).hasDomains()).toBe(true)
+    })
+
+    test('rejects two auth domains, an auth domain of a site, and a key it does not know', () => {
+        expect(() => DomainConfig.parse({
+            ...json,
+            'login.omega.ntnu.no': { auth: true },
+            'auth.omega.ntnu.no': { auth: true },
+        })).toThrow(/2 domains are marked auth/)
+        expect(() => DomainConfig.parse({ 'login.omega.ntnu.no': { auth: true, site: 'OMEGAWEB' } })).toThrow()
+        expect(() => DomainConfig.parse({ 'login.omega.ntnu.no': { auth: false } })).toThrow()
+        expect(() => DomainConfig.parse({ 'contactor.no': { site: 'CAREERS', main: true, mian: true } })).toThrow()
     })
 
     test('the example for development names the three dev hosts, each a site\'s main', () => {

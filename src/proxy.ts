@@ -3,6 +3,7 @@ import { DomainContext, isAppWidePath } from '@/lib/sites/context'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import { Site } from '@/lib/sites/site'
 import { appHref } from '@/lib/sites/href'
+import { isAuthDomainPagePath } from '@/pageKits/auth/paths'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -24,7 +25,8 @@ export function proxy(request: NextRequest) {
     const context = DomainContext.fromBrowser(domain, browserPath)
 
     // Once domains are configured, a host that is not one of them gets nothing but the healthcheck.
-    if (!context.siteDomain() && DomainContext.domainsForBrowser().length > 0 && pathname !== '/api/health') {
+    const configuredHost = context.siteDomain() !== null || context.isDedicatedAuthDomain()
+    if (!configuredHost && DomainContext.hasDomains() && pathname !== '/api/health') {
         const aliased = DomainContext.domainOfAlias(domain)
         if (aliased) return NextResponse.redirect(`${aliased.origin}${browserPath}`, 308)
         // A body, so no browser takes the empty answer for a file to download.
@@ -57,11 +59,20 @@ export function proxy(request: NextRequest) {
  * On a site's own domain the browser asks for site-relative paths, so the page is served from the
  * app path under the site's base path, and the browser's url stays as it is. An app path of a site
  * that reached such a domain unresolved, like contactor.no/career/job-ads, is sent to where it
- * belongs instead. Omega's domains serve every app path as it is.
+ * belongs instead. Omega's domains serve every app path as it is. The auth pages are served on the
+ * auth domain alone, and a domain set apart for them serves nothing else: a page that reached the
+ * wrong domain is sent to the right one, the same way a link to it is rendered.
  */
 function siteResponse(request: NextRequest, context: DomainContext, requestHeaders: Headers) {
     const { pathname, search } = request.nextUrl
-    if (context.servesBasePaths() || isAppWidePath(pathname)) {
+    if (isAppWidePath(pathname)) {
+        return NextResponse.next({ request: { headers: requestHeaders } })
+    }
+    const onWrongDomain = isAuthDomainPagePath(context.path) ? !context.isAuthDomain() : context.isDedicatedAuthDomain()
+    if (onWrongDomain) {
+        return NextResponse.redirect(new URL(context.resolveHref(context.path), request.nextUrl), 308)
+    }
+    if (context.servesBasePaths()) {
         return NextResponse.next({ request: { headers: requestHeaders } })
     }
     if (!Site.ofPath(pathname).isRoot) {

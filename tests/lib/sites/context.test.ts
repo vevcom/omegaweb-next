@@ -11,6 +11,11 @@ const withDomains = DomainConfig.parse({
     'contactor.com': { site: 'CAREERS' },
 })
 const withoutDomains = DomainConfig.parse({})
+const withAuthDomain = DomainConfig.parse({
+    'omega.ntnu.no': { site: 'OMEGAWEB', main: true },
+    'contactor.no': { site: 'CAREERS', main: true },
+    'login.omega.ntnu.no': { auth: true },
+})
 
 describe('DomainContext', () => {
     beforeEach(() => DomainContext.configure(withDomains))
@@ -69,6 +74,44 @@ describe('DomainContext', () => {
         expect(DomainContext.publicUrl(Site.REVUE, appHref('/revue'))).toBe('https://omega.ntnu.no/revue')
         DomainContext.configure(withoutDomains)
         expect(() => DomainContext.publicUrl(Site.REVUE, appHref('/revue'))).toThrow()
+    })
+
+    test('makes a public url of an auth page by the auth domain, under the site\'s base path', () => {
+        expect(DomainContext.publicUrl(Site.CAREERS, appHref('/career/verify-email?token=x')))
+            .toBe('https://omega.ntnu.no/career/verify-email?token=x')
+        DomainContext.configure(withAuthDomain)
+        expect(DomainContext.publicUrl(Site.CAREERS, appHref('/career/verify-email?token=x')))
+            .toBe('https://login.omega.ntnu.no/career/verify-email?token=x')
+        expect(DomainContext.publicUrl(Site.OMEGAWEB, appHref('/reset-password-form?token=x')))
+            .toBe('https://login.omega.ntnu.no/reset-password-form?token=x')
+        expect(DomainContext.publicUrl(Site.CAREERS, appHref('/career/logout'))).toBe('https://contactor.no/logout')
+        expect(DomainContext.authOrigin()).toBe('https://login.omega.ntnu.no')
+        DomainContext.configure(withoutDomains)
+        expect(() => DomainContext.authOrigin()).toThrow()
+    })
+
+    test('the dedicated auth domain is no site\'s, serves base paths and nothing but the auth pages', () => {
+        DomainContext.configure(withAuthDomain)
+        const context = DomainContext.fromBrowser('login.omega.ntnu.no', '/career/login')
+        expect(context.siteDomain()).toBeNull()
+        expect(context.isDedicatedAuthDomain()).toBe(true)
+        expect(context.isAuthDomain()).toBe(true)
+        expect(context.hostSite()).toBe(Site.OMEGAWEB)
+        expect(context.site()).toBe(Site.CAREERS)
+        expect(context.servesBasePaths()).toBe(true)
+        expect(context.serves(Site.CAREERS)).toBe(false)
+        expect(context.serves(Site.OMEGAWEB)).toBe(false)
+        expect(DomainContext.fromBrowser('omega.ntnu.no', '/').isAuthDomain()).toBe(false)
+        expect(DomainContext.fromBrowser('omega.ntnu.no', '/').isDedicatedAuthDomain()).toBe(false)
+    })
+
+    test('without a dedicated auth domain, Omega\'s main domain signs users in', () => {
+        expect(DomainContext.fromBrowser('omega.ntnu.no', '/').isAuthDomain()).toBe(true)
+        expect(DomainContext.fromBrowser('omega.ntnu.no', '/').isDedicatedAuthDomain()).toBe(false)
+        expect(DomainContext.fromBrowser('omega.ntnu.no', '/').serves(Site.CAREERS)).toBe(true)
+        expect(DomainContext.fromBrowser('contactor.no', '/').isAuthDomain()).toBe(false)
+        DomainContext.configure(withoutDomains)
+        expect(DomainContext.fromBrowser('localhost:3000', '/').isAuthDomain()).toBe(false)
     })
 
     test('puts a site\'s mail on its main domain, or Omega\'s without one, and refuses without Omega\'s', () => {
@@ -137,6 +180,38 @@ describe('DomainContext', () => {
         test('keeps the app-wide paths on the domain the visitor is on', () => {
             expect(onCareers.resolveHref(appHref('/api/health'))).toBe('/api/health')
             expect(onCareers.resolveHref(appHref('/store/images/cover.webp'))).toBe('/store/images/cover.webp')
+        })
+
+        test('an auth page is reached by the auth domain from everywhere, and stays there', () => {
+            const login = appHref('/career/login?callbackUrl=%2Fcareer')
+            expect(onCareers.resolveHref(login)).toBe('https://omega.ntnu.no/career/login?callbackUrl=%2Fcareer')
+            expect(onOmega.resolveHref(login)).toBe('/career/login?callbackUrl=%2Fcareer')
+            expect(onOmega.resolveHref(appHref('/register'))).toBe('/register')
+            DomainContext.configure(withAuthDomain)
+            const onAuth = DomainContext.fromAppPath('login.omega.ntnu.no', '/career/login')
+            expect(onCareers.resolveHref(login)).toBe('https://login.omega.ntnu.no/career/login?callbackUrl=%2Fcareer')
+            expect(onOmega.resolveHref(appHref('/register'))).toBe('https://login.omega.ntnu.no/register')
+            expect(onAuth.resolveHref(login)).toBe('/career/login?callbackUrl=%2Fcareer')
+            expect(onAuth.resolveHref(appHref('/register'))).toBe('/register')
+            // Logging out clears the cookie of the domain the visitor is on, so it stays a page of the site.
+            expect(onCareers.resolveHref(appHref('/career/logout'))).toBe('/logout')
+            expect(onOmega.resolveHref(appHref('/logout'))).toBe('/logout')
+        })
+
+        test('from the dedicated auth domain every other page leaves for the domain serving it', () => {
+            DomainContext.configure(withAuthDomain)
+            const onAuth = DomainContext.fromAppPath('login.omega.ntnu.no', '/career/login')
+            expect(onAuth.resolveHref(appHref('/career/job-ads'))).toBe('https://contactor.no/job-ads')
+            expect(onAuth.resolveHref(appHref('/career/logout'))).toBe('https://contactor.no/logout')
+            expect(onAuth.resolveHref(appHref('/'))).toBe('https://omega.ntnu.no/')
+            expect(onAuth.resolveHref(appHref('/revue'))).toBe('https://omega.ntnu.no/revue')
+            expect(onAuth.resolveHref(appHref('/api/auth/session'))).toBe('/api/auth/session')
+        })
+
+        test('without a dedicated auth domain the auth pages sit on Omega\'s main domain like any page of it', () => {
+            DomainContext.configure(withoutDomains)
+            const onLocalhost = DomainContext.fromAppPath('localhost:3000', '/')
+            expect(onLocalhost.resolveHref(appHref('/career/login'))).toBe('/career/login')
         })
 
         test('keeps the files at the app\'s root there too, since every domain asks for them by their plain path', () => {
