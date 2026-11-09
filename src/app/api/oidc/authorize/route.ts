@@ -2,6 +2,7 @@ import { oauthErrorResponse, oauthErrorOf, providerRoute } from '@/app/api/oidc/
 import { apiHandler } from '@/api/apiHandler'
 import { oidcOperations } from '@/services/auth/oidc/operations'
 import { oidcClientOf } from '@/services/auth/oidc/clients'
+import { fromWire } from '@/services/auth/oidc/wire'
 import { readSessionToken, sessionFromCookie } from '@/auth/sso/session'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/pageKits/auth/authPagesOf'
@@ -31,14 +32,9 @@ export const GET = providerRoute(apiHandler({
         return {
             userId: token.user.id,
             provider: token.provider,
-            clientId: query.get('client_id') ?? '',
-            redirectUri: query.get('redirect_uri') ?? '',
-            responseType: query.get('response_type') ?? '',
-            scope: query.get('scope') ?? '',
-            state: query.get('state') ?? '',
-            nonce: query.get('nonce'),
-            codeChallenge: query.get('code_challenge') ?? '',
-            codeChallengeMethod: query.get('code_challenge_method') ?? '',
+            ...fromWire(name => query.get(name), [
+                'clientId', 'redirectUri', 'responseType', 'scope', 'state', 'nonce', 'codeChallenge', 'codeChallengeMethod',
+            ]),
         }
     },
     respond: ({ redirectUri, code, state }) => NextResponse.redirect(withParams(redirectUri, { code, state })),
@@ -61,9 +57,9 @@ function withParams(uri: string, params: Record<string, string | null>): URL {
  */
 function respondAuthorizeError(error: ApiError, request: NextRequest): Response {
     const query = request.nextUrl.searchParams
-    const client = oidcClientOf(query.get('client_id') ?? '')
-    const redirectUri = query.get('redirect_uri') ?? ''
-    if (!client?.acceptsRedirectUri(redirectUri)) {
+    const { clientId, redirectUri, state } = fromWire(name => query.get(name), ['clientId', 'redirectUri', 'state'])
+    const client = oidcClientOf(clientId ?? '')
+    if (!redirectUri || !client?.acceptsRedirectUri(redirectUri)) {
         return oauthErrorResponse({
             errorCode: 'BAD PARAMETERS',
             errors: [{ message: 'Unknown client_id, or a redirect_uri it has not registered' }],
@@ -79,9 +75,5 @@ function respondAuthorizeError(error: ApiError, request: NextRequest): Response 
         return NextResponse.redirect(DomainContext.authDomainUrl(form))
     }
     const { error: code, description } = oauthErrorOf(error)
-    return NextResponse.redirect(withParams(redirectUri, {
-        error: code,
-        error_description: description,
-        state: query.get('state'),
-    }))
+    return NextResponse.redirect(withParams(redirectUri, { error: code, error_description: description, state }))
 }

@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { OIDC_TOKEN_LIFETIME_S, oidcIssuer } from './constants'
+import { OIDC_TOKEN_LIFETIME_S, oidcIssuer, oidcProtocol } from './constants'
 import { readPemEnvBase64 } from '@/lib/jwt/readPemEnvBase64'
 import { ServiceError } from '@/services/error'
 import { TokenExpiredError, sign, verify } from 'jsonwebtoken'
@@ -12,7 +12,7 @@ import type { UserClaims } from './scopes'
  * are handed.
  */
 
-const ALGORITHM = 'ES256'
+const ALGORITHM = oidcProtocol.tokenSigningAlgorithm
 
 function keyFromEnv(name: 'JWT_PRIVATE_KEY' | 'JWT_PUBLIC_KEY'): string {
     const value = process.env[name]

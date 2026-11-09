@@ -4,7 +4,8 @@ import { ssoStartHref } from '@/auth/sso/links'
 import { readSessionToken } from '@/auth/sso/session'
 import { codeChallengeOf, newSsoState, setSsoStateCookie } from '@/auth/sso/stateCookie'
 import { sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
-import { SSO_CALLBACK_PATH, oidcPaths } from '@/services/auth/oidc/constants'
+import { SSO_CALLBACK_PATH, oidcPaths, oidcProtocol } from '@/services/auth/oidc/constants'
+import { toWire } from '@/services/auth/oidc/wire'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/pageKits/auth/authPagesOf'
 import { QueryParams } from '@/lib/queryParams/queryParams'
@@ -41,14 +42,16 @@ export async function GET(request: NextRequest) {
     const state = newSsoState(callbackUrl)
     const authorize = new URL(oidcPaths.authorize, DomainContext.authOrigin())
     authorize.search = new URLSearchParams({
-        response_type: 'code',
-        client_id: domain.host,
-        redirect_uri: `${domain.origin}${SSO_CALLBACK_PATH}`,
-        scope: SSO_SCOPE,
-        state: state.state,
-        nonce: state.nonce,
-        code_challenge: codeChallengeOf(state.codeVerifier),
-        code_challenge_method: 'S256',
+        ...toWire({
+            responseType: oidcProtocol.responseType,
+            clientId: domain.host,
+            redirectUri: `${domain.origin}${SSO_CALLBACK_PATH}`,
+            scope: SSO_SCOPE,
+            state: state.state,
+            nonce: state.nonce,
+            codeChallenge: codeChallengeOf(state.codeVerifier),
+            codeChallengeMethod: oidcProtocol.codeChallengeMethod,
+        }),
         // Our own parameter: the login renders in the layout of the site the visitor was on.
         site: site.name,
     }).toString()

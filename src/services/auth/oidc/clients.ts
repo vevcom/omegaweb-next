@@ -1,24 +1,23 @@
 import { SSO_CALLBACK_PATH, oidcIssuer } from './constants'
-import { OIDC_MAIL_SCOPE } from './scopes'
+import { scopesFor } from './scopes'
 import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import { mailServerWebmail } from '@/services/mail/server/constants'
-import type { OidcScope } from './scopes'
+import type { OidcClientKind, OidcScope } from './scopes'
 
 export type OidcClient = {
     /** The client_id: the host of a site's domain, or of the webmail. */
     id: string,
+    kind: OidcClientKind,
     /** Whether the provider may send a code to `uri`: only to one the client registered, see RFC 6749 section 3.1.2. */
     acceptsRedirectUri: (uri: string) => boolean,
-    /** The scopes the client may be given. Others it asks for are left out of what it gets. */
+    /** The scopes the client may be given, which the scopes say (scopes.ts). Others it asks for are left out. */
     scopes: readonly OidcScope[],
     /** The site whose layout the sign in renders in, when the request names none. */
     site: Site,
     /** Whether the sign in may render in the layout of `site`: any site for a domain of Omega's, which serves them all. */
     rendersSite: (site: Site) => boolean,
 }
-
-const SITE_SCOPES: readonly OidcScope[] = ['openid', 'profile', 'email']
 
 /**
  * Where the webmail takes the code back: its own origin, under the locale of the visitor, see
@@ -30,8 +29,8 @@ const WEBMAIL_CALLBACK_PATH = /^\/[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})?\/auth\/callba
 /**
  * The clients of the provider: every domain of a site in sites.json, which signs its visitors in
  * through the provider and takes the code back at its SSO callback, and the webmail, which does the
- * same at its callback and is the one client given the mail scope. They are public clients, since
- * the browser can see everything they do, so they prove themselves with PKCE rather than a secret.
+ * same at its callback. They are public clients, since the browser can see everything they do, so
+ * they prove themselves with PKCE rather than a secret.
  */
 export function oidcClientOf(clientId: string): OidcClient | null {
     const webmail = webmailClient()
@@ -43,8 +42,9 @@ export function oidcClientOf(clientId: string): OidcClient | null {
     const redirectUri = `${domain.origin}${SSO_CALLBACK_PATH}`
     return {
         id: domain.host,
+        kind: 'site',
         acceptsRedirectUri: uri => uri === redirectUri,
-        scopes: SITE_SCOPES,
+        scopes: scopesFor('site'),
         site,
         rendersSite: other => site.isRoot || other === site,
     }
@@ -56,6 +56,7 @@ function webmailClient(): OidcClient | null {
     const { origin, domain } = mailServerWebmail
     return {
         id: domain,
+        kind: 'webmail',
         acceptsRedirectUri: uri => {
             const url = URL.parse(uri)
             return url !== null
@@ -64,7 +65,7 @@ function webmailClient(): OidcClient | null {
                 && url.search === ''
                 && url.hash === ''
         },
-        scopes: [...SITE_SCOPES, OIDC_MAIL_SCOPE],
+        scopes: scopesFor('webmail'),
         site: Site.root,
         rendersSite: site => site.isRoot,
     }

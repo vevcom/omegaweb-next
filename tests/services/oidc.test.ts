@@ -1,7 +1,7 @@
 import { oidcOperations } from '@/services/auth/oidc/operations'
 import { isPostLogoutRedirectUri, oidcClientOf } from '@/services/auth/oidc/clients'
 import { discoveryDocument } from '@/services/auth/oidc/discovery'
-import { OIDC_CLAIMS, OIDC_MAIL_SCOPE, OIDC_SCOPES, oidcScopes, userClaims } from '@/services/auth/oidc/scopes'
+import { OIDC_CLAIMS, OIDC_MAIL_SCOPE, OIDC_SCOPES, oidcScopes, scopesFor, userClaims } from '@/services/auth/oidc/scopes'
 import { jwks, signAccessToken, signIdToken, verifyAccessToken } from '@/services/auth/oidc/tokens'
 import { userOperations } from '@/services/users/operations'
 import { aliasOperations } from '@/services/mail/alias/operations'
@@ -161,6 +161,12 @@ describe('the OpenID Connect provider', () => {
         await refused(issue(actor, challenge, { codeChallenge: 'short' }), 'BAD PARAMETERS')
         await refused(issue(actor, challenge, { responseType: 'token' }), 'BAD PARAMETERS')
         await refused(issue(actor, challenge, { state: '' }), 'BAD PARAMETERS')
+        // A parameter that was not on the wire at all is refused by its wire name, which the routes pass on.
+        await expect(issue(actor, challenge, { redirectUri: null })).rejects.toMatchObject({
+            parseError: { error: { issues: [
+                expect.objectContaining({ path: ['redirectUri'], message: 'redirect_uri is required' }),
+            ] } },
+        })
     })
 
     test('the token endpoint trades the code for the tokens, and takes the one grant type', async () => {
@@ -234,7 +240,11 @@ describe('the OpenID Connect provider', () => {
 
     test('the clients are the sites\' domains, taking the code back at their SSO callback', () => {
         const client = oidcClientOf(CLIENT)
-        expect(client).toMatchObject({ id: CLIENT, site: Site.OMEGAWEB, scopes: ['openid', 'profile', 'email'] })
+        expect(client).toMatchObject({
+            id: CLIENT, kind: 'site', site: Site.OMEGAWEB, scopes: ['openid', 'profile', 'email'],
+        })
+        expect(scopesFor('site')).toEqual(['openid', 'profile', 'email'])
+        expect(scopesFor('webmail')).toEqual(['openid', 'profile', 'email', OIDC_MAIL_SCOPE])
         expect(client?.acceptsRedirectUri(REDIRECT_URI)).toBe(true)
         expect(client?.acceptsRedirectUri(`${ISSUER}/elsewhere`)).toBe(false)
         // A domain of Omega's serves every site, so the login may render as any of them.
@@ -248,8 +258,9 @@ describe('the OpenID Connect provider', () => {
 
     test('the webmail is a client too, taking the code back under any locale, and the one given the mail scope', () => {
         const client = oidcClientOf(WEBMAIL_CLIENT)
-        expect(client).toMatchObject({ id: WEBMAIL_CLIENT, site: Site.OMEGAWEB })
-        expect(client?.scopes).toContain(OIDC_MAIL_SCOPE)
+        expect(client).toMatchObject({
+            id: WEBMAIL_CLIENT, kind: 'webmail', site: Site.OMEGAWEB, scopes: scopesFor('webmail'),
+        })
         expect(client?.acceptsRedirectUri(`${WEBMAIL}/en/auth/callback`)).toBe(true)
         expect(client?.acceptsRedirectUri(`${WEBMAIL}/nb-NO/auth/callback`)).toBe(true)
         expect(client?.acceptsRedirectUri(`${WEBMAIL}/auth/callback`)).toBe(false)
@@ -338,7 +349,7 @@ describe('the OpenID Connect provider', () => {
         expect(discoveryDocument().scopes_supported).toEqual(OIDC_SCOPES)
         expect(discoveryDocument().claims_supported).toEqual(OIDC_CLAIMS)
         expect(OIDC_SCOPES).toEqual(['openid', 'profile', 'email', OIDC_MAIL_SCOPE])
-        expect(OIDC_CLAIMS).toEqual(['sub', ...Object.values(oidcScopes).flatMap(claims => Object.keys(claims))])
+        expect(OIDC_CLAIMS).toEqual(['sub', ...Object.values(oidcScopes).flatMap(scope => Object.keys(scope.claims))])
         expect(OIDC_CLAIMS).toContain('groups')
     })
 })

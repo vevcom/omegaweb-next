@@ -1,6 +1,7 @@
 import { noSession, providerRoute } from '@/app/api/oidc/provider'
 import { apiHandler } from '@/api/apiHandler'
 import { oidcOperations } from '@/services/auth/oidc/operations'
+import { fromWire } from '@/services/auth/oidc/wire'
 import { sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
 import { NextResponse } from 'next/server'
 
@@ -12,7 +13,7 @@ import { NextResponse } from 'next/server'
 export const GET = providerRoute(apiHandler({
     serviceOperation: oidcOperations.endSession,
     session: noSession,
-    query: query => ({ postLogoutRedirectUri: query.get('post_logout_redirect_uri') }),
+    query: query => fromWire(name => query.get(name), ['postLogoutRedirectUri']),
     respond: ({ redirectTo }, request) => {
         const cookie = sessionCookieOf(request.headers)
         const response = NextResponse.redirect(redirectTo)

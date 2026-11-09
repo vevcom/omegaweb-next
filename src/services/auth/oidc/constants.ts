@@ -6,6 +6,23 @@ export const OIDC_CODE_LIFETIME_MS = 2 * 60 * 1000
 /** How long an ID token and an access token are good for, in seconds. */
 export const OIDC_TOKEN_LIFETIME_S = 60 * 60
 
+/**
+ * The one shape of the protocol the provider speaks: the schemas refuse anything else, the discovery
+ * document publishes it, the tokens are signed by it, and the sites ask for it.
+ */
+export const oidcProtocol = {
+    /** The authorization code flow, RFC 6749 section 4.1, and nothing else. */
+    responseType: 'code',
+    responseMode: 'query',
+    grantType: 'authorization_code',
+    /** PKCE with a hashed verifier, RFC 7636 section 4.2. */
+    codeChallengeMethod: 'S256',
+    tokenSigningAlgorithm: 'ES256',
+    /** Public clients, which prove themselves with PKCE and no secret. */
+    tokenEndpointAuthMethod: 'none',
+    subjectType: 'public',
+} as const
+
 /** The endpoints of the provider, served on the auth domain alone. */
 export const oidcPaths = {
     discovery: '/.well-known/openid-configuration',

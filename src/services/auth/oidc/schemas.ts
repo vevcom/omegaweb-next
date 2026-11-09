@@ -1,31 +1,57 @@
+import { oidcProtocol } from './constants'
 import { isOidcScope } from './scopes'
+import { oidcWireNames } from './wire'
 import { z } from 'zod'
 
 /** The login a session on the auth domain came from, as the NextAuth token names it. */
 export const loginProviderSchema = z.enum(['credentials', 'feide'])
 
+/**
+ * A parameter as it comes off the wire, see wire.ts: null when it is not there, which is refused
+ * by the parameter's wire name, as is an empty one.
+ */
+const parameter = (wireName: string) => z.string().nullable().transform((value, context) => {
+    if (value === null || value === '') {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: `${wireName} is required` })
+        return z.NEVER
+    }
+    return value
+})
+
+/** A parameter the protocol allows one value of, see oidcProtocol. */
+const oneOf = (wireName: string, allowed: string, message: string) =>
+    parameter(wireName).refine(value => value === allowed, message)
+
 /** The parameters of the protocol, as the client sends them, see RFC 6749 and OpenID Connect Core. */
 const paramsFieldSchemas = z.object({
     /** The user the code is for, who is the one signed in. */
     userId: z.number().int(),
-    clientId: z.string().min(1),
-    redirectUri: z.string().url(),
-    /** The one flow there is, RFC 6749 section 4.1. */
-    responseType: z.string().refine(value => value === 'code', 'Only the authorization code flow is supported'),
+    clientId: parameter(oidcWireNames.clientId),
+    redirectUri: parameter(oidcWireNames.redirectUri).pipe(z.string().url()),
+    responseType: oneOf(
+        oidcWireNames.responseType,
+        oidcProtocol.responseType,
+        'Only the authorization code flow is supported',
+    ),
     /** The scopes asked for, space separated. Unknown ones are ignored, as section 3.1.2.1 says; `openid` must be there. */
-    scope: z.string()
+    scope: parameter(oidcWireNames.scope)
         .transform(scope => scope.split(' ').filter(isOidcScope))
         .refine(scopes => scopes.includes('openid'), 'An OpenID Connect request asks for the openid scope'),
     /** The client's own value, which it gets back with the code and ties the answer to its request by. */
-    state: z.string().min(1, 'state is required'),
+    state: parameter(oidcWireNames.state),
     nonce: z.string().min(1).nullable(),
     /** The S256 challenge, RFC 7636: the base64url sha256 of the verifier, which is 43 characters. */
-    codeChallenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'The code challenge is the base64url sha256 of the verifier'),
-    codeChallengeMethod: z.string().refine(value => value === 'S256', 'code_challenge_method must be S256'),
-    codeVerifier: z.string().regex(/^[A-Za-z0-9._~-]{43,128}$/, 'A code verifier is 43 to 128 unreserved characters'),
-    code: z.string().min(1),
-    /** The one grant there is, RFC 6749 section 4.1.3. */
-    grantType: z.string().refine(value => value === 'authorization_code', 'Only authorization_code is supported'),
+    codeChallenge: parameter(oidcWireNames.codeChallenge)
+        .pipe(z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'The code challenge is the base64url sha256 of the verifier')),
+    codeChallengeMethod: oneOf(
+        oidcWireNames.codeChallengeMethod,
+        oidcProtocol.codeChallengeMethod,
+        `${oidcWireNames.codeChallengeMethod} must be ${oidcProtocol.codeChallengeMethod}`,
+    ),
+    codeVerifier: parameter(oidcWireNames.codeVerifier)
+        .pipe(z.string().regex(/^[A-Za-z0-9._~-]{43,128}$/, 'A code verifier is 43 to 128 unreserved characters')),
+    code: parameter(oidcWireNames.code),
+    grantType: oneOf(oidcWireNames.grantType, oidcProtocol.grantType, `Only ${oidcProtocol.grantType} is supported`),
     provider: loginProviderSchema,
     /** A bearer token of the provider's own, see tokens.ts. */
     accessToken: z.string().min(1),
