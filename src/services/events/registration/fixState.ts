@@ -26,9 +26,14 @@ export type PromotedRegistration = {
  * lists of the other variants, unless the event allows registering for several.
  *
  * Run it under `lockEvent` after whatever changed the places or the registrations, and tell the
- * ones taken off the waiting list once the change is saved; see `notifyPromoted`.
+ * ones taken off the waiting list once the change is saved; see `notifyPromoted`. A registration
+ * that is `joining` was only just made, so seating it is an ordinary sign-up and not a promotion.
  */
-export async function fixVariantPlaces(tx: Prisma.TransactionClient, variantId: number): Promise<PromotedRegistration[]> {
+export async function fixVariantPlaces(
+    tx: Prisma.TransactionClient,
+    variantId: number,
+    joining?: number,
+): Promise<PromotedRegistration[]> {
     const variant = await tx.eventVariant.findUniqueOrThrow({
         where: { id: variantId },
         select: {
@@ -112,7 +117,7 @@ export async function fixVariantPlaces(tx: Prisma.TransactionClient, variantId: 
                 state: 'IN_QUOTA',
                 quotaId,
                 waitingListVariantId: null,
-                promotedAt: promoted.includes(registration) ? now : undefined,
+                promotedAt: promoted.includes(registration) && registration.id !== joining ? now : undefined,
             },
         })),
         ...evicted.filter(registration => waiting.includes(registration)).map(registration => tx.eventRegistration.update({
@@ -123,7 +128,7 @@ export async function fixVariantPlaces(tx: Prisma.TransactionClient, variantId: 
 
     await leaveOtherWaitingLists(tx, { id: variantId, ...variant }, promoted.map(registration => registration.userId))
 
-    return promoted.map(({ id, userId, contact }) => ({ id, userId, contact }))
+    return promoted.flatMap(({ id, userId, contact }) => (id === joining ? [] : [{ id, userId, contact }]))
 }
 
 /**
