@@ -1,0 +1,225 @@
+import { oidcOperations } from '@/services/auth/oidc/operations'
+import { isPostLogoutRedirectUri, oidcClientOf } from '@/services/auth/oidc/clients'
+import { discoveryDocument } from '@/services/auth/oidc/discovery'
+import { userClaims } from '@/services/auth/oidc/claims'
+import { jwks, signAccessToken, signIdToken, verifyAccessToken } from '@/services/auth/oidc/tokens'
+import { userOperations } from '@/services/users/operations'
+import { prisma } from '@/prisma-pn-client-instance'
+import { Session } from '@/auth/session/Session'
+import { Site } from '@/lib/sites/site'
+import { afterEach, describe, expect, test } from '@jest/globals'
+import { decode } from 'jsonwebtoken'
+import { createHash, randomBytes } from 'node:crypto'
+import type { oidcSchemas } from '@/services/auth/oidc/schemas'
+import type { z } from 'zod'
+
+// The one domain the tests run with, see tests/testDomains.ts: Omega's, which is also the issuer.
+const ISSUER = 'https://omega.ntnu.no'
+const CLIENT = 'omega.ntnu.no'
+const REDIRECT_URI = `${ISSUER}/api/sso/callback`
+
+const hashOf = (value: string) => createHash('sha256').update(value).digest('base64url')
+
+async function createUser(name: string) {
+    const created = await prisma.user.create({
+        data: {
+            username: `test-oidc-${name}`,
+            email: `test-oidc-${name}@test.test`,
+            firstname: 'Ola',
+            lastname: 'Nordmann',
+            bioParagraph: { create: {} },
+            ledgerAccount: { create: { type: 'USER' } },
+        },
+    })
+    const user = await userOperations.read({ params: { id: created.id }, bypassAuth: true })
+    return { user, session: Session.fromJsObject({ user, permissions: [], memberships: [] }) }
+}
+
+/** A PKCE pair, RFC 7636: the verifier the client keeps and the challenge it sends. */
+function pkce() {
+    const verifier = randomBytes(32).toString('base64url')
+    return { verifier, challenge: hashOf(verifier) }
+}
+
+type IssueParams = z.input<typeof oidcSchemas.params.issueCode>
+
+type Actor = { user: { id: number } | null, session: Session<'HAS_USER'> | Session<'NO_USER'> }
+
+const issue = ({ user, session }: Actor, challenge: string, overrides: Partial<IssueParams> = {}) =>
+    oidcOperations.issueCode({
+        params: {
+            userId: user?.id ?? 0,
+            clientId: CLIENT,
+            redirectUri: REDIRECT_URI,
+            scope: 'openid profile email',
+            nonce: 'nonce-1',
+            codeChallenge: challenge,
+            codeChallengeMethod: 'S256',
+            provider: 'credentials',
+            ...overrides,
+        },
+        session,
+    })
+
+const exchange = (code: string, verifier: string, overrides: { clientId?: string, redirectUri?: string } = {}) =>
+    oidcOperations.exchangeCode({
+        params: { clientId: CLIENT, redirectUri: REDIRECT_URI, code, codeVerifier: verifier, ...overrides },
+    })
+
+const refused = (call: Promise<unknown>, errorCode: string) => expect(call).rejects.toMatchObject({ errorCode })
+
+afterEach(async () => {
+    await prisma.user.deleteMany({ where: { username: { startsWith: 'test-oidc-' } } })
+})
+
+describe('the OpenID Connect provider', () => {
+    test('issues a code the client exchanges once, proving it with the verifier', async () => {
+        const actor = await createUser('once')
+        const { user } = actor
+        const { verifier, challenge } = pkce()
+        const { code } = await issue(actor, challenge)
+        expect(code).toMatch(/^[A-Za-z0-9_-]{43}$/)
+        // Stored hashed, so the table never holds a usable code.
+        expect(await prisma.oidcAuthorizationCode.findUnique({ where: { codeHash: hashOf(code) } })).toMatchObject({
+            userId: user.id,
+            clientId: CLIENT,
+            scope: 'openid profile email',
+            nonce: 'nonce-1',
+            provider: 'credentials',
+        })
+
+        await expect(exchange(code, verifier)).resolves.toEqual({
+            userId: user.id,
+            provider: 'credentials',
+            clientId: CLIENT,
+            scopes: ['openid', 'profile', 'email'],
+            nonce: 'nonce-1',
+        })
+        await refused(exchange(code, verifier), 'DISSALLOWED')
+    })
+
+    test('ignores scopes it does not know, and refuses a request without openid', async () => {
+        const actor = await createUser('scopes')
+        const { verifier, challenge } = pkce()
+        const { code } = await issue(actor, challenge, { scope: 'openid offline_access email', nonce: null })
+        await expect(exchange(code, verifier)).resolves.toMatchObject({ scopes: ['openid', 'email'], nonce: null })
+        await refused(issue(actor, challenge, { scope: 'profile email' }), 'BAD PARAMETERS')
+    })
+
+    test('refuses a code to an unknown client, to an unregistered redirect uri, and to a plain challenge', async () => {
+        const actor = await createUser('clients')
+        const { challenge } = pkce()
+        await refused(issue(actor, challenge, { clientId: 'evil.example' }), 'BAD PARAMETERS')
+        await refused(issue(actor, challenge, { redirectUri: `${ISSUER}/elsewhere` }), 'BAD PARAMETERS')
+        await refused(issue(actor, challenge, { codeChallengeMethod: 'plain' as 'S256' }), 'BAD PARAMETERS')
+        await refused(issue(actor, challenge, { codeChallenge: 'short' }), 'BAD PARAMETERS')
+    })
+
+    test('issues a code to the signed in user, for themselves alone', async () => {
+        const anonymous = Session.fromJsObject({ user: null, permissions: [], memberships: [] })
+        await refused(issue({ user: null, session: anonymous }, pkce().challenge), 'UNAUTHENTICATED')
+        const actor = await createUser('self')
+        const other = await createUser('other')
+        await refused(issue({ user: other.user, session: actor.session }, pkce().challenge), 'UNAUTHORIZED')
+    })
+
+    test('refuses an exchange by another client, to another uri, with a wrong verifier, or of an expired code', async () => {
+        const actor = await createUser('exchange')
+        const fresh = async () => {
+            const pair = pkce()
+            return { ...pair, code: (await issue(actor, pair.challenge)).code }
+        }
+
+        const byOther = await fresh()
+        await refused(exchange(byOther.code, byOther.verifier, { clientId: 'evil.example' }), 'DISSALLOWED')
+        const toOther = await fresh()
+        await refused(exchange(toOther.code, toOther.verifier, { redirectUri: `${ISSUER}/elsewhere` }), 'DISSALLOWED')
+        const wrongVerifier = await fresh()
+        await refused(exchange(wrongVerifier.code, pkce().verifier), 'DISSALLOWED')
+        await refused(exchange('no-such-code', pkce().verifier), 'DISSALLOWED')
+        // A refused exchange spends the code too.
+        await refused(exchange(wrongVerifier.code, wrongVerifier.verifier), 'DISSALLOWED')
+
+        const expired = await fresh()
+        await prisma.oidcAuthorizationCode.updateMany({
+            where: { userId: actor.user.id },
+            data: { expiresAt: new Date(Date.now() - 1000) },
+        })
+        await refused(exchange(expired.code, expired.verifier), 'DISSALLOWED')
+    })
+
+    test('sweeps expired codes out as it issues a new one', async () => {
+        const actor = await createUser('sweep')
+        await issue(actor, pkce().challenge)
+        await prisma.oidcAuthorizationCode.updateMany({
+            where: { userId: actor.user.id },
+            data: { expiresAt: new Date(Date.now() - 1000) },
+        })
+        await issue(actor, pkce().challenge)
+        expect(await prisma.oidcAuthorizationCode.count({ where: { userId: actor.user.id } })).toBe(1)
+    })
+
+    test('the clients are the sites\' domains, taking the code back at their SSO callback', () => {
+        const client = oidcClientOf(CLIENT)
+        expect(client).toMatchObject({ id: CLIENT, redirectUris: [REDIRECT_URI], site: Site.OMEGAWEB })
+        // A domain of Omega's serves every site, so the login may render as any of them.
+        expect(client?.rendersSite(Site.CAREERS)).toBe(true)
+        expect(oidcClientOf('contactor.no')).toBeNull()
+        expect(isPostLogoutRedirectUri(`${ISSUER}/`)).toBe(true)
+        expect(isPostLogoutRedirectUri(`${ISSUER}/career`)).toBe(true)
+        expect(isPostLogoutRedirectUri('https://evil.example/')).toBe(false)
+        expect(isPostLogoutRedirectUri('not a url')).toBe(false)
+    })
+
+    test('signs tokens the published key verifies, naming the key by the id the JWKS gives it', async () => {
+        const { user } = await createUser('tokens')
+        const { keys } = jwks()
+        expect(keys).toHaveLength(1)
+        expect(keys[0]).toMatchObject({ kty: 'EC', crv: 'P-256', alg: 'ES256', use: 'sig' })
+        expect(keys[0].kid).toMatch(/^[A-Za-z0-9_-]{43}$/)
+
+        const accessToken = signAccessToken({ clientId: CLIENT, userId: user.id, scopes: ['openid', 'email'] })
+        expect(decode(accessToken, { complete: true })?.header)
+            .toMatchObject({ alg: 'ES256', typ: 'at+jwt', kid: keys[0].kid })
+        expect(verifyAccessToken(accessToken)).toEqual({ userId: user.id, clientId: CLIENT, scopes: ['openid', 'email'] })
+        expect(() => verifyAccessToken(`${accessToken}x`)).toThrow()
+
+        const claims = await userClaims(user.id, ['openid', 'profile', 'email'])
+        const idToken = signIdToken({ clientId: CLIENT, userId: user.id, nonce: 'nonce-1', claims })
+        expect(decode(idToken, { complete: true })?.header).toMatchObject({ alg: 'ES256', kid: keys[0].kid })
+        expect(decode(idToken)).toMatchObject({
+            iss: ISSUER,
+            aud: CLIENT,
+            sub: String(user.id),
+            nonce: 'nonce-1',
+            preferred_username: user.username,
+            name: 'Ola Nordmann',
+            given_name: 'Ola',
+            family_name: 'Nordmann',
+            email: user.email,
+        })
+    })
+
+    test('gives the claims the scopes ask for and no others', async () => {
+        const { user } = await createUser('claims')
+        expect(await userClaims(user.id, ['openid'])).toEqual({})
+        expect(await userClaims(user.id, ['openid', 'email'])).toEqual({ email: user.email })
+        expect(Object.keys(await userClaims(user.id, ['openid', 'profile']))).toEqual([
+            'preferred_username', 'name', 'given_name', 'family_name',
+        ])
+    })
+
+    test('the discovery document names the endpoints on the issuer', () => {
+        expect(discoveryDocument()).toMatchObject({
+            issuer: ISSUER,
+            authorization_endpoint: `${ISSUER}/api/oidc/authorize`,
+            token_endpoint: `${ISSUER}/api/oidc/token`,
+            userinfo_endpoint: `${ISSUER}/api/oidc/userinfo`,
+            jwks_uri: `${ISSUER}/api/oidc/jwks`,
+            end_session_endpoint: `${ISSUER}/api/oidc/end-session`,
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+            id_token_signing_alg_values_supported: ['ES256'],
+        })
+    })
+})

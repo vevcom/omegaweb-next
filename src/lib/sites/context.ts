@@ -17,14 +17,14 @@ export type ResolveHrefOptions = {
     toMainDomainServingSite?: boolean,
 }
 
-const appWidePrefixes = ['/api/', '/_next/', '/__nextjs', '/store/']
+const appWidePrefixes = ['/api/', '/_next/', '/__nextjs', '/store/', '/.well-known/']
 // A file at the app's root, such as /sw.js, /manifest.webmanifest or an icon: a page never has an extension.
 const rootFile = /^\/[^/?#]+\.[a-z0-9]+(?:[?#]|$)/i
 
 /**
  * Paths that are the app's rather than a site's: served alike on every domain, never under a base
- * path. The api, Next's own files, the store and the files at the root, which the browser asks for
- * by their plain path on every domain.
+ * path. The api, Next's own files, the store, the well-known documents and the files at the root,
+ * which the browser asks for by their plain path on every domain.
  */
 export const isAppWidePath = (path: string) =>
     appWidePrefixes.some(prefix => path.startsWith(prefix)) || rootFile.test(path)
@@ -62,6 +62,11 @@ export class DomainContext {
 
     static isConfigured(): boolean {
         return store.domainConfig !== undefined
+    }
+
+    /** The domain a host is, or null for a host that is no site's, such as the auth domain. */
+    static domainOfHost(host: string): SiteDomain | null {
+        return DomainContext.config().domainOfHost(host)
     }
 
     /** The domain a host is an alias of, such as `www.omega.ntnu.no` of `omega.ntnu.no`, or null for no alias. */

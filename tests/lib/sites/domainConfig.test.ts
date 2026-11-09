@@ -124,8 +124,9 @@ describe('DomainConfig', () => {
         expect(() => DomainConfig.parse({ 'contactor.no': { site: 'CAREERS', main: true, mian: true } })).toThrow()
     })
 
-    test('the example for development names the three dev hosts, each a site\'s main', () => {
+    test('the example for development names the three dev hosts, each a site\'s main, and the auth host', () => {
         const config = readDomainConfig(join(process.cwd(), 'sites.example.json'))
+        expect(config.authOrigin()).toBe('http://auth.localhost:3000')
         expect(config.mainOriginOfSite(Site.OMEGAWEB)).toBe('http://omegaweb.localhost:3000')
         expect(config.domainOfAlias('localhost:3000')?.host).toBe('omegaweb.localhost:3000')
         expect(config.mainOriginOfSite(Site.CAREERS)).toBe('http://career.localhost:3000')
