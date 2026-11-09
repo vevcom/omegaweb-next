@@ -783,7 +783,6 @@ const eslintConfig = defineConfig([
         'out/**',
         'build/**',
         'next-env.d.ts',
-        'pncli/**',
         'docs/**',
         'generated/**',
         '.design-sync/**',
