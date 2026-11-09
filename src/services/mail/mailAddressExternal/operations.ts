@@ -2,8 +2,10 @@ import '@pn-server-only'
 import { mailAddressExternalAuth } from './auth'
 import { mailAddressExternalSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
+import { mailTraversalOperations } from '@/services/mail/traversal/operations'
 import { ServiceError } from '@/services/error'
 import { userPartitions } from '@/services/users/constants'
+import { readMailingListOwnerMatrices } from '@/services/mail/owned'
 import type { MailAddressExternal } from '@/prisma-generated-pn-types'
 import type { Prisma } from '@/prisma-generated-pn-client'
 
@@ -17,8 +19,19 @@ export const mailAddressExternalOperations = {
         },
     }),
 
+    readTraversal: mailTraversalOperations.read.implement({
+        authorizer: async ({ params, prisma }) => mailAddressExternalAuth.readTraversal.data({
+            mailingListOwnerVisibilities: await readMailingListOwnerMatrices({ prisma }),
+            markOwnedByUserId: params.markOwnedByUserId,
+        }),
+        ownershipCheck: () => true,
+        operationImplementationFields: { type: 'mailaddressExternal' },
+    }),
+
     readMany: defineOperation({
-        authorizer: () => mailAddressExternalAuth.readMany,
+        authorizer: async ({ prisma }) => mailAddressExternalAuth.readMany.data({
+            mailingListOwnerVisibilities: await readMailingListOwnerMatrices({ prisma }),
+        }),
         operation: async ({ prisma }): Promise<MailAddressExternal[]> =>
             prisma.mailAddressExternal.findMany(),
     }),

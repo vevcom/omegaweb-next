@@ -8,7 +8,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('cabin-periods', session)
+        await authorizeAdminPage('cabin-periods', session)
         const [releasePeriods, pricePeriods] = await Promise.all([
             cabinReleasePeriodOperations.readMany({}),
             cabinPricePeriodOperations.readMany({}),

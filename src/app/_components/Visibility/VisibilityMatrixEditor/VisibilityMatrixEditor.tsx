@@ -8,20 +8,25 @@ import { describeMatrix } from '@/auth/visibility/describeVisibility'
 import { findGroup, orderOptions } from '@/lib/groups/groupOptions'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { useState } from 'react'
 import type { VisibilityCondition, VisibilityRequirement } from '@/services/visibility/types'
 import type { VisibilityRequirementGroupType } from '@/prisma-generated-pn-types'
 
 type PropTypes = {
-    requirements: VisibilityRequirement[],
-    onChange: (requirements: VisibilityRequirement[]) => void,
+    /** The form field the matrix is posted in, as JSON, which `Zpn.json` on the schema side reads. */
+    name: string,
+    defaultValue?: VisibilityRequirement[],
+    /** What no requirements at all means for this matrix, where it is not that everyone passes. */
+    emptyMeans?: string,
 }
 
 /**
- * A controlled editor for a single visibility matrix. It owns no persistence of its own - the
- * consumer decides whether the matrix is saved against an existing visibility (VisibilityAdmin) or
- * submitted as part of creating the thing it will guard (MakeNewCollection).
+ * A form field editing one visibility matrix, posted as JSON under `name` like any other field.
+ * Whether that creates the thing it will guard or updates an existing visibility is the form's
+ * business.
  */
-export default function VisibilityMatrixEditor({ requirements, onChange }: PropTypes) {
+export default function VisibilityMatrixEditor({ name, defaultValue = [], emptyMeans }: PropTypes) {
+    const [requirements, onChange] = useState<VisibilityRequirement[]>(defaultValue)
     const groupsResult = useGroups()
     const groups = groupsResult.status === 'success' ? flattenExpandedGroups(groupsResult.groups) : null
 
@@ -93,7 +98,12 @@ export default function VisibilityMatrixEditor({ requirements, onChange }: PropT
 
     return (
         <div className="flex flex-col gap-[0.5em]">
-            <p className="italic">{describeMatrix({ requirements }, groups)}</p>
+            <input type="hidden" name={name} value={JSON.stringify(requirements)} />
+            <p className="italic">
+                {emptyMeans !== undefined && requirements.length === 0
+                    ? emptyMeans
+                    : describeMatrix({ requirements }, groups)}
+            </p>
             {
                 groups === null ? (
                     <p>Laster grupper...</p>
