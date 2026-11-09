@@ -11,7 +11,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('cabin-product', session)
+        await authorizeAdminPage('cabin-product', session)
         return cabinProductOperations.readMany({})
     },
     capabilities: () => ({

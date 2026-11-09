@@ -48,7 +48,7 @@ function orderByHierarchy(channels: ExpandedNotificationChannel[]): ChannelRow[]
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('notification-channels', session)
+        await authorizeAdminPage('notification-channels', session)
         const [special, manual] = await Promise.all([
             specialNotificationChannelOperations.readMany({}),
             manualNotificationChannelOperations.readMany({}),

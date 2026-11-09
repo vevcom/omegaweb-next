@@ -16,7 +16,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('manual-groups', session)
+        await authorizeAdminPage('manual-groups', session)
         const [manualGroups, expandedGroups, currentOrder] = await Promise.all([
             manualGroupOperations.readMany({}),
             manualGroupOperations.readExpanded({}),

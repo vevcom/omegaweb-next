@@ -14,7 +14,7 @@ export default serverLayout({
     operation: async ({ params, session }: LayoutOperationArgs<{ shortName: string }>) => {
         const committee = await getCommittee(params.shortName)
         const navDef = committeeNavDef({ shortName: params.shortName, groupId: committee.groupId })
-        return { committee, navLinks: navDef.visible(session) }
+        return { committee, navLinks: await navDef.visible(session) }
     },
     capabilities: ({ committee }) => ({
         // A pensioned committee is history: the service refuses every change to it, so the

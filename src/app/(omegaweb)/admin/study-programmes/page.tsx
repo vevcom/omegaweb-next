@@ -10,7 +10,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('study-programmes', session)
+        await authorizeAdminPage('study-programmes', session)
         return studyProgrammeOperations.readMany({})
     },
     capabilities: () => ({

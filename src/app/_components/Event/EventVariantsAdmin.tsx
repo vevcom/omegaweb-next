@@ -27,7 +27,6 @@ import { faArrowDown, faArrowUp, faPlus } from '@fortawesome/free-solid-svg-icon
 import { useState } from 'react'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
 import type { EventQuotaExpanded } from '@/services/events/quotas/types'
-import type { VisibilityRequirement } from '@/services/visibility/types'
 
 type PropTypes = {
     eventId: number,
@@ -186,7 +185,6 @@ function QuotaAdmin({ quota, index, quotaIds, variantId }: {
 }
 
 function NewQuotaForm({ variantId }: { variantId: number }) {
-    const [requirements, setRequirements] = useState<VisibilityRequirement[]>([])
     return <Form
         key={variantId}
         action={configureAction(createEventQuotaAction, { params: { variantId } })}
@@ -198,8 +196,7 @@ function NewQuotaForm({ variantId }: { variantId: number }) {
             <NumberInput label="Plasser" name="places" min={0} />
         </FormSection>
         <p className="m-0 font-medium">Hvem kan melde seg på gjennom kvoten (tomt betyr alle)</p>
-        <VisibilityMatrixEditor requirements={requirements} onChange={setRequirements} />
-        <input type="hidden" name="visibilityRequirements" value={JSON.stringify(requirements)} />
+        <VisibilityMatrixEditor name="visibilityRequirements" />
     </Form>
 }
 

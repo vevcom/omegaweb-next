@@ -9,7 +9,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('cabin-booking', session)
+        await authorizeAdminPage('cabin-booking', session)
         return cabinBookingOperations.readMany({})
     },
     metadata: () => ({ title: 'Hyttebookinger' }),
