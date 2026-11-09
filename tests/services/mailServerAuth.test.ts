@@ -372,6 +372,9 @@ describe('wiring the mail server as an owner', () => {
         const asCreatingOwner = Session.fromJsObject({
             memberships: [owners.membership], permissions: ['MAIL_ALIAS_CREATE'], user: member,
         })
+        const asCreatingOutsider = Session.fromJsObject({
+            memberships: [], permissions: ['MAIL_ALIAS_CREATE'], user: member,
+        })
 
         await aliasOperations.updateDescription({
             params: { id: alias.id }, data: { description: 'Vårt' }, session: asOwner,
@@ -380,7 +383,7 @@ describe('wiring the mail server as an owner', () => {
             params: { id: alias.id }, data: renamed, session: asOwner,
         }), 'Bare eiere som kan opprette aliaser kan endre adressen')
         await rejectsSaying(aliasOperations.update({
-            params: { id: alias.id }, data: renamed, session: sessionWith(['MAIL_ALIAS_CREATE']),
+            params: { id: alias.id }, data: renamed, session: asCreatingOutsider,
         }), 'Bare eiere som kan opprette aliaser kan endre adressen')
 
         const updated = await aliasOperations.update({ params: { id: alias.id }, data: renamed, session: asCreatingOwner })

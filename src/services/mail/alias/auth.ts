@@ -10,6 +10,7 @@ const readsAlias = Require.permission('MAILSERVER_USE').or().visibility({
 const ownsAlias = Require.permission('MAILSERVER_ADMIN').or().visibility({
     errorMessage: 'Bare eierne av aliaset kan endre det',
 })
+const changesAliasAddress = 'Bare eiere som kan opprette aliaser kan endre adressen'
 
 export const mailAliasAuth = {
     /** A creator with the permission must be among the owners they set, so the alias is theirs to go on with. */
@@ -27,11 +28,15 @@ export const mailAliasAuth = {
     ).filter(({ session }) => ({ ownerVisibility: visibilityFilter(session.memberships) })),
     readTraversal: Require.allOf(readsAlias, marksOwnedBySelf),
     readVisibility: readsAlias,
-    /** The address is changed by an owner who may also create aliases, since a new address is as good as a new alias. */
+    /**
+     * The address is changed by an owner who may also create aliases, since a new address is as good as a new
+     * alias. Both conditions answer with the rule, so an owner without the permission is told the same as a
+     * creator who is no owner.
+     */
     update: Require.permission('MAILSERVER_ADMIN')
         .or()
-        .permission('MAIL_ALIAS_CREATE')
-        .visibility({ errorMessage: 'Bare eiere som kan opprette aliaser kan endre adressen' }),
+        .permission('MAIL_ALIAS_CREATE', { errorMessage: changesAliasAddress })
+        .visibility({ errorMessage: changesAliasAddress }),
     updateDescription: ownsAlias,
     updateVisibility: ownsAlias,
     destroy: ownsAlias,
