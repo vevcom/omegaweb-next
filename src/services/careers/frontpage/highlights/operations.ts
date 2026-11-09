@@ -4,6 +4,7 @@ import {
     adminHighlightOrdering,
     careerFrontpageHighlightSelection,
     currentHighlightOrdering,
+    currentlyHighlightableEvent,
     highlightableEvent,
     highlightableEventSelection,
     highlightableJobAd,
@@ -37,7 +38,7 @@ export const careerFrontpageHighlightOperations = {
                     end: { gte: now },
                     AND: {
                         OR: [
-                            { event: { ...highlightableEvent, eventEnd: { gte: now } } },
+                            { event: currentlyHighlightableEvent(now) },
                             { jobAd: highlightableJobAd },
                         ],
                     },
@@ -61,7 +62,7 @@ export const careerFrontpageHighlightOperations = {
         operation: async ({ prisma }): Promise<CareerFrontpageHighlightTargets> => {
             const [events, jobAds] = await Promise.all([
                 prisma.event.findMany({
-                    where: { ...highlightableEvent, eventEnd: { gte: new Date() } },
+                    where: currentlyHighlightableEvent(new Date()),
                     orderBy: { eventStart: 'asc' },
                     select: highlightableEventSelection,
                 }),

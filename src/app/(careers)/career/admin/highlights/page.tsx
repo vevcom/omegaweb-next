@@ -2,15 +2,18 @@ import CreateHighlight from './CreateHighlight'
 import EditHighlight from './EditHighlight'
 import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
 import { careerFrontpageHighlightOperations } from '@/services/careers/frontpage/highlights/operations'
+import { isHighlightShowable } from '@/services/careers/frontpage/highlights/constants'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { displayDate } from '@/lib/dates/displayDate'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 import type { ExpandedCareerFrontpageHighlight } from '@/services/careers/frontpage/highlights/types'
 
-function statusOf({ start, end }: ExpandedCareerFrontpageHighlight, now: Date) {
-    if (end < now) return 'Utløpt'
-    return start > now ? 'Planlagt' : 'Aktiv'
+/** The front page only shows the highlight if the target still qualifies, so a disqualified one is hidden. */
+function statusOf(highlight: ExpandedCareerFrontpageHighlight, now: Date) {
+    if (highlight.end < now) return 'Utløpt'
+    if (!isHighlightShowable(highlight, now)) return 'Skjult'
+    return highlight.start > now ? 'Planlagt' : 'Aktiv'
 }
 
 const { page, generateMetadata } = serverPage({

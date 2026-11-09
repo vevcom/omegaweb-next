@@ -2,6 +2,7 @@ import { Session } from '@/auth/session/Session'
 import { ServiceError, Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { careerFrontpageHighlightOperations } from '@/services/careers/frontpage/highlights/operations'
+import { isHighlightShowable } from '@/services/careers/frontpage/highlights/constants'
 import { eventOperations } from '@/services/events/operations'
 import { jobAdOperations } from '@/services/careers/jobAds/operations'
 import { afterEach, beforeAll, describe, expect, test } from '@jest/globals'
@@ -233,6 +234,38 @@ describe('career frontpage highlights', () => {
 
         await careerFrontpageHighlightOperations.destroy({ params: { id: highlight.id }, session: admin })
         expect(await prisma.careerFrontpageHighlight.count()).toBe(0)
+    })
+
+    test('tells administrators which ones the front page hides', async () => {
+        const shown = await createEvent()
+        await createHighlight({ eventId: shown.id })
+        const unpublished = await createEvent()
+        await createHighlight({ eventId: unpublished.id })
+        await prisma.event.update({ where: { id: unpublished.id }, data: { published: false } })
+        const untagged = await createEvent()
+        await createHighlight({ eventId: untagged.id })
+        await prisma.eventTagEvent.deleteMany({ where: { eventId: untagged.id } })
+        const moved = await createEvent()
+        await createHighlight({ eventId: moved.id })
+        await prisma.event.update({
+            where: { id: moved.id },
+            data: { eventStart: hoursFromNow(-3), eventEnd: hoursFromNow(-2) },
+        })
+        const jobAd = await createJobAd()
+        await createHighlight({ jobAdId: jobAd.id })
+        const inactiveJobAd = await createJobAd()
+        await createHighlight({ jobAdId: inactiveJobAd.id })
+        await prisma.jobAd.update({ where: { id: inactiveJobAd.id }, data: { active: false } })
+
+        const now = new Date()
+        const highlights = await careerFrontpageHighlightOperations.readMany({ session: admin })
+        const showable = highlights
+            .filter(highlight => isHighlightShowable(highlight, now))
+            .map(highlight => highlight.event?.id ?? highlight.jobAd?.id)
+        expect(showable).toHaveLength(2)
+        expect(showable).toContain(shown.id)
+        expect(showable).toContain(jobAd.id)
+        expect(await readCurrentIds(jobAdReader)).toHaveLength(2)
     })
 
     test('offers the admin only what can be highlighted', async () => {
