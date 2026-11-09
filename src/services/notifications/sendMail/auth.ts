@@ -1,10 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
 
 export const sendMailAuth = {
-    /**
-     * Opening the send-mail page, and its place in the nav: MAIL_USE, and an alias to send from, which
-     * is any alias for MAILSERVER_ADMIN and an owned one otherwise. Needs every alias's owner matrix.
-     */
     readPage: Require.allOf(
         Require.permission('MAIL_USE'),
         Require.permission('MAILSERVER_ADMIN').or().anyVisibility({

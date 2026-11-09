@@ -357,4 +357,36 @@ describe('wiring the mail server as an owner', () => {
             session: memberSession(member, [others.membership]),
         }), 'Bare eierne av e-postlisten kan endre den')
     })
+
+    test('the address of an alias is changed by an owner who may create aliases, the description by any owner', async () => {
+        const owners = await createGroup('rename-owners')
+        const member = await createUser('rename-member')
+        const alias = await aliasOperations.create({
+            data: {
+                localPart: 'test-rename', domain: 'omega.ntnu.no', description: '', ownerRequirements: activeIn(owners.id),
+            },
+            bypassAuth: true,
+        })
+        const renamed = { localPart: 'test-renamed', domain: 'omega.ntnu.no', description: 'Vårt' }
+        const asOwner = memberSession(member, [owners.membership])
+        const asCreatingOwner = Session.fromJsObject({
+            memberships: [owners.membership], permissions: ['MAIL_ALIAS_CREATE'], user: member,
+        })
+
+        await aliasOperations.updateDescription({
+            params: { id: alias.id }, data: { description: 'Vårt' }, session: asOwner,
+        })
+        await rejectsSaying(aliasOperations.update({
+            params: { id: alias.id }, data: renamed, session: asOwner,
+        }), 'Bare eiere som kan opprette aliaser kan endre adressen')
+        await rejectsSaying(aliasOperations.update({
+            params: { id: alias.id }, data: renamed, session: sessionWith(['MAIL_ALIAS_CREATE']),
+        }), 'Bare eiere som kan opprette aliaser kan endre adressen')
+
+        const updated = await aliasOperations.update({ params: { id: alias.id }, data: renamed, session: asCreatingOwner })
+        expect(updated.address).toBe('test-renamed@omega.ntnu.no')
+        await aliasOperations.update({
+            params: { id: alias.id }, data: renamed, session: sessionWith(['MAILSERVER_ADMIN']),
+        })
+    })
 })

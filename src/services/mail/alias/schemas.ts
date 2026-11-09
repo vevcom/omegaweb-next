@@ -41,10 +41,14 @@ export const mailAliasSchemas = {
             domain: true,
             description: true,
         }).transform(joinAddress),
+        updateDescription: dataFieldSchemas.pick({
+            description: true,
+        }),
     },
     params: {
         readMany: paramsFieldSchemas.pick({ markOwnedByUserId: true }),
         update: alias,
+        updateDescription: alias,
         visibility: alias,
         destroy: alias,
     },

@@ -8,6 +8,7 @@ import { SelectNumber, SelectString } from '@/components/UI/Select'
 import { createAliasMailingListRelationAction } from '@/services/mail/actions'
 import {
     updateMailAliasAction,
+    updateMailAliasDescriptionAction,
     updateMailAliasVisibilityAction,
     destroyMailAliasAction,
 } from '@/services/mail/alias/actions'
@@ -49,6 +50,9 @@ export default function EditMailAlias({
     const domainOptions = domains.includes(domain) ? domains : [domain, ...domains]
 
     const canUpdateAlias = useAuthorizer({ authorizer: mailAliasAuth.update.data({ visibility: owners }) }).authorized
+    const canUpdateDescription = useAuthorizer({
+        authorizer: mailAliasAuth.updateDescription.data({ visibility: owners }),
+    }).authorized
     const canDestroyAlias = useAuthorizer({ authorizer: mailAliasAuth.destroy.data({ visibility: owners }) }).authorized
     const canUpdateOwners = useAuthorizer({
         authorizer: mailAliasAuth.updateVisibility.data({ visibility: owners }),
@@ -80,6 +84,14 @@ export default function EditMailAlias({
                 options={domainOptions.map(option => ({ value: option, label: `@${option}` }))}
                 defaultValue={domain}
             />
+            <TextInput name="description" label="Beskrivelse" defaultValue={focusedAlias.description} />
+        </Form>}
+
+        {!canUpdateAlias && canUpdateDescription && <Form
+            title="Rediger beskrivelse"
+            submitText="Oppdater"
+            action={configureAction(updateMailAliasDescriptionAction, { params: { id: focusedAlias.id } })}
+        >
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedAlias.description} />
         </Form>}
 

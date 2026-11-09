@@ -81,6 +81,19 @@ export const aliasOperations = {
             }),
     }),
 
+    updateDescription: defineOperation({
+        paramsSchema: mailAliasSchemas.params.updateDescription,
+        dataSchema: mailAliasSchemas.data.updateDescription,
+        authorizer: async ({ params, prisma }) => mailAliasAuth.updateDescription.data({
+            visibility: await visibility.readMatrixInternal({ prisma, params }),
+        }),
+        operation: async ({ prisma, params, data }): Promise<MailAlias> =>
+            prisma.mailAlias.update({
+                where: { id: params.id },
+                data,
+            }),
+    }),
+
     destroy: defineOperation({
         paramsSchema: mailAliasSchemas.params.destroy,
         authorizer: async ({ params, prisma }) => mailAliasAuth.destroy.data({

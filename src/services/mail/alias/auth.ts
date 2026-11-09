@@ -27,7 +27,12 @@ export const mailAliasAuth = {
     ).filter(({ session }) => ({ ownerVisibility: visibilityFilter(session.memberships) })),
     readTraversal: Require.allOf(readsAlias, marksOwnedBySelf),
     readVisibility: readsAlias,
-    update: ownsAlias,
+    /** The address is changed by an owner who may also create aliases, since a new address is as good as a new alias. */
+    update: Require.permission('MAILSERVER_ADMIN')
+        .or()
+        .permission('MAIL_ALIAS_CREATE')
+        .visibility({ errorMessage: 'Bare eiere som kan opprette aliaser kan endre adressen' }),
+    updateDescription: ownsAlias,
     updateVisibility: ownsAlias,
     destroy: ownsAlias,
 } as const
