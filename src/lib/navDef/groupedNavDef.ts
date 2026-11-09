@@ -24,7 +24,7 @@ export type NavGroupLinks<Item extends NavItem = NavItem> = {
 
 type GroupedNavDef<Item extends NavItem> = Omit<ReturnType<typeof defineNavDef<Item>>, 'visible'> & {
     /** The groups with only the items the session may open, leaving out groups with none left. */
-    visible(session: SessionMaybeUser): NavGroupLinks<Item>[],
+    visible(session: SessionMaybeUser): Promise<NavGroupLinks<Item>[]>,
 }
 
 /**
@@ -43,10 +43,12 @@ export function defineGroupedNavDef(groups: readonly NavGroup[]): GroupedNavDef<
     return {
         ...defineNavDef(groupsWithIcons.flatMap(group => group.items)),
 
-        visible(session) {
-            return groupsWithIcons
-                .map(group => ({ header: group.header, links: defineNavDef(group.items).visible(session) }))
-                .filter(group => group.links.length > 0)
+        async visible(session) {
+            const groupLinks = await Promise.all(groupsWithIcons.map(async group => ({
+                header: group.header,
+                links: await defineNavDef(group.items).visible(session),
+            })))
+            return groupLinks.filter(group => group.links.length > 0)
         },
     }
 }

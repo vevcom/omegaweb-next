@@ -37,7 +37,7 @@ const createPopUpKey = 'createDotFreezePeriod'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('dots-freeze-periods', session)
+        await authorizeAdminPage('dots-freeze-periods', session)
         return dotFreezePeriodOperations.readAll({})
     },
     capabilities: () => ({

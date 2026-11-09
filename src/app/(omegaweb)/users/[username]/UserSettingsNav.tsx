@@ -12,7 +12,7 @@ import type { UserNavSubject } from '@/app/(omegaweb)/users/[username]/userNavDe
  */
 export default async function UserSettingsNav({ username, userId }: UserNavSubject) {
     const session = await ServerSession.fromNextAuth()
-    const items = userNavDef({ username, userId }).settings.visible(session)
+    const items = await userNavDef({ username, userId }).settings.visible(session)
 
     if (items.length === 0) return null
 

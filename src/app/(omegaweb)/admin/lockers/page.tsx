@@ -13,7 +13,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('lockers', session)
+        await authorizeAdminPage('lockers', session)
         return lockerLocationOperations.readAll({})
     },
     capabilities: () => ({

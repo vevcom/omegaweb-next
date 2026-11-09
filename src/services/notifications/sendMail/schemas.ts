@@ -21,10 +21,20 @@ const dataFieldSchemas = z.object({
     body: z.custom<React.JSX.Element | string>(),
 })
 
+const paramsFieldSchemas = z.object({
+    aliasId: z.coerce.number().int().min(1),
+})
+
 export const sendMailSchemas = {
     data: {
         sendMail: dataFieldSchemas.pick({
             from: true,
+            recipients: true,
+            mailingListIds: true,
+            subject: true,
+            text: true,
+        }),
+        sendMailFromAlias: dataFieldSchemas.pick({
             recipients: true,
             mailingListIds: true,
             subject: true,
@@ -43,6 +53,11 @@ export const sendMailSchemas = {
             to: true,
             subject: true,
             body: true,
+        }),
+    },
+    params: {
+        sendMailFromAlias: paramsFieldSchemas.pick({
+            aliasId: true,
         }),
     },
 } as const

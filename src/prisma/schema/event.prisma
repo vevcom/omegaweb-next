@@ -45,6 +45,8 @@ model Event {
   seatingPublishedAt DateTime?
   seatingTables      EventTable[]
 
+  careerFrontpageHighlights CareerFrontpageHighlight[]
+
   // The notifications sent to those who may register, or are registered, resolved when they are sent.
   notificationsToWhoCanRegister Notification[]
   notificationsToRegistered     Notification[] @relation(name: "NotificationRegisteredForEvent")

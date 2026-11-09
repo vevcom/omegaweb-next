@@ -1,6 +1,8 @@
 import { prisma } from '@/prisma-pn-client-instance'
 import { Smorekopp } from '@/services/error'
 import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { aliasOperations } from '@/services/mail/alias/operations'
+import { Session } from '@/auth/session/Session'
 import { userOperations } from '@/services/users/operations'
 import { recordSentMail } from 'tests/utils'
 import { beforeEach, describe, expect, test } from '@jest/globals'
@@ -47,6 +49,7 @@ async function createMailingList() {
     const external = `ekstern-${userCounter}@example.com`
     const list = await prisma.mailingList.create({
         data: {
+            ownerVisibility: { create: { requirements: { create: [{}] } } },
             name: `sendmail-liste-${userCounter}`,
             users: { create: { userId: direct.id } },
             groups: { create: { groupId: group.id } },
@@ -63,7 +66,8 @@ describe('sending mail', () => {
         const { list, direct, member, external } = await createMailingList()
         const typed = await createUser('Skrevet')
 
-        await sendMailOperations.sendMail({
+        await sendMailOperations.internal.sendMail.internalCall({
+            prisma,
             data: {
                 from,
                 // The direct member is typed as well, and must still only get one mail.
@@ -72,7 +76,6 @@ describe('sending mail', () => {
                 subject: 'Hei %n',
                 text: 'Hei %N (%u)',
             },
-            bypassAuth: true,
         })
 
         const mails = sentMails()
@@ -88,18 +91,74 @@ describe('sending mail', () => {
     })
 
     test('a mail that reaches nobody is refused', async () => {
-        await expect(sendMailOperations.sendMail({
+        await expect(sendMailOperations.internal.sendMail.internalCall({
+            prisma,
             data: { from, recipients: '', mailingListIds: [], subject: 'Hei', text: 'Hei' },
-            bypassAuth: true,
         })).rejects.toThrow(Smorekopp)
         expect(sendBulkMail).not.toHaveBeenCalled()
     })
 
     test('an invalid typed address is refused', async () => {
-        await expect(sendMailOperations.sendMail({
+        await expect(sendMailOperations.internal.sendMail.internalCall({
+            prisma,
             data: { from, recipients: 'ikke-en-adresse', mailingListIds: [], subject: 'Hei', text: 'Hei' },
-            bypassAuth: true,
         })).rejects.toThrow()
         expect(sendBulkMail).not.toHaveBeenCalled()
+    })
+})
+
+describe('sending mail from an alias', () => {
+    const mail = { recipients: 'noen@example.com', mailingListIds: [], subject: 'Hei', text: 'Hei' }
+
+    test('MAIL_USE sends from an owned alias, MAILSERVER_ADMIN from any; neither alone sends', async () => {
+        const { order } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+        const owners = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'sendmail-owners', shortName: 'sendmail-owners' } },
+            },
+        })
+        const user = await createUser('Eier')
+        const alias = await aliasOperations.create({
+            data: {
+                localPart: 'sendmail-owned',
+                domain: 'omega.ntnu.no',
+                description: '',
+                ownerRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: owners.id }] }],
+            },
+            bypassAuth: true,
+        })
+        const sessionOf = (
+            memberships: { groupId: number }[],
+            permissions: ('MAIL_USE' | 'MAILSERVER_ADMIN')[] = [],
+        ) => Session.fromJsObject({
+            memberships: memberships.map(membership => ({ ...membership, order, active: true, admin: false })),
+            permissions,
+            user,
+        })
+        const sendAs = (session: ReturnType<typeof sessionOf>) => sendMailOperations.sendMailFromAlias({
+            params: { aliasId: alias.id }, data: mail, session,
+        })
+
+        // An owner with the permission sends from the alias.
+        await sendAs(sessionOf([{ groupId: owners.id }], ['MAIL_USE']))
+        expect(sentMails().at(-1)).toMatchObject({ from: alias.address, to: 'noen@example.com' })
+
+        // Owning the alias is not enough on its own.
+        await expect(sendAs(sessionOf([{ groupId: owners.id }]))).rejects.toThrow()
+
+        // Nor is the permission without owning the alias.
+        await expect(sendAs(sessionOf([], ['MAIL_USE']))).rejects.toMatchObject({
+            errors: [{ message: expect.stringContaining('Du kan bare sende fra et alias du eier') }],
+        })
+
+        // Administrating the mail server without the permission sends nothing either.
+        await expect(sendAs(sessionOf([], ['MAILSERVER_ADMIN']))).rejects.toThrow()
+        expect(sentMails()).toHaveLength(1)
+
+        // With the permission, the administrator sends from any alias.
+        await sendAs(sessionOf([], ['MAIL_USE', 'MAILSERVER_ADMIN']))
+        expect(sentMails()).toHaveLength(2)
     })
 })
