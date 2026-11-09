@@ -8,8 +8,8 @@ export const defaultNotificationAlias = () => `noreply@${DomainContext.mailDomai
 
 const port = Number(process.env.EMAIL_PORT) || 587
 const secure = process.env.EMAIL_SECURE === 'true'
-// For our own Postfix (mail-infrastructure), which has a self-signed certificate
-// and is only reached over the internal Docker network. Still encrypted, just not verified.
+// For our own mail server (mail-infrastructure), reached by its in-cluster or compose name,
+// which its certificate is not for. Still encrypted, just not verified.
 const allowSelfSigned = process.env.EMAIL_TLS_ALLOW_SELF_SIGNED === 'true'
 
 // The .env.default placeholder for unfilled-in secrets - treated the same as unset.
