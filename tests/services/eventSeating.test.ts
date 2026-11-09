@@ -112,6 +112,23 @@ describe('wishes', () => {
         await prisma.event.update({ where: { id: params.id }, data: { seatingWishesEnd: new Date(Date.now() - HOUR) } })
         await expectRefused(update(0))
     })
+
+    test('stop counting for someone who has lost their place', async () => {
+        const { params, second, third, sessionOf } = await setUp('seat-stale')
+        await eventSeatingOperations.openWishes({ params, data: { wishesEnd: soon }, bypassAuth: true })
+        const session = sessionOf(0)
+        await eventSeatingOperations.updateWishes({ params, data: { wishes: [second.id, third.id] }, session })
+
+        const { variantId } = await prisma.eventQuota.findUniqueOrThrow({ where: { id: second.quotaId ?? 0 } })
+        await prisma.eventRegistration.update({
+            where: { id: second.id },
+            data: { state: 'WAITING_LIST', quotaId: null, waitingListVariantId: variantId },
+        })
+
+        expect((await eventSeatingOperations.readOwn({ params, session }))?.wishes).toEqual([third.id])
+        const board = await eventSeatingOperations.readBoard({ params, bypassAuth: true })
+        expect(Object.values(board.wishes).flat()).not.toContain(second.id)
+    })
 })
 
 describe('the plan', () => {
@@ -139,7 +156,10 @@ describe('the plan', () => {
 
         const board = await eventSeatingOperations.readBoard({ params, bypassAuth: true })
         expect(board.seats).toEqual([2, 2])
-        expect(board.plan).toEqual({ tables: [[third.id], [first.id, second.id].sort()], unseated: [] })
+        expect(board.plan).toEqual({
+            tables: [[third.id], [first.id, second.id].sort((earlier, later) => earlier - later)],
+            unseated: [],
+        })
         expect(board.locked).toEqual([first.id])
     })
 

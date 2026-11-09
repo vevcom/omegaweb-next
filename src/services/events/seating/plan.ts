@@ -177,8 +177,9 @@ export function parseSeats(text: string): number[] | null {
     for (const token of text.split(/[,;\s]+/).filter(Boolean)) {
         const match = /^(?:(\d+)[x*×])?(\d+)$/i.exec(token)
         if (!match || Number(match[2]) < 1 || Number(match[2]) > MAX_SEATS_PER_TABLE) return null
-        seats.push(...Array<number>(Number(match[1] ?? 1)).fill(Number(match[2])))
-        if (seats.length > MAX_TABLES) return null
+        const count = Number(match[1] ?? 1)
+        if (seats.length + count > MAX_TABLES) return null
+        seats.push(...Array<number>(count).fill(Number(match[2])))
     }
     return seats.length > 0 ? seats : null
 }

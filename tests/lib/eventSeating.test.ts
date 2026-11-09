@@ -109,6 +109,7 @@ describe('tables', () => {
         expect(parseSeats('0')).toBeNull()
         expect(parseSeats('')).toBeNull()
         expect(parseSeats('999x8')).toBeNull()
+        expect(parseSeats('5000000000x8')).toBeNull()
     })
 
     test('writes equal tables the short way', () => {
