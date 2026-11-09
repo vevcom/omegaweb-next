@@ -58,7 +58,9 @@ const issue = ({ user, session }: Actor, challenge: string, overrides: Partial<I
             userId: user?.id ?? 0,
             clientId: CLIENT,
             redirectUri: REDIRECT_URI,
+            responseType: 'code',
             scope: 'openid profile email',
+            state: 'state-1',
             nonce: 'nonce-1',
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
@@ -104,7 +106,10 @@ describe('the OpenID Connect provider', () => {
         const actor = await createUser('once')
         const { user } = actor
         const { verifier, challenge } = pkce()
-        const { code } = await issue(actor, challenge)
+        const issued = await issue(actor, challenge)
+        // The answer is where the browser goes: back to the client with the code and its state.
+        expect(issued).toMatchObject({ state: 'state-1', redirectUri: REDIRECT_URI })
+        const { code } = issued
         expect(code).toMatch(/^[A-Za-z0-9_-]{43}$/)
         // Stored hashed, so the table never holds a usable code.
         expect(await prisma.oidcAuthorizationCode.findUnique({ where: { codeHash: hashOf(code) } })).toMatchObject({
@@ -153,8 +158,35 @@ describe('the OpenID Connect provider', () => {
         const { challenge } = pkce()
         await refused(issue(actor, challenge, { clientId: 'evil.example' }), 'BAD PARAMETERS')
         await refused(issue(actor, challenge, { redirectUri: `${ISSUER}/elsewhere` }), 'BAD PARAMETERS')
-        await refused(issue(actor, challenge, { codeChallengeMethod: 'plain' as 'S256' }), 'BAD PARAMETERS')
+        await refused(issue(actor, challenge, { codeChallengeMethod: 'plain' }), 'BAD PARAMETERS')
         await refused(issue(actor, challenge, { codeChallenge: 'short' }), 'BAD PARAMETERS')
+        await refused(issue(actor, challenge, { responseType: 'token' }), 'BAD PARAMETERS')
+        await refused(issue(actor, challenge, { state: '' }), 'BAD PARAMETERS')
+    })
+
+    test('the token endpoint trades the code for the tokens, and takes the one grant type', async () => {
+        const actor = await createUser('token-endpoint')
+        const { verifier, challenge } = pkce()
+        const { code } = await issue(actor, challenge, { scope: 'openid email' })
+        const grant = { clientId: CLIENT, redirectUri: REDIRECT_URI, code, codeVerifier: verifier }
+        await refused(oidcOperations.token({ data: { ...grant, grantType: 'client_credentials' } }), 'BAD PARAMETERS')
+        const tokens = await oidcOperations.token({ data: { ...grant, grantType: 'authorization_code' } })
+        expect(tokens).toMatchObject({ token_type: 'Bearer', expires_in: 3600, scope: 'openid email' })
+        expect(decode(tokens.id_token)).toMatchObject({ aud: CLIENT, sub: String(actor.user.id), nonce: 'nonce-1' })
+        expect(verifyAccessToken(tokens.access_token)).toMatchObject({ userId: actor.user.id, scopes: ['openid', 'email'] })
+
+        // The userinfo endpoint answers that token with the claims, and nothing else.
+        await expect(oidcOperations.userinfo({ params: { accessToken: tokens.access_token } }))
+            .resolves.toEqual({ sub: String(actor.user.id), email: actor.user.email })
+        await refused(oidcOperations.userinfo({ params: { accessToken: `${tokens.access_token}x` } }), 'JWT INVALID')
+    })
+
+    test('a logged out visitor is sent to the uri asked for when it is ours, and to the frontpage otherwise', async () => {
+        const endSession = (postLogoutRedirectUri: string | null) =>
+            oidcOperations.endSession({ params: { postLogoutRedirectUri } })
+        await expect(endSession(`${ISSUER}/career`)).resolves.toEqual({ redirectTo: `${ISSUER}/career` })
+        await expect(endSession('https://evil.example/')).resolves.toEqual({ redirectTo: `${ISSUER}/` })
+        await expect(endSession(null)).resolves.toEqual({ redirectTo: `${ISSUER}/` })
     })
 
     test('issues a code to the signed in user, for themselves alone', async () => {

@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { authOptions } from '@/auth/nextAuth/authOptions'
 import { sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
+import { Session } from '@/auth/session/Session'
 import { getToken } from 'next-auth/jwt'
 import type { LoginProvider } from '@/auth/nextAuth/sessionToken'
 import type { JWT } from 'next-auth/jwt'
@@ -15,19 +16,33 @@ function secret(): string {
     return process.env.NEXTAUTH_SECRET
 }
 
+// Read once per request, however many of a route's hooks ask.
+const tokensOfRequests = new WeakMap<Request, Promise<JWT | null>>()
+
 /**
  * The session a request carries, as NextAuth reads it, checks and all: null when the visitor is
  * not signed in on the domain the request came to.
  */
 export function readSessionToken(request: NextRequest): Promise<JWT | null> {
+    const read = tokensOfRequests.get(request)
+    if (read) return read
     const cookie = sessionCookieOf(request.headers)
-    return getToken({
+    const token = getToken({
         req: request,
         secret: secret(),
         cookieName: cookie.name,
         secureCookie: cookie.secure,
         decode: authOptions.jwt?.decode,
     })
+    tokensOfRequests.set(request, token)
+    return token
+}
+
+/** The session of {@link readSessionToken} as the service operations take it, empty for a visitor not signed in. */
+export async function sessionFromCookie(request: NextRequest): Promise<Session<'HAS_USER'> | Session<'NO_USER'>> {
+    const token = await readSessionToken(request)
+    if (!token) return Session.empty()
+    return Session.fromJsObject({ user: token.user, permissions: token.permissions, memberships: token.memberships })
 }
 
 /**

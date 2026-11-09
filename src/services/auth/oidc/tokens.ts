@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { OIDC_TOKEN_LIFETIME_S, oidcIssuer } from './constants'
 import { readPemEnvBase64 } from '@/lib/jwt/readPemEnvBase64'
 import { ServiceError } from '@/services/error'
-import { JsonWebTokenError, TokenExpiredError, sign, verify } from 'jsonwebtoken'
+import { TokenExpiredError, sign, verify } from 'jsonwebtoken'
 import { createHash, createPublicKey, randomBytes } from 'node:crypto'
 import type { UserClaims } from './claims'
 
@@ -107,7 +107,7 @@ export function verifyAccessToken(token: string): AccessToken {
         }
     } catch (error) {
         if (error instanceof TokenExpiredError) throw new ServiceError('JWT EXPIRED', error.message)
-        if (error instanceof JsonWebTokenError) throw new ServiceError('JWT INVALID', error.message)
-        throw error
+        // Whatever else verifying throws, a wrong signature or one that is not even the right length, is the bearer's.
+        throw new ServiceError('JWT INVALID', error instanceof Error ? error.message : 'The token could not be verified')
     }
 }
