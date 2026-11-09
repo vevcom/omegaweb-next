@@ -1,14 +1,16 @@
 import { imageCollectionIdOrNameSchema, imageDataFieldSchemas } from '@/services/images/subservice/schemas'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { visibilityRequirementsSchema } from '@/services/visibility/schemas'
+import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
     collectionName: imageDataFieldSchemas.shape.collectionName,
     collectionDescription: imageDataFieldSchemas.shape.collectionDescription,
-    visibilityAdminRequirements: visibilityRequirementsSchema.min(
-        1, 'Du må velge hvem som kan administrere albumet'
-    ),
+    visibilityAdminRequirements: Zpn.json({
+        label: 'Hvem kan administrere',
+        schema: visibilityRequirementsSchema.min(1, 'Du må velge hvem som kan administrere albumet'),
+    }),
 })
 
 const paramsFieldSchemas = z.object({

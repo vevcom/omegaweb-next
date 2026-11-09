@@ -12,10 +12,6 @@ import type { ServerPageSession } from '@/app/ServerPage'
 export function authorizeAdminPage(
     path: Parameters<typeof adminNavDef.authorize>[0] | null,
     session: ServerPageSession,
-) {
-    if (path === null) {
-        adminNavDef.authorizeAny(session)
-    } else {
-        adminNavDef.authorize(path, session)
-    }
+): Promise<void> {
+    return path === null ? adminNavDef.authorizeAny(session) : adminNavDef.authorize(path, session)
 }

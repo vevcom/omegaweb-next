@@ -10,10 +10,10 @@ import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { permissionsAuth } from '@/services/permissions/auth'
 import { apiKeyAuth } from '@/services/apiKeys/auth'
 import { sendMailAuth } from '@/services/notifications/sendMail/auth'
+import { omegaMailServerLinks } from '@/app/(omegaweb)/admin/mail/links'
 import { manualNotificationChannelAuth } from '@/services/notifications/channels/manual/auth'
-import { mailAliasAuth } from '@/services/mail/alias/auth'
-import { mailingListAuth } from '@/services/mail/list/auth'
-import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
+import { mailServerNavAuthorizers } from '@/pageKits/mailServer/navAuthorizers'
+import { readAliasOwnerMatrices } from '@/services/mail/owned'
 import { dotAuth } from '@/services/dots/auth'
 import { dotFreezePeriodAuth } from '@/services/dots/freezePeriods/auth'
 import { cabinPricePeriodAuth } from '@/services/cabin/pricePeriod/auth'
@@ -189,34 +189,36 @@ export const adminNavDef = defineGroupedNavDef([
                 href: appHref('/admin/send-notification'),
                 authorizers: () => [manualNotificationChannelAuth.createNotification],
             },
+            {
+                key: 'send-mail',
+                name: 'Send e-post',
+                href: appHref('/admin/send-mail'),
+                authorizers: async ({ prisma }) => [
+                    sendMailAuth.readPage.data({ aliasOwnerVisibilities: await readAliasOwnerMatrices({ prisma }) }),
+                ],
+            },
         ],
     },
     {
         header: { icon: faEnvelopesBulk, title: 'E-posttjener' },
         items: [
             {
-                key: 'send-mail',
-                name: 'Send e-post',
-                href: appHref('/admin/send-mail'),
-                authorizers: () => [sendMailAuth.sendMail],
-            },
-            {
                 key: 'mail/mailingList',
                 name: 'E-postlister',
-                href: appHref('/admin/mail/mailingList'),
-                authorizers: () => [mailingListAuth.readMany],
+                href: omegaMailServerLinks.part('mailingList'),
+                authorizers: mailServerNavAuthorizers,
             },
             {
                 key: 'mail/alias',
                 name: 'E-postalias',
-                href: appHref('/admin/mail/alias'),
-                authorizers: () => [mailAliasAuth.readMany],
+                href: omegaMailServerLinks.part('alias'),
+                authorizers: mailServerNavAuthorizers,
             },
             {
                 key: 'mail/mailaddressExternal',
                 name: 'Eksterne adresser',
-                href: appHref('/admin/mail/mailaddressExternal'),
-                authorizers: () => [mailAddressExternalAuth.readMany],
+                href: omegaMailServerLinks.part('mailaddressExternal'),
+                authorizers: mailServerNavAuthorizers,
             },
         ],
     },
@@ -334,6 +336,6 @@ export const adminNavDef = defineGroupedNavDef([
     },
 ])
 
-function authorizersOfOtherPages(): NavAuthorizer[] {
+function authorizersOfOtherPages(): Promise<NavAuthorizer[]> {
     return adminNavDef.authorizers({ except: 'component-test' })
 }

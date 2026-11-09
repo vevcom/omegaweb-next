@@ -1,10 +1,9 @@
 import { careerAdminLinks } from './links'
 import { companyAuth } from '@/services/careers/companies/auth'
-import { mailAliasAuth } from '@/services/mail/alias/auth'
-import { mailingListAuth } from '@/services/mail/list/auth'
-import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
+import { careerFrontpageHighlightAuth } from '@/services/careers/frontpage/highlights/auth'
+import { mailServerNavAuthorizers } from '@/pageKits/mailServer/navAuthorizers'
 import { defineNavDef } from '@/lib/navDef/navDef'
-import { faBuilding, faEnvelopesBulk } from '@fortawesome/free-solid-svg-icons'
+import { faBuilding, faEnvelopesBulk, faStar } from '@fortawesome/free-solid-svg-icons'
 
 /** The admin pages of the career site, in the order the sidebar shows them. */
 export const careerAdminNavDef = defineNavDef([
@@ -16,14 +15,17 @@ export const careerAdminNavDef = defineNavDef([
         authorizers: () => [companyAuth.create],
     },
     {
+        key: 'highlights',
+        name: 'Fremhevinger',
+        href: careerAdminLinks.highlights(),
+        icon: faStar,
+        authorizers: () => [careerFrontpageHighlightAuth.readMany],
+    },
+    {
         key: 'mail',
         name: 'E-posttjener',
         href: careerAdminLinks.mail(),
         icon: faEnvelopesBulk,
-        authorizers: () => [
-            mailingListAuth.readMany,
-            mailAliasAuth.readMany,
-            mailAddressExternalAuth.readMany,
-        ],
+        authorizers: mailServerNavAuthorizers,
     },
 ])

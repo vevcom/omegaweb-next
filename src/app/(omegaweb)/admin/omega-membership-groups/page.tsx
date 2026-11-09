@@ -10,7 +10,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('omega-membership-groups', session)
+        await authorizeAdminPage('omega-membership-groups', session)
         const [membershipGroups, expandedGroups, currentOrder] = await Promise.all([
             omegaMembershipGroupOperations.readMany({}),
             omegaMembershipGroupOperations.readExpanded({}),

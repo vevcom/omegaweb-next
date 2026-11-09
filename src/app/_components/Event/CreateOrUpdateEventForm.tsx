@@ -16,7 +16,6 @@ import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import { configureAction } from '@/services/configureAction'
 import { eventLinks } from '@/pageKits/events/links'
 import { useState } from 'react'
-import type { VisibilityRequirement } from '@/services/visibility/types'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type {
     Event,
@@ -49,8 +48,6 @@ export default function CreateOrUpdateEventForm({ event, config, eventTags, comm
     const lockedTag = config.lockedTag
     const [takesRegistration, setTakesRegistration] = useState(false)
     const [takesPayment, setTakesPayment] = useState(false)
-    const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
-    const [quotaRequirements, setQuotaRequirements] = useState<VisibilityRequirement[]>([])
     const action = event ? configureAction(updateEventAction, { params: { id: event.id } }) : createEventAction
 
     return (
@@ -123,8 +120,7 @@ export default function CreateOrUpdateEventForm({ event, config, eventTags, comm
                 />
                 {!event && <>
                     <p className="m-0 font-medium">Hvem kan administrere arrangementet</p>
-                    <VisibilityMatrixEditor requirements={adminRequirements} onChange={setAdminRequirements} />
-                    <input type="hidden" name="visibilityAdminRequirements" value={JSON.stringify(adminRequirements)} />
+                    <VisibilityMatrixEditor name="visibilityAdminRequirements" />
                 </>}
             </FormSection>
 
@@ -169,12 +165,7 @@ export default function CreateOrUpdateEventForm({ event, config, eventTags, comm
                         <DateInput label="Påmeldingsslutt" name="registrationEnd" includeTime />
                         <div className="col-span-full flex flex-col gap-2">
                             <p className="m-0 font-medium">Hvem kan melde seg på (tomt betyr alle)</p>
-                            <VisibilityMatrixEditor requirements={quotaRequirements} onChange={setQuotaRequirements} />
-                            <input
-                                type="hidden"
-                                name="quotaVisibilityRequirements"
-                                value={JSON.stringify(quotaRequirements)}
-                            />
+                            <VisibilityMatrixEditor name="quotaVisibilityRequirements" />
                             <p className="m-0 text-s text-base-content/80">
                                 Dette blir den første varianten og kvoten. Flere legges til på arrangementets side.
                             </p>

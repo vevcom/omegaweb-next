@@ -10,7 +10,7 @@ import type { UserNavSubject } from '@/app/(omegaweb)/users/[username]/userNavDe
  */
 export default async function UserNavBar({ username, userId }: UserNavSubject) {
     const session = await ServerSession.fromNextAuth()
-    const items = userNavDef({ username, userId }).membership.visible(session)
+    const items = await userNavDef({ username, userId }).membership.visible(session)
 
     // only view one thing -> nav not needed
     if (items.length < 2) return null

@@ -1,4 +1,5 @@
 import { VisibilityRequirementGroupType } from '@/prisma-generated-pn-types'
+import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
 /**
@@ -24,7 +25,10 @@ export const visibilityRequirementsSchema = z.array(
 )
 
 const dataFieldSchemas = z.object({
-    requirements: visibilityRequirementsSchema
+    requirements: Zpn.json({
+        label: 'Synlighet',
+        schema: visibilityRequirementsSchema,
+    }),
 })
 
 const paramsFieldSchemas = z.object({
