@@ -1,5 +1,5 @@
 'use client'
-import { sendMailAction, sendMailFromAliasAction } from '@/services/notifications/sendMail/actions'
+import { sendMailFromAliasAction } from '@/services/notifications/sendMail/actions'
 import { configureAction } from '@/services/configureAction'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
@@ -7,7 +7,6 @@ import Textarea from '@/components/UI/Textarea'
 import { SelectNumber } from '@/components/UI/Select'
 import MultiSearchableDropdown from '@/components/UI/MultiSearchableDropdown'
 import { useState } from 'react'
-import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { MailAlias, MailingList } from '@/prisma-generated-pn-types'
 
 type PropTypes = {
@@ -16,18 +15,21 @@ type PropTypes = {
     mailingLists: MailingList[],
     /** The alias picked from the start, when the sender came from its page. */
     fromAliasId: number | null,
-    capabilities: CapabilitiesJsObject<'canSendFromAnyAddress'>,
 }
 
-export default function MailForm({ aliases, mailingLists, fromAliasId, capabilities }: PropTypes) {
+export default function MailForm({ aliases, mailingLists, fromAliasId }: PropTypes) {
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-    // A typed address, which only those who may send from any address get a field for, wins over the alias picked.
     const send = (formData: FormData) => {
-        const typedFrom = formData.get('from')
-        if (typeof typedFrom === 'string' && typedFrom.trim()) return sendMailAction(formData)
         const aliasId = Number(formData.get('fromAliasId'))
         return configureAction(sendMailFromAliasAction, { params: { aliasId } })(formData)
+    }
+
+    if (aliases.length === 0) {
+        return <p>
+            Du eier ingen alias å sende fra. E-post sendes fra et alias du er blant eierne av, så be
+            eierne av aliaset om å ta deg med, eller en administrator av e-posttjeneren om å sende.
+        </p>
     }
 
     return <>
@@ -38,17 +40,12 @@ export default function MailForm({ aliases, mailingLists, fromAliasId, capabilit
             buttonClassName="max-w-[300px] w-full!"
             successCallback={data => setSuccessMessage(data ? `Sendt til ${data.recipientCount} mottakere.` : null)}
         >
-            {aliases.length > 0 && (
-                <SelectNumber
-                    name="fromAliasId"
-                    label="Avsender"
-                    options={aliases.map(alias => ({ value: alias.id, label: alias.address }))}
-                    defaultValue={fromAliasId ?? aliases[0].id}
-                />
-            )}
-            {capabilities.canSendFromAnyAddress.authorized && (
-                <TextInput name="from" label={aliases.length > 0 ? 'Annen avsenderadresse (valgfritt)' : 'Avsender'} />
-            )}
+            <SelectNumber
+                name="fromAliasId"
+                label="Avsender"
+                options={aliases.map(alias => ({ value: alias.id, label: alias.address }))}
+                defaultValue={fromAliasId ?? aliases[0].id}
+            />
             <Textarea name="recipients" label="Mottakere (skill adressene med komma eller linjeskift)" />
             {mailingLists.length > 0 && (
                 <MultiSearchableDropdown

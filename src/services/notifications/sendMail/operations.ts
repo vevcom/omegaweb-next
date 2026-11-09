@@ -23,8 +23,8 @@ function fillInPlaceholders(text: string, user: UserBasic | null) {
 const internal = {
     /**
      * Sends a text mail to typed addresses and mailing lists. Each recipient gets a mail of their own,
-     * so nobody sees who else got it and the placeholders can be filled in per recipient.
-     * Implemented with authorization as `sendMail` below.
+     * so nobody sees who else got it and the placeholders can be filled in per recipient. Reached
+     * from outside through `sendMailFromAlias`, which fills in the sender.
      */
     sendMail: defineSubOperation({
         dataSchema: () => sendMailSchemas.data.sendMail,
@@ -74,15 +74,6 @@ const internal = {
 
 export const sendMailOperations = {
     internal,
-
-    sendMail: internal.sendMail.implement({
-        authorizer: () => sendMailAuth.sendMail,
-        ownershipCheck: () => true,
-        implementationParamsSchema: undefined,
-        dataSchemaImplementationFields: undefined,
-        paramsSchemaImplementationFields: undefined,
-        operationImplementationFields: undefined,
-    }),
 
     sendMailFromAlias: defineOperation({
         paramsSchema: sendMailSchemas.params.sendMailFromAlias,

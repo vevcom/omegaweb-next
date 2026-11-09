@@ -1,10 +1,8 @@
 import MailForm from './MailForm'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import { sendMailAuth } from '@/services/notifications/sendMail/auth'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
-import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import { appHref } from '@/lib/sites/href'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
@@ -12,19 +10,20 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session, searchParams }: PageOperationArgs) => {
-        // The aliases the session reads are the ones it may send from. Owning one is enough to send
-        // from it, so an owner opens the page without the permission that puts it in the nav.
-        const aliases = await withFallback(aliasOperations.readMany({ params: {} }), [])
-        if (aliases.length === 0) await authorizeAdminPage('send-mail', session)
+        await authorizeAdminPage('send-mail', session)
+        // The aliases the session reads, marked with the ones it owns: a sender sends from those, and a
+        // mail server administrator from them all, as sendMailFromAlias has it.
+        const aliases = await withFallback(
+            aliasOperations.readMany({ params: { markOwnedByUserId: session.user?.id } }),
+            [],
+        )
+        const sendsFromAny = session.permissions.includes('MAILSERVER_ADMIN')
         const mailingLists = await withFallback(mailingListOperations.readMany({ params: {} }), [])
         const fromAliasId = Number(searchParams.from) || null
-        return { aliases, mailingLists, fromAliasId }
+        return { aliases: aliases.filter(alias => sendsFromAny || alias.owned), mailingLists, fromAliasId }
     },
-    capabilities: () => ({
-        canSendFromAnyAddress: sendMailAuth.sendMail,
-    }),
     metadata: () => ({ title: 'E-postutsendelse' }),
-    render: ({ data, capabilities }) => (
+    render: ({ data }) => (
         <PageWrapper>
             <p className="text-base-content/80 max-w-[70ch]">
                 Skal du nå medlemmer av Omega?{' '}
@@ -36,7 +35,6 @@ const { page, generateMetadata } = serverPage({
                 aliases={data.aliases}
                 mailingLists={data.mailingLists}
                 fromAliasId={data.fromAliasId}
-                capabilities={capabilitiesToJsObject(capabilities)}
             />
         </PageWrapper>
     ),

@@ -13,6 +13,7 @@ import { sendMailAuth } from '@/services/notifications/sendMail/auth'
 import { omegaMailServerLinks } from '@/app/(omegaweb)/admin/mail/links'
 import { manualNotificationChannelAuth } from '@/services/notifications/channels/manual/auth'
 import { mailServerNavAuthorizers } from '@/pageKits/mailServer/navAuthorizers'
+import { readAliasOwnerMatrices } from '@/services/mail/owned'
 import { dotAuth } from '@/services/dots/auth'
 import { dotFreezePeriodAuth } from '@/services/dots/freezePeriods/auth'
 import { cabinPricePeriodAuth } from '@/services/cabin/pricePeriod/auth'
@@ -192,7 +193,9 @@ export const adminNavDef = defineGroupedNavDef([
                 key: 'send-mail',
                 name: 'Send e-post',
                 href: appHref('/admin/send-mail'),
-                authorizers: () => [sendMailAuth.sendMail],
+                authorizers: async ({ prisma }) => [
+                    sendMailAuth.readPage.data({ aliasOwnerVisibilities: await readAliasOwnerMatrices({ prisma }) }),
+                ],
             },
         ],
     },
