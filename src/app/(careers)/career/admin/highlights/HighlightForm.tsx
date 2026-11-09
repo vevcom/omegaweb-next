@@ -14,8 +14,19 @@ type PropTypes = Pick<ComponentProps<typeof Form>, 'action' | 'title' | 'submitT
     highlight?: ExpandedCareerFrontpageHighlight,
 }
 
+/**
+ * The targets offered, with the current one kept: an event that has ended or a job ad gone inactive is no
+ * longer offered anew, but must stay selectable so the dates can be edited without losing it.
+ */
+function withCurrent<T extends { id: number }>(offered: T[], current: T | null | undefined): T[] {
+    if (!current || offered.some(target => target.id === current.id)) return offered
+    return [...offered, current]
+}
+
 /** A highlight of either an event or a job ad, the other left as none. */
 export default function HighlightForm({ targets, highlight, ...formProps }: PropTypes) {
+    const events = withCurrent(targets.events, highlight?.event)
+    const jobAds = withCurrent(targets.jobAds, highlight?.jobAd)
     return (
         <Form refreshOnSuccess {...formProps}>
             <SelectNumberPossibleNULL
@@ -23,7 +34,7 @@ export default function HighlightForm({ targets, highlight, ...formProps }: Prop
                 name="eventId"
                 options={[
                     { value: 'NULL', label: 'Ingen' },
-                    ...targets.events.map(event => ({
+                    ...events.map(event => ({
                         value: event.id,
                         label: `${event.name} (${displayDate(event.eventStart, false)})`,
                     })),
@@ -35,7 +46,7 @@ export default function HighlightForm({ targets, highlight, ...formProps }: Prop
                 name="jobAdId"
                 options={[
                     { value: 'NULL', label: 'Ingen' },
-                    ...targets.jobAds.map(jobAd => ({
+                    ...jobAds.map(jobAd => ({
                         value: jobAd.id,
                         label: `${jobAd.articleName} (${jobAd.company.name})`,
                     })),
