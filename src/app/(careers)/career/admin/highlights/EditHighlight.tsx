@@ -27,8 +27,8 @@ export default function EditHighlight({ highlight, targets, name }: PropTypes) {
         <PopUp
             popUpKey={popUpKey}
             showButtonClass="
-                grid place-items-center size-8 rounded-full border-none bg-surface-hover text-text cursor-pointer
-                hover:bg-surface-subtle
+                grid place-items-center size-8 rounded-full border-none bg-base-300 text-base-content cursor-pointer
+                hover:bg-base-300
             "
             showButtonContent={<FontAwesomeIcon icon={faPencil} />}
             ariaLabel={`Rediger ${name}`}

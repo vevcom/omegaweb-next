@@ -36,15 +36,15 @@ const { page, generateMetadata } = serverPage({
                             const name = highlight.event?.name ?? highlight.jobAd?.articleName ?? ''
                             return (
                                 <li key={highlight.id} className="
-                                    flex flex-wrap items-center gap-x-6 gap-y-1 p-4 rounded-(--rounding) bg-surface-raised
+                                    flex flex-wrap items-center gap-x-6 gap-y-1 p-4 rounded-(--rounding) bg-base-200
                                 ">
                                     <div className="flex-1 min-w-[14rem]">
                                         <p className="m-0 font-semibold">{name}</p>
-                                        <p className="m-0 text-s text-text-muted">
+                                        <p className="m-0 text-s text-base-content/80">
                                             {highlight.event ? 'Bedriftspresentasjon' : 'Jobbannonse'}
                                         </p>
                                     </div>
-                                    <p className="m-0 text-s text-text-muted">
+                                    <p className="m-0 text-s text-base-content/80">
                                         {displayDate(highlight.start)} – {displayDate(highlight.end)}
                                     </p>
                                     <p className="m-0 text-s font-semibold">{statusOf(highlight, now)}</p>
@@ -54,7 +54,7 @@ const { page, generateMetadata } = serverPage({
                         })}
                     </ul>
                 ) : (
-                    <p className="text-text-muted">Ingenting er fremhevet ennå.</p>
+                    <p className="text-base-content/80">Ingenting er fremhevet ennå.</p>
                 )}
             </PageWrapper>
         )

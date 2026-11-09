@@ -57,7 +57,7 @@ export default function CareerFrontpageHighlights({ highlights }: PropTypes) {
             aria-label="Aktuelt"
             className={`
                 ${bandClassName}
-                border-y border-careers-line bg-surface-raised
+                border-y border-careers-line bg-base-200
             `}
         >
             <div className={`
@@ -101,7 +101,7 @@ export default function CareerFrontpageHighlights({ highlights }: PropTypes) {
                                 ">
                                     {item.title}
                                 </span>
-                                <span className="block text-text-muted text-s">{item.detail}</span>
+                                <span className="block text-base-content/80 text-s">{item.detail}</span>
                             </SiteLink>
                         </li>
                     ))}
