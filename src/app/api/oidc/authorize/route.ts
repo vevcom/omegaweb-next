@@ -1,16 +1,14 @@
 import { describeError, oauthError, providerRoute } from '@/app/api/oidc/provider'
 import { oidcOperations } from '@/services/auth/oidc/operations'
 import { oidcClientOf } from '@/services/auth/oidc/clients'
-import { authOptions } from '@/auth/nextAuth/authOptions'
-import { sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
+import { readSessionToken } from '@/auth/sso/session'
 import { Session } from '@/auth/session/Session'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/lib/sites/authPagesOf'
-import { siteHref } from '@/app/domainContextOfRequest'
+import { domainContextOf } from '@/app/domainContextOfRequest'
 import { appHref } from '@/lib/sites/href'
 import { Site, siteNameSchema } from '@/lib/sites/site'
 import { Smorekopp } from '@/services/error'
-import { getToken } from 'next-auth/jwt'
 import { NextResponse } from 'next/server'
 
 /**
@@ -44,14 +42,7 @@ export const GET = providerRoute(async request => {
     const codeChallengeMethod = query.get('code_challenge_method')
     if (codeChallengeMethod !== 'S256') return backWithError('invalid_request', 'code_challenge_method must be S256')
 
-    const cookie = sessionCookieOf(request.headers)
-    const token = await getToken({
-        req: request,
-        secret: process.env.NEXTAUTH_SECRET,
-        cookieName: cookie.name,
-        secureCookie: cookie.secure,
-        decode: authOptions.jwt?.decode,
-    })
+    const token = await readSessionToken(request)
     if (!token) {
         // The client may name the site whose layout the login renders in, among those it serves.
         const requestedSite = siteNameSchema.safeParse(query.get('site'))
@@ -59,8 +50,8 @@ export const GET = providerRoute(async request => {
             ? Site.of(requestedSite.data)
             : client.site
         const here = appHref(`${request.nextUrl.pathname}${request.nextUrl.search}`)
-        const login = await siteHref(authLinks(authPagesOf(site)).login({ callbackUrl: here }))
-        return NextResponse.redirect(new URL(login, request.nextUrl))
+        const form = domainContextOf(request).resolveHref(authLinks(authPagesOf(site)).loginForm({ callbackUrl: here }))
+        return NextResponse.redirect(new URL(form, request.nextUrl))
     }
 
     try {

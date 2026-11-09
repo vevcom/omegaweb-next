@@ -5,6 +5,7 @@ import SubmitButton from '@/UI/SubmitButton'
 import { useSession } from '@/auth/session/useSession'
 import useDomainContext from '@/hooks/useDomainContext'
 import { authLinks } from '@/pageKits/auth/links'
+import { ssoStartHref } from '@/auth/sso/links'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
@@ -34,8 +35,9 @@ const errorMessages: Record<string, string> = {
 
 export default function LoginForm({ config, callbackUrl: callbackAppPath, initialError }: PropTypes) {
     const session = useSession()
-    // NextAuth sends the browser there, so it must be a url of the domain the visitor is on.
-    const callbackUrl = useDomainContext().resolveHref(callbackAppPath)
+    // NextAuth sends the browser there once signed in here: the start route, which takes the session
+    // to the domain the page is on. It must be a url of the domain the visitor is on.
+    const callbackUrl = useDomainContext().resolveHref(ssoStartHref(callbackAppPath))
 
     // Feide errors arrive in the url. Credentials errors are kept here, so a new attempt clears them.
     const [error, setError] = useState(initialError)
@@ -80,7 +82,7 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
     if (sessionUser && !pending && !signedIn) {
         return <>
             <p>Du er allerede logget inn som {sessionUser.username}.</p>
-            <SiteLink href={callbackAppPath}>Fortsett</SiteLink>
+            <SiteLink href={ssoStartHref(callbackAppPath)}>Fortsett</SiteLink>
             <SiteLink href={authLinks(config).logout()}>Logg ut</SiteLink>
         </>
     }

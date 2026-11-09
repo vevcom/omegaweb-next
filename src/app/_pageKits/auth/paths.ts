@@ -16,7 +16,7 @@ export type AuthPageHost = 'auth-domain' | 'site'
  * others.
  */
 export const authPagePaths = {
-    login: { path: '/login', on: 'auth-domain' },
+    loginForm: { path: '/login', on: 'auth-domain' },
     logout: { path: '/logout', on: 'site' },
     register: { path: '/register', on: 'auth-domain' },
     registerEmail: { path: '/register-email', on: 'auth-domain' },

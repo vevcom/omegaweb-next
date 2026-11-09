@@ -136,6 +136,17 @@ export class DomainContext {
     }
 
     /**
+     * The origin a site is reached by from outside: its main domain, or Omega's for a site without
+     * domains. Throws without either, as nothing is reached then.
+     */
+    static originOfSite(site: Site): string {
+        const config = DomainContext.config()
+        const origin = config.mainOriginOfSite(site) ?? config.mainOriginOfSite(Site.root)
+        if (!origin) throw new Error('sites.json gives Omega\'s site no main domain to reach it by')
+        return origin
+    }
+
+    /**
      * The domain a site's own mail addresses are on, such as noreply@: the host name of its main
      * domain, or of Omega's for a site without domains. Omega's own addresses, such as hs@, are on
      * `mailDomainOf(Site.root)`.

@@ -35,12 +35,18 @@ describe('the auth page kit', () => {
         mounts.forEach(mount => expect(routeFolders(mount)).toEqual(pagePaths))
     })
 
-    test('links every page at its path under the site\'s root', () => {
+    test('links every page at its path under the site\'s root, and the login to the start of the SSO', () => {
         const onOmega = authLinks(omegaAuthPages)
         const onCareers = authLinks(careersAuthPages)
-        expect(onOmega.login()).toBe('/login')
-        expect(onCareers.login({ callbackUrl: appHref('/career/job-ads') }))
+        expect(onOmega.loginForm()).toBe('/login')
+        expect(onCareers.loginForm({ callbackUrl: appHref('/career/job-ads') }))
             .toBe('/career/login?callbackUrl=%2Fcareer%2Fjob-ads')
+        // Signing in is the start route of the domain the visitor is on, landing on the callback or
+        // the site's after-login page.
+        expect(onOmega.login()).toBe('/api/sso/start?callbackUrl=%2Fusers%2Fme')
+        expect(onCareers.login()).toBe('/api/sso/start?callbackUrl=%2Fcareer')
+        expect(onCareers.login({ callbackUrl: appHref('/career/job-ads') }))
+            .toBe('/api/sso/start?callbackUrl=%2Fcareer%2Fjob-ads')
         expect(onCareers.logout()).toBe('/career/logout')
         expect(onOmega.verifyEmail('abc')).toBe('/verify-email?token=abc')
         expect(onCareers.terms()).toBe('/career/terms')

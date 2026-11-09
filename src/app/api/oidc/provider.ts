@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { domainContextOfRequest } from '@/app/domainContextOfRequest'
+import { domainContextOf } from '@/app/domainContextOfRequest'
 import { NextResponse } from 'next/server'
 import type { ErrorMessage } from '@/services/error'
 import type { Awaitable } from '@/lib/awaitable'
@@ -20,8 +20,8 @@ export function describeError(errors: ErrorMessage[]): string {
  * to one of its endpoints anywhere else finds nothing there.
  */
 export function providerRoute(handler: (request: NextRequest) => Awaitable<Response>) {
-    return async (request: NextRequest) => {
-        if (!(await domainContextOfRequest()).isAuthDomain()) {
+    return (request: NextRequest) => {
+        if (!domainContextOf(request).isAuthDomain()) {
             return new NextResponse('Not found', { status: 404, headers: { 'content-type': 'text/plain' } })
         }
         return handler(request)
