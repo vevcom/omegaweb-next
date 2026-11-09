@@ -4,7 +4,6 @@ import CountDown from '@/components/CountDown/CountDown'
 import DateDisplay from '@/components/Date/Date'
 import EventPaymentModal from '@/components/Ledger/Modals/EventPaymentModal'
 import { displayAmount } from '@/lib/currency/convert'
-import { paymentDeadline } from '@/services/events/registration/paymentDeadline'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck, faCircleExclamation } from '@fortawesome/free-solid-svg-icons'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
@@ -41,7 +40,7 @@ export default function EventPaymentSection({
     if (!variant.takesPayment || price === null || !paymentStart || !paymentEnd) return null
 
     const now = new Date()
-    const deadline = paymentDeadline(paymentStart, paymentEnd, registration?.promotedAt ?? null)
+    const deadline = registration?.paymentDeadline ?? paymentEnd
     const paymentOpen = paymentStart <= now && now <= deadline
     const status = paymentStatus(registration)
 
