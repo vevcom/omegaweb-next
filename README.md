@@ -7,7 +7,7 @@ For getting started please refer to our [Getting Started Guide](https://github.c
 
 ## Development
 
-Copy `sites.example.json` to `sites.json`, which maps the development hosts to the sites and is mounted into the stack; the app does not start without it. Omega's site answers at http://omegaweb.localhost:3000, a name every browser resolves to your machine, and http://localhost:3000 sends you there. Have the docker deamon running, then run:
+Copy `sites.example.json` to `sites.json`, which maps the development hosts to the sites and is mounted into the stack; the app does not start without it. Omega's site answers at http://omegaweb.localhost:3000, a name every browser resolves to your machine, and http://localhost:3000 sends you there. Signing in happens on http://auth.localhost:3000, the auth domain, which every site sends you to and back from, see [Signing in](#signing-in). Have the docker deamon running, then run:
 
 ```bash
 npm run docker:dev
@@ -78,6 +78,12 @@ inside the omegaweb-next container
 Production runs on the k3s cluster, deployed by Argo CD from [vivat](https://github.com/vevcom/vivat). This repo holds the generic shape of an installation in `deploy/`, see [deploy/README.md](deploy/README.md): the app, the worker, the migrate job and the database, with nothing about where it runs. Our domains, certificate, buckets, backups and the release that runs are vivat's business. Publishing a GitHub release builds the images and opens the pull request there that deploys it.
 
 There is no nginx. Next serves `/store/` itself (`src/app/store/[...path]/route.ts`), in dev and prod alike.
+
+### Signing in
+
+One domain signs users in: the one `sites.json` marks `"auth": true`, such as `login.omega.ntnu.no`, or Omega's main domain when the file marks none. The app is an OpenID Connect provider on that domain (`src/services/auth/oidc/`, discovery at `/.well-known/openid-configuration`), and every domain of every site is a client of it (`src/auth/sso/`, `src/app/api/sso/`). A site's "Logg inn" goes to its own start route, which sends the browser to the auth domain; the login form renders there in the layout of the site the visitor came from, and once signed in the browser comes back with a code the site exchanges for a session of its own. So each domain keeps its own session cookie, as before, but a visitor signs in once and is signed in on every site, and logging out ends both the site's session and the auth domain's. A domain set apart with `"auth": true` serves the sign in, sign up and password pages of every site and nothing else; any other page reaching it is sent to the domain it belongs on.
+
+For the deployment this means the auth host is in the ingress and the certificate like the sites' hosts, and that Feide is told of one callback alone, `https://<auth host>/api/auth/callback/feide`, since credentials and Feide are only offered there. The provider signs its tokens with the Omega ID key pair, `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`, published at `/api/oidc/jwks`, so no new secret is needed. The mail server will sign its users in through the same provider.
 
 `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` is a **build argument**, not only a runtime environment variable. Next bakes it into the build during `next build` to encrypt Server Action IDs, and a runtime env var is not passed to the build - so a build without it generates a fresh random key every time, which invalidates any Server Action referenced by a page a client still has open across the deploy ("Failed to find Server Action"). The release workflow passes the repository secret of that name, so it keeps the same value across releases, and the images are private because it is inside them.
 

@@ -32,7 +32,8 @@ An overlay includes `base` and fills in what it leaves open:
 - **The sites.** Every pod mounts the `omegaweb-next-sites` ConfigMap as `sites.json`, which
   maps hosts to sites, and none start without it. The overlay generates it from its own file. A
   changed file rolls the pods. The ingress has to list the same hosts, aliases included, since
-  the app sends aliases on itself.
+  the app sends aliases on itself, and the auth host when the file sets one apart with
+  `"auth": true`, which is where everyone signs in and the one host Feide calls back to.
 - **The database.** `database.yaml` is a CloudNativePG Cluster, so the operator has to be
   installed. It creates the `omegaweb-next-db-app` secret, whose `uri` key the pods read as
   `DB_URI`. Storage size and backups are patched in by the overlay.

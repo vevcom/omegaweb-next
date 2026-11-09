@@ -186,6 +186,7 @@ The Prisma client is generated to `generated/pn-prisma/` outside the src folder.
 - Auth configuration in `src/auth/nextAuth/`
 - Session management via `ServerSession` and `Session` classes
 - Custom visibility and authorization system
+- One domain signs users in, the auth domain of `sites.json` (`"auth": true`, or Omega's main domain without one). The app is an OpenID Connect provider there (`src/services/auth/oidc/`), and every site domain is a client of it (`src/auth/sso/`, `src/app/api/sso/`): a site's login link is its start route, the login form itself lives on the auth domain, and the callback starts the site's own session with the same token NextAuth builds (`src/auth/nextAuth/sessionToken.ts`). `DomainContext.resolveHref` sends the auth kit's pages to the auth domain by their path, so `authPagePaths` in `src/app/_pageKits/auth/paths.ts` is the one list of them, checked against the route folders by a test.
 
 ### Path Aliases
 
