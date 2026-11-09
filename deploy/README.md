@@ -37,6 +37,10 @@ An overlay includes `base` and fills in what it leaves open:
 - **The database.** `database.yaml` is a CloudNativePG Cluster, so the operator has to be
   installed. It creates the `omegaweb-next-db-app` secret, whose `uri` key the pods read as
   `DB_URI`. Storage size and backups are patched in by the overlay.
+- **The webmail.** `EMAIL_WEBMAIL_URL` is the origin of the mail server's webmail, whose host
+  is also the mail domain the aliases' mailboxes are on, and the client id the webmail signs in
+  through the provider with. Left unset, no alias keeps a mailbox. The mail server's own settings
+  for this are documented in mail-infrastructure.
 - **The store.** Uploaded images, ombul pdfs and the release countdown's files go to S3 when
   `STORE_S3_BUCKET` is set, with `STORE_S3_ENDPOINT`, `STORE_S3_ACCESS_KEY_ID` and
   `STORE_S3_SECRET_ACCESS_KEY`, and to the `store/` directory otherwise. Object keys are the

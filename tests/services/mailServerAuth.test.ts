@@ -393,6 +393,59 @@ describe('wiring the mail server as an owner', () => {
         })
     })
 
+    test('the aliases a user receives mail on are read by that user alone', async () => {
+        const reader = await createUser('received-reader')
+        const other = await createUser('received-other')
+        const group = await createGroup('received-group')
+        await prisma.membership.createMany({ data: [
+            { userId: reader.id, groupId: group.id, admin: false, active: true, order: group.order },
+            { userId: other.id, groupId: group.id, admin: false, active: false, order: group.order },
+        ] })
+        const aliasOf = async (localPart: string) => {
+            const alias = await aliasOperations.create({
+                data: { localPart, domain: 'omega.ntnu.no', description: '' }, bypassAuth: true,
+            })
+            const list = await mailingListOperations.create({
+                data: { name: `${localPart}-list`, description: '' }, bypassAuth: true,
+            })
+            await mailOperations.createAliasMailingListRelation({
+                data: { mailAliasId: alias.id, mailingListId: list.id }, bypassAuth: true,
+            })
+            return { alias, list }
+        }
+        const direct = await aliasOf('test-received-direct')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: reader.id, mailingListId: direct.list.id }, bypassAuth: true,
+        })
+        const viaGroup = await aliasOf('test-received-group')
+        await mailOperations.createMailingListGroupRelation({
+            data: { groupId: group.id, mailingListId: viaGroup.list.id }, bypassAuth: true,
+        })
+        const theirs = await aliasOf('test-received-theirs')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: other.id, mailingListId: theirs.list.id }, bypassAuth: true,
+        })
+
+        const received = await aliasOperations.readReceived({
+            params: { userId: reader.id }, session: memberSession(reader, []),
+        })
+        expect(received.map(alias => alias.address)).toEqual([direct.alias.address, viaGroup.alias.address])
+        // The other user's membership is inactive, so the group's alias is not theirs.
+        const theirReceived = await aliasOperations.readReceived({
+            params: { userId: other.id }, session: memberSession(other, []),
+        })
+        expect(theirReceived.map(alias => alias.address)).toEqual([theirs.alias.address])
+
+        await rejectsSaying(aliasOperations.readReceived({
+            params: { userId: reader.id }, session: memberSession(other, []),
+        }), 'Bare du selv ser aliasene du mottar e-post på')
+        // Not even a mail server admin: the mail is the user's.
+        await rejectsSaying(aliasOperations.readReceived({
+            params: { userId: reader.id },
+            session: Session.fromJsObject({ memberships: [], permissions: ['MAILSERVER_ADMIN'], user: other }),
+        }), 'Bare du selv ser aliasene du mottar e-post på')
+    })
+
     test('a new alias has a mailbox, which any owner switches off and on', async () => {
         const owners = await createGroup('mailbox-owners')
         const others = await createGroup('mailbox-others')
