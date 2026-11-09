@@ -5,7 +5,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 const { page, generateMetadata } = serverPage({
     operation: ({ session }: PageOperationArgs) => revueAdminNavDef.authorizeAny(session),
     metadata: () => ({ title: 'Administrasjon' }),
-    render: () => <p className="text-text-muted">Velg hva du vil administrere i menyen</p>,
+    render: () => <p className="text-base-content/80">Velg hva du vil administrere i menyen</p>,
 })
 
 export default page

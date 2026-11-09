@@ -63,7 +63,7 @@ export default function EditMailAlias({
     return <>
         {canSendFromAlias && <SiteLink
             href={appHref(`/admin/send-mail?from=${focusedAlias.id}`)}
-            className="self-start px-4 py-2 rounded-round bg-accent-blue text-white no-underline font-medium"
+            className="self-start px-4 py-2 rounded-round bg-primary text-white no-underline font-medium"
         >
             Send e-post fra aliaset
         </SiteLink>}

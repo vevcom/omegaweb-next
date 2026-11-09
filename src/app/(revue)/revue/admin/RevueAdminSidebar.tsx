@@ -22,9 +22,9 @@ export default function RevueAdminSidebar({ links }: PropTypes) {
                     aria-current={path === link.href ? 'page' : undefined}
                     className={`
                         flex items-center gap-2 py-2 no-underline transition-colors duration-300
-                        hover:text-accent-blue
+                        hover:text-primary
                         [&_svg]:size-[0.9em] [&_svg]:text-inherit
-                        ${isOnPage(link.href) ? 'text-accent-blue' : 'text-text'}
+                        ${isOnPage(link.href) ? 'text-primary' : 'text-base-content'}
                     `}
                 >
                     <FontAwesomeIcon icon={link.icon} />

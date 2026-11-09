@@ -82,35 +82,33 @@ export const mailServerPartPage = (config: MailServerPagesConfig) => {
         render: ({ data: { part, items, onlyOwned, domains, defaultDomain }, capabilities }) => <PageWrapper>
             <div className="p-4 flex flex-col gap-4">
                 <MailServerTabs config={config} active={part} />
-                <p className="text-text-muted max-w-[60ch]">{mailServerParts[part].intro}</p>
+                <p className="text-base-content/80 max-w-[60ch]">{mailServerParts[part].intro}</p>
                 {part !== 'mailaddressExternal' && <ToggleOnlyOwned config={config} part={part} onlyOwned={onlyOwned} />}
                 <div className="flex flex-row flex-wrap gap-6 items-start">
                     <ul className="flex-[1_1_300px] list-none p-0 m-0 flex flex-col gap-2 max-w-[40rem]">
                         {items.map(item => <li key={item.id}>
                             <SiteLink href={links.node(part, item.id)}
                                 className="
-                                    flex flex-col gap-1 p-4 rounded-round bg-surface-raised text-text no-underline
+                                    flex flex-col gap-1 p-4 rounded-round bg-base-200 text-base-content no-underline
                                     transition-[background-color] duration-300
-                                    hover:bg-surface-hover
+                                    hover:bg-base-300
                                 "
                             >
                                 <span className="flex items-center gap-2">
                                     <strong>{item.label}</strong>
                                     {item.owned && <MailServerTag>Eier</MailServerTag>}
                                 </span>
-                                {item.description && <span className="text-text-muted text-[0.9rem]">
+                                {item.description && <span className="text-base-content/80 text-[0.9rem]">
                                     {item.description}
                                 </span>}
                             </SiteLink>
                         </li>)}
-                        {items.length === 0 && <li className="text-text-muted italic">
+                        {items.length === 0 && <li className="text-base-content/80 italic">
                             {onlyOwned ? 'Du eier ingen enda.' : 'Ingen enda.'}
                         </li>}
                     </ul>
                     {capabilities.canCreate.authorized && <aside
-                        className="
-                            flex-[0_1_20rem] bg-surface-raised rounded-[calc(3*var(--rounding))] p-(--card-padding)
-                        "
+                        className="flex-[0_1_20rem] bg-base-200 rounded-[calc(3*var(--rounding))] p-(--card-padding)"
                     >
                         {part === 'alias' && <CreateMailAlias
                             config={config}

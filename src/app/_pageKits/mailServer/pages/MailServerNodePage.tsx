@@ -86,7 +86,9 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
         return <PageWrapper>
             <div className="p-4 flex flex-col gap-4">
                 <MailServerTabs config={config} active={partOf(filter)} />
-                <p className="m-0 text-text-muted text-[0.85rem] uppercase tracking-[0.06em]">{typeDisplayNames[filter]}</p>
+                <p className="m-0 text-base-content/80 text-[0.85rem] uppercase tracking-[0.06em]">
+                    {typeDisplayNames[filter]}
+                </p>
 
                 <MailFlow config={config} filter={filter} id={id} data={results} />
 

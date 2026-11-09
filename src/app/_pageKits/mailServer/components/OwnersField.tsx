@@ -5,7 +5,7 @@ import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEdit
 export default function OwnersField() {
     return <div className="flex flex-col gap-2">
         <h3 className="m-0">Eiere</h3>
-        <p className="m-0 text-text-muted text-[0.9rem]">
+        <p className="m-0 text-base-content/80 text-[0.9rem]">
             Eierne ser og kobler det de eier. Uten eiere er det bare e-posttjeneradministratorene som gjør det.
         </p>
         <VisibilityMatrixEditor name="ownerRequirements" emptyMeans="Ingen eiere: bare e-posttjeneradministratorene." />

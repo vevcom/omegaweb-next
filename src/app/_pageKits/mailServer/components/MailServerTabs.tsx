@@ -28,15 +28,15 @@ export default function MailServerTabs({
     active: MailServerPart | null,
 }) {
     const links = mailServerLinks(config)
-    return <nav aria-label="Deler av e-posttjeneren" className="flex flex-wrap gap-1 border-b border-surface-subtle">
+    return <nav aria-label="Deler av e-posttjeneren" className="flex flex-wrap gap-1 border-b border-base-300">
         {mailServerPartArray.map(part => <SiteLink
             key={part}
             href={links.part(part)}
             aria-current={part === active ? 'page' : undefined}
             className="
-                -mb-px px-4 py-2 no-underline text-text-muted border-b-2 border-transparent
-                hover:text-text
-                aria-[current=page]:text-text aria-[current=page]:border-accent-blue aria-[current=page]:font-semibold
+                -mb-px px-4 py-2 no-underline text-base-content/80 border-b-2 border-transparent
+                hover:text-base-content
+                aria-[current=page]:text-base-content aria-[current=page]:border-primary aria-[current=page]:font-semibold
             "
         >
             {mailServerParts[part].title}

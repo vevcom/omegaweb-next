@@ -26,7 +26,7 @@ const { page, generateMetadata } = serverPage({
     metadata: () => ({ title: 'E-postutsendelse' }),
     render: ({ data, capabilities }) => (
         <PageWrapper>
-            <p className="text-text-muted max-w-[70ch]">
+            <p className="text-base-content/80 max-w-[70ch]">
                 Skal du nå medlemmer av Omega?{' '}
                 <SiteLink href={appHref('/admin/send-notification')}>Send et varsel</SiteLink> i stedet.
                 Det når dem slik de selv har valgt, på e-post, som push eller bare på veven, og trenger ingen
