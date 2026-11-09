@@ -24,7 +24,8 @@ export type SyncMailServerOptions = {
 type WantedMailingList = {
     name: string,
     domainId: string,
-    description: string,
+    /** Null for an alias without one, since the server refuses an empty description. */
+    description: string | null,
     recipients: Record<string, true>,
 }
 
@@ -149,7 +150,7 @@ async function wantedMailingLists(domainIdsByName: Map<string, string>): Promise
         wanted.set(alias.address.toLowerCase(), {
             name: localPart.toLowerCase(),
             domainId,
-            description: alias.description,
+            description: alias.description === '' ? null : alias.description,
             recipients: Object.fromEntries(recipients.map(recipient => [recipient.address.toLowerCase(), true as const])),
         })
     }
@@ -172,7 +173,7 @@ function changesTo(list: MailServerMailingList, target: WantedMailingList): Part
     if (!sameAddresses(Object.keys(list.recipients ?? {}), Object.keys(target.recipients))) {
         changes.recipients = target.recipients
     }
-    if ((list.description ?? '') !== target.description) {
+    if ((list.description ?? '') !== (target.description ?? '')) {
         changes.description = target.description
     }
     return Object.keys(changes).length > 0 ? changes : null

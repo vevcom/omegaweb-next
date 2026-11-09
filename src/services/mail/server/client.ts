@@ -19,7 +19,8 @@ export type MailServerMailingList = {
     id: string,
     name: string,
     domainId: string,
-    description?: string,
+    /** Null on the wire removes it; the server refuses an empty string. */
+    description?: string | null,
     recipients?: Record<string, true>,
     emailAddress?: string,
 }

@@ -162,6 +162,10 @@ class FakeMailServer {
                 notUpdated[id] = { type: 'notFound' }
                 continue
             }
+            if (changes.description === '') {
+                notUpdated[id] = { type: 'invalidPatch' }
+                continue
+            }
             this.store(object, { ...existing, ...changes })
             updated[id] = null
         }
@@ -176,8 +180,12 @@ class FakeMailServer {
         return { created, notCreated, updated, notUpdated, destroyed, notDestroyed }
     }
 
-    /** Why a creation is refused: a name taken on the domain, or a domain that does not exist. */
+    /**
+     * Why a creation is refused: a name taken on the domain, a domain that does not exist, or an
+     * empty description, which Stalwart refuses where null is fine.
+     */
     private refusalOf(object: MailServerObjectName, value: Record<string, unknown>): string | null {
+        if (value.description === '') return 'invalidPatch'
         if (object !== 'Domain' && !this.objects.Domain.has(String(value.domainId))) return 'invalidForeignKey'
         const taken = Array.from(this.objects[object].values()).some(existing =>
             existing.name === value.name && existing.domainId === value.domainId
@@ -336,6 +344,8 @@ describe('syncing mailing lists', () => {
         const synced = server.mailingList(alias.address)
         expect(synced).toBeDefined()
         expect(synced?.recipients).toEqual({})
+        // An empty description is sent as null, since the server refuses the empty string.
+        expect(synced?.description ?? null).toBeNull()
     })
 
     test('a second run makes no set calls', async () => {
@@ -383,6 +393,15 @@ describe('syncing mailing lists', () => {
         expect(after?.description).toBe('After')
         expect(server.setCalls).toHaveLength(1)
         expect(Object.keys(server.setCalls[0].args.update ?? {})).toEqual([before?.id])
+
+        // Clearing the description removes it on the server, as null, since it refuses an empty string.
+        await aliasOperations.update({
+            params: { id: alias.id },
+            data: { localPart: 'test-changing', domain: TEST_DOMAIN, description: '' },
+            bypassAuth: true,
+        })
+        await syncMailServer({ client: server.client(), sender: null })
+        expect(server.mailingList(alias.address)?.description ?? null).toBeNull()
         expect(server.setCalls[0].args.create).toBeUndefined()
         expect(server.setCalls[0].args.destroy).toBeUndefined()
     })
