@@ -22,13 +22,14 @@ export type EventRegistrationDetailedExpanded = Prisma.EventRegistrationGetPaylo
 }>
 
 /** A user's own registration in a variant, with whether a payment is in effect for it. */
-export type EventRegistrationOfUser = Prisma.EventRegistrationGetPayload<{
+export type EventRegistrationOfUser = Omit<Prisma.EventRegistrationGetPayload<{
     include: {
         quota: { select: { id: true, name: true, variantId: true } },
         ledgerTransactions: { select: { id: true } },
     },
-}> & {
+}>, 'promotedAt'> & {
     variantId: number,
+    paymentDeadline: Date | null,
 }
 
 /**
