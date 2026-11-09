@@ -13,7 +13,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('committees', session)
+        await authorizeAdminPage('committees', session)
         const [committees, expandedGroups, currentOrder] = await Promise.all([
             committeeOperations.readAll({}),
             committeeOperations.readExpanded({}),

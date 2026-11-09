@@ -5,26 +5,9 @@ import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { createDynamicImageCollectionAction } from '@/services/images/dynamic/actions'
 import { appHref } from '@/lib/sites/href'
-import { useState } from 'react'
-import type { VisibilityRequirement } from '@/services/visibility/types'
 
 export default function MakeNewCollection() {
     const popUpKey = 'MakeNewCollection'
-    const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
-
-    // The admin level is collected here rather than after the fact: a collection created with an
-    // empty one would be administrable by anyone until it was narrowed.
-    async function handleCreate(formData: FormData) {
-        const collectionName = formData.get('collectionName')
-        const collectionDescription = formData.get('collectionDescription')
-        return createDynamicImageCollectionAction({
-            data: {
-                collectionName: typeof collectionName === 'string' ? collectionName : '',
-                collectionDescription: typeof collectionDescription === 'string' ? collectionDescription : '',
-                visibilityAdminRequirements: adminRequirements,
-            }
-        })
-    }
 
     return (
         <AddHeaderItemPopUp popUpKey={popUpKey}>
@@ -41,17 +24,15 @@ export default function MakeNewCollection() {
                     }
                     title="Lag et album"
                     submitText="Lag album"
-                    action={handleCreate}
+                    action={createDynamicImageCollectionAction}
                 >
                     <TextInput label="Navn" name="collectionName" />
                     <TextInput label="Beskrivelse" name="collectionDescription" />
+                    {/* The admin level is collected here rather than after the fact: a collection created with an
+                      * empty one would be administrable by anyone until it was narrowed. */}
                     <div className="flex flex-col gap-[0.5em] min-w-[350px] mt-[1em]">
                         <h3>Hvem kan administrere albumet?</h3>
-                        <VisibilityMatrixEditor
-                            requirements={adminRequirements}
-                            onChange={setAdminRequirements}
-                            verb="kan administrere albumet"
-                        />
+                        <VisibilityMatrixEditor name="visibilityAdminRequirements" verb="kan administrere albumet" />
                     </div>
                 </Form>
             </div>

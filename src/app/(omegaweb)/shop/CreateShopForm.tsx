@@ -4,13 +4,8 @@ import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { appHref } from '@/lib/sites/href'
-import { useState } from 'react'
-import type { VisibilityRequirement } from '@/services/visibility/types'
 
 export default function CreateShopForm() {
-    const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
-    const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
-
     return <Form
         action={createShopAction}
         className="min-w-[50vw]"
@@ -25,28 +20,9 @@ export default function CreateShopForm() {
           */}
         <div className="flex flex-col gap-[0.5rem]">
             <h3>Hvem kan administrere butikken?</h3>
-            <VisibilityMatrixEditor
-                requirements={adminRequirements}
-                onChange={setAdminRequirements}
-                verb="kan administrere butikken"
-            />
-            <input
-                type="hidden"
-                name="visibilityAdminRequirements"
-                value={JSON.stringify(adminRequirements)}
-            />
+            <VisibilityMatrixEditor name="visibilityAdminRequirements" verb="kan administrere butikken" />
             <h3>Hvem kan handle i butikken?</h3>
-            <VisibilityMatrixEditor
-                requirements={regularRequirements}
-                onChange={setRegularRequirements}
-                verb="kan handle i butikken"
-                everyone="Alle"
-            />
-            <input
-                type="hidden"
-                name="visibilityRegularRequirements"
-                value={JSON.stringify(regularRequirements)}
-            />
+            <VisibilityMatrixEditor name="visibilityRegularRequirements" verb="kan handle i butikken" everyone="Alle" />
         </div>
     </Form>
 }

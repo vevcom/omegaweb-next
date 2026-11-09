@@ -17,7 +17,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('licenses', session)
+        await authorizeAdminPage('licenses', session)
         return licenseOperations.readAll({})
     },
     capabilities: () => ({

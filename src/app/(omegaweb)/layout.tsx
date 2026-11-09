@@ -36,8 +36,8 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
             navUser: profileRead?.user ?? null,
         }
     })
-    const navItems = navDef.visible(serverSession)
-    const adminNavItems = adminNavDef.visible(serverSession).flatMap(group => group.links.map(link => ({
+    const navItems = await navDef.visible(serverSession)
+    const adminNavItems = (await adminNavDef.visible(serverSession)).flatMap(group => group.links.map(link => ({
         name: link.name,
         href: link.href,
         icon: link.icon,

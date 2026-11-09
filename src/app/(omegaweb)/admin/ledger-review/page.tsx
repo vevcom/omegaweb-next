@@ -8,7 +8,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('ledger-review', session)
+        await authorizeAdminPage('ledger-review', session)
         return manualReviewOperations.readOpen({})
     },
     metadata: () => ({ title: 'Trenger oppfølging' }),
