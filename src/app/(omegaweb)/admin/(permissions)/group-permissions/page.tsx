@@ -8,7 +8,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('group-permissions', session)
+        await authorizeAdminPage('group-permissions', session)
         return permissionOperations.readPermissionMatrix({})
     },
     metadata: () => ({ title: 'Gruppetillatelser' }),

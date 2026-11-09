@@ -11,7 +11,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('classes', session)
+        await authorizeAdminPage('classes', session)
         const [classRows, expandedClasses, currentOrder] = await Promise.all([
             classOperations.readMany({}),
             classOperations.readExpanded({}),

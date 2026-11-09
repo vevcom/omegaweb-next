@@ -2,12 +2,7 @@
 import Form from '@/components/Form/Form'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { configureAction } from '@/services/configureAction'
-import { useState } from 'react'
-import type {
-    UpdateVisibilityAction,
-    VisibilityMatrix,
-    VisibilityRequirement
-} from '@/services/visibility/types'
+import type { UpdateVisibilityAction, VisibilityMatrix } from '@/services/visibility/types'
 
 type PropTypes = {
     visibility: VisibilityMatrix,
@@ -16,18 +11,15 @@ type PropTypes = {
 }
 
 export default function VisibilityAdmin({ visibility, visibilityId, updateVisibilityAction }: PropTypes) {
-    const [requirements, setRequirements] = useState<VisibilityRequirement[]>(visibility.requirements)
-
-    const saveVisibility = configureAction(updateVisibilityAction, { params: { visibilityId } })
-
-    async function handleSave() {
-        return saveVisibility({ data: { requirements } })
-    }
-
     return (
-        <div className="flex flex-col gap-[0.5em] min-w-[350px]">
-            <VisibilityMatrixEditor requirements={requirements} onChange={setRequirements} />
-            <Form submitText="Lagre" submitColor="green" refreshOnSuccess action={handleSave} />
-        </div>
+        <Form
+            className="flex flex-col gap-[0.5em] min-w-[350px]"
+            submitText="Lagre"
+            submitColor="green"
+            refreshOnSuccess
+            action={configureAction(updateVisibilityAction, { params: { visibilityId } })}
+        >
+            <VisibilityMatrixEditor name="requirements" defaultValue={visibility.requirements} />
+        </Form>
     )
 }

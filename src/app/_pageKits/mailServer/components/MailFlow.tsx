@@ -1,23 +1,23 @@
 'use client'
+import MailServerTag from './MailServerTag'
+import { mailServerLinks } from '@/pageKits/mailServer/links'
 import {
     destroyAliasMailingListRelationAction,
     destroyMailingListExternalRelationAction,
     destroyMailingListGroupRelationAction,
     destroyMailingListUserRelationAction
 } from '@/services/mail/actions'
-import { mailAuth } from '@/services/mail/auth'
-import useAuthorizer from '@/hooks/useAuthorizer'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import { appHref } from '@/lib/sites/href'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faArrowRightLong, faAt, faEnvelope, faListUl, faUser, faUserGroup, faXmark
 } from '@fortawesome/free-solid-svg-icons'
+import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import type { ActionReturn } from '@/services/actionTypes'
-import type { MailFlowObject, MailListTypes, ViaType } from '@/services/mail/types'
+import type { MailFlowObject, MailFlowPaths, MailListTypes } from '@/services/mail/types'
 
 const typeIcons: Record<MailListTypes, IconDefinition> = {
     alias: faAt,
@@ -31,9 +31,13 @@ type Chip = {
     type: MailListTypes,
     id: number,
     label: string,
-    via?: ViaType[],
+    paths: MailFlowPaths,
+    /** What the viewer is to the node, shown as a tag: its owner, or the group's leader. */
+    tag?: string,
     destroy?: () => Promise<ActionReturn<unknown>>,
 }
+
+const ownerTag = (owned: boolean) => (owned ? 'Eier' : undefined)
 
 type ChipSection = {
     label?: string,
@@ -44,59 +48,50 @@ type ChipSection = {
  * The mail flow graphic: every mail follows alias → e-postliste → mottakere, and this renders
  * those three stages with the focused item highlighted. The recipient stage is sectioned by type,
  * and a group stands in for its members - users that are only on a list through a group are not
- * listed. Direct relations to the focused item can be removed right in the graphic.
+ * listed. Direct relations to the focused item can be removed right in the graphic. What the
+ * viewer owns or leads is tagged, by their memberships alone, so a server admin sees the same.
  */
 export default function MailFlow({
+    config,
     filter,
     id,
     data,
-    groupNames,
 }: {
+    config: MailServerPagesConfig,
     filter: MailListTypes,
     id: number,
     data: MailFlowObject,
-    groupNames: Record<number, string>,
 }) {
     const { refresh } = useSiteRouter()
+    const links = mailServerLinks(config)
     const [error, setError] = useState<string | null>(null)
 
-    const canDestroyAliasMailingListRelation = useAuthorizer({
-        authorizer: mailAuth.destroyAliasMailingListRelation
-    }).authorized
-    const canDestroyMailingListExternalRelation = useAuthorizer({
-        authorizer: mailAuth.destroyMailingListExternalRelation
-    }).authorized
-    const canDestroyMailingListUserRelation = useAuthorizer({
-        authorizer: mailAuth.destroyMailingListUserRelation
-    }).authorized
-    const canDestroyMailingListGroupRelation = useAuthorizer({
-        authorizer: mailAuth.destroyMailingListGroupRelation
-    }).authorized
-
     // Which relations are removable depends on which item is in focus - only relations directly
-    // to the focused item can be removed here, and never ones that follow from a via-path.
+    // to the focused item can be removed here, and never ones that follow from a via-path. Whether
+    // the viewer may remove one is the server's call, which answers with the rule.
     const aliasChips: Chip[] = data.alias.map(alias => ({
         type: 'alias',
         id: alias.id,
         label: alias.address,
-        via: alias.via,
-        destroy: (filter === 'mailingList' && !alias.via && canDestroyAliasMailingListRelation)
+        paths: alias,
+        tag: ownerTag(alias.owned),
+        destroy: (filter === 'mailingList' && alias.direct)
             ? () => destroyAliasMailingListRelationAction({ data: { mailingListId: id, mailAliasId: alias.id } })
             : undefined,
     }))
 
     const mailingListChips: Chip[] = data.mailingList.map(list => {
         let destroy
-        if (!list.via) {
-            if (filter === 'alias' && canDestroyAliasMailingListRelation) {
+        if (list.direct) {
+            if (filter === 'alias') {
                 destroy = () => destroyAliasMailingListRelationAction({ data: { mailAliasId: id, mailingListId: list.id } })
-            } else if (filter === 'mailaddressExternal' && canDestroyMailingListExternalRelation) {
+            } else if (filter === 'mailaddressExternal') {
                 destroy = () => destroyMailingListExternalRelationAction({
                     data: { mailAddressExternalId: id, mailingListId: list.id },
                 })
-            } else if (filter === 'user' && canDestroyMailingListUserRelation) {
+            } else if (filter === 'user') {
                 destroy = () => destroyMailingListUserRelationAction({ data: { userId: id, mailingListId: list.id } })
-            } else if (filter === 'group' && canDestroyMailingListGroupRelation) {
+            } else if (filter === 'group') {
                 destroy = () => destroyMailingListGroupRelationAction({ data: { groupId: id, mailingListId: list.id } })
             }
         }
@@ -104,7 +99,8 @@ export default function MailFlow({
             type: 'mailingList',
             id: list.id,
             label: list.name,
-            via: list.via,
+            paths: list,
+            tag: ownerTag(list.owned),
             destroy,
         }
     })
@@ -112,23 +108,26 @@ export default function MailFlow({
     const groupChips: Chip[] = data.group.map(group => ({
         type: 'group',
         id: group.id,
-        label: groupNames[group.id] ?? `Gruppe ${group.id}`,
-        via: group.via,
-        destroy: (filter === 'mailingList' && !group.via && canDestroyMailingListGroupRelation)
+        label: group.name,
+        paths: group,
+        tag: group.admin ? 'Gruppeleder' : undefined,
+        destroy: (filter === 'mailingList' && group.direct)
             ? () => destroyMailingListGroupRelationAction({ data: { mailingListId: id, groupId: group.id } })
             : undefined,
     }))
 
     // A group stands in for its members, so users that are only reached via a group are left
     // out - except the focused user, who must stay visible on their own page.
+    const reachedThroughGroupAlone = (user: MailFlowPaths) =>
+        !user.direct && user.via.every(viaItem => viaItem.type === 'group')
     const userChips: Chip[] = data.user
-        .filter(user => !user.via || (filter === 'user' && user.id === id))
+        .filter(user => !reachedThroughGroupAlone(user) || (filter === 'user' && user.id === id))
         .map(user => ({
             type: 'user',
             id: user.id,
             label: `${user.firstname} ${user.lastname}`,
-            via: user.via,
-            destroy: (filter === 'mailingList' && !user.via && canDestroyMailingListUserRelation)
+            paths: user,
+            destroy: (filter === 'mailingList' && user.direct)
                 ? () => destroyMailingListUserRelationAction({ data: { mailingListId: id, userId: user.id } })
                 : undefined,
         }))
@@ -137,8 +136,8 @@ export default function MailFlow({
         type: 'mailaddressExternal',
         id: external.id,
         label: external.address,
-        via: external.via,
-        destroy: (filter === 'mailingList' && !external.via && canDestroyMailingListExternalRelation)
+        paths: external,
+        destroy: (filter === 'mailingList' && external.direct)
             ? () => destroyMailingListExternalRelationAction({
                 data: { mailingListId: id, mailAddressExternalId: external.id },
             })
@@ -149,7 +148,7 @@ export default function MailFlow({
         if (!chip.destroy) return
         const result = await chip.destroy()
         if (!result.success) {
-            setError(`Kunne ikke fjerne ${chip.label}.`)
+            setError(result.error?.map(message => message.message).join(' ') ?? `Kunne ikke fjerne ${chip.label}.`)
             return
         }
         setError(null)
@@ -159,6 +158,9 @@ export default function MailFlow({
     const renderChip = (chip: Chip) => {
         const focused = chip.type === filter && chip.id === id
         const removable = Boolean(chip.destroy) && !focused
+        const viaLabels = chip.paths.via.map(viaItem => viaItem.label).join(', ')
+        // Both paths are named when the node is connected directly and reached through others too.
+        const pathsLabel = chip.paths.direct ? `direkte og via ${viaLabels}` : `via ${viaLabels}`
 
         return <li
             key={`${chip.type}-${chip.id}`}
@@ -175,13 +177,14 @@ export default function MailFlow({
                         text-base-content no-underline wrap-anywhere
                         hover:underline
                     "
-                    href={appHref(`/admin/mail/${chip.type}/${chip.id}`)}
+                    href={links.node(chip.type, chip.id)}
                 >
                     {chip.label}
                 </SiteLink>
             }
-            {chip.via && chip.via.length > 0 && <span className="text-[0.8rem] text-base-content/80 italic">
-                via {chip.via.map(viaItem => viaItem.label).join(', ')}
+            {chip.tag && <MailServerTag>{chip.tag}</MailServerTag>}
+            {chip.paths.via.length > 0 && !focused && <span className="text-[0.8rem] text-base-content/80 italic">
+                {pathsLabel}
             </span>}
             {removable && <button
                 type="button"

@@ -16,7 +16,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ searchParams, session }: PageOperationArgs) => {
-        authorizeAdminPage('dots', session)
+        await authorizeAdminPage('dots', session)
         const userId = QueryParams.userId.decode(searchParams)
         const onlyActive = QueryParams.onlyActive.decode(searchParams) ?? false
 

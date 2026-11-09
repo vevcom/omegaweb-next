@@ -21,7 +21,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('flairs', session)
+        await authorizeAdminPage('flairs', session)
         return flairOperations.readAll({})
     },
     capabilities: () => ({

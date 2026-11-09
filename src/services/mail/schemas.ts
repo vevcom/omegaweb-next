@@ -1,5 +1,25 @@
-import { MailListTypeArray } from './constants'
+import { visibilityRequirementsSchema } from '@/services/visibility/schemas'
+import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
+
+/**
+ * Who owns an alias or a mailing list when it is created. No owners becomes one requirement with
+ * no conditions, which no one passes, so it is the mail server admins' alone, where a visibility
+ * with no requirements would be everyone's. Once created, the owners change through the
+ * visibility operations, which refuse to empty them.
+ */
+export const mailOwnerRequirements = Zpn.json({
+    label: 'Eiere',
+    schema: visibilityRequirementsSchema,
+}).default([]).transform(requirements => (requirements.length ? requirements : [{ conditions: [] }]))
+
+/**
+ * Params the mail services share: the reader whose aliases, lists and groups a read marks as
+ * theirs, which other services' schemas pick from here.
+ */
+export const mailParamsFieldSchemas = z.object({
+    markOwnedByUserId: z.coerce.number().min(1).optional(),
+})
 
 const dataFieldSchemas = z.object({
     mailAliasId: z.coerce.number().min(1),
@@ -9,10 +29,6 @@ const dataFieldSchemas = z.object({
     groupId: z.coerce.number().min(1),
 })
 
-const paramsFieldSchemas = z.object({
-    filter: z.enum(MailListTypeArray),
-    id: z.coerce.number().min(1),
-})
 
 const aliasMailingListRelation = dataFieldSchemas.pick({
     mailAliasId: true,
@@ -45,11 +61,5 @@ export const mailSchemas = {
         destroyMailingListExternalRelation: mailingListExternalRelation,
         destroyMailingListUserRelation: mailingListUserRelation,
         destroyMailingListGroupRelation: mailingListGroupRelation,
-    },
-    params: {
-        readMailTraversal: paramsFieldSchemas.pick({
-            filter: true,
-            id: true,
-        }),
     },
 }

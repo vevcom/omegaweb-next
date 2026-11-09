@@ -1,6 +1,7 @@
 import { Require } from '@/auth/authorizer/Require'
 import { visibilityFilter } from '@/auth/visibility/visibilityFilter'
 import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
+import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 
 /**
@@ -48,8 +49,8 @@ export const canSeeEvent = Require.anyOf(
     isPublished(true).anyVisibility({ key: 'quotaVisibilities' }),
 )
 
-/** The same rule as `canSeeEvent`, as a filter over a list of events. EVENT_ADMIN lists them unfiltered. */
-const visibleEvents = Require.permission('EVENT_ADMIN').or().filter(({ session }): Prisma.EventWhereInput => {
+/** The same rule as `canSeeEvent`, as a where clause on events. */
+export function eventsSeenBy(session: SessionMaybeUser): Prisma.EventWhereInput {
     const passes = visibilityFilter(session.memberships)
     return {
         OR: [
@@ -59,7 +60,10 @@ const visibleEvents = Require.permission('EVENT_ADMIN').or().filter(({ session }
             { published: true, variants: { some: { quotas: { some: { visibility: passes } } } } },
         ],
     }
-})
+}
+
+/** `eventsSeenBy` as a filter over a list of events. EVENT_ADMIN lists them unfiltered. */
+const visibleEvents = Require.permission('EVENT_ADMIN').or().filter(({ session }) => eventsSeenBy(session))
 
 export const eventAuth = {
     // A new event has no visibility yet to check. EVENT_CREATE is the only gate here. The creator

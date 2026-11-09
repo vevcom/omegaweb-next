@@ -11,12 +11,12 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ currentId: string }>) => {
-        authorizeAdminPage('notification-channels', session)
+        await authorizeAdminPage('notification-channels', session)
 
         const [special, manual, mailAliases] = await Promise.all([
             specialNotificationChannelOperations.readMany({}),
             manualNotificationChannelOperations.readMany({}),
-            aliasOperations.readMany({}),
+            aliasOperations.readMany({ params: {} }),
         ])
         const channels = [...special, ...manual]
 
