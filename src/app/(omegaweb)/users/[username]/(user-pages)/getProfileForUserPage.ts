@@ -35,7 +35,7 @@ export async function getProfileForUserPage({ username }: Params, path: UserNavP
 
     const profile = await userOperations.readProfile({ params: { username } })
 
-    userNavDef({ username, userId: profile.user.id }).all.authorize(path, session)
+    await userNavDef({ username, userId: profile.user.id }).all.authorize(path, session)
 
     return { profile }
 }

@@ -44,9 +44,9 @@ export default serverLayout({
         return {
             loggedIn: session.user !== null,
             omegaMember: level !== null && level.level !== 'DEN_GEMENE_HOB',
-            navLinks: careerNavDef.visible(session),
-            accountLinks: careerAccountNavDef.visible(session),
-            adminNavLinks: careerAdminNavDef.visible(session),
+            navLinks: await careerNavDef.visible(session),
+            accountLinks: await careerAccountNavDef.visible(session),
+            adminNavLinks: await careerAdminNavDef.visible(session),
             searchCategories: searchableCategories(careersSearchCategories, session),
         }
     },

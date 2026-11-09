@@ -14,13 +14,19 @@ import type { VisibilityCondition, VisibilityRequirement } from '@/services/visi
 import type { GroupType } from '@/prisma-generated-pn-types'
 
 type PropTypes = {
-    requirements: VisibilityRequirement[],
-    onChange: (requirements: VisibilityRequirement[]) => void,
     /** Ends the sentence saying who gets in, such as "kan lese nyheten". */
     verb: string,
     /** What no requirements means here. Left out where that must not be offered, as for those administrating. */
     everyone?: string,
-}
+} & ({
+    /** The form field the matrix is posted in, as JSON, which `Zpn.json` on the schema side reads. */
+    name: string,
+    defaultValue?: VisibilityRequirement[],
+} | {
+    /** For a form that needs the matrix as it is edited, and posts it itself. */
+    requirements: VisibilityRequirement[],
+    onChange: (requirements: VisibilityRequirement[]) => void,
+})
 
 const groupTypeNames: Record<GroupType, string> = {
     OMEGA_MEMBERSHIP_GROUP: 'Medlemskap',
@@ -104,14 +110,20 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
 }
 
 /**
- * A controlled editor for a single visibility matrix, which says who gets in as a sentence. A list
- * here is a requirement, so someone must be in one group of every list. It owns no persistence of
- * its own - the consumer decides whether the matrix is saved against an existing visibility
- * (VisibilityAdmin) or submitted as part of creating the thing it will guard (MakeNewCollection).
- * Its inputs have no names since the consumer submits `requirements`, and they load late, which a
- * form would count as a change.
+ * An editor for a single visibility matrix, which says who gets in as a sentence. A list here is a
+ * requirement, so someone must be in one group of every list. Given `name` it is a form field that
+ * posts the matrix as JSON. Given `requirements` and `onChange` it is controlled, for a form that
+ * needs the matrix as it is edited and posts it itself. Its other inputs have no names, since they
+ * load late, which a form would count as a change.
  */
-export default function VisibilityMatrixEditor({ requirements, onChange, verb, everyone }: PropTypes) {
+export default function VisibilityMatrixEditor(props: PropTypes) {
+    const { verb, everyone } = props
+    const [ownRequirements, setOwnRequirements] = useState<VisibilityRequirement[]>(
+        'defaultValue' in props ? props.defaultValue ?? [] : [],
+    )
+    const controlled = 'requirements' in props
+    const requirements = controlled ? props.requirements : ownRequirements
+    const onChange = controlled ? props.onChange : setOwnRequirements
     const groupsResult = useGroups()
     const groups = groupsResult.status === 'success' ? flattenExpandedGroups(groupsResult.groups) : null
 
@@ -127,6 +139,7 @@ export default function VisibilityMatrixEditor({ requirements, onChange, verb, e
     const nobody = requirements.some(list => list.conditions.length === 0)
 
     return <div className="flex flex-col gap-2 w-full min-w-0">
+        {'name' in props && <input type="hidden" name={props.name} value={JSON.stringify(requirements)} />}
         <p
             aria-live="polite"
             className={`

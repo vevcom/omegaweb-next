@@ -1,4 +1,5 @@
 import RevueNavBar from './_components/RevueNavBar'
+import { revueAdminNavDef } from '@/app/(revue)/revue/admin/revueAdminNavDef'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import WorkInProgressBanner from '@/components/WorkInProgressBanner/WorkInProgressBanner'
 import { externalHref } from '@/lib/sites/href'
@@ -21,12 +22,15 @@ export const metadata: Metadata = {
  */
 export default serverLayout({
     allowUnregistered: true,
-    operation: ({ session }: LayoutOperationArgs) => ({ loggedIn: session.user !== null }),
+    operation: async ({ session }: LayoutOperationArgs) => ({
+        loggedIn: session.user !== null,
+        hasAdminPages: (await revueAdminNavDef.visible(session)).length > 0,
+    }),
     render: ({ data, children }) => (
         <div className="min-h-dvh flex flex-col bg-base-100 text-base-content">
             <SiteTheme colors={themes[Theme.STANDARD]} />
             <WorkInProgressBanner siteName="Omegarevyen" currentSiteHref={externalHref('https://omegarevyen.no')} />
-            <RevueNavBar loggedIn={data.loggedIn} />
+            <RevueNavBar loggedIn={data.loggedIn} hasAdminPages={data.hasAdminPages} />
             <main className="flex-1 w-full max-w-[1100px] mx-auto px-[clamp(1rem,4vw,3rem)] py-8">
                 {children}
             </main>

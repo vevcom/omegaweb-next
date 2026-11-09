@@ -9,8 +9,8 @@ import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: ({ session, searchParams }: PageOperationArgs) => {
-        careerAdminNavDef.authorize('companies', session)
+    operation: async ({ session, searchParams }: PageOperationArgs) => {
+        await careerAdminNavDef.authorize('companies', session)
         return readCompanyBrowser(searchParams)
     },
     metadata: () => ({ title: 'Bedrifter' }),

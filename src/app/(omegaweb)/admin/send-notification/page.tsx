@@ -8,7 +8,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
-        authorizeAdminPage('send-notification', session)
+        await authorizeAdminPage('send-notification', session)
         return manualNotificationChannelOperations.readMany({})
     },
     capabilities: () => ({

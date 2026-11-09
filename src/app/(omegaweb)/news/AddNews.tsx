@@ -8,15 +8,12 @@ import { EditModeContext } from '@/contexts/EditMode'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import { appHref } from '@/lib/sites/href'
-import { useContext, useState } from 'react'
-import type { VisibilityRequirement } from '@/services/visibility/types'
+import { useContext } from 'react'
 import type { ExpandedNewsArticle } from '@/services/news/types'
 
 export default function AddNews() {
     const { push } = useSiteRouter()
     const editModeCtx = useContext(EditModeContext)
-    const [adminRequirements, setAdminRequirements] = useState<VisibilityRequirement[]>([])
-    const [regularRequirements, setRegularRequirements] = useState<VisibilityRequirement[]>([])
 
     const handleCreate = (data?: ExpandedNewsArticle) => {
         editModeCtx?.setEditMode(true)
@@ -38,28 +35,9 @@ export default function AddNews() {
                   */}
                 <div className="flex flex-col gap-[0.5rem]">
                     <h3>Hvem kan administrere nyheten?</h3>
-                    <VisibilityMatrixEditor
-                        requirements={adminRequirements}
-                        onChange={setAdminRequirements}
-                        verb="kan administrere nyheten"
-                    />
-                    <input
-                        type="hidden"
-                        name="visibilityAdminRequirements"
-                        value={JSON.stringify(adminRequirements)}
-                    />
+                    <VisibilityMatrixEditor name="visibilityAdminRequirements" verb="kan administrere nyheten" />
                     <h3>Hvem kan lese nyheten?</h3>
-                    <VisibilityMatrixEditor
-                        requirements={regularRequirements}
-                        onChange={setRegularRequirements}
-                        verb="kan lese nyheten"
-                        everyone="Alle"
-                    />
-                    <input
-                        type="hidden"
-                        name="visibilityRegularRequirements"
-                        value={JSON.stringify(regularRequirements)}
-                    />
+                    <VisibilityMatrixEditor name="visibilityRegularRequirements" verb="kan lese nyheten" everyone="Alle" />
                 </div>
             </Form>
         </div>
