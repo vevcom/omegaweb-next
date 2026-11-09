@@ -34,13 +34,17 @@ async function readSeatedRegistrations(prisma: PrismaPossibleTransaction<boolean
         },
     })
     const seen = new Set<number>()
-    return registrations.filter(({ userId }) => {
+    const seated = registrations.filter(({ userId }) => {
         if (userId === null) return true
         if (seen.has(userId)) return false
         seen.add(userId)
         return true
-    }).map(registration => ({
+    })
+    // A wish for someone who has since lost their place stays in the database but no longer counts.
+    const seatedIds = new Set(seated.map(({ id }) => id))
+    return seated.map(registration => ({
         ...registration,
+        seatingWishes: registration.seatingWishes.filter(wish => seatedIds.has(wish.wishedRegistrationId)),
         name: registration.user
             ? `${registration.user.firstname} ${registration.user.lastname}`
             : registration.contact?.name ?? 'Ukjent',
