@@ -10,3 +10,16 @@ export function paymentDeadline(paymentStart: Date, paymentEnd: Date, promotedAt
     const afterPromotion = windowStart + PAYMENT_HOURS_AFTER_PROMOTION * 60 * 60 * 1000
     return new Date(Math.max(paymentEnd.getTime(), afterPromotion))
 }
+
+/** A registration as it is read: when it must be paid by, in place of when it was promoted. Null without payment. */
+export function withPaymentDeadline<Registration extends { promotedAt: Date | null }>(
+    { promotedAt, ...registration }: Registration,
+    variant: { paymentStart: Date | null, paymentEnd: Date | null },
+): Omit<Registration, 'promotedAt'> & { paymentDeadline: Date | null } {
+    return {
+        ...registration,
+        paymentDeadline: variant.paymentStart && variant.paymentEnd
+            ? paymentDeadline(variant.paymentStart, variant.paymentEnd, promotedAt)
+            : null,
+    }
+}

@@ -220,10 +220,16 @@ describe('paying for an event', () => {
             params: { userId: payer.id, eventId, amountFromBalance: EVENT_PRICE_ORE },
             session: payerSessionOf(payer),
         })
+        const deadlineOf = async (payer: UserFiltered, eventId: number) => (await eventRegistrationOperations.readOfUser({
+            params: { userId: payer.id, eventId },
+            bypassAuth: true,
+        }))?.paymentDeadline
 
         test('the one who kept their place cannot pay', async () => {
             const { eventId, seated } = await createEventWithWaitingList('eventpaykept', 'eventpaykeptwaiting')
 
+            const { paymentEnd } = await prisma.eventVariant.findFirstOrThrow({ where: { eventId } })
+            expect(await deadlineOf(seated, eventId)).toEqual(paymentEnd)
             await expect(pay(seated, eventId)).rejects.toThrow(Smorekopp)
         })
 
@@ -237,6 +243,7 @@ describe('paying for an event', () => {
                 params: { registrationId: seatedRegistration.id },
                 bypassAuth: true,
             })
+            expect((await deadlineOf(waiting, eventId))?.getTime()).toBeGreaterThan(Date.now() + 23 * HOUR)
             const { payment } = await pay(waiting, eventId)
 
             expect(payment).toBeNull()

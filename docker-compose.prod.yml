@@ -56,8 +56,7 @@ services:
     # Runs every background worker in one process: image processing, notification sending, payment
     # completion, requeueing unpaid registrations, the store's orphan destroyer and the ledger sweeper
     # (src/workers/main.ts). Must stay at 1 replica - the weekly digest is only guarded against repeats
-    # by its date cutoff, not against
-    # concurrent senders.
+    # by its date cutoff, not against concurrent senders.
     worker:
         extends:
             file: docker-compose.base.yml

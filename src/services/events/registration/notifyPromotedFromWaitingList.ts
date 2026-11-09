@@ -17,9 +17,10 @@ export async function notifyPromotedFromWaitingList(
 ) {
     const title = 'Opprykk fra venteliste ved Omegas nettsider'
     const congratulation = 'Gratulerer! Du har rykket opp fra ventelisten på arrangementet'
-    const message = `${congratulation} ${event.name}. Hvis arrangementet krever betaling, `
-        + `har du minst ${PAYMENT_HOURS_AFTER_PROMOTION} timer på deg til å betale.`
-    const mailBody = `${congratulation} ${escapeHtml(event.name)}.`
+    const paymentNote = `Hvis arrangementet krever betaling, har du minst ${PAYMENT_HOURS_AFTER_PROMOTION} timer `
+        + 'på deg til å betale.'
+    const message = `${congratulation} ${event.name}. ${paymentNote}`
+    const mailBody = `${congratulation} ${escapeHtml(event.name)}. ${paymentNote}`
 
     const userIds = registrations.flatMap(registration => (
         registration.userId === null ? [] : [registration.userId]

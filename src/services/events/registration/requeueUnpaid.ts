@@ -70,6 +70,7 @@ export async function requeueNextUnpaidRegistration() {
     for (const candidate of candidates) {
         if (!candidate.quota) continue
         const { variantId, variant: { paymentEnd, event } } = candidate.quota
+        // Prisma cannot compare createdAt with the variant's paymentEnd, so these few are fetched again each tick.
         if (candidate.promotedAt === null && paymentEnd && candidate.createdAt > paymentEnd) continue
 
         // One registration that keeps failing must not hold up the others.
