@@ -37,7 +37,7 @@ export default function EditMailAlias({
     /** The domains an alias may be on. */
     domains: string[],
     owners: VisibilityMatrix,
-    /** Whether this installation keeps a mailbox per alias, see mail/server/constants.ts. */
+    /** Whether this installation keeps a mailbox per alias, see lib/mailServerSync/constants.ts. */
     mailboxes: boolean,
 }) {
     const { push, refresh } = useSiteRouter()

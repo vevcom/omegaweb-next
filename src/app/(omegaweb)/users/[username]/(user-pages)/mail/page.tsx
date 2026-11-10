@@ -1,6 +1,6 @@
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { aliasOperations } from '@/services/mail/alias/operations'
-import { mailServerWebmail, mailboxesAreAvailable } from '@/services/mail/server/constants'
+import { mailServerWebmail, mailboxesAreAvailable } from '@/lib/mailServerSync/constants'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { serverPage } from '@/app/ServerPage'
 import { externalHref } from '@/lib/sites/href'

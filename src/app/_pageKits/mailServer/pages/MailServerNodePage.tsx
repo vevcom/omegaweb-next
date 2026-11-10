@@ -10,7 +10,7 @@ import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operati
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { MailListTypeArray, validMailAddressDomains } from '@/services/mail/constants'
-import { mailboxesAreAvailable } from '@/services/mail/server/constants'
+import { mailboxesAreAvailable } from '@/lib/mailServerSync/constants'
 import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'

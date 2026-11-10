@@ -2,7 +2,7 @@ import { SSO_CALLBACK_PATH, oidcIssuer } from './constants'
 import { scopesFor } from './scopes'
 import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
-import { mailServerWebmail } from '@/services/mail/server/constants'
+import { mailServerWebmail } from '@/lib/mailServerSync/constants'
 import type { OidcClientKind, OidcScope } from './scopes'
 
 export type OidcClient = {

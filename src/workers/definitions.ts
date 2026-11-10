@@ -14,8 +14,8 @@ import {
     reimburseUnclaimedPayments,
 } from '@/services/ledger/sweeper'
 import { runNextPaymentCompletionHook } from '@/services/ledger/transactions/paymentCompletionHooks'
-import { syncMailServer } from '@/services/mail/server/sync'
-import { mailServerIsManaged } from '@/services/mail/server/constants'
+import { syncMailServer } from '@/lib/mailServerSync/sync'
+import { mailServerIsManaged } from '@/lib/mailServerSync/constants'
 import { requeueNextUnpaidRegistration } from '@/services/events/registration/requeueUnpaid'
 import logger from '@/lib/logger'
 import type { Worker } from './types'
@@ -138,7 +138,7 @@ export const workers = {
 
     /**
      * Keeps the mail server's domains, mailing lists and mailboxes in step with the aliases
-     * here, see mail/server/sync.ts. Does nothing while the server is not managed.
+     * here, see lib/mailServerSync/sync.ts. Does nothing while the server is not managed.
      */
     mail: {
         name: 'Mail server sync',

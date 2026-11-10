@@ -4,16 +4,16 @@ import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailAddressExternalOperations } from '@/services/mail/mailAddressExternal/operations'
 import { mailOperations } from '@/services/mail/operations'
-import { MailServerClient } from '@/services/mail/server/client'
-import { syncMailServer } from '@/services/mail/server/sync'
-import { mailboxAddressOf } from '@/services/mail/server/mailboxes'
+import { MailServerClient } from '@/lib/mailServerSync/client'
+import { syncMailServer } from '@/lib/mailServerSync/sync'
+import { mailboxAddressOf } from '@/lib/mailServerSync/mailboxes'
 import { afterEach, describe, expect, test } from '@jest/globals'
 import type {
     JmapMethodCall,
     JmapMethodResponse,
     MailServerFetch,
     MailServerObjectName,
-} from '@/services/mail/server/client'
+} from '@/lib/mailServerSync/client'
 
 const TEST_DOMAIN = 'omega.ntnu.no'
 /** The webmail the mailbox tests run with; the other tests pass none, as the env of the tests gives none. */
