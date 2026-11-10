@@ -316,12 +316,10 @@ describe('the OpenID Connect provider', () => {
         ])
     })
 
-    test('the mail scope gives the mailboxes of the aliases the user receives mail on and that have one', async () => {
+    test('the mail scope gives the mailboxes of the aliases the user receives mail on', async () => {
         const { user } = await createUser('groups')
         const { user: other } = await createUser('groups-other')
         await createAliasReceivedBy(user.id, 'test-oidc-styret')
-        const unboxed = await createAliasReceivedBy(user.id, 'test-oidc-unboxed')
-        await aliasOperations.updateMailbox({ params: { id: unboxed.id }, data: { hasMailbox: false }, bypassAuth: true })
         await createAliasReceivedBy(other.id, 'test-oidc-theirs')
 
         expect(await userClaims(user.id, ['openid', OIDC_MAIL_SCOPE])).toEqual({

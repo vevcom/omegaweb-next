@@ -490,30 +490,6 @@ describe('syncing mailboxes', () => {
         expect(server.objects.Domain.size).toBe(1)
     })
 
-    test('switching the mailbox off destroys the group and drops it from the list, and on makes a new one', async () => {
-        const { alias } = await createTestAlias('test-switched')
-        const server = serverWithOurDomain()
-        await syncMailServer({ client: server.client(), sender: null, webmail })
-        const first = server.account(mailboxOf('test-switched'))
-        expect(first).toBeDefined()
-
-        await aliasOperations.updateMailbox({ params: { id: alias.id }, data: { hasMailbox: false }, bypassAuth: true })
-        server.setCalls.length = 0
-        await syncMailServer({ client: server.client(), sender: null, webmail })
-        expect(server.account(mailboxOf('test-switched'))).toBeUndefined()
-        expect(recipientsOf(server.mailingList(alias.address))).toEqual([])
-        expect(await storedMailboxId(alias.id)).toBeNull()
-        expect(server.setCallsFor('Account')).toHaveLength(1)
-        expect(server.setCallsFor('Account')[0].args.destroy).toEqual([first?.id])
-
-        await aliasOperations.updateMailbox({ params: { id: alias.id }, data: { hasMailbox: true }, bypassAuth: true })
-        await syncMailServer({ client: server.client(), sender: null, webmail })
-        const second = server.account(mailboxOf('test-switched'))
-        expect(second).toBeDefined()
-        expect(second?.id).not.toBe(first?.id)
-        expect(await storedMailboxId(alias.id)).toBe(second?.id)
-    })
-
     test('renaming the alias renames its group in place, so the mail stays', async () => {
         const { alias } = await createTestAlias('test-before')
         const server = serverWithOurDomain()

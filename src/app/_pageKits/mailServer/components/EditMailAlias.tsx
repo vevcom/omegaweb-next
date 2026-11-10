@@ -3,14 +3,12 @@ import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityA
 import { mailServerLinks } from '@/pageKits/mailServer/links'
 
 import TextInput from '@/components/UI/TextInput'
-import Checkbox from '@/components/UI/Checkbox'
 import Form from '@/components/Form/Form'
 import { SelectNumber, SelectString } from '@/components/UI/Select'
 import { createAliasMailingListRelationAction } from '@/services/mail/actions'
 import {
     updateMailAliasAction,
     updateMailAliasDescriptionAction,
-    updateMailAliasMailboxAction,
     updateMailAliasVisibilityAction,
     destroyMailAliasAction,
 } from '@/services/mail/alias/actions'
@@ -42,7 +40,7 @@ export default function EditMailAlias({
     /** The domains an alias may be on. */
     domains: string[],
     owners: VisibilityMatrix,
-    /** Whether this installation keeps mailboxes for its aliases, see mail/server/constants.ts. */
+    /** Whether this installation keeps a mailbox per alias, see mail/server/constants.ts. */
     mailboxes: boolean,
 }) {
     const { push, refresh } = useSiteRouter()
@@ -57,9 +55,6 @@ export default function EditMailAlias({
     const canUpdateAlias = useAuthorizer({ authorizer: mailAliasAuth.update.data({ visibility: owners }) }).authorized
     const canUpdateDescription = useAuthorizer({
         authorizer: mailAliasAuth.updateDescription.data({ visibility: owners }),
-    }).authorized
-    const canUpdateMailbox = useAuthorizer({
-        authorizer: mailAliasAuth.updateMailbox.data({ visibility: owners }),
     }).authorized
     const canDestroyAlias = useAuthorizer({ authorizer: mailAliasAuth.destroy.data({ visibility: owners }) }).authorized
     const canUpdateOwners = useAuthorizer({
@@ -103,18 +98,14 @@ export default function EditMailAlias({
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedAlias.description} />
         </Form>}
 
-        {mailboxes && canUpdateMailbox && <Form
-            title="Postkasse"
-            submitText="Lagre"
-            action={configureAction(updateMailAliasMailboxAction, { params: { id: focusedAlias.id } })}
-            successCallback={refresh}
-        >
-            <Checkbox name="hasMailbox" label="Aliaset har en postkasse" defaultChecked={focusedAlias.hasMailbox} />
-            <p className="m-0 text-base-content/80 text-sm">
-                E-post til aliaset lagres også i en felles postkasse, som alle som mottar e-posten kan åpne i
-                webmailen. Skrus postkassen av, slettes den med alt innhold.
+        {mailboxes && <div className="flex flex-col gap-2">
+            <h3 className="m-0">Postkasse</h3>
+            <p className="m-0 text-base-content/80">
+                Et alias er til korrespondanse. Alle som mottar e-posten til aliaset, gjennom e-postlistene det
+                er koblet til, leser den også i en felles postkasse i webmailen, og kan svare og sende e-post
+                som aliaset derfra. Informasjon som bare skal ut til mange, sendes som et varsel.
             </p>
-        </Form>}
+        </div>}
 
         {canUpdateOwners && <div className="flex flex-col gap-2">
             <h3 className="m-0">Eiere</h3>

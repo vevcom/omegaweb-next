@@ -8,8 +8,8 @@ import type { MailServerWebmail } from './constants'
 
 /**
  * The mailbox of an alias is a group account on the mail server: a mailbox with no login of its
- * own, which its members see as a shared folder in the webmail. The sync keeps one per alias that
- * has a mailbox, on the mailbox domain, described by the alias's address so members see which
+ * own, which its members see as a shared folder in the webmail. The sync keeps one per alias, on
+ * the mailbox domain, described by the alias's address so members see which
  * alias it is, and the alias's list delivers to it besides forwarding (see sync.ts). Who the
  * members are is not kept here: the server takes that from the groups claim of the token a member
  * signs in to the webmail with, and rewrites it at every sign in.
@@ -24,7 +24,6 @@ export type MailboxChanges = {
 type AliasMailbox = {
     id: number,
     address: string,
-    hasMailbox: boolean,
     mailboxAccountId: string | null,
 }
 
@@ -60,8 +59,8 @@ function creationId(address: string, index: number): string {
 }
 
 /**
- * Makes the group accounts on the mailbox domain match the aliases: one per alias with a mailbox,
- * named by the alias and renamed with it, and none for an alias without one or that is gone.
+ * Makes the group accounts on the mailbox domain match the aliases: one per alias, named by the
+ * alias and renamed with it, and none for an alias that is gone.
  *
  * Which group is an alias's goes by name first: the group named as the alias's mailbox is its,
  * whatever any alias remembers, which adopts a group a failed run created but did not store, and
@@ -77,7 +76,7 @@ export async function syncMailboxes(
     webmail: MailServerWebmail,
 ): Promise<MailboxChanges> {
     const aliases: AliasMailbox[] = await prisma.mailAlias.findMany({
-        select: { id: true, address: true, hasMailbox: true, mailboxAccountId: true },
+        select: { id: true, address: true, mailboxAccountId: true },
     })
     const groups = new Map<string, MailServerAccount>()
     for (const account of accounts) {
@@ -86,7 +85,7 @@ export async function syncMailboxes(
     const groupsByName = new Map<string, MailServerAccount>()
     groups.forEach(group => groupsByName.set(group.name.toLowerCase(), group))
 
-    const wanted = aliases.filter(alias => alias.hasMailbox).map(alias => {
+    const wanted = aliases.map(alias => {
         const address = mailboxAddressOf(alias.address, webmail.domain)
         return { alias, address, name: localPartOf(address) }
     })
@@ -112,8 +111,8 @@ export async function syncMailboxes(
     const create: Record<string, WantedGroup> = {}
     const aliasOfCreation = new Map<string, number>()
     const update: Record<string, Partial<WantedGroup>> = {}
-    /** What each alias is to remember, null to forget. */
-    const remember = new Map<number, string | null>()
+    /** The group each alias is to remember from now on. */
+    const remember = new Map<number, string>()
 
     wanted.forEach(({ alias, address, name }, index) => {
         const group = groupOfAlias.get(alias.id)
@@ -129,9 +128,6 @@ export async function syncMailboxes(
         if ((group.description ?? '') !== alias.address) changes.description = alias.address
         if (Object.keys(changes).length > 0) update[group.id] = changes
     })
-    for (const alias of aliases) {
-        if (!alias.hasMailbox && alias.mailboxAccountId !== null) remember.set(alias.id, null)
-    }
     const destroy = Array.from(groups.keys()).filter(id => !taken.has(id))
 
     if (Object.keys(update).length > 0 || destroy.length > 0) {
@@ -152,9 +148,7 @@ export async function syncMailboxes(
         })
     }
     for (const [aliasId, accountId] of Array.from(remember)) {
-        if (accountId !== null) {
-            await prisma.mailAlias.updateMany({ where: { id: aliasId }, data: { mailboxAccountId: accountId } })
-        }
+        await prisma.mailAlias.updateMany({ where: { id: aliasId }, data: { mailboxAccountId: accountId } })
     }
 
     return { created: Object.keys(create).length, updated: Object.keys(update).length, destroyed: destroy.length }

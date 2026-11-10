@@ -184,7 +184,7 @@ async function syncDomains(
 
 /**
  * Every alias as the list it should be on the server, by its address. Besides the addresses the
- * alias reaches, the list delivers to the alias's mailbox when it has one.
+ * alias reaches, the list delivers to the alias's mailbox when mailboxes are kept.
  */
 async function wantedMailingLists(
     domainIdsByName: Map<string, string>,
@@ -194,7 +194,6 @@ async function wantedMailingLists(
         select: {
             address: true,
             description: true,
-            hasMailbox: true,
             mailingLists: { select: { mailingListId: true } },
         },
     })
@@ -212,7 +211,7 @@ async function wantedMailingLists(
             addresses: [],
             mailingListIds: alias.mailingLists.map(relation => relation.mailingListId),
         })
-        const mailbox = webmail && alias.hasMailbox ? [mailboxAddressOf(alias.address, webmail.domain)] : []
+        const mailbox = webmail ? [mailboxAddressOf(alias.address, webmail.domain)] : []
         wanted.set(alias.address.toLowerCase(), {
             name: localPart.toLowerCase(),
             domainId,

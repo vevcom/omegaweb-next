@@ -40,8 +40,6 @@ export const mailAliasAuth = {
         .permission('MAIL_ALIAS_CREATE', { errorMessage: changesAliasAddress })
         .visibility({ errorMessage: changesAliasAddress }),
     updateDescription: ownsAlias,
-    /** Whether the alias keeps a mailbox is the owners' call; who may open it follows from who receives its mail. */
-    updateMailbox: ownsAlias,
     updateVisibility: ownsAlias,
     destroy: ownsAlias,
 } as const

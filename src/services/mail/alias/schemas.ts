@@ -1,6 +1,5 @@
 import { validMailAddressDomains } from '@/services/mail/constants'
 import { mailOwnerRequirements, mailParamsFieldSchemas } from '@/services/mail/schemas'
-import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -14,7 +13,6 @@ const dataFieldSchemas = z.object({
     ),
     description: z.string(),
     ownerRequirements: mailOwnerRequirements,
-    hasMailbox: Zpn.checkboxOrBoolean({ label: 'Postkasse' }),
 })
 
 const paramsFieldSchemas = z.object({
@@ -48,16 +46,12 @@ export const mailAliasSchemas = {
         updateDescription: dataFieldSchemas.pick({
             description: true,
         }),
-        updateMailbox: dataFieldSchemas.pick({
-            hasMailbox: true,
-        }),
     },
     params: {
         readMany: paramsFieldSchemas.pick({ markOwnedByUserId: true }),
         readReceived: paramsFieldSchemas.pick({ userId: true }),
         update: alias,
         updateDescription: alias,
-        updateMailbox: alias,
         visibility: alias,
         destroy: alias,
     },

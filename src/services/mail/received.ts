@@ -22,8 +22,8 @@ export async function aliasesReceivedBy(client: Prisma.TransactionClient, userId
 }
 
 /**
- * The mailboxes a user may open: those of the aliases they receive mail on that have one, by their
- * addresses on the mail server. The token a user signs in to the webmail with names them as the
+ * The mailboxes a user may open: those of the aliases they receive mail on, by their addresses on
+ * the mail server. The token a user signs in to the webmail with names them as the
  * groups the user is in, which the mail server makes them a member of, see mail/server/mailboxes.ts.
  * None without a webmail.
  */
@@ -31,5 +31,5 @@ export async function mailboxesReceivedBy(userId: number): Promise<string[]> {
     if (!mailServerWebmail) return []
     const { domain } = mailServerWebmail
     const aliases = await aliasesReceivedBy(prisma, userId)
-    return aliases.filter(alias => alias.hasMailbox).map(alias => mailboxAddressOf(alias.address, domain))
+    return aliases.map(alias => mailboxAddressOf(alias.address, domain))
 }
