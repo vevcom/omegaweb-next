@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { resetPasswordExpiration } from './constants'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { sendMailOperations } from '@/services/mail/send/operations'
 import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'
 import { generateJWT } from '@/jwt/jwt'
 import { userOperations } from '@/services/users/operations'
@@ -26,7 +26,7 @@ export async function sendResetPasswordMail(email: string, site: Site) {
 
     const link = DomainContext.authDomainUrl(authLinks(authPagesOf(site)).resetPasswordForm(jwt))
 
-    await sendMailOperations.internal.sendSystemMail.internalCall({
+    await sendMailOperations.sendSystemMail.internalCall({
         data: {
             to: user.email,
             subject: 'Glemt passord',

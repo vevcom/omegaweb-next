@@ -45,7 +45,7 @@ export const mailboxesAreAvailable = mailServerIsManaged && mailServerWebmail !=
 
 /**
  * The account the app sends mail as, which the sync keeps on the server with this password. The
- * same credentials sending uses, see src/lib/email/constants.ts.
+ * same credentials sending uses, see src/services/mail/send/constants.ts.
  */
 export const mailServerSender = {
     address: envValue('EMAIL_USER'),

@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import logger from '@/lib/logger'
-import { TRANSPORT_OPTIONS } from '@/lib/email/constants'
+import { TRANSPORT_OPTIONS } from '@/services/mail/send/constants'
 import nodemailer from 'nodemailer'
 import type { SMTPPoolSentMessageInfo, TestAccount, Transporter as MailTransporter } from 'nodemailer'
 import type Mail from 'nodemailer/lib/mailer'

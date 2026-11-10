@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { emailValidationExpiration } from './constants'
 import { generateVerifyEmailJWT } from './verifyEmailToken'
 import { VerifyEmailTemplate } from '@/lib/email/templates/verifyEmail'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { sendMailOperations } from '@/services/mail/send/operations'
 import { userSchemas } from '@/services/users/schemas'
 import { DomainContext } from '@/lib/sites/context'
 import { authLinks } from '@/pageKits/auth/links'
@@ -17,7 +17,7 @@ export async function sendVerifyEmail(user: UserBasic, email: string, site: Site
 
     const link = DomainContext.authDomainUrl(authLinks(authPagesOf(site)).verifyEmail(jwt))
 
-    await sendMailOperations.internal.sendSystemMail.internalCall({
+    await sendMailOperations.sendSystemMail.internalCall({
         data: {
             to: parse.email,
             subject: 'Bekreft e-post',

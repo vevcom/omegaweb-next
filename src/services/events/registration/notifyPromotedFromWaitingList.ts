@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { PAYMENT_HOURS_AFTER_PROMOTION } from './paymentDeadline'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { sendMailOperations } from '@/services/mail/send/operations'
 import logger from '@/lib/logger'
 import { escapeHtml } from '@/lib/html/escapeHtml'
 
@@ -42,7 +42,7 @@ export async function notifyPromotedFromWaitingList(
     }
 
     const sendings = await Promise.allSettled(guestEmails.map(email => (
-        sendMailOperations.internal.sendSystemMail.internalCall({
+        sendMailOperations.sendSystemMail.internalCall({
             data: { to: email, subject: title, body: mailBody },
         })
     )))

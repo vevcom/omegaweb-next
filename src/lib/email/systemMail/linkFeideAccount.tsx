@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { sendMailOperations } from '@/services/mail/send/operations'
 import { LinkFeideAccountTemplate } from '@/lib/email/templates/linkFeideAccount'
 import { generateJWT } from '@/jwt/jwt'
 import { DomainContext } from '@/lib/sites/context'
@@ -34,7 +34,7 @@ export async function sendLinkFeideAccountMail(
 
     const link = DomainContext.authDomainUrl(authLinks(authPagesOf(site)).linkOwUser(jwt))
 
-    await sendMailOperations.internal.sendSystemMail.internalCall({
+    await sendMailOperations.sendSystemMail.internalCall({
         data: {
             to: targetUser.email,
             subject: 'Koble Feide-innlogging til gammel bruker',

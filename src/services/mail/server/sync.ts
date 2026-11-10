@@ -3,7 +3,7 @@ import { mailServerClientFromEnv } from './client'
 import { mailServerSender, mailServerWebmail, mailboxesAreAvailable } from './constants'
 import { mailboxAddressOf, syncMailboxes } from './mailboxes'
 import { validMailAddressDomains } from '@/services/mail/constants'
-import { resolveMailRecipients } from '@/services/mail/recipients'
+import { mailingListAddresses } from '@/services/mail/recipients'
 import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
 import type { MailServerWebmail } from './constants'
@@ -207,17 +207,17 @@ async function wantedMailingLists(
             unplaced.push(alias.address)
             continue
         }
-        const recipients = await resolveMailRecipients(prisma, {
-            addresses: [],
-            mailingListIds: alias.mailingLists.map(relation => relation.mailingListId),
-        })
+        const recipients = await mailingListAddresses(
+            prisma,
+            alias.mailingLists.map(relation => relation.mailingListId),
+        )
         const mailbox = webmail ? [mailboxAddressOf(alias.address, webmail.domain)] : []
         wanted.set(alias.address.toLowerCase(), {
             name: localPart.toLowerCase(),
             domainId,
             description: alias.description === '' ? null : alias.description,
             recipients: Object.fromEntries(
-                [...recipients.map(recipient => recipient.address), ...mailbox]
+                [...recipients, ...mailbox]
                     .map(address => [address.toLowerCase(), true as const]),
             ),
         })

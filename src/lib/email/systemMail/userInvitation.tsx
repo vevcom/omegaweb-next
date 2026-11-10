@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { userInvitationExpiration } from './constants'
 import { generateVerifyEmailJWT } from './verifyEmailToken'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { sendMailOperations } from '@/services/mail/send/operations'
 import { UserInvitationTemplate } from '@/lib/email/templates/userInvitation'
 import logger from '@/lib/logger'
 import { DomainContext } from '@/lib/sites/context'
@@ -20,7 +20,7 @@ export async function sendUserInvitationEmail(user: UserBasicWithEmail) {
 
         const link = DomainContext.authDomainUrl(authLinks(authPagesOf(Site.OMEGAWEB)).verifyEmail(jwt))
 
-        await sendMailOperations.internal.sendSystemMail.internalCall({
+        await sendMailOperations.sendSystemMail.internalCall({
             data: {
                 to: user.email,
                 subject: `Invitasjon til ${DomainContext.mailDomainOf(Site.root)}`,

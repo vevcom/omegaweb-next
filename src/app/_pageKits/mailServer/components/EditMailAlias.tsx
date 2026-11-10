@@ -13,9 +13,6 @@ import {
     destroyMailAliasAction,
 } from '@/services/mail/alias/actions'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
-import { sendMailAuth } from '@/services/notifications/sendMail/auth'
-import SiteLink from '@/components/SiteLink/SiteLink'
-import { appHref } from '@/lib/sites/href'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import useSiteRouter from '@/hooks/useSiteRouter'
@@ -60,21 +57,11 @@ export default function EditMailAlias({
     const canUpdateOwners = useAuthorizer({
         authorizer: mailAliasAuth.updateVisibility.data({ visibility: owners }),
     }).authorized
-    const canSendFromAlias = useAuthorizer({
-        authorizer: sendMailAuth.sendMailFromAlias.data({ visibility: owners }),
-    }).authorized
 
     const connectedListIds = new Set(data.mailingList.map(list => list.id))
     const availableLists = mailingLists.filter(list => !connectedListIds.has(list.id))
 
     return <>
-        {canSendFromAlias && <SiteLink
-            href={appHref(`/admin/send-mail?from=${focusedAlias.id}`)}
-            className="self-start px-4 py-2 rounded-round bg-primary text-white no-underline font-medium"
-        >
-            Send e-post fra aliaset
-        </SiteLink>}
-
         {canUpdateAlias && <Form
             title="Rediger alias"
             submitText="Oppdater"
