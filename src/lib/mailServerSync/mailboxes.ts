@@ -14,7 +14,6 @@ import type { MailServerAccount, MailServerClient } from './client'
 export type MailboxChanges = {
     created: number,
     updated: number,
-    destroyed: number,
 }
 
 /** A mailbox as it is on the server once the sync has run. */
@@ -33,6 +32,8 @@ export type SyncedMailboxes = {
      * {@link destroyMailboxes}.
      */
     stale: string[],
+    /** What the server refused, see sync.ts. An alias whose mailbox was refused is not among `mailboxes`. */
+    refused: string[],
 }
 
 type AliasMailbox = {
@@ -70,7 +71,8 @@ function creationId(address: string, index: number): string {
  * domain, and moves to its alias's address the same way. The rest are created, and groups no alias
  * took are stale, for the caller to destroy. Moves go to the server first, so a creation never meets
  * an address about to be freed. A stale group never holds an address a creation wants: an alias at
- * its address would have taken it.
+ * its address would have taken it. A group whose move was refused is still its alias's, by the id
+ * the alias remembers, and the next run moves it.
  */
 export async function syncMailboxes(
     client: MailServerClient,
@@ -105,7 +107,7 @@ export async function syncMailboxes(
         return [{ alias, address, name: address.slice(0, at), domainId }]
     })
     if (unplaced.length > 0) {
-        logger.warn(`Mail server sync keeps no mailbox for aliases on domains that are no longer the sites': ${
+        logger.warn(`Mail server sync keeps no mailbox for aliases on domains the server does not hold for the sites: ${
             unplaced.join(', ')}`)
     }
 
@@ -153,17 +155,13 @@ export async function syncMailboxes(
     })
     const stale = Array.from(groups.keys()).filter(id => !taken.has(id))
 
-    if (Object.keys(update).length > 0) {
-        await client.set('Account', { update })
-    }
-    if (Object.keys(create).length > 0) {
-        const result = await client.set('Account', { create })
-        for (const [id, created] of Object.entries(result.created ?? {})) {
-            const aliasId = aliasOfCreation.get(id)
-            if (aliasId === undefined) continue
-            remember.set(aliasId, created.id)
-            accountIdOfAlias.set(aliasId, created.id)
-        }
+    const moved = await client.set('Account', { update })
+    const made = await client.set('Account', { create })
+    for (const [id, created] of Object.entries(made.created)) {
+        const aliasId = aliasOfCreation.get(id)
+        if (aliasId === undefined) continue
+        remember.set(aliasId, created.id)
+        accountIdOfAlias.set(aliasId, created.id)
     }
     // Every alias that is to remember something else forgets first, since an id is remembered by one alias alone.
     if (remember.size > 0) {
@@ -178,19 +176,27 @@ export async function syncMailboxes(
 
     return {
         changes: {
-            created: Object.keys(create).length,
-            updated: Object.keys(update).length,
-            destroyed: stale.length,
+            created: Object.keys(made.created).length,
+            updated: moved.updated,
         },
         mailboxes: wanted.flatMap(({ alias }) => {
             const accountId = accountIdOfAlias.get(alias.id)
             return accountId === undefined ? [] : [{ accountId, aliasId: alias.id, aliasAddress: alias.address }]
         }),
         stale,
+        refused: [...moved.refused, ...made.refused],
     }
 }
 
-/** Destroys the groups a run of {@link syncMailboxes} found stale, once nobody is a member of them. */
-export async function destroyMailboxes(client: MailServerClient, stale: string[]): Promise<void> {
-    if (stale.length > 0) await client.set('Account', { destroy: stale })
+/**
+ * Destroys the groups a run of {@link syncMailboxes} found stale, once nobody is a member of them.
+ *
+ * @returns how many were destroyed, and what the server refused.
+ */
+export async function destroyMailboxes(
+    client: MailServerClient,
+    stale: string[],
+): Promise<{ destroyed: number, refused: string[] }> {
+    const { destroyed, refused } = await client.set('Account', { destroy: stale })
+    return { destroyed, refused }
 }

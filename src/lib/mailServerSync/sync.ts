@@ -9,7 +9,6 @@ import { mailingListAddresses } from '@/services/mail/recipients'
 import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
 import type { MailServerWebmail } from './constants'
-import type { MailboxChanges } from './mailboxes'
 import type { MailServerClient, MailServerMailingList } from './client'
 
 export type SyncMailServerOptions = {
@@ -37,12 +36,12 @@ type MailingListChanges = {
     created: number,
     updated: number,
     destroyed: number,
+    refused: string[],
 }
 
 const DOMAIN_DESCRIPTION = 'A domain of the sites, created by omegaweb-next'
 const ACCOUNT_DOMAIN_DESCRIPTION = 'The domain of the accounts of those who sign in to the webmail, created by omegaweb-next'
 const FORWARDING_DOMAIN_DESCRIPTION = 'The domain of the lists the mailboxes forward to, created by omegaweb-next'
-const NO_MAILBOX_CHANGES: MailboxChanges = { created: 0, updated: 0, destroyed: 0 }
 
 /**
  * Brings the mail server in step with the database. Every mail domain of the sites exists as a
@@ -56,7 +55,13 @@ const NO_MAILBOX_CHANGES: MailboxChanges = { created: 0, updated: 0, destroyed: 
  * without a login (see src/services/mail/send/constants.ts). Run by the mail worker
  * (src/workers/definitions.ts).
  *
+ * A change the server refuses does not stop the run: every step does what it can and says what was
+ * refused, and the run throws at its end naming all of it, so one alias the server will not take
+ * does not keep the others from it. Without the domains the mailboxes take the run ends after the
+ * domains, since no alias can be placed. A server that does not answer stops the run where it is.
+ *
  * @returns false, since one run does all the work there is.
+ * @throws once the run is through, when the server refused any change.
  */
 export async function syncMailServer(options: SyncMailServerOptions = {}): Promise<false> {
     const client = options.client ?? mailServerClientFromEnv()
@@ -75,12 +80,13 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
     }))
     const forwardingDomainId = forwardingDomain ? domains.idsByName.get(forwardingDomain) : undefined
     const accountDomainId = webmail ? domains.idsByName.get(webmail.domain) : undefined
-    if (webmail && (forwardingDomainId === undefined || accountDomainId === undefined)) {
-        logger.warn('Mail server sync keeps no mailboxes, since the domains they take could not be made')
-    }
     const forwarding = webmail && forwardingDomainId !== undefined && accountDomainId !== undefined
         ? { webmail, domainId: forwardingDomainId, accountDomainId }
         : null
+    if (webmail && !forwarding) {
+        throw new Error(`Mail server sync left the aliases as they were, since the domains of the mailboxes are missing${
+            domains.refused.length > 0 ? ` and the server refused to ${domains.refused.join('; ')}` : ''}`)
+    }
 
     // The lists first: the first run with mailboxes frees the aliases' addresses of the lists that
     // held them, which the mailboxes then take.
@@ -89,33 +95,51 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
     if (forwardingDomain && forwardingDomainId !== undefined) listDomainIdsByName.set(forwardingDomain, forwardingDomainId)
     const lists = await syncMailingLists(client, listDomainIdsByName, wantedLists)
 
-    let mailboxes = NO_MAILBOX_CHANGES
-    let scripts = 0
-    let memberships = 0
-    if (forwarding) {
-        const accounts = await client.listAll('Account')
-        const synced = await syncMailboxes(client, accounts, siteDomainIdsByName, forwarding.accountDomainId)
-        mailboxes = synced.changes
-        // The memberships before the stale mailboxes go, since the server keeps a group that has members.
-        memberships = await syncMemberships(client, accounts, forwarding.accountDomainId, synced.mailboxes, synced.stale)
-        await destroyMailboxes(client, synced.stale)
-        scripts = await syncForwardingScripts(client, synced.mailboxes.map(mailbox => {
-            const forwardTo = forwardingAddressOf(mailbox.aliasAddress, forwarding.webmail.domain)
-            return { ...mailbox, forwardTo: wantedLists.has(forwardTo) ? forwardTo : null }
-        }), forwarding.webmail.origin)
-    }
+    const mailboxes = forwarding
+        ? await syncMailboxesOfAliases(client, siteDomainIdsByName, forwarding, wantedLists)
+        : { created: 0, updated: 0, destroyed: 0, scripts: 0, memberships: 0, refused: [] }
 
     const changes = domains.created + mailboxes.created + mailboxes.updated + mailboxes.destroyed
-        + lists.created + lists.updated + lists.destroyed + scripts + memberships
+        + lists.created + lists.updated + lists.destroyed + mailboxes.scripts + mailboxes.memberships
     if (changes > 0) {
         logger.info(`Mail server sync created ${domains.created} domains; created ${mailboxes.created}, updated ${
             mailboxes.updated} and destroyed ${mailboxes.destroyed} mailboxes; created ${lists.created}, updated ${
             lists.updated} and destroyed ${lists.destroyed} mailing lists; set the forwarding of ${
-            scripts} mailboxes; and changed the memberships of ${memberships} accounts`)
-    } else {
-        logger.debug('Mail server sync found the server in step with the database')
+            mailboxes.scripts} mailboxes; and changed the memberships of ${mailboxes.memberships} accounts`)
     }
+    const refused = [...domains.refused, ...lists.refused, ...mailboxes.refused]
+    if (refused.length > 0) {
+        throw new Error(`Mail server sync did the rest, and the server refused to ${refused.join('; ')}`)
+    }
+    if (changes === 0) logger.debug('Mail server sync found the server in step with the database')
     return false
+}
+
+/** The mailboxes of the aliases, who their members are and what they forward, in the order these depend on each other. */
+async function syncMailboxesOfAliases(
+    client: MailServerClient,
+    siteDomainIdsByName: Map<string, string>,
+    forwarding: { webmail: MailServerWebmail, accountDomainId: string },
+    wantedLists: Map<string, WantedMailingList>,
+) {
+    const accounts = await client.listAll('Account')
+    const synced = await syncMailboxes(client, accounts, siteDomainIdsByName, forwarding.accountDomainId)
+    // The memberships before the stale mailboxes go, since the server keeps a group that has members.
+    const memberships = await syncMemberships(
+        client, accounts, forwarding.accountDomainId, synced.mailboxes, synced.stale
+    )
+    const stale = await destroyMailboxes(client, synced.stale)
+    const scripts = await syncForwardingScripts(client, synced.mailboxes.map(mailbox => {
+        const forwardTo = forwardingAddressOf(mailbox.aliasAddress, forwarding.webmail.domain)
+        return { ...mailbox, forwardTo: wantedLists.has(forwardTo) ? forwardTo : null }
+    }), forwarding.webmail.origin)
+    return {
+        ...synced.changes,
+        destroyed: stale.destroyed,
+        scripts: scripts.changed,
+        memberships: memberships.changed,
+        refused: [...synced.refused, ...memberships.refused, ...stale.refused, ...scripts.refused],
+    }
 }
 
 /** The webmail of the env when the installation keeps mailboxes, which takes a managed server too. */
@@ -140,12 +164,12 @@ function creationId(address: string, index: number): string {
 /**
  * Creates the domains wanted that the server lacks: the mail domains of the sites, and the mailbox
  * domain. Domains are never destroyed: one the server has that is not ours is only warned about,
- * since mail for it may still be arriving.
+ * since mail for it may still be arriving. A domain the server refused has no id.
  */
 async function syncDomains(
     client: MailServerClient,
     wanted: WantedDomain[],
-): Promise<{ idsByName: Map<string, string>, created: number }> {
+): Promise<{ idsByName: Map<string, string>, created: number, refused: string[] }> {
     const ours = new Map(wanted.map(domain => [domain.name.toLowerCase(), domain.description]))
     const existing = await client.listAll('Domain')
 
@@ -161,20 +185,18 @@ async function syncDomains(
     }
 
     const missing = Array.from(ours.keys()).filter(name => !idsByName.has(name))
-    if (missing.length > 0) {
-        const namesByCreationId = new Map(missing.map((name, index) => [creationId(name, index), name]))
-        const result = await client.set('Domain', {
-            create: Object.fromEntries(Array.from(namesByCreationId, ([id, name]) => [
-                id,
-                { name, description: ours.get(name) },
-            ])),
-        })
-        for (const [id, created] of Object.entries(result.created ?? {})) {
-            const name = namesByCreationId.get(id)
-            if (name !== undefined) idsByName.set(name, created.id)
-        }
+    const namesByCreationId = new Map(missing.map((name, index) => [creationId(name, index), name]))
+    const { created, refused } = await client.set('Domain', {
+        create: Object.fromEntries(Array.from(namesByCreationId, ([id, name]) => [
+            id,
+            { name, description: ours.get(name) },
+        ])),
+    })
+    for (const [id, domain] of Object.entries(created)) {
+        const name = namesByCreationId.get(id)
+        if (name !== undefined) idsByName.set(name, domain.id)
     }
-    return { idsByName, created: missing.length }
+    return { idsByName, created: Object.keys(created).length, refused }
 }
 
 /**
@@ -224,7 +246,8 @@ async function wantedMailingLists(
         })
     }
     if (unplaced.length > 0) {
-        logger.warn(`Mail server sync skips aliases on domains that are no longer the sites': ${unplaced.join(', ')}`)
+        logger.warn(`Mail server sync skips aliases on domains the server does not hold for the sites: ${
+            unplaced.join(', ')}`)
     }
     return wanted
 }
@@ -294,13 +317,6 @@ async function syncMailingLists(
             foreign.join(', ')}`)
     }
 
-    const changes = {
-        created: Object.keys(create).length,
-        updated: Object.keys(update).length,
-        destroyed: destroy.length,
-    }
-    if (changes.created + changes.updated + changes.destroyed > 0) {
-        await client.set('MailingList', { create, update, destroy })
-    }
-    return changes
+    const outcome = await client.set('MailingList', { create, update, destroy })
+    return { ...outcome, created: Object.keys(outcome.created).length }
 }

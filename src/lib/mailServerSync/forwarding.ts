@@ -1,4 +1,5 @@
 import '@pn-server-only'
+import { MailServerRefusal } from './client'
 import { createHash } from 'crypto'
 import type { MailServerClient } from './client'
 
@@ -122,17 +123,19 @@ function scriptNameOf(content: string): string {
 /**
  * Makes the active script of every mailbox the one that forwards its alias's mail. A mailbox whose
  * active script already has the wanted name is left alone. Scripts of ours that are no longer
- * wanted are destroyed. One a member made is left, and stops running when ours takes its place.
+ * wanted are destroyed. One a member made is left, and stops running when ours takes its place. A
+ * mailbox the server refuses a script for keeps what it had, and the others go on.
  *
- * @returns how many mailboxes were given a script.
+ * @returns how many mailboxes were given a script, and what the server refused.
  */
 export async function syncForwardingScripts(
     client: MailServerClient,
     mailboxes: MailboxForwarding[],
     webmailOrigin: string,
-): Promise<number> {
+): Promise<{ changed: number, refused: string[] }> {
     const existing = await client.sieveScripts(mailboxes.map(mailbox => mailbox.accountId))
     let changed = 0
+    const refused: string[] = []
     for (const { accountId, aliasAddress, forwardTo } of mailboxes) {
         const content = forwardingScript({ aliasAddress, forwardTo, webmailOrigin })
         const name = scriptNameOf(content)
@@ -142,10 +145,15 @@ export async function syncForwardingScripts(
         // Ours that are not running go first, since one of them may hold the wanted name. The one
         // that is running can only go once the new one has taken its place.
         const ours = scripts.filter(script => script.name.startsWith(SCRIPT_NAME_PREFIX))
-        await client.destroySieveScripts(accountId, ours.filter(script => !script.isActive).map(script => script.id))
-        await client.setActiveSieveScript(accountId, name, content)
-        await client.destroySieveScripts(accountId, ours.filter(script => script.isActive).map(script => script.id))
-        changed += 1
+        try {
+            await client.destroySieveScripts(accountId, ours.filter(script => !script.isActive).map(script => script.id))
+            await client.setActiveSieveScript(accountId, name, content)
+            await client.destroySieveScripts(accountId, ours.filter(script => script.isActive).map(script => script.id))
+            changed += 1
+        } catch (error) {
+            if (!(error instanceof MailServerRefusal)) throw error
+            refused.push(`${error.message}, the mailbox of ${aliasAddress}`)
+        }
     }
-    return changed
+    return { changed, refused }
 }

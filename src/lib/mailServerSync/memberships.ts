@@ -15,7 +15,7 @@ import type { SyncedMailbox } from './mailboxes'
  * Only memberships of our mailboxes are touched, the stale ones included, so that those can be
  * destroyed afterwards: the server refuses to destroy a group that has members.
  *
- * @returns how many accounts had their memberships changed.
+ * @returns how many accounts had their memberships changed, and what the server refused.
  */
 export async function syncMemberships(
     client: MailServerClient,
@@ -23,7 +23,7 @@ export async function syncMemberships(
     accountDomainId: string,
     mailboxes: SyncedMailbox[],
     stale: string[],
-): Promise<number> {
+): Promise<{ changed: number, refused: string[] }> {
     const receivers = await receiversOfAliases(prisma)
     const mailboxesOfUsername = new Map<string, string[]>()
     for (const { aliasId, accountId } of mailboxes) {
@@ -47,6 +47,6 @@ export async function syncMemberships(
         wanted.forEach(id => { memberGroupIds[id] = true })
         update[account.id] = { memberGroupIds }
     }
-    if (Object.keys(update).length > 0) await client.set('Account', { update })
-    return Object.keys(update).length
+    const { updated, refused } = await client.set('Account', { update })
+    return { changed: updated, refused }
 }

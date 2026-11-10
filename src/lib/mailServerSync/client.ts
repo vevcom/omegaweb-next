@@ -71,14 +71,32 @@ type MailServerSetError = {
     description?: string,
 }
 
-export type MailServerSetResult = {
+/** A set as the server answers it. */
+type MailServerSetResponse = {
     created?: Record<string, { id: string }>,
-    updated?: Record<string, unknown>,
-    destroyed?: string[],
     notCreated?: Record<string, MailServerSetError>,
     notUpdated?: Record<string, MailServerSetError>,
     notDestroyed?: Record<string, MailServerSetError>,
 }
+
+/** What a set did. The server applies what it can of a call and refuses the rest one by one. */
+export type MailServerSetOutcome = {
+    /** The server's ids of what was created, by the ids the creations were sent under. */
+    created: Record<string, { id: string }>,
+    /** How many of the updates were applied. */
+    updated: number,
+    /** How many of the destructions were applied. */
+    destroyed: number,
+    /** What the server refused, one line each, such as `create MailingList styret-0 (primaryKeyViolation)`. */
+    refused: string[],
+}
+
+/**
+ * The server answered and refused what was asked of it, where any other error is a server that
+ * does not answer as it should. Thrown where one thing is asked for; a set of many returns its
+ * refusals, see {@link MailServerSetOutcome}.
+ */
+export class MailServerRefusal extends Error {}
 
 /** A JMAP method call: the method, its arguments and the id its response is matched to it by. */
 export type JmapMethodCall = [method: string, args: Record<string, unknown>, callId: string]
@@ -177,35 +195,37 @@ export class MailServerClient {
     }
 
     /**
-     * Creates, updates and destroys objects of a kind in one call. Throws when the server refused
-     * any of them, which it does after applying the rest.
+     * Creates, updates and destroys objects of a kind in one call. A refused change does not throw:
+     * the server applies the rest, so the outcome names what was refused and the caller goes on.
+     * Nothing is sent when there is nothing to change.
      */
     async set<Name extends MailServerObjectName>(
         object: Name,
-        { create, update, destroy }: MailServerSetArgs<Name>,
-    ): Promise<MailServerSetResult> {
+        { create = {}, update = {}, destroy = [] }: MailServerSetArgs<Name>,
+    ): Promise<MailServerSetOutcome> {
         const method = `x:${object}/set`
         const args: Record<string, unknown> = {}
-        if (create && Object.keys(create).length > 0) args.create = create
-        if (update && Object.keys(update).length > 0) args.update = update
-        if (destroy && destroy.length > 0) args.destroy = destroy
+        if (Object.keys(create).length > 0) args.create = create
+        if (Object.keys(update).length > 0) args.update = update
+        if (destroy.length > 0) args.destroy = destroy
+        if (Object.keys(args).length === 0) return { created: {}, updated: 0, destroyed: 0, refused: [] }
 
         const responses = await this.send([[method, args, 'set']])
         const setResponse = responses.find(([responseMethod, , callId]) => responseMethod === method && callId === 'set')
         if (!setResponse) {
             throw new Error(`Mail server gave no ${method} response`)
         }
-        const result = setResponse[1] as MailServerSetResult
-
-        const refused = [
-            ...describeRefusals('create', result.notCreated),
-            ...describeRefusals('update', result.notUpdated),
-            ...describeRefusals('destroy', result.notDestroyed),
-        ]
-        if (refused.length > 0) {
-            throw new Error(`Mail server refused to ${refused.join('; ')}`)
+        const result = setResponse[1] as MailServerSetResponse
+        return {
+            created: result.created ?? {},
+            updated: Object.keys(update).length - Object.keys(result.notUpdated ?? {}).length,
+            destroyed: destroy.length - Object.keys(result.notDestroyed ?? {}).length,
+            refused: [
+                ...describeRefusals(`create ${object}`, result.notCreated),
+                ...describeRefusals(`update ${object}`, result.notUpdated),
+                ...describeRefusals(`destroy ${object}`, result.notDestroyed),
+            ],
         }
-        return result
     }
 
     /** The Sieve scripts of each of the accounts, read in one request. */
@@ -226,6 +246,8 @@ export class MailServerClient {
     /**
      * Gives an account a Sieve script with this content and makes it the active one. A script the
      * account already has by that name has to be destroyed first.
+     *
+     * @throws MailServerRefusal when the server refuses the script.
      */
     async setActiveSieveScript(accountId: string, name: string, content: string): Promise<void> {
         const blobId = await this.upload(accountId, content, 'application/sieve')
@@ -234,19 +256,23 @@ export class MailServerClient {
             { accountId, create: { script: { name, blobId } }, onSuccessActivateScript: '#script' },
             'activate',
         ]])
-        const refused = describeRefusals('create', (result as MailServerSetResult).notCreated)
+        const refused = describeRefusals('create', (result as MailServerSetResponse).notCreated)
         if (refused.length > 0) {
-            throw new Error(`Mail server refused to ${refused.join('; ')} as the Sieve script of ${accountId}`)
+            throw new MailServerRefusal(`${refused.join('; ')} as the Sieve script of account ${accountId}`)
         }
     }
 
-    /** Destroys Sieve scripts of an account. The server refuses the active one. */
+    /**
+     * Destroys Sieve scripts of an account.
+     *
+     * @throws MailServerRefusal when the server refuses one, which it does the active one.
+     */
     async destroySieveScripts(accountId: string, ids: string[]): Promise<void> {
         if (ids.length === 0) return
         const [[, result]] = await this.send([['SieveScript/set', { accountId, destroy: ids }, 'destroy']])
-        const refused = describeRefusals('destroy', (result as MailServerSetResult).notDestroyed)
+        const refused = describeRefusals('destroy', (result as MailServerSetResponse).notDestroyed)
         if (refused.length > 0) {
-            throw new Error(`Mail server refused to ${refused.join('; ')} of the Sieve scripts of ${accountId}`)
+            throw new MailServerRefusal(`${refused.join('; ')} of the Sieve scripts of account ${accountId}`)
         }
     }
 

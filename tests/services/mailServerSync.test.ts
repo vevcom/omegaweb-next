@@ -63,6 +63,9 @@ class FakeMailServer {
     private readonly blobs = new Map<string, string>()
     readonly setCalls: SetCall[] = []
     readonly authorizations: string[] = []
+    /** What a test has the server refuse: domains by name, and a script for these accounts. */
+    readonly refusedDomains = new Set<string>()
+    readonly accountsRefusingScripts = new Set<string>()
     private nextId = 1
 
     readonly fetch: MailServerFetch = (url, init) => {
@@ -136,6 +139,10 @@ class FakeMailServer {
         const notCreated: Record<string, { type: string }> = {}
         const creations = (args.create ?? {}) as Record<string, { name: string, blobId: string }>
         for (const [creationId, { name, blobId }] of Object.entries(creations)) {
+            if (this.accountsRefusingScripts.has(accountId)) {
+                notCreated[creationId] = { type: 'invalidScript' }
+                continue
+            }
             if (scripts.some(script => script.name === name)) {
                 notCreated[creationId] = { type: 'alreadyExists' }
                 continue
@@ -262,6 +269,7 @@ class FakeMailServer {
      */
     private refusalOf(object: MailServerObjectName, value: Record<string, unknown>): string | null {
         if (value.description === '') return 'invalidPatch'
+        if (object === 'Domain' && this.refusedDomains.has(String(value.name))) return 'invalidProperties'
         if (object !== 'Domain' && !this.objects.Domain.has(String(value.domainId))) return 'invalidForeignKey'
         // An address is a list or an account, never both.
         const addressed = object === 'Domain'
@@ -349,12 +357,31 @@ describe('the mail server client', () => {
         await expect(client.send([['x:Nothing/get', {}, 'c1']])).rejects.toThrow(/x:Nothing\/get.*unknownMethod/)
     })
 
-    test('throws on a refused set and on a server that does not answer 2xx', async () => {
+    test('a set returns what the server refused beside what it applied, and nothing is sent for no changes', async () => {
         const server = serverWithOurDomain()
         const client = server.client()
-        await expect(client.set('MailingList', { create: { one: { name: 'nowhere', domainId: 'missing' } } }))
-            .rejects.toThrow(/refused to create one \(invalidForeignKey\)/)
+        const outcome = await client.set('MailingList', {
+            create: {
+                one: { name: 'nowhere', domainId: 'missing' },
+                two: { name: 'somewhere', domainId: server.domain(TEST_DOMAIN)?.id ?? '' },
+            },
+            destroy: ['gone'],
+        })
+        expect(outcome.refused).toEqual([
+            'create MailingList one (invalidForeignKey)',
+            'destroy MailingList gone (notFound)',
+        ])
+        expect(Object.keys(outcome.created)).toEqual(['two'])
+        expect(outcome.destroyed).toBe(0)
+        expect(server.mailingList(`somewhere@${TEST_DOMAIN}`)).toBeDefined()
 
+        server.setCalls.length = 0
+        expect(await client.set('MailingList', { create: {}, destroy: [] }))
+            .toEqual({ created: {}, updated: 0, destroyed: 0, refused: [] })
+        expect(server.setCalls).toEqual([])
+    })
+
+    test('throws on a server that does not answer 2xx', async () => {
         const failing = new MailServerClient({
             url: 'http://stalwart:8080',
             user: 'admin',
@@ -806,6 +833,97 @@ describe('syncing memberships', () => {
         await syncMailServer({ client: server.client(), webmail })
         expect(server.account(alias.address)).toBeUndefined()
         expect(mailboxesOf(server, member)).toEqual([])
+    })
+})
+
+describe('a change the server refuses', () => {
+    const run = (server: FakeMailServer) => syncMailServer({ client: server.client(), webmail })
+    const storedMailboxId = async (aliasId: number) =>
+        (await prisma.mailAlias.findUniqueOrThrow({ where: { id: aliasId } })).mailboxAccountId
+
+    function serverWithAccounts() {
+        const server = serverWithOurDomain()
+        server.add('Domain', { name: webmail.domain })
+        return server
+    }
+
+    test('a refused list does not keep the other aliases from theirs, and the run fails naming it', async () => {
+        const { alias: blocked } = await createTestAlias('test-blocked')
+        const { alias: free } = await createTestAlias('test-free')
+        const server = serverWithOurDomain()
+        // An account that is not ours at the alias's address, which the server lets no list share.
+        server.add('Account', { '@type': 'User', name: 'test-blocked', domainId: server.domain(TEST_DOMAIN)?.id })
+
+        await expect(syncMailServer({ client: server.client() }))
+            .rejects.toThrow(/refused to create MailingList test-blocked_omega_ntnu_no-\d+ \(primaryKeyViolation\)$/)
+        expect(server.mailingList(blocked.address)).toBeUndefined()
+        expect(server.mailingList(free.address)).toBeDefined()
+    })
+
+    test('a refused mailbox does not keep the others from their members and their forwarding', async () => {
+        const user = await createTestUser('test-kept-going', 'test-kept-going@test.test')
+        const { alias: blocked } = await createTestAlias('test-blocked-box')
+        const { alias: free, list } = await createTestAlias('test-free-box')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+        const server = serverWithAccounts()
+        const squatter = server.add('Account', {
+            '@type': 'User', name: 'test-blocked-box', domainId: server.domain(TEST_DOMAIN)?.id,
+        })
+        const member = server.add('Account', {
+            '@type': 'User', name: 'test-kept-going', domainId: server.domain(webmail.domain)?.id,
+        })
+
+        await expect(run(server))
+            .rejects.toThrow(/refused to create Account test-blocked-box_omega_ntnu_no-\d+ \(primaryKeyViolation\)$/)
+        expect(server.account(blocked.address)?.id).toBe(squatter.id)
+        expect(await storedMailboxId(blocked.id)).toBeNull()
+
+        const mailbox = server.account(free.address)
+        expect(mailbox?.['@type']).toBe('Group')
+        expect(await storedMailboxId(free.id)).toBe(mailbox?.id)
+        expect(Object.keys(server.objects.Account.get(member.id)?.memberGroupIds ?? {})).toEqual([mailbox?.id])
+        expect(server.activeScript(mailbox?.id)?.content)
+            .toContain(`redirect "${forwardingAddressOf(free.address, webmail.domain)}";`)
+    })
+
+    test('a stale mailbox the server keeps and a script it refuses do not stop the run', async () => {
+        const { alias: scriptless } = await createTestAlias('test-no-script')
+        const { alias: other } = await createTestAlias('test-other-box')
+        const server = serverWithAccounts()
+        const domainId = server.domain(TEST_DOMAIN)?.id
+        // A group no alias has, with a member whose memberships are not the sync's, so the server keeps it.
+        const elsewhere = server.add('Domain', { name: 'elsewhere.example' })
+        const stale = server.add('Account', { '@type': 'Group', name: 'test-gone', domainId })
+        server.add('Account', {
+            '@type': 'User', name: 'outsider', domainId: elsewhere.id, memberGroupIds: { [stale.id]: true },
+        })
+        const refusing = server.add('Account', { '@type': 'Group', name: 'test-no-script', domainId })
+        server.accountsRefusingScripts.add(refusing.id)
+
+        await expect(run(server)).rejects.toThrow([
+            `refused to destroy Account ${stale.id} (objectIsLinked); `,
+            `create script (invalidScript) as the Sieve script of account ${refusing.id}, `,
+            `the mailbox of ${scriptless.address}`,
+        ].join(''))
+        expect(server.objects.Account.get(stale.id)).toBeDefined()
+        expect(server.activeScript(refusing.id)).toBeUndefined()
+        expect(server.activeScript(server.account(other.address)?.id)?.content).toBe('keep;\n')
+    })
+
+    test('without the domains of the mailboxes the aliases are left as they are', async () => {
+        await createTestAlias('test-waits')
+        const server = serverWithOurDomain()
+        server.refusedDomains.add(forwardingDomainOf(webmail.domain))
+
+        await expect(run(server)).rejects.toThrow(
+            /left the aliases as they were.*refused to create Domain forward_mail_omega_ntnu_no-\d+ \(invalidProperties\)$/
+        )
+        expect(server.domain(webmail.domain)).toBeDefined()
+        expect(server.setCallsFor('MailingList')).toEqual([])
+        expect(server.setCallsFor('Account')).toEqual([])
     })
 })
 
