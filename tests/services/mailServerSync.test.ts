@@ -595,6 +595,12 @@ describe('syncing mailboxes', () => {
         expect(script?.content).toContain(`<a href=\\"${webmail.origin}\\">`)
         expect(script?.content).toContain(`addheader "From" "\\"\${display} via ${alias.address}\\" <${alias.address}>";`)
         expect(script?.content).toContain('set "who" "${name} (${sender})";')
+        // The name the copy is from has its Norwegian letters spelled out, matched byte for byte.
+        const spelledOut = (letter: string, spelling: string) =>
+            `if string :comparator "i;octet" :matches "\${plain}" "*${letter}*" { set "plain" "\${1}${spelling}\${2}"; }`
+        expect(script?.content).toContain(spelledOut('ø', 'oe'))
+        expect(script?.content).toContain(spelledOut('Å', 'Aa'))
+        expect(script?.content).toContain('{ set "display" "${plain}"; }')
 
         server.setCalls.length = 0
         server.uploads.length = 0

@@ -18,8 +18,32 @@ import type { MailServerClient } from './client'
  * The sender's name is theirs to choose, so it is only used where it is harmless: in the notice
  * unless it holds a character HTML reads as markup, and as the name the copy is from unless it
  * holds a quote, a backslash or a letter outside ASCII, which the server would write into the
- * header as it is. The address stands in for it otherwise.
+ * header as it is. The address stands in for it otherwise. The letters of {@link HEADER_SPELLINGS}
+ * are spelled out in ASCII for the header first, so most Norwegian names are shown there.
  */
+
+/**
+ * How the letters outside ASCII that names here most often hold are written in the name a copy is
+ * from. The notice in the mail keeps the name as it is.
+ */
+const HEADER_SPELLINGS: [letter: string, spelling: string][] = [
+    ['æ', 'ae'], ['ø', 'oe'], ['å', 'aa'], ['Æ', 'Ae'], ['Ø', 'Oe'], ['Å', 'Aa'],
+    ['é', 'e'], ['è', 'e'], ['ö', 'o'], ['ä', 'a'], ['ü', 'u'], ['É', 'E'], ['Ö', 'O'], ['Ä', 'A'], ['Ü', 'U'],
+]
+/** Sieve has no way to replace every occurrence, so each letter is replaced this many times at most. */
+const SPELLINGS_PER_LETTER = 3
+
+/**
+ * The lines of the script that spell the letters of {@link HEADER_SPELLINGS} out in the variable
+ * `plain`. They are matched byte for byte, since the server otherwise takes Å for å.
+ */
+function headerSpellingLines(): string {
+    return HEADER_SPELLINGS.flatMap(([letter, spelling]) =>
+        Array.from({ length: SPELLINGS_PER_LETTER }, () =>
+            `if string :comparator "i;octet" :matches "\${plain}" "*${letter}*" { set "plain" "\${1}${spelling}\${2}"; }`
+        )
+    ).join('\n')
+}
 
 const SCRIPT_NAME_PREFIX = 'omegaweb-forward-'
 
@@ -90,8 +114,10 @@ if not anyof (
 ) {
     set "who" "\${name} (\${sender})";
 }
+set "plain" "\${name}";
+${headerSpellingLines()}
 set "display" "\${sender}";
-if not anyof (string :is "\${name}" "", string :regex "\${name}" "[^ !#-\\\\[\\\\]-~]") { set "display" "\${name}"; }
+if not anyof (string :is "\${plain}" "", string :regex "\${plain}" "[^ !#-\\\\[\\\\]-~]") { set "display" "\${plain}"; }
 foreverypart {
     if not header :mime :contains "Content-Disposition" "attachment" {
         if header :mime :subtype :is "Content-Type" "plain" {
