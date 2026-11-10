@@ -26,6 +26,10 @@ describe('describeAudience', () => {
         }, groups)).toBe('Medlemmer som også er i 1. klasse')
     })
 
+    test('a list without groups lets no one in', () => {
+        expect(describeAudience({ requirements: [{ conditions: [active(3)] }, { conditions: [] }] }, groups)).toBe('Ingen')
+    })
+
     test('falls back to the id of a group it does not know', () => {
         expect(describeAudience({ requirements: [{ conditions: [active(9)] }] }, null)).toBe('gruppe #9')
     })
@@ -47,6 +51,11 @@ describe('describeAccess', () => {
 
     test('asks for a group where it cannot', () => {
         expect(describeAccess({ requirements: [] }, groups, { verb })).toBe('Velg minst én gruppe.')
+    })
+
+    test('asks for a group in a list that has none', () => {
+        expect(describeAccess({ requirements: [{ conditions: [] }] }, groups, { verb, everyone: 'Alle' }))
+            .toBe('Velg minst én gruppe.')
     })
 
     test('reads requirements as one sentence', () => {
