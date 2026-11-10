@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { allowedExtensions, avifConvertionOptions, imageSizes, maxImageInputPixels } from './constants'
 import { implementStore } from '@/services/store/implement'
 import { ServiceError } from '@/services/error'
+import { prisma } from '@/prisma-pn-client-instance'
 import sharp from 'sharp'
 
 // libvips caches the results of operations, but every variant decodes the original anew, so the
@@ -20,12 +21,38 @@ export const originalImageStore = implementStore({
 /**
  * The resized variants of the raster images. They can be made again from the originals, so they
  * are kept on the store volume, out of the bucket and its limit on objects.
+ *
+ * An image that has lost a variant loses the record of them all, which is what makes the image
+ * worker process it again. The variants it had are orphans from then on.
  */
 export const cacheImageStore = implementStore({
     purpose: 'CACHE_IMAGE',
     allowedExtensions: ['avif'],
     preferredLocation: 'VOLUME',
     owners: ['microSizeOf', 'tinySizeOf', 'smallSizeOf', 'mediumSizeOf', 'largeSizeOf', 'hugeSizeOf'],
+    repairLost: async names => {
+        const processedFiles = await prisma.processedImageFiles.findMany({
+            where: {
+                OR: [
+                    { fsLocationMicroSize: { in: names } },
+                    { fsLocationTinySize: { in: names } },
+                    { fsLocationSmallSize: { in: names } },
+                    { fsLocationMediumSize: { in: names } },
+                    { fsLocationLargeSize: { in: names } },
+                    { fsLocationHugeSize: { in: names } },
+                ],
+            },
+            select: { imageId: true },
+        })
+        const imageIds = processedFiles.map(files => files.imageId)
+        await prisma.$transaction([
+            prisma.processedImageFiles.deleteMany({ where: { imageId: { in: imageIds } } }),
+            prisma.image.updateMany({
+                where: { id: { in: imageIds } },
+                data: { processingStartedAt: null, processingAttempts: 0, processingError: null },
+            }),
+        ])
+    },
 })
 
 /**

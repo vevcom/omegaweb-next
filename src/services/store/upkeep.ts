@@ -5,12 +5,14 @@ import { storeFileOwners, storeUpkeep, type StoreFileOwner } from './constants'
 import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
 import type { Prisma, StoreFileLocation, StoreFilePurpose } from '@/prisma-generated-pn-types'
+import type { Awaitable } from '@/lib/awaitable'
 
 /** What the worker of a purpose goes by, from its implementStore. */
 export type StoreUpkeep = {
     purpose: StoreFilePurpose,
     preferredLocation: StoreFileLocation,
     owners: readonly StoreFileOwner[],
+    repairLost?: (names: string[]) => Awaitable<void>,
 }
 
 type FileOfPurpose = { id: number, name: string, location: StoreFileLocation }
@@ -102,8 +104,42 @@ export async function destroyOrphans(
     return destroyed
 }
 
-/** The files of each purpose already reported as missing, so each is only reported once per process. */
-const reportedMissing = new Set<number>()
+/** A lost file with the id of each row that refers to it, by the relation it does so through. */
+type LostFile = { name: string } & Partial<Record<StoreFileOwner, { id: number } | null>>
+
+/**
+ * Takes care of the lost files among the given ones: those a row refers to, whose content the
+ * caller found in no location. A lost file no row refers to is an orphan like any other. A purpose
+ * that can make its files again has said how, with `repairLost`, and is handed their names. For
+ * any other purpose the content is gone for good, and the caller reports what this returns.
+ */
+async function repairOrCollectLost({ repairLost }: StoreUpkeep, files: FileOfPurpose[]): Promise<LostFile[]> {
+    if (files.length === 0) return []
+    const lost: LostFile[] = await prisma.storeFile.findMany({
+        where: {
+            id: { in: files.map(file => file.id) },
+            OR: storeFileOwners.map(owner => ({ [owner]: { isNot: null } })),
+        },
+        select: { name: true, ...Object.fromEntries(storeFileOwners.map(owner => [owner, { select: { id: true } }])) },
+    })
+    if (lost.length > 0) await repairLost?.(lost.map(file => file.name))
+    return lost
+}
+
+/**
+ * Says what became of the lost files of a run. Files that cannot be made again are reported on
+ * every run, with the rows that refer to them, until someone has uploaded them again.
+ */
+function reportLost({ purpose, repairLost }: StoreUpkeep, lost: LostFile[]) {
+    if (lost.length === 0) return
+    if (repairLost) {
+        logger.warn(`${lost.length} store file(s) of ${purpose} were lost, and are being made again`)
+        return
+    }
+    logger.error(`${lost.length} store file(s) of ${purpose} are lost, since their content is in no location`, {
+        files: lost,
+    })
+}
 
 /**
  * Moves the files of the purpose that are not where the purpose wants them: those written to the
@@ -117,18 +153,19 @@ const reportedMissing = new Set<number>()
  * the rest too, and the next run tries again.
  *
  * A file whose row places it in a location that is not in use, the bucket once it is unset, can
- * be neither read nor moved. Each run says how many there are, until the location is back.
+ * be neither read nor moved. Each run says how many there are, until the location is back. A file
+ * whose content is in neither location is lost, see repairOrCollectLost.
  * @returns how many files were moved or corrected.
  */
-export async function moveFilesToPreferredLocation(
-    { purpose, preferredLocation }: StoreUpkeep,
-    progress?: () => void,
-): Promise<number> {
+export async function moveFilesToPreferredLocation(upkeep: StoreUpkeep, progress?: () => void): Promise<number> {
+    const { purpose, preferredLocation } = upkeep
     const [target] = locationsFrom(preferredLocation)
     let moved = 0
     let corrected = 0
     const unreachable = new Map<StoreFileLocation, number>()
+    const lost: LostFile[] = []
     const report = () => {
+        reportLost(upkeep, lost)
         if (moved > 0) logger.info(`Moved ${moved} file(s) of ${purpose} to ${target.location}`)
         if (corrected > 0) logger.info(`Found ${corrected} file(s) of ${purpose} in ${target.location} already`)
         unreachable.forEach((count, location) => {
@@ -138,6 +175,7 @@ export async function moveFilesToPreferredLocation(
     }
 
     for await (const files of filesOfPurpose(purpose, { location: { not: target.location } })) {
+        const inNoLocation: FileOfPurpose[] = []
         for (const file of files) {
             // Once per file whatever is done with it, since each costs a read of its location.
             progress?.()
@@ -150,9 +188,8 @@ export async function moveFilesToPreferredLocation(
                     corrected++
                 } else if (!source) {
                     unreachable.set(file.location, (unreachable.get(file.location) ?? 0) + 1)
-                } else if (!reportedMissing.has(file.id)) {
-                    reportedMissing.add(file.id)
-                    logger.error(`Store file ${key} is in no location`)
+                } else {
+                    inNoLocation.push(file)
                 }
                 continue
             }
@@ -161,6 +198,7 @@ export async function moveFilesToPreferredLocation(
                 await target.backend.write(key, content)
             } catch (error) {
                 logger.warn(`Stopped moving the files of ${purpose} to ${target.location}, which refused ${key}: ${error}`)
+                lost.push(...await repairOrCollectLost(upkeep, inNoLocation))
                 return report()
             }
             await prisma.storeFile.updateMany({ where: { id: file.id }, data: { location: target.location } })
@@ -169,7 +207,48 @@ export async function moveFilesToPreferredLocation(
             })
             moved++
         }
+        lost.push(...await repairOrCollectLost(upkeep, inNoLocation))
     }
 
     return report()
+}
+
+/**
+ * Looks for lost files among those that are where the purpose wants them, which the move above
+ * never reads. Only the volume is gone through: it is the location that can be lost whole, and
+ * looking costs nothing there, where the bucket takes a request per file. A file found in the
+ * other location gets its row corrected, and the move takes it from there.
+ * @returns how many files were lost.
+ */
+export async function findLostFilesOnVolume(upkeep: StoreUpkeep, progress?: () => void): Promise<number> {
+    const { purpose, preferredLocation } = upkeep
+    const [target, ...others] = locationsFrom(preferredLocation)
+    if (target.location !== 'VOLUME') return 0
+    const lost: LostFile[] = []
+
+    for await (const files of filesOfPurpose(purpose, { location: target.location })) {
+        const inNoLocation: FileOfPurpose[] = []
+        for (const file of files) {
+            progress?.()
+            const key = `${storeDirectories[purpose]}/${file.name}`
+            if (await target.backend.exists(key)) continue
+            const found = await firstLocationWith(key, others)
+            if (found) {
+                await prisma.storeFile.updateMany({ where: { id: file.id }, data: { location: found } })
+            } else {
+                inNoLocation.push(file)
+            }
+        }
+        lost.push(...await repairOrCollectLost(upkeep, inNoLocation))
+    }
+
+    reportLost(upkeep, lost)
+    return lost.length
+}
+
+async function firstLocationWith(key: string, locations: ReturnType<typeof locationsFrom>) {
+    for (const { location, backend } of locations) {
+        if (await backend.exists(key)) return location
+    }
+    return null
 }

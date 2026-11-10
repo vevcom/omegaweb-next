@@ -309,6 +309,49 @@ describe('destroyCollection', () => {
     })
 })
 
+describe('a lost variant', () => {
+    test('has its image processed again by the worker of the variants', async () => {
+        const image = await uploadAndProcessImage('Lost Variant Image')
+        await unlink(storePath(image.processedFiles.fsLocationTinySize))
+
+        await cacheImageStore.worker.tick(() => undefined)
+
+        const waiting = await prisma.image.findUniqueOrThrow({
+            where: { id: image.id },
+            include: { processedFiles: true },
+        })
+        expect(waiting.processedFiles).toBeNull()
+        expect(waiting.processingAttempts).toBe(0)
+        expect(waiting.processingStartedAt).toBeNull()
+        // The blur placeholder stands in until the variants are back.
+        expect(imageSourceForResolution(waiting, 'TINY')).toBe(image.placeholderDataUrl)
+
+        const processing = await imageOperations.processImageVariants.internalCall({
+            prisma,
+            params: { imageId: image.id },
+        })
+        expect(processing.success).toBe(true)
+        const { fsLocationTinySize } = await prisma.processedImageFiles.findUniqueOrThrow({ where: { imageId: image.id } })
+        expect(fsLocationTinySize).not.toBe(image.processedFiles.fsLocationTinySize)
+        expect(await fileExists(fsLocationTinySize)).toBe(true)
+
+        // What is left of the old variants goes as orphans.
+        const oldVariants = image.allFsLocations.filter(fsLocation => fsLocation !== image.fsLocationOriginal)
+        await runStoreWorkers(oldVariants)
+        expect(await prisma.storeFile.count({ where: { name: { in: oldVariants } } })).toBe(0)
+        expect(await fileExists(image.fsLocationOriginal)).toBe(true)
+    })
+
+    test('leaves an image alone while every variant is there', async () => {
+        const image = await uploadAndProcessImage('Whole Image')
+
+        await cacheImageStore.worker.tick(() => undefined)
+
+        const { fsLocationTinySize } = await prisma.processedImageFiles.findUniqueOrThrow({ where: { imageId: image.id } })
+        expect(fsLocationTinySize).toBe(image.processedFiles.fsLocationTinySize)
+    })
+})
+
 describe('destroyImage', () => {
     test('deletes the image, and its files go once the store workers have run', async () => {
         const image = await uploadAndProcessImage('Deleted Image')

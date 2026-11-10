@@ -6,6 +6,7 @@ import { fileSystemBackend } from '@/services/store/backends/fileSystem'
 import { storeUpkeep } from '@/services/store/constants'
 import { storeFilePath } from '@/services/store/paths'
 import { streamStoreFile } from '@/services/store/serve'
+import { findLostFilesOnVolume } from '@/services/store/upkeep'
 import { createUntrackedFileDestroyer } from '@/services/store/untrackedFiles'
 import { visibilityOperations } from '@/services/visibility/operations'
 import logger from '@/lib/logger'
@@ -270,8 +271,28 @@ describe('the worker of a purpose', () => {
         expect(messages).toContainEqual(expect.stringMatching(
             /^\d+ store file\(s\) of OMBUL are recorded in S3, which is not in use$/
         ))
-        expect(messages.filter(message => message.includes('is in no location'))).toEqual([])
+        // It is not lost: its content is where the row says, which is only out of reach.
+        expect(messages.filter(message => message.includes('are lost'))).toEqual([])
         expect(await location(name)).toBe('S3')
+    })
+
+    test('reports a lost file with the row that refers to it, and keeps both', async () => {
+        storeBackends.S3 = null
+        const { name } = await ombulStore.createFile(pdf)
+        const ombul = await createOmbulOf(name)
+        await fileSystemBackend.destroy(key(name))
+        const error = jest.spyOn(logger, 'error')
+
+        await runWorker()
+
+        expect(error.mock.calls).toContainEqual([
+            expect.stringMatching(/^\d+ store file\(s\) of OMBUL are lost, since their content is in no location$/),
+            { files: expect.arrayContaining([expect.objectContaining({ name, ombul: { id: ombul.id } })]) },
+        ])
+        expect(await location(name)).toBe('VOLUME')
+        expect(await prisma.ombul.findUnique({ where: { id: ombul.id } })).not.toBeNull()
+
+        await prisma.ombul.delete({ where: { id: ombul.id } })
     })
 
     test('reports a file a row of another purpose refers to, and leaves it alone', async () => {
@@ -289,6 +310,61 @@ describe('the worker of a purpose', () => {
             { files: [expect.objectContaining({ name: misused.name, originalOfImage: { id: ombul.coverImageId } })] },
         ])
         expect(await location(misused.name)).toBe('S3')
+    })
+})
+
+describe('findLostFilesOnVolume', () => {
+    /** The ombul purpose as it would be if it kept its files on the volume and could make them again. */
+    const repairable = (repairLost: (names: string[]) => void) => ({
+        purpose: 'OMBUL', preferredLocation: 'VOLUME', owners: ['ombul'], repairLost,
+    } as const)
+
+    test('hands the lost files a row refers to to the repair of the purpose, and reports no error', async () => {
+        storeBackends.S3 = null
+        const referred = await ombulStore.createFile(pdf)
+        const orphan = await ombulStore.createFile(pdf)
+        const present = await ombulStore.createFile(pdf)
+        const ombul = await createOmbulOf(referred.name)
+        const other = await createOmbulOf(present.name)
+        await fileSystemBackend.destroy(key(referred.name))
+        await fileSystemBackend.destroy(key(orphan.name))
+        const repairLost = jest.fn<(names: string[]) => void>()
+        const error = jest.spyOn(logger, 'error')
+
+        await findLostFilesOnVolume(repairable(repairLost))
+
+        const repaired = repairLost.mock.calls.flat(2)
+        expect(repaired).toContain(referred.name)
+        expect(repaired).not.toContain(orphan.name)
+        expect(repaired).not.toContain(present.name)
+        expect(error).not.toHaveBeenCalled()
+
+        await prisma.ombul.deleteMany({ where: { id: { in: [ombul.id, other.id] } } })
+        await fileSystemBackend.destroy(key(present.name))
+    })
+
+    test('corrects the row of a file that is in the other location, which is not lost', async () => {
+        const { name } = await ombulStore.createFile(pdf)
+        const ombul = await createOmbulOf(name)
+        await prisma.storeFile.update({ where: { name }, data: { location: 'VOLUME' } })
+        const repairLost = jest.fn<(names: string[]) => void>()
+
+        await findLostFilesOnVolume(repairable(repairLost))
+
+        expect(await location(name)).toBe('S3')
+        expect(repairLost.mock.calls.flat(2)).not.toContain(name)
+
+        await prisma.ombul.delete({ where: { id: ombul.id } })
+    })
+
+    test('leaves a purpose that wants its files in the bucket alone, since the move reads those', async () => {
+        const { name } = await ombulStore.createFile(pdf)
+        await prisma.storeFile.update({ where: { name }, data: { location: 'VOLUME' } })
+
+        const lost = await findLostFilesOnVolume({ purpose: 'OMBUL', preferredLocation: 'S3', owners: ['ombul'] })
+
+        expect(lost).toBe(0)
+        expect(await location(name)).toBe('VOLUME')
     })
 })
 

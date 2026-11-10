@@ -3,7 +3,12 @@ import { extensionForContent, type StorableExtension } from './fileExtensions'
 import { readStoreContent, writeStoreContent } from './locations'
 import { storeDirectories } from './paths'
 import { storeUpkeep, type StoreFileOwner } from './constants'
-import { destroyOrphans, moveFilesToPreferredLocation, reportFilesOfOtherOwners } from './upkeep'
+import {
+    destroyOrphans,
+    findLostFilesOnVolume,
+    moveFilesToPreferredLocation,
+    reportFilesOfOtherOwners,
+} from './upkeep'
 import { ServiceError } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
@@ -11,6 +16,7 @@ import { v4 as uuid } from 'uuid'
 import type { File } from 'buffer'
 import type { StoreFileLocation, StoreFilePurpose } from '@/prisma-generated-pn-types'
 import type { Worker } from '@/workers/types'
+import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * Implements the store for one purpose, which gives the implementing service the files of that
@@ -25,21 +31,26 @@ import type { Worker } from '@/workers/types'
  * - `owners` are the relations of StoreFile through which a row may refer to a file of the purpose.
  *   A file no row refers to is an orphan, which the worker destroys, so a service never destroys a
  *   file: it deletes or changes the row that refers to it.
+ * - `repairLost` is for a purpose whose files can be made again, and says how: it is handed the
+ *   names of the files rows refer to whose content is in no location, such as after the volume
+ *   was lost. Without it a lost file is reported as an error, since it is gone for good.
  *
  * `worker` is mounted in workers/definitions.ts. Every run it reports the files of the purpose
- * that a relation outside `owners` refers to, destroys the orphans and moves the files that are
- * not in the preferred location.
+ * that a relation outside `owners` refers to, destroys the orphans, moves the files that are not
+ * in the preferred location, and looks for lost files.
  */
 export function implementStore<const AllowedExt extends readonly StorableExtension[]>({
     purpose,
     allowedExtensions,
     preferredLocation,
     owners,
+    repairLost,
 }: {
     purpose: StoreFilePurpose,
     allowedExtensions: AllowedExt,
     preferredLocation: StoreFileLocation,
     owners: readonly StoreFileOwner[],
+    repairLost?: (names: string[]) => Awaitable<void>,
 }) {
     const storeKey = (name: string) => `${storeDirectories[purpose]}/${name}`
 
@@ -92,14 +103,15 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
     }
 
     const name = `Store worker of ${purpose}`
-    const upkeep = { purpose, preferredLocation, owners }
+    const upkeep = { purpose, preferredLocation, owners, repairLost }
 
     /** One step failing does not keep the others from running. */
     const worker: Worker = {
         name,
         intervalMs: storeUpkeep.intervalMs,
         tick: async progress => {
-            for (const step of [reportFilesOfOtherOwners, destroyOrphans, moveFilesToPreferredLocation]) {
+            const steps = [reportFilesOfOtherOwners, destroyOrphans, moveFilesToPreferredLocation, findLostFilesOnVolume]
+            for (const step of steps) {
                 try {
                     await step(upkeep, progress)
                 } catch (error) {
