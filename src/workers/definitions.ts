@@ -137,7 +137,7 @@ export const workers = {
     },
 
     /**
-     * Keeps the mail server's domains, mailing lists and sender account in step with the aliases
+     * Keeps the mail server's domains, mailing lists and mailboxes in step with the aliases
      * here, see mail/server/sync.ts. Does nothing while the server is not managed.
      */
     mail: {

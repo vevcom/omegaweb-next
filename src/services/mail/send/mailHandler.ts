@@ -114,8 +114,10 @@ class MailHandler {
     }
 
     /**
-     * Outside production every mail goes out from the account it is sent with, since a mail server
-     * only accepts its own addresses as sender: the configured user, or Ethereal's test account.
+     * Outside production a mail goes out from the account it is sent with when there is one, since
+     * a server that asks for a login only accepts that account's addresses as sender: the
+     * configured user, or Ethereal's test account. Our own mail server asks for none and takes
+     * every sender, so there the mail keeps its own.
      */
     private async senderOutsideProduction(): Promise<string | undefined> {
         if (hasConfiguredServer) return process.env.EMAIL_USER

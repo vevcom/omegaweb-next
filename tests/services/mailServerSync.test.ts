@@ -323,7 +323,7 @@ describe('syncing mailing lists', () => {
         })
 
         const server = serverWithOurDomain()
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
 
         const synced = server.mailingList(alias.address)
         expect(synced).toBeDefined()
@@ -343,7 +343,7 @@ describe('syncing mailing lists', () => {
             bypassAuth: true,
         })
         const server = serverWithOurDomain()
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         const synced = server.mailingList(alias.address)
         expect(synced).toBeDefined()
         expect(synced?.recipients).toEqual({})
@@ -354,11 +354,11 @@ describe('syncing mailing lists', () => {
     test('a second run makes no set calls', async () => {
         await createTestAlias('test-settled', 'Nothing to do')
         const server = serverWithOurDomain()
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         expect(server.setCalls.length).toBeGreaterThan(0)
 
         server.setCalls.length = 0
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         expect(server.setCalls).toEqual([])
     })
 
@@ -373,7 +373,7 @@ describe('syncing mailing lists', () => {
         })
 
         const server = serverWithOurDomain()
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         const before = server.mailingList(alias.address)
         expect(recipientsOf(before)).toEqual(['test-sync-member@test.test'])
 
@@ -389,7 +389,7 @@ describe('syncing mailing lists', () => {
         })
 
         server.setCalls.length = 0
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         const after = server.mailingList(alias.address)
         expect(after?.id).toBe(before?.id)
         expect(recipientsOf(after)).toEqual(['test-sync-newcomer@test.test'])
@@ -403,7 +403,7 @@ describe('syncing mailing lists', () => {
             data: { localPart: 'test-changing', domain: TEST_DOMAIN, description: '' },
             bypassAuth: true,
         })
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         expect(server.mailingList(alias.address)?.description ?? null).toBeNull()
         expect(server.setCalls[0].args.create).toBeUndefined()
         expect(server.setCalls[0].args.destroy).toBeUndefined()
@@ -412,13 +412,13 @@ describe('syncing mailing lists', () => {
     test('deleting the alias destroys the list', async () => {
         const { alias } = await createTestAlias('test-doomed')
         const server = serverWithOurDomain()
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         const synced = server.mailingList(alias.address)
         expect(synced).toBeDefined()
 
         await aliasOperations.destroy({ params: { id: alias.id }, bypassAuth: true })
         server.setCalls.length = 0
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         expect(server.mailingList(alias.address)).toBeUndefined()
         expect(server.setCalls).toHaveLength(1)
         expect(server.setCalls[0].args.destroy).toEqual([synced?.id])
@@ -434,7 +434,7 @@ describe('syncing mailing lists', () => {
             recipients: { 'someone@example.com': true },
         })
 
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         expect(server.objects.MailingList.get(foreignList.id)).toEqual(foreignList)
         expect(server.objects.Domain.get(foreignDomain.id)).toEqual(foreignDomain)
         const touched = server.setCallsFor('MailingList').flatMap(call => [
@@ -466,7 +466,7 @@ describe('syncing mailboxes', () => {
         })
 
         const server = serverWithOurDomain()
-        await syncMailServer({ client: server.client(), sender: null, webmail })
+        await syncMailServer({ client: server.client(), webmail })
 
         expect(server.domain(webmail.domain)).toBeDefined()
         const group = server.account(mailboxOf('test-boxed'))
@@ -478,14 +478,14 @@ describe('syncing mailboxes', () => {
         expect(await storedMailboxId(alias.id)).toBe(group?.id)
 
         server.setCalls.length = 0
-        await syncMailServer({ client: server.client(), sender: null, webmail })
+        await syncMailServer({ client: server.client(), webmail })
         expect(server.setCalls).toEqual([])
     })
 
     test('without a webmail, no mailbox and no mailbox domain is made', async () => {
         await createTestAlias('test-unboxed')
         const server = serverWithOurDomain()
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         expect(server.objects.Account.size).toBe(0)
         expect(server.objects.Domain.size).toBe(1)
     })
@@ -493,7 +493,7 @@ describe('syncing mailboxes', () => {
     test('renaming the alias renames its group in place, so the mail stays', async () => {
         const { alias } = await createTestAlias('test-before')
         const server = serverWithOurDomain()
-        await syncMailServer({ client: server.client(), sender: null, webmail })
+        await syncMailServer({ client: server.client(), webmail })
         const group = server.account(mailboxOf('test-before'))
 
         await aliasOperations.update({
@@ -502,7 +502,7 @@ describe('syncing mailboxes', () => {
             bypassAuth: true,
         })
         server.setCalls.length = 0
-        await syncMailServer({ client: server.client(), sender: null, webmail })
+        await syncMailServer({ client: server.client(), webmail })
         expect(server.account(mailboxOf('test-before'))).toBeUndefined()
         const renamed = server.account(mailboxOf('test-after'))
         expect(renamed?.id).toBe(group?.id)
@@ -522,7 +522,7 @@ describe('syncing mailboxes', () => {
         })
         const user = server.add('Account', { '@type': 'User', name: 'test-orphaned', domainId: mailboxDomain.id })
 
-        await syncMailServer({ client: server.client(), sender: null, webmail })
+        await syncMailServer({ client: server.client(), webmail })
         expect(await storedMailboxId(orphaned.id)).toBe(orphan.id)
         expect(server.objects.Account.get(orphan.id)?.description).toBe(orphaned.address)
         expect(server.account(mailboxOf('test-doomed-box'))).toBeDefined()
@@ -531,7 +531,7 @@ describe('syncing mailboxes', () => {
 
         await aliasOperations.destroy({ params: { id: doomed.id }, bypassAuth: true })
         server.setCalls.length = 0
-        await syncMailServer({ client: server.client(), sender: null, webmail })
+        await syncMailServer({ client: server.client(), webmail })
         expect(server.account(mailboxOf('test-doomed-box'))).toBeUndefined()
         expect(server.objects.Account.get(orphan.id)).toBeDefined()
         expect(server.objects.Account.get(user.id)).toEqual(user)
@@ -541,41 +541,20 @@ describe('syncing mailboxes', () => {
 describe('syncing domains', () => {
     test('a missing domain is created, and an existing one is not created again', async () => {
         const server = new FakeMailServer()
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         const domain = server.domain(TEST_DOMAIN)
         expect(domain).toBeDefined()
         expect(server.setCallsFor('Domain')).toHaveLength(1)
 
         server.setCalls.length = 0
-        await syncMailServer({ client: server.client(), sender: null })
+        await syncMailServer({ client: server.client() })
         expect(server.domain(TEST_DOMAIN)?.id).toBe(domain?.id)
         expect(server.setCallsFor('Domain')).toEqual([])
     })
 })
 
-describe('syncing the sender account', () => {
-    const sender = { address: `test-sender@${TEST_DOMAIN}`, password: 'first-password' }
-
-    test('the account is created with the password, and the password is written again on the next run', async () => {
-        const server = serverWithOurDomain()
-        await syncMailServer({ client: server.client(), sender })
-        const created = server.account(sender.address)
-        expect(created).toBeDefined()
-        expect(created?.['@type']).toBe('User')
-        expect(created?.roles).toEqual({ '@type': 'User' })
-        expect(server.passwords.get(created?.id ?? '')).toBe('first-password')
-
-        server.setCalls.length = 0
-        await syncMailServer({ client: server.client(), sender: { ...sender, password: 'second-password' } })
-        expect(server.account(sender.address)?.id).toBe(created?.id)
-        expect(server.objects.Account.size).toBe(1)
-        expect(server.passwords.get(created?.id ?? '')).toBe('second-password')
-        expect(server.setCalls).toHaveLength(1)
-        expect(server.setCalls[0].object).toBe('Account')
-        expect(Object.keys(server.setCalls[0].args.update ?? {})).toEqual([created?.id])
-    })
-
-    test('other accounts are not touched, and a sender on another domain is skipped', async () => {
+describe('accounts that are not mailboxes', () => {
+    test('are not touched: the app keeps no account of its own, since it sends without a login', async () => {
         const server = serverWithOurDomain()
         const postmaster = server.add('Account', {
             '@type': 'User',
@@ -583,16 +562,9 @@ describe('syncing the sender account', () => {
             domainId: server.domain(TEST_DOMAIN)?.id,
             credentials: { 0: { '@type': 'Password', secret: 'postmaster-password' } },
         })
-        await syncMailServer({ client: server.client(), sender })
+        await syncMailServer({ client: server.client() })
         expect(server.passwords.get(postmaster.id)).toBe('postmaster-password')
-        expect(server.objects.Account.size).toBe(2)
-
-        server.setCalls.length = 0
-        await syncMailServer({
-            client: server.client(),
-            sender: { address: 'dev@elsewhere.example', password: 'irrelevant' },
-        })
+        expect(server.objects.Account.size).toBe(1)
         expect(server.setCallsFor('Account')).toEqual([])
-        expect(server.objects.Account.size).toBe(2)
     })
 })

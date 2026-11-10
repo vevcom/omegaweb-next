@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { mailServerClientFromEnv } from './client'
-import { mailServerSender, mailServerWebmail, mailboxesAreAvailable } from './constants'
+import { mailServerWebmail, mailboxesAreAvailable } from './constants'
 import { mailboxAddressOf, syncMailboxes } from './mailboxes'
 import { validMailAddressDomains } from '@/services/mail/constants'
 import { mailingListAddresses } from '@/services/mail/recipients'
@@ -8,24 +8,11 @@ import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
 import type { MailServerWebmail } from './constants'
 import type { MailboxChanges } from './mailboxes'
-import type {
-    MailServerAccount,
-    MailServerClient,
-    MailServerMailingList,
-    MailServerPasswordCredentials,
-} from './client'
-
-/** The account the app sends as, which the sync keeps on the server. */
-export type MailServerSenderAccount = {
-    address: string,
-    password: string,
-}
+import type { MailServerAccount, MailServerClient, MailServerMailingList } from './client'
 
 export type SyncMailServerOptions = {
     /** The client to reach the server with. Defaults to one for EMAIL_ADMIN_URL. */
     client?: MailServerClient,
-    /** The sender account to keep. Defaults to EMAIL_USER and EMAIL_PASSWORD; null keeps none. */
-    sender?: MailServerSenderAccount | null,
     /** The webmail whose host the mailboxes are on. Defaults to EMAIL_WEBMAIL_URL; null keeps no mailboxes. */
     webmail?: MailServerWebmail | null,
 }
@@ -52,22 +39,20 @@ type MailingListChanges = {
 
 const DOMAIN_DESCRIPTION = 'A domain of the sites, created by omegaweb-next'
 const MAILBOX_DOMAIN_DESCRIPTION = 'The domain of the mailboxes of the aliases, created by omegaweb-next'
-const SENDER_DESCRIPTION = 'The account omegaweb-next sends mail as'
-
 const NO_MAILBOX_CHANGES: MailboxChanges = { created: 0, updated: 0, destroyed: 0 }
 
 /**
  * Brings the mail server in step with the database: every mail domain of the sites exists as a
  * domain, and so does the mailbox domain; every alias with a mailbox has its group account there
  * (see mailboxes.ts); every alias is a mailing list with the addresses it reaches, and its mailbox,
- * as recipients; and the sender account exists with its password. What the server holds under
- * other domains is left alone. Run by the mail worker (src/workers/definitions.ts).
+ * as recipients. What the server holds under other domains is left alone, and so is every account
+ * that is not a mailbox: the app has none of its own, since it sends without a login (see
+ * src/services/mail/send/constants.ts). Run by the mail worker (src/workers/definitions.ts).
  *
  * @returns false, since one run does all the work there is.
  */
 export async function syncMailServer(options: SyncMailServerOptions = {}): Promise<false> {
     const client = options.client ?? mailServerClientFromEnv()
-    const sender = options.sender === undefined ? senderFromEnv() : options.sender
     const webmail = options.webmail === undefined ? webmailFromEnv() : options.webmail
 
     const siteDomains = validMailAddressDomains().map(name => ({ name, description: DOMAIN_DESCRIPTION }))
@@ -83,15 +68,13 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
     const accounts = await client.listAll('Account')
     const mailboxes = await syncMailboxesOn(client, accounts, domains.idsByName, webmail)
     const lists = await syncMailingLists(client, siteDomainIdsByName, webmail)
-    const senderCreated = await syncSenderAccount(client, siteDomainIdsByName, sender, accounts)
 
     const changes = domains.created + mailboxes.created + mailboxes.updated + mailboxes.destroyed
-        + lists.created + lists.updated + lists.destroyed + (senderCreated ? 1 : 0)
+        + lists.created + lists.updated + lists.destroyed
     if (changes > 0) {
         logger.info(`Mail server sync created ${domains.created} domains; created ${mailboxes.created}, updated ${
-            mailboxes.updated} and destroyed ${mailboxes.destroyed} mailboxes; created ${lists.created}, updated ${
-            lists.updated} and destroyed ${lists.destroyed} mailing lists${
-            senderCreated ? '; and created the sender account' : ''}`)
+            mailboxes.updated} and destroyed ${mailboxes.destroyed} mailboxes; and created ${lists.created}, updated ${
+            lists.updated} and destroyed ${lists.destroyed} mailing lists`)
     } else {
         logger.debug('Mail server sync found the server in step with the database')
     }
@@ -117,15 +100,6 @@ async function syncMailboxesOn(
         return NO_MAILBOX_CHANGES
     }
     return syncMailboxes(client, accounts, mailboxDomainId, webmail)
-}
-
-function senderFromEnv(): MailServerSenderAccount | null {
-    const { address, password } = mailServerSender
-    if (!address || !password) {
-        logger.warn('Mail server sync keeps no sender account, since EMAIL_USER and EMAIL_PASSWORD are not both set')
-        return null
-    }
-    return { address, password }
 }
 
 /** The local part and the domain of an address, the domain lower-cased as domains are matched. */
@@ -303,51 +277,4 @@ async function syncMailingLists(
         await client.set('MailingList', { create, update, destroy })
     }
     return changes
-}
-
-/**
- * Makes sure the sender account exists with its password. The password cannot be read back, so it
- * is written on every run, which is also how a changed EMAIL_PASSWORD takes effect. No other
- * account is touched.
- *
- * @returns whether the account was created.
- */
-async function syncSenderAccount(
-    client: MailServerClient,
-    domainIdsByName: Map<string, string>,
-    sender: MailServerSenderAccount | null,
-    accounts: MailServerAccount[],
-): Promise<boolean> {
-    if (sender === null) return false
-
-    const { localPart, domain } = splitAddress(sender.address)
-    const domainId = domainIdsByName.get(domain)
-    if (domainId === undefined) {
-        logger.warn(`Mail server sync leaves the sender account ${sender.address} alone, since ${
-            domain} is not one of our mail domains`)
-        return false
-    }
-
-    const credentials: MailServerPasswordCredentials = { 0: { '@type': 'Password', secret: sender.password } }
-    const existing = accounts.find(account =>
-        account.domainId === domainId && account.name.toLowerCase() === localPart.toLowerCase()
-    )
-    if (existing) {
-        await client.set('Account', { update: { [existing.id]: { credentials } } })
-        return false
-    }
-
-    await client.set('Account', {
-        create: {
-            [creationId(sender.address, 0)]: {
-                '@type': 'User',
-                name: localPart,
-                domainId,
-                description: SENDER_DESCRIPTION,
-                credentials,
-                roles: { '@type': 'User' },
-            },
-        },
-    })
-    return true
 }

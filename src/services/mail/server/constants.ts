@@ -20,7 +20,7 @@ export const mailServerAdmin = {
     password: envValue('EMAIL_ADMIN_PASSWORD'),
 }
 
-/** Whether the mail server's domains, mailing lists and sender account are kept in step with the database. */
+/** Whether the mail server's domains and mailing lists are kept in step with the database. */
 export const mailServerIsManaged = Boolean(mailServerAdmin.url && mailServerAdmin.user && mailServerAdmin.password)
 
 /**
@@ -42,12 +42,3 @@ function webmailOf(url: string | undefined): MailServerWebmail | null {
 
 /** Whether aliases keep mailboxes: a managed server, and a webmail to read them in. */
 export const mailboxesAreAvailable = mailServerIsManaged && mailServerWebmail !== null
-
-/**
- * The account the app sends mail as, which the sync keeps on the server with this password. The
- * same credentials sending uses, see src/services/mail/send/constants.ts.
- */
-export const mailServerSender = {
-    address: envValue('EMAIL_USER'),
-    password: envValue('EMAIL_PASSWORD'),
-}

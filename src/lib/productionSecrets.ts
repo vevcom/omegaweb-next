@@ -14,9 +14,9 @@ const secretNames = [
 
 /**
  * Secrets that may be left unset, since mail is optional, but must not be the development values
- * when set: anyone holding them can send as Omega or rewrite its mailing lists.
+ * when set: anyone holding this one can rewrite Omega's mailing lists.
  */
-const optionalSecretNames = ['EMAIL_PASSWORD', 'EMAIL_ADMIN_PASSWORD'] as const
+const optionalSecretNames = ['EMAIL_ADMIN_PASSWORD'] as const
 
 const secretsWithMinimumLength = ['NEXTAUTH_SECRET', 'JWT_SECRET'] as const
 const minimumSecretLength = 32
