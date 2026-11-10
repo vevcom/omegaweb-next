@@ -1,4 +1,4 @@
-import type { StorableExtension } from '@/lib/store/fileExtensions'
+import type { StorableExtension } from '@/services/store/fileExtensions'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 type StorableExtensions = readonly StorableExtension[]

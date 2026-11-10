@@ -1,0 +1,35 @@
+// What a file in the store is for. Each purpose is implemented once, with implementStore, by the
+// service that owns the rows referring to its files.
+enum StoreFilePurpose {
+  OMBUL
+  ORIGINAL_IMAGE
+  CACHE_IMAGE
+}
+
+enum StoreFileLocation {
+  S3
+  VOLUME
+}
+
+// A file in the store. An owning row refers to it by its name, and the store alone knows where its
+// content is. A file no row refers to is an orphan, which the worker of its purpose destroys.
+model StoreFile {
+  id        Int               @id @default(autoincrement())
+  name      String            @unique
+  purpose   StoreFilePurpose
+  location  StoreFileLocation
+  createdAt DateTime          @default(now())
+
+  // The rows that may refer to a file. A purpose names its own in implementStore, and a relation
+  // added here is added to storeFileOwners in services/store/constants.ts.
+  ombul           Ombul?
+  originalOfImage Image?
+  microSizeOf     ProcessedImageFiles? @relation("microSizeFile")
+  tinySizeOf      ProcessedImageFiles? @relation("tinySizeFile")
+  smallSizeOf     ProcessedImageFiles? @relation("smallSizeFile")
+  mediumSizeOf    ProcessedImageFiles? @relation("mediumSizeFile")
+  largeSizeOf     ProcessedImageFiles? @relation("largeSizeFile")
+  hugeSizeOf      ProcessedImageFiles? @relation("hugeSizeFile")
+
+  @@index([purpose, location])
+}

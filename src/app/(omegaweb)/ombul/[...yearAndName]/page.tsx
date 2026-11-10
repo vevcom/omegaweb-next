@@ -13,6 +13,7 @@ import { serverPage } from '@/app/ServerPage'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { appHref } from '@/lib/sites/href'
+import { storeFilePath } from '@/services/store/paths'
 import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -31,7 +32,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: (ombul) => ({ title: ombul.name }),
     render: ({ data: ombul, capabilities }) => {
-        const path = appHref(`/store/ombul/${ombul.fsLocation}`)
+        const path = appHref(storeFilePath('OMBUL', ombul.fsLocation))
 
         return (
             <PageWrapper hideTitle className="[&_h1]:normal-case!">

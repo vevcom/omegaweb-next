@@ -11,7 +11,7 @@ deploy/
 ├── base/              # The app, the worker, the migrate job and the database
 │   └── postgres.env   # The Postgres version, read here and by the compose files
 ├── overlays/
-│   └── local/         # k3d on a workstation: locally built images, no TLS, store on disk or S3
+│   └── local/         # k3d on a workstation: locally built images, no TLS, store on the volume or S3
 └── k3d/               # Local cluster config and up.sh
 ```
 
@@ -41,15 +41,44 @@ An overlay includes `base` and fills in what it leaves open:
   is also the mail domain the aliases' mailboxes are on, and the client id the webmail signs in
   through the provider with. Left unset, no alias keeps a mailbox. The mail server's own settings
   for this are documented in mail-infrastructure.
-- **The store.** Uploaded images, ombul pdfs and the release countdown's files go to S3 when
+- **The store.** Uploaded images and ombul pdfs are on the store volume, which base mounts at
+  `store/` in the app, the worker and the migrate job, and in an S3 bucket when
   `STORE_S3_BUCKET` is set, with `STORE_S3_ENDPOINT`, `STORE_S3_ACCESS_KEY_ID` and
-  `STORE_S3_SECRET_ACCESS_KEY`, and to the `store/` directory otherwise. Object keys are the
-  paths under `store/`, so a directory can be copied to a bucket as it is. On disk, the overlay
-  mounts a volume at `store/`, as the local one does.
+  `STORE_S3_SECRET_ACCESS_KEY`. See [The store](#the-store).
 
 A sync applies in waves: the database and the environment first, then the migrate job, which
 runs `migrate:deploy-and-seed`, then the app and the worker. A failed migration stops the sync,
 so the old pods keep serving.
+
+## The store
+
+Without a bucket every file is on the volume. With one, the code says per kind of file where it
+should be: originals and pdfs in the bucket, and the resized image variants on the volume, since
+they can be made again and the bucket has a limit on objects. A file the wanted place refuses is
+written to the other. The database remembers where each file is, and the store's workers move the
+files that are in the wrong place. So setting a bucket, or changing where a kind of file should
+be, needs no copying by hand.
+
+The volume is a `ReadWriteOnce` claim of 5Gi, which works while every pod runs on one node, and it
+is not backed up. Deleting an object from a versioned bucket keeps its old versions, so expire the
+noncurrent versions if the bucket's count of objects does not drop.
+
+**Taking the bucket away** does need a step first. Once `STORE_S3_BUCKET` is unset, a file the
+database places in the bucket can be neither read nor moved, and is a 404 until the bucket is set
+again. So empty it first: release with `preferredLocation: 'VOLUME'` for the purposes kept in the
+bucket, with the bucket still set, wait for the workers to move the files, and unset it once
+`SELECT count(*) FROM "StoreFile" WHERE location = 'S3'` is 0.
+
+**Losing the volume** costs what was only there:
+
+- The image variants come back on their own. The store's worker finds the variants whose content
+  is gone, and the image worker makes them again from the originals, one image at a time. Until
+  it has caught up an image shows its blur placeholder. A volume that is not mounted looks the
+  same as a lost one, and sets off the same work.
+- Originals and pdfs are on the volume only when the bucket refused them, until the worker has
+  moved them there. That is the state right after the first release with this store, while the
+  bucket is at its limit. One that is lost is gone: the worker logs it as an error on every run,
+  with the image or the ombul it belonged to, until it is uploaded again.
 
 ## Trying it locally
 
@@ -72,7 +101,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 kubectl -n argocd port-forward svc/argocd-server 8443:443
 ```
 
-The store is on disk unless `deploy/k3d/.env.local`, which is gitignored, sets the
+The store is on the volume alone unless `deploy/k3d/.env.local`, which is gitignored, sets the
 `STORE_S3_*` variables from `.env.default`. Those go into the app's secret with the rest.
 
 ## Releasing
