@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { readJWTPayload } from '@/jwt/jwtReadUnsecure'
 import { feideAccountOperations } from '@/services/auth/feideAccounts/operations'
 import { userBasicSelection, userPartitions } from '@/services/users/constants'
+import { vevenMailAddressOperations } from '@/services/users/vevenMailAddress'
 import logger from '@/lib/logger'
 import type { UserBasic, UserFiltered } from '@/services/users/types'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
@@ -110,6 +111,13 @@ export default function VevenAdapter(prisma: PrismaClient): Adapter {
                     },
                 },
                 select: adapterUserSelection,
+            })
+
+            // The user exists either way: one left without an address is given it by the mail worker.
+            await vevenMailAddressOperations.internal.createDefault.internalCall({
+                params: { id: createdUser.id },
+            }).catch((error: unknown) => {
+                logger.warn(`Could not give the new user ${createdUser.username} a mail address: ${error}`)
             })
 
             return convertToAdapterUser(createdUser)

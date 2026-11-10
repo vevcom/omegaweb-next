@@ -4,16 +4,18 @@ import { createHash } from 'crypto'
 import type { MailServerClient } from './client'
 
 /**
- * How the mail of an alias reaches the people behind it besides its mailbox. The mailbox owns the
- * alias's address, and the server lets an address be a mailbox or a list, not both. So the mailbox
- * runs a Sieve script: it keeps the mail, and sends a copy to a list on a domain of its own, which
- * hands it on to each address the alias reaches. One list, since the server lets a script of a
+ * How the mail of an address reaches the private email of the people behind it besides its
+ * mailbox, while the address forwards, see `MailAddress.forwardsToPrivateEmail`. The mailbox owns
+ * the address, and the server lets an address be a mailbox or a list, not both. So the mailbox
+ * runs a Sieve script: it keeps the mail, and sends a copy on. The mailbox of a user sends it to
+ * their private email. The mailbox of an alias sends it to a list on a domain of its own, which
+ * hands it on to each address the alias reaches: one list, since the server lets a script of a
  * mailbox send a message on once.
  *
- * The copy says at its top that the mail came to the alias, who sent it, by name and address, and
- * where to answer it as the alias, in the mailbox. Writing that into the mail breaks the sender's
- * signature, so the copy goes out from the alias, signed by the server, and answers to it go to
- * the sender.
+ * The copy says at its top that the mail came to the address, who sent it, by name and address,
+ * and where to answer it as the address, in the mailbox. Writing that into the mail breaks the
+ * sender's signature, so the copy goes out from the address, signed by the server, and answers to
+ * it go to the sender.
  *
  * The sender's name is theirs to choose, so it is only used where it is harmless: in the notice
  * unless it holds a character HTML reads as markup, and as the name the copy is from unless it
@@ -48,11 +50,20 @@ function headerSpellingLines(): string {
 const SCRIPT_NAME_PREFIX = 'omegaweb-forward-'
 
 export type MailboxForwarding = {
-    /** The group account of the mailbox on the server. */
+    /** The account of the mailbox on the server. */
     accountId: string,
-    aliasAddress: string,
-    /** The list the copies go to, or null for an alias that reaches no one. */
+    /** The address the mailbox is at, an alias's or a user's, or what to call a mailbox without one. */
+    address: string,
+    /**
+     * Where the copies go: the list of an alias's addresses, or the private email of a user. Null
+     * for a mailbox that sends nothing on.
+     */
     forwardTo: string | null,
+    /**
+     * Whether the mailbox is one person's own, who may then run a script of their own while it
+     * sends nothing on. Any other mailbox runs ours then too, which only keeps the mail.
+     */
+    personal: boolean,
 }
 
 /** The domain the forwarding lists are on. No mail arrives for it from outside, so it needs no DNS. */
@@ -81,19 +92,19 @@ function htmlEscaped(value: string): string {
 }
 
 /**
- * The script of an alias's mailbox. The mail is filed into the inbox first, as it arrived, and
- * only then rewritten for the copy. A `keep` there is not enough: the server drops it once the
- * script sends the mail on.
+ * The script of a mailbox. The mail is filed into the inbox first, as it arrived, and only then
+ * rewritten for the copy. A `keep` there is not enough: the server drops it once the script sends
+ * the mail on.
  */
-export function forwardingScript({ aliasAddress, forwardTo, webmailOrigin }: {
-    aliasAddress: string,
+export function forwardingScript({ address, forwardTo, webmailOrigin }: {
+    address: string,
     forwardTo: string | null,
     webmailOrigin: string,
 }): string {
     if (forwardTo === null) return 'keep;\n'
 
-    const alias = sieveQuoted(aliasAddress)
-    const htmlAlias = sieveQuoted(htmlEscaped(aliasAddress))
+    const alias = sieveQuoted(address)
+    const htmlAlias = sieveQuoted(htmlEscaped(address))
     const htmlOrigin = sieveQuoted(htmlEscaped(webmailOrigin))
     // ${who} is the script's variable, filled in for each mail, so it is escaped here.
     const textNotice = `Denne e-posten kom til ${alias} fra \${who}. `
@@ -147,10 +158,11 @@ function scriptNameOf(content: string): string {
 }
 
 /**
- * Makes the active script of every mailbox the one that forwards its alias's mail. A mailbox whose
- * active script already has the wanted name is left alone. Scripts of ours that are no longer
- * wanted are destroyed. One a member made is left, and stops running when ours takes its place. A
- * mailbox the server refuses a script for keeps what it had, and the others go on.
+ * Makes the active script of every mailbox the one that forwards its mail. A mailbox whose active
+ * script already has the wanted name is left alone. Scripts of ours that are no longer wanted are
+ * destroyed. One a member made is left, and stops running when ours takes its place. A personal
+ * mailbox that sends nothing on has no script of ours, so its owner's own may run. A mailbox the
+ * server refuses a script for keeps what it had, and the others go on.
  *
  * @returns how many mailboxes were given a script, and what the server refused.
  */
@@ -162,15 +174,28 @@ export async function syncForwardingScripts(
     const existing = await client.sieveScripts(mailboxes.map(mailbox => mailbox.accountId))
     let changed = 0
     const refused: string[] = []
-    for (const { accountId, aliasAddress, forwardTo } of mailboxes) {
-        const content = forwardingScript({ aliasAddress, forwardTo, webmailOrigin })
-        const name = scriptNameOf(content)
+    for (const { accountId, address, forwardTo, personal } of mailboxes) {
         const scripts = existing.get(accountId) ?? []
+        const ours = scripts.filter(script => script.name.startsWith(SCRIPT_NAME_PREFIX))
+        if (personal && forwardTo === null) {
+            if (ours.length === 0) continue
+            try {
+                if (ours.some(script => script.isActive)) await client.deactivateSieveScript(accountId)
+                await client.destroySieveScripts(accountId, ours.map(script => script.id))
+                changed += 1
+            } catch (error) {
+                if (!(error instanceof MailServerRefusal)) throw error
+                refused.push(`${error.message}, the mailbox of ${address}`)
+            }
+            continue
+        }
+
+        const content = forwardingScript({ address, forwardTo, webmailOrigin })
+        const name = scriptNameOf(content)
         if (scripts.some(script => script.isActive && script.name === name)) continue
 
         // Ours that are not running go first, since one of them may hold the wanted name. The one
         // that is running can only go once the new one has taken its place.
-        const ours = scripts.filter(script => script.name.startsWith(SCRIPT_NAME_PREFIX))
         try {
             await client.destroySieveScripts(accountId, ours.filter(script => !script.isActive).map(script => script.id))
             await client.setActiveSieveScript(accountId, name, content)
@@ -178,7 +203,7 @@ export async function syncForwardingScripts(
             changed += 1
         } catch (error) {
             if (!(error instanceof MailServerRefusal)) throw error
-            refused.push(`${error.message}, the mailbox of ${aliasAddress}`)
+            refused.push(`${error.message}, the mailbox of ${address}`)
         }
     }
     return { changed, refused }

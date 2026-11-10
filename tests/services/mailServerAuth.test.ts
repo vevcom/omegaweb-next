@@ -3,7 +3,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { Session } from '@/auth/session/Session'
 import { adminNavDef } from '@/app/(omegaweb)/admin/adminNavDef'
 import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
-import { aliasOperations } from '@/services/mail/alias/operations'
+import { aliasMailAddressOperations, aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operations'
 import { mailAddressExternalOperations } from '@/services/mail/mailAddressExternal/operations'
@@ -77,6 +77,7 @@ afterEach(async () => {
     await prisma.membership.deleteMany({ where: { user: { username: { startsWith: 'test-' } } } })
     await prisma.user.deleteMany({ where: { username: { startsWith: 'test-' } } })
     await prisma.mailAlias.deleteMany({ where: { address: { startsWith: 'test-' } } })
+    await prisma.mailAddress.deleteMany({ where: { address: { startsWith: 'test-' } } })
     await prisma.mailingList.deleteMany({ where: { name: { startsWith: 'test-' } } })
     await prisma.mailAddressExternal.deleteMany({ where: { address: { startsWith: 'test-' } } })
     await prisma.manualGroup.deleteMany({ where: { shortName: { startsWith: 'test-' } } })
@@ -367,7 +368,13 @@ describe('wiring the mail server as an owner', () => {
             },
             bypassAuth: true,
         })
-        const renamed = { localPart: 'test-renamed', domain: 'omega.ntnu.no', description: 'Vårt' }
+        const mailAddress = await prisma.mailAddress.findUniqueOrThrow({ where: { address: alias.address } })
+        const rename = (session: SessionMaybeUser) => aliasMailAddressOperations.update({
+            implementationParams: { id: alias.id },
+            params: { mailAddressId: mailAddress.id },
+            data: { localPart: 'test-renamed', domain: 'omega.ntnu.no' },
+            session,
+        })
         const asOwner = memberSession(member, [owners.membership])
         const asCreatingOwner = Session.fromJsObject({
             memberships: [owners.membership], permissions: ['MAIL_ALIAS_CREATE'], user: member,
@@ -379,18 +386,13 @@ describe('wiring the mail server as an owner', () => {
         await aliasOperations.updateDescription({
             params: { id: alias.id }, data: { description: 'Vårt' }, session: asOwner,
         })
-        await rejectsSaying(aliasOperations.update({
-            params: { id: alias.id }, data: renamed, session: asOwner,
-        }), 'Bare eiere som kan opprette aliaser kan endre adressen')
-        await rejectsSaying(aliasOperations.update({
-            params: { id: alias.id }, data: renamed, session: asCreatingOutsider,
-        }), 'Bare eiere som kan opprette aliaser kan endre adressen')
+        await rejectsSaying(rename(asOwner), 'Bare eiere som kan opprette aliaser kan endre adressen')
+        await rejectsSaying(rename(asCreatingOutsider), 'Bare eiere som kan opprette aliaser kan endre adressen')
 
-        const updated = await aliasOperations.update({ params: { id: alias.id }, data: renamed, session: asCreatingOwner })
+        const updated = await rename(asCreatingOwner)
         expect(updated.address).toBe('test-renamed@omega.ntnu.no')
-        await aliasOperations.update({
-            params: { id: alias.id }, data: renamed, session: sessionWith(['MAILSERVER_ADMIN']),
-        })
+        expect((await prisma.mailAlias.findUniqueOrThrow({ where: { id: alias.id } })).address).toBe(updated.address)
+        await rename(sessionWith(['MAILSERVER_ADMIN']))
     })
 
     test('the aliases a user receives mail on are read by that user alone', async () => {

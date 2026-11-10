@@ -17,6 +17,7 @@ import {
 import { runNextPaymentCompletionHook } from '@/services/ledger/transactions/paymentCompletionHooks'
 import { syncMailServer } from '@/lib/mailServerSync/sync'
 import { mailServerIsManaged } from '@/lib/mailServerSync/constants'
+import { giveMissingVevenMailAddresses } from '@/services/users/missingVevenMailAddresses'
 import { requeueNextUnpaidRegistration } from '@/services/events/registration/requeueUnpaid'
 import logger from '@/lib/logger'
 import type { Worker } from './types'
@@ -126,15 +127,18 @@ export const workers = {
     },
 
     /**
-     * Keeps the mail server's domains, mailing lists and mailboxes in step with the aliases
-     * here, see lib/mailServerSync/sync.ts. Does nothing while the server is not managed.
+     * Keeps the mail server's domains, mailing lists and mailboxes in step with the addresses
+     * of the aliases and the users here, see lib/mailServerSync/sync.ts. Does nothing while the
+     * server is not managed.
      */
     mail: {
         name: 'Mail server sync',
-        // How long a changed alias or membership takes to reach the mail server, at most.
+        // How long a changed address, alias or membership takes to reach the mail server, at most.
         intervalMs: 60 * 1000,
-        tick: () => {
+        // The users without an address are given theirs first, so the server has a mailbox for each.
+        tick: async () => {
             if (!mailServerIsManaged) return false
+            await giveMissingVevenMailAddresses()
             return syncMailServer()
         },
     },

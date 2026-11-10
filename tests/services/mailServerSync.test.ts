@@ -1,9 +1,11 @@
 import { prisma } from '@/prisma-pn-client-instance'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { aliasOperations } from '@/services/mail/alias/operations'
+import { aliasMailAddressOperations, aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailAddressExternalOperations } from '@/services/mail/mailAddressExternal/operations'
 import { mailOperations } from '@/services/mail/operations'
+import { userOperations } from '@/services/users/operations'
+import { vevenMailAddressOperations } from '@/services/users/vevenMailAddress'
 import { MailServerClient } from '@/lib/mailServerSync/client'
 import { syncMailServer } from '@/lib/mailServerSync/sync'
 import { mailboxAddressOf } from '@/lib/mailServerSync/mailboxes'
@@ -170,6 +172,7 @@ class FakeMailServer {
             const id = activate.startsWith('#') ? created[activate.slice(1)]?.id : activate
             scripts.forEach(script => { script.isActive = script.id === id })
         }
+        if (args.onSuccessDeactivateScript === true) scripts.forEach(script => { script.isActive = false })
 
         const destroyed: string[] = []
         const notDestroyed: Record<string, { type: string }> = {}
@@ -261,6 +264,11 @@ class FakeMailServer {
                 notUpdated[id] = { type: 'invalidPatch' }
                 continue
             }
+            const addresses = object === 'Domain' ? [] : this.addressesOf({ ...existing, ...changes })
+            if (addresses.some(address => this.holds(address, id))) {
+                notUpdated[id] = { type: 'primaryKeyViolation' }
+                continue
+            }
             this.store(object, { ...existing, ...changes })
             updated[id] = null
         }
@@ -280,20 +288,31 @@ class FakeMailServer {
         return { created, notCreated, updated, notUpdated, destroyed, notDestroyed }
     }
 
+    /** The addresses an object has: its own, and for an account those of its aliases, as `name@domainId`. */
+    private addressesOf(value: Record<string, unknown>): string[] {
+        const aliases = Object.values((value.aliases ?? {}) as Record<string, { name: string, domainId: string }>)
+        return [value, ...aliases].map(({ name, domainId }) => `${String(name).toLowerCase()}@${String(domainId)}`)
+    }
+
+    /** Whether an address is a list's or an account's other than the object `exceptId`: an address is one object's. */
+    private holds(address: string, exceptId?: string): boolean {
+        return [...Array.from(this.objects.MailingList.values()), ...Array.from(this.objects.Account.values())]
+            .some(existing => existing.id !== exceptId && this.addressesOf(existing).includes(address))
+    }
+
     /**
-     * Why a creation is refused: a name taken on the domain, a domain that does not exist, or an
-     * empty description, which Stalwart refuses where null is fine.
+     * Why a creation is refused: an address taken, a domain that does not exist, or an empty
+     * description, which Stalwart refuses where null is fine.
      */
     private refusalOf(object: MailServerObjectName, value: Record<string, unknown>): string | null {
         if (value.description === '') return 'invalidPatch'
-        if (object === 'Domain' && this.refusedDomains.has(String(value.name))) return 'invalidProperties'
-        if (object !== 'Domain' && !this.objects.Domain.has(String(value.domainId))) return 'invalidForeignKey'
-        // An address is a list or an account, never both.
-        const addressed = object === 'Domain'
-            ? Array.from(this.objects.Domain.values())
-            : [...Array.from(this.objects.MailingList.values()), ...Array.from(this.objects.Account.values())]
-        const taken = addressed.some(existing => existing.name === value.name && existing.domainId === value.domainId)
-        return taken ? 'primaryKeyViolation' : null
+        if (object === 'Domain') {
+            if (this.refusedDomains.has(String(value.name))) return 'invalidProperties'
+            const taken = Array.from(this.objects.Domain.values()).some(existing => existing.name === value.name)
+            return taken ? 'primaryKeyViolation' : null
+        }
+        if (!this.objects.Domain.has(String(value.domainId))) return 'invalidForeignKey'
+        return this.addressesOf(value).some(address => this.holds(address)) ? 'primaryKeyViolation' : null
     }
 }
 
@@ -350,6 +369,18 @@ async function createTestAlias(localPart: string, description = '') {
     return { alias, list }
 }
 
+/** Moves an alias to another address on the test domain. */
+async function moveTestAlias(aliasId: number, localPart: string) {
+    const mailAddress = await aliasMailAddressOperations.read({ params: { id: aliasId }, bypassAuth: true })
+    if (!mailAddress) throw new Error('The alias has no address')
+    return aliasMailAddressOperations.update({
+        implementationParams: { id: aliasId },
+        params: { mailAddressId: mailAddress.id },
+        data: { localPart, domain: TEST_DOMAIN },
+        bypassAuth: true,
+    })
+}
+
 afterEach(async () => {
     await prisma.mailingListUser.deleteMany()
     await prisma.mailingListGroup.deleteMany()
@@ -360,6 +391,7 @@ afterEach(async () => {
     await prisma.group.deleteMany({ where: { id: { in: testGroupIds } } })
     testGroupIds.length = 0
     await prisma.mailAlias.deleteMany({ where: { address: { startsWith: 'test-' } } })
+    await prisma.mailAddress.deleteMany({ where: { address: { startsWith: 'test-' } } })
     await prisma.mailingList.deleteMany({ where: { name: { startsWith: 'test-' } } })
     await prisma.mailAddressExternal.deleteMany({ where: { address: { startsWith: 'test-' } } })
 })
@@ -542,10 +574,8 @@ describe('syncing mailing lists', () => {
             data: { userId: newcomer.id, groupId: group.id, admin: false, active: true, order },
         })
         await prisma.membership.updateMany({ where: { userId: member.id, groupId: group.id }, data: { active: false } })
-        await aliasOperations.update({
-            params: { id: alias.id },
-            data: { localPart: 'test-changing', domain: TEST_DOMAIN, description: 'After' },
-            bypassAuth: true,
+        await aliasOperations.updateDescription({
+            params: { id: alias.id }, data: { description: 'After' }, bypassAuth: true,
         })
 
         server.setCalls.length = 0
@@ -558,11 +588,7 @@ describe('syncing mailing lists', () => {
         expect(Object.keys(server.setCalls[0].args.update ?? {})).toEqual([before?.id])
 
         // Clearing the description removes it on the server, as null, since it refuses an empty string.
-        await aliasOperations.update({
-            params: { id: alias.id },
-            data: { localPart: 'test-changing', domain: TEST_DOMAIN, description: '' },
-            bypassAuth: true,
-        })
+        await aliasOperations.updateDescription({ params: { id: alias.id }, data: { description: '' }, bypassAuth: true })
         server.setCalls.length = 0
         await syncMailServer({ client: server.client() })
         expect(server.mailingList(alias.address)?.description ?? null).toBeNull()
@@ -736,11 +762,7 @@ describe('syncing mailboxes', () => {
         await syncMailServer({ client: server.client(), webmail })
         const group = server.account(alias.address)
 
-        await aliasOperations.update({
-            params: { id: alias.id },
-            data: { localPart: 'test-after', domain: TEST_DOMAIN, description: '' },
-            bypassAuth: true,
-        })
+        await moveTestAlias(alias.id, 'test-after')
         server.setCalls.length = 0
         await syncMailServer({ client: server.client(), webmail })
         const renamedAddress = `test-after@${TEST_DOMAIN}`
@@ -851,7 +873,8 @@ describe('syncing memberships', () => {
         const receivedMailbox = server.account(received.address)
         const otherMailbox = server.account(notReceived.address)
         expect(mailboxesOf(server, member)).toEqual([foreign.id, receivedMailbox?.id].sort())
-        expect(mailboxesOf(server, stranger)).toEqual([])
+        // An account signed in to by a name that is no user's is that of a user who is gone.
+        expect(server.objects.Account.has(stranger.id)).toBe(false)
 
         server.setCalls.length = 0
         await syncMailServer({ client: server.client(), webmail })
@@ -911,6 +934,226 @@ describe('syncing memberships', () => {
         await syncMailServer({ client: server.client(), webmail })
         expect(server.account(alias.address)).toBeUndefined()
         expect(mailboxesOf(server, member)).toEqual([])
+    })
+})
+
+describe('syncing the mailboxes of users', () => {
+    /** A user with the address users are given by default, `<username>@omega.ntnu.no`. */
+    async function createAddressedUser(name: string) {
+        const user = await createTestUser(`test-${name}`, `test-${name}@private.test`)
+        const address = await vevenMailAddressOperations.internal.createDefault.internalCall({ params: { id: user.id } })
+        const mailAddress = await prisma.mailAddress.findUniqueOrThrow({ where: { address } })
+        return { ...user, address, mailAddressId: mailAddress.id }
+    }
+    /** The account the server makes for someone the first time they sign in to the webmail. */
+    const signIn = (server: FakeMailServer, username: string) => server.add('Account', {
+        '@type': 'User', name: username, domainId: server.domain(webmail.domain)?.id,
+    })
+    const signInNamesOf = (server: FakeMailServer, account: StoredObject | undefined) =>
+        Object.values((account?.aliases ?? {}) as Record<string, { name: string, domainId: string }>)
+            .filter(alias => alias.domainId === server.domain(webmail.domain)?.id)
+            .map(alias => alias.name)
+    const scriptsOf = (server: FakeMailServer, account: StoredObject | undefined) =>
+        server.scripts.get(account?.id ?? '') ?? []
+    const userAccountsOf = (server: FakeMailServer) =>
+        Array.from(server.objects.Account.values()).filter(account => account['@type'] === 'User')
+    const setForwarding = (user: { id: number, mailAddressId: number }, forwardsToPrivateEmail: boolean) =>
+        vevenMailAddressOperations.updateForwarding({
+            implementationParams: { userId: user.id },
+            params: { mailAddressId: user.mailAddressId },
+            data: { forwardsToPrivateEmail },
+            bypassAuth: true,
+        })
+
+    function serverWithAccounts() {
+        const server = serverWithOurDomain()
+        server.add('Domain', { name: webmail.domain })
+        return server
+    }
+
+    test('a user is given their account ahead, at their address, and it sends on to their private email', async () => {
+        const user = await createAddressedUser('ahead')
+        expect(user.address).toBe(`test-ahead@${TEST_DOMAIN}`)
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), webmail })
+
+        const account = server.account(user.address)
+        expect(account?.['@type']).toBe('User')
+        expect(account?.credentials).toBeUndefined()
+        // The name the server signs the user in by, which it builds from their username.
+        expect(signInNamesOf(server, account)).toEqual(['test-ahead'])
+        // Their private email is where the copy goes, with no list in between.
+        expect(server.objects.MailingList.size).toBe(0)
+        const script = server.activeScript(account?.id)
+        expect(script?.name).toMatch(/^omegaweb-forward-[0-9a-f]{16}$/)
+        expect(script?.content).toMatch(/^require [^;]*;\nfileinto "INBOX";\n/)
+        expect(script?.content).toContain('redirect "test-ahead@private.test";')
+        expect(script?.content).toContain(`Svar som ${user.address} fra postkassen: ${webmail.origin}`)
+
+        server.setCalls.length = 0
+        server.uploads.length = 0
+        await syncMailServer({ client: server.client(), webmail })
+        expect(server.setCalls).toEqual([])
+        expect(server.uploads).toEqual([])
+    })
+
+    test('the account the server made at a first sign in is moved to the address, and is still signed in to', async () => {
+        const user = await createAddressedUser('signed-in')
+        const { alias, list } = await createTestAlias('test-of-signed-in')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+        const server = serverWithAccounts()
+        const made = signIn(server, 'test-signed-in')
+        await syncMailServer({ client: server.client(), webmail })
+
+        const account = server.account(user.address)
+        expect(account?.id).toBe(made.id)
+        expect(server.account(`test-signed-in@${webmail.domain}`)).toBeUndefined()
+        expect(signInNamesOf(server, account)).toEqual(['test-signed-in'])
+        expect(Object.keys(account?.memberGroupIds ?? {})).toEqual([server.account(alias.address)?.id])
+        expect(userAccountsOf(server)).toHaveLength(1)
+    })
+
+    test('a changed address moves the account in place, so the mail stays', async () => {
+        const user = await createAddressedUser('moves')
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), webmail })
+        const before = server.account(user.address)
+
+        await vevenMailAddressOperations.update({
+            implementationParams: { userId: user.id },
+            params: { mailAddressId: user.mailAddressId },
+            data: { localPart: 'test-moved.here', domain: TEST_DOMAIN },
+            bypassAuth: true,
+        })
+        await syncMailServer({ client: server.client(), webmail })
+        const after = server.account(`test-moved.here@${TEST_DOMAIN}`)
+        expect(after?.id).toBe(before?.id)
+        expect(server.account(user.address)).toBeUndefined()
+        expect(signInNamesOf(server, after)).toEqual(['test-moves'])
+        expect(server.activeScript(after?.id)?.content).toContain(`Svar som test-moved.here@${TEST_DOMAIN} fra postkassen`)
+        expect(scriptsOf(server, after)).toHaveLength(1)
+    })
+
+    test('a user who turns forwarding off runs no script of ours, and may run their own', async () => {
+        const user = await createAddressedUser('quiet')
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), webmail })
+        const account = server.account(user.address)
+        expect(server.activeScript(account?.id)?.name).toMatch(/^omegaweb-forward-/)
+
+        await setForwarding(user, false)
+        await syncMailServer({ client: server.client(), webmail })
+        expect(scriptsOf(server, account)).toEqual([])
+
+        scriptsOf(server, account).push({ id: 'theirs', name: 'vacation', isActive: true, content: 'discard;' })
+        server.setCalls.length = 0
+        server.uploads.length = 0
+        await syncMailServer({ client: server.client(), webmail })
+        expect(server.activeScript(account?.id)?.name).toBe('vacation')
+        expect(server.uploads).toEqual([])
+
+        await setForwarding(user, true)
+        await syncMailServer({ client: server.client(), webmail })
+        expect(server.activeScript(account?.id)?.name).toMatch(/^omegaweb-forward-/)
+        expect(scriptsOf(server, account).map(script => script.name)).toContain('vacation')
+    })
+
+    test('an archived user keeps their account, and nothing is sent on from it', async () => {
+        const user = await createAddressedUser('archived')
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), webmail })
+        const account = server.account(user.address)
+
+        await userOperations.archive({ params: { id: user.id }, bypassAuth: true })
+        await syncMailServer({ client: server.client(), webmail })
+        expect(server.account(user.address)?.id).toBe(account?.id)
+        expect(scriptsOf(server, account)).toEqual([])
+    })
+
+    test('a deleted user loses their account', async () => {
+        const user = await createAddressedUser('deleted')
+        const kept = await createAddressedUser('kept')
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), webmail })
+        expect(server.account(user.address)).toBeDefined()
+
+        await userOperations.destroy({ params: { id: user.id }, bypassAuth: true })
+        await syncMailServer({ client: server.client(), webmail })
+        expect(server.account(user.address)).toBeUndefined()
+        expect(server.account(kept.address)).toBeDefined()
+    })
+
+    test('a user whose username changed keeps their account, and signs in to it by the new one', async () => {
+        const user = await createAddressedUser('renamed')
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), webmail })
+        const account = server.account(user.address)
+
+        await prisma.user.update({ where: { id: user.id }, data: { username: 'test-new-name' } })
+        await syncMailServer({ client: server.client(), webmail })
+        expect(server.account(user.address)?.id).toBe(account?.id)
+        expect(signInNamesOf(server, server.account(user.address))).toEqual(['test-new-name'])
+        expect(userAccountsOf(server)).toHaveLength(1)
+    })
+
+    test('an account that is no user\'s at a user\'s address is left alone, and the other users get theirs', async () => {
+        const blocked = await createAddressedUser('squatted')
+        const free = await createAddressedUser('unsquatted')
+        const server = serverWithOurDomain()
+        const squatter = server.add('Account', {
+            '@type': 'User', name: 'test-squatted', domainId: server.domain(TEST_DOMAIN)?.id,
+        })
+
+        await expect(syncMailServer({ client: server.client(), webmail }))
+            .rejects.toThrow(/refused to create Account test-squatted_omega_ntnu_no-\d+ \(primaryKeyViolation\)$/)
+        expect(server.account(blocked.address)?.id).toBe(squatter.id)
+        expect(signInNamesOf(server, squatter)).toEqual([])
+        expect(server.activeScript(squatter.id)).toBeUndefined()
+        expect(server.activeScript(server.account(free.address)?.id)?.content)
+            .toContain('redirect "test-unsquatted@private.test";')
+    })
+
+    test('without a webmail, the address of a user is a list to their private email, whatever its forwarding', async () => {
+        const user = await createAddressedUser('listed')
+        await setForwarding(user, false)
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client() })
+        expect(server.objects.Account.size).toBe(0)
+        expect(recipientsOf(server.mailingList(user.address))).toEqual(['test-listed@private.test'])
+
+        await userOperations.archive({ params: { id: user.id }, bypassAuth: true })
+        await syncMailServer({ client: server.client() })
+        expect(server.mailingList(user.address)).toBeUndefined()
+    })
+
+    test('an alias that does not forward only keeps its mail, although it reaches someone', async () => {
+        const user = await createTestUser('test-reached', 'test-reached@test.test')
+        const { alias, list } = await createTestAlias('test-not-forwarding')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+        const mailAddress = await aliasMailAddressOperations.read({ params: { id: alias.id }, bypassAuth: true })
+        await aliasMailAddressOperations.updateForwarding({
+            implementationParams: { id: alias.id },
+            params: { mailAddressId: mailAddress?.id ?? 0 },
+            data: { forwardsToPrivateEmail: false },
+            bypassAuth: true,
+        })
+
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), webmail })
+        const forwardingList = forwardingAddressOf(alias.address, webmail.domain)
+        expect(server.mailingList(forwardingList)).toBeUndefined()
+        expect(server.activeScript(server.account(alias.address)?.id)?.content).toBe('keep;\n')
+
+        // Without a webmail nothing else would keep the mail, so it is forwarded all the same.
+        const unboxed = serverWithOurDomain()
+        await syncMailServer({ client: unboxed.client() })
+        expect(recipientsOf(unboxed.mailingList(alias.address))).toEqual(['test-reached@test.test'])
     })
 })
 
