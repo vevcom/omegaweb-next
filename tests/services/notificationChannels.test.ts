@@ -89,6 +89,50 @@ describe('the special and the manual notification channels', () => {
         })).resolves.toEqual({ notification: null })
     })
 
+    test('a notification takes its audience as requirements, which become a visibility of its own', async () => {
+        const root = await readRoot()
+        const channel = await createManualChannel('test-audience', root.id)
+        const group = await prisma.group.findFirstOrThrow()
+        const send = (requirements: { conditions: { type: 'ACTIVE', groupId: number }[] }[]) =>
+            manualNotificationChannelOperations.createNotification({
+                params: { channelId: channel.id },
+                data: { title: 'To some', message: 'Only those in the group get this.', audience: { requirements } },
+                bypassAuth: true,
+            })
+
+        await expect(send([{ conditions: [] }])).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+
+        // Notifications are not created under IGNORE_SERVER_ONLY, so it is lifted to see this one made.
+        const ignoreServerOnly = process.env.IGNORE_SERVER_ONLY
+        Reflect.deleteProperty(process.env, 'IGNORE_SERVER_ONLY')
+        try {
+            const { notification: toSome } = await send([{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }])
+            const { notification: toAll } = await send([])
+            expect(toAll?.visibilityId).toBeNull()
+            const visibility = await prisma.visibility.findUniqueOrThrow({
+                where: { id: toSome?.visibilityId ?? -1 },
+                include: { requirements: { include: { conditions: true } } },
+            })
+            expect(visibility.requirements.map(requirement => requirement.conditions.map(condition => condition.groupId)))
+                .toEqual([[group.id]])
+
+            // A channel with channels under it is not deleted, and then keeps its notifications as they were.
+            const child = await createManualChannel('test-audience-child', channel.id)
+            await expect(manualNotificationChannelOperations.destroy({ params: { id: channel.id }, bypassAuth: true }))
+                .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+            expect(await prisma.visibility.findUnique({ where: { id: visibility.id } })).not.toBeNull()
+            await manualNotificationChannelOperations.destroy({ params: { id: child.id }, bypassAuth: true })
+
+            // Deleted, the channel takes its notifications and their visibilities with it.
+            await manualNotificationChannelOperations.destroy({ params: { id: channel.id }, bypassAuth: true })
+            createdChannelIds.length = 0
+            expect(await prisma.visibility.findUnique({ where: { id: visibility.id } })).toBeNull()
+            expect(await prisma.notification.count({ where: { id: { in: [toSome?.id ?? -1, toAll?.id ?? -1] } } })).toBe(0)
+        } finally {
+            process.env.IGNORE_SERVER_ONLY = ignoreServerOnly
+        }
+    })
+
     test('a special channel is created from its config when it is missing', async () => {
         const before = await contactorNotificationChannel.readChannel({ bypassAuth: true })
         await prisma.notificationChannel.delete({ where: { id: before.id } })
