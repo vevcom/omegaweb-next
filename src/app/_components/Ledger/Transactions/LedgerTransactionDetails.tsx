@@ -2,11 +2,9 @@
 import Form from '@/components/Form/Form'
 import { displayAmount } from '@/lib/currency/convert'
 import { displayDate } from '@/lib/dates/displayDate'
-import { Require } from '@/auth/authorizer/Require'
 import { configureAction } from '@/services/configureAction'
 import { cancelLedgerTransactionAction } from '@/services/ledger/transactions/actions'
 import { transactionPurposeNames } from '@/services/ledger/transactions/constants'
-import useAuthorizer from '@/hooks/useAuthorizer'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { LedgerTransactionPurpose, LedgerTransactionState, PaymentProvider } from '@/prisma-generated-pn-types'
@@ -15,7 +13,7 @@ import type { ReactNode } from 'react'
 type Props = {
     transaction: ExpandedLedgerTransaction,
     accountId: number,
-    capabilities: CapabilitiesJsObject<'canCancel'>,
+    capabilities: CapabilitiesJsObject<'canCancel' | 'canSeeFees'>,
 }
 
 // The relations are nullable, for example on transactions migrated from OmegaWeb Basic, so each
@@ -28,11 +26,11 @@ export const transactionTitles: Record<LedgerTransactionPurpose, (transaction: E
         const event = (
             transaction.eventRegistration?.quota?.variant ?? transaction.eventRegistration?.waitingListVariant
         )?.event
-        return event ? `Påmelding til ${event.name}` : transactionPurposeNames.EVENT_PAYMENT
+        return event ? `${transactionPurposeNames.EVENT_PAYMENT} til ${event.name}` : transactionPurposeNames.EVENT_PAYMENT
     },
     CABIN_BOOKING: transaction => (
         transaction.booking
-            ? `Hyttebooking ${displayDate(transaction.booking.start, false)} `
+            ? `${transactionPurposeNames.CABIN_BOOKING} ${displayDate(transaction.booking.start, false)} `
                 + `– ${displayDate(transaction.booking.end, false)}`
             : transactionPurposeNames.CABIN_BOOKING
     ),
@@ -61,7 +59,6 @@ function DetailRow({ label, value }: { label: string, value: ReactNode }) {
 }
 
 export default function LedgerTransactionDetails({ transaction, accountId, capabilities }: Props) {
-    const canViewFees = useAuthorizer({ authorizer: Require.permission('LEDGER_ADMIN') }).authorized
     const totalFunds = (
         transaction.ledgerEntries.reduce((sum, entry) => sum + Math.abs(entry.funds), 0)
         + Math.abs(transaction.payment?.funds ?? 0)
@@ -79,7 +76,7 @@ export default function LedgerTransactionDetails({ transaction, accountId, capab
         <DetailRow label="Status" value={transactionStateNames[transaction.state]} />
         <DetailRow label="Beløp" value={displayAmount(totalFunds, false)} />
         {accountEntry && <DetailRow label="Saldoendring" value={displayAmount(accountEntry.funds, false, true)} />}
-        {canViewFees && accountEntry?.fees !== null && accountEntry?.fees !== undefined && (
+        {capabilities.canSeeFees.authorized && accountEntry?.fees !== null && accountEntry?.fees !== undefined && (
             <DetailRow label="Gebyrendring" value={displayAmount(accountEntry.fees, false, true)} />
         )}
         {transaction.description && <DetailRow label="Kommentar" value={transaction.description} />}

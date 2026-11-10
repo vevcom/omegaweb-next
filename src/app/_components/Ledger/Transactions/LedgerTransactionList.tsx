@@ -12,7 +12,7 @@ import type { LedgerTransactionFilters } from '@/services/ledger/transactions/ty
 type Props = {
     accountId: number,
     filters: LedgerTransactionFilters,
-    capabilities: CapabilitiesJsObject<'canCancel'>,
+    capabilities: CapabilitiesJsObject<'canCancel' | 'canSeeFees'>,
 }
 
 function EmptyState({ filtered }: { filtered: boolean }) {

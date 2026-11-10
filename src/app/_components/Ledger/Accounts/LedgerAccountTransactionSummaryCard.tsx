@@ -12,13 +12,14 @@ import type { Capabilities } from '@/auth/authorizer/capabilities'
 type Props = {
     accountId: number,
     transactionsHref?: AppHref,
-    capabilities: Capabilities<'canCancel'>,
+    capabilities: Capabilities<'canCancel' | 'canSeeFees'>,
 }
 
 export default async function LedgerAccountTransactionSummary({ accountId, transactionsHref, capabilities }: Props) {
     const transactions = await withPageSession(() => ledgerTransactionOperations.readPage({
         params: { paging: { page: { page: 0, pageSize: 5, cursor: null }, details: { accountId } } },
     }))
+    const rowCapabilities = capabilitiesToJsObject(capabilities)
 
     return <div className="bg-base-100 rounded-round p-(--card-padding)">
         <h2 className="text-base-content">Transaksjoner</h2>
@@ -31,7 +32,7 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
                                 key={transaction.id}
                                 accountId={accountId}
                                 transaction={transaction}
-                                capabilities={capabilitiesToJsObject(capabilities)}
+                                capabilities={rowCapabilities}
                             />
                         ))}
                     </LedgerTransactionTable>

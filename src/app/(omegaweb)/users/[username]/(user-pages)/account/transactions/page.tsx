@@ -2,7 +2,8 @@ import TransactionList from '@/components/Ledger/Transactions/LedgerTransactionL
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerTransactionAuth } from '@/services/ledger/transactions/auth'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
-import { QueryParams } from '@/lib/queryParams/queryParams'
+import { Require } from '@/auth/authorizer/Require'
+import { decodeLedgerTransactionFilters } from '@/components/Ledger/Transactions/decodeLedgerTransactionFilters'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -13,18 +14,14 @@ const { page, generateMetadata } = serverPage({
 
         return {
             ledgerAccount: await ledgerAccountOperations.read({ params: { userId: profile.user.id } }),
-            filters: {
-                search: QueryParams.search.decode(searchParams) ?? undefined,
-                purpose: QueryParams.transactionPurpose.decode(searchParams) ?? undefined,
-                direction: QueryParams.transactionDirection.decode(searchParams) ?? undefined,
-                minAmount: QueryParams.minAmount.decode(searchParams) ?? undefined,
-                maxAmount: QueryParams.maxAmount.decode(searchParams) ?? undefined,
-            },
+            filters: decodeLedgerTransactionFilters(searchParams),
         }
     },
     capabilities: ({ ledgerAccount }) => ({
         // Every transaction listed involves this account, so owning it makes the viewer a party.
         canCancel: ledgerTransactionAuth.cancel.data({ accounts: [ledgerAccount.ownership] }),
+        // The page is open to the account's owners too, so the fees need a rule of their own.
+        canSeeFees: Require.permission('LEDGER_ADMIN'),
     }),
     render: ({ data: { ledgerAccount, filters }, capabilities }) => (
         <div className="bg-base-100 rounded-round p-(--card-padding) overflow-x-auto">

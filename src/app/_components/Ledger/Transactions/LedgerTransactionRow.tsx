@@ -10,7 +10,7 @@ import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 type Props = {
     transaction: ExpandedLedgerTransaction,
     accountId: number,
-    capabilities: CapabilitiesJsObject<'canCancel'>,
+    capabilities: CapabilitiesJsObject<'canCancel' | 'canSeeFees'>,
 }
 
 // Incomplete (PENDING) transactions are shown in italic; terminal-but-unsuccessful (FAILED,

@@ -1,9 +1,9 @@
 import type { LedgerTransactionPurpose, Prisma } from '@/prisma-generated-pn-types'
 
-/** What each purpose is called, which a transaction's title falls back to and its search matches. */
+/** What each purpose is called, which a transaction's title starts with or falls back to, and its search matches. */
 export const transactionPurposeNames: Record<LedgerTransactionPurpose, string> = {
     SHOP_PURCHASE: 'Kjøp i butikk',
-    EVENT_PAYMENT: 'Arrangementsbetaling',
+    EVENT_PAYMENT: 'Påmelding',
     CABIN_BOOKING: 'Hyttebooking',
     DEPOSIT: 'Innskudd',
     PAYOUT: 'Utbetaling',
