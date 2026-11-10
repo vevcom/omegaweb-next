@@ -3,10 +3,13 @@ function fillClassName(taken: number, places: number) {
     return taken === places && places > 0 ? 'bg-success' : 'bg-primary'
 }
 
+function fillPercent(taken: number, places: number) {
+    if (places === 0) return taken > 0 ? 100 : 0
+    return Math.min(100, taken / places * 100)
+}
+
 /** How full a quota is. Over its places, as after a cut in them, it shows red. */
 export default function EventQuotaBar({ taken, places }: { taken: number, places: number }) {
-    const percent = places > 0 ? Math.min(100, taken / places * 100) : 0
-
     return <div
         role="img"
         aria-label={`${taken} av ${places} plasser er tatt`}
@@ -15,6 +18,6 @@ export default function EventQuotaBar({ taken, places }: { taken: number, places
         <div className={`
             h-full transition-[width] duration-300
             ${fillClassName(taken, places)}
-        `} style={{ width: `${percent}%` }} />
+        `} style={{ width: `${fillPercent(taken, places)}%` }} />
     </div>
 }

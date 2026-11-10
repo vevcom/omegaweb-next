@@ -129,7 +129,7 @@ describe('a draft with no host', () => {
         await expect(setPublished(event.id)).rejects.toThrow('BAD PARAMETERS')
     })
 
-    test('is taken over by a host chosen later, and then left to them once published', async () => {
+    test('is taken over by a host chosen later, and left to them even when unpublished again', async () => {
         const { event, session } = await createByUser('draftadopted')
         await fillIn(event.id)
 
@@ -138,6 +138,12 @@ describe('a draft with no host', () => {
 
         await expect(eventOperations.update({ params: { id: event.id }, data: { name: 'For sent' }, session }))
             .rejects.toThrow(Smorekopp)
+
+        await setPublished(event.id, false)
+        await expect(eventOperations.update({ params: { id: event.id }, data: { name: 'Tilbake' }, session }))
+            .rejects.toThrow(Smorekopp)
+        const listed = await eventOperations.readManyCurrent({ params: { tags: null }, session })
+        expect(listed.map(current => current.id)).not.toContain(event.id)
     })
 })
 
