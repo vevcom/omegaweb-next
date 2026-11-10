@@ -1,7 +1,5 @@
 import '@pn-server-only'
-import { mailServerWebmail } from '@/lib/mailServerSync/constants'
-import { mailboxAddressOf } from '@/lib/mailServerSync/mailboxes'
-import { prisma } from '@/prisma-pn-client-instance'
+import { userPartitions } from '@/services/users/constants'
 import type { Prisma } from '@/prisma-generated-pn-client'
 import type { MailAlias } from '@/prisma-generated-pn-types'
 
@@ -22,13 +20,25 @@ export async function aliasesReceivedBy(client: Prisma.TransactionClient, userId
 }
 
 /**
- * The mailboxes a user may open: those of the aliases they receive mail on, by their addresses on
- * the mail server, which are the aliases' own. The token a user signs in to the webmail with names
- * them as the groups the user is in, which the mail server makes them a member of, see
- * src/lib/mailServerSync/mailboxes.ts. None without a webmail.
+ * The usernames of those who receive mail on each alias, by the alias's id: the rule of
+ * {@link aliasesReceivedBy} read the other way round, for every alias at once. An archived user
+ * receives nothing.
  */
-export async function mailboxesReceivedBy(userId: number): Promise<string[]> {
-    if (!mailServerWebmail) return []
-    const aliases = await aliasesReceivedBy(prisma, userId)
-    return aliases.map(alias => mailboxAddressOf(alias.address))
+export async function receiversOfAliases(client: Prisma.TransactionClient): Promise<Map<number, string[]>> {
+    const receiver = { where: { user: userPartitions.unarchived }, select: { user: { select: { username: true } } } }
+    const aliases = await client.mailAlias.findMany({
+        select: {
+            id: true,
+            mailingLists: { select: { mailingList: { select: {
+                users: receiver,
+                groups: { select: { group: { select: {
+                    memberships: { ...receiver, where: { ...receiver.where, active: true } },
+                } } } },
+            } } } },
+        },
+    })
+    return new Map(aliases.map(alias => [alias.id, Array.from(new Set(alias.mailingLists.flatMap(({ mailingList }) => [
+        ...mailingList.users.map(relation => relation.user.username),
+        ...mailingList.groups.flatMap(relation => relation.group.memberships.map(membership => membership.user.username)),
+    ])))]))
 }

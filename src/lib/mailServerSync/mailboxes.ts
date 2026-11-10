@@ -8,8 +8,7 @@ import type { MailServerAccount, MailServerClient } from './client'
  * own, which its members see as a shared folder in the webmail. It is the alias's own address, on
  * the alias's own domain, so members see the alias and answer as it. The sync keeps one per alias,
  * and the mailbox forwards the mail to the people behind the alias (see forwarding.ts). Who the
- * members are is not kept here: the server takes that from the groups claim of the token a member
- * signs in to the webmail with, and rewrites it at every sign in.
+ * members are is kept by memberships.ts.
  */
 
 export type MailboxChanges = {
@@ -21,7 +20,19 @@ export type MailboxChanges = {
 /** A mailbox as it is on the server once the sync has run. */
 export type SyncedMailbox = {
     accountId: string,
+    aliasId: number,
     aliasAddress: string,
+}
+
+export type SyncedMailboxes = {
+    changes: MailboxChanges,
+    mailboxes: SyncedMailbox[],
+    /**
+     * The groups no alias took, which are still on the server: the server refuses to destroy a
+     * group that has members, so the caller unlinks them first (see memberships.ts) and then calls
+     * {@link destroyMailboxes}.
+     */
+    stale: string[],
 }
 
 type AliasMailbox = {
@@ -37,10 +48,7 @@ type WantedGroup = {
     description: string,
 }
 
-/**
- * The address of the mailbox of an alias: the alias's own, as the server writes addresses. The
- * token a member signs in to the webmail with names the mailboxes they may open by it.
- */
+/** The address of the mailbox of an alias: the alias's own, as the server writes addresses. */
 export function mailboxAddressOf(aliasAddress: string): string {
     return aliasAddress.toLowerCase()
 }
@@ -60,15 +68,16 @@ function creationId(address: string, index: number): string {
  * it remembers, if no other alias took it, and moves it: that is a renamed alias, which keeps its
  * mail. A group on `formerMailboxDomainId` is one from when the mailboxes were on the webmail's
  * domain, and moves to its alias's address the same way. The rest are created, and groups no alias
- * took are destroyed. Moves and destructions go to the server first, so a creation never meets an
- * address about to be freed.
+ * took are stale, for the caller to destroy. Moves go to the server first, so a creation never meets
+ * an address about to be freed. A stale group never holds an address a creation wants: an alias at
+ * its address would have taken it.
  */
 export async function syncMailboxes(
     client: MailServerClient,
     accounts: MailServerAccount[],
     siteDomainIdsByName: Map<string, string>,
     formerMailboxDomainId: string | undefined,
-): Promise<{ changes: MailboxChanges, mailboxes: SyncedMailbox[] }> {
+): Promise<SyncedMailboxes> {
     const aliases: AliasMailbox[] = await prisma.mailAlias.findMany({
         select: { id: true, address: true, mailboxAccountId: true },
     })
@@ -142,10 +151,10 @@ export async function syncMailboxes(
         if ((group.description ?? '') !== alias.address) changes.description = alias.address
         if (Object.keys(changes).length > 0) update[group.id] = changes
     })
-    const destroy = Array.from(groups.keys()).filter(id => !taken.has(id))
+    const stale = Array.from(groups.keys()).filter(id => !taken.has(id))
 
-    if (Object.keys(update).length > 0 || destroy.length > 0) {
-        await client.set('Account', { update, destroy })
+    if (Object.keys(update).length > 0) {
+        await client.set('Account', { update })
     }
     if (Object.keys(create).length > 0) {
         const result = await client.set('Account', { create })
@@ -171,11 +180,17 @@ export async function syncMailboxes(
         changes: {
             created: Object.keys(create).length,
             updated: Object.keys(update).length,
-            destroyed: destroy.length,
+            destroyed: stale.length,
         },
         mailboxes: wanted.flatMap(({ alias }) => {
             const accountId = accountIdOfAlias.get(alias.id)
-            return accountId === undefined ? [] : [{ accountId, aliasAddress: alias.address }]
+            return accountId === undefined ? [] : [{ accountId, aliasId: alias.id, aliasAddress: alias.address }]
         }),
+        stale,
     }
+}
+
+/** Destroys the groups a run of {@link syncMailboxes} found stale, once nobody is a member of them. */
+export async function destroyMailboxes(client: MailServerClient, stale: string[]): Promise<void> {
+    if (stale.length > 0) await client.set('Account', { destroy: stale })
 }

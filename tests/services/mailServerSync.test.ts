@@ -244,7 +244,12 @@ class FakeMailServer {
         const destroyed: string[] = []
         const notDestroyed: Record<string, { type: string }> = {}
         for (const id of args.destroy ?? []) {
-            if (table.delete(id)) destroyed.push(id)
+            // The server keeps a group that an account is a member of.
+            const linked = object === 'Account' && Array.from(table.values()).some(account =>
+                Object.hasOwn(account.memberGroupIds ?? {}, id)
+            )
+            if (linked) notDestroyed[id] = { type: 'objectIsLinked' }
+            else if (table.delete(id)) destroyed.push(id)
             else notDestroyed[id] = { type: 'notFound' }
         }
 
@@ -671,8 +676,9 @@ describe('syncing mailboxes', () => {
         expect(server.account(alias.address)?.id).toBe(formerGroup.id)
         expect(server.account(`test-migrated@${webmail.domain}`)).toBeUndefined()
         expect(recipientsOf(server.mailingList(forwardingOf(alias.address)))).toEqual(['test-migrates@test.test'])
-        // An account of someone who signed in is on the webmail's domain too, and is left alone.
-        expect(server.objects.Account.get(member.id)).toEqual(member)
+        // The account of someone who signed in is on the webmail's domain too. It is no mailbox, so
+        // it stays, as a member of the mailbox its user receives.
+        expect(server.objects.Account.get(member.id)).toEqual({ ...member, memberGroupIds: { [formerGroup.id]: true } })
     })
 
     test('a deleted alias loses its group and its list, and a stray group goes to the alias at its address', async () => {
@@ -702,6 +708,104 @@ describe('syncing mailboxes', () => {
         expect(server.account(doomed.address)).toBeUndefined()
         expect(server.mailingList(forwardingOf(doomed.address))).toBeUndefined()
         expect(server.objects.Account.get(orphan.id)).toBeDefined()
+    })
+})
+
+describe('syncing memberships', () => {
+    /** The account the server makes for someone the first time they sign in to the webmail. */
+    const signIn = (server: FakeMailServer, username: string, memberGroupIds: Record<string, true> = {}) =>
+        server.add('Account', {
+            '@type': 'User', name: username, domainId: server.domain(webmail.domain)?.id, memberGroupIds,
+        })
+    const mailboxesOf = (server: FakeMailServer, account: StoredObject) =>
+        Object.keys(server.objects.Account.get(account.id)?.memberGroupIds ?? {}).sort()
+
+    function serverWithAccounts() {
+        const server = serverWithOurDomain()
+        server.add('Domain', { name: webmail.domain })
+        return server
+    }
+
+    test('an account is a member of exactly the mailboxes of the aliases its user receives', async () => {
+        const user = await createTestUser('test-member', 'test-member@test.test')
+        const { alias: received, list } = await createTestAlias('test-received')
+        const { alias: notReceived } = await createTestAlias('test-not-received')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+
+        const server = serverWithAccounts()
+        // A group that is no mailbox of ours, which a membership of is none of the sync's business.
+        const elsewhere = server.add('Domain', { name: 'elsewhere.example' })
+        const foreign = server.add('Account', { '@type': 'Group', name: 'team', domainId: elsewhere.id })
+        const member = signIn(server, 'test-member', { [foreign.id]: true })
+        const stranger = signIn(server, 'test-not-a-user-here')
+
+        await syncMailServer({ client: server.client(), webmail })
+        const receivedMailbox = server.account(received.address)
+        const otherMailbox = server.account(notReceived.address)
+        expect(mailboxesOf(server, member)).toEqual([foreign.id, receivedMailbox?.id].sort())
+        expect(mailboxesOf(server, stranger)).toEqual([])
+
+        server.setCalls.length = 0
+        await syncMailServer({ client: server.client(), webmail })
+        expect(server.setCalls).toEqual([])
+
+        // A membership the server holds that the database does not, as a token leaves behind
+        // when its user was taken off the alias after it was issued.
+        server.objects.Account.get(member.id)!.memberGroupIds = {
+            [foreign.id]: true, [receivedMailbox?.id ?? '']: true, [otherMailbox?.id ?? '']: true,
+        }
+        await mailOperations.destroyMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+        await syncMailServer({ client: server.client(), webmail })
+        expect(mailboxesOf(server, member)).toEqual([foreign.id])
+    })
+
+    test('the active members of a group on the alias get its mailbox, and lose it when they leave', async () => {
+        const active = await createTestUser('test-active-member', 'test-active-member@test.test')
+        const passive = await createTestUser('test-passive-member', 'test-passive-member@test.test')
+        const group = await createTestGroup([
+            { userId: active.id, active: true },
+            { userId: passive.id, active: false },
+        ])
+        const { alias, list } = await createTestAlias('test-group-box')
+        await mailOperations.createMailingListGroupRelation({
+            data: { groupId: group.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+
+        const server = serverWithAccounts()
+        const activeAccount = signIn(server, 'test-active-member')
+        const passiveAccount = signIn(server, 'test-passive-member')
+        await syncMailServer({ client: server.client(), webmail })
+        expect(mailboxesOf(server, activeAccount)).toEqual([server.account(alias.address)?.id])
+        expect(mailboxesOf(server, passiveAccount)).toEqual([])
+
+        await prisma.membership.updateMany({ where: { groupId: group.id, userId: active.id }, data: { active: false } })
+        await syncMailServer({ client: server.client(), webmail })
+        expect(mailboxesOf(server, activeAccount)).toEqual([])
+    })
+
+    test('a deleted alias loses its mailbox although a member was signed in to it', async () => {
+        const user = await createTestUser('test-linked', 'test-linked@test.test')
+        const { alias, list } = await createTestAlias('test-linked-box')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+        const server = serverWithAccounts()
+        const member = signIn(server, 'test-linked')
+        await syncMailServer({ client: server.client(), webmail })
+        expect(mailboxesOf(server, member)).toEqual([server.account(alias.address)?.id])
+
+        await aliasOperations.destroy({ params: { id: alias.id }, bypassAuth: true })
+        await syncMailServer({ client: server.client(), webmail })
+        expect(server.account(alias.address)).toBeUndefined()
+        expect(mailboxesOf(server, member)).toEqual([])
     })
 })
 

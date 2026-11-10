@@ -1,13 +1,12 @@
 import '@pn-server-only'
 import { userOperations } from '@/services/users/operations'
-import { mailboxesReceivedBy } from '@/services/mail/received'
 import type { UserFiltered } from '@/services/users/types'
 import type { Awaitable } from '@/lib/awaitable'
 
 /**
  * The mail scope of the OAuth Profile for Open Public Clients (draft-ietf-mailmaint-oauth-public),
- * by which the mail server tells a token for the mailboxes from any other, and which the webmail
- * asks for because the provider lists it.
+ * by which the mail server tells a token for the mailboxes from any other: it refuses one without
+ * it. The webmail asks for it because the provider lists it.
  */
 export const OIDC_MAIL_SCOPE = 'urn:ietf:params:oauth:scope:mail'
 
@@ -53,11 +52,12 @@ export const oidcScopes = {
         clients: EVERY_CLIENT,
         claims: { email: user => user.email },
     },
-    /** The mailboxes the user may open, which the mail server reads as the groups the user is a member of. */
-    [OIDC_MAIL_SCOPE]: {
-        clients: ['webmail'],
-        claims: { groups: user => mailboxesReceivedBy(user.id) },
-    },
+    /**
+     * What makes a token one the mail server takes. It says nothing about the user: which mailboxes
+     * they may open is not in the token, the mail server sync writes it to the server, see
+     * src/lib/mailServerSync/memberships.ts.
+     */
+    [OIDC_MAIL_SCOPE]: { clients: ['webmail'], claims: {} },
 } as const satisfies Record<string, OidcScopeDefinition>
 
 export type OidcScope = keyof typeof oidcScopes

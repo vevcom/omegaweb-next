@@ -39,6 +39,8 @@ export type MailServerAccount = {
     emailAddress?: string,
     credentials?: MailServerPasswordCredentials,
     roles?: { '@type': string },
+    /** The groups an account is a member of, as a set: the group's id as key and true as value. */
+    memberGroupIds?: Record<string, true>,
 }
 
 /** A Sieve script of an account. An account runs at most one of its scripts, the active one. */

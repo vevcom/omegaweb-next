@@ -1,7 +1,8 @@
 import '@pn-server-only'
 import { mailServerClientFromEnv } from './client'
 import { mailServerWebmail, mailboxesAreAvailable } from './constants'
-import { syncMailboxes } from './mailboxes'
+import { destroyMailboxes, syncMailboxes } from './mailboxes'
+import { syncMemberships } from './memberships'
 import { forwardingAddressOf, forwardingDomainOf, syncForwardingScripts } from './forwarding'
 import { validMailAddressDomains } from '@/services/mail/constants'
 import { mailingListAddresses } from '@/services/mail/recipients'
@@ -49,9 +50,11 @@ const NO_MAILBOX_CHANGES: MailboxChanges = { created: 0, updated: 0, destroyed: 
  * reaches. With one, every alias is a mailbox at its own address (see mailboxes.ts), which keeps
  * the mail and forwards a copy to a list of those addresses on a domain of its own (see
  * forwarding.ts): the webmail's host is the domain of the accounts that sign in, and the lists are
- * on a domain under it. What the server holds under other domains is left alone, and so is every
- * account that is not a mailbox: the app has none of its own, since it sends without a login (see
- * src/services/mail/send/constants.ts). Run by the mail worker (src/workers/definitions.ts).
+ * on a domain under it. Those accounts are made members of the mailboxes of the aliases their
+ * users receive, and of no other mailbox (see memberships.ts). What the server holds under other
+ * domains is left alone, and no account is created: the app has none of its own, since it sends
+ * without a login (see src/services/mail/send/constants.ts). Run by the mail worker
+ * (src/workers/definitions.ts).
  *
  * @returns false, since one run does all the work there is.
  */
@@ -71,11 +74,12 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
         return id === undefined ? [] : [[name, id] as const]
     }))
     const forwardingDomainId = forwardingDomain ? domains.idsByName.get(forwardingDomain) : undefined
-    if (webmail && forwardingDomainId === undefined) {
-        logger.warn(`Mail server sync keeps no mailboxes, since the domain ${forwardingDomain} could not be made`)
+    const accountDomainId = webmail ? domains.idsByName.get(webmail.domain) : undefined
+    if (webmail && (forwardingDomainId === undefined || accountDomainId === undefined)) {
+        logger.warn('Mail server sync keeps no mailboxes, since the domains they take could not be made')
     }
-    const forwarding = webmail && forwardingDomainId !== undefined
-        ? { webmail, domainId: forwardingDomainId }
+    const forwarding = webmail && forwardingDomainId !== undefined && accountDomainId !== undefined
+        ? { webmail, domainId: forwardingDomainId, accountDomainId }
         : null
 
     // The lists first: the first run with mailboxes frees the aliases' addresses of the lists that
@@ -87,15 +91,14 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
 
     let mailboxes = NO_MAILBOX_CHANGES
     let scripts = 0
+    let memberships = 0
     if (forwarding) {
         const accounts = await client.listAll('Account')
-        const synced = await syncMailboxes(
-            client,
-            accounts,
-            siteDomainIdsByName,
-            domains.idsByName.get(forwarding.webmail.domain),
-        )
+        const synced = await syncMailboxes(client, accounts, siteDomainIdsByName, forwarding.accountDomainId)
         mailboxes = synced.changes
+        // The memberships before the stale mailboxes go, since the server keeps a group that has members.
+        memberships = await syncMemberships(client, accounts, forwarding.accountDomainId, synced.mailboxes, synced.stale)
+        await destroyMailboxes(client, synced.stale)
         scripts = await syncForwardingScripts(client, synced.mailboxes.map(mailbox => {
             const forwardTo = forwardingAddressOf(mailbox.aliasAddress, forwarding.webmail.domain)
             return { ...mailbox, forwardTo: wantedLists.has(forwardTo) ? forwardTo : null }
@@ -103,11 +106,12 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
     }
 
     const changes = domains.created + mailboxes.created + mailboxes.updated + mailboxes.destroyed
-        + lists.created + lists.updated + lists.destroyed + scripts
+        + lists.created + lists.updated + lists.destroyed + scripts + memberships
     if (changes > 0) {
         logger.info(`Mail server sync created ${domains.created} domains; created ${mailboxes.created}, updated ${
             mailboxes.updated} and destroyed ${mailboxes.destroyed} mailboxes; created ${lists.created}, updated ${
-            lists.updated} and destroyed ${lists.destroyed} mailing lists; and set the forwarding of ${scripts} mailboxes`)
+            lists.updated} and destroyed ${lists.destroyed} mailing lists; set the forwarding of ${
+            scripts} mailboxes; and changed the memberships of ${memberships} accounts`)
     } else {
         logger.debug('Mail server sync found the server in step with the database')
     }

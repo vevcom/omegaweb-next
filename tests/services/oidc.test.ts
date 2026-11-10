@@ -316,19 +316,11 @@ describe('the OpenID Connect provider', () => {
         ])
     })
 
-    test('the mail scope gives the mailboxes of the aliases the user receives mail on, by alias address', async () => {
+    test('the mail scope gives no claim: which mailboxes a user may open is not in the token', async () => {
         const { user } = await createUser('groups')
-        const { user: other } = await createUser('groups-other')
         await createAliasReceivedBy(user.id, 'test-oidc-styret')
-        await createAliasReceivedBy(other.id, 'test-oidc-theirs')
 
-        expect(await userClaims(user.id, ['openid', OIDC_MAIL_SCOPE])).toEqual({
-            groups: ['test-oidc-styret@omega.ntnu.no'],
-        })
-        expect(await userClaims(other.id, ['openid', OIDC_MAIL_SCOPE])).toEqual({
-            groups: ['test-oidc-theirs@omega.ntnu.no'],
-        })
-        expect(await userClaims(user.id, ['openid', 'email'])).not.toHaveProperty('groups')
+        expect(await userClaims(user.id, ['openid', OIDC_MAIL_SCOPE])).toEqual({})
     })
 
     test('the discovery document names the endpoints on the issuer', () => {
@@ -348,6 +340,6 @@ describe('the OpenID Connect provider', () => {
         expect(discoveryDocument().claims_supported).toEqual(OIDC_CLAIMS)
         expect(OIDC_SCOPES).toEqual(['openid', 'profile', 'email', OIDC_MAIL_SCOPE])
         expect(OIDC_CLAIMS).toEqual(['sub', ...Object.values(oidcScopes).flatMap(scope => Object.keys(scope.claims))])
-        expect(OIDC_CLAIMS).toContain('groups')
+        expect(OIDC_CLAIMS).not.toContain('groups')
     })
 })
