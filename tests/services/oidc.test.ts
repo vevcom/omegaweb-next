@@ -316,17 +316,17 @@ describe('the OpenID Connect provider', () => {
         ])
     })
 
-    test('the mail scope gives the mailboxes of the aliases the user receives mail on', async () => {
+    test('the mail scope gives the mailboxes of the aliases the user receives mail on, by alias address', async () => {
         const { user } = await createUser('groups')
         const { user: other } = await createUser('groups-other')
         await createAliasReceivedBy(user.id, 'test-oidc-styret')
         await createAliasReceivedBy(other.id, 'test-oidc-theirs')
 
         expect(await userClaims(user.id, ['openid', OIDC_MAIL_SCOPE])).toEqual({
-            groups: [`test-oidc-styret@${WEBMAIL_CLIENT}`],
+            groups: ['test-oidc-styret@omega.ntnu.no'],
         })
         expect(await userClaims(other.id, ['openid', OIDC_MAIL_SCOPE])).toEqual({
-            groups: [`test-oidc-theirs@${WEBMAIL_CLIENT}`],
+            groups: ['test-oidc-theirs@omega.ntnu.no'],
         })
         expect(await userClaims(user.id, ['openid', 'email'])).not.toHaveProperty('groups')
     })

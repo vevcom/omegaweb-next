@@ -1,16 +1,13 @@
 import '@pn-server-only'
-import { DomainContext } from '@/lib/sites/context'
-import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
-import { Site } from '@/lib/sites/site'
 import { prisma } from '@/prisma-pn-client-instance'
+import logger from '@/lib/logger'
 import type { MailServerAccount, MailServerClient } from './client'
-import type { MailServerWebmail } from './constants'
 
 /**
  * The mailbox of an alias is a group account on the mail server: a mailbox with no login of its
- * own, which its members see as a shared folder in the webmail. The sync keeps one per alias, on
- * the mailbox domain, described by the alias's address so members see which
- * alias it is, and the alias's list delivers to it besides forwarding (see sync.ts). Who the
+ * own, which its members see as a shared folder in the webmail. It is the alias's own address, on
+ * the alias's own domain, so members see the alias and answer as it. The sync keeps one per alias,
+ * and the mailbox forwards the mail to the people behind the alias (see forwarding.ts). Who the
  * members are is not kept here: the server takes that from the groups claim of the token a member
  * signs in to the webmail with, and rewrites it at every sign in.
  */
@@ -19,6 +16,12 @@ export type MailboxChanges = {
     created: number,
     updated: number,
     destroyed: number,
+}
+
+/** A mailbox as it is on the server once the sync has run. */
+export type SyncedMailbox = {
+    accountId: string,
+    aliasAddress: string,
 }
 
 type AliasMailbox = {
@@ -35,22 +38,11 @@ type WantedGroup = {
 }
 
 /**
- * The address of the mailbox of an alias, on the mailbox domain. An alias on Omega's main domain
- * keeps its local part; one on another of the sites' domains carries that domain too, joined with
- * `--`, which no local part holds (see mail/alias/schemas.ts), so two aliases never share a mailbox.
+ * The address of the mailbox of an alias: the alias's own, as the server writes addresses. The
+ * token a member signs in to the webmail with names the mailboxes they may open by it.
  */
-export function mailboxAddressOf(aliasAddress: string, mailboxDomain: string): string {
-    loadDomainConfig()
-    const at = aliasAddress.lastIndexOf('@')
-    const localPart = aliasAddress.slice(0, at).toLowerCase()
-    const domain = aliasAddress.slice(at + 1).toLowerCase()
-    const siteDomain = DomainContext.domainOfHost(domain)
-    const onMainDomain = siteDomain !== null && siteDomain.main && Site.of(siteDomain.site).isRoot
-    return `${onMainDomain ? localPart : `${localPart}--${domain}`}@${mailboxDomain}`
-}
-
-function localPartOf(address: string): string {
-    return address.slice(0, address.lastIndexOf('@'))
+export function mailboxAddressOf(aliasAddress: string): string {
+    return aliasAddress.toLowerCase()
 }
 
 /** The id a creation is sent under, see sync.ts. */
@@ -59,41 +51,59 @@ function creationId(address: string, index: number): string {
 }
 
 /**
- * Makes the group accounts on the mailbox domain match the aliases: one per alias, named by the
- * alias and renamed with it, and none for an alias that is gone.
+ * Makes the group accounts on the sites' domains match the aliases: one per alias, at the alias's
+ * address and moved with it, and none for an alias that is gone.
  *
- * Which group is an alias's goes by name first: the group named as the alias's mailbox is its,
+ * Which group is an alias's goes by address first: the group at the alias's address is its,
  * whatever any alias remembers, which adopts a group a failed run created but did not store, and
  * makes stale ids harmless after the server was set up anew. An alias without one takes the group
- * it remembers, if no other alias took it, and renames it: that is a renamed alias, which keeps
- * its mail. The rest are created, and groups no alias took are destroyed. Renames and destructions
- * go to the server first, so a creation never meets a name about to be freed.
+ * it remembers, if no other alias took it, and moves it: that is a renamed alias, which keeps its
+ * mail. A group on `formerMailboxDomainId` is one from when the mailboxes were on the webmail's
+ * domain, and moves to its alias's address the same way. The rest are created, and groups no alias
+ * took are destroyed. Moves and destructions go to the server first, so a creation never meets an
+ * address about to be freed.
  */
 export async function syncMailboxes(
     client: MailServerClient,
     accounts: MailServerAccount[],
-    mailboxDomainId: string,
-    webmail: MailServerWebmail,
-): Promise<MailboxChanges> {
+    siteDomainIdsByName: Map<string, string>,
+    formerMailboxDomainId: string | undefined,
+): Promise<{ changes: MailboxChanges, mailboxes: SyncedMailbox[] }> {
     const aliases: AliasMailbox[] = await prisma.mailAlias.findMany({
         select: { id: true, address: true, mailboxAccountId: true },
     })
-    const groups = new Map<string, MailServerAccount>()
-    for (const account of accounts) {
-        if (account['@type'] === 'Group' && account.domainId === mailboxDomainId) groups.set(account.id, account)
-    }
-    const groupsByName = new Map<string, MailServerAccount>()
-    groups.forEach(group => groupsByName.set(group.name.toLowerCase(), group))
+    const domainNamesById = new Map(Array.from(siteDomainIdsByName, ([name, id]) => [id, name]))
 
-    const wanted = aliases.map(alias => {
-        const address = mailboxAddressOf(alias.address, webmail.domain)
-        return { alias, address, name: localPartOf(address) }
+    const groups = new Map<string, MailServerAccount>()
+    const groupsByAddress = new Map<string, MailServerAccount>()
+    for (const account of accounts) {
+        if (account['@type'] !== 'Group') continue
+        const domain = domainNamesById.get(account.domainId)
+        if (domain === undefined && account.domainId !== formerMailboxDomainId) continue
+        groups.set(account.id, account)
+        if (domain !== undefined) groupsByAddress.set(`${account.name}@${domain}`.toLowerCase(), account)
+    }
+
+    const unplaced: string[] = []
+    const wanted = aliases.flatMap(alias => {
+        const address = mailboxAddressOf(alias.address)
+        const at = address.lastIndexOf('@')
+        const domainId = siteDomainIdsByName.get(address.slice(at + 1))
+        if (domainId === undefined) {
+            unplaced.push(alias.address)
+            return []
+        }
+        return [{ alias, address, name: address.slice(0, at), domainId }]
     })
+    if (unplaced.length > 0) {
+        logger.warn(`Mail server sync keeps no mailbox for aliases on domains that are no longer the sites': ${
+            unplaced.join(', ')}`)
+    }
 
     const groupOfAlias = new Map<number, MailServerAccount>()
     const taken = new Set<string>()
-    for (const { alias, name } of wanted) {
-        const group = groupsByName.get(name)
+    for (const { alias, address } of wanted) {
+        const group = groupsByAddress.get(address)
         if (group && !taken.has(group.id)) {
             groupOfAlias.set(alias.id, group)
             taken.add(group.id)
@@ -113,18 +123,22 @@ export async function syncMailboxes(
     const update: Record<string, Partial<WantedGroup>> = {}
     /** The group each alias is to remember from now on. */
     const remember = new Map<number, string>()
+    /** The group of each alias that has one once the calls below are through. */
+    const accountIdOfAlias = new Map<number, string>()
 
-    wanted.forEach(({ alias, address, name }, index) => {
+    wanted.forEach(({ alias, address, name, domainId }, index) => {
         const group = groupOfAlias.get(alias.id)
         if (!group) {
             const id = creationId(address, index)
-            create[id] = { '@type': 'Group', name, domainId: mailboxDomainId, description: alias.address }
+            create[id] = { '@type': 'Group', name, domainId, description: alias.address }
             aliasOfCreation.set(id, alias.id)
             return
         }
+        accountIdOfAlias.set(alias.id, group.id)
         if (group.id !== alias.mailboxAccountId) remember.set(alias.id, group.id)
         const changes: Partial<WantedGroup> = {}
         if (group.name !== name) changes.name = name
+        if (group.domainId !== domainId) changes.domainId = domainId
         if ((group.description ?? '') !== alias.address) changes.description = alias.address
         if (Object.keys(changes).length > 0) update[group.id] = changes
     })
@@ -137,7 +151,9 @@ export async function syncMailboxes(
         const result = await client.set('Account', { create })
         for (const [id, created] of Object.entries(result.created ?? {})) {
             const aliasId = aliasOfCreation.get(id)
-            if (aliasId !== undefined) remember.set(aliasId, created.id)
+            if (aliasId === undefined) continue
+            remember.set(aliasId, created.id)
+            accountIdOfAlias.set(aliasId, created.id)
         }
     }
     // Every alias that is to remember something else forgets first, since an id is remembered by one alias alone.
@@ -151,5 +167,15 @@ export async function syncMailboxes(
         await prisma.mailAlias.updateMany({ where: { id: aliasId }, data: { mailboxAccountId: accountId } })
     }
 
-    return { created: Object.keys(create).length, updated: Object.keys(update).length, destroyed: destroy.length }
+    return {
+        changes: {
+            created: Object.keys(create).length,
+            updated: Object.keys(update).length,
+            destroyed: destroy.length,
+        },
+        mailboxes: wanted.flatMap(({ alias }) => {
+            const accountId = accountIdOfAlias.get(alias.id)
+            return accountId === undefined ? [] : [{ accountId, aliasAddress: alias.address }]
+        }),
+    }
 }

@@ -41,6 +41,13 @@ export type MailServerAccount = {
     roles?: { '@type': string },
 }
 
+/** A Sieve script of an account. An account runs at most one of its scripts, the active one. */
+export type MailServerSieveScript = {
+    id: string,
+    name: string,
+    isActive: boolean,
+}
+
 export type MailServerObjects = {
     Domain: MailServerDomain,
     MailingList: MailServerMailingList,
@@ -95,21 +102,24 @@ export type MailServerClientOptions = {
     fetch?: MailServerFetch,
 }
 
-const JMAP_CAPABILITIES = ['urn:ietf:params:jmap:core', 'urn:stalwart:jmap']
+const JMAP_CAPABILITIES = ['urn:ietf:params:jmap:core', 'urn:stalwart:jmap', 'urn:ietf:params:jmap:sieve']
 
 /**
  * A minimal client for Stalwart's management API, which is JMAP (RFC 8620) over HTTP basic auth:
  * a request carries a batch of method calls and the response one result per call. The methods
  * are the standard query, get and set of each object, prefixed `x:`. Querying cannot filter on a
- * name, so finding an object means listing them all and matching here.
+ * name, so finding an object means listing them all and matching here. The Sieve scripts of an
+ * account are standard JMAP (RFC 9661), reached as the admin by naming the account.
  */
 export class MailServerClient {
     private readonly endpoint: string
+    private readonly uploadEndpoint: string
     private readonly authorization: string
     private readonly fetch: MailServerFetch
 
     constructor({ url, user, password, fetch: fetchImplementation = globalThis.fetch }: MailServerClientOptions) {
         this.endpoint = `${url.replace(/\/+$/, '')}/jmap`
+        this.uploadEndpoint = `${this.endpoint}/upload`
         this.authorization = `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`
         this.fetch = fetchImplementation
     }
@@ -194,6 +204,70 @@ export class MailServerClient {
             throw new Error(`Mail server refused to ${refused.join('; ')}`)
         }
         return result
+    }
+
+    /** The Sieve scripts of each of the accounts, read in one request. */
+    async sieveScripts(accountIds: string[]): Promise<Map<string, MailServerSieveScript[]>> {
+        const scripts = new Map<string, MailServerSieveScript[]>()
+        if (accountIds.length === 0) return scripts
+        const callIdOf = (index: number) => `scripts-${index}`
+        const responses = await this.send(
+            accountIds.map((accountId, index) => ['SieveScript/get', { accountId }, callIdOf(index)]),
+        )
+        accountIds.forEach((accountId, index) => {
+            const response = responses.find(([, , callId]) => callId === callIdOf(index))
+            scripts.set(accountId, (response?.[1].list as MailServerSieveScript[] | undefined) ?? [])
+        })
+        return scripts
+    }
+
+    /**
+     * Gives an account a Sieve script with this content and makes it the active one. A script the
+     * account already has by that name has to be destroyed first.
+     */
+    async setActiveSieveScript(accountId: string, name: string, content: string): Promise<void> {
+        const blobId = await this.upload(accountId, content, 'application/sieve')
+        const [[, result]] = await this.send([[
+            'SieveScript/set',
+            { accountId, create: { script: { name, blobId } }, onSuccessActivateScript: '#script' },
+            'activate',
+        ]])
+        const refused = describeRefusals('create', (result as MailServerSetResult).notCreated)
+        if (refused.length > 0) {
+            throw new Error(`Mail server refused to ${refused.join('; ')} as the Sieve script of ${accountId}`)
+        }
+    }
+
+    /** Destroys Sieve scripts of an account. The server refuses the active one. */
+    async destroySieveScripts(accountId: string, ids: string[]): Promise<void> {
+        if (ids.length === 0) return
+        const [[, result]] = await this.send([['SieveScript/set', { accountId, destroy: ids }, 'destroy']])
+        const refused = describeRefusals('destroy', (result as MailServerSetResult).notDestroyed)
+        if (refused.length > 0) {
+            throw new Error(`Mail server refused to ${refused.join('; ')} of the Sieve scripts of ${accountId}`)
+        }
+    }
+
+    /** Uploads a blob to an account and returns its id, for a method that takes its content by reference. */
+    private async upload(accountId: string, content: string, contentType: string): Promise<string> {
+        const response = await this.fetch(`${this.uploadEndpoint}/${encodeURIComponent(accountId)}/`, {
+            method: 'POST',
+            headers: {
+                authorization: this.authorization,
+                'content-type': contentType,
+                accept: 'application/json',
+            },
+            body: content,
+        })
+        const text = await response.text()
+        if (!response.ok) {
+            throw new Error(
+                `Mail server answered ${response.status} ${response.statusText} to an upload: ${text.slice(0, 500)}`
+            )
+        }
+        const { blobId } = JSON.parse(text) as { blobId?: string }
+        if (!blobId) throw new Error('Mail server gave no blob id for an upload')
+        return blobId
     }
 }
 

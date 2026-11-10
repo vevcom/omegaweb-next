@@ -7,6 +7,7 @@ import { mailOperations } from '@/services/mail/operations'
 import { MailServerClient } from '@/lib/mailServerSync/client'
 import { syncMailServer } from '@/lib/mailServerSync/sync'
 import { mailboxAddressOf } from '@/lib/mailServerSync/mailboxes'
+import { forwardingAddressOf, forwardingDomainOf } from '@/lib/mailServerSync/forwarding'
 import { afterEach, describe, expect, test } from '@jest/globals'
 import type {
     JmapMethodCall,
@@ -37,6 +38,13 @@ type SetCall = {
     args: SetArgs,
 }
 
+type StoredScript = {
+    id: string,
+    name: string,
+    isActive: boolean,
+    content: string,
+}
+
 /**
  * An in-memory stand-in for Stalwart's management API: the query, get and set methods of the
  * objects the sync uses, behind a fetch the client is given. Passwords are kept aside, since the
@@ -49,12 +57,27 @@ class FakeMailServer {
         Account: new Map(),
     }
     readonly passwords = new Map<string, string>()
+    /** The Sieve scripts of each account, and the blobs uploaded for them. */
+    readonly scripts = new Map<string, StoredScript[]>()
+    readonly uploads: string[] = []
+    private readonly blobs = new Map<string, string>()
     readonly setCalls: SetCall[] = []
     readonly authorizations: string[] = []
     private nextId = 1
 
     readonly fetch: MailServerFetch = (url, init) => {
         this.authorizations.push(init.headers.authorization)
+        if (url.includes('/jmap/upload/')) {
+            const blobId = `blob-${this.blobs.size + 1}`
+            this.blobs.set(blobId, init.body)
+            this.uploads.push(init.body)
+            return Promise.resolve({
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                text: () => Promise.resolve(JSON.stringify({ blobId })),
+            })
+        }
         const { methodCalls } = JSON.parse(init.body) as { methodCalls: JmapMethodCall[] }
         const responses: JmapMethodResponse[] = []
         for (const methodCall of methodCalls) {
@@ -95,6 +118,50 @@ class FakeMailServer {
         return this.setCalls.filter(call => call.object === object)
     }
 
+    /** The script an account runs, if any. */
+    activeScript(accountId: string | undefined): StoredScript | undefined {
+        return (this.scripts.get(accountId ?? '') ?? []).find(script => script.isActive)
+    }
+
+    /** The Sieve methods of an account, as RFC 9661 has them: one active script, which cannot be destroyed. */
+    private handleSieve(method: string, args: Record<string, unknown>, callId: string): JmapMethodResponse {
+        const accountId = String(args.accountId)
+        const scripts = this.scripts.get(accountId) ?? []
+        this.scripts.set(accountId, scripts)
+        if (method === 'SieveScript/get') {
+            return [method, { list: scripts.map(({ id, name, isActive }) => ({ id, name, isActive })) }, callId]
+        }
+
+        const created: Record<string, { id: string }> = {}
+        const notCreated: Record<string, { type: string }> = {}
+        const creations = (args.create ?? {}) as Record<string, { name: string, blobId: string }>
+        for (const [creationId, { name, blobId }] of Object.entries(creations)) {
+            if (scripts.some(script => script.name === name)) {
+                notCreated[creationId] = { type: 'alreadyExists' }
+                continue
+            }
+            const id = `script-${this.nextId}`
+            this.nextId += 1
+            scripts.push({ id, name, isActive: false, content: this.blobs.get(blobId) ?? '' })
+            created[creationId] = { id }
+        }
+        const activate = args.onSuccessActivateScript as string | undefined
+        if (activate !== undefined && Object.keys(notCreated).length === 0) {
+            const id = activate.startsWith('#') ? created[activate.slice(1)]?.id : activate
+            scripts.forEach(script => { script.isActive = script.id === id })
+        }
+
+        const destroyed: string[] = []
+        const notDestroyed: Record<string, { type: string }> = {}
+        for (const id of (args.destroy ?? []) as string[]) {
+            const index = scripts.findIndex(script => script.id === id)
+            if (index === -1) notDestroyed[id] = { type: 'notFound' }
+            else if (scripts[index].isActive) notDestroyed[id] = { type: 'scriptIsActive' }
+            else destroyed.push(...scripts.splice(index, 1).map(script => script.id))
+        }
+        return [method, { created, notCreated, destroyed, notDestroyed }, callId]
+    }
+
     private store(object: MailServerObjectName, value: StoredObject): StoredObject {
         const stored = { ...value }
         if (object !== 'Domain') {
@@ -111,6 +178,7 @@ class FakeMailServer {
     }
 
     private handle([method, args, callId]: JmapMethodCall, previous: JmapMethodResponse[]): JmapMethodResponse {
+        if (method === 'SieveScript/get' || method === 'SieveScript/set') return this.handleSieve(method, args, callId)
         const match = /^x:(Domain|MailingList|Account)\/(query|get|set)$/.exec(method)
         if (!match) return ['error', { type: 'unknownMethod' }, callId]
         const object = match[1] as MailServerObjectName
@@ -190,9 +258,11 @@ class FakeMailServer {
     private refusalOf(object: MailServerObjectName, value: Record<string, unknown>): string | null {
         if (value.description === '') return 'invalidPatch'
         if (object !== 'Domain' && !this.objects.Domain.has(String(value.domainId))) return 'invalidForeignKey'
-        const taken = Array.from(this.objects[object].values()).some(existing =>
-            existing.name === value.name && existing.domainId === value.domainId
-        )
+        // An address is a list or an account, never both.
+        const addressed = object === 'Domain'
+            ? Array.from(this.objects.Domain.values())
+            : [...Array.from(this.objects.MailingList.values()), ...Array.from(this.objects.Account.values())]
+        const taken = addressed.some(existing => existing.name === value.name && existing.domainId === value.domainId)
         return taken ? 'primaryKeyViolation' : null
     }
 }
@@ -447,17 +517,19 @@ describe('syncing mailing lists', () => {
 })
 
 describe('syncing mailboxes', () => {
-    const mailboxOf = (localPart: string) => `${localPart}@${webmail.domain}`
+    const forwardingOf = (address: string) => forwardingAddressOf(address, webmail.domain)
     const storedMailboxId = async (aliasId: number) =>
         (await prisma.mailAlias.findUniqueOrThrow({ where: { id: aliasId } })).mailboxAccountId
 
-    test('the mailbox address keeps the local part on the main domain and carries any other domain', () => {
-        expect(mailboxAddressOf('styret@omega.ntnu.no', webmail.domain)).toBe('styret@mail.omega.ntnu.no')
-        expect(mailboxAddressOf('Styret@Omega.NTNU.no', webmail.domain)).toBe('styret@mail.omega.ntnu.no')
-        expect(mailboxAddressOf('styret@contactor.no', webmail.domain)).toBe('styret--contactor.no@mail.omega.ntnu.no')
+    test('the mailbox of an alias is at the alias\'s own address, and its forwarding list carries the domain', () => {
+        expect(mailboxAddressOf('styret@omega.ntnu.no')).toBe('styret@omega.ntnu.no')
+        expect(mailboxAddressOf('Styret@Contactor.no')).toBe('styret@contactor.no')
+        expect(forwardingDomainOf(webmail.domain)).toBe('forward.mail.omega.ntnu.no')
+        expect(forwardingOf('Styret@Omega.NTNU.no')).toBe('styret--omega.ntnu.no@forward.mail.omega.ntnu.no')
+        expect(forwardingOf('styret@contactor.no')).toBe('styret--contactor.no@forward.mail.omega.ntnu.no')
     })
 
-    test('an alias with a mailbox gets a group on the mailbox domain, which its list delivers to', async () => {
+    test('an alias is a group at its own address, which keeps the mail and forwards a copy to its members', async () => {
         const user = await createTestUser('test-box-user', 'test-box-user@test.test')
         const { alias, list } = await createTestAlias('test-boxed', 'Boxed')
         await mailOperations.createMailingListUserRelation({
@@ -468,33 +540,91 @@ describe('syncing mailboxes', () => {
         const server = serverWithOurDomain()
         await syncMailServer({ client: server.client(), webmail })
 
+        // The webmail's host is the domain of those who sign in, and the lists are on one under it.
         expect(server.domain(webmail.domain)).toBeDefined()
-        const group = server.account(mailboxOf('test-boxed'))
+        expect(server.domain(forwardingDomainOf(webmail.domain))).toBeDefined()
+
+        const group = server.account(alias.address)
         expect(group).toBeDefined()
         expect(group?.['@type']).toBe('Group')
         expect(group?.description).toBe(alias.address)
         expect(group?.credentials).toBeUndefined()
-        expect(recipientsOf(server.mailingList(alias.address))).toEqual(['test-box-user@test.test', mailboxOf('test-boxed')])
         expect(await storedMailboxId(alias.id)).toBe(group?.id)
 
+        // The address is the mailbox's, so no list holds it: the list is on the forwarding domain.
+        expect(server.mailingList(alias.address)).toBeUndefined()
+        expect(recipientsOf(server.mailingList(forwardingOf(alias.address)))).toEqual(['test-box-user@test.test'])
+
+        const script = server.activeScript(group?.id)
+        expect(script?.name).toMatch(/^omegaweb-forward-[0-9a-f]{16}$/)
+        expect(script?.content).toMatch(/^require [^;]*;\nfileinto "INBOX";\n/)
+        expect(script?.content).toContain(`redirect "${forwardingOf(alias.address)}";`)
+        expect(script?.content).toContain(`Svar som ${alias.address} fra postkassen: ${webmail.origin}`)
+        expect(script?.content).toContain(`<a href=\\"${webmail.origin}\\">`)
+        expect(script?.content).toContain(`addheader "From" "\\"\${display} via ${alias.address}\\" <${alias.address}>";`)
+        expect(script?.content).toContain('set "who" "${name} (${sender})";')
+
         server.setCalls.length = 0
+        server.uploads.length = 0
         await syncMailServer({ client: server.client(), webmail })
         expect(server.setCalls).toEqual([])
+        expect(server.uploads).toEqual([])
     })
 
-    test('without a webmail, no mailbox and no mailbox domain is made', async () => {
-        await createTestAlias('test-unboxed')
+    test('an alias that reaches no one only keeps its mail, and gets a list once it reaches someone', async () => {
+        const { alias, list } = await createTestAlias('test-lonely')
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), webmail })
+
+        const group = server.account(alias.address)
+        expect(server.mailingList(forwardingOf(alias.address))).toBeUndefined()
+        expect(server.activeScript(group?.id)?.content).toBe('keep;\n')
+
+        const user = await createTestUser('test-joins', 'test-joins@test.test')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+        await syncMailServer({ client: server.client(), webmail })
+        expect(recipientsOf(server.mailingList(forwardingOf(alias.address)))).toEqual(['test-joins@test.test'])
+        expect(server.activeScript(group?.id)?.content).toContain(`redirect "${forwardingOf(alias.address)}";`)
+        // The script it replaced is gone, so a mailbox holds one script of ours.
+        expect(server.scripts.get(group?.id ?? '')).toHaveLength(1)
+    })
+
+    test('a script a member made the active one is replaced by ours on the next run, and theirs is kept', async () => {
+        const { alias } = await createTestAlias('test-scripted')
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), webmail })
+        const group = server.account(alias.address)
+        const scripts = server.scripts.get(group?.id ?? '') ?? []
+        scripts.forEach(script => { script.isActive = false })
+        scripts.push({ id: 'theirs', name: 'vacation', isActive: true, content: 'discard;' })
+
+        await syncMailServer({ client: server.client(), webmail })
+        expect(server.activeScript(group?.id)?.name).toMatch(/^omegaweb-forward-/)
+        expect(scripts.map(script => script.name).sort()).toEqual([server.activeScript(group?.id)?.name, 'vacation'].sort())
+    })
+
+    test('without a webmail, the alias is a list at its own address, and no mailbox or other domain is made', async () => {
+        const { alias } = await createTestAlias('test-unboxed')
         const server = serverWithOurDomain()
         await syncMailServer({ client: server.client() })
         expect(server.objects.Account.size).toBe(0)
         expect(server.objects.Domain.size).toBe(1)
+        expect(server.mailingList(alias.address)).toBeDefined()
     })
 
-    test('renaming the alias renames its group in place, so the mail stays', async () => {
-        const { alias } = await createTestAlias('test-before')
+    test('renaming the alias moves its group in place, so the mail stays, and its list follows', async () => {
+        const user = await createTestUser('test-moves', 'test-moves@test.test')
+        const { alias, list } = await createTestAlias('test-before')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
         const server = serverWithOurDomain()
         await syncMailServer({ client: server.client(), webmail })
-        const group = server.account(mailboxOf('test-before'))
+        const group = server.account(alias.address)
 
         await aliasOperations.update({
             params: { id: alias.id },
@@ -503,38 +633,75 @@ describe('syncing mailboxes', () => {
         })
         server.setCalls.length = 0
         await syncMailServer({ client: server.client(), webmail })
-        expect(server.account(mailboxOf('test-before'))).toBeUndefined()
-        const renamed = server.account(mailboxOf('test-after'))
+        const renamedAddress = `test-after@${TEST_DOMAIN}`
+        expect(server.account(alias.address)).toBeUndefined()
+        const renamed = server.account(renamedAddress)
         expect(renamed?.id).toBe(group?.id)
-        expect(renamed?.description).toBe(`test-after@${TEST_DOMAIN}`)
+        expect(renamed?.description).toBe(renamedAddress)
         expect(server.setCallsFor('Account')).toHaveLength(1)
         expect(Object.keys(server.setCallsFor('Account')[0].args.update ?? {})).toEqual([group?.id])
-        expect(recipientsOf(server.mailingList(`test-after@${TEST_DOMAIN}`))).toEqual([mailboxOf('test-after')])
+        expect(server.mailingList(forwardingOf(alias.address))).toBeUndefined()
+        expect(recipientsOf(server.mailingList(forwardingOf(renamedAddress)))).toEqual(['test-moves@test.test'])
+        expect(server.activeScript(group?.id)?.content).toContain(`redirect "${forwardingOf(renamedAddress)}";`)
     })
 
-    test('a deleted alias loses its group, and a group no alias remembers goes to the alias of its name', async () => {
-        const { alias: doomed } = await createTestAlias('test-doomed-box')
+    test('a server from when the mailboxes were on the webmail\'s domain is moved over, keeping each group', async () => {
+        const user = await createTestUser('test-migrates', 'test-migrates@test.test')
+        const { alias, list } = await createTestAlias('test-migrated')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+        const server = serverWithOurDomain()
+        const accountDomain = server.add('Domain', { name: webmail.domain })
+        const formerGroup = server.add('Account', {
+            '@type': 'Group', name: 'test-migrated', domainId: accountDomain.id, description: alias.address,
+        })
+        const formerList = server.add('MailingList', {
+            name: 'test-migrated',
+            domainId: server.domain(TEST_DOMAIN)?.id,
+            recipients: { 'test-migrates@test.test': true, [`test-migrated@${webmail.domain}`]: true },
+        })
+        await prisma.mailAlias.update({ where: { id: alias.id }, data: { mailboxAccountId: formerGroup.id } })
+        const member = server.add('Account', { '@type': 'User', name: 'test-migrates', domainId: accountDomain.id })
+
+        await syncMailServer({ client: server.client(), webmail })
+
+        expect(server.objects.MailingList.get(formerList.id)).toBeUndefined()
+        expect(server.account(alias.address)?.id).toBe(formerGroup.id)
+        expect(server.account(`test-migrated@${webmail.domain}`)).toBeUndefined()
+        expect(recipientsOf(server.mailingList(forwardingOf(alias.address)))).toEqual(['test-migrates@test.test'])
+        // An account of someone who signed in is on the webmail's domain too, and is left alone.
+        expect(server.objects.Account.get(member.id)).toEqual(member)
+    })
+
+    test('a deleted alias loses its group and its list, and a stray group goes to the alias at its address', async () => {
+        const user = await createTestUser('test-doomed-user', 'test-doomed-user@test.test')
+        const { alias: doomed, list } = await createTestAlias('test-doomed-box')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
         const { alias: orphaned } = await createTestAlias('test-orphaned')
         const server = serverWithOurDomain()
-        const mailboxDomain = server.add('Domain', { name: webmail.domain })
         const orphan = server.add('Account', {
-            '@type': 'Group', name: 'test-orphaned', domainId: mailboxDomain.id, description: 'Made by a run that failed',
+            '@type': 'Group',
+            name: 'test-orphaned',
+            domainId: server.domain(TEST_DOMAIN)?.id,
+            description: 'Made by a run that failed',
         })
-        const user = server.add('Account', { '@type': 'User', name: 'test-orphaned', domainId: mailboxDomain.id })
 
         await syncMailServer({ client: server.client(), webmail })
         expect(await storedMailboxId(orphaned.id)).toBe(orphan.id)
         expect(server.objects.Account.get(orphan.id)?.description).toBe(orphaned.address)
-        expect(server.account(mailboxOf('test-doomed-box'))).toBeDefined()
-        // A user account on the mailbox domain, such as a member's, is not a mailbox and is left alone.
-        expect(server.objects.Account.get(user.id)).toEqual(user)
+        expect(server.account(doomed.address)).toBeDefined()
+        expect(server.mailingList(forwardingOf(doomed.address))).toBeDefined()
 
         await aliasOperations.destroy({ params: { id: doomed.id }, bypassAuth: true })
-        server.setCalls.length = 0
         await syncMailServer({ client: server.client(), webmail })
-        expect(server.account(mailboxOf('test-doomed-box'))).toBeUndefined()
+        expect(server.account(doomed.address)).toBeUndefined()
+        expect(server.mailingList(forwardingOf(doomed.address))).toBeUndefined()
         expect(server.objects.Account.get(orphan.id)).toBeDefined()
-        expect(server.objects.Account.get(user.id)).toEqual(user)
     })
 })
 
