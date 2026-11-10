@@ -115,6 +115,9 @@ const reportedMissing = new Set<number>()
  * is wrong about where its content is, which the content being in the new location already shows,
  * is corrected. The run ends at the first write the new location refuses, since it will refuse
  * the rest too, and the next run tries again.
+ *
+ * A file whose row places it in a location that is not in use, the bucket once it is unset, can
+ * be neither read nor moved. Each run says how many there are, until the location is back.
  * @returns how many files were moved or corrected.
  */
 export async function moveFilesToPreferredLocation(
@@ -124,9 +127,13 @@ export async function moveFilesToPreferredLocation(
     const [target] = locationsFrom(preferredLocation)
     let moved = 0
     let corrected = 0
+    const unreachable = new Map<StoreFileLocation, number>()
     const report = () => {
         if (moved > 0) logger.info(`Moved ${moved} file(s) of ${purpose} to ${target.location}`)
         if (corrected > 0) logger.info(`Found ${corrected} file(s) of ${purpose} in ${target.location} already`)
+        unreachable.forEach((count, location) => {
+            logger.error(`${count} store file(s) of ${purpose} are recorded in ${location}, which is not in use`)
+        })
         return moved + corrected
     }
 
@@ -139,6 +146,8 @@ export async function moveFilesToPreferredLocation(
                 if (await target.backend.exists(key)) {
                     await prisma.storeFile.updateMany({ where: { id: file.id }, data: { location: target.location } })
                     corrected++
+                } else if (!source) {
+                    unreachable.set(file.location, (unreachable.get(file.location) ?? 0) + 1)
                 } else if (!reportedMissing.has(file.id)) {
                     reportedMissing.add(file.id)
                     logger.error(`Store file ${key} is in no location`)

@@ -246,6 +246,23 @@ describe('the worker of a purpose', () => {
         await fileSystemBackend.destroy(key(name))
     })
 
+    test('says how many files are in a bucket that is no longer in use, and leaves their rows alone', async () => {
+        const { name } = await ombulStore.createFile(pdf)
+        storeBackends.S3 = null
+        const error = jest.spyOn(logger, 'error')
+
+        await runWorker()
+
+        const messages = error.mock.calls
+            .map(([message]): unknown => message)
+            .filter((message): message is string => typeof message === 'string')
+        expect(messages).toContainEqual(expect.stringMatching(
+            /^\d+ store file\(s\) of OMBUL are recorded in S3, which is not in use$/
+        ))
+        expect(messages.filter(message => message.includes('is in no location'))).toEqual([])
+        expect(await location(name)).toBe('S3')
+    })
+
     test('reports a file a row of another purpose refers to, and leaves it alone', async () => {
         const { name } = await ombulStore.createFile(pdf)
         const misused = await ombulStore.createFile(pdf)
