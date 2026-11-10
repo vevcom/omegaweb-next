@@ -3,13 +3,14 @@ import { GET as ssoCallback } from '@/app/api/sso/callback/route'
 import { GET as authorize } from '@/app/api/oidc/authorize/route'
 import { authOptions } from '@/auth/nextAuth/authOptions'
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
+import { sessionCookieChunks } from '@/auth/nextAuth/sessionCookie'
+import { endSession, readSessionToken, startSession } from '@/auth/sso/session'
 import { DomainConfig } from '@/lib/sites/domainConfig'
 import { DomainContext } from '@/lib/sites/context'
 import { prisma } from '@/prisma-pn-client-instance'
 import { testDomainConfig } from 'tests/testDomains'
 import { afterAll, afterEach, beforeAll, describe, expect, test } from '@jest/globals'
-import { NextRequest } from 'next/server'
-import type { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 /** A career site on its own domain, Omega's, and a domain set apart to sign in on. */
 const withAuthDomain = DomainConfig.parse({
@@ -63,6 +64,54 @@ beforeAll(() => DomainContext.configure(withAuthDomain))
 afterAll(() => DomainContext.configure(testDomainConfig))
 afterEach(async () => {
     await prisma.user.deleteMany({ where: { username: { startsWith: 'test-sso-' } } })
+})
+
+describe('a session too large for one cookie', () => {
+    /** A session token of a user with more memberships than one cookie holds. */
+    async function largeSessionCookie(userId: number) {
+        const encode = authOptions.jwt?.encode
+        if (!encode) throw new Error('no encoder')
+        const token = await sessionTokenOf(userId, 'credentials')
+        // Random, so that compressing the token does not make it small again.
+        const padding = Array.from({ length: 400 }, () => Math.random().toString(36).slice(2)).join('')
+        return encode({ token: { ...token, padding }, secret: process.env.NEXTAUTH_SECRET ?? '' })
+    }
+
+    test('is written in the chunks NextAuth reads, and replaces the cookies of the session before it', async () => {
+        const user = await createUser('large')
+        const value = await largeSessionCookie(user.id)
+        const response = NextResponse.redirect('https://contactor.no/')
+        const before = request('https://contactor.no/', { [SESSION_COOKIE]: 'old', [`${SESSION_COOKIE}.7`]: 'older' })
+
+        const chunks = sessionCookieChunks(SESSION_COOKIE, value)
+        expect(chunks.length).toBeGreaterThan(1)
+        expect(chunks.map(chunk => chunk.name)).toEqual(chunks.map((_, index) => `${SESSION_COOKIE}.${index}`))
+        expect(chunks.every(chunk => chunk.value.length <= 4096 - 163)).toBe(true)
+        expect(chunks.map(chunk => chunk.value).join('')).toBe(value)
+        expect(sessionCookieChunks(SESSION_COOKIE, 'short')).toEqual([{ name: SESSION_COOKIE, value: 'short' }])
+
+        // NextAuth reads the chunks back as the one session.
+        const cookies = Object.fromEntries(chunks.map(chunk => [chunk.name, chunk.value]))
+        const withChunks = request('https://contactor.no/', cookies)
+        expect(await readSessionToken(withChunks)).toMatchObject({ user: { id: user.id } })
+
+        // A session started over one that was held clears what the new one does not use.
+        await startSession(response, before, user.id, 'credentials')
+        expect(response.cookies.get(SESSION_COOKIE)?.value).not.toBe('old')
+        expect(response.cookies.get(`${SESSION_COOKIE}.7`)).toMatchObject({ value: '', maxAge: 0 })
+    })
+
+    test('is cleared chunk by chunk when the session ends', () => {
+        const response = NextResponse.redirect('https://login.omega.ntnu.no/')
+        const held = request('https://login.omega.ntnu.no/', {
+            [`${SESSION_COOKIE}.0`]: 'first', [`${SESSION_COOKIE}.1`]: 'second', [`${SESSION_COOKIE}.extra`]: 'not ours',
+        })
+        endSession(response, held)
+        for (const name of [SESSION_COOKIE, `${SESSION_COOKIE}.0`, `${SESSION_COOKIE}.1`]) {
+            expect(response.cookies.get(name)).toMatchObject({ value: '', maxAge: 0, httpOnly: true, secure: true })
+        }
+        expect(response.cookies.get(`${SESSION_COOKIE}.extra`)).toBeUndefined()
+    })
 })
 
 describe('signing in on a site through the auth domain', () => {

@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
             return landOn(frontpage)
         }
         const response = landOn(stored.callbackUrl)
-        await startSession(response, request.headers, grant.userId, grant.provider)
+        await startSession(response, request, grant.userId, grant.provider)
         return response
     } catch (error) {
         if (!(error instanceof Smorekopp)) throw error

@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { authOptions } from '@/auth/nextAuth/authOptions'
-import { sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
+import { sessionCookieChunks, sessionCookieNamesAmong, sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
 import { Session } from '@/auth/session/Session'
 import { getToken } from 'next-auth/jwt'
@@ -46,25 +46,45 @@ export async function sessionFromCookie(request: NextRequest): Promise<Session<'
 }
 
 /**
+ * Writes the session cookie of the domain the request came to, or clears it for a null value. A
+ * token with many memberships is larger than a browser takes in one cookie, so it is written the
+ * way NextAuth writes it, in chunks, and every cookie the request held of an earlier session that
+ * the new one does not use is cleared with it.
+ */
+function setSessionCookie(response: NextResponse, request: Request, value: string | null): void {
+    const cookie = sessionCookieOf(request.headers)
+    const options = { httpOnly: true, secure: cookie.secure, sameSite: 'lax', path: '/' } as const
+    const written = value === null ? [] : sessionCookieChunks(cookie.name, value)
+    const cookieNames = (request.headers.get('cookie') ?? '').split(';').map(pair => pair.split('=')[0].trim())
+    const held = sessionCookieNamesAmong(cookie.name, cookieNames)
+
+    const stale = new Set(value === null ? [cookie.name, ...held] : held)
+    written.forEach(chunk => stale.delete(chunk.name))
+    stale.forEach(name => response.cookies.set(name, '', { ...options, maxAge: 0 }))
+    written.forEach(chunk => response.cookies.set(chunk.name, chunk.value, {
+        ...options,
+        expires: new Date(Date.now() + SESSION_MAX_AGE_S * 1000),
+    }))
+}
+
+/**
  * Starts a session on this domain for the user the auth domain signed in: the token NextAuth would
  * build at a sign in of its own, in the cookie NextAuth reads, so the rest of the app never knows
  * the difference.
  */
 export async function startSession(
     response: NextResponse,
-    headers: Headers,
+    request: Request,
     userId: number,
     provider: LoginProvider,
 ): Promise<void> {
     const encode = authOptions.jwt?.encode
     if (!encode) throw new Error('authOptions has no jwt encoder')
-    const cookie = sessionCookieOf(headers)
     const token = await sessionTokenOf(userId, provider)
-    response.cookies.set(cookie.name, await encode({ token, secret: secret(), maxAge: SESSION_MAX_AGE_S }), {
-        httpOnly: true,
-        secure: cookie.secure,
-        sameSite: 'lax',
-        path: '/',
-        expires: new Date(Date.now() + SESSION_MAX_AGE_S * 1000),
-    })
+    setSessionCookie(response, request, await encode({ token, secret: secret(), maxAge: SESSION_MAX_AGE_S }))
+}
+
+/** Ends the session on the domain the request came to, by clearing its cookie, chunks and all. */
+export function endSession(response: NextResponse, request: Request): void {
+    setSessionCookie(response, request, null)
 }
