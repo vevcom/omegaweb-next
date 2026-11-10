@@ -120,6 +120,8 @@ model EventVariant {
   price        Int?
   paymentStart DateTime?
   paymentEnd   DateTime?
+  // Lets a worker send registrations that pass their deadline unpaid to the back of the waiting list.
+  requeueUnpaidRegistrations Boolean @default(false)
 
   quotas                   EventQuota[]
   waitingListRegistrations EventRegistration[]
@@ -171,6 +173,8 @@ model EventRegistration {
   note                 String?
   // Queue position within a quota and on the waiting list, by this then id.
   queuedAt             DateTime               @default(now())
+  // When the registration last left the waiting list for a place, which gives it time to pay.
+  promotedAt           DateTime?
 
   // Null until attendance is taken for the event - after that, null means they did not show up.
   attendedAt               DateTime?

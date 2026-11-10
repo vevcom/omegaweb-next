@@ -10,6 +10,7 @@ export type VariantFields = {
     price?: number | null,
     paymentStart?: Date | null,
     paymentEnd?: Date | null,
+    requeueUnpaidRegistrations?: boolean,
 }
 
 /** Passes the values the variant will have, so a partial update is judged whole. */
@@ -30,7 +31,7 @@ export function assertValidVariant(variant: Omit<VariantFields, 'name'>) {
 }
 
 /** What a variant that does not take payment holds in the payment fields. */
-export const unpaidVariant = { price: null, paymentStart: null, paymentEnd: null }
+export const unpaidVariant = { price: null, paymentStart: null, paymentEnd: null, requeueUnpaidRegistrations: false }
 
 /** Creates a variant last in the order of its event. Run it inside the caller's transaction. */
 export async function createVariant(tx: Prisma.TransactionClient, eventId: number, data: VariantFields) {
@@ -49,7 +50,12 @@ export async function createVariant(tx: Prisma.TransactionClient, eventId: numbe
             registrationEnd: data.registrationEnd,
             takesPayment: data.takesPayment,
             ...(data.takesPayment
-                ? { price: data.price, paymentStart: data.paymentStart, paymentEnd: data.paymentEnd }
+                ? {
+                    price: data.price,
+                    paymentStart: data.paymentStart,
+                    paymentEnd: data.paymentEnd,
+                    requeueUnpaidRegistrations: data.requeueUnpaidRegistrations,
+                }
                 : unpaidVariant),
         },
     })
