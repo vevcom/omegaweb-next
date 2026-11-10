@@ -202,12 +202,6 @@ export const permissionConfig = {
         category: 'notifikasjoner',
         canBeDefault: false,
     },
-    MAIL_USE: {
-        name: 'Sende e-post',
-        description: 'kan sende e-post',
-        category: 'mail',
-        canBeDefault: false,
-    },
     MAILSERVER_USE: {
         name: 'Se e-postserveren',
         description: 'kan se e-postalias, e-postlister, eksterne e-postadresser og hvor e-post havner',
@@ -217,6 +211,18 @@ export const permissionConfig = {
     MAILSERVER_ADMIN: {
         name: 'Administrere e-postserveren',
         description: 'kan opprette, endre og slette e-postalias, e-postlister, eksterne adresser og koblingene mellom dem',
+        category: 'mail',
+        canBeDefault: false,
+    },
+    MAIL_ALIAS_CREATE: {
+        name: 'Opprette e-postalias',
+        description: 'kan opprette e-postalias og eie dem',
+        category: 'mail',
+        canBeDefault: false,
+    },
+    MAIL_LIST_CREATE: {
+        name: 'Opprette e-postlister',
+        description: 'kan opprette e-postlister og eie dem',
         category: 'mail',
         canBeDefault: false,
     },
@@ -248,6 +254,12 @@ export const permissionConfig = {
         name: 'Bedriftsadministrator',
         description: 'kan administrere bedrifter',
         category: 'brukere',
+        canBeDefault: false,
+    },
+    CAREER_FRONTPAGE_HIGHLIGHT_ADMIN: {
+        name: 'Fremhevingsadministrator',
+        description: 'kan velge hvilke bedriftspresentasjoner og jobbannonser forsiden til karrieresiden fremhever',
+        category: 'jobad',
         canBeDefault: false,
     },
     COMPANY_USE: {

@@ -13,6 +13,7 @@ export const QueryParams = {
     eventTags: new StringArrayQueryParam('event-tags'),
     onlyActive: new BooleanQueryParam('only-active'),
     onlyAdministratedCollections: new BooleanQueryParam('only-administrated-collections'),
+    onlyOwned: new BooleanQueryParam('only-owned'),
     userId: new NumberQueryParam('user-id'),
     companyName: new StringQueryParam('company-name'),
     search: new StringQueryParam('search'),

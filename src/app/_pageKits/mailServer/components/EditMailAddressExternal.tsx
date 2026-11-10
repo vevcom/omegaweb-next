@@ -1,0 +1,82 @@
+'use client'
+import { mailServerLinks } from '@/pageKits/mailServer/links'
+
+import TextInput from '@/components/UI/TextInput'
+import Form from '@/components/Form/Form'
+import { SelectNumber } from '@/components/UI/Select'
+import { createMailingListExternalRelationAction } from '@/services/mail/actions'
+import {
+    updateMailAddressExternalAction,
+    destroyMailAddressExternalAction
+} from '@/services/mail/mailAddressExternal/actions'
+import { mailAddressExternalAuth } from '@/services/mail/mailAddressExternal/auth'
+import { configureAction } from '@/services/configureAction'
+import useAuthorizer from '@/hooks/useAuthorizer'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
+import type { MailingList } from '@/prisma-generated-pn-types'
+import type { MailFlowObject } from '@/services/mail/types'
+
+export default function EditMailAddressExternal({
+    config,
+    id,
+    data,
+    mailingLists,
+}: {
+    config: MailServerPagesConfig,
+    id: number,
+    data: MailFlowObject,
+    mailingLists: MailingList[],
+}) {
+    const { push, refresh } = useSiteRouter()
+    const links = mailServerLinks(config)
+
+    const focusedExternal = data.mailaddressExternal.find(external => external.id === id)
+    if (!focusedExternal) throw new Error('Fant ikke den eksterne adressen')
+
+    const canUpdateExternal = useAuthorizer({
+        authorizer: mailAddressExternalAuth.update
+    }).authorized
+    const canDestroyExternal = useAuthorizer({
+        authorizer: mailAddressExternalAuth.destroy
+    }).authorized
+
+    const connectedListIds = new Set(data.mailingList.map(list => list.id))
+    const availableLists = mailingLists.filter(list => !connectedListIds.has(list.id))
+
+    return <>
+        {canUpdateExternal && <Form
+            title="Rediger ekstern adresse"
+            submitText="Oppdater"
+            action={configureAction(updateMailAddressExternalAction, { params: { id: focusedExternal.id } })}
+        >
+            <TextInput name="address" label="Adresse" defaultValue={focusedExternal.address} />
+            <TextInput name="description" label="Beskrivelse" defaultValue={focusedExternal.description ?? ''} />
+        </Form>}
+
+        {availableLists.length > 0 && <Form
+            title="Sett på e-postliste"
+            submitText="Legg til"
+            action={createMailingListExternalRelationAction}
+            successCallback={refresh}
+        >
+            <input type="hidden" name="mailAddressExternalId" value={focusedExternal.id} />
+            <SelectNumber
+                options={availableLists.map(list => ({ value: list.id, label: list.name }))}
+                name="mailingListId"
+                label="E-postliste"
+            />
+        </Form>}
+
+        {canDestroyExternal && <Form
+            action={configureAction(destroyMailAddressExternalAction, { params: { id: focusedExternal.id } })}
+            successCallback={() => push(links.part('mailaddressExternal'))}
+            submitText="Slett adressen"
+            submitColor="red"
+            confirmation={{
+                confirm: true,
+                text: 'Er du sikker på at du vil slette denne eksterne adressen? Dette kan ikke angres.',
+            }}
+        />}
+    </>
+}

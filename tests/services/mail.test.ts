@@ -5,7 +5,7 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailAddressExternalOperations } from '@/services/mail/mailAddressExternal/operations'
-import { mailOperations } from '@/services/mail/operations'
+import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operations'
 import { DomainConfig } from '@/lib/sites/domainConfig'
 import { DomainContext } from '@/lib/sites/context'
 import { afterEach, describe, expect, test } from '@jest/globals'
@@ -21,6 +21,7 @@ afterEach(async () => {
     await prisma.mailingListMailAddressExternal.deleteMany()
     await prisma.membership.deleteMany({ where: { user: { username: { startsWith: 'test-' } } } })
     await prisma.user.deleteMany({ where: { username: { startsWith: 'test-' } } })
+    await prisma.manualGroup.deleteMany({ where: { groupId: { in: testGroupIds } } })
     await prisma.group.deleteMany({ where: { id: { in: testGroupIds } } })
     testGroupIds.length = 0
     // Only delete aliases/lists/externals created by tests (not seeded data)
@@ -30,20 +31,94 @@ afterEach(async () => {
     await prisma.mailAddressExternal.deleteMany({ where: { address: { startsWith: 'test-' } } })
 })
 
+// ─── Owners ───────────────────────────────────────────────────────────────────
+
+describe('the owners of aliases and mailing lists', () => {
+    test('an alias created without owners gets a visibility no one passes', async () => {
+        const alias = await aliasOperations.create({
+            data: { localPart: 'test-unowned', domain: 'omega.ntnu.no', description: '' },
+            bypassAuth: true,
+        })
+        expect(await aliasOperations.visibility.readMatrix({ params: { id: alias.id }, bypassAuth: true })).toStrictEqual({
+            requirements: [{ conditions: [] }],
+        })
+    })
+
+    test('a mailing list is created with the owners given, which can be changed but not emptied', async () => {
+        const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
+        const group = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'mail-owners', shortName: 'mail-owners' } },
+            },
+        })
+        testGroupIds.push(group.id)
+        const owners = (groupId: number) => ({ requirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }] })
+
+        const list = await mailingListOperations.create({
+            data: { name: 'test-owned', description: '', ownerRequirements: owners(group.id).requirements },
+            bypassAuth: true,
+        })
+        const readOwners = () => mailingListOperations.visibility.readMatrix({ params: { id: list.id }, bypassAuth: true })
+        expect(await readOwners()).toStrictEqual(owners(group.id))
+
+        const otherGroup = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'mail-owners-other', shortName: 'mail-owners-other' } },
+            },
+        })
+        testGroupIds.push(otherGroup.id)
+        await mailingListOperations.visibility.update({
+            implementationParams: { id: list.id },
+            params: { visibilityId: list.ownerVisibilityId },
+            data: owners(otherGroup.id),
+            bypassAuth: true,
+        })
+        expect(await readOwners()).toStrictEqual(owners(otherGroup.id))
+
+        await expect(mailingListOperations.visibility.update({
+            implementationParams: { id: list.id },
+            params: { visibilityId: list.ownerVisibilityId },
+            data: { requirements: [] },
+            bypassAuth: true,
+        })).rejects.toThrow()
+        expect(await readOwners()).toStrictEqual(owners(otherGroup.id))
+    })
+
+    test('destroying a mailing list destroys its visibility', async () => {
+        const list = await mailingListOperations.create({
+            data: { name: 'test-destroy-owners', description: '' },
+            bypassAuth: true,
+        })
+        await mailingListOperations.destroy({ params: { id: list.id }, bypassAuth: true })
+        expect(await prisma.visibility.findUnique({ where: { id: list.ownerVisibilityId } })).toBeNull()
+    })
+})
+
 // ─── Alias Domain Validation ──────────────────────────────────────────────────
 
 describe('alias address validation', () => {
     test('valid domain is accepted', async () => {
         const alias = await aliasOperations.create({
-            data: { address: 'test-valid@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-valid', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         expect(alias.address).toBe('test-valid@omega.ntnu.no')
     })
 
+    test('a local part with other characters than an address allows is rejected', async () => {
+        await expect(aliasOperations.create({
+            data: { localPart: 'test valid', domain: 'omega.ntnu.no', description: '' },
+            bypassAuth: true,
+        })).rejects.toThrow()
+    })
+
     test('invalid domain is rejected', async () => {
         await expect(aliasOperations.create({
-            data: { address: 'test@invalid-domain.com', description: '' },
+            data: { localPart: 'test', domain: 'invalid-domain.com', description: '' },
             bypassAuth: true,
         })).rejects.toThrow()
         expect(await prisma.mailAlias.count({ where: { address: { endsWith: '@invalid-domain.com' } } })).toBe(0)
@@ -59,10 +134,10 @@ describe('the domains of the sites are mail domains', () => {
     }))
     afterEach(() => DomainContext.configure(testDomainConfig))
 
-    test('an alias may be on a site\'s domain, and is stored in lowercase as Postfix looks it up', async () => {
+    test('an alias may be on a site\'s domain, and is stored in lowercase as the mail server looks it up', async () => {
         withSites()
         const alias = await aliasOperations.create({
-            data: { address: 'Test-Post@Contactor.no', description: '' },
+            data: { localPart: 'Test-Post', domain: 'Contactor.no', description: '' },
             bypassAuth: true,
         })
         expect(alias.address).toBe('test-post@contactor.no')
@@ -70,7 +145,7 @@ describe('the domains of the sites are mail domains', () => {
 
     test('the same address is refused once the domain is no longer one of the sites\'', async () => {
         await expect(aliasOperations.create({
-            data: { address: 'test-post@contactor.no', description: '' },
+            data: { localPart: 'test-post', domain: 'contactor.no', description: '' },
             bypassAuth: true,
         })).rejects.toThrow()
     })
@@ -149,7 +224,7 @@ describe('alias destroy guard', () => {
 
     test('can destroy alias with no notification channel', async () => {
         const alias = await aliasOperations.create({
-            data: { address: 'test-orphan@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-orphan', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         await aliasOperations.destroy({ params: { id: alias.id }, bypassAuth: true })
@@ -162,7 +237,7 @@ describe('alias destroy guard', () => {
 describe('mail flow traversal', () => {
     test('traversal from alias shows connected mailing list and external address', async () => {
         const alias = await aliasOperations.create({
-            data: { address: 'test-flow@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-flow', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         const list = await mailingListOperations.create({
@@ -183,8 +258,8 @@ describe('mail flow traversal', () => {
             bypassAuth: true,
         })
 
-        const flow = await mailOperations.readMailTraversal({
-            params: { filter: 'alias', id: alias.id },
+        const flow = await mailTraversalReadOfType.alias({
+            params: { id: alias.id },
             bypassAuth: true,
         })
 
@@ -198,11 +273,11 @@ describe('mail flow traversal', () => {
 
     test('traversal from mailing list shows connected aliases and external addresses', async () => {
         const alias1 = await aliasOperations.create({
-            data: { address: 'test-alias1@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-alias1', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         const alias2 = await aliasOperations.create({
-            data: { address: 'test-alias2@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-alias2', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         const list = await mailingListOperations.create({
@@ -227,8 +302,8 @@ describe('mail flow traversal', () => {
             bypassAuth: true,
         })
 
-        const flow = await mailOperations.readMailTraversal({
-            params: { filter: 'mailingList', id: list.id },
+        const flow = await mailTraversalReadOfType.mailingList({
+            params: { id: list.id },
             bypassAuth: true,
         })
 
@@ -240,7 +315,13 @@ describe('mail flow traversal', () => {
 
     test('traversal from mailing list via group shows connected user', async () => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-        const group = await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })
+        const group = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'mail-via-group', shortName: 'mail-via-group' } },
+            },
+        })
         testGroupIds.push(group.id)
         const user = await prisma.user.create({
             data: {
@@ -264,8 +345,8 @@ describe('mail flow traversal', () => {
             bypassAuth: true,
         })
 
-        const flow = await mailOperations.readMailTraversal({
-            params: { filter: 'mailingList', id: list.id },
+        const flow = await mailTraversalReadOfType.mailingList({
+            params: { id: list.id },
             bypassAuth: true,
         })
 
@@ -276,7 +357,13 @@ describe('mail flow traversal', () => {
 
     test('inactive group members are not part of the mail flow', async () => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-        const group = await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })
+        const group = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'mail-inactive-members', shortName: 'mail-inactive-members' } },
+            },
+        })
         testGroupIds.push(group.id)
         const activeUser = await prisma.user.create({
             data: {
@@ -311,8 +398,8 @@ describe('mail flow traversal', () => {
             bypassAuth: true,
         })
 
-        const flow = await mailOperations.readMailTraversal({
-            params: { filter: 'mailingList', id: list.id },
+        const flow = await mailTraversalReadOfType.mailingList({
+            params: { id: list.id },
             bypassAuth: true,
         })
 
@@ -322,7 +409,7 @@ describe('mail flow traversal', () => {
 
     test('external address appearing via multiple mailing lists is deduplicated in alias traversal', async () => {
         const alias = await aliasOperations.create({
-            data: { address: 'test-dedup@omega.ntnu.no', description: '' },
+            data: { localPart: 'test-dedup', domain: 'omega.ntnu.no', description: '' },
             bypassAuth: true,
         })
         const list1 = await mailingListOperations.create({
@@ -357,8 +444,8 @@ describe('mail flow traversal', () => {
             bypassAuth: true,
         })
 
-        const flow = await mailOperations.readMailTraversal({
-            params: { filter: 'alias', id: alias.id },
+        const flow = await mailTraversalReadOfType.alias({
+            params: { id: alias.id },
             bypassAuth: true,
         })
 
@@ -374,7 +461,13 @@ describe('mail flow traversal', () => {
 describe('destroy mailing list user relation', () => {
     test('throws NOT FOUND when user is connected to list only via a group', async () => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-        const group = await prisma.group.create({ data: { groupType: 'MANUAL_GROUP', order } })
+        const group = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'mail-destroy-user-relation', shortName: 'mail-destroy-user-relation' } },
+            },
+        })
         testGroupIds.push(group.id)
         const user = await prisma.user.create({
             data: {

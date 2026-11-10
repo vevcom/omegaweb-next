@@ -83,7 +83,7 @@ export default async function RootLayout({ children }: PropTypes) {
             <body className={inter.className}>
                 <ServiceWorkerRegister />
                 <SessionProvider session={nextAuthSession}>
-                    <DomainContextProvider domains={DomainContext.domainsForBrowser()} data={domainContext.toData()}>
+                    <DomainContextProvider config={DomainContext.configForBrowser()} data={domainContext.toData()}>
                         <ClientDataProvider
                             session={serverSession.toJsObject()}
                             defaultPermissions={defaultPermissions}

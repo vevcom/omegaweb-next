@@ -31,6 +31,7 @@ const dataFieldSchemas = z.object({
     price: z.coerce.number().min(0).transform(val => convertAmount(val)).optional(),
     paymentStart: Zpn.date({ label: 'Betalingsstart' }).optional(),
     paymentEnd: Zpn.date({ label: 'Betalingsslutt' }).optional(),
+    requeueUnpaidRegistrations: Zpn.checkboxOrBoolean({ label: 'Flytt ubetalte bakerst på ventelisten' }).default(false),
     quotaVisibilityRequirements: Zpn.json({
         label: 'Hvem kan melde seg på',
         schema: visibilityRequirementsSchema,
@@ -110,6 +111,7 @@ export const eventSchemas = {
             price: true,
             paymentStart: true,
             paymentEnd: true,
+            requeueUnpaidRegistrations: true,
             quotaVisibilityRequirements: true,
             visibilityAdminRequirements: true,
         })

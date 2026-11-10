@@ -1,9 +1,14 @@
 model MailAlias {
-  id          Int      @id @default(autoincrement())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  address     String   @unique
-  description String   @default("")
+  id                Int        @id @default(autoincrement())
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  address           String     @unique
+  description       String     @default("")
+  ownerVisibility   Visibility @relation(name: "MailAliasOwnerVisibility", fields: [ownerVisibilityId], references: [id], onDelete: Restrict)
+  ownerVisibilityId Int        @unique
+  /// Whether the alias also keeps its mail in a shared mailbox on the mail server, which everyone who receives it may open.
+  /// The id of that mailbox's group account on the mail server, once the sync has created it.
+  mailboxAccountId  String?    @unique
 
   mailingLists        MailAliasMailingList[]
   notificationChannel NotificationChannel[]
@@ -19,11 +24,13 @@ model MailAliasMailingList {
 }
 
 model MailingList {
-  id          Int      @id @default(autoincrement())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  name        String   @unique
-  description String   @default("")
+  id                Int        @id @default(autoincrement())
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  name              String     @unique
+  description       String     @default("")
+  ownerVisibility   Visibility @relation(name: "MailingListOwnerVisibility", fields: [ownerVisibilityId], references: [id], onDelete: Restrict)
+  ownerVisibilityId Int        @unique
 
   mailAliases         MailAliasMailingList[]
   groups              MailingListGroup[]

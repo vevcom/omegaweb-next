@@ -1,0 +1,255 @@
+'use client'
+import MailServerTag from './MailServerTag'
+import { mailServerLinks } from '@/pageKits/mailServer/links'
+import {
+    destroyAliasMailingListRelationAction,
+    destroyMailingListExternalRelationAction,
+    destroyMailingListGroupRelationAction,
+    destroyMailingListUserRelationAction
+} from '@/services/mail/actions'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import useSiteRouter from '@/hooks/useSiteRouter'
+import { useState } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+    faArrowRightLong, faAt, faEnvelope, faListUl, faUser, faUserGroup, faXmark
+} from '@fortawesome/free-solid-svg-icons'
+import type { MailServerPagesConfig } from '@/pageKits/mailServer/config'
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
+import type { ActionReturn } from '@/services/actionTypes'
+import type { MailFlowObject, MailFlowPaths, MailListTypes } from '@/services/mail/types'
+
+const typeIcons: Record<MailListTypes, IconDefinition> = {
+    alias: faAt,
+    mailingList: faListUl,
+    group: faUserGroup,
+    user: faUser,
+    mailaddressExternal: faEnvelope,
+}
+
+type Chip = {
+    type: MailListTypes,
+    id: number,
+    label: string,
+    paths: MailFlowPaths,
+    /** What the viewer is to the node, shown as a tag: its owner, or the group's leader. */
+    tag?: string,
+    destroy?: () => Promise<ActionReturn<unknown>>,
+}
+
+const ownerTag = (owned: boolean) => (owned ? 'Eier' : undefined)
+
+type ChipSection = {
+    label?: string,
+    chips: Chip[],
+}
+
+/**
+ * The mail flow graphic: every mail follows alias → e-postliste → mottakere, and this renders
+ * those three stages with the focused item highlighted. The recipient stage is sectioned by type,
+ * and a group stands in for its members - users that are only on a list through a group are not
+ * listed. Direct relations to the focused item can be removed right in the graphic. What the
+ * viewer owns or leads is tagged, by their memberships alone, so a server admin sees the same.
+ */
+export default function MailFlow({
+    config,
+    filter,
+    id,
+    data,
+}: {
+    config: MailServerPagesConfig,
+    filter: MailListTypes,
+    id: number,
+    data: MailFlowObject,
+}) {
+    const { refresh } = useSiteRouter()
+    const links = mailServerLinks(config)
+    const [error, setError] = useState<string | null>(null)
+
+    // Which relations are removable depends on which item is in focus - only relations directly
+    // to the focused item can be removed here, and never ones that follow from a via-path. Whether
+    // the viewer may remove one is the server's call, which answers with the rule.
+    const aliasChips: Chip[] = data.alias.map(alias => ({
+        type: 'alias',
+        id: alias.id,
+        label: alias.address,
+        paths: alias,
+        tag: ownerTag(alias.owned),
+        destroy: (filter === 'mailingList' && alias.direct)
+            ? () => destroyAliasMailingListRelationAction({ data: { mailingListId: id, mailAliasId: alias.id } })
+            : undefined,
+    }))
+
+    const mailingListChips: Chip[] = data.mailingList.map(list => {
+        let destroy
+        if (list.direct) {
+            if (filter === 'alias') {
+                destroy = () => destroyAliasMailingListRelationAction({ data: { mailAliasId: id, mailingListId: list.id } })
+            } else if (filter === 'mailaddressExternal') {
+                destroy = () => destroyMailingListExternalRelationAction({
+                    data: { mailAddressExternalId: id, mailingListId: list.id },
+                })
+            } else if (filter === 'user') {
+                destroy = () => destroyMailingListUserRelationAction({ data: { userId: id, mailingListId: list.id } })
+            } else if (filter === 'group') {
+                destroy = () => destroyMailingListGroupRelationAction({ data: { groupId: id, mailingListId: list.id } })
+            }
+        }
+        return {
+            type: 'mailingList',
+            id: list.id,
+            label: list.name,
+            paths: list,
+            tag: ownerTag(list.owned),
+            destroy,
+        }
+    })
+
+    const groupChips: Chip[] = data.group.map(group => ({
+        type: 'group',
+        id: group.id,
+        label: group.name,
+        paths: group,
+        tag: group.admin ? 'Gruppeleder' : undefined,
+        destroy: (filter === 'mailingList' && group.direct)
+            ? () => destroyMailingListGroupRelationAction({ data: { mailingListId: id, groupId: group.id } })
+            : undefined,
+    }))
+
+    // A group stands in for its members, so users that are only reached via a group are left
+    // out - except the focused user, who must stay visible on their own page.
+    const reachedThroughGroupAlone = (user: MailFlowPaths) =>
+        !user.direct && user.via.every(viaItem => viaItem.type === 'group')
+    const userChips: Chip[] = data.user
+        .filter(user => !reachedThroughGroupAlone(user) || (filter === 'user' && user.id === id))
+        .map(user => ({
+            type: 'user',
+            id: user.id,
+            label: `${user.firstname} ${user.lastname}`,
+            paths: user,
+            destroy: (filter === 'mailingList' && user.direct)
+                ? () => destroyMailingListUserRelationAction({ data: { mailingListId: id, userId: user.id } })
+                : undefined,
+        }))
+
+    const externalChips: Chip[] = data.mailaddressExternal.map(external => ({
+        type: 'mailaddressExternal',
+        id: external.id,
+        label: external.address,
+        paths: external,
+        destroy: (filter === 'mailingList' && external.direct)
+            ? () => destroyMailingListExternalRelationAction({
+                data: { mailingListId: id, mailAddressExternalId: external.id },
+            })
+            : undefined,
+    }))
+
+    const removeRelation = async (chip: Chip) => {
+        if (!chip.destroy) return
+        const result = await chip.destroy()
+        if (!result.success) {
+            setError(result.error?.map(message => message.message).join(' ') ?? `Kunne ikke fjerne ${chip.label}.`)
+            return
+        }
+        setError(null)
+        refresh()
+    }
+
+    const renderChip = (chip: Chip) => {
+        const focused = chip.type === filter && chip.id === id
+        const removable = Boolean(chip.destroy) && !focused
+        const viaLabels = chip.paths.via.map(viaItem => viaItem.label).join(', ')
+        // Both paths are named when the node is connected directly and reached through others too.
+        const pathsLabel = chip.paths.direct ? `direkte og via ${viaLabels}` : `via ${viaLabels}`
+
+        return <li
+            key={`${chip.type}-${chip.id}`}
+            className={`
+                flex items-center gap-2 py-2 px-3 rounded-round bg-base-300 min-w-0
+                ${focused ? 'outline-2 outline-success font-bold' : ''}
+            `}
+        >
+            <FontAwesomeIcon icon={typeIcons[chip.type]} className="text-base-content/80 flex-none" />
+            {focused
+                ? <span className="text-base-content no-underline wrap-anywhere">{chip.label}</span>
+                : <SiteLink
+                    className="
+                        text-base-content no-underline wrap-anywhere
+                        hover:underline
+                    "
+                    href={links.node(chip.type, chip.id)}
+                >
+                    {chip.label}
+                </SiteLink>
+            }
+            {chip.tag && <MailServerTag>{chip.tag}</MailServerTag>}
+            {chip.paths.via.length > 0 && !focused && <span className="text-[0.8rem] text-base-content/80 italic">
+                {pathsLabel}
+            </span>}
+            {removable && <button
+                type="button"
+                className="
+                    ml-auto bg-transparent border-none cursor-pointer text-base-content/80 p-1 leading-none flex-none
+                    hover:text-error
+                "
+                aria-label={`Fjern ${chip.label}`}
+                onClick={() => removeRelation(chip)}
+            >
+                <FontAwesomeIcon icon={faXmark} />
+            </button>}
+        </li>
+    }
+
+    const renderStage = (title: string, sections: ChipSection[]) => {
+        const chipCount = sections.reduce((count, section) => count + section.chips.length, 0)
+
+        return <section className="flex-[1_1_0] min-w-0">
+            <h3 className="mt-0 mx-0 mb-2 text-[0.85rem] uppercase tracking-[0.06em] text-base-content/80">{title}</h3>
+            {chipCount === 0 && <p className="text-base-content/80 italic m-0">Ingen</p>}
+            {sections.filter(section => section.chips.length > 0).map(section => (
+                <div key={section.label ?? title} className="[&:not(:first-of-type)]:mt-3">
+                    {section.label && <h4
+                        className="
+                            mt-0 mx-0 mb-1 text-[0.75rem] font-normal uppercase tracking-[0.06em] text-base-content/80
+                        "
+                    >
+                        {section.label}
+                    </h4>}
+                    <ul className="list-none m-0 p-0 flex flex-col gap-2">
+                        {section.chips.map(renderChip)}
+                    </ul>
+                </div>
+            ))}
+        </section>
+    }
+
+    return <div className="bg-base-200 rounded-[calc(3*var(--rounding))] p-(--card-padding)">
+        <div className="
+            flex flex-row items-stretch gap-4
+            max-mobile:flex-col
+        ">
+            {renderStage('Alias', [{ chips: aliasChips }])}
+            <FontAwesomeIcon
+                icon={faArrowRightLong}
+                className="
+                    self-center text-base-content/80 text-[1.5rem] flex-none
+                    max-mobile:rotate-90
+                "
+            />
+            {renderStage('E-postlister', [{ chips: mailingListChips }])}
+            <FontAwesomeIcon
+                icon={faArrowRightLong}
+                className="
+                    self-center text-base-content/80 text-[1.5rem] flex-none
+                    max-mobile:rotate-90
+                "
+            />
+            {renderStage('Mottakere', [
+                { label: 'Grupper', chips: groupChips },
+                { label: 'Brukere', chips: userChips },
+                { label: 'Eksterne adresser', chips: externalChips },
+            ])}
+        </div>
+        {error && <p className="text-error mx-0 mb-0 mt-2">{error}</p>}
+    </div>
+}

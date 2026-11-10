@@ -12,6 +12,7 @@ import {
 import { eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
 import { fixVariantPlaces, leaveOtherWaitingLists, notifyPromoted } from './fixState'
+import { withPaymentDeadline } from './paymentDeadline'
 import {
     lockEvent,
     queuedAhead,
@@ -108,7 +109,7 @@ const createRegistration = defineSubOperation({
                 return placed
             })
 
-            await notifyPromoted(prisma, params.eventId, promoted.filter(other => other.id !== registration.id))
+            await notifyPromoted(prisma, params.eventId, promoted)
             return registration
         },
 })
@@ -231,7 +232,7 @@ export const eventRegistrationOperations = {
                 return await placeAsAdmin(tx, variant, { contactId: contact.id, note: data.note }, params.quotaId ?? null)
             })
 
-            await notifyPromoted(prisma, params.eventId, promoted.filter(other => other.id !== registration.id))
+            await notifyPromoted(prisma, params.eventId, promoted)
             return registration
         },
     }),
@@ -259,7 +260,7 @@ export const eventRegistrationOperations = {
                     },
                 },
             })
-            return registration && { ...registration, variantId: variant.id }
+            return registration && { ...withPaymentDeadline(registration, variant), variantId: variant.id }
         },
     }),
 
@@ -445,7 +446,7 @@ export const eventRegistrationOperations = {
                 await lockEvent(tx, eventId)
                 const registration = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: { quotaId: true, userId: true },
+                    select: { id: true, quotaId: true, userId: true, state: true, contact: { select: { email: true } } },
                 })
                 const quota = await tx.eventQuota.findUniqueOrThrow({
                     where: { id: data.quotaId },
@@ -472,7 +473,12 @@ export const eventRegistrationOperations = {
 
                 await tx.eventRegistration.update({
                     where: { id: params.registrationId },
-                    data: { state: 'IN_QUOTA', quotaId: data.quotaId, waitingListVariantId: null },
+                    data: {
+                        state: 'IN_QUOTA',
+                        quotaId: data.quotaId,
+                        waitingListVariantId: null,
+                        promotedAt: registration.state === 'WAITING_LIST' ? new Date() : undefined,
+                    },
                 })
                 await leaveOtherWaitingLists(tx, quota.variant, [registration.userId])
                 const promotedByMove = await fixVariantPlaces(tx, variantId)
@@ -489,7 +495,7 @@ export const eventRegistrationOperations = {
                         'En kvote foran har ledig plass og tar påmeldingen tilbake. Fyll den plassen først.'
                     )
                 }
-                return promotedByMove
+                return registration.state === 'WAITING_LIST' ? [...promotedByMove, registration] : promotedByMove
             })
 
             await notifyPromoted(prisma, eventId, promoted)
@@ -656,13 +662,14 @@ export const eventRegistrationOperations = {
         transaction: 'OPENS',
         operation: async ({ prisma, params, session }): Promise<{ payment: ExpandedPayment | null }> => {
             const variant = await resolveVariant(prisma, params.eventId, params.variantId)
-            const registration = await prisma.eventRegistration.findFirst({
+            const found = await prisma.eventRegistration.findFirst({
                 where: { userId: params.userId, ...registrationsOfVariant(variant.id) },
             })
 
-            if (!registration) {
+            if (!found) {
                 throw new Smorekopp('NOT FOUND', 'Fant ingen påmelding å betale for.')
             }
+            const registration = withPaymentDeadline(found, variant)
 
             const funds = variant.price
             if (!variant.takesPayment || !funds) {
@@ -679,7 +686,10 @@ export const eventRegistrationOperations = {
             }
 
             const now = new Date()
-            if (!variant.paymentStart || !variant.paymentEnd || now < variant.paymentStart || now > variant.paymentEnd) {
+            if (
+                !variant.paymentStart || !registration.paymentDeadline
+                || now < variant.paymentStart || now > registration.paymentDeadline
+            ) {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
             }
 
@@ -891,7 +901,7 @@ async function joinVariant(tx: Prisma.TransactionClient, variant: ResolvedVarian
     const created = await tx.eventRegistration.create({
         data: { state: 'WAITING_LIST', waitingListVariantId: variant.id, ...registrant },
     })
-    const promoted = await fixVariantPlaces(tx, variant.id)
+    const promoted = await fixVariantPlaces(tx, variant.id, created.id)
     const registration = await tx.eventRegistration.findUniqueOrThrow({ where: { id: created.id } })
     if (registration.state === 'WAITING_LIST' && !variant.event.waitingList) {
         throw new Smorekopp('BAD PARAMETERS', 'Arrangementet er fullt.')

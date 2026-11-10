@@ -1,7 +1,8 @@
 import '@pn-server-only'
+import { PAYMENT_HOURS_AFTER_PROMOTION } from './paymentDeadline'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { sendMailOperations } from '@/services/mail/send/operations'
 import logger from '@/lib/logger'
 import { escapeHtml } from '@/lib/html/escapeHtml'
 
@@ -16,8 +17,10 @@ export async function notifyPromotedFromWaitingList(
 ) {
     const title = 'Opprykk fra venteliste ved Omegas nettsider'
     const congratulation = 'Gratulerer! Du har rykket opp fra ventelisten på arrangementet'
-    const message = `${congratulation} ${event.name}.`
-    const mailBody = `${congratulation} ${escapeHtml(event.name)}.`
+    const paymentNote = `Hvis arrangementet krever betaling, har du minst ${PAYMENT_HOURS_AFTER_PROMOTION} timer `
+        + 'på deg til å betale.'
+    const message = `${congratulation} ${event.name}. ${paymentNote}`
+    const mailBody = `${congratulation} ${escapeHtml(event.name)}. ${paymentNote}`
 
     const userIds = registrations.flatMap(registration => (
         registration.userId === null ? [] : [registration.userId]
@@ -39,7 +42,7 @@ export async function notifyPromotedFromWaitingList(
     }
 
     const sendings = await Promise.allSettled(guestEmails.map(email => (
-        sendMailOperations.internal.sendSystemMail.internalCall({
+        sendMailOperations.sendSystemMail.internalCall({
             data: { to: email, subject: title, body: mailBody },
         })
     )))

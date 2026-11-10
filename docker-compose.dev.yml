@@ -50,7 +50,8 @@ services:
         ports:
             - 5432:5432
         volumes:
-            - devdb:/var/lib/postgresql/data
+            # Postgres 18 keeps its data in a subdirectory of this mount, see its image notes.
+            - devdb:/var/lib/postgresql
 
     stripe:
         image: stripe/stripe-cli:v1.37.3

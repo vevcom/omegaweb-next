@@ -468,6 +468,28 @@ describe('several variants', () => {
         expect(await readOfUser(user, eventId, first.id)).toBeNull()
     })
 
+    test('seated by an administrator from the waiting list, the user is told', async () => {
+        const { eventId, variants: [variant] } = await createEvent([
+            { name: 'Runde 1', quotas: [
+                { name: 'Alle', places: 1 },
+                { name: 'Gruppe én', places: 1, visibility: activeIn(groupOne) },
+            ] },
+        ])
+        const filler = await createUser([groupTwo])
+        const user = await createUser([groupTwo])
+        await register(filler, eventId, variant.id)
+        const waiting = await register(user, eventId, variant.id)
+        expect(await readOfUser(user, eventId, variant.id)).toMatchObject({ state: 'WAITING_LIST' })
+
+        await eventRegistrationOperations.moveToQuota({
+            params: { registrationId: waiting.id },
+            data: { quotaId: variant.quotas[1].id },
+            bypassAuth: true,
+        })
+
+        expect(promotedUserIds()).toEqual([user.user.id])
+    })
+
     test('seated directly by an administrator in another variant, the user leaves the waiting list', async () => {
         const { eventId, variants: [first, second] } = await createEvent([
             { name: 'Runde 1', quotas: [{ name: 'Alle', places: 1 }] },

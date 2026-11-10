@@ -4,16 +4,10 @@ import { mailSchemas } from './schemas'
 import { aliasOperations } from './alias/operations'
 import { mailingListOperations } from './list/operations'
 import { mailAddressExternalOperations } from './mailAddressExternal/operations'
-import {
-    readAliasTraversal,
-    readGroupTraversal,
-    readMailaddressExternalTraversal,
-    readMailingListTraversal,
-    readUserTraversal,
-} from './traversal'
+import { mailTraversalOperations } from './traversal/operations'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServiceError } from '@/services/error'
-import type { MailFlowObject } from './types'
+import { Smorekopp } from '@/services/error'
+import type { MailListTypes } from './types'
 import type {
     MailAlias,
     MailAliasMailingList,
@@ -27,7 +21,16 @@ import type {
 export const mailOperations = {
     createAliasMailingListRelation: defineOperation({
         dataSchema: mailSchemas.data.createAliasMailingListRelation,
-        authorizer: () => mailAuth.createAliasMailingListRelation,
+        authorizer: async ({ data, prisma }) => mailAuth.createAliasMailingListRelation.data({
+            aliasVisibility: await aliasOperations.visibility.readMatrixInternal({
+                prisma,
+                params: { id: data.mailAliasId },
+            }),
+            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+                prisma,
+                params: { id: data.mailingListId },
+            }),
+        }),
         operation: async ({ prisma, data }): Promise<MailAliasMailingList> =>
             prisma.mailAliasMailingList.create({
                 data: {
@@ -39,7 +42,12 @@ export const mailOperations = {
 
     createMailingListExternalRelation: defineOperation({
         dataSchema: mailSchemas.data.createMailingListExternalRelation,
-        authorizer: () => mailAuth.createMailingListExternalRelation,
+        authorizer: async ({ data, prisma }) => mailAuth.createMailingListExternalRelation.data({
+            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+                prisma,
+                params: { id: data.mailingListId },
+            }),
+        }),
         operation: async ({ prisma, data }): Promise<MailingListMailAddressExternal> =>
             prisma.mailingListMailAddressExternal.create({
                 data: {
@@ -51,7 +59,13 @@ export const mailOperations = {
 
     createMailingListUserRelation: defineOperation({
         dataSchema: mailSchemas.data.createMailingListUserRelation,
-        authorizer: () => mailAuth.createMailingListUserRelation,
+        authorizer: async ({ data, prisma }) => mailAuth.createMailingListUserRelation.data({
+            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+                prisma,
+                params: { id: data.mailingListId },
+            }),
+            userId: data.userId,
+        }),
         operation: async ({ prisma, data }): Promise<MailingListUser> =>
             prisma.mailingListUser.create({
                 data: {
@@ -63,7 +77,13 @@ export const mailOperations = {
 
     createMailingListGroupRelation: defineOperation({
         dataSchema: mailSchemas.data.createMailingListGroupRelation,
-        authorizer: () => mailAuth.createMailingListGroupRelation,
+        authorizer: async ({ data, prisma }) => mailAuth.createMailingListGroupRelation.data({
+            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+                prisma,
+                params: { id: data.mailingListId },
+            }),
+            groupId: data.groupId,
+        }),
         operation: async ({ prisma, data }): Promise<MailingListGroup> =>
             prisma.mailingListGroup.create({
                 data: {
@@ -75,7 +95,16 @@ export const mailOperations = {
 
     destroyAliasMailingListRelation: defineOperation({
         dataSchema: mailSchemas.data.destroyAliasMailingListRelation,
-        authorizer: () => mailAuth.destroyAliasMailingListRelation,
+        authorizer: async ({ data, prisma }) => mailAuth.destroyAliasMailingListRelation.data({
+            aliasVisibility: await aliasOperations.visibility.readMatrixInternal({
+                prisma,
+                params: { id: data.mailAliasId },
+            }),
+            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+                prisma,
+                params: { id: data.mailingListId },
+            }),
+        }),
         operation: async ({ prisma, data }): Promise<MailAliasMailingList> =>
             prisma.mailAliasMailingList.delete({
                 where: {
@@ -86,7 +115,12 @@ export const mailOperations = {
 
     destroyMailingListExternalRelation: defineOperation({
         dataSchema: mailSchemas.data.destroyMailingListExternalRelation,
-        authorizer: () => mailAuth.destroyMailingListExternalRelation,
+        authorizer: async ({ data, prisma }) => mailAuth.destroyMailingListExternalRelation.data({
+            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+                prisma,
+                params: { id: data.mailingListId },
+            }),
+        }),
         operation: async ({ prisma, data }): Promise<MailingListMailAddressExternal> =>
             prisma.mailingListMailAddressExternal.delete({
                 where: {
@@ -97,7 +131,13 @@ export const mailOperations = {
 
     destroyMailingListUserRelation: defineOperation({
         dataSchema: mailSchemas.data.destroyMailingListUserRelation,
-        authorizer: () => mailAuth.destroyMailingListUserRelation,
+        authorizer: async ({ data, prisma }) => mailAuth.destroyMailingListUserRelation.data({
+            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+                prisma,
+                params: { id: data.mailingListId },
+            }),
+            userId: data.userId,
+        }),
         operation: async ({ prisma, data }): Promise<MailingListUser> =>
             prisma.mailingListUser.delete({
                 where: {
@@ -108,7 +148,13 @@ export const mailOperations = {
 
     destroyMailingListGroupRelation: defineOperation({
         dataSchema: mailSchemas.data.destroyMailingListGroupRelation,
-        authorizer: () => mailAuth.destroyMailingListGroupRelation,
+        authorizer: async ({ data, prisma }) => mailAuth.destroyMailingListGroupRelation.data({
+            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+                prisma,
+                params: { id: data.mailingListId },
+            }),
+            groupId: data.groupId,
+        }),
         operation: async ({ prisma, data }): Promise<MailingListGroup> =>
             prisma.mailingListGroup.delete({
                 where: {
@@ -117,19 +163,28 @@ export const mailOperations = {
             }),
     }),
 
-    readMailTraversal: defineOperation({
-        paramsSchema: mailSchemas.params.readMailTraversal,
-        authorizer: () => mailAuth.readMailTraversal,
-        operation: async ({ prisma, params }): Promise<MailFlowObject> => {
-            if (params.filter === 'alias') return readAliasTraversal(prisma, params.id)
-            if (params.filter === 'mailingList') return readMailingListTraversal(prisma, params.id)
-            if (params.filter === 'mailaddressExternal') return readMailaddressExternalTraversal(prisma, params.id)
-            if (params.filter === 'group') return readGroupTraversal(prisma, params.id)
-            if (params.filter === 'user') return readUserTraversal(prisma, params.id)
-            throw new ServiceError('BAD PARAMETERS', `The filter ${params.filter} is not a valid MailListTypes`)
-        },
+    readGroupTraversal: mailTraversalOperations.read.implement({
+        authorizer: ({ params }) => mailAuth.readGroupTraversal.data({
+            groupId: params.id,
+            markOwnedByUserId: params.markOwnedByUserId,
+        }),
+        ownershipCheck: () => true,
+        operationImplementationFields: { type: 'group' },
     }),
 
+    readUserTraversal: mailTraversalOperations.read.implement({
+        authorizer: ({ params }) => mailAuth.readUserTraversal.data({
+            userId: params.id,
+            markOwnedByUserId: params.markOwnedByUserId,
+        }),
+        ownershipCheck: () => true,
+        operationImplementationFields: { type: 'user' },
+    }),
+
+    /**
+     * What the session may wire: of aliases, lists and external addresses, those it may list, and
+     * none of a kind it may not.
+     */
     readMailOptions: defineOperation({
         authorizer: () => mailAuth.readMailOptions,
         operation: async (): Promise<{
@@ -137,17 +192,29 @@ export const mailOperations = {
             mailingList: MailingList[],
             mailaddressExternal: MailAddressExternal[],
         }> => {
-            const results = await Promise.all([
-                aliasOperations.readMany({ bypassAuth: true }),
-                mailingListOperations.readMany({ bypassAuth: true }),
-                mailAddressExternalOperations.readMany({ bypassAuth: true }),
+            const [alias, mailingList, mailaddressExternal] = await Promise.all([
+                noneWhenUnauthorized(aliasOperations.readMany({ params: {} })),
+                noneWhenUnauthorized(mailingListOperations.readMany({ params: {} })),
+                noneWhenUnauthorized(mailAddressExternalOperations.readMany({})),
             ])
 
-            return {
-                alias: results[0],
-                mailingList: results[1],
-                mailaddressExternal: results[2],
-            }
+            return { alias, mailingList, mailaddressExternal }
         },
     }),
 } as const
+
+/** The traversal read of each type of node, for a page that gets the type from its url. */
+export const mailTraversalReadOfType = {
+    alias: aliasOperations.readTraversal,
+    mailingList: mailingListOperations.readTraversal,
+    mailaddressExternal: mailAddressExternalOperations.readTraversal,
+    group: mailOperations.readGroupTraversal,
+    user: mailOperations.readUserTraversal,
+} as const satisfies Record<MailListTypes, unknown>
+
+function noneWhenUnauthorized<Row>(read: Promise<Row[]>): Promise<Row[]> {
+    return read.catch((error: unknown) => {
+        if (error instanceof Smorekopp && error.errorCode === 'UNAUTHORIZED') return []
+        throw error
+    })
+}

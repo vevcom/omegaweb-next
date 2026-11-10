@@ -4,6 +4,7 @@ import { feideLoginMayLinkByEmail } from './feideEmailLinking'
 import { loginReachesArchivedUser } from './archivedUsers'
 import { compressJwt, decompressJwt } from './jwtCompression'
 import { permissionsMaxAge } from './constants'
+import { sessionTokenOf } from './sessionToken'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
 import FeideProvider from '@/lib/feide/feideProvider'
 import { fetchStudyProgrammeRealmsFromFeide } from '@/lib/feide/api'
@@ -13,11 +14,9 @@ import {
     updateUserStudyProgrammes,
 } from '@/lib/feide/userRoutines'
 import { prisma } from '@/prisma-pn-client-instance'
-import { groupOperations } from '@/services/groups/operations'
 import { feideAccountOperations } from '@/services/auth/feideAccounts/operations'
 import { userOperations } from '@/services/users/operations'
 import { userPartitions } from '@/services/users/constants'
-import { permissionOperations } from '@/services/permissions/operations'
 import logger from '@/lib/logger'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { encode, decode } from 'next-auth/jwt'
@@ -204,34 +203,8 @@ export const authOptions: AuthOptions = {
                 throw new Error(`Got unsupported provider. Provider: ${provider}`)
             }
 
-            // Read at sign in only: a session keeps the epoch it was started with.
-            const sessionEpoch = account
-                ? (await prisma.user.findUniqueOrThrow({
-                    where: { id: userId },
-                    select: { sessionEpoch: true },
-                })).sessionEpoch
-                : token.sessionEpoch
-
-            return {
-                provider,
-                sessionEpoch,
-                permissionsReadAt: Date.now(),
-                user: await userOperations.read({
-                    params: { id: userId },
-                    bypassAuth: true,
-                }),
-                permissions: await permissionOperations.readPermissionsOfUser({
-                    params: {
-                        userId,
-                    },
-                    bypassAuth: true,
-                }),
-                memberships: await groupOperations.readMembershipsOfUserOfAllTypes.internalCall({
-                    params: {
-                        userId,
-                    }
-                }),
-            }
+            // The epoch is read at sign in only: a session keeps the one it was started with.
+            return sessionTokenOf(userId, provider, account ? undefined : token.sessionEpoch)
         }
     },
     // No newUser page: serverPage sends a user who has not registered to the register page of the

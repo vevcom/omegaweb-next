@@ -1,7 +1,7 @@
 import { linkToNotificationPage, replaceSpecialSymbols } from './helpers'
-import { sendMailSchemas } from '@/services/notifications/sendMail/schemas'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
-import { defaultNotificationAlias } from '@/lib/email/constants'
+import { sendMailSchemas } from '@/services/mail/send/schemas'
+import { sendMailOperations } from '@/services/mail/send/operations'
+import { defaultNotificationAlias } from '@/services/mail/send/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
 import { DomainContext } from '@/lib/sites/context'
@@ -59,7 +59,7 @@ export async function sendNotificationEmails(
     }))).filter(mail => mail !== null)
 
     if (mails.length > 0) {
-        await sendMailOperations.internal.sendBulkMail.internalCall({ data: mails })
+        await sendMailOperations.sendBulkMail.internalCall({ data: mails })
     }
 
     return mails.length

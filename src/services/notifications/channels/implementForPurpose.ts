@@ -100,6 +100,7 @@ export function implementNotificationChannelsForPurpose<
 
             destroy: defineSubOperation({
                 paramsSchema: () => notificationChannelSchemas.params.destroy,
+                transaction: 'RUNS_IN',
                 operation: () => async ({ prisma, params }) => {
                     await assertPurpose({ prisma, channelId: params.id })
                     return notificationChannelOperations.destroy.internalCall({ params })

@@ -40,13 +40,14 @@ export default function EventPaymentSection({
     if (!variant.takesPayment || price === null || !paymentStart || !paymentEnd) return null
 
     const now = new Date()
-    const paymentOpen = paymentStart <= now && now <= paymentEnd
+    const deadline = registration?.paymentDeadline ?? paymentEnd
+    const paymentOpen = paymentStart <= now && now <= deadline
     const status = paymentStatus(registration)
 
     return <EventSidebarSection title="Betaling">
         <EventInfoRow label="Pris">{displayAmount(price, false)}</EventInfoRow>
         <EventInfoRow label="Betalingsstart"><DateDisplay date={paymentStart} includeTime /></EventInfoRow>
-        <EventInfoRow label="Betalingsslutt"><DateDisplay date={paymentEnd} includeTime /></EventInfoRow>
+        <EventInfoRow label="Betalingsslutt"><DateDisplay date={deadline} includeTime /></EventInfoRow>
 
         {status === 'PAID' && (
             <p className="
@@ -76,10 +77,13 @@ export default function EventPaymentSection({
                     triggerLabel="Betal nå"
                 />
             )}
+            {variant.requeueUnpaidRegistrations && deadline >= now && (
+                <p className="m-0 text-base-content/80">Betaler du ikke innen fristen, flyttes du bakerst på ventelisten.</p>
+            )}
             {paymentStart > now && (
                 <p className="m-0 text-base-content/80">Betaling åpner om <CountDown referenceDate={paymentStart} /></p>
             )}
-            {paymentEnd < now && (
+            {deadline < now && (
                 <p className="m-0 text-base-content/80">Betalingsperioden er over. Ta kontakt med arrangørene.</p>
             )}
         </>}

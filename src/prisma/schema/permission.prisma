@@ -69,12 +69,11 @@ enum Permission {
   // Notifications
   NOTIFICATION_ADMIN
 
-  // Mail
-  MAIL_USE
-
   // Mail server: aliases, mailing lists and external addresses
   MAILSERVER_USE
   MAILSERVER_ADMIN
+  MAIL_ALIAS_CREATE
+  MAIL_LIST_CREATE
 
   // Admisstion
   ADMISSION_USE
@@ -85,6 +84,7 @@ enum Permission {
   // Omega job ads
   COMPANY_USE
   COMPANY_ADMIN
+  CAREER_FRONTPAGE_HIGHLIGHT_ADMIN
 
   // Dots
   DOTS_ADMIN
