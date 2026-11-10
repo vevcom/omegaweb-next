@@ -16,16 +16,14 @@ import {
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { paymentIncluder } from '@/services/ledger/payments/constants'
-import {
-    resolveAccountOwnership,
-    resolveAccountsOwnership,
-    resolveTransactionAccounts,
-} from '@/services/ledger/accounts/ownership'
+import { partyAccountIds, payerAccountIds, transactionPartiesSelection } from './parties'
+import { resolveAccountOwnership, resolveAccountsOwnership } from '@/services/ledger/accounts/ownership'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import { Prisma as PrismaRuntime } from '@/prisma-generated-pn-client'
-import type { ExpandedLedgerTransaction, LedgerTransactionFilters } from './types'
+import type { ExpandedLedgerTransaction, LedgerTransactionFilters, LedgerTransactionPageDetails } from './types'
+import type { TransactionParties } from './parties'
 import type { LedgerTransactionPurpose, Prisma } from '@/prisma-generated-pn-types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 
@@ -37,7 +35,7 @@ export const ledgerTransactionOperations = {
      */
     read: defineOperation({
         authorizer: async ({ params, prisma }) => ledgerTransactionAuth.read.data({
-            accounts: await resolveTransactionAccounts(prisma, params.id),
+            accounts: await ownersOf(prisma, params.id, partyAccountIds),
         }),
         paramsSchema: ledgerTransactionSchemas.params.read,
         operation: async ({ prisma, params }) => await prisma.ledgerTransaction.findUniqueOrThrow({
@@ -61,7 +59,7 @@ export const ledgerTransactionOperations = {
                 select: { id: true },
             })
             return ledgerTransactionAuth.readStateByPayment.data({
-                accounts: transaction ? await resolveTransactionAccounts(prisma, transaction.id) : [],
+                accounts: transaction ? await ownersOf(prisma, transaction.id, partyAccountIds) : [],
             })
         },
         paramsSchema: ledgerTransactionSchemas.params.readStateByPayment,
@@ -81,7 +79,7 @@ export const ledgerTransactionOperations = {
      */
     cancel: defineOperation({
         authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
-            accounts: await resolveTransactionAccounts(prisma, params.id),
+            accounts: await ownersOf(prisma, params.id, payerAccountIds),
         }),
         paramsSchema: ledgerTransactionSchemas.params.cancel,
         operation: async ({ prisma, params }) => {
@@ -96,7 +94,7 @@ export const ledgerTransactionOperations = {
 
             if (transaction.payment) {
                 // Bypassed: the authorizer above already established the caller may cancel this
-                // transaction (a party to it, or LEDGER_ADMIN) - that's the right bar for
+                // transaction (its paying side, or LEDGER_ADMIN) - that's the right bar for
                 // canceling its payment too, not paymentAuth.cancel's own generic LEDGER_USE.
                 await paymentOperations.cancel({
                     params: { paymentId: transaction.payment.id },
@@ -173,7 +171,7 @@ export const ledgerTransactionOperations = {
      */
     cancelOwn: defineOperation({
         authorizer: async ({ params, prisma }) => ledgerTransactionAuth.cancel.data({
-            accounts: await resolveTransactionAccounts(prisma, params.id),
+            accounts: await ownersOf(prisma, params.id, payerAccountIds),
         }),
         paramsSchema: ledgerTransactionSchemas.params.cancel,
         transaction: 'RUNS_IN',
@@ -195,13 +193,18 @@ export const ledgerTransactionOperations = {
         operation: async ({ prisma, params }) => await prisma.ledgerTransaction.findMany({
             where: {
                 purpose: params.paging.details.purpose,
-                ledgerEntries: {
-                    some: {
-                        ledgerAccountId: params.paging.details.accountId,
-                        AND: accountEntryFilters(params.paging.details),
+                OR: [
+                    {
+                        ledgerEntries: {
+                            some: {
+                                ledgerAccountId: params.paging.details.accountId,
+                                AND: accountEntryFilters(params.paging.details),
+                            },
+                        },
                     },
-                },
-                ...(params.paging.details.search ? { OR: searchFilters(params.paging.details.search) } : {}),
+                    ...payerWithoutEntryFilters(params.paging.details),
+                ],
+                ...(params.paging.details.search ? { AND: [{ OR: searchFilters(params.paging.details.search) }] } : {}),
             },
             include: expandedLedgerTransactionIncluder,
             orderBy: [
@@ -417,6 +420,19 @@ export const ledgerTransactionOperations = {
     }),
 } as const
 
+/** The owners of the accounts `pick` takes from a transaction, for authorizers. None if it doesn't exist. */
+async function ownersOf(
+    prisma: Prisma.TransactionClient,
+    transactionId: number,
+    pick: (transaction: TransactionParties) => number[],
+) {
+    const transaction = await prisma.ledgerTransaction.findUnique({
+        where: { id: transactionId },
+        select: transactionPartiesSelection,
+    })
+    return transaction ? resolveAccountsOwnership(prisma, { ledgerAccountIds: pick(transaction) }) : []
+}
+
 /**
  * Narrows the entry of the account whose transactions are listed, so the amount is the size of its
  * balance change and the direction is the sign of it.
@@ -434,6 +450,23 @@ function accountEntryFilters(
         })
     }
     return filters
+}
+
+/**
+ * Matches what the account's user paid by card alone, which leaves the account no entry, only the
+ * payment. That money goes out, and the payment's size is the amount.
+ */
+function payerWithoutEntryFilters(
+    { accountId, direction, minAmount = 0, maxAmount }: LedgerTransactionPageDetails
+): Prisma.LedgerTransactionWhereInput[] {
+    if (direction === 'IN') return []
+    return [{
+        ledgerEntries: { none: { ledgerAccountId: accountId } },
+        payment: {
+            user: { ledgerAccountId: accountId },
+            ...(minAmount > 0 || maxAmount !== undefined ? { funds: { gte: minAmount, lte: maxAmount } } : {}),
+        },
+    }]
 }
 
 /** Matches what a transaction's title and details name, so a search finds what the list shows. */

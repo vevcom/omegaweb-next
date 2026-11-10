@@ -30,7 +30,7 @@ const { page, generateMetadata } = serverPage({
         // Cards are self-service, so a ledger admin viewing another user's account neither sees
         // their cards nor gets a Stripe deposit, which would charge the admin's own card.
         canUseCards: stripeCustomerAuth.createSession.data({ userId: data.userId }),
-        // Every transaction listed involves this account, so owning it makes the viewer a party.
+        // Owning the account lets the viewer cancel what it pays, which the details tell apart.
         canCancel: ledgerTransactionAuth.cancel.data({ accounts: [data.ledgerAccount.ownership] }),
         // Unfreezing takes more than freezing, so the rule follows the state the button changes.
         canFreeze: data.ledgerAccount.frozen

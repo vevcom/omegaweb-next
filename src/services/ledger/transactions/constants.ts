@@ -44,6 +44,8 @@ export const expandedLedgerTransactionIncluder = {
             // the clientSecret from ExpandedPayment instead.
             stripePayment: { select: { createdAt: true, updatedAt: true } },
             manualPayment: true,
+            // The account of the user it is from, which paying by card alone leaves off the entries.
+            user: { select: { ledgerAccountId: true } },
         },
     },
     booking: {

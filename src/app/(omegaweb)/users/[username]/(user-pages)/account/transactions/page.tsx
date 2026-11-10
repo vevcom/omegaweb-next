@@ -18,7 +18,7 @@ const { page, generateMetadata } = serverPage({
         }
     },
     capabilities: ({ ledgerAccount }) => ({
-        // Every transaction listed involves this account, so owning it makes the viewer a party.
+        // Owning the account lets the viewer cancel what it pays, which the details tell apart.
         canCancel: ledgerTransactionAuth.cancel.data({ accounts: [ledgerAccount.ownership] }),
         // The page is open to the account's owners too, so the fees need a rule of their own.
         canSeeFees: Require.permission('LEDGER_ADMIN'),

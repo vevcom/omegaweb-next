@@ -282,6 +282,11 @@ model Payment {
   stripePayment    StripePayment?
   manualPayment    ManualPayment?
 
+  // The user responsible for the payment, whose card pays, when there is one. A payment by card alone
+  // debits none of their accounts, so the transaction knows its payer through this.
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId Int?
+
   // Every transaction created against this payment, normally one. A FAILED or CANCELED one leaves the
   // funds unclaimed, so a reimbursement can reuse the payment. At most one may succeed, see
   // claimedByTransactionId.
@@ -298,6 +303,8 @@ model Payment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model StripePayment {

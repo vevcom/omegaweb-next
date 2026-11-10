@@ -5,6 +5,8 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { userOperations } from '@/services/users/operations'
 import { afterEach, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import type { MembershipFiltered } from '@/services/groups/types'
@@ -155,7 +157,7 @@ async function createCommittee(shortName: string) {
     const ledgerAccount = await prisma.ledgerAccount.create({
         data: { type: 'GROUP', name: shortName, groups: { create: { groupId: committee.groupId } } },
     })
-    return { committeeId: committee.id, ledgerAccountId: ledgerAccount.id }
+    return { committeeId: committee.id, groupId: committee.groupId, ledgerAccountId: ledgerAccount.id }
 }
 
 /** A paid event, open for registration and payment right now, hosted by a committee. */
@@ -565,6 +567,122 @@ describe('paying for an event, replacing an admin-parked attempt', () => {
             params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
             session: eventAdminSessionOf(admin),
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen har allerede en betaling under behandling.'))
+    })
+})
+
+describe('paying for an event by card alone', () => {
+    let paymentCount = 0
+
+    // Stripe's ids are unique in the database, so every payment gets its own.
+    beforeEach(() => {
+        paymentCount += 1
+        jest.spyOn(stripe.paymentIntents, 'create').mockResolvedValue(
+            { id: `pi_test_card_only_${paymentCount}`, client_secret: `pi_test_card_only_${paymentCount}_secret` } as never
+        )
+        jest.spyOn(stripe.paymentIntents, 'cancel').mockResolvedValue({} as never)
+        jest.spyOn(stripe.customers, 'create').mockResolvedValue({ id: `cus_test_card_only_${paymentCount}` } as never)
+    })
+
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
+    /** Leaves the registrant's account off the transaction, since nothing is taken from their balance. */
+    async function payByCard(name: string) {
+        const committee = await createCommittee(`${name}-committee`)
+        const eventId = await createPaidEvent(committee)
+        const registrant = await createTestUser(`${name}registrant`)
+        const registration = await register(registrant, eventId)
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: payerSessionOf(registrant),
+        })
+        const transaction = await prisma.ledgerTransaction.findFirstOrThrow({
+            where: { eventRegistrationId: registration.id },
+            include: { payment: true },
+        })
+        const registrantAccount = await ledgerAccountOperations.read({ params: { userId: registrant.id }, bypassAuth: true })
+        return { committee, registrant, registrantAccountId: registrantAccount.id, transaction }
+    }
+
+    const readPageOf = (accountId: number, direction?: 'IN' | 'OUT') => ledgerTransactionOperations.readPage({
+        params: { paging: { page: { page: 0, pageSize: 10, cursor: null }, details: { accountId, direction } } },
+        bypassAuth: true,
+    })
+
+    test('the payment is from the registrant, and listed on their account as money going out', async () => {
+        const { registrant, registrantAccountId, transaction } = await payByCard('cardlisted')
+
+        expect(transaction.payment?.userId).toBe(registrant.id)
+        expect((await readPageOf(registrantAccountId)).map(listed => listed.id)).toEqual([transaction.id])
+        expect((await readPageOf(registrantAccountId, 'OUT')).map(listed => listed.id)).toEqual([transaction.id])
+        expect(await readPageOf(registrantAccountId, 'IN')).toEqual([])
+    })
+
+    test('the registrant may follow and cancel the payment, and no member of the committee being paid', async () => {
+        const { committee, registrant, transaction } = await payByCard('cardcancel')
+        const committeeMember = await createTestUser('cardcancelcommitteemember')
+
+        await expect(ledgerTransactionOperations.readStateByPayment({
+            params: { paymentId: transaction.paymentId! },
+            session: sessionOf(registrant),
+        })).resolves.toBe('PENDING')
+
+        await expect(ledgerTransactionOperations.cancelOwn({
+            params: { id: transaction.id },
+            session: sessionOf(committeeMember, [membersGroupId, committee.groupId]),
+        })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+
+        await expect(ledgerTransactionOperations.cancelOwn({
+            params: { id: transaction.id },
+            session: sessionOf(registrant),
+        })).resolves.toMatchObject({ state: 'CANCELED' })
+    })
+
+    test('an admin paying by card for a registrant is responsible for the payment, since it is their card', async () => {
+        const committee = await createCommittee('cardadmin-committee')
+        const eventId = await createPaidEvent(committee)
+        const registrant = await createTestUser('cardadminregistrant')
+        const admin = await createTestUser('cardadminpayer')
+        const registration = await register(registrant, eventId)
+
+        await eventRegistrationOperations.createPayment({
+            params: { userId: registrant.id, eventId, amountFromBalance: 0, provider: 'STRIPE' },
+            session: eventAdminSessionOf(admin),
+        })
+
+        const transaction = await prisma.ledgerTransaction.findFirstOrThrow({
+            where: { eventRegistrationId: registration.id },
+            include: { payment: true },
+        })
+        expect(transaction.payment?.userId).toBe(admin.id)
+    })
+
+    test('a card deposit into a group account is from the member paying, and theirs alone to cancel', async () => {
+        const committee = await createCommittee('carddeposit-committee')
+        const payer = await createTestUser('carddepositpayer')
+        const otherMember = await createTestUser('carddepositother')
+        const memberSessionOf = (user: UserFiltered) => Session.fromJsObject({
+            user,
+            permissions: ['LEDGER_USE'],
+            memberships: sessionOf(user, [membersGroupId, committee.groupId]).memberships,
+        })
+
+        const deposit = await ledgerMovementOperations.createDeposit({
+            params: { ledgerAccountId: committee.ledgerAccountId, provider: 'STRIPE', funds: 100_00 },
+            session: memberSessionOf(payer),
+        })
+        expect(deposit.payment.userId).toBe(payer.id)
+
+        await expect(ledgerTransactionOperations.cancelOwn({
+            params: { id: deposit.id },
+            session: memberSessionOf(otherMember),
+        })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+
+        await expect(ledgerTransactionOperations.cancelOwn({
+            params: { id: deposit.id },
+            session: memberSessionOf(payer),
+        })).resolves.toMatchObject({ state: 'CANCELED' })
     })
 })
 

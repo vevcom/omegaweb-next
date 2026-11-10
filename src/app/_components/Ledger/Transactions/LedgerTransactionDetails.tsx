@@ -5,6 +5,7 @@ import { displayDate } from '@/lib/dates/displayDate'
 import { configureAction } from '@/services/configureAction'
 import { cancelLedgerTransactionAction } from '@/services/ledger/transactions/actions'
 import { transactionPurposeNames } from '@/services/ledger/transactions/constants'
+import { payerAccountIds } from '@/services/ledger/transactions/parties'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { LedgerTransactionPurpose, LedgerTransactionState, PaymentProvider } from '@/prisma-generated-pn-types'
@@ -65,6 +66,8 @@ export default function LedgerTransactionDetails({ transaction, accountId, capab
     ) / 2
 
     const accountEntry = transaction.ledgerEntries.find(entry => entry.ledgerAccountId === accountId)
+    // Owning the account is the capability, and the account paying is what makes it apply here.
+    const canCancel = capabilities.canCancel.authorized && payerAccountIds(transaction).includes(accountId)
     // Through the quota the registration holds a place in, or the waiting list it has fallen back to.
     const registrationVariant = transaction.eventRegistration?.quota?.variant
         ?? transaction.eventRegistration?.waitingListVariant
@@ -154,7 +157,7 @@ export default function LedgerTransactionDetails({ transaction, accountId, capab
             </div>
         )}
 
-        {transaction.state === 'PENDING' && capabilities.canCancel.authorized && (
+        {transaction.state === 'PENDING' && canCancel && (
             <Form
                 submitText="Avbryt betaling"
                 submitColor="red"

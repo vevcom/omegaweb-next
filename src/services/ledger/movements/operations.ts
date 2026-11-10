@@ -42,6 +42,8 @@ export const ledgerMovementOperations = {
         paramsSchema: ledgerMovementSchemas.params.createDeposit,
         operation: async ({ prisma, params }) => {
             const created = await prisma.$transaction(async tx => {
+                // A manual deposit is an admin recording a bank transfer, so it is from the account's user, if any.
+                const { userId } = await resolveAccountOwnership(tx, { ledgerAccountId: params.ledgerAccountId })
                 const payment = await paymentOperations.create({
                     params: {
                         provider: params.provider,
@@ -49,6 +51,7 @@ export const ledgerMovementOperations = {
                         manualFees: params.manualFees,
                         descriptionLong: 'Innskudd til veven',
                         descriptionShort: 'Innskudd',
+                        userId: userId ?? undefined,
                     },
                     prisma: tx,
                 })

@@ -84,6 +84,8 @@ model User {
   ledgerAccountId Int             @unique
   ledgerAccount   LedgerAccount   @relation(fields: [ledgerAccountId], references: [id], onUpdate: Cascade)
   stripeCustomer  StripeCustomer?
+  // The payments made by or for the user, see Payment.user.
+  payments        Payment[]
 
   // What notifications the user whiches to received and
   // which mailing lists the user is on.
