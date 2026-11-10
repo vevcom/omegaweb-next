@@ -3,6 +3,7 @@ import { isPostLogoutRedirectUri, oidcClientOf } from '@/services/auth/oidc/clie
 import { discoveryDocument } from '@/services/auth/oidc/discovery'
 import { OIDC_CLAIMS, OIDC_MAIL_SCOPE, OIDC_SCOPES, oidcScopes, scopesFor, userClaims } from '@/services/auth/oidc/scopes'
 import { jwks, signAccessToken, signIdToken, verifyAccessToken } from '@/services/auth/oidc/tokens'
+import { GET as userinfo } from '@/app/api/oidc/userinfo/route'
 import { userOperations } from '@/services/users/operations'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
@@ -12,6 +13,7 @@ import { Session } from '@/auth/session/Session'
 import { Site } from '@/lib/sites/site'
 import { afterEach, describe, expect, test } from '@jest/globals'
 import { decode } from 'jsonwebtoken'
+import { NextRequest } from 'next/server'
 import { createHash, randomBytes } from 'node:crypto'
 import type { oidcSchemas } from '@/services/auth/oidc/schemas'
 import type { z } from 'zod'
@@ -341,6 +343,26 @@ describe('the OpenID Connect provider', () => {
         await createAliasReceivedBy(user.id, 'test-oidc-styret')
 
         expect(await userClaims(user.id, ['openid', OIDC_MAIL_SCOPE])).toEqual({})
+    })
+
+    test('userinfo blames a bad token on the bearer and a failure of its own on the server', async () => {
+        const ask = (token: string) => userinfo(new NextRequest(`${ISSUER}/api/oidc/userinfo`, {
+            headers: { host: new URL(ISSUER).host, 'x-forwarded-proto': 'https', authorization: `Bearer ${token}` },
+        }))
+        const badToken = await ask('not-a-token')
+        expect(badToken.status).toBe(401)
+        expect(badToken.headers.get('www-authenticate')).toMatch(/^Bearer error="invalid_token"/)
+
+        const publicKey = process.env.JWT_PUBLIC_KEY
+        try {
+            Reflect.deleteProperty(process.env, 'JWT_PUBLIC_KEY')
+            const broken = await ask('not-a-token')
+            expect(broken.status).toBe(500)
+            expect(broken.headers.get('www-authenticate')).toBeNull()
+            expect(await broken.text()).toBe('')
+        } finally {
+            process.env.JWT_PUBLIC_KEY = publicKey
+        }
     })
 
     test('the discovery document names the endpoints on the issuer', () => {
