@@ -144,6 +144,19 @@ describe('signing in on a site through the auth domain', () => {
         expect(cookieOf(response, STATE_COOKIE)).toBeUndefined()
     })
 
+    test('a redirect goes by the host the browser asked for, not the one the server listens on', async () => {
+        const user = await createUser('listening-host')
+        // As Next hands a request on: its url names the address the server listens on.
+        const onAuthDomain = new NextRequest('http://localhost:3000/api/sso/start?callbackUrl=%2Fapi%2Foidc%2Fjwks', {
+            headers: {
+                host: 'login.omega.ntnu.no',
+                'x-forwarded-proto': 'https',
+                cookie: `${SESSION_COOKIE}=${await sessionCookieFor(user.id)}`,
+            },
+        })
+        expect(location(await start(onAuthDomain)).href).toBe('https://login.omega.ntnu.no/api/oidc/jwks')
+    })
+
     test('authorize sends a visitor without a session to the site\'s form, and one with a session back', async () => {
         const user = await createUser('authorize')
         const started = await start(request('https://contactor.no/api/sso/start?callbackUrl=%2Fcareer%2Fjob-ads'))

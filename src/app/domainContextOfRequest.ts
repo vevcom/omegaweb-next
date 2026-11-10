@@ -31,6 +31,16 @@ export function domainContextOf(request: NextRequest): DomainContext {
     return DomainContext.fromAppPath(domain, path)
 }
 
+/**
+ * The url a route handler sends its request on to for an app path: resolved for the domain the
+ * request came to, and absolute on that domain. The request's own url is no base for it, since
+ * Next writes the host it listens on there and not the one the browser asked for.
+ */
+export function redirectUrlFor(request: NextRequest, href: AppHref, options?: ResolveHrefOptions): URL {
+    const context = domainContextOf(request)
+    return new URL(context.resolveHref(href, options), context.origin() ?? request.nextUrl)
+}
+
 /** An app path as the request being rendered should link or redirect to it, see {@link DomainContext.resolveHref}. */
 export async function siteHref(href: AppHref, options?: ResolveHrefOptions): Promise<DomainContextResolvedHref> {
     return (await domainContextOfRequest()).resolveHref(href, options)

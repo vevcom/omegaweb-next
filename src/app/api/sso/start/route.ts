@@ -1,4 +1,4 @@
-import { domainContextOf } from '@/app/domainContextOfRequest'
+import { domainContextOf, redirectUrlFor } from '@/app/domainContextOfRequest'
 import { SSO_SCOPE } from '@/auth/sso/constants'
 import { ssoStartHref } from '@/auth/sso/links'
 import { readSessionToken } from '@/auth/sso/session'
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const context = domainContextOf(request)
     const callbackUrl = QueryParams.callbackUrl.decode(Object.fromEntries(request.nextUrl.searchParams)) ?? appHref('/')
     const site = Site.ofPath(callbackUrl)
-    const onward = () => NextResponse.redirect(new URL(context.resolveHref(callbackUrl), request.nextUrl))
+    const onward = () => NextResponse.redirect(redirectUrlFor(request, callbackUrl))
 
     if (context.isDedicatedAuthDomain() && !isAppWidePath(callbackUrl)) {
         return NextResponse.redirect(`${DomainContext.originOfSite(site)}${ssoStartHref(callbackUrl)}`)

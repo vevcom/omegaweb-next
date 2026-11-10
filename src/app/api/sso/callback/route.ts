@@ -1,4 +1,4 @@
-import { domainContextOf } from '@/app/domainContextOfRequest'
+import { domainContextOf, redirectUrlFor } from '@/app/domainContextOfRequest'
 import { startSession } from '@/auth/sso/session'
 import { clearSsoStateCookie, readSsoStateCookie, ssoCookieOf } from '@/auth/sso/stateCookie'
 import { sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     const landOn = (href: typeof stored.callbackUrl) => {
-        const response = NextResponse.redirect(new URL(context.resolveHref(href), request.nextUrl))
+        const response = NextResponse.redirect(redirectUrlFor(request, href))
         clearSsoStateCookie(response, secure)
         return response
     }

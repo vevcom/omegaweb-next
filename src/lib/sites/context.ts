@@ -223,6 +223,14 @@ export class DomainContext {
         return this.dedicatedAuthOrigin() !== null
     }
 
+    /**
+     * The origin of the domain the visitor is on, as the browser has it: a site's domain or the
+     * domain set apart to sign in. Null on a host that is neither, such as an alias.
+     */
+    origin(): string | null {
+        return this.siteDomain()?.origin ?? this.dedicatedAuthOrigin()
+    }
+
     private dedicatedAuthOrigin(): string | null {
         const config = DomainContext.config()
         return config.isAuthHost(this.domain) ? config.authOrigin() : null
