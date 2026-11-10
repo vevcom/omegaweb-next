@@ -1,3 +1,4 @@
+import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
@@ -8,6 +9,10 @@ export const metadata: Metadata = {
 }
 
 /** Catches the urls under /revue no route matches, so that the 404 page renders inside the revue layout. */
-export default function NotFoundCatchAll() {
-    notFound()
-}
+const { page } = serverPage({
+    allowUnregistered: true,
+    operation: () => notFound(),
+    render: () => null,
+})
+
+export default page

@@ -116,6 +116,7 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
 
         <SiteLink
             href={authLinks(config).sendResetPasswordEmail()}
+            servedOn="auth-domain"
             className="
                 self-start
                 [&>p]:my-4 [&>p]:text-primary [&>p]:text-s

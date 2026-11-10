@@ -20,6 +20,12 @@ export type ResolveHrefOptions = {
      * to another site, used sparingly. Without it the visitor stays on the domain they are on when it can.
      */
     toMainDomainServingSite?: boolean,
+    /**
+     * What the page linked to says of itself, see {@link ServedOn}, for a link that knows it: the
+     * link then goes straight to the domain serving the page, where the page would otherwise send
+     * the request on once it got it.
+     */
+    servedOn?: ServedOn,
 }
 
 const appWidePrefixes = ['/api/', '/_next/', '/__nextjs', '/store/', '/.well-known/']
@@ -253,7 +259,8 @@ export class DomainContext {
      * domains, under the base path on Omega's. Otherwise, or when asked to go to the main domain, the
      * page is reached by the main domain serving it, which is every page from a domain set apart to
      * sign users in. A page served on the auth domain resolves like any page of its site, and the
-     * page itself sends the request on, see {@link urlOnServingDomain}. Anything but a site's page,
+     * page itself sends the request on, see {@link urlOnServingDomain}, unless the link says where
+     * the page is served: it then stays on the auth domain or goes straight to it. Anything but a site's page,
      * such as an external url or an app-wide path like `/api/...`, is left as it is. The result is
      * typed as resolved, so it is never resolved again: on another site's domain a site-relative
      * path reads as a page of Omega's.
@@ -261,6 +268,10 @@ export class DomainContext {
     resolveHref(href: AppHref | ExternalHref, options: ResolveHrefOptions = {}): DomainContextResolvedHref {
         const resolved = (): string => {
             if (!isAppPath(href) || isAppWidePath(href)) return href
+            const authOrigin = DomainContext.config().authOrigin()
+            if (options.servedOn === 'auth-domain' && authOrigin !== null) {
+                return this.isAuthDomain() ? href : `${authOrigin}${href}`
+            }
             const target = Site.ofPath(href)
             if (!options.toMainDomainServingSite && this.serves(target)) {
                 return this.servesBasePaths() ? href : target.pathOn(href)

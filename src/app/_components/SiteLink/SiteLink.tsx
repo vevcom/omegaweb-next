@@ -2,6 +2,7 @@
 import useDomainContext from '@/hooks/useDomainContext'
 import Link from 'next/link'
 import type { AppHref, ExternalHref } from '@/lib/sites/href'
+import type { ServedOn } from '@/lib/sites/context'
 import type { ComponentProps } from 'react'
 
 type PropTypes = Omit<ComponentProps<typeof Link>, 'href'> & {
@@ -9,6 +10,8 @@ type PropTypes = Omit<ComponentProps<typeof Link>, 'href'> & {
     href: AppHref | ExternalHref,
     /** Go by the main domain of the page's site even from a domain that serves it: the explicit way over to another site. */
     toMainDomainServingSite?: boolean,
+    /** What the page linked to says of itself, so the link goes straight to the domain serving it. */
+    servedOn?: ServedOn,
 }
 
 /**
@@ -17,7 +20,7 @@ type PropTypes = Omit<ComponentProps<typeof Link>, 'href'> & {
  * goes through it, so `next/link` is imported here alone; anything but an app path passes through
  * as it is.
  */
-export default function SiteLink({ href, toMainDomainServingSite, ...props }: PropTypes) {
+export default function SiteLink({ href, toMainDomainServingSite, servedOn, ...props }: PropTypes) {
     const context = useDomainContext()
-    return <Link href={context.resolveHref(href, { toMainDomainServingSite })} {...props} />
+    return <Link href={context.resolveHref(href, { toMainDomainServingSite, servedOn })} {...props} />
 }

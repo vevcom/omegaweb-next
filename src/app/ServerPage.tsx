@@ -76,7 +76,9 @@ export async function handleServiceError(error: unknown): Promise<Smorekopp> {
  * `allowUnregistered` on {@link serverPage}).
  */
 async function redirectUnregistered(session: ServerPageSession) {
-    if (session.user && !session.user.acceptedTerms) await siteRedirect(await authPathWithCallback('register'))
+    if (session.user && !session.user.acceptedTerms) {
+        await siteRedirect(await authPathWithCallback('register'), { servedOn: 'auth-domain' })
+    }
 }
 
 /**

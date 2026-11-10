@@ -211,6 +211,25 @@ describe('DomainContext', () => {
             expect(onCareersOther.resolveHref(appHref('/career/job-ads'), toMain)).toBe('https://contactor.no/job-ads')
         })
 
+        test('a link that says its page is served on the auth domain stays there or goes straight to it', () => {
+            const servedOnAuth = { servedOn: 'auth-domain' } as const
+            const register = appHref('/career/register?callbackUrl=%2Fcareer')
+            // Without a domain set apart, Omega's main domain signs users in.
+            expect(onOmega.resolveHref(register, servedOnAuth)).toBe(register)
+            expect(onCareers.resolveHref(register, servedOnAuth)).toBe(`https://omega.ntnu.no${register}`)
+
+            DomainContext.configure(withAuthDomain)
+            const onAuth = DomainContext.fromAppPath('login.omega.ntnu.no', '/career/login')
+            expect(onAuth.resolveHref(register, servedOnAuth)).toBe(register)
+            expect(onAuth.resolveHref(register)).toBe('https://contactor.no/register?callbackUrl=%2Fcareer')
+            expect(onCareers.resolveHref(register, servedOnAuth)).toBe(`https://login.omega.ntnu.no${register}`)
+            expect(onOmega.resolveHref(appHref('/register'), servedOnAuth)).toBe('https://login.omega.ntnu.no/register')
+            expect(onAuth.resolveHref(appHref('/api/sso/start'), servedOnAuth)).toBe('/api/sso/start')
+
+            DomainContext.configure(withoutDomains)
+            expect(DomainContext.fromAppPath('localhost:3000', '/').resolveHref(register, servedOnAuth)).toBe(register)
+        })
+
         test('without any domains every link is the app path, as before', () => {
             DomainContext.configure(withoutDomains)
             const onLocalhost = DomainContext.fromAppPath('localhost:3000', '/')
