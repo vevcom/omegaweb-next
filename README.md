@@ -77,7 +77,7 @@ inside the omegaweb-next container
 
 Production runs on the k3s cluster, deployed by Argo CD from [vivat](https://github.com/vevcom/vivat). This repo holds the generic shape of an installation in `deploy/`, see [deploy/README.md](deploy/README.md): the app, the worker, the migrate job and the database, with nothing about where it runs. Our domains, certificate, buckets, backups and the release that runs are vivat's business. Publishing a GitHub release builds the images and opens the pull request there that deploys it.
 
-There is no nginx. Next serves `/store/` itself (`src/app/store/[...path]/route.ts`), in dev and prod alike.
+There is no nginx. Next serves `/store/` itself (`src/app/(omegaweb)/store/[...path]/route.ts`), in dev and prod alike.
 
 ### Signing in
 

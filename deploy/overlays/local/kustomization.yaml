@@ -9,7 +9,6 @@ namespace: omegaweb-next
 resources:
     - namespace.yaml
     - ../../base
-    - store-pvc.yaml
 
 configMapGenerator:
     - name: omegaweb-next-sites
@@ -40,17 +39,3 @@ patches:
           - op: replace
             path: /spec/rules/0/host
             value: omegaweb-next.localhost
-    - target:
-          kind: (Deployment|Job)
-      patch: |-
-          - op: add
-            path: /spec/template/spec/volumes/-
-            value:
-                name: store
-                persistentVolumeClaim:
-                    claimName: omegaweb-next-store
-          - op: add
-            path: /spec/template/spec/containers/0/volumeMounts/-
-            value:
-                name: store
-                mountPath: /usr/src/app/store

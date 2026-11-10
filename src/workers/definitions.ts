@@ -6,8 +6,9 @@ import {
     sendDueWeeklyDigests,
 } from '@/services/notifications/methods/dispatchQueue'
 import { pushIsConfigured } from '@/services/notifications/methods/constants'
-import { destroyImageOrphans } from '@/services/images/subservice/imageFiles'
-import { destroyOmbulOrphans } from '@/services/ombul/store'
+import { cacheImageStore, originalImageStore } from '@/services/images/subservice/imageFiles'
+import { ombulStore } from '@/services/ombul/store'
+import { untrackedStoreFilesWorker } from '@/services/store/untrackedFiles'
 import {
     cancelStaleLedgerTransactions,
     flagUnbalancedLedgerTransactions,
@@ -85,28 +86,16 @@ export const workers = {
     },
 
     /**
-     * Destroys the orphans of the stores, the files no row refers to - see createOrphanDestroyer.
-     * One store failing does not keep the other from being cleaned.
+     * The store's workers, one per purpose, each made by the implementStore of the service that owns
+     * the purpose. It destroys the purpose's orphans, the files no row refers to, moves its files
+     * to where the purpose wants them, and reports the files a row of another purpose refers to.
      */
-    store: {
-        name: 'Store worker',
-        // A file is only destroyed after a day unreferenced, so looking more often than hourly gains
-        // nothing.
-        intervalMs: 60 * 60 * 1000,
-        tick: async progress => {
-            try {
-                await destroyImageOrphans({ onBatch: progress })
-            } catch (error) {
-                logger.error(`Store worker failed to destroy the orphans of the images store: ${error}`)
-            }
+    ombulStore: ombulStore.worker,
+    originalImageStore: originalImageStore.worker,
+    cacheImageStore: cacheImageStore.worker,
 
-            try {
-                await destroyOmbulOrphans({ onBatch: progress })
-            } catch (error) {
-                logger.error(`Store worker failed to destroy the orphans of the ombul store: ${error}`)
-            }
-        },
-    },
+    /** Destroys what is in the store without a StoreFile row, which no purpose's worker sees. */
+    untrackedStoreFiles: untrackedStoreFilesWorker,
 
     /**
      * The ledger sweeper, see ledger/sweeper.ts. Stale transactions go first, since settling one can

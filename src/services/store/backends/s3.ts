@@ -10,7 +10,7 @@ import {
     S3Client,
     S3ServiceException,
 } from '@aws-sdk/client-s3'
-import type { StoreS3Config } from './constants'
+import type { StoreS3Config } from '@/services/store/constants'
 import type { StoreBackend } from './types'
 
 function isNotFound(error: unknown) {

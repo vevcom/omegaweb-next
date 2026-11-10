@@ -8,10 +8,7 @@ import { newOmbulNotificationChannel } from './newOmbulNotificationChannel'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { defineOperation } from '@/services/serviceOperation'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import logger from '@/lib/logger'
 import type { Prisma } from '@/prisma-generated-pn-types'
-import type { File } from 'node:buffer'
-import type { Awaitable } from '@/lib/awaitable'
 
 export const ombulOperations = {
     read: defineOperation({
@@ -41,9 +38,9 @@ export const ombulOperations = {
     }),
 
     /**
-     * The pdf is stored before the row is written, since the row needs its location, and removed
-     * again if the transaction fails. The notification waits until the ombul is committed, so
-     * nobody is told about an ombul that was rolled back.
+     * The pdf is stored before the row is written, since the row refers to it. A pdf whose ombul
+     * is never committed is an orphan, which the store destroys. The notification waits until the
+     * ombul is committed, so nobody is told about an ombul that was rolled back.
      */
     create: defineOperation({
         authorizer: () => ombulAuth.create,
@@ -52,7 +49,8 @@ export const ombulOperations = {
         operation: async ({ data, prisma }) => {
             const { ombulCoverImage, ombulFile, year, issueNumber, ...rest } = data
 
-            const ombul = await withStoredOmbulFile(ombulFile, fsLocation => prisma.$transaction(async tx => {
+            const file = await ombulStore.createFile(ombulFile)
+            const ombul = await prisma.$transaction(async tx => {
                 const coverImage = await ombulCoverImageOperations.uploadImage.internalCall({
                     prisma: tx,
                     data: {
@@ -84,10 +82,14 @@ export const ombulOperations = {
                                 id: paragraph.id
                             }
                         },
-                        fsLocation,
+                        file: {
+                            connect: {
+                                name: file.name
+                            }
+                        },
                     }
                 })
-            }))
+            })
 
             await newOmbulNotificationChannel.internalOperations.createNotification.internalCall({
                 data: {
@@ -116,34 +118,22 @@ export const ombulOperations = {
             })
     }),
 
-    /**
-     * The old pdf is only removed once the row points at the new one, so a failure anywhere
-     * before that leaves the ombul as it was.
-     */
+    /** The old pdf is an orphan once the row refers to the new one, which the store destroys. */
     updateFile: defineOperation({
         authorizer: () => ombulAuth.updateFile,
         dataSchema: ombulSchemas.data.updateFile,
         paramsSchema: ombulSchemas.params.updateFile,
         operation: async ({ data, prisma, params }) => {
-            const { fsLocation: oldFsLocation } = await prisma.ombul.findUniqueOrThrow({
-                where: {
-                    id: params.id
-                },
-                select: { fsLocation: true },
-            })
-
-            const ombul = await withStoredOmbulFile(data.ombulFile, fsLocation => prisma.ombul.update({
+            const file = await ombulStore.createFile(data.ombulFile)
+            return prisma.ombul.update({
                 where: {
                     id: params.id
                 },
                 data: {
-                    fsLocation
+                    fsLocation: file.name
                 },
                 include: expandedOmbulIncluder,
-            }))
-
-            await destroyStoredOmbulFile(oldFsLocation, 'ombul file replacement')
-            return ombul
+            })
         }
     }),
 
@@ -153,7 +143,7 @@ export const ombulOperations = {
         dataSchema: ombulSchemas.data.updateCoverImage,
         transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
-            const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
+            const newImage = await prisma.$transaction(async tx => {
                 const existingOmbul = await tx.ombul.findUniqueOrThrow({
                     where: { id: params.ombulId },
                 })
@@ -170,15 +160,13 @@ export const ombulOperations = {
                     }
                 })
 
-                const fileCleanup =
-                    await ombulCoverImageOperations.destroyImageDbAndReturnCleanup.internalCall({
-                        prisma: tx,
-                        params: { imageId: existingOmbul.coverImageId }
-                    })
+                await ombulCoverImageOperations.destroyImage.internalCall({
+                    prisma: tx,
+                    params: { imageId: existingOmbul.coverImageId }
+                })
 
-                return { image: uploadedImage, cleanup: fileCleanup }
+                return uploadedImage
             })
-            await cleanup()
             return newImage
         }
     }),
@@ -194,67 +182,35 @@ export const ombulOperations = {
     }),
 
     /**
-     * Everything the ombul owns goes in one transaction. Only the files - the pdf and the cover
-     * image's - wait until it has committed, since a file cannot be rolled back.
+     * Everything the ombul owns goes in one transaction. The pdf and the cover image's files are
+     * orphans once it has committed, which the store destroys.
      */
     destroy: defineOperation({
         authorizer: () => ombulAuth.destroy,
         paramsSchema: ombulSchemas.params.destroy,
         transaction: 'OPENS',
         operation: async ({ params, prisma }) => {
-            const { ombul, cleanupCoverImage } = await prisma.$transaction(async tx => {
+            const ombul = await prisma.$transaction(async tx => {
                 const deleted = await tx.ombul.delete({
                     where: {
                         id: params.id
                     }
                 })
-                const coverImageCleanup =
-                    await ombulCoverImageOperations.destroyImageDbAndReturnCleanup.internalCall({
-                        prisma: tx,
-                        params: { imageId: deleted.coverImageId }
-                    })
+                await ombulCoverImageOperations.destroyImage.internalCall({
+                    prisma: tx,
+                    params: { imageId: deleted.coverImageId }
+                })
                 await cmsParagraphOperations.destroy.internalCall({
                     prisma: tx,
                     params: { paragraphId: deleted.paragraphId }
                 })
-                return { ombul: deleted, cleanupCoverImage: coverImageCleanup }
+                return deleted
             })
-            await cleanupCoverImage()
-            await destroyStoredOmbulFile(ombul.fsLocation, 'ombul deletion')
 
             return ombul
         }
     }),
 } as const
-
-/**
- * Stores the pdf, then runs `write` with its location. A file cannot be rolled back, so the pdf is
- * removed again if the write fails - that is what keeps a failed write from leaving a file no row
- * points at.
- */
-async function withStoredOmbulFile<Result>(
-    ombulFile: File,
-    write: (fsLocation: string) => Awaitable<Result>,
-): Promise<Result> {
-    const { fsLocation } = await ombulStore.createFile(ombulFile, ['pdf'])
-    try {
-        return await write(fsLocation)
-    } catch (error) {
-        await destroyStoredOmbulFile(fsLocation, 'a failed ombul write')
-        throw error
-    }
-}
-
-/**
- * Best-effort removal of a pdf whose row is already gone. A missing file is the state we want, and
- * a failure here must not fail the request the row was already removed for, so it is logged rather
- * than thrown.
- */
-async function destroyStoredOmbulFile(fsLocation: string, context: string): Promise<void> {
-    await ombulStore.destroyFile(fsLocation, undefined, false).catch((error: unknown) => {
-        logger.error(`Failed to clean up ombul file ${fsLocation} after ${context}`, { error })
-    })
-}
 
 /** Issue numbers count up within a year, so the next one is one past the highest already written. */
 async function nextIssueNumber(prisma: Prisma.TransactionClient, year: number): Promise<number> {

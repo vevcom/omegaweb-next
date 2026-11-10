@@ -148,7 +148,7 @@ const updateLogo = defineOperation({
     operation: async ({ prisma, params, data }) => {
         await assertGroupNotPensioned(prisma, await readGroupIdOfCommittee(prisma, { shortName: params.shortName }))
 
-        const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
+        const newImage = await prisma.$transaction(async tx => {
             const existingCommittee = await tx.committee.findUniqueOrThrow({
                 where: { shortName: params.shortName },
             })
@@ -167,16 +167,15 @@ const updateLogo = defineOperation({
 
             // A previous logoImageId is always an upload owned 1:1 by this committee (never the
             // shared default, since that's only ever resolved at read time) - safe to destroy.
-            const fileCleanup = existingCommittee.logoImageId
-                ? await committeeLogoImageOperations.destroyImageDbAndReturnCleanup.internalCall({
+            if (existingCommittee.logoImageId) {
+                await committeeLogoImageOperations.destroyImage.internalCall({
                     prisma: tx,
                     params: { imageId: existingCommittee.logoImageId }
                 })
-                : async () => {}
+            }
 
-            return { image: uploadedImage, cleanup: fileCleanup }
+            return uploadedImage
         })
-        await cleanup()
         return newImage
     }
 })
@@ -188,9 +187,8 @@ const destroy = defineOperation({
     operation: async ({ prisma, params }) => {
         await assertGroupNotPensioned(prisma, await readGroupIdOfCommittee(prisma, { id: params.id }))
 
-        // Everything the committee owns goes in one transaction. Only the logo's file waits until
-        // the transaction has committed, since a file cannot be rolled back.
-        const { committee, cleanupLogo } = await prisma.$transaction(async tx => {
+        // Everything the committee owns goes in one transaction.
+        const committee = await prisma.$transaction(async tx => {
             const deleted = await tx.committee.delete({
                 where: {
                     id: params.id,
@@ -204,19 +202,18 @@ const destroy = defineOperation({
                 prisma: tx,
                 params: { articleId: deleted.committeeArticleId },
             })
-            const logoCleanup = deleted.logoImageId
-                ? await committeeLogoImageOperations.destroyImageDbAndReturnCleanup.internalCall({
+            if (deleted.logoImageId) {
+                await committeeLogoImageOperations.destroyImage.internalCall({
                     prisma: tx,
                     params: { imageId: deleted.logoImageId },
                 })
-                : async () => {}
+            }
             await groupOperations.destroy.internalCall({
                 prisma: tx,
                 params: { groupId: deleted.groupId },
             })
-            return { committee: deleted, cleanupLogo: logoCleanup }
+            return deleted
         })
-        await cleanupLogo()
 
         return committee
     }
