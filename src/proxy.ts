@@ -3,7 +3,6 @@ import { DomainContext, isAppWidePath } from '@/lib/sites/context'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import { Site } from '@/lib/sites/site'
 import { appHref } from '@/lib/sites/href'
-import { isAuthDomainPagePath } from '@/pageKits/auth/paths'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -59,18 +58,15 @@ export function proxy(request: NextRequest) {
  * On a site's own domain the browser asks for site-relative paths, so the page is served from the
  * app path under the site's base path, and the browser's url stays as it is. An app path of a site
  * that reached such a domain unresolved, like contactor.no/career/job-ads, is sent to where it
- * belongs instead. Omega's domains serve every app path as it is. The auth pages are served on the
- * auth domain alone, and a domain set apart for them serves nothing else: a page that reached the
- * wrong domain is sent to the right one, the same way a link to it is rendered.
+ * belongs instead. Omega's domains serve every app path as it is, and so does a domain set apart
+ * to sign users in, which is how it serves each site's auth pages under the site's base path.
+ * Which domain a page is served on is not decided here: the page says it, and serverPage sends a
+ * request that reached the wrong domain on to the right one.
  */
 function siteResponse(request: NextRequest, context: DomainContext, requestHeaders: Headers) {
     const { pathname, search } = request.nextUrl
     if (isAppWidePath(pathname)) {
         return NextResponse.next({ request: { headers: requestHeaders } })
-    }
-    const onWrongDomain = isAuthDomainPagePath(context.path) ? !context.isAuthDomain() : context.isDedicatedAuthDomain()
-    if (onWrongDomain) {
-        return NextResponse.redirect(new URL(context.resolveHref(context.path), request.nextUrl), 308)
     }
     if (context.servesBasePaths()) {
         return NextResponse.next({ request: { headers: requestHeaders } })

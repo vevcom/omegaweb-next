@@ -76,21 +76,69 @@ describe('DomainContext', () => {
         expect(() => DomainContext.publicUrl(Site.REVUE, appHref('/revue'))).toThrow()
     })
 
-    test('makes a public url of an auth page by the auth domain, under the site\'s base path', () => {
-        expect(DomainContext.publicUrl(Site.CAREERS, appHref('/career/verify-email?token=x')))
+    test('makes the url of an app path on the auth domain, under the site\'s base path, and refuses without one', () => {
+        expect(DomainContext.authDomainUrl(appHref('/career/verify-email?token=x')))
             .toBe('https://omega.ntnu.no/career/verify-email?token=x')
         DomainContext.configure(withAuthDomain)
-        expect(DomainContext.publicUrl(Site.CAREERS, appHref('/career/verify-email?token=x')))
+        expect(DomainContext.authDomainUrl(appHref('/career/verify-email?token=x')))
             .toBe('https://login.omega.ntnu.no/career/verify-email?token=x')
-        expect(DomainContext.publicUrl(Site.OMEGAWEB, appHref('/reset-password-form?token=x')))
+        expect(DomainContext.authDomainUrl(appHref('/reset-password-form?token=x')))
             .toBe('https://login.omega.ntnu.no/reset-password-form?token=x')
-        expect(DomainContext.publicUrl(Site.CAREERS, appHref('/career/logout'))).toBe('https://contactor.no/logout')
         expect(DomainContext.authOrigin()).toBe('https://login.omega.ntnu.no')
         DomainContext.configure(withoutDomains)
         expect(() => DomainContext.authOrigin()).toThrow()
+        expect(() => DomainContext.authDomainUrl(appHref('/login'))).toThrow()
     })
 
-    test('the dedicated auth domain is no site\'s, serves base paths and nothing but the auth pages', () => {
+    test('a public url never tells an auth page from its path', () => {
+        DomainContext.configure(withAuthDomain)
+        expect(DomainContext.publicUrl(Site.CAREERS, appHref('/career/verify-email?token=x')))
+            .toBe('https://contactor.no/verify-email?token=x')
+        expect(DomainContext.publicUrl(Site.CAREERS, appHref('/career/logout'))).toBe('https://contactor.no/logout')
+    })
+
+    describe('urlOnServingDomain', () => {
+        const login = '/career/login?callbackUrl=%2Fcareer%2Fjob-ads&token=x'
+
+        test('a page served on the auth domain goes there from any other domain, with its path and query', () => {
+            expect(DomainContext.fromBrowser('contactor.no', '/login?callbackUrl=%2Fcareer%2Fjob-ads&token=x')
+                .urlOnServingDomain('auth-domain')).toBe(`https://omega.ntnu.no${login}`)
+            expect(DomainContext.fromAppPath('contactor.com', login).urlOnServingDomain('auth-domain'))
+                .toBe(`https://omega.ntnu.no${login}`)
+            expect(DomainContext.fromAppPath('omega.ntnu.no', login).urlOnServingDomain('auth-domain')).toBeNull()
+            DomainContext.configure(withAuthDomain)
+            expect(DomainContext.fromAppPath('contactor.no', login).urlOnServingDomain('auth-domain'))
+                .toBe(`https://login.omega.ntnu.no${login}`)
+            expect(DomainContext.fromAppPath('omega.ntnu.no', '/register').urlOnServingDomain('auth-domain'))
+                .toBe('https://login.omega.ntnu.no/register')
+            expect(DomainContext.fromAppPath('login.omega.ntnu.no', login).urlOnServingDomain('auth-domain')).toBeNull()
+        })
+
+        test('any other page is served where it is asked for, except on a domain set apart to sign in', () => {
+            expect(DomainContext.fromAppPath('contactor.no', '/career/job-ads').urlOnServingDomain()).toBeNull()
+            expect(DomainContext.fromAppPath('omega.ntnu.no', '/career/job-ads').urlOnServingDomain()).toBeNull()
+            expect(DomainContext.fromAppPath('omega.ntnu.no', '/logout').urlOnServingDomain()).toBeNull()
+            DomainContext.configure(withAuthDomain)
+            expect(DomainContext.fromAppPath('omega.ntnu.no', '/events').urlOnServingDomain()).toBeNull()
+            expect(DomainContext.fromAppPath('login.omega.ntnu.no', '/career/job-ads?page=2').urlOnServingDomain())
+                .toBe('https://contactor.no/job-ads?page=2')
+            expect(DomainContext.fromAppPath('login.omega.ntnu.no', '/career/logout').urlOnServingDomain())
+                .toBe('https://contactor.no/logout')
+            expect(DomainContext.fromAppPath('login.omega.ntnu.no', '/events?a=1').urlOnServingDomain())
+                .toBe('https://omega.ntnu.no/events?a=1')
+            expect(DomainContext.fromAppPath('login.omega.ntnu.no', '/revue').urlOnServingDomain())
+                .toBe('https://omega.ntnu.no/revue')
+        })
+
+        test('without an auth domain every page is served where it is asked for', () => {
+            DomainContext.configure(withoutDomains)
+            const onLocalhost = DomainContext.fromAppPath('localhost:3000', '/career/login')
+            expect(onLocalhost.urlOnServingDomain('auth-domain')).toBeNull()
+            expect(onLocalhost.urlOnServingDomain()).toBeNull()
+        })
+    })
+
+    test('the dedicated auth domain is no site\'s, serves base paths and no site\'s pages', () => {
         DomainContext.configure(withAuthDomain)
         const context = DomainContext.fromBrowser('login.omega.ntnu.no', '/career/login')
         expect(context.siteDomain()).toBeNull()
@@ -182,18 +230,18 @@ describe('DomainContext', () => {
             expect(onCareers.resolveHref(appHref('/store/images/cover.webp'))).toBe('/store/images/cover.webp')
         })
 
-        test('an auth page is reached by the auth domain from everywhere, and stays there', () => {
+        test('an auth page resolves like any page of its site, never to the auth domain by its path', () => {
             const login = appHref('/career/login?callbackUrl=%2Fcareer')
-            expect(onCareers.resolveHref(login)).toBe('https://omega.ntnu.no/career/login?callbackUrl=%2Fcareer')
+            expect(onCareers.resolveHref(login)).toBe('/login?callbackUrl=%2Fcareer')
             expect(onOmega.resolveHref(login)).toBe('/career/login?callbackUrl=%2Fcareer')
             expect(onOmega.resolveHref(appHref('/register'))).toBe('/register')
             DomainContext.configure(withAuthDomain)
             const onAuth = DomainContext.fromAppPath('login.omega.ntnu.no', '/career/login')
-            expect(onCareers.resolveHref(login)).toBe('https://login.omega.ntnu.no/career/login?callbackUrl=%2Fcareer')
-            expect(onOmega.resolveHref(appHref('/register'))).toBe('https://login.omega.ntnu.no/register')
-            expect(onAuth.resolveHref(login)).toBe('/career/login?callbackUrl=%2Fcareer')
-            expect(onAuth.resolveHref(appHref('/register'))).toBe('/register')
-            // Logging out clears the cookie of the domain the visitor is on, so it stays a page of the site.
+            expect(onCareers.resolveHref(login)).toBe('/login?callbackUrl=%2Fcareer')
+            expect(onOmega.resolveHref(appHref('/register'))).toBe('/register')
+            // From the domain set apart to sign in it leaves like every page, and the page sends it back.
+            expect(onAuth.resolveHref(login)).toBe('https://contactor.no/login?callbackUrl=%2Fcareer')
+            expect(onAuth.resolveHref(appHref('/register'))).toBe('https://omega.ntnu.no/register')
             expect(onCareers.resolveHref(appHref('/career/logout'))).toBe('/logout')
             expect(onOmega.resolveHref(appHref('/logout'))).toBe('/logout')
         })

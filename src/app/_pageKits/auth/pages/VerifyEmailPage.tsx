@@ -7,6 +7,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function verifyEmailPage(config: AuthPagesConfig) {
     return serverPage({
+        servedOn: 'auth-domain',
         allowUnregistered: true,
         // Only reads the token: opening the link confirms nothing. A mail scanner fetching it ahead of
         // the user would otherwise confirm the address and use up the token before they click.

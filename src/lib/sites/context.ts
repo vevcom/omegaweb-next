@@ -1,6 +1,5 @@
 import { Site } from './site'
 import { appHref, domainContextResolvedHref, isAppPath } from './href'
-import { isAuthDomainPagePath } from '@/pageKits/auth/paths'
 import type { DomainConfig, DomainConfigData, SiteDomain } from './domainConfig'
 import type { AppHref, DomainContextResolvedHref, ExternalHref } from './href'
 
@@ -8,6 +7,12 @@ export type DomainContextData = {
     domain: string,
     path: AppHref,
 }
+
+/**
+ * Where a page says it is served, when that is not on its site: on the auth domain, the one domain
+ * that signs users in, where its session lives and credentials are typed.
+ */
+export type ServedOn = 'auth-domain'
 
 export type ResolveHrefOptions = {
     /**
@@ -40,10 +45,12 @@ const store = globalThis as { domainConfig?: DomainConfig }
  * contexts for the same page. Everything site-aware works through it rather than looking at the
  * url itself.
  *
- * One domain signs users in, the auth domain, see {@link isAuthDomain}: the pages of the auth kit
- * that handle credentials are reached there from every site, in the layout of the site they are
- * mounted on, and nothing else is reached on a domain set apart for it. Each site's domain still
- * holds its own session cookie, which the sign in hands over to it.
+ * One domain signs users in, the auth domain, see {@link isAuthDomain}. A page says itself when it
+ * is served there, see {@link ServedOn}, and is then served there alone, under the base path of
+ * the site it is mounted on. A domain set apart for it serves no other page. The context never
+ * tells such a page from its path: {@link urlOnServingDomain} sends a request on from what the
+ * page says. Each site's domain still holds its own session cookie, which the sign in hands over
+ * to it.
  *
  * The server configures it once at start, from sites.json (see loadDomainConfig); the browser from
  * what the server hands over.
@@ -126,13 +133,22 @@ export class DomainContext {
 
     /**
      * An href of a page on `site` as a link from outside the app, in emails and notifications: by the
-     * main domain serving it, or the auth domain for a page of the auth kit, which is where the
-     * links in the sign up and password emails go.
+     * main domain serving it. A page served on the auth domain is linked by {@link authDomainUrl}.
      */
     static publicUrl(site: Site, href: AppHref): string {
-        const url = DomainContext.authPageUrl(href) ?? DomainContext.mainDomainUrl(site, href)
+        const url = DomainContext.mainDomainUrl(site, href)
         if (!url) throw new Error('sites.json gives Omega\'s site no main domain to link by')
         return url
+    }
+
+    /**
+     * The url of an app path on the auth domain, which serves every site under its base path. For
+     * what must go straight there: the redirects to the login form and the links in the sign up
+     * and password emails, whose tokens then never pass a site's domain. Throws without an auth
+     * domain, as {@link authOrigin} does.
+     */
+    static authDomainUrl(href: AppHref): string {
+        return `${DomainContext.authOrigin()}${href}`
     }
 
     /**
@@ -170,16 +186,6 @@ export class DomainContext {
         return rootOrigin ? `${rootOrigin}${href}` : null
     }
 
-    /**
-     * The url of a page of the auth kit, by the auth domain, which serves every site's auth pages
-     * under their base paths. Null for any other page, or without domains.
-     */
-    private static authPageUrl(href: AppHref): string | null {
-        if (!isAuthDomainPagePath(href)) return null
-        const origin = DomainContext.config().authOrigin()
-        return origin ? `${origin}${href}` : null
-    }
-
     toData(): DomainContextData {
         return { domain: this.domain, path: this.path }
     }
@@ -204,8 +210,8 @@ export class DomainContext {
     }
 
     /**
-     * Whether the visitor is on a domain set apart to sign users in, which serves the auth pages of
-     * every site under their base paths and sends every other page to the domain it belongs on.
+     * Whether the visitor is on a domain set apart to sign users in, which serves the pages that say
+     * they are served on the auth domain, under their sites' base paths, and no other page.
      */
     isDedicatedAuthDomain(): boolean {
         return this.dedicatedAuthOrigin() !== null
@@ -245,16 +251,16 @@ export class DomainContext {
      * The href to render for an app path such as `/career/job-ads`, seen from here. The visitor stays
      * on the domain they are on whenever it serves the page's site: site-relative on the site's own
      * domains, under the base path on Omega's. Otherwise, or when asked to go to the main domain, the
-     * page is reached by the main domain serving it. A page of the auth kit is reached by the auth
-     * domain from everywhere, and stays there; from a domain set apart for that, every other page
-     * leaves for the domain serving it. Anything but a site's page, such as an external url or an
-     * app-wide path like `/api/...`, is left as it is. The result is typed as resolved, so it is
-     * never resolved again: on another site's domain a site-relative path reads as a page of Omega's.
+     * page is reached by the main domain serving it, which is every page from a domain set apart to
+     * sign users in. A page served on the auth domain resolves like any page of its site, and the
+     * page itself sends the request on, see {@link urlOnServingDomain}. Anything but a site's page,
+     * such as an external url or an app-wide path like `/api/...`, is left as it is. The result is
+     * typed as resolved, so it is never resolved again: on another site's domain a site-relative
+     * path reads as a page of Omega's.
      */
     resolveHref(href: AppHref | ExternalHref, options: ResolveHrefOptions = {}): DomainContextResolvedHref {
         const resolved = (): string => {
             if (!isAppPath(href) || isAppWidePath(href)) return href
-            if (isAuthDomainPagePath(href)) return this.isAuthDomain() ? href : DomainContext.authPageUrl(href) ?? href
             const target = Site.ofPath(href)
             if (!options.toMainDomainServingSite && this.serves(target)) {
                 return this.servesBasePaths() ? href : target.pathOn(href)
@@ -266,11 +272,27 @@ export class DomainContext {
 
     /**
      * Whether the domain the visitor is on serves the pages of `site`: its own site, or any site on
-     * Omega's domains. The dedicated auth domain serves no site's pages, only the auth pages, which
-     * {@link resolveHref} sends there by their path.
+     * Omega's domains. The dedicated auth domain serves no site's pages, only the pages that say
+     * they are served on the auth domain.
      */
     serves(site: Site): boolean {
         if (this.isDedicatedAuthDomain()) return false
         return this.servesBasePaths() || this.hostSite() === site
+    }
+
+    /**
+     * The url of the page the visitor asked for on the domain that serves it, with its query, or
+     * null when the domain they are on does. `servedOn` is what the page says of itself: a page
+     * served on the auth domain is served there alone, and any other page everywhere but on a
+     * domain set apart to sign users in, from which it goes to the main domain serving its site.
+     * Without an auth domain, as at build, every page is served where it is asked for.
+     */
+    urlOnServingDomain(servedOn?: ServedOn): string | null {
+        if (servedOn === 'auth-domain') {
+            const authOrigin = DomainContext.config().authOrigin()
+            return authOrigin === null || this.isAuthDomain() ? null : `${authOrigin}${this.path}`
+        }
+        if (!this.isDedicatedAuthDomain() || isAppWidePath(this.path)) return null
+        return DomainContext.mainDomainUrl(Site.ofPath(this.path), this.path)
     }
 }

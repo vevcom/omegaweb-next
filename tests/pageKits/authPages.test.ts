@@ -1,11 +1,11 @@
-import { authPagePaths, isAuthDomainPagePath } from '@/pageKits/auth/paths'
+import { authPagePaths } from '@/pageKits/auth/paths'
 import { authLinks } from '@/pageKits/auth/links'
 import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
 import { careersAuthPages } from '@/app/(careers)/career/(auth)/config'
 import { appHref } from '@/lib/sites/href'
 import { Site } from '@/lib/sites/site'
 import { describe, expect, test } from '@jest/globals'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 const appDir = resolve(process.cwd(), 'src/app')
@@ -27,7 +27,7 @@ function routeFolders(mount: string): string[] {
 }
 
 describe('the auth page kit', () => {
-    const pagePaths = Object.values(authPagePaths).map(page => page.path).sort()
+    const pagePaths = Object.values(authPagePaths).sort()
 
     test('is mounted once per site, with exactly the pages authPagePaths names', () => {
         const mounts = authMounts()
@@ -53,15 +53,15 @@ describe('the auth page kit', () => {
         expect(onCareers.afterLogin()).toBe('/career')
     })
 
-    test('tells the pages served on the auth domain by their path, on any site', () => {
-        expect(isAuthDomainPagePath(appHref('/login'))).toBe(true)
-        expect(isAuthDomainPagePath(appHref('/career/login?callbackUrl=%2Fcareer'))).toBe(true)
-        expect(isAuthDomainPagePath(appHref('/revue/reset-password-form?token=x'))).toBe(true)
-        expect(isAuthDomainPagePath(appHref('/logout'))).toBe(false)
-        expect(isAuthDomainPagePath(appHref('/career/logout'))).toBe(false)
-        expect(isAuthDomainPagePath(appHref('/login/x'))).toBe(false)
-        expect(isAuthDomainPagePath(appHref('/terms'))).toBe(false)
-        expect(isAuthDomainPagePath(appHref('/'))).toBe(false)
-        expect(isAuthDomainPagePath(appHref('/career'))).toBe(false)
+    test('says in its page factories which pages are served on the auth domain, never in a mount', () => {
+        const kitPagesDir = join(appDir, '_pageKits/auth/pages')
+        const onAuthDomain = readdirSync(kitPagesDir)
+            .filter(file => readFileSync(join(kitPagesDir, file), 'utf8').includes('servedOn: \'auth-domain\''))
+            .sort()
+        // Every page but the logout, which clears the cookie of the domain the visitor is on.
+        expect(onAuthDomain).toEqual(readdirSync(kitPagesDir).filter(file => file !== 'LogoutPage.tsx').sort())
+
+        const mountPages = authMounts().flatMap(mount => routeFolders(mount).map(folder => join(mount, folder, 'page.tsx')))
+        mountPages.forEach(page => expect(readFileSync(page, 'utf8')).not.toContain('servedOn'))
     })
 })

@@ -1,8 +1,8 @@
 import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
 import { careersAuthPages } from '@/app/(careers)/career/(auth)/config'
 import { revueAuthPages } from '@/app/(revue)/revue/(auth)/config'
-import type { Site, SiteName } from './site'
-import type { AuthPagesConfig } from '@/pageKits/auth/config'
+import type { AuthPagesConfig } from './config'
+import type { Site, SiteName } from '@/lib/sites/site'
 
 const authPages: Record<SiteName, AuthPagesConfig> = {
     OMEGAWEB: omegaAuthPages,

@@ -36,7 +36,7 @@ const token = (jwt: string) => QueryParams.token.encodeUrl(jwt)
 
 /** The auth pages sit at every site's root, at the sub paths authPagePaths names. */
 export const authLinks = defineLinks<AuthPagesConfig, AuthLinks>((href, config) => {
-    const page = (name: AuthPageName, query?: string | null) => href(authPagePaths[name].path, query)
+    const page = (name: AuthPageName, query?: string | null) => href(authPagePaths[name], query)
     const afterLogin = () => href(config.afterLoginPath)
     return {
         login: options => ssoStartHref(options?.callbackUrl ?? afterLogin()),

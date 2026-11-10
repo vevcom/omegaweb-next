@@ -12,6 +12,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 export function loginPage(config: AuthPagesConfig) {
     const links = authLinks(config)
     return serverPage({
+        servedOn: 'auth-domain',
         allowUnregistered: true,
         operation: ({ searchParams }: PageOperationArgs) => ({
             error: typeof searchParams.error === 'string' ? searchParams.error : null,

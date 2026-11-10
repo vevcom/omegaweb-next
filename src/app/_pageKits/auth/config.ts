@@ -2,7 +2,7 @@ import type { PagesMount } from '@/lib/sites/defineLinks'
 
 /**
  * How a site renders the sign in and sign up flow. Its pages sit at the site's root, at the sub
- * paths authPagePaths names, which is what lets DomainContext tell an auth page from its path alone.
+ * paths authPagePaths names.
  */
 export type AuthPagesConfig = PagesMount<''> & {
     /** What the sign up welcomes the user to. */

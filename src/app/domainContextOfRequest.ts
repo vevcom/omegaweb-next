@@ -5,7 +5,7 @@ import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
-import type { ResolveHrefOptions } from '@/lib/sites/context'
+import type { ResolveHrefOptions, ServedOn } from '@/lib/sites/context'
 import type { AppHref, DomainContextResolvedHref } from '@/lib/sites/href'
 import type { NextRequest } from 'next/server'
 
@@ -39,4 +39,14 @@ export async function siteHref(href: AppHref, options?: ResolveHrefOptions): Pro
 /** Sends the request on to an app path, where it is for the domain the request came to. Throws, as Next's redirect does. */
 export async function siteRedirect(href: AppHref, options?: ResolveHrefOptions): Promise<never> {
     redirect(await siteHref(href, options))
+}
+
+/**
+ * Sends the request being rendered on to the domain that serves its page, with the same path and
+ * query, when that is not the domain it came to, see {@link DomainContext.urlOnServingDomain}.
+ * `servedOn` is what the page says of itself.
+ */
+export async function redirectToServingDomain(servedOn?: ServedOn): Promise<void> {
+    const url = (await domainContextOfRequest()).urlOnServingDomain(servedOn)
+    if (url) redirect(url)
 }

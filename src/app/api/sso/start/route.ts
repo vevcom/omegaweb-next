@@ -6,7 +6,7 @@ import { codeChallengeOf, newSsoState, setSsoStateCookie } from '@/auth/sso/stat
 import { sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
 import { SSO_CALLBACK_PATH, oidcPaths } from '@/services/auth/oidc/constants'
 import { authLinks } from '@/pageKits/auth/links'
-import { authPagesOf } from '@/lib/sites/authPagesOf'
+import { authPagesOf } from '@/pageKits/auth/authPagesOf'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { DomainContext, isAppWidePath } from '@/lib/sites/context'
 import { appHref } from '@/lib/sites/href'
@@ -33,8 +33,7 @@ export async function GET(request: NextRequest) {
     }
     if (await readSessionToken(request)) return onward()
     if (context.isAuthDomain()) {
-        const form = context.resolveHref(authLinks(authPagesOf(site)).loginForm({ callbackUrl }))
-        return NextResponse.redirect(new URL(form, request.nextUrl))
+        return NextResponse.redirect(DomainContext.authDomainUrl(authLinks(authPagesOf(site)).loginForm({ callbackUrl })))
     }
 
     const domain = DomainContext.domainOfHost(context.domain)

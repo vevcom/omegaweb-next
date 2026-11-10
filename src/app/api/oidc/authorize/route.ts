@@ -4,8 +4,8 @@ import { oidcClientOf } from '@/services/auth/oidc/clients'
 import { readSessionToken } from '@/auth/sso/session'
 import { Session } from '@/auth/session/Session'
 import { authLinks } from '@/pageKits/auth/links'
-import { authPagesOf } from '@/lib/sites/authPagesOf'
-import { domainContextOf } from '@/app/domainContextOfRequest'
+import { authPagesOf } from '@/pageKits/auth/authPagesOf'
+import { DomainContext } from '@/lib/sites/context'
 import { appHref } from '@/lib/sites/href'
 import { Site, siteNameSchema } from '@/lib/sites/site'
 import { Smorekopp } from '@/services/error'
@@ -50,8 +50,8 @@ export const GET = providerRoute(async request => {
             ? Site.of(requestedSite.data)
             : client.site
         const here = appHref(`${request.nextUrl.pathname}${request.nextUrl.search}`)
-        const form = domainContextOf(request).resolveHref(authLinks(authPagesOf(site)).loginForm({ callbackUrl: here }))
-        return NextResponse.redirect(new URL(form, request.nextUrl))
+        const form = authLinks(authPagesOf(site)).loginForm({ callbackUrl: here })
+        return NextResponse.redirect(DomainContext.authDomainUrl(form))
     }
 
     try {

@@ -6,7 +6,7 @@ import { sendMailOperations } from '@/services/notifications/sendMail/operations
 import { userSchemas } from '@/services/users/schemas'
 import { DomainContext } from '@/lib/sites/context'
 import { authLinks } from '@/pageKits/auth/links'
-import { authPagesOf } from '@/lib/sites/authPagesOf'
+import { authPagesOf } from '@/pageKits/auth/authPagesOf'
 import type { Site } from '@/lib/sites/site'
 import type { UserBasic } from '@/services/users/types'
 
@@ -15,7 +15,7 @@ export async function sendVerifyEmail(user: UserBasic, email: string, site: Site
 
     const jwt = generateVerifyEmailJWT(user.id, parse.email, emailValidationExpiration)
 
-    const link = DomainContext.publicUrl(site, authLinks(authPagesOf(site)).verifyEmail(jwt))
+    const link = DomainContext.authDomainUrl(authLinks(authPagesOf(site)).verifyEmail(jwt))
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {

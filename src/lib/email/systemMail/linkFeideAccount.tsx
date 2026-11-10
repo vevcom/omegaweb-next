@@ -4,7 +4,7 @@ import { LinkFeideAccountTemplate } from '@/lib/email/templates/linkFeideAccount
 import { generateJWT } from '@/jwt/jwt'
 import { DomainContext } from '@/lib/sites/context'
 import { authLinks } from '@/pageKits/auth/links'
-import { authPagesOf } from '@/lib/sites/authPagesOf'
+import { authPagesOf } from '@/pageKits/auth/authPagesOf'
 import type { Site } from '@/lib/sites/site'
 import type { FeideIdentity } from '@/services/auth/types'
 import type { UserBasicWithEmail } from '@/services/users/types'
@@ -32,7 +32,7 @@ export async function sendLinkFeideAccountMail(
         feideEmail: feideIdentity.email,
     }, 60 * 60)
 
-    const link = DomainContext.publicUrl(site, authLinks(authPagesOf(site)).linkOwUser(jwt))
+    const link = DomainContext.authDomainUrl(authLinks(authPagesOf(site)).linkOwUser(jwt))
 
     await sendMailOperations.internal.sendSystemMail.internalCall({
         data: {
