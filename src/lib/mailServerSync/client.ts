@@ -107,6 +107,7 @@ export type MailServerFetch = (url: string, init: {
     method: 'POST',
     headers: Record<string, string>,
     body: string,
+    signal?: AbortSignal,
 }) => Promise<{
     ok: boolean,
     status: number,
@@ -120,6 +121,8 @@ export type MailServerClientOptions = {
     user: string,
     password: string,
     fetch?: MailServerFetch,
+    /** How long the server gets to answer a request. Defaults to {@link REQUEST_TIMEOUT_MS}. */
+    timeoutMs?: number,
 }
 
 const JMAP_CAPABILITIES = ['urn:ietf:params:jmap:core', 'urn:stalwart:jmap', 'urn:ietf:params:jmap:sieve']
@@ -132,6 +135,9 @@ const JMAP_CAPABILITIES = ['urn:ietf:params:jmap:core', 'urn:stalwart:jmap', 'ur
  */
 const MAX_CALLS_PER_REQUEST = 16
 const MAX_OBJECTS_PER_CALL = 500
+
+/** How long the server gets to answer, so one that takes the connection and then says nothing does not hold the worker. */
+const REQUEST_TIMEOUT_MS = 30 * 1000
 
 function chunksOf<Item>(items: Item[], size: number): Item[][] {
     const count = Math.ceil(items.length / size)
@@ -150,12 +156,40 @@ export class MailServerClient {
     private readonly uploadEndpoint: string
     private readonly authorization: string
     private readonly fetch: MailServerFetch
+    private readonly timeoutMs: number
 
-    constructor({ url, user, password, fetch: fetchImplementation = globalThis.fetch }: MailServerClientOptions) {
+    constructor({
+        url, user, password, fetch: fetchImplementation = globalThis.fetch, timeoutMs = REQUEST_TIMEOUT_MS,
+    }: MailServerClientOptions) {
         this.endpoint = `${url.replace(/\/+$/, '')}/jmap`
         this.uploadEndpoint = `${this.endpoint}/upload`
         this.authorization = `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`
         this.fetch = fetchImplementation
+        this.timeoutMs = timeoutMs
+    }
+
+    /** A request to the server, read to its end, which throws when the server takes longer than it is given. */
+    private async request(
+        url: string,
+        contentType: string,
+        body: string,
+        what: string,
+    ): Promise<{ ok: boolean, status: number, statusText: string, text: string }> {
+        try {
+            const response = await this.fetch(url, {
+                method: 'POST',
+                headers: { authorization: this.authorization, 'content-type': contentType, accept: 'application/json' },
+                body,
+                signal: AbortSignal.timeout(this.timeoutMs),
+            })
+            return { ok: response.ok, status: response.status, statusText: response.statusText, text: await response.text() }
+        } catch (error) {
+            // What an AbortSignal's timeout rejects with is a DOMException, which is not always an Error.
+            if ((error as { name?: string } | null)?.name === 'TimeoutError') {
+                throw new Error(`Mail server did not answer ${what} within ${this.timeoutMs} ms`)
+            }
+            throw error
+        }
     }
 
     /**
@@ -164,16 +198,8 @@ export class MailServerClient {
      */
     async send(methodCalls: JmapMethodCall[]): Promise<JmapMethodResponse[]> {
         const methods = methodCalls.map(([method]) => method).join(', ')
-        const response = await this.fetch(this.endpoint, {
-            method: 'POST',
-            headers: {
-                authorization: this.authorization,
-                'content-type': 'application/json',
-                accept: 'application/json',
-            },
-            body: JSON.stringify({ using: JMAP_CAPABILITIES, methodCalls }),
-        })
-        const text = await response.text()
+        const body = JSON.stringify({ using: JMAP_CAPABILITIES, methodCalls })
+        const { text, ...response } = await this.request(this.endpoint, 'application/json', body, methods)
         if (!response.ok) {
             throw new Error(
                 `Mail server answered ${response.status} ${response.statusText} to ${methods}: ${text.slice(0, 500)}`
@@ -303,16 +329,8 @@ export class MailServerClient {
 
     /** Uploads a blob to an account and returns its id, for a method that takes its content by reference. */
     private async upload(accountId: string, content: string, contentType: string): Promise<string> {
-        const response = await this.fetch(`${this.uploadEndpoint}/${encodeURIComponent(accountId)}/`, {
-            method: 'POST',
-            headers: {
-                authorization: this.authorization,
-                'content-type': contentType,
-                accept: 'application/json',
-            },
-            body: content,
-        })
-        const text = await response.text()
+        const url = `${this.uploadEndpoint}/${encodeURIComponent(accountId)}/`
+        const { text, ...response } = await this.request(url, contentType, content, 'an upload')
         if (!response.ok) {
             throw new Error(
                 `Mail server answered ${response.status} ${response.statusText} to an upload: ${text.slice(0, 500)}`

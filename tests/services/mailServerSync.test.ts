@@ -425,6 +425,20 @@ describe('the mail server client', () => {
         expect(Array.from(scripts.keys())).toEqual(accountIds)
     })
 
+    test('gives up on a server that takes the request and never answers', async () => {
+        const silent = new MailServerClient({
+            url: 'http://stalwart:8080',
+            user: 'admin',
+            password: 'secret',
+            timeoutMs: 20,
+            // Answers only by failing when the request is given up on, as fetch does.
+            fetch: (_, init) => new Promise((_resolve, reject) => {
+                init.signal?.addEventListener('abort', () => reject(init.signal?.reason as Error))
+            }),
+        })
+        await expect(silent.listAll('Domain')).rejects.toThrow('Mail server did not answer x:Domain/query within 20 ms')
+    })
+
     test('throws on a server that does not answer 2xx', async () => {
         const failing = new MailServerClient({
             url: 'http://stalwart:8080',
