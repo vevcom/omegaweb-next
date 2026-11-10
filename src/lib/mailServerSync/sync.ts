@@ -18,11 +18,6 @@ export type SyncMailServerOptions = {
     webmail?: MailServerWebmail | null,
 }
 
-type WantedDomain = {
-    name: string,
-    description: string,
-}
-
 /** A list as the sync wants it on the server. */
 type WantedMailingList = {
     name: string,
@@ -39,13 +34,13 @@ type MailingListChanges = {
     refused: string[],
 }
 
-const DOMAIN_DESCRIPTION = 'A domain of the sites, created by omegaweb-next'
-const ACCOUNT_DOMAIN_DESCRIPTION = 'The domain of the accounts of those who sign in to the webmail, created by omegaweb-next'
-const FORWARDING_DOMAIN_DESCRIPTION = 'The domain of the lists the mailboxes forward to, created by omegaweb-next'
+/** Said with every missing domain, so that whoever reads the log knows where to add it. */
+const DOMAINS_ARE_THE_INFRASTRUCTURES = 'Domains are added in the infrastructure\'s plan for the mail server.'
 
 /**
- * Brings the mail server in step with the database. Every mail domain of the sites exists as a
- * domain. Without a webmail, every alias is a mailing list that forwards to the addresses it
+ * Brings the mail server in step with the database. The domains are not the sync's to make: the
+ * infrastructure's plan holds them, the mail domains of the sites and the two the mailboxes take,
+ * and the sync only looks them up. Without a webmail, every alias is a mailing list that forwards to the addresses it
  * reaches. With one, every alias is a mailbox at its own address (see mailboxes.ts), which keeps
  * the mail and forwards a copy to a list of those addresses on a domain of its own (see
  * forwarding.ts): the webmail's host is the domain of the accounts that sign in, and the lists are
@@ -57,36 +52,38 @@ const FORWARDING_DOMAIN_DESCRIPTION = 'The domain of the lists the mailboxes for
  *
  * A change the server refuses does not stop the run: every step does what it can and says what was
  * refused, and the run throws at its end naming all of it, so one alias the server will not take
- * does not keep the others from it. Without the domains the mailboxes take the run ends after the
- * domains, since no alias can be placed. A server that does not answer stops the run where it is.
+ * does not keep the others from it. A site domain the server lacks is treated the same way: its
+ * aliases are skipped and the run throws at its end naming it. Without the domains the mailboxes
+ * take the run ends at once, since no alias can be placed. A server that does not answer stops the
+ * run where it is.
  *
  * @returns false, since one run does all the work there is.
- * @throws once the run is through, when the server refused any change.
+ * @throws once the run is through, when the server refused any change or lacks a site's domain.
  */
 export async function syncMailServer(options: SyncMailServerOptions = {}): Promise<false> {
     const client = options.client ?? mailServerClientFromEnv()
     const webmail = options.webmail === undefined ? webmailFromEnv() : options.webmail
 
-    const siteDomains = validMailAddressDomains().map(name => ({ name, description: DOMAIN_DESCRIPTION }))
+    const siteDomains = validMailAddressDomains().map(name => name.toLowerCase())
     const forwardingDomain = webmail ? forwardingDomainOf(webmail.domain) : null
-    const domains = await syncDomains(client, [
-        ...siteDomains,
-        ...(webmail ? [{ name: webmail.domain, description: ACCOUNT_DOMAIN_DESCRIPTION }] : []),
-        ...(forwardingDomain ? [{ name: forwardingDomain, description: FORWARDING_DOMAIN_DESCRIPTION }] : []),
-    ])
-    const siteDomainIdsByName = new Map(siteDomains.flatMap(({ name }) => {
-        const id = domains.idsByName.get(name)
+    const mailboxDomains = webmail && forwardingDomain ? [webmail.domain.toLowerCase(), forwardingDomain] : []
+    const domainIdsByName = await readDomains(client, [...siteDomains, ...mailboxDomains])
+
+    const missingMailboxDomains = mailboxDomains.filter(name => !domainIdsByName.has(name))
+    if (missingMailboxDomains.length > 0) {
+        throw new Error(`Mail server sync left the aliases as they were, since the server lacks ${
+            missingMailboxDomains.join(' and ')}, which the mailboxes take. ${DOMAINS_ARE_THE_INFRASTRUCTURES}`)
+    }
+    const missingSiteDomains = siteDomains.filter(name => !domainIdsByName.has(name))
+    const siteDomainIdsByName = new Map(siteDomains.flatMap(name => {
+        const id = domainIdsByName.get(name)
         return id === undefined ? [] : [[name, id] as const]
     }))
-    const forwardingDomainId = forwardingDomain ? domains.idsByName.get(forwardingDomain) : undefined
-    const accountDomainId = webmail ? domains.idsByName.get(webmail.domain) : undefined
+    const forwardingDomainId = forwardingDomain ? domainIdsByName.get(forwardingDomain) : undefined
+    const accountDomainId = webmail ? domainIdsByName.get(webmail.domain.toLowerCase()) : undefined
     const forwarding = webmail && forwardingDomainId !== undefined && accountDomainId !== undefined
         ? { webmail, domainId: forwardingDomainId, accountDomainId }
         : null
-    if (webmail && !forwarding) {
-        throw new Error(`Mail server sync left the aliases as they were, since the domains of the mailboxes are missing${
-            domains.refused.length > 0 ? ` and the server refused to ${domains.refused.join('; ')}` : ''}`)
-    }
 
     // The lists first: the first run with mailboxes frees the aliases' addresses of the lists that
     // held them, which the mailboxes then take.
@@ -99,17 +96,24 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
         ? await syncMailboxesOfAliases(client, siteDomainIdsByName, forwarding, wantedLists)
         : { created: 0, updated: 0, destroyed: 0, scripts: 0, memberships: 0, refused: [] }
 
-    const changes = domains.created + mailboxes.created + mailboxes.updated + mailboxes.destroyed
+    const changes = mailboxes.created + mailboxes.updated + mailboxes.destroyed
         + lists.created + lists.updated + lists.destroyed + mailboxes.scripts + mailboxes.memberships
     if (changes > 0) {
-        logger.info(`Mail server sync created ${domains.created} domains; created ${mailboxes.created}, updated ${
+        logger.info(`Mail server sync created ${mailboxes.created}, updated ${
             mailboxes.updated} and destroyed ${mailboxes.destroyed} mailboxes; created ${lists.created}, updated ${
             lists.updated} and destroyed ${lists.destroyed} mailing lists; set the forwarding of ${
             mailboxes.scripts} mailboxes; and changed the memberships of ${mailboxes.memberships} accounts`)
     }
-    const refused = [...domains.refused, ...lists.refused, ...mailboxes.refused]
-    if (refused.length > 0) {
-        throw new Error(`Mail server sync did the rest, and the server refused to ${refused.join('; ')}`)
+    const refused = [...lists.refused, ...mailboxes.refused]
+    const failures = [
+        ...(missingSiteDomains.length > 0 ? [
+            `the server lacks ${missingSiteDomains.join(' and ')}, whose aliases were skipped. ${
+                DOMAINS_ARE_THE_INFRASTRUCTURES}`,
+        ] : []),
+        ...(refused.length > 0 ? [`the server refused to ${refused.join('; ')}`] : []),
+    ]
+    if (failures.length > 0) {
+        throw new Error(`Mail server sync did the rest, and ${failures.join(' Also, ')}`)
     }
     if (changes === 0) logger.debug('Mail server sync found the server in step with the database')
     return false
@@ -162,41 +166,21 @@ function creationId(address: string, index: number): string {
 }
 
 /**
- * Creates the domains wanted that the server lacks: the mail domains of the sites, and the mailbox
- * domain. Domains are never destroyed: one the server has that is not ours is only warned about,
- * since mail for it may still be arriving. A domain the server refused has no id.
+ * The ids of the domains wanted that the server has, by their names. A domain the server has that
+ * is not among them is only warned about, since mail for it may still be arriving.
  */
-async function syncDomains(
-    client: MailServerClient,
-    wanted: WantedDomain[],
-): Promise<{ idsByName: Map<string, string>, created: number, refused: string[] }> {
-    const ours = new Map(wanted.map(domain => [domain.name.toLowerCase(), domain.description]))
-    const existing = await client.listAll('Domain')
-
+async function readDomains(client: MailServerClient, wanted: string[]): Promise<Map<string, string>> {
     const idsByName = new Map<string, string>()
     const foreign: string[] = []
-    for (const domain of existing) {
+    for (const domain of await client.listAll('Domain')) {
         const name = domain.name.toLowerCase()
-        if (ours.has(name)) idsByName.set(name, domain.id)
+        if (wanted.includes(name)) idsByName.set(name, domain.id)
         else foreign.push(domain.name)
     }
     if (foreign.length > 0) {
         logger.warn(`Mail server has domains that are not ours, which are left alone: ${foreign.join(', ')}`)
     }
-
-    const missing = Array.from(ours.keys()).filter(name => !idsByName.has(name))
-    const namesByCreationId = new Map(missing.map((name, index) => [creationId(name, index), name]))
-    const { created, refused } = await client.set('Domain', {
-        create: Object.fromEntries(Array.from(namesByCreationId, ([id, name]) => [
-            id,
-            { name, description: ours.get(name) },
-        ])),
-    })
-    for (const [id, domain] of Object.entries(created)) {
-        const name = namesByCreationId.get(id)
-        if (name !== undefined) idsByName.set(name, domain.id)
-    }
-    return { idsByName, created: Object.keys(created).length, refused }
+    return idsByName
 }
 
 /**

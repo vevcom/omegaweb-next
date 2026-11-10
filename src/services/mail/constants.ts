@@ -6,8 +6,9 @@ export const MailListTypeArray = ['alias', 'mailingList', 'group', 'user', 'mail
 
 /**
  * The domains mail is ours on: every domain of the sites in sites.json, Omega's main domain among
- * them. Aliases and senders are on one of them, external addresses on none. The mail server sync
- * creates every one of them on the mail server, see lib/mailServerSync/sync.ts.
+ * them. Aliases and senders are on one of them, external addresses on none. The mail server has to
+ * hold each of them for its aliases to work, which the infrastructure's plan for it sees to: the
+ * sync creates no domain, see lib/mailServerSync/sync.ts.
  */
 export function validMailAddressDomains(): string[] {
     loadDomainConfig()
