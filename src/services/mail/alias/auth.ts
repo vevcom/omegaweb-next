@@ -27,6 +27,8 @@ export const mailAliasAuth = {
         }),
     ).filter(({ session }) => ({ ownerVisibility: visibilityFilter(session.memberships) })),
     readTraversal: Require.allOf(readsAlias, marksOwnedBySelf),
+    /** The aliases one receives mail on are one's own to see, as the mail is. */
+    readReceived: Require.userId({ errorMessage: 'Bare du selv ser aliasene du mottar e-post på' }),
     readVisibility: readsAlias,
     /**
      * The address is changed by an owner who may also create aliases, since a new address is as good as a new

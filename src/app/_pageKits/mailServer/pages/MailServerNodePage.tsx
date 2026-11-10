@@ -10,6 +10,7 @@ import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operati
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { MailListTypeArray, validMailAddressDomains } from '@/services/mail/constants'
+import { mailboxesAreAvailable } from '@/lib/mailServerSync/constants'
 import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -117,6 +118,7 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
                         mailingLists={mailOptions.mailingList}
                         domains={domains}
                         owners={owners}
+                        mailboxes={mailboxesAreAvailable}
                     />}
                     {filter === 'mailaddressExternal' && <EditMailAddressExternal
                         config={config}

@@ -1,3 +1,4 @@
+import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
@@ -10,6 +11,10 @@ export const metadata: Metadata = {
  * Catches every url no route matches, so that the 404 page renders inside Omega's layout: the
  * root layout has no navigation of its own, and a not-found page there would stand bare.
  */
-export default function NotFoundCatchAll() {
-    notFound()
-}
+const { page } = serverPage({
+    allowUnregistered: true,
+    operation: () => notFound(),
+    render: () => null,
+})
+
+export default page

@@ -1,8 +1,8 @@
 name: release
 
-# Publishing a GitHub release builds and pushes both images under the release tag,
-# then opens a pull request that points the prod overlay at them. Merging that pull
-# request is the deploy: Argo CD syncs main.
+# Publishing a GitHub release builds and pushes both images under the release tag, then opens a
+# pull request on vivat that points its omegaweb overlay at the release. Merging that pull request
+# is the deploy: Argo CD syncs vivat's main. See deploy/README.md.
 on:
   release:
     types: [ published ]
@@ -45,29 +45,49 @@ jobs:
         cache-from: type=gha,scope=${{ matrix.target }}
         cache-to: type=gha,mode=max,scope=${{ matrix.target }}
 
+  # A pre-release only publishes images, for trying by hand.
   bump:
     needs: images
+    if: ${{ !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
+    # The default token cannot write to another repo, and GitHub starts no workflows for a pull
+    # request made with it, so the checks vivat requires would never report. The deploy app is a
+    # GitHub App on the vevcom org installed on vivat, see deploy/README.md.
+    - uses: actions/create-github-app-token@v2
+      id: token
+      with:
+        app-id: ${{ vars.DEPLOY_APP_ID }}
+        private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+        owner: vevcom
+        repositories: vivat
+    - name: checkout vivat
       uses: actions/checkout@v4
       with:
-        ref: main
+        repository: vevcom/vivat
+        token: ${{ steps.token.outputs.token }}
         persist-credentials: false
+    # The overlay pulls deploy/base from here at the tag and sets both images to it: three places.
     - name: point prod at the release
-      working-directory: deploy/overlays/prod
       env:
         RELEASE_TAG: ${{ github.event.release.tag_name }}
       run: |
-        kustomize edit set image \
-          "omegaweb-next=ghcr.io/vevcom/omegaweb-next:$RELEASE_TAG" \
-          "omegaweb-next-tools=ghcr.io/vevcom/omegaweb-next-tools:$RELEASE_TAG"
+        file=clusters/prod/omegaweb/kustomization.yaml
+        # The tag goes into a sed replacement, so it holds nothing sed or a path would read as its own.
+        if ! printf '%s' "$RELEASE_TAG" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+          echo "The release tag '$RELEASE_TAG' has characters other than letters, digits, '.', '_' and '-'"
+          exit 1
+        fi
+        sed -i -E \
+          -e "s#(github\.com/vevcom/omegaweb-next//deploy/base\?ref=)[^[:space:]]+#\1$RELEASE_TAG#" \
+          -e "s#^([[:space:]]*newTag: ).*#\1$RELEASE_TAG#" \
+          "$file"
+        [ "$(grep -cF "$RELEASE_TAG" "$file")" = 3 ]
+        git diff
     - uses: peter-evans/create-pull-request@v7
       with:
-        # GitHub starts no workflows for a pull request made with the default token, so the checks
-        # main requires would never report.
-        token: ${{ secrets.DEPLOY_PR_TOKEN }}
-        branch: deploy/${{ github.event.release.tag_name }}
-        commit-message: "deploy: ${{ github.event.release.tag_name }} to prod"
-        title: "deploy: ${{ github.event.release.tag_name }} to prod"
+        token: ${{ steps.token.outputs.token }}
+        branch: deploy/omegaweb-${{ github.event.release.tag_name }}
+        commit-message: "deploy(omegaweb): ${{ github.event.release.tag_name }} to prod"
+        title: "deploy(omegaweb): ${{ github.event.release.tag_name }} to prod"
         body: Merging this deploys ${{ github.event.release.html_url }} through Argo CD.

@@ -10,6 +10,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function linkOwUserPage(config: AuthPagesConfig) {
     return serverPage({
+        servedOn: 'auth-domain',
         // A Feide login whose email matched no imported user gets a fresh user, and claims the old one
         // here - before registering, so the registration must not stand in the way.
         allowUnregistered: true,

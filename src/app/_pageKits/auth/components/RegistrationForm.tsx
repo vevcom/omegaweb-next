@@ -10,6 +10,7 @@ import { authLinks } from '@/pageKits/auth/links'
 import { Sex, type User } from '@/prisma-generated-pn-types'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import useDomainContext from '@/hooks/useDomainContext'
+import { ssoStartHref } from '@/auth/sso/links'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
@@ -23,8 +24,9 @@ type PropTypes = {
 
 export default function RegistrationForm({ config, userData, callbackUrl: callbackAppPath }: PropTypes) {
     const [lastPassword, setLastPassword] = useState('')
-    // NextAuth sends the browser there, so it must be a url of the domain the visitor is on.
-    const callbackUrl = useDomainContext().resolveHref(callbackAppPath)
+    // NextAuth sends the browser there once signed in with the new password: the start route, which
+    // takes the session to the domain the page is on. It must be a url of the domain the visitor is on.
+    const callbackUrl = useDomainContext().resolveHref(ssoStartHref(callbackAppPath))
     const [sexValue, setSexValue] = useState<Sex | undefined>(userData.sex ?? undefined)
 
     const sexOptions = Object.values(Sex).map(sex => ({

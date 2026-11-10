@@ -62,6 +62,8 @@ model User {
   // Authentication info used for logging in.
   credentials  Credentials?
   feideAccount FeideAccount?
+  // Codes the OpenID Connect provider has issued for the user and the sites have yet to exchange.
+  oidcAuthorizationCodes OidcAuthorizationCode[]
 
   // Memberships to groups (committees, interest groups, classes, etc...).
   memberships Membership[]

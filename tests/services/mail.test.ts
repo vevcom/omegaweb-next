@@ -134,7 +134,7 @@ describe('the domains of the sites are mail domains', () => {
     }))
     afterEach(() => DomainContext.configure(testDomainConfig))
 
-    test('an alias may be on a site\'s domain, and is stored in lowercase as Postfix looks it up', async () => {
+    test('an alias may be on a site\'s domain, and is stored in lowercase as the mail server looks it up', async () => {
         withSites()
         const alias = await aliasOperations.create({
             data: { localPart: 'Test-Post', domain: 'Contactor.no', description: '' },

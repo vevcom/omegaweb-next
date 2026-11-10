@@ -1,20 +1,17 @@
 import TransactionList from '@/components/Ledger/Transactions/LedgerTransactionList'
+import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
-type Props = {
-    params: Promise<{
-        accountId: string,
-    }>,
-}
+const { page } = serverPage({
+    operation: ({ params }: PageOperationArgs<{ accountId: string }>) => {
+        const accountId = Number(params.accountId)
+        if (!accountId) notFound()
+        return { accountId }
+    },
+    render: ({ data }) => <div className="rounded-round p-(--card-padding)">
+        <TransactionList accountId={data.accountId} />
+    </div>,
+})
 
-export default async function LedgerAccountTransactions({ params }: Props) {
-    const accountId = Number((await params).accountId)
-
-    if (!accountId) {
-        notFound()
-    }
-
-    return <div className="rounded-round p-(--card-padding)">
-        <TransactionList accountId={accountId} />
-    </div>
-}
+export default page
