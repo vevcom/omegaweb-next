@@ -10,6 +10,7 @@ import { ledgerMovementOperations } from '@/services/ledger/movements/operations
 import { userOperations } from '@/services/users/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { MembershipFiltered } from '@/services/groups/types'
+import type { Prisma } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
 
 const HOUR = 60 * 60 * 1000
@@ -469,6 +470,78 @@ describe('paying for an event', () => {
             await requeueAllDue()
 
             expect(await stateOf(seatedRegistration.id)).toBe('IN_QUOTA')
+        })
+    })
+
+    describe('while a payment or an unregistration waits for the other', () => {
+        /** Holds the row lock createPayment takes, so what is started meanwhile waits for `change`. */
+        async function whileLocked(
+            registrationId: number,
+            start: () => Promise<unknown>,
+            change: (tx: Prisma.TransactionClient) => Promise<unknown>,
+        ) {
+            let started: Promise<unknown> = Promise.resolve()
+            await prisma.$transaction(async tx => {
+                await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${registrationId} FOR UPDATE`
+                started = start()
+                // Its failure is the caller's to expect.
+                started.catch(() => undefined)
+                await new Promise(resolve => setTimeout(resolve, 300))
+                await change(tx)
+            })
+            return started
+        }
+
+        async function createRegistered(username: string) {
+            const payer = await createPayer(username)
+            const eventId = await createPaidEvent({ ledgerAccountId: committeeAccountId })
+            const registration = await eventRegistrationOperations.create({
+                params: { userId: payer.id, eventId },
+                session: sessionOf(payer),
+            })
+            return { payer, eventId, registration }
+        }
+
+        test('unregistering refunds a payment that came in while it waited', async () => {
+            const { payer, eventId, registration } = await createRegistered('eventpayraceunregister')
+            const account = await ledgerAccountOperations.read({ params: { userId: payer.id }, bypassAuth: true })
+            await eventRegistrationOperations.createPayment({
+                params: { userId: payer.id, eventId, amountFromBalance: EVENT_PRICE_ORE },
+                session: payerSessionOf(payer),
+            })
+            const where = { eventRegistrationId: registration.id }
+            const { id: transactionId } = await prisma.ledgerTransaction.findFirstOrThrow({ where })
+            await prisma.ledgerTransaction.update({ where: { id: transactionId }, data: { eventRegistrationId: null } })
+
+            await whileLocked(
+                registration.id,
+                () => eventRegistrationOperations.destroyAsAdmin({
+                    params: { registrationId: registration.id },
+                    bypassAuth: true,
+                }),
+                tx => tx.ledgerTransaction.update({ where: { id: transactionId }, data: where }),
+            )
+
+            expect(await balanceOf(account.id)).toBe(STARTING_BALANCE)
+        })
+
+        test('a payment is refused when the place was lost while it waited', async () => {
+            const { payer, eventId, registration } = await createRegistered('eventpayracepay')
+            const { id: variantId } = await prisma.eventVariant.findFirstOrThrow({ where: { eventId } })
+
+            await expect(whileLocked(
+                registration.id,
+                () => eventRegistrationOperations.createPayment({
+                    params: { userId: payer.id, eventId, amountFromBalance: EVENT_PRICE_ORE },
+                    session: payerSessionOf(payer),
+                }),
+                tx => tx.eventRegistration.update({
+                    where: { id: registration.id },
+                    data: { state: 'WAITING_LIST', quotaId: null, waitingListVariantId: variantId },
+                }),
+            )).rejects.toThrow(Smorekopp)
+
+            expect(await prisma.ledgerTransaction.count({ where: { eventRegistrationId: registration.id } })).toBe(0)
         })
     })
 })
