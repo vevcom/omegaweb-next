@@ -37,12 +37,16 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     /** Told what the form would submit, on mount and on every change. */
     onValuesChange?: (values: FormData) => void,
 }
-/** The names of every input among the children, those inside sections included, so their errors find them. */
-function collectInputNames(children: ReactNode): string[] {
+/**
+ * The names of the inputs among the children that have room for their errors, those inside sections
+ * included. An input placed straight in a tab has none, so its errors are shown with the general ones.
+ */
+function collectInputNames(children: ReactNode, inTab = false): string[] {
     return Children.toArray(children).flatMap(child => {
         if (isValidElement<{ children?: ReactNode }>(child) && (child.type === FormSection || child.type === FormTab)) {
-            return collectInputNames(flattenChildren(child.props.children))
+            return collectInputNames(flattenChildren(child.props.children), child.type === FormTab)
         }
+        if (inTab) return []
         const name = inputName(child)
         return name ? [name] : []
     })
