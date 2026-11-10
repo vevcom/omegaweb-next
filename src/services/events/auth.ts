@@ -1,17 +1,21 @@
+import { hasNoAdministrators } from './publishProblems'
 import { Require } from '@/auth/authorizer/Require'
 import { visibilityFilter } from '@/auth/visibility/visibilityFilter'
 import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
+import type { VisibilityMatrix } from '@/services/visibility/types'
 
 /**
  * The admin visibility of an event decides who may change it, its quotas and its registrations.
- * EVENT_ADMIN bypasses it for every event. The creator holds a draft until it is published, which
- * takes someone to administrate it, since a draft from just a name has no one else. Needs
+ * EVENT_ADMIN bypasses it for every event. The creator holds a draft while no one administrates it,
+ * as with one made from just a name, and a host chosen later takes over at once. Needs
  * `{ adminVisibility, published, creatorId }` supplied via `.data()`.
  */
-const isCreatorOfDraft = Require.custom<{ published: boolean, creatorId: number | null }>(
-    ({ session, published, creatorId }) => !published && creatorId !== null && session.user?.id === creatorId
+const isCreatorOfDraft = Require.custom<{ published: boolean, creatorId: number | null, adminVisibility: VisibilityMatrix }>(
+    ({ session, published, creatorId, adminVisibility }) => (
+        !published && creatorId !== null && session.user?.id === creatorId && hasNoAdministrators(adminVisibility)
+    )
 )
 
 export const eventAdminLevel = Require.anyOf(
@@ -49,13 +53,18 @@ export const canSeeEvent = Require.anyOf(
     isPublished(true).anyVisibility({ key: 'quotaVisibilities' }),
 )
 
+/** `hasNoAdministrators` as a where clause on a visibility. */
+const noAdministrators: Prisma.VisibilityWhereInput = {
+    OR: [{ requirements: { none: {} } }, { requirements: { some: { conditions: { none: {} } } } }],
+}
+
 /** The same rule as `canSeeEvent`, as a where clause on events. */
 export function eventsSeenBy(session: SessionMaybeUser): Prisma.EventWhereInput {
     const passes = visibilityFilter(session.memberships)
     return {
         OR: [
             { visibilityAdmin: passes },
-            ...(session.user ? [{ published: false, createdById: session.user.id }] : []),
+            ...(session.user ? [{ published: false, createdById: session.user.id, visibilityAdmin: noAdministrators }] : []),
             { published: true, canBeViewedBy: 'ALL' },
             { published: true, variants: { some: { quotas: { some: { visibility: passes } } } } },
         ],
