@@ -189,6 +189,17 @@ describe('DomainContext', () => {
             expect(onOmega.resolveHref(appHref('/revue'))).toBe('/revue')
         })
 
+        test('a path never becomes another host once its base path is taken off', () => {
+            const paths = [
+                '/career//evil.example', '/career/\\evil.example', '/career/\t/evil.example', '/career///evil.example/x',
+            ]
+            for (const path of paths) {
+                const resolved = onCareers.resolveHref(appHref(path))
+                expect(new URL(resolved, 'https://contactor.no').origin).toBe('https://contactor.no')
+            }
+            expect(onCareers.resolveHref(appHref('/career//evil.example'))).toBe('/evil.example')
+        })
+
         test('a site\'s other domains keep the visitor on them', () => {
             expect(onCareersOther.resolveHref(appHref('/career/job-ads'))).toBe('/job-ads')
             expect(onCareersOther.resolveHref(appHref('/committees/x'))).toBe('https://omega.ntnu.no/committees/x')
