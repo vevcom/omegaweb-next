@@ -501,7 +501,7 @@ export function defineSubOperation<
                 if (!paramsParse.success) {
                     // The issues travel with the error, as the data's do, so a route or an action can say which parameter.
                     logger.debug('Service operation params failed validation.', { paramsParse })
-                    throw new ParseError(paramsParse)
+                    throw new ParseError(paramsParse, 'params')
                 }
 
                 args.params = paramsParse.data
@@ -525,7 +525,7 @@ export function defineSubOperation<
                     if (process.env.NODE_ENV !== 'test') {
                         logger.debug('Service operation data failed validation.', { dataParse })
                     }
-                    throw new ParseError(dataParse)
+                    throw new ParseError(dataParse, 'data')
                 }
                 args.data = dataParse.data
             }
@@ -544,7 +544,7 @@ export function defineSubOperation<
                 if (!implementationParamsParse.success) {
                     // The issues travel with the error, as the data's do.
                     logger.info('Service operation implementation params failed validation.', { implementationParamsParse })
-                    throw new ParseError(implementationParamsParse)
+                    throw new ParseError(implementationParamsParse, 'params')
                 }
                 args.implementationParams = implementationParamsParse.data
             }

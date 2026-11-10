@@ -176,7 +176,7 @@ describe('the OpenID Connect provider', () => {
         const { verifier, challenge } = pkce()
         const { code } = await issue(actor, challenge, { scope: 'openid email' })
         const grant = { clientId: CLIENT, redirectUri: REDIRECT_URI, code, codeVerifier: verifier }
-        await refused(oidcOperations.token({ data: { ...grant, grantType: 'client_credentials' } }), 'BAD PARAMETERS')
+        await refused(oidcOperations.token({ data: { ...grant, grantType: 'client_credentials' } }), 'BAD DATA')
         const tokens = await oidcOperations.token({ data: { ...grant, grantType: 'authorization_code' } })
         expect(tokens).toMatchObject({ token_type: 'Bearer', expires_in: 3600, scope: 'openid email' })
         expect(decode(tokens.id_token)).toMatchObject({ aud: CLIENT, sub: String(actor.user.id), nonce: 'nonce-1' })

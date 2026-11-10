@@ -135,10 +135,15 @@ export class ServiceError extends Smorekopp<ServiceErrorCode> {
     }
 }
 
-export class ParseError<Input> extends Smorekopp<'BAD PARAMETERS'> {
+/**
+ * An operation's input failed its schema: BAD PARAMETERS when it was the params, BAD DATA when it
+ * was the data a client writes.
+ */
+export class ParseError<Input> extends Smorekopp<'BAD PARAMETERS' | 'BAD DATA'> {
     public parseError: SafeParseError<Input>
-    constructor(parseError: SafeParseError<Input>) {
-        super('BAD PARAMETERS', 'Feil i parametrene')
+    constructor(parseError: SafeParseError<Input>, source: 'params' | 'data') {
+        if (source === 'data') super('BAD DATA', 'Feil i dataene')
+        else super('BAD PARAMETERS', 'Feil i parametrene')
         this.parseError = parseError
     }
 }

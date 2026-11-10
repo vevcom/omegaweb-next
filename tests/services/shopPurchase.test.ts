@@ -171,7 +171,7 @@ describe('buying with a student card', () => {
         const buyer = await createBuyer('purchaseduplicate')
 
         await expect(buy(buyer.studentCard, [{ id: sodaId, quantity: 1 }, { id: sodaId, quantity: 1 }]))
-            .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+            .rejects.toThrow(new Smorekopp('BAD DATA'))
 
         expect(await balanceOf(buyer.accountId)).toBe(STARTING_BALANCE)
     })

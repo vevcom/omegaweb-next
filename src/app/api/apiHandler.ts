@@ -110,10 +110,10 @@ async function readBody(request: Request, body: 'json' | 'form'): Promise<unknow
 
 /** What a failure says. Anything but a service error is a bug or a failing dependency, whose message is for the log only. */
 function apiErrorOf(error: unknown): ApiError {
-    // The body is the only input the client writes, so it gets each field's issue.
+    // Each field's issue goes out under the error's own code: BAD DATA for the body, BAD PARAMETERS for the path or query.
     if (error instanceof ParseError) {
         return {
-            errorCode: 'BAD DATA',
+            errorCode: error.errorCode,
             errors: error.parseError.error.issues.map(issue => ({ path: issue.path, message: issue.message })),
         }
     }

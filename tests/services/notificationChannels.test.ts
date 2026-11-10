@@ -100,7 +100,7 @@ describe('the special and the manual notification channels', () => {
                 bypassAuth: true,
             })
 
-        await expect(send([{ conditions: [] }])).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        await expect(send([{ conditions: [] }])).rejects.toThrow(new Smorekopp('BAD DATA'))
 
         // Notifications are not created under IGNORE_SERVER_ONLY, so it is lifted to see this one made.
         const ignoreServerOnly = process.env.IGNORE_SERVER_ONLY
