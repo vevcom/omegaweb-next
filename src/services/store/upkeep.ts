@@ -83,13 +83,13 @@ export async function destroyOrphans(
 
     for await (const files of filesOfPurpose(purpose, orphaned)) {
         for (const file of files) {
+            progress?.()
             const { count } = await prisma.storeFile.deleteMany({ where: { id: file.id, ...orphaned } })
             if (count === 0) continue
             destroyed++
             await destroyStoreContent(`${storeDirectories[purpose]}/${file.name}`).catch((error: unknown) => {
                 failures.push(error)
             })
-            progress?.()
         }
     }
 
@@ -139,6 +139,8 @@ export async function moveFilesToPreferredLocation(
 
     for await (const files of filesOfPurpose(purpose, { location: { not: target.location } })) {
         for (const file of files) {
+            // Once per file whatever is done with it, since each costs a read of its location.
+            progress?.()
             const key = `${storeDirectories[purpose]}/${file.name}`
             const source = storeBackends[file.location]
             const content = source ? await source.read(key) : null
@@ -166,7 +168,6 @@ export async function moveFilesToPreferredLocation(
                 logger.error(`Failed to destroy ${key} in ${file.location} after moving it: ${error}`)
             })
             moved++
-            progress?.()
         }
     }
 

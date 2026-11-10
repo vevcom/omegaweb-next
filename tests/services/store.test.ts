@@ -235,6 +235,17 @@ describe('the worker of a purpose', () => {
         expect(bucket.files.get(key(name))).toEqual(pdf)
     })
 
+    test('reports progress for a file it only corrects the row of, so a long run is not taken for stuck', async () => {
+        const { name } = await ombulStore.createFile(pdf)
+        await prisma.storeFile.update({ where: { name }, data: { location: 'VOLUME' } })
+        const progress = jest.fn()
+
+        await ombulStore.worker.tick(progress)
+
+        expect(await location(name)).toBe('S3')
+        expect(progress).toHaveBeenCalled()
+    })
+
     test('takes the volume for the wanted location when no bucket is in use', async () => {
         const { name } = await ombulStore.createFile(pdf)
         await fileSystemBackend.write(key(name), pdf)
