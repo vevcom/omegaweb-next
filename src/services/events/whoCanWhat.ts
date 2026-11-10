@@ -53,9 +53,7 @@ function sessionOf(conditions: VisibilityCondition[]) {
  */
 export function whoCanWhat(access: EventAccess): WhoCanWhatRow[] {
     const ways = [...access.quotaVisibilities, access.adminVisibility].flatMap(waysToPass)
-    const distinct = ways.filter((way, index) => way.length > 0 && index === ways.findIndex(
-        other => keyOf(other) === keyOf(way)
-    ))
+    const distinct = Array.from(new Map(ways.filter(way => way.length > 0).map(way => [keyOf(way), way])).values())
 
     const rowOf = (
         session: Session<'HAS_USER'> | Session<'NO_USER'>,

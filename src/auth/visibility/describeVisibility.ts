@@ -32,6 +32,8 @@ function listNames(names: string[]) {
 /** Who a VisibilityMatrix lets in, as a sentence for those who do not think in requirements. */
 export function describeAudience(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null): string {
     if (visibility.requirements.length === 0) return 'Alle'
+    // A list with no groups in it passes no one.
+    if (visibility.requirements.some(requirement => requirement.conditions.length === 0)) return 'Ingen'
     return visibility.requirements
         .map(requirement => listNames(requirement.conditions.map(condition => describeGroup(condition, groups))))
         .join(' som også er i ')
@@ -44,6 +46,7 @@ export function describeAccess(
     { verb, everyone }: { verb: string, everyone?: string },
 ): string {
     if (visibility.requirements.length === 0) return everyone ? `${everyone} ${verb}.` : 'Velg minst én gruppe.'
+    if (visibility.requirements.some(requirement => requirement.conditions.length === 0)) return 'Velg minst én gruppe.'
     return `${describeAudience(visibility, groups)} ${verb}.`
 }
 
