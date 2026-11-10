@@ -49,7 +49,12 @@ An overlay includes `base` and fills in what it leaves open:
   image variants on the volume, since they can be made again and the bucket has a limit on
   objects. A file the wanted place refuses is written to the other, the database remembers where
   each file is, and the store's workers move the files that are in the wrong place. So setting a
-  bucket, taking it away or changing where a kind of file should be needs no copying by hand.
+  bucket, or changing where a kind of file should be, needs no copying by hand. Taking the bucket
+  away does not work that way: once `STORE_S3_BUCKET` is unset, a file the database places in the
+  bucket can be neither read nor moved, and is a 404 until the bucket is set again. So empty it
+  first. Release with `preferredLocation: 'VOLUME'` for the purposes kept in the bucket, with the
+  bucket still set, wait for the workers to move the files, and unset it once
+  `SELECT count(*) FROM "StoreFile" WHERE location = 'S3'` is 0.
   The volume is a `ReadWriteOnce` claim of 5Gi, which works while every pod runs on one node, and
   it is not backed up. Deleting an object from a versioned bucket keeps its old versions, so
   expire the noncurrent versions if the bucket's count of objects does not drop.
