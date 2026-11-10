@@ -125,6 +125,20 @@ export type MailServerClientOptions = {
 const JMAP_CAPABILITIES = ['urn:ietf:params:jmap:core', 'urn:stalwart:jmap', 'urn:ietf:params:jmap:sieve']
 
 /**
+ * The most the server takes at once, which it says in its session as `maxCallsInRequest`,
+ * `maxObjectsInGet` and `maxObjectsInSet`: it refuses a request with more method calls, and a get
+ * or a set of more objects, whole. These are Stalwart's defaults, and the client splits its work
+ * to stay within them.
+ */
+const MAX_CALLS_PER_REQUEST = 16
+const MAX_OBJECTS_PER_CALL = 500
+
+function chunksOf<Item>(items: Item[], size: number): Item[][] {
+    const count = Math.ceil(items.length / size)
+    return Array.from({ length: count }, (_, index) => items.slice(index * size, (index + 1) * size))
+}
+
+/**
  * A minimal client for Stalwart's management API, which is JMAP (RFC 8620) over HTTP basic auth:
  * a request carries a batch of method calls and the response one result per call. The methods
  * are the standard query, get and set of each object, prefixed `x:`. Querying cannot filter on a
@@ -178,68 +192,79 @@ export class MailServerClient {
         return methodResponses
     }
 
-    /** Every object of a kind on the server: a query for all ids, and a get of them by back-reference. */
+    /** Every object of a kind on the server: a query for all ids, and gets of as many at a time as the server takes. */
     async listAll<Name extends MailServerObjectName>(object: Name): Promise<MailServerObjects[Name][]> {
         const queryMethod = `x:${object}/query`
         const getMethod = `x:${object}/get`
-        const responses = await this.send([
-            [queryMethod, {}, 'query'],
-            [getMethod, { '#ids': { resultOf: 'query', name: queryMethod, path: '/ids' } }, 'get'],
-        ])
-        const getResponse = responses.find(([method, , callId]) => method === getMethod && callId === 'get')
-        if (!getResponse) {
-            throw new Error(`Mail server gave no ${getMethod} response`)
+        const [[, queried]] = await this.send([[queryMethod, {}, 'query']])
+        const ids = (queried.ids as string[] | undefined) ?? []
+
+        const objects: MailServerObjects[Name][] = []
+        for (const chunk of chunksOf(ids, MAX_OBJECTS_PER_CALL)) {
+            const [[, got]] = await this.send([[getMethod, { ids: chunk }, 'get']])
+            objects.push(...((got.list as MailServerObjects[Name][] | undefined) ?? []))
         }
-        const { list } = getResponse[1] as { list?: MailServerObjects[Name][] }
-        return list ?? []
+        return objects
     }
 
     /**
-     * Creates, updates and destroys objects of a kind in one call. A refused change does not throw:
-     * the server applies the rest, so the outcome names what was refused and the caller goes on.
-     * Nothing is sent when there is nothing to change.
+     * Creates, updates and destroys objects of a kind, in as many calls as the server's limit on
+     * objects in one takes. A refused change does not throw: the server applies the rest, so the
+     * outcome names what was refused and the caller goes on. Nothing is sent when there is nothing
+     * to change.
      */
     async set<Name extends MailServerObjectName>(
         object: Name,
         { create = {}, update = {}, destroy = [] }: MailServerSetArgs<Name>,
     ): Promise<MailServerSetOutcome> {
         const method = `x:${object}/set`
-        const args: Record<string, unknown> = {}
-        if (Object.keys(create).length > 0) args.create = create
-        if (Object.keys(update).length > 0) args.update = update
-        if (destroy.length > 0) args.destroy = destroy
-        if (Object.keys(args).length === 0) return { created: {}, updated: 0, destroyed: 0, refused: [] }
+        const changes = [
+            ...Object.entries(create).map(([id, value]) => ({ kind: 'create' as const, id, value })),
+            ...Object.entries(update).map(([id, value]) => ({ kind: 'update' as const, id, value })),
+            ...destroy.map(id => ({ kind: 'destroy' as const, id, value: null })),
+        ]
+        const outcome: MailServerSetOutcome = { created: {}, updated: 0, destroyed: 0, refused: [] }
 
-        const responses = await this.send([[method, args, 'set']])
-        const setResponse = responses.find(([responseMethod, , callId]) => responseMethod === method && callId === 'set')
-        if (!setResponse) {
-            throw new Error(`Mail server gave no ${method} response`)
-        }
-        const result = setResponse[1] as MailServerSetResponse
-        return {
-            created: result.created ?? {},
-            updated: Object.keys(update).length - Object.keys(result.notUpdated ?? {}).length,
-            destroyed: destroy.length - Object.keys(result.notDestroyed ?? {}).length,
-            refused: [
+        for (const chunk of chunksOf(changes, MAX_OBJECTS_PER_CALL)) {
+            const ofKind = (kind: 'create' | 'update' | 'destroy') => chunk.filter(change => change.kind === kind)
+            const byId = (kind: 'create' | 'update') => Object.fromEntries(ofKind(kind).map(({ id, value }) => [id, value]))
+            const args: Record<string, unknown> = {}
+            if (ofKind('create').length > 0) args.create = byId('create')
+            if (ofKind('update').length > 0) args.update = byId('update')
+            if (ofKind('destroy').length > 0) args.destroy = ofKind('destroy').map(({ id }) => id)
+
+            const responses = await this.send([[method, args, 'set']])
+            const setResponse = responses.find(([responseMethod, , callId]) => responseMethod === method && callId === 'set')
+            if (!setResponse) {
+                throw new Error(`Mail server gave no ${method} response`)
+            }
+            const result = setResponse[1] as MailServerSetResponse
+            Object.assign(outcome.created, result.created ?? {})
+            outcome.updated += ofKind('update').length - Object.keys(result.notUpdated ?? {}).length
+            outcome.destroyed += ofKind('destroy').length - Object.keys(result.notDestroyed ?? {}).length
+            outcome.refused.push(
                 ...describeRefusals(`create ${object}`, result.notCreated),
                 ...describeRefusals(`update ${object}`, result.notUpdated),
                 ...describeRefusals(`destroy ${object}`, result.notDestroyed),
-            ],
+            )
         }
+        return outcome
     }
 
-    /** The Sieve scripts of each of the accounts, read in one request. */
+    /** The Sieve scripts of each of the accounts, read with as many calls in a request as the server takes. */
     async sieveScripts(accountIds: string[]): Promise<Map<string, MailServerSieveScript[]>> {
         const scripts = new Map<string, MailServerSieveScript[]>()
         if (accountIds.length === 0) return scripts
         const callIdOf = (index: number) => `scripts-${index}`
-        const responses = await this.send(
-            accountIds.map((accountId, index) => ['SieveScript/get', { accountId }, callIdOf(index)]),
-        )
-        accountIds.forEach((accountId, index) => {
-            const response = responses.find(([, , callId]) => callId === callIdOf(index))
-            scripts.set(accountId, (response?.[1].list as MailServerSieveScript[] | undefined) ?? [])
-        })
+        for (const chunk of chunksOf(accountIds, MAX_CALLS_PER_REQUEST)) {
+            const responses = await this.send(
+                chunk.map((accountId, index) => ['SieveScript/get', { accountId }, callIdOf(index)]),
+            )
+            chunk.forEach((accountId, index) => {
+                const response = responses.find(([, , callId]) => callId === callIdOf(index))
+                scripts.set(accountId, (response?.[1].list as MailServerSieveScript[] | undefined) ?? [])
+            })
+        }
         return scripts
     }
 

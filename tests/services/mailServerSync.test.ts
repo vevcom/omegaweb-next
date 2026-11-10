@@ -20,6 +20,10 @@ const TEST_DOMAIN = 'omega.ntnu.no'
 /** The webmail the mailbox tests run with; the other tests pass none, as the env of the tests gives none. */
 const webmail = { origin: 'https://mail.omega.ntnu.no', domain: 'mail.omega.ntnu.no' }
 
+/** Stalwart's limits, as its session states them: the calls in a request, and the objects in a get or a set. */
+const MAX_CALLS_IN_REQUEST = 16
+const MAX_OBJECTS_IN_CALL = 500
+
 type StoredObject = {
     id: string,
     name: string,
@@ -82,6 +86,15 @@ class FakeMailServer {
             })
         }
         const { methodCalls } = JSON.parse(init.body) as { methodCalls: JmapMethodCall[] }
+        // Stalwart refuses a request with more calls than its limit, whole.
+        if (methodCalls.length > MAX_CALLS_IN_REQUEST) {
+            return Promise.resolve({
+                ok: false,
+                status: 400,
+                statusText: 'Bad Request',
+                text: () => Promise.resolve(JSON.stringify({ limit: 'maxCallsInRequest' })),
+            })
+        }
         const responses: JmapMethodResponse[] = []
         for (const methodCall of methodCalls) {
             responses.push(this.handle(methodCall, responses))
@@ -196,11 +209,15 @@ class FakeMailServer {
         }
         if (match[2] === 'get') {
             const ids = this.resolveIds(args, previous)
+            if (ids.length > MAX_OBJECTS_IN_CALL) return ['error', { type: 'requestTooLarge' }, callId]
             return [method, {
                 list: ids.filter(id => table.has(id)).map(id => table.get(id)),
                 notFound: ids.filter(id => !table.has(id)),
             }, callId]
         }
+        const changed = Object.keys(args.create ?? {}).length + Object.keys(args.update ?? {}).length
+            + ((args.destroy as string[] | undefined) ?? []).length
+        if (changed > MAX_OBJECTS_IN_CALL) return ['error', { type: 'requestTooLarge' }, callId]
         return [method, this.set(object, args), callId]
     }
 
@@ -352,7 +369,9 @@ describe('the mail server client', () => {
         const server = serverWithOurDomain()
         const client = server.client()
         await client.listAll('Domain')
-        expect(server.authorizations).toEqual([`Basic ${Buffer.from('admin:secret').toString('base64')}`])
+        // Once for the query and once for the get.
+        const authorization = `Basic ${Buffer.from('admin:secret').toString('base64')}`
+        expect(server.authorizations).toEqual([authorization, authorization])
 
         await expect(client.send([['x:Nothing/get', {}, 'c1']])).rejects.toThrow(/x:Nothing\/get.*unknownMethod/)
     })
@@ -379,6 +398,31 @@ describe('the mail server client', () => {
         expect(await client.set('MailingList', { create: {}, destroy: [] }))
             .toEqual({ created: {}, updated: 0, destroyed: 0, refused: [] })
         expect(server.setCalls).toEqual([])
+    })
+
+    test('more than the server takes at once is split over several calls and requests', async () => {
+        const server = serverWithOurDomain()
+        const client = server.client()
+        const domainId = server.domain(TEST_DOMAIN)?.id ?? ''
+        const names = Array.from({ length: MAX_OBJECTS_IN_CALL + 20 }, (_, index) => `list-${index}`)
+
+        const created = await client.set('MailingList', {
+            create: Object.fromEntries(names.map(name => [name, { name, domainId }])),
+        })
+        expect(created.refused).toEqual([])
+        expect(Object.keys(created.created)).toHaveLength(names.length)
+        expect(server.setCallsFor('MailingList')).toHaveLength(2)
+
+        const lists = await client.listAll('MailingList')
+        expect(lists).toHaveLength(names.length)
+
+        const destroyed = await client.set('MailingList', { destroy: lists.map(list => list.id) })
+        expect(destroyed.destroyed).toBe(names.length)
+        expect(await client.listAll('MailingList')).toEqual([])
+
+        const accountIds = Array.from({ length: MAX_CALLS_IN_REQUEST + 5 }, (_, index) => `account-${index}`)
+        const scripts = await client.sieveScripts(accountIds)
+        expect(Array.from(scripts.keys())).toEqual(accountIds)
     })
 
     test('throws on a server that does not answer 2xx', async () => {
@@ -607,6 +651,18 @@ describe('syncing mailboxes', () => {
         await syncMailServer({ client: server.client(), webmail })
         expect(server.setCalls).toEqual([])
         expect(server.uploads).toEqual([])
+    })
+
+    test('more mailboxes than the server takes calls for in one request all get their script', async () => {
+        const count = MAX_CALLS_IN_REQUEST + 4
+        const aliases = []
+        for (let index = 0; index < count; index++) aliases.push((await createTestAlias(`test-many-${index}`)).alias)
+
+        const server = serverWithOurDomain()
+        await syncMailServer({ client: server.client(), webmail })
+        for (const alias of aliases) {
+            expect(server.activeScript(server.account(alias.address)?.id)?.content).toBe('keep;\n')
+        }
     })
 
     test('an alias that reaches no one only keeps its mail, and gets a list once it reaches someone', async () => {
