@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { extensionForContent, type StorableExtension } from './fileExtensions'
-import { storeBackend } from './backend'
+import { derivedStoreBackend, storeBackend } from './backend'
 import { ServiceError } from '@/services/error'
 import { v4 as uuid } from 'uuid'
 import { posix } from 'path'
@@ -37,7 +37,9 @@ function throwStoreUnavailable(cause: unknown): never {
  */
 export function implementStore<const AllowedExt extends readonly StorableExtension[]>(config: {
     staticStorePrefix: string,
-    allowedExtentions: AllowedExt
+    allowedExtentions: AllowedExt,
+    /** The files can be made again from others, so they are written to derivedStoreBackend. */
+    derived?: boolean,
 }) {
     function storeKey(fsLocation: string, dynamicStorePrefix?: string) {
         return dynamicStorePrefix
@@ -58,7 +60,8 @@ export function implementStore<const AllowedExt extends readonly StorableExtensi
         const ext = storableExtension(buffer, allowedExt)
         const processedBuffer = await prosessor(buffer)
         const fsLocation = `${uuid()}.${ext}`
-        await storeBackend.write(storeKey(fsLocation, dynamicStorePrefix), processedBuffer).catch(throwStoreUnavailable)
+        await (config.derived ? derivedStoreBackend : storeBackend)
+            .write(storeKey(fsLocation, dynamicStorePrefix), processedBuffer).catch(throwStoreUnavailable)
         return {
             fsLocation,
             ext

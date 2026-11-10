@@ -22,7 +22,7 @@ deploy/
 3. Merging the pull request is the deploy. The `omegaweb` application, which vivat
    defines, sees main change and syncs in waves:
    - wave -3: the database and the PhaseSecret
-   - wave -1: the migrate job, which runs `migrate:deploy-and-seed`, and locally the store
+   - wave -1: the migrate job, which runs `migrate:deploy-and-seed`, and the store
      volume it is the first to mount
    - wave 0: the app and the worker
 
@@ -76,6 +76,13 @@ Uploaded images, ombul pdfs and the release countdown's files go to S3 when
 `STORE_S3_BUCKET` is set, and to the `store/` directory otherwise. Prod uses NTNU's
 object storage at `https://s3.trd1.stack.it.ntnu.no`, and k3d and compose use the disk.
 Object keys are the paths under `store/`, so a directory can be copied to the bucket as it is.
+
+The bucket is capped at 20 000 objects, so the resized image variants are kept on the store
+volume even with a bucket, and the store worker moves the ones already in the bucket there. They
+are not backed up, since they can be made again from the originals. Deleting an object from a
+versioned bucket keeps its old versions, which may still count towards the cap, so expire the
+noncurrent versions if the count does not drop. Once the cap is raised, copy the volume back with
+`rclone copy` and drop the layering in `src/lib/store/backend.ts`.
 
 Turn on versioning for the bucket, so a deleted file can be brought back after a database
 restore:

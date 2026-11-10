@@ -11,6 +11,23 @@ resources:
     - app.yaml
     - worker.yaml
     - ingress.yaml
+    - store-pvc.yaml
+
+patches:
+    - target:
+          kind: (Deployment|Job)
+      patch: |-
+          - op: add
+            path: /spec/template/spec/volumes/-
+            value:
+                name: store
+                persistentVolumeClaim:
+                    claimName: omegaweb-next-store
+          - op: add
+            path: /spec/template/spec/containers/0/volumeMounts/-
+            value:
+                name: store
+                mountPath: /usr/src/app/store
 
 # Non-secret settings. Listed after the env secret in every envFrom, so a key here
 # wins over the same key in the secret.

@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { allowedExtensions, avifConvertionOptions, imageSizes, maxImageInputPixels } from './constants'
 import { implementStore } from '@/lib/store/implementStore'
+import { moveBucketFilesToDisk } from '@/lib/store/backend'
 import { createOrphanDestroyer } from '@/lib/store/orphanDestroyer'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
@@ -21,6 +22,13 @@ export const imageStore = implementStore({
     allowedExtentions: allowedExtensions,
 })
 
+/** Writes the variants. They are read and destroyed through imageStore, which finds them wherever they are. */
+const variantStore = implementStore({
+    staticStorePrefix: 'images',
+    allowedExtentions: ['avif'],
+    derived: true,
+})
+
 /**
  * Resizes the buffer down to the given width and encodes it as avif.
  * Only width is passed to sharp. Height scales automatically, so aspect ratio is preserved.
@@ -38,7 +46,7 @@ export async function resizeToAvifBuffer(buffer: Buffer, width: number) {
 async function createResizedAvifInStore(buffer: Buffer, width: number) {
     const { data, info } = await resizeToAvifBuffer(buffer, width)
     const avifFile = new File([new Uint8Array(data)], 'image.avif', { type: 'image/avif' })
-    const storedFile = await imageStore.createFile(avifFile, ['avif'])
+    const storedFile = await variantStore.createFile(avifFile)
     return { ...storedFile, width: info.width, height: info.height }
 }
 
@@ -139,6 +147,30 @@ export async function destroyStoredFiles(fsLocations: string[], context: string)
     }
 }
 
+/** Which of the given file names in the image store are a variant of an image. */
+async function variantFilesAmong(prisma: PrismaClient, fsLocations: string[]): Promise<string[]> {
+    const variants = await prisma.processedImageFiles.findMany({
+        where: {
+            OR: [
+                { fsLocationMicroSize: { in: fsLocations } },
+                { fsLocationTinySize: { in: fsLocations } },
+                { fsLocationSmallSize: { in: fsLocations } },
+                { fsLocationMediumSize: { in: fsLocations } },
+                { fsLocationLargeSize: { in: fsLocations } },
+                { fsLocationHugeSize: { in: fsLocations } },
+            ],
+        },
+    })
+    return variants.flatMap(processedFiles => [
+        processedFiles.fsLocationMicroSize,
+        processedFiles.fsLocationTinySize,
+        processedFiles.fsLocationSmallSize,
+        processedFiles.fsLocationMediumSize,
+        processedFiles.fsLocationLargeSize,
+        processedFiles.fsLocationHugeSize,
+    ]).filter((fsLocation): fsLocation is string => fsLocation !== null)
+}
+
 /**
  * Which of the given file names in the image store an image refers to, as its original or as any of
  * its variants.
@@ -149,30 +181,24 @@ export async function referencedImageFiles(prisma: PrismaClient, fsLocations: st
             where: { fsLocationOriginal: { in: fsLocations } },
             select: { fsLocationOriginal: true },
         }),
-        prisma.processedImageFiles.findMany({
-            where: {
-                OR: [
-                    { fsLocationMicroSize: { in: fsLocations } },
-                    { fsLocationTinySize: { in: fsLocations } },
-                    { fsLocationSmallSize: { in: fsLocations } },
-                    { fsLocationMediumSize: { in: fsLocations } },
-                    { fsLocationLargeSize: { in: fsLocations } },
-                    { fsLocationHugeSize: { in: fsLocations } },
-                ],
-            },
-        }),
+        variantFilesAmong(prisma, fsLocations),
     ])
-    return new Set([
-        ...originals.map(image => image.fsLocationOriginal),
-        ...variants.flatMap(processedFiles => [
-            processedFiles.fsLocationMicroSize,
-            processedFiles.fsLocationTinySize,
-            processedFiles.fsLocationSmallSize,
-            processedFiles.fsLocationMediumSize,
-            processedFiles.fsLocationLargeSize,
-            processedFiles.fsLocationHugeSize,
-        ]).filter((fsLocation): fsLocation is string => fsLocation !== null),
-    ])
+    return new Set([...originals.map(image => image.fsLocationOriginal), ...variants])
+}
+
+/**
+ * Moves the variants written to the bucket before they were kept on disk out of it, which frees
+ * the bucket's objects for originals. Run by the store worker.
+ */
+export async function moveImageVariantsToDisk({ onBatch }: { onBatch?: () => void } = {}): Promise<void> {
+    const moved = await moveBucketFilesToDisk(
+        'images',
+        // A row can name a file outside the batch, which is on the disk already or in a later batch.
+        async fsLocations => (await variantFilesAmong(globalPrisma, fsLocations))
+            .filter(fsLocation => fsLocations.includes(fsLocation)),
+        onBatch,
+    )
+    if (moved > 0) logger.info(`Moved ${moved} image variant(s) from the bucket to the disk`)
 }
 
 /**

@@ -6,7 +6,7 @@ import {
     sendDueWeeklyDigests,
 } from '@/services/notifications/methods/dispatchQueue'
 import { pushIsConfigured } from '@/services/notifications/methods/constants'
-import { destroyImageOrphans } from '@/services/images/subservice/imageFiles'
+import { destroyImageOrphans, moveImageVariantsToDisk } from '@/services/images/subservice/imageFiles'
 import { destroyOmbulOrphans } from '@/services/ombul/store'
 import {
     cancelStaleLedgerTransactions,
@@ -80,7 +80,8 @@ export const workers = {
 
     /**
      * Destroys the orphans of the stores, the files no row refers to - see createOrphanDestroyer.
-     * One store failing does not keep the other from being cleaned.
+     * Then moves the image variants still in the bucket to the disk. One step failing does not keep
+     * the others from running.
      */
     store: {
         name: 'Store worker',
@@ -98,6 +99,12 @@ export const workers = {
                 await destroyOmbulOrphans({ onBatch: progress })
             } catch (error) {
                 logger.error(`Store worker failed to destroy the orphans of the ombul store: ${error}`)
+            }
+
+            try {
+                await moveImageVariantsToDisk({ onBatch: progress })
+            } catch (error) {
+                logger.error(`Store worker failed to move image variants to the disk: ${error}`)
             }
         },
     },

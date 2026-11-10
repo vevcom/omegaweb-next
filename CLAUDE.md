@@ -167,7 +167,7 @@ Work that runs outside requests lives in `src/workers/`:
 
 Nothing outside `src/workers/` is called a worker.
 
-- **Services** export the units of work, named for what they do, next to the domain logic they use: `processNextImage` (`images/subservice/processingQueue.ts`), `dispatchNextEmailNotification`, `dispatchNextPushNotification` and `sendDueWeeklyDigests` (`notifications/methods/dispatchQueue.ts`), `runNextPaymentCompletionHook` (`ledger/transactions/paymentCompletionHooks.ts`), `requeueNextUnpaidRegistration` (`events/registration/requeueUnpaid.ts`), `destroyImageOrphans` and `destroyOmbulOrphans`, and the ledger sweeper's checks (`ledger/sweeper.ts`).
+- **Services** export the units of work, named for what they do, next to the domain logic they use: `processNextImage` (`images/subservice/processingQueue.ts`), `dispatchNextEmailNotification`, `dispatchNextPushNotification` and `sendDueWeeklyDigests` (`notifications/methods/dispatchQueue.ts`), `runNextPaymentCompletionHook` (`ledger/transactions/paymentCompletionHooks.ts`), `requeueNextUnpaidRegistration` (`events/registration/requeueUnpaid.ts`), `destroyImageOrphans`, `destroyOmbulOrphans` and `moveImageVariantsToDisk`, and the ledger sweeper's checks (`ledger/sweeper.ts`).
 - A unit of work that handles one item at a time returns `true` when there may be more waiting, so the worker comes straight back instead of waiting out its interval.
 - The ledger sweeper is the ledger's common failure path. It cancels stale PENDING transactions, reimburses succeeded payments no transaction claimed, and flags what it can't fix for admins at `/admin/ledger-review`. Code using the ledger leaves these cases to it instead of handling them itself.
 
