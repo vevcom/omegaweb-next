@@ -73,11 +73,16 @@ jobs:
         RELEASE_TAG: ${{ github.event.release.tag_name }}
       run: |
         file=clusters/prod/omegaweb/kustomization.yaml
+        # The tag goes into a sed replacement, so it holds nothing sed or a path would read as its own.
+        if ! printf '%s' "$RELEASE_TAG" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+          echo "The release tag '$RELEASE_TAG' has characters other than letters, digits, '.', '_' and '-'"
+          exit 1
+        fi
         sed -i -E \
           -e "s#(github\.com/vevcom/omegaweb-next//deploy/base\?ref=)[^[:space:]]+#\1$RELEASE_TAG#" \
           -e "s#^([[:space:]]*newTag: ).*#\1$RELEASE_TAG#" \
           "$file"
-        [ "$(grep -c "$RELEASE_TAG" "$file")" = 3 ]
+        [ "$(grep -cF "$RELEASE_TAG" "$file")" = 3 ]
         git diff
     - uses: peter-evans/create-pull-request@v7
       with:

@@ -25,6 +25,14 @@ const entrySchema = z.union([authDomainSchema, domainSchema])
 
 const fileSchema = z.record(hostSchema, entrySchema).superRefine((entries, ctx) => {
     const hosts = Object.keys(entries).map(host => host.toLowerCase())
+    hosts.forEach((host, index) => {
+        if (hosts.indexOf(host) !== index) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `${host} is listed twice, in different case; a host is one domain`,
+            })
+        }
+    })
     const siteEntries = Object.values(entries).filter(entry => 'site' in entry)
     const aliases = siteEntries.flatMap(entry => entry.aliases.map(alias => alias.toLowerCase()))
     aliases.forEach((alias, index) => {

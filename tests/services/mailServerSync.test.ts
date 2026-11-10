@@ -563,8 +563,10 @@ describe('syncing mailing lists', () => {
             data: { localPart: 'test-changing', domain: TEST_DOMAIN, description: '' },
             bypassAuth: true,
         })
+        server.setCalls.length = 0
         await syncMailServer({ client: server.client() })
         expect(server.mailingList(alias.address)?.description ?? null).toBeNull()
+        expect(server.setCalls).toHaveLength(1)
         expect(server.setCalls[0].args.create).toBeUndefined()
         expect(server.setCalls[0].args.destroy).toBeUndefined()
     })

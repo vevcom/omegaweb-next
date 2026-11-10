@@ -8,9 +8,15 @@ export const defaultNotificationAlias = () => `noreply@${DomainContext.mailDomai
 
 const port = Number(process.env.EMAIL_PORT) || 587
 const secure = process.env.EMAIL_SECURE === 'true'
-// For our own mail server (mail-infrastructure), reached by its in-cluster or compose name,
-// which its certificate is not for. Still encrypted, just not verified.
+// For the dev mail server, whose certificate is self-signed. Still encrypted, just not verified.
 const allowSelfSigned = process.env.EMAIL_TLS_ALLOW_SELF_SIGNED === 'true'
+// The name the server's certificate is for, when that is not the name it is reached by: our own
+// mail server is reached by its in-cluster name and has the certificate of its public one.
+const tlsServername = process.env.EMAIL_TLS_SERVERNAME || undefined
+const tls = {
+    ...(allowSelfSigned ? { rejectUnauthorized: false } : {}),
+    ...(tlsServername ? { servername: tlsServername } : {}),
+}
 
 // Our own mail server takes the app's mail on a listener that asks for no login, see
 // mail-infrastructure's README, so these are unset there. They are for a server that asks for one.
@@ -30,7 +36,7 @@ export const TRANSPORT_OPTIONS: SMTPPool.Options = {
     secure,
     // Only STARTTLS on non-implicit-TLS ports - secure:true (465) already encrypts from connect.
     ...(secure ? {} : { requireTLS: true }),
-    ...(allowSelfSigned ? { tls: { rejectUnauthorized: false } } : {}),
+    ...(Object.keys(tls).length > 0 ? { tls } : {}),
     ...(hasAuth ? {
         auth: {
             user: emailUser,

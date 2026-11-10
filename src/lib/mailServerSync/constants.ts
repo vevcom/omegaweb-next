@@ -24,9 +24,9 @@ export const mailServerAdmin = {
 export const mailServerIsManaged = Boolean(mailServerAdmin.url && mailServerAdmin.user && mailServerAdmin.password)
 
 /**
- * The webmail of that server, where everyone who receives an alias's mail reads its mailbox, unless
- * the owners have switched the mailbox off. Its host is also the mail domain the mailboxes are on,
- * so one value names both, see mailboxes.ts. Left unset, no alias keeps a mailbox.
+ * The webmail of that server, where everyone who receives an alias's mail reads its mailbox. Its
+ * host is also the domain of the accounts that sign in there, so one value names both, see
+ * mailboxes.ts. Left unset, no alias keeps a mailbox.
  */
 export const mailServerWebmail = webmailOf(envValue('EMAIL_WEBMAIL_URL'))
 

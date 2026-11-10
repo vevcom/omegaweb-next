@@ -129,7 +129,8 @@ describe('the special and the manual notification channels', () => {
             expect(await prisma.visibility.findUnique({ where: { id: visibility.id } })).toBeNull()
             expect(await prisma.notification.count({ where: { id: { in: [toSome?.id ?? -1, toAll?.id ?? -1] } } })).toBe(0)
         } finally {
-            process.env.IGNORE_SERVER_ONLY = ignoreServerOnly
+            if (ignoreServerOnly === undefined) Reflect.deleteProperty(process.env, 'IGNORE_SERVER_ONLY')
+            else process.env.IGNORE_SERVER_ONLY = ignoreServerOnly
         }
     })
 

@@ -38,6 +38,14 @@ describe('DomainConfig', () => {
         expect(config.domainOfHost('www.omega.ntnu.no')).toBeNull()
     })
 
+    test('rejects a host listed twice in different case', () => {
+        expect(() => DomainConfig.parse({
+            'omega.ntnu.no': { site: 'OMEGAWEB', main: true },
+            'Login.omega.ntnu.no': { auth: true },
+            'login.omega.ntnu.no': { site: 'REVUE', main: true },
+        })).toThrow(/listed twice/)
+    })
+
     test('rejects an alias that is also a domain, and one listed twice', () => {
         expect(() => DomainConfig.parse({
             'contactor.no': { site: 'CAREERS', main: true, aliases: ['www.contactor.no'] },
