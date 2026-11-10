@@ -91,10 +91,15 @@ export type AccessToken = {
     scopes: string[],
 }
 
-/** What a bearer token the provider signed says, or a JWT EXPIRED or JWT INVALID error. */
+/**
+ * What a bearer token the provider signed says, or a JWT EXPIRED or JWT INVALID error. A key that
+ * is missing or cannot be read is the server's fault and not the bearer's, so it is read before
+ * the token is and throws as it is.
+ */
 export function verifyAccessToken(token: string): AccessToken {
+    const key = createPublicKey(keyFromEnv('JWT_PUBLIC_KEY'))
     try {
-        const payload = verify(token, keyFromEnv('JWT_PUBLIC_KEY'), {
+        const payload = verify(token, key, {
             algorithms: [ALGORITHM],
             issuer: oidcIssuer(),
             audience: oidcIssuer(),

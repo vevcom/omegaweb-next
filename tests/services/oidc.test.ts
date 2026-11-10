@@ -291,6 +291,26 @@ describe('the OpenID Connect provider', () => {
         expect(verifyAccessToken(accessToken)).toEqual({ userId: user.id, clientId: CLIENT, scopes: ['openid', 'email'] })
         expect(() => verifyAccessToken(`${accessToken}x`)).toThrow()
 
+        // A key the server lacks or cannot read is not the bearer's fault, so it is no JWT INVALID.
+        const errorCodeOf = (run: () => unknown) => {
+            try {
+                run()
+                return null
+            } catch (error) {
+                return (error as { errorCode?: string }).errorCode ?? 'not a service error'
+            }
+        }
+        expect(errorCodeOf(() => verifyAccessToken(`${accessToken}x`))).toBe('JWT INVALID')
+        const publicKey = process.env.JWT_PUBLIC_KEY
+        try {
+            Reflect.deleteProperty(process.env, 'JWT_PUBLIC_KEY')
+            expect(errorCodeOf(() => verifyAccessToken(accessToken))).toBe('INVALID CONFIGURATION')
+            process.env.JWT_PUBLIC_KEY = 'not a key'
+            expect(errorCodeOf(() => verifyAccessToken(accessToken))).toBe('INVALID CONFIGURATION')
+        } finally {
+            process.env.JWT_PUBLIC_KEY = publicKey
+        }
+
         const claims = await userClaims(user.id, ['openid', 'profile', 'email'])
         const idToken = signIdToken({ clientId: CLIENT, userId: user.id, nonce: 'nonce-1', claims })
         expect(decode(idToken, { complete: true })?.header).toMatchObject({ alg: 'ES256', kid: keys[0].kid })
