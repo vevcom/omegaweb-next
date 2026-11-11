@@ -24,7 +24,8 @@ export function proxy(request: NextRequest) {
     const context = DomainContext.fromBrowser(domain, browserPath)
 
     // Once domains are configured, a host that is not one of them gets nothing but the healthcheck.
-    if (!context.siteDomain() && DomainContext.domainsForBrowser().length > 0 && pathname !== '/api/health') {
+    const configuredHost = context.siteDomain() !== null || context.isDedicatedAuthDomain()
+    if (!configuredHost && DomainContext.hasDomains() && pathname !== '/api/health') {
         const aliased = DomainContext.domainOfAlias(domain)
         if (aliased) return NextResponse.redirect(`${aliased.origin}${browserPath}`, 308)
         // A body, so no browser takes the empty answer for a file to download.
@@ -57,11 +58,17 @@ export function proxy(request: NextRequest) {
  * On a site's own domain the browser asks for site-relative paths, so the page is served from the
  * app path under the site's base path, and the browser's url stays as it is. An app path of a site
  * that reached such a domain unresolved, like contactor.no/career/job-ads, is sent to where it
- * belongs instead. Omega's domains serve every app path as it is.
+ * belongs instead. Omega's domains serve every app path as it is, and so does a domain set apart
+ * to sign users in, which is how it serves each site's auth pages under the site's base path.
+ * Which domain a page is served on is not decided here: the page says it, and serverPage sends a
+ * request that reached the wrong domain on to the right one.
  */
 function siteResponse(request: NextRequest, context: DomainContext, requestHeaders: Headers) {
     const { pathname, search } = request.nextUrl
-    if (context.servesBasePaths() || isAppWidePath(pathname)) {
+    if (isAppWidePath(pathname)) {
+        return NextResponse.next({ request: { headers: requestHeaders } })
+    }
+    if (context.servesBasePaths()) {
         return NextResponse.next({ request: { headers: requestHeaders } })
     }
     if (!Site.ofPath(pathname).isRoot) {

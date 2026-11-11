@@ -499,9 +499,9 @@ export function defineSubOperation<
                 const paramsParse = paramsSchema.safeParse(args.params)
 
                 if (!paramsParse.success) {
-                    // TODO: This needs to be returned to give good error message.
+                    // The issues travel with the error, as the data's do, so a route or an action can say which parameter.
                     logger.debug('Service operation params failed validation.', { paramsParse })
-                    throw new Smorekopp('BAD PARAMETERS', 'Invalid params passed to service operation.')
+                    throw new ParseError(paramsParse, 'params')
                 }
 
                 args.params = paramsParse.data
@@ -525,7 +525,7 @@ export function defineSubOperation<
                     if (process.env.NODE_ENV !== 'test') {
                         logger.debug('Service operation data failed validation.', { dataParse })
                     }
-                    throw new ParseError(dataParse)
+                    throw new ParseError(dataParse, 'data')
                 }
                 args.data = dataParse.data
             }
@@ -542,9 +542,9 @@ export function defineSubOperation<
                     args.implementationParams
                 )
                 if (!implementationParamsParse.success) {
-                    // TODO: This needs to be returned to give good error message.
+                    // The issues travel with the error, as the data's do.
                     logger.info('Service operation implementation params failed validation.', { implementationParamsParse })
-                    throw new Smorekopp('BAD PARAMETERS', 'Invalid implementation params passed to service operation.')
+                    throw new ParseError(implementationParamsParse, 'params')
                 }
                 args.implementationParams = implementationParamsParse.data
             }

@@ -4,18 +4,12 @@ import {
     expandedImageIncluder,
     type ImageExtension,
 } from './constants'
-import {
-    createRasterVariants,
-    destroyStoredFiles,
-    imageStore,
-    placeholderDataUrlOf,
-    storedFileLocationsOfImage,
-} from './imageFiles'
+import { createRasterVariants, originalImageStore, placeholderDataUrlOf } from './imageFiles'
 import { uniqueCollectionWhere } from './collections'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError, Smorekopp } from '@/services/error'
-import { StoreUnavailableError } from '@/lib/store/implementStore'
+import { StoreUnavailableError } from '@/services/store/locations'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import type { StandardImage } from '@/prisma-generated-pn-types'
 
@@ -29,8 +23,6 @@ export const imageOperations = {
                 include: {
                     images: {
                         select: {
-                            fsLocationOriginal: true,
-                            processedFiles: true,
                             // Uses of an image that refuse to let it be deleted.
                             flair: { select: { id: true } },
                             promo: { select: { id: true } },
@@ -55,9 +47,6 @@ export const imageOperations = {
                 )
             }
 
-            // Extract all file locations before deleting from DB
-            const fileLocationsToDelete = collection.images.flatMap(storedFileLocationsOfImage)
-
             await prisma.$transaction(async (tx) => {
                 await tx.imageCollection.delete({
                     where: uniqueCollectionWhere(params),
@@ -71,9 +60,6 @@ export const imageOperations = {
                     params: { visibilityId: collection.visibilityRegularId },
                 })
             })
-
-            // Clean up files after transaction succeeds
-            await destroyStoredFiles(fileLocationsToDelete, 'collection deletion')
         }
     }),
     updateCollection: defineSubOperation({
@@ -123,7 +109,8 @@ export const imageOperations = {
     /**
      * On upload time, only the original is saved to the store synchronously (plus a tiny inline
      * blur placeholder) - the real resized/avif variants are produced in the background by
-     * processImageVariants, so this stays fast enough to run inside a caller's transaction.
+     * processImageVariants, so this stays fast enough to run inside a caller's transaction. An
+     * original whose image is never committed is an orphan, which the store destroys.
      *
      * Svg uploads skip all of that: a vector is already the right file at every resolution, so
      * there is nothing to resize and nothing to stand in while it happens.
@@ -146,40 +133,35 @@ export const imageOperations = {
             // away anything sharp cannot read. The type also decides whether this is a vector or
             // something the worker has to resize.
             const buffer = Buffer.from(await imageFile.arrayBuffer())
-            const ext = imageStore.storableExtension(buffer, allowedExtensions)
+            const ext = originalImageStore.storableExtension(buffer, allowedExtensions)
             const placeholderDataUrl = ext === 'svg' ? null : await placeholderDataUrlOf(buffer)
 
-            const original = await imageStore.createFile(imageFile, allowedExtensions)
-            try {
-                return await prisma.image.create({
-                    data: {
-                        name: meta.imageName,
-                        alt: meta.imageAlt,
-                        license: meta.imageLicenseId ? { connect: { id: meta.imageLicenseId } } : undefined,
-                        credit: meta.imageCredit,
-                        standardImage: uploadAsStandardImage,
-                        fsLocationOriginal: original.fsLocation,
-                        extOriginal: original.ext,
-                        collection: {
-                            connect: uniqueCollectionWhere(params)
-                        },
-                        type: original.ext === 'svg' ? 'SVG' : 'RASTER',
-                        placeholderDataUrl,
+            const original = await originalImageStore.createFile(buffer, allowedExtensions)
+            return await prisma.image.create({
+                data: {
+                    name: meta.imageName,
+                    alt: meta.imageAlt,
+                    license: meta.imageLicenseId ? { connect: { id: meta.imageLicenseId } } : undefined,
+                    credit: meta.imageCredit,
+                    standardImage: uploadAsStandardImage,
+                    originalFile: { connect: { name: original.name } },
+                    extOriginal: original.ext,
+                    collection: {
+                        connect: uniqueCollectionWhere(params)
                     },
-                    include: expandedImageIncluder,
-                })
-            } catch (error) {
-                await destroyStoredFiles([original.fsLocation], 'a failed image upload')
-                throw error
-            }
+                    type: original.ext === 'svg' ? 'SVG' : 'RASTER',
+                    placeholderDataUrl,
+                },
+                include: expandedImageIncluder,
+            })
         }
     }),
 
     /**
      * Swaps the file behind an existing image in place, keeping its id - and with it every relation
-     * pointing at it - intact. The new original is stored the same way uploadImage stores one, the
-     * old variants are dropped so the background worker produces fresh ones, and the old files are
-     * removed once the row points at the new ones.
+     * pointing at it - intact. The new original is stored the same way uploadImage stores one, and
+     * the old variants are dropped so the background worker produces fresh ones. The old files are
+     * orphans once the row points at the new ones, which the store destroys.
      *
      * Nothing is written when the new file is byte for byte the stored original, so this is cheap to
      * call on every run for an image whose source of truth lives outside the database.
@@ -193,11 +175,11 @@ export const imageOperations = {
         ) => async ({ prisma, params, data: { imageFile } }) => {
             const image = await prisma.image.findUniqueOrThrow({
                 where: { id: params.imageId },
-                include: expandedImageIncluder,
+                select: { id: true, fsLocationOriginal: true },
             })
 
             const buffer = Buffer.from(await imageFile.arrayBuffer())
-            const storedOriginal = await imageStore.readStoredFile(image.fsLocationOriginal).catch((error: unknown) => {
+            const storedOriginal = await originalImageStore.readFile(image.fsLocationOriginal).catch((error: unknown) => {
                 // A missing original is exactly what replacing it repairs.
                 if (error instanceof ServiceError && error.errorCode === 'NOT FOUND') return null
                 throw error
@@ -205,10 +187,10 @@ export const imageOperations = {
             if (storedOriginal?.equals(buffer)) return { replaced: false }
 
             // Checked before it is written, as uploadImage does.
-            const ext = imageStore.storableExtension(buffer, allowedExtensions)
+            const ext = originalImageStore.storableExtension(buffer, allowedExtensions)
             const placeholderDataUrl = ext === 'svg' ? null : await placeholderDataUrlOf(buffer)
 
-            const original = await imageStore.createFile(imageFile, allowedExtensions)
+            const original = await originalImageStore.createFile(buffer, allowedExtensions)
             await prisma.$transaction(async (tx) => {
                 await tx.processedImageFiles.deleteMany({
                     where: { imageId: image.id },
@@ -217,7 +199,7 @@ export const imageOperations = {
                     where: { id: image.id },
                     data: {
                         type: original.ext === 'svg' ? 'SVG' : 'RASTER',
-                        fsLocationOriginal: original.fsLocation,
+                        fsLocationOriginal: original.name,
                         extOriginal: original.ext,
                         placeholderDataUrl,
                         processingStartedAt: null,
@@ -225,12 +207,8 @@ export const imageOperations = {
                         processingError: null,
                     }
                 })
-            }).catch(async (error: unknown) => {
-                await destroyStoredFiles([original.fsLocation], 'a failed image file replacement')
-                throw error
             })
 
-            await destroyStoredFiles(storedFileLocationsOfImage(image), 'image file replacement')
             return { replaced: true }
         }
     }),
@@ -248,10 +226,8 @@ export const imageOperations = {
                 throw new ServiceError('BAD PARAMETERS', `Image ${image.id} is an svg and has no variants to process`)
             }
             try {
-                const buffer = await imageStore.readStoredFile(image.fsLocationOriginal)
+                const buffer = await originalImageStore.readFile(image.fsLocationOriginal)
                 const variants = await createRasterVariants(buffer)
-                const variantLocations = Object.values(variants)
-                    .flatMap(variant => (variant ? [variant.fsLocation] : []))
                 await prisma.processedImageFiles.create({
                     data: {
                         imageId: image.id,
@@ -274,10 +250,6 @@ export const imageOperations = {
                         widthHugeSize: variants.huge?.width,
                         heightHugeSize: variants.huge?.height,
                     }
-                }).catch(async (error: unknown) => {
-                    // The variants are written, but no row will point at them.
-                    await destroyStoredFiles(variantLocations, 'a failed variant record')
-                    throw error
                 })
                 return { success: true }
             } catch (error) {
@@ -373,44 +345,15 @@ export const imageOperations = {
             })
     }),
 
-    /**
-     * Deletes image from database and returns a cleanup function for file deletion.
-     * Used inside transactions: delete DB row in the transaction, call cleanup function after it commits.
-     * Prevents files from being deleted if the transaction rolls back.
-     */
-    destroyImageDbAndReturnCleanup: defineSubOperation({
-        paramsSchema: () => imageSchemas.params.destroyImageDbAndReturnCleanup,
-        operation: () => async ({ prisma, params }): Promise<() => Promise<void>> => {
-            const image = await prisma.image.findUniqueOrThrow({
-                where: {
-                    id: params.imageId,
-                },
-                include: expandedImageIncluder,
-            })
+    /** Deletes the image. Its files are orphans from then on, which the store destroys. */
+    destroyImage: defineSubOperation({
+        paramsSchema: () => imageSchemas.params.destroyImage,
+        operation: () => async ({ prisma, params }) => {
             await prisma.image.delete({
                 where: {
                     id: params.imageId,
                 },
             })
-            // Return a cleanup function that the caller invokes after the transaction succeeds
-            return async () => destroyStoredFiles(storedFileLocationsOfImage(image), 'image deletion')
-        }
-    }),
-
-    /**
-     * Full destroy operation: deletes image from database and then cleans up files.
-     * Use this for standalone operations outside transactions.
-     * For use inside transactions, use destroyImageDbAndReturnCleanup and call the returned cleanup function.
-     */
-    destroyImage: defineSubOperation({
-        paramsSchema: () => imageSchemas.params.destroyImage,
-        operation: () => async ({ prisma, params }) => {
-            const cleanup =
-                await imageOperations.destroyImageDbAndReturnCleanup.internalCall({
-                    prisma,
-                    params
-                })
-            await cleanup()
         }
     }),
 

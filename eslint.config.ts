@@ -720,7 +720,8 @@ const eslintConfig = defineConfig([
                 {
                     'src/app/_components/**/': 'PASCAL_CASE',
                     'src/app/_pageKits/**/': 'CAMEL_CASE',
-                    'src/app/!(_components|_pageKits)/**/': 'NEXT_JS_APP_ROUTER_CASE',
+                    // .well-known is the folder RFC 8615 names, for the OpenID Connect discovery document.
+                    'src/app/!(_components|_pageKits|.well-known)/**/': 'NEXT_JS_APP_ROUTER_CASE',
                     'src/services/**/': 'CAMEL_CASE',
                     'src/contexts/**/': 'CAMEL_CASE',
                     'src/lib/**/': 'CAMEL_CASE',
@@ -783,7 +784,6 @@ const eslintConfig = defineConfig([
         'out/**',
         'build/**',
         'next-env.d.ts',
-        'pncli/**',
         'docs/**',
         'generated/**',
         '.design-sync/**',

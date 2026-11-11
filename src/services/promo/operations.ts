@@ -53,7 +53,7 @@ export const promoOperations = {
         dataSchema: promoSchemas.data.updateImage,
         transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
-            const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
+            const newImage = await prisma.$transaction(async tx => {
                 const existingPromo = await tx.promo.findUniqueOrThrow({
                     where: { id: params.promoId }
                 })
@@ -69,13 +69,12 @@ export const promoOperations = {
                         }
                     }
                 })
-                const fileCleanup = await promoImageOperations.destroyImageDbAndReturnCleanup.internalCall({
+                await promoImageOperations.destroyImage.internalCall({
                     prisma: tx,
                     params: { imageId: existingPromo.imageId }
                 })
-                return { image: uploadedImage, cleanup: fileCleanup }
+                return uploadedImage
             }, { timeout: 20000 })
-            await cleanup()
             return newImage
         }
     }),
@@ -119,23 +118,19 @@ export const promoOperations = {
         paramsSchema: promoSchemas.params.destroy,
         transaction: 'OPENS',
         operation: async ({ prisma, params: { promoId } }) => {
-            const { cleanup } = await prisma.$transaction(async tx => {
+            await prisma.$transaction(async tx => {
                 const promo = await tx.promo.delete({
                     where: {
                         id: promoId,
                     }
                 })
-                const fileCleanup =
-                    await promoImageOperations.destroyImageDbAndReturnCleanup.internalCall({
-                        prisma: tx,
-                        params: {
-                            imageId: promo.imageId,
-                        }
-                    })
-                return { cleanup: fileCleanup }
+                await promoImageOperations.destroyImage.internalCall({
+                    prisma: tx,
+                    params: {
+                        imageId: promo.imageId,
+                    }
+                })
             })
-            // Clean up files after transaction succeeds
-            await cleanup()
         }
     }),
 } as const

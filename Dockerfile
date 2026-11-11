@@ -95,8 +95,8 @@ EXPOSE 3000
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # standalone's server.js binds to $HOSTNAME, which Docker sets to the container id -
-# that listens on the container IP only, so the localhost healthcheck below (and
-# Dokploy's) would never connect. Bind all interfaces instead.
+# that listens on the container IP only, so the localhost healthcheck below would
+# never connect. Bind all interfaces instead.
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 

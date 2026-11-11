@@ -1,6 +1,5 @@
-# This file is used to define the base services that are shared between dev, test and prod.
-# The services are then extended in the environment-specific files.
-# This way, we can avoid duplicating the configuration for the shared services.
+# The services dev, test and prod share, extended in the environment-specific files. The health
+# check of the app is the image's, see the Dockerfile.
 
 services:
     omegaweb-next:
@@ -10,55 +9,21 @@ services:
             args:
                 NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
                 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
-        environment:
-            DB_URI: ${DB_URI}
-            LOG_TO_CONSOLE: ${LOG_TO_CONSOLE}
-            LOG_CONSOLE_LEVEL: ${LOG_CONSOLE_LEVEL}
-            LOG_TO_FOLDER: ${LOG_TO_FOLDER}
-            LOG_TO_FILE: ${LOG_TO_FILE}
-            LOG_FILE_LEVEL: ${LOG_FILE_LEVEL}
-            LOG_MAX_FILES: ${LOG_MAX_FILES}
-            AUTH_TRUST_HOST: ${AUTH_TRUST_HOST}
-            NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-            PASSWORD_SALT_ROUNDS: ${PASSWORD_SALT_ROUNDS}
-            PASSWORD_ENCRYPTION_KEY: ${PASSWORD_ENCRYPTION_KEY}
-            API_KEY_SALT_ROUNDS: ${API_KEY_SALT_ROUNDS}
-            API_KEY_ENCRYPTION_KEY: ${API_KEY_ENCRYPTION_KEY}
-            NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
-            FEIDE_CLIENT_ID: ${FEIDE_CLIENT_ID}
-            FEIDE_CLIENT_SECRET: ${FEIDE_CLIENT_SECRET}
-            STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
-            STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-            EMAIL_SERVER: ${EMAIL_SERVER}
-            EMAIL_PORT: ${EMAIL_PORT}
-            EMAIL_SECURE: ${EMAIL_SECURE}
-            EMAIL_TLS_ALLOW_SELF_SIGNED: ${EMAIL_TLS_ALLOW_SELF_SIGNED}
-            EMAIL_USER: ${EMAIL_USER}
-            EMAIL_PASSWORD: ${EMAIL_PASSWORD}
-            VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
-            VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
-            JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
-            JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
-            JWT_SECRET: ${JWT_SECRET}
-            STORE_S3_ENDPOINT: ${STORE_S3_ENDPOINT}
-            STORE_S3_REGION: ${STORE_S3_REGION}
-            STORE_S3_BUCKET: ${STORE_S3_BUCKET}
-            STORE_S3_ACCESS_KEY_ID: ${STORE_S3_ACCESS_KEY_ID}
-            STORE_S3_SECRET_ACCESS_KEY: ${STORE_S3_SECRET_ACCESS_KEY}
-        healthcheck:
-            test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
-            interval: 10s
-            timeout: 3s
-            retries: 5
-            start_period: 30s
+        # The variables of .env.default, with .env's values over them, so the list of what the app
+        # reads lives in .env.default alone. A service that needs more adds an environment: of its own.
+        env_file:
+            - path: ${PROJECT_ROOT:-.}/.env.default
+              required: true
+            - path: ${PROJECT_ROOT:-.}/.env
+              required: false
         depends_on:
             db:
                 condition: service_healthy
                 required: false
 
     db:
-        image: postgres:16.0-alpine
+        # The version lives in deploy/base/postgres.env, which every compose command is given.
+        image: postgres:${POSTGRES_VERSION:?pass --env-file deploy/base/postgres.env}-alpine
         environment:
             POSTGRES_DB: ${DB_NAME}
             POSTGRES_USER: ${DB_USERNAME}

@@ -202,12 +202,6 @@ export const permissionConfig = {
         category: 'notifikasjoner',
         canBeDefault: false,
     },
-    MAIL_USE: {
-        name: 'Sende e-post',
-        description: 'kan sende e-post',
-        category: 'mail',
-        canBeDefault: false,
-    },
     MAILSERVER_USE: {
         name: 'Se e-postserveren',
         description: 'kan se e-postalias, e-postlister, eksterne e-postadresser og hvor e-post havner',

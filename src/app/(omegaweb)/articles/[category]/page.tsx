@@ -1,19 +1,19 @@
+import { serverPage } from '@/app/ServerPage'
+import type { PageOperationArgs } from '@/app/ServerPage'
 
-type PropTypes = {
-    params: Promise<{
-        category: string
-    }>,
-}
-
-export default async function ArticleCategory({ params }: PropTypes) {
-    const category = decodeURIComponent((await params).category)
-    return (
+const { page } = serverPage({
+    operation: ({ params }: PageOperationArgs<{ category: string }>) => ({
+        category: decodeURIComponent(params.category),
+    }),
+    render: ({ data }) => (
         <div className="
             w-full h-full flex items-center justify-center
             [&>p]:border-l [&>p]:border-base-300 [&>p]:ml-2 [&>p]:pl-2
         ">
-            <h2>{category.toUpperCase()}</h2>
+            <h2>{data.category.toUpperCase()}</h2>
             <p>Velg en artikkel i navigasjonsmenyen</p>
         </div>
-    )
-}
+    ),
+})
+
+export default page

@@ -4,6 +4,7 @@ import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
 export function sendResetPasswordEmailPage(config: AuthPagesConfig) {
     return serverPage({
+        servedOn: 'auth-domain',
         allowUnregistered: true,
         operation: () => ({}),
         metadata: () => ({ title: 'Glemt passord' }),

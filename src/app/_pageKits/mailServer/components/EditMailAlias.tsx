@@ -13,9 +13,6 @@ import {
     destroyMailAliasAction,
 } from '@/services/mail/alias/actions'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
-import { sendMailAuth } from '@/services/notifications/sendMail/auth'
-import SiteLink from '@/components/SiteLink/SiteLink'
-import { appHref } from '@/lib/sites/href'
 import { configureAction } from '@/services/configureAction'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import useSiteRouter from '@/hooks/useSiteRouter'
@@ -31,6 +28,7 @@ export default function EditMailAlias({
     mailingLists,
     domains,
     owners,
+    mailboxes,
 }: {
     config: MailServerPagesConfig,
     id: number,
@@ -39,6 +37,8 @@ export default function EditMailAlias({
     /** The domains an alias may be on. */
     domains: string[],
     owners: VisibilityMatrix,
+    /** Whether this installation keeps a mailbox per alias, see lib/mailServerSync/constants.ts. */
+    mailboxes: boolean,
 }) {
     const { push, refresh } = useSiteRouter()
     const links = mailServerLinks(config)
@@ -57,21 +57,11 @@ export default function EditMailAlias({
     const canUpdateOwners = useAuthorizer({
         authorizer: mailAliasAuth.updateVisibility.data({ visibility: owners }),
     }).authorized
-    const canSendFromAlias = useAuthorizer({
-        authorizer: sendMailAuth.sendMailFromAlias.data({ visibility: owners }),
-    }).authorized
 
     const connectedListIds = new Set(data.mailingList.map(list => list.id))
     const availableLists = mailingLists.filter(list => !connectedListIds.has(list.id))
 
     return <>
-        {canSendFromAlias && <SiteLink
-            href={appHref(`/admin/send-mail?from=${focusedAlias.id}`)}
-            className="self-start px-4 py-2 rounded-round bg-primary text-white no-underline font-medium"
-        >
-            Send e-post fra aliaset
-        </SiteLink>}
-
         {canUpdateAlias && <Form
             title="Rediger alias"
             submitText="Oppdater"
@@ -94,6 +84,15 @@ export default function EditMailAlias({
         >
             <TextInput name="description" label="Beskrivelse" defaultValue={focusedAlias.description} />
         </Form>}
+
+        {mailboxes && <div className="flex flex-col gap-2">
+            <h3 className="m-0">Postkasse</h3>
+            <p className="m-0 text-base-content/80">
+                Et alias er til korrespondanse. Alle som mottar e-posten til aliaset, gjennom e-postlistene det
+                er koblet til, leser den også i en felles postkasse i webmailen, og kan svare og sende e-post
+                som aliaset derfra. Informasjon som bare skal ut til mange, sendes som et varsel.
+            </p>
+        </div>}
 
         {canUpdateOwners && <div className="flex flex-col gap-2">
             <h3 className="m-0">Eiere</h3>

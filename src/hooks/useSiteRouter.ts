@@ -28,7 +28,10 @@ export default function useSiteRouter(): SiteRouter {
     return useMemo(() => {
         const context = DomainContext.fromAppPath(domain, path)
         const resolve = (href: AppHref, options?: NavigateOptions) =>
-            context.resolveHref(href, { toMainDomainServingSite: options?.toMainDomainServingSite })
+            context.resolveHref(href, {
+                toMainDomainServingSite: options?.toMainDomainServingSite,
+                servedOn: options?.servedOn,
+            })
         return {
             ...router,
             push: (href, options?: NavigateOptions) => router.push(resolve(href, options), options),

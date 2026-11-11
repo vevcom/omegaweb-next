@@ -69,9 +69,6 @@ enum Permission {
   // Notifications
   NOTIFICATION_ADMIN
 
-  // Mail
-  MAIL_USE
-
   // Mail server: aliases, mailing lists and external addresses
   MAILSERVER_USE
   MAILSERVER_ADMIN

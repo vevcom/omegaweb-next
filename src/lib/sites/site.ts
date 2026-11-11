@@ -55,6 +55,9 @@ export class Site {
     /** An app path of a page on this site as the site's own domain serves it: without the base path. */
     pathOn(href: string): string {
         const rest = href.slice(this.basePath.length)
-        return rest === '' || rest.startsWith('?') || rest.startsWith('#') ? `/${rest}` : rest
+        if (rest === '' || rest.startsWith('?') || rest.startsWith('#')) return `/${rest}`
+        // What is left starts with one slash: a browser reads `//`, `/\` and `/<tab>/` there as
+        // another host, so `/career//evil.example` must not become a link out of the site.
+        return rest.replace(/^[/\\\s]+/, '/')
     }
 }

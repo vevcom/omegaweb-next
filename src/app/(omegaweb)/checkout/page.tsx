@@ -1,9 +1,13 @@
 import Button from '@/components/UI/Button'
+import { serverPage } from '@/app/ServerPage'
 
-export default function Checkout() {
-    return <div>
+const { page } = serverPage({
+    operation: () => ({}),
+    render: () => <div>
         <h1>Betaling</h1>
         <p>Her kommer kassen din!</p>
         <Button>Betal</Button>
-    </div>
-}
+    </div>,
+})
+
+export default page
