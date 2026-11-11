@@ -1,20 +1,22 @@
 'use client'
 import Form from '@/components/Form/Form'
 import { destroyEventAction, setEventPublishedAction } from '@/services/events/actions'
-import { eventAuth } from '@/services/events/auth'
 import { publishProblems } from '@/services/events/publishProblems'
 import { configureAction } from '@/services/configureAction'
 import { eventLinks } from '@/pageKits/events/links'
-import useAuthorizer from '@/hooks/useAuthorizer'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
-import type { EventAccess } from '@/services/events/types'
+import type { EventDetailed } from '@/services/events/types'
+import type { VisibilityMatrix } from '@/services/visibility/types'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 
 type PropTypes = {
-    event: Omit<Parameters<typeof publishProblems>[0], 'adminVisibility'> & { id: number, published: boolean },
-    access: EventAccess,
+    event: Pick<EventDetailed,
+        'id' | 'published' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'ledgerAccount' | 'variants'
+    >,
+    /** Who administrates the event, which it takes to publish it. */
+    adminVisibility: VisibilityMatrix,
     config: EventPagesConfig,
-    capabilities: CapabilitiesJsObject<'canDestroy'>,
+    capabilities: CapabilitiesJsObject<'canSetPublished' | 'canDestroy'>,
 }
 
 const sectionClassName = `
@@ -24,15 +26,14 @@ const sectionClassName = `
 `
 
 /** Publishing the event once it has what it needs, and deleting it. */
-export default function EventPublishing({ event, access, config, capabilities }: PropTypes) {
-    const canSetPublished = useAuthorizer({ authorizer: eventAuth.setPublished.data(access) }).authorized
+export default function EventPublishing({ event, adminVisibility, config, capabilities }: PropTypes) {
     const setPublished = configureAction(setEventPublishedAction, { params: { id: event.id } })
-    const problems = publishProblems({ ...event, adminVisibility: access.adminVisibility })
+    const problems = publishProblems({ ...event, adminVisibility })
 
     return <div className="flex flex-col gap-4 min-w-0">
         <h2 className="m-0">Publisering</h2>
 
-        {canSetPublished && <section className={sectionClassName}>
+        {capabilities.canSetPublished.authorized && <section className={sectionClassName}>
             <p>
                 {event.published
                     ? 'Arrangementet er publisert.'

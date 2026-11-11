@@ -90,6 +90,18 @@ function jsonField(values: FormData, name: string, reviver?: (key: string, value
     return typeof field === 'string' ? JSON.parse(field, reviver) : null
 }
 
+/** A variant read back from what the form posts: what the setup checks take, with the names errors are told by. */
+type ReadVariant = Omit<EventSetup['variants'][number], 'quotas'> & { quotas: { name: string, places: number }[] }
+
+/** The variants the form would post, with their dates as dates again. None when the form has no such field. */
+export function variantsFromForm(values: FormData): ReadVariant[] {
+    // Written by the variants field of this form, so it has the shape `variantsToPost` gives.
+    const variants = jsonField(values, 'variants', (key, value) => (
+        postedDates.includes(key) && typeof value === 'string' ? new Date(value) : value
+    )) as ReadVariant[] | null
+    return variants ?? []
+}
+
 /**
  * What the setup checks take, read from what the form would post. This is the one place that
  * knows how the fields of the form are posted. `saved` is the event as it is saved, for what the
@@ -104,10 +116,7 @@ export function eventSetupFromForm(
     const eventEnd = values.get('eventEnd')
     const canBeViewedBy = values.get('canBeViewedBy')
     const account = values.get('ledgerAccountSelection')
-    // Both are written by this form's own fields, so they have the shape those fields post.
-    const variants = jsonField(values, 'variants', (key, value) => (
-        postedDates.includes(key) && typeof value === 'string' ? new Date(value) : value
-    )) as EventSetup['variants'] | null
+    // Written by the visibility editor of this form, so it has the shape that posts.
     const adminRequirements = jsonField(values, 'adminRequirements') as VisibilityRequirement[] | null
 
     return {
@@ -119,7 +128,7 @@ export function eventSetupFromForm(
         // An account left unpicked keeps the one the event has, as the save does.
         ledgerAccount: saved.ledgerAccount
             ?? (typeof account === 'string' && account !== 'NULL' ? { id: Number(account) } : null),
-        variants: variants ?? [],
+        variants: variantsFromForm(values),
         // Not a field of the form when who administrates the event could not be read.
         adminVisibility: adminRequirements ? { requirements: adminRequirements } : saved.adminVisibility,
     }

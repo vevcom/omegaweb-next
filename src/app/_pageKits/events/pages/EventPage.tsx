@@ -144,10 +144,11 @@ export function eventPage(config: EventPagesConfig) {
 
             // For giving dots after the event; readable by those administrating it.
             const eventHasEnded = event.eventEnd < new Date()
-            const notAttended = event.takesRegistration && eventHasEnded
+            const notAttended = administers && event.takesRegistration && eventHasEnded
                 ? await withFallback(eventRegistrationOperations.readNotAttended({ params: { eventId: event.id } }), null)
                 : null
-            const statistics = event.takesRegistration
+            // For those administrating it too, so no one else is made to ask for it and be refused.
+            const statistics = administers && event.takesRegistration
                 ? await withFallback(eventOperations.readStatistics({ params: { id: event.id } }), null)
                 : null
 
@@ -173,6 +174,7 @@ export function eventPage(config: EventPagesConfig) {
             canEditCmsParagraph: eventAuth.updateParagraphContent.data(data.access),
             canDestroy: eventAuth.destroy.data(data.access),
             canUpdate: eventAuth.update.data(data.access),
+            canSetPublished: eventAuth.setPublished.data(data.access),
             canConnectToLedgerAccount: eventAuth.connectToLedgerAccount.data({
                 ...data.access,
                 accounts: data.ledgerAccounts.map(account => account.ownership),
@@ -283,6 +285,7 @@ export function eventPage(config: EventPagesConfig) {
                                         statistics={data.statistics}
                                         capabilities={capabilitiesToJsObject({
                                             canUpdate: capabilities.canUpdate,
+                                            canSetPublished: capabilities.canSetPublished,
                                             canDestroy: capabilities.canDestroy,
                                             canRegisterAsAdmin: capabilities.canRegisterAsAdmin,
                                             canRegisterGuest: capabilities.canRegisterGuest,

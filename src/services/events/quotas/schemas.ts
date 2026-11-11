@@ -4,7 +4,9 @@ import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
     name: z.string().trim().min(1, 'Kvoten må ha et navn').max(50, 'Navnet kan ha maks 50 tegn'),
-    places: z.coerce.number().int().min(0, 'Antall plasser kan ikke være negativt'),
+    places: z.coerce.number({ invalid_type_error: 'Antall plasser må være et tall' })
+        .int('Antall plasser må være et helt tall')
+        .min(0, 'Antall plasser kan ikke være negativt'),
     // No requirements means everyone may register through the quota.
     visibilityRequirements: Zpn.json({
         label: 'Hvem kan melde seg på',

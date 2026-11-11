@@ -6,18 +6,18 @@ import EventStatistics from './EventStatistics'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import Tabs, { TabPanel } from '@/components/UI/Tabs'
 import { publishProblems } from '@/services/events/publishProblems'
-import type { ComponentProps } from 'react'
+import type { PropTypes as SetupFormPropTypes } from './EventSetupForm'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { VariantStatistics } from '@/services/events/statistics'
+import type { EventDetailed } from '@/services/events/types'
 import type { AppHref } from '@/lib/sites/href'
 
-type SetupProps = ComponentProps<typeof EventSetupForm>
-type PropTypes = Omit<SetupProps, 'event'> & {
-    event: SetupProps['event'] & ComponentProps<typeof EventPublishing>['event']
-        & ComponentProps<typeof EventNotificationsAdmin>['event'] & { takesRegistration: boolean },
+type PropTypes = Omit<SetupFormPropTypes, 'event'> & {
+    event: EventDetailed,
     eventHref: AppHref,
     capabilities: CapabilitiesJsObject<
-        'canUpdate' | 'canDestroy' | 'canRegisterAsAdmin' | 'canRegisterGuest' | 'canCreateNotification'
+        'canUpdate' | 'canSetPublished' | 'canDestroy' | 'canRegisterAsAdmin' | 'canRegisterGuest'
+        | 'canCreateNotification'
     >,
     /** Null when the event takes no registration, or they could not be read. */
     statistics: VariantStatistics[] | null,
@@ -31,7 +31,7 @@ export default function EventAdmin({ event, eventHref, capabilities, statistics,
     const canUpdate = capabilities.canUpdate.authorized
     const canRegisterOthers = capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
     const showRegisterOthers = event.takesRegistration && canRegisterOthers
-    const showPublishing = canUpdate || capabilities.canDestroy.authorized
+    const showPublishing = capabilities.canSetPublished.authorized || capabilities.canDestroy.authorized
     const canNotify = capabilities.canCreateNotification.authorized
     const publishingDot = () => {
         if (event.published) return { level: 'ok' as const, label: 'Publisert' }
@@ -81,9 +81,12 @@ export default function EventAdmin({ event, eventHref, capabilities, statistics,
             {showPublishing && <TabPanel tab="publishing">
                 <EventPublishing
                     event={event}
-                    access={setup.access}
+                    adminVisibility={setup.access.adminVisibility}
                     config={setup.config}
-                    capabilities={{ canDestroy: capabilities.canDestroy }}
+                    capabilities={{
+                        canSetPublished: capabilities.canSetPublished,
+                        canDestroy: capabilities.canDestroy,
+                    }}
                 />
             </TabPanel>}
         </Tabs>

@@ -4,7 +4,7 @@ import EventPaymentFields from './EventPaymentFields'
 import EventRegistrationFields from './EventRegistrationFields'
 import EventTagComponent from './EventTag'
 import EventVariantsField, { EventVariantsFieldInput } from './EventVariantsField'
-import { eventSetupFromForm } from './eventSetupDraft'
+import { eventSetupFromForm, variantsFromForm } from './eventSetupDraft'
 import Form from '@/components/Form/Form'
 import FormSection from '@/components/Form/FormSection'
 import FormTab from '@/components/Form/FormTab'
@@ -17,17 +17,16 @@ import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEdit
 import { saveEventSetupAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { eventSetupChecks, setupTabStatuses } from '@/services/events/publishProblems'
+import { nameVariantInErrors } from '@/services/events/setupErrors'
 import { useTabs } from '@/components/UI/Tabs'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import { configureAction } from '@/services/configureAction'
 import { eventLinks } from '@/pageKits/events/links'
 import { useState } from 'react'
-import type { ComponentProps } from 'react'
 import type { ActionFormData } from '@/services/actionTypes'
 import type { EventPagesConfig } from '@/pageKits/events/config'
-import type { EventVariantExpanded } from '@/services/events/variants/types'
-import type { EventAccess } from '@/services/events/types'
-import type { Committee, Event, EventLocationMap, EventTag } from '@/prisma-generated-pn-types'
+import type { EventAccess, EventDetailed } from '@/services/events/types'
+import type { Committee, Event, EventTag, LedgerAccount } from '@/prisma-generated-pn-types'
 
 /** The tabs of the form, for the Tabs around it. */
 export const eventSetupTabs = [
@@ -38,16 +37,12 @@ export const eventSetupTabs = [
     { key: 'access', label: 'Tilgang' },
 ]
 
-type PropTypes = {
-    event: Pick<Event,
+export type PropTypes = {
+    event: Pick<EventDetailed,
         'id' | 'name' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'hostedByCommitteeId'
         | 'waitingList' | 'bindingRegistration' | 'allowRegistrationInMultipleVariants' | 'updatedAt'
-    > & {
-        tags: EventTag[],
-        locationMap: EventLocationMap | null,
-        variants: EventVariantExpanded[],
-        ledgerAccount: ComponentProps<typeof EventPaymentFields>['ledgerAccount'],
-    },
+        | 'tags' | 'locationMap' | 'variants' | 'ledgerAccount'
+    >,
     access: EventAccess,
     /** Whether the admin visibility could be read, so that the form never saves a fallback over it. */
     adminVisibilityKnown: boolean,
@@ -55,7 +50,8 @@ type PropTypes = {
     eventTags: EventTag[],
     /** The committees to choose the host from, or null when they could not be read (they take COMMITTEE_USE). */
     committees: Committee[] | null,
-    ledgerAccounts: ComponentProps<typeof EventPaymentFields>['ledgerAccounts'],
+    /** The group accounts the session may link the event to. */
+    ledgerAccounts: Pick<LedgerAccount, 'id' | 'name'>[],
 }
 
 /**
@@ -86,7 +82,13 @@ function SetupForm({
     const lockedTag = config.lockedTag
     // Whether the rules tab has the waiting list switched on, for the registration tab to show it.
     const [waitingList, setWaitingList] = useState(event.waitingList)
-    const save: ActionFormData<Event> = configureAction(saveEventSetupAction, { params: { id: event.id } })
+    const saveSetup: ActionFormData<Event> = configureAction(saveEventSetupAction, { params: { id: event.id } })
+    // The schema of the save tells a variant by its place in the list, so the errors are given its name here.
+    const save: ActionFormData<Event> = async formData => {
+        const result = await saveSetup(formData)
+        if (result.success || !result.error) return result
+        return { ...result, error: nameVariantInErrors(result.error, variantsFromForm(formData)) }
+    }
     const { reportDots } = useTabs()
     const { refresh } = useSiteRouter()
 

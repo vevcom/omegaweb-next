@@ -8,7 +8,10 @@ const dataFieldSchemas = z.object({
     registrationStart: Zpn.date({ label: 'Påmeldingsstart' }),
     registrationEnd: Zpn.date({ label: 'Påmeldingsslutt' }),
     takesPayment: Zpn.checkboxOrBoolean({ label: 'Tar betaling' }).default(false),
-    price: z.coerce.number().min(0).transform(val => convertAmount(val)).optional(),
+    price: z.coerce.number({ invalid_type_error: 'Prisen må være et tall' })
+        .min(0, 'Prisen kan ikke være negativ')
+        .transform(val => convertAmount(val))
+        .optional(),
     paymentStart: Zpn.date({ label: 'Betalingsstart' }).optional(),
     paymentEnd: Zpn.date({ label: 'Betalingsslutt' }).optional(),
     requeueUnpaidRegistrations: Zpn.checkboxOrBoolean({ label: 'Flytt ubetalte bakerst på ventelisten' }).default(false),
