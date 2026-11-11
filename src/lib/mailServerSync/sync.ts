@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { mailServerClientFromEnv } from './client'
 import { mailServerWebmail, mailboxesAreAvailable } from './constants'
 import { destroyMailboxes, syncMailboxes } from './mailboxes'
-import { syncMemberships } from './memberships'
+import { revokeMemberships, syncMemberships } from './memberships'
 import { syncUserMailboxes } from './userMailboxes'
 import { forwardingAddressOf, forwardingDomainOf, syncForwardingScripts } from './forwarding'
 import { validMailAddressDomains } from '@/services/mail/constants'
@@ -58,7 +58,9 @@ const DOMAIN_DESCRIPTION = 'A domain of the sites, created by omegaweb-next'
  * A change the server refuses does not stop the run: every step does what it can and says what was
  * refused, and the run throws at its end naming all of it, so one alias the server will not take
  * does not keep the others from it. Without the domains the mailboxes take the run ends after the
- * domains, since no alias can be placed. A server that does not answer stops the run where it is.
+ * domains, since no alias can be placed. It only takes those who no longer receive an alias out of
+ * its mailbox first, so that a missing domain never lets someone keep a mailbox they were taken
+ * off. A server that does not answer stops the run where it is.
  *
  * @returns false, since one run does all the work there is.
  * @throws once the run is through, when the server refused any change.
@@ -82,9 +84,17 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
         : null
     if (webmail && !forwarding) {
         const missing = mailboxDomains.filter(name => !domains.idsByName.has(name.toLowerCase()))
+        // Without the webmail's domain no account has a sign in name, so there is no one to take out.
+        const revoked = accountDomainId === undefined
+            ? { changed: 0, refused: [] }
+            : await revokeMemberships(client, siteDomainIdsByName, accountDomainId)
+        if (revoked.changed > 0) {
+            logger.info(`Mail server sync took ${revoked.changed} accounts out of mailboxes their users no longer receive`)
+        }
+        const refused = [...domains.refused, ...revoked.refused]
         throw new Error(`Mail server sync left the aliases as they were, since the server lacks ${
             missing.join(' and ')}, which the mailboxes take and the infrastructure's plan for the mail server adds${
-            domains.refused.length > 0 ? `. The server also refused to ${domains.refused.join('; ')}` : ''}`)
+            refused.length > 0 ? `. The server also refused to ${refused.join('; ')}` : ''}`)
     }
 
     // The lists first: the first run with mailboxes frees the aliases' addresses of the lists that

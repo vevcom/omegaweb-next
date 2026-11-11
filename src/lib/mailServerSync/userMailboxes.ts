@@ -52,7 +52,7 @@ type WantedAccount = {
 const SIGN_IN_NAME = /^[a-z0-9][a-z0-9._+-]{0,63}$/
 
 /** The username an account is signed in to by, or null for an account no user of ours signs in to. */
-function signInNameOf(account: MailServerAccount, accountDomainId: string): string | null {
+export function signInNameOf(account: MailServerAccount, accountDomainId: string): string | null {
     if (account.domainId === accountDomainId) return account.name.toLowerCase()
     const alias = Object.values(account.aliases ?? {}).find(({ domainId }) => domainId === accountDomainId)
     return alias ? alias.name.toLowerCase() : null

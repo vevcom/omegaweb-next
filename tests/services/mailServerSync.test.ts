@@ -918,6 +918,58 @@ describe('syncing memberships', () => {
         expect(mailboxesOf(server, activeAccount)).toEqual([])
     })
 
+    test('someone taken off an alias loses its mailbox although the server lacks a domain the mailboxes take', async () => {
+        const leaving = await createTestUser('test-leaving', 'test-leaving@test.test')
+        const staying = await createTestUser('test-staying', 'test-staying@test.test')
+        const arriving = await createTestUser('test-arriving', 'test-arriving@test.test')
+        const { alias, list } = await createTestAlias('test-revoked-box')
+        for (const user of [leaving, staying]) {
+            await mailOperations.createMailingListUserRelation({
+                data: { userId: user.id, mailingListId: list.id },
+                bypassAuth: true,
+            })
+        }
+
+        const server = serverWithAccounts()
+        const elsewhere = server.add('Domain', { name: 'elsewhere.example' })
+        const foreign = server.add('Account', { '@type': 'Group', name: 'team', domainId: elsewhere.id })
+        const leavingAccount = signIn(server, 'test-leaving', { [foreign.id]: true })
+        const stayingAccount = signIn(server, 'test-staying')
+        const arrivingAccount = signIn(server, 'test-arriving')
+        await syncMailServer({ client: server.client(), webmail })
+        const mailbox = server.account(alias.address)
+        expect(mailboxesOf(server, leavingAccount)).toEqual([foreign.id, mailbox?.id].sort())
+        expect(mailboxesOf(server, stayingAccount)).toEqual([mailbox?.id])
+
+        // The plan for the server lost the forwarding domain, and meanwhile one left the alias and one came.
+        server.objects.Domain.delete(server.domain(forwardingDomainOf(webmail.domain))?.id ?? '')
+        await mailOperations.destroyMailingListUserRelation({
+            data: { userId: leaving.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: arriving.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+        server.setCalls.length = 0
+
+        await expect(syncMailServer({ client: server.client(), webmail })).rejects.toThrow(
+            /left the aliases as they were, since the server lacks forward\.mail\.omega\.ntnu\.no/
+        )
+        // The one who left is out, of our mailbox alone. No one is put in, and nothing else is changed.
+        expect(mailboxesOf(server, leavingAccount)).toEqual([foreign.id])
+        expect(mailboxesOf(server, stayingAccount)).toEqual([mailbox?.id])
+        expect(mailboxesOf(server, arrivingAccount)).toEqual([])
+        expect(server.setCallsFor('Account')).toHaveLength(1)
+        expect(server.setCallsFor('MailingList')).toEqual([])
+
+        // Once the plan has the domain again, the run that can place the aliases gives the newcomer the mailbox.
+        server.add('Domain', { name: forwardingDomainOf(webmail.domain) })
+        await syncMailServer({ client: server.client(), webmail })
+        expect(mailboxesOf(server, arrivingAccount)).toEqual([mailbox?.id])
+        expect(mailboxesOf(server, leavingAccount)).toEqual([foreign.id])
+    })
+
     test('a deleted alias loses its mailbox although a member was signed in to it', async () => {
         const user = await createTestUser('test-linked', 'test-linked@test.test')
         const { alias, list } = await createTestAlias('test-linked-box')

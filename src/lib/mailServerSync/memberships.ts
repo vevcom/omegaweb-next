@@ -1,4 +1,6 @@
 import '@pn-server-only'
+import { mailboxAddressOf } from './mailboxes'
+import { signInNameOf } from './userMailboxes'
 import { receiversOfAliases } from '@/services/mail/received'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { MailServerClient } from './client'
@@ -45,6 +47,63 @@ export async function syncMemberships(
         wanted.forEach(id => { memberGroupIds[id] = true })
         update[accountId] = { memberGroupIds }
     }
+    const { updated, refused } = await client.set('Account', { update })
+    return { changed: updated, refused }
+}
+
+/**
+ * Takes accounts out of the mailboxes of the aliases their users no longer receive, and puts no
+ * one in any. For a run that cannot place the aliases, see sync.ts: someone taken off an alias
+ * must lose its mailbox all the same, while giving one waits for a run that can keep the aliases.
+ *
+ * Nothing is created or moved here, so a mailbox is its alias's as the server has it: the group at
+ * the alias's address, or else the one the alias remembers. An account is its user's by its sign
+ * in name, and only accounts with one are touched, as in every run.
+ *
+ * @returns how many accounts lost a membership, and what the server refused.
+ */
+export async function revokeMemberships(
+    client: MailServerClient,
+    siteDomainIdsByName: Map<string, string>,
+    accountDomainId: string,
+): Promise<{ changed: number, refused: string[] }> {
+    const accounts = await client.listAll('Account')
+    const domainNamesById = new Map(Array.from(siteDomainIdsByName, ([name, id]) => [id, name]))
+
+    const ours = new Set<string>()
+    const mailboxesByAddress = new Map<string, string>()
+    for (const account of accounts) {
+        if (account['@type'] !== 'Group') continue
+        const domain = domainNamesById.get(account.domainId)
+        if (domain === undefined && account.domainId !== accountDomainId) continue
+        ours.add(account.id)
+        if (domain !== undefined) mailboxesByAddress.set(`${account.name}@${domain}`.toLowerCase(), account.id)
+    }
+
+    const aliases = await prisma.mailAlias.findMany({ select: { id: true, address: true, mailboxAccountId: true } })
+    const receivers = await receiversOfAliases(prisma)
+    const mailboxesOfUsername = new Map<string, Set<string>>()
+    for (const alias of aliases) {
+        const mailbox = mailboxesByAddress.get(mailboxAddressOf(alias.address)) ?? alias.mailboxAccountId
+        if (mailbox === null) continue
+        for (const username of receivers.get(alias.id) ?? []) {
+            const key = username.toLowerCase()
+            mailboxesOfUsername.set(key, (mailboxesOfUsername.get(key) ?? new Set()).add(mailbox))
+        }
+    }
+
+    const update: Record<string, { memberGroupIds: Record<string, true> }> = {}
+    for (const account of accounts) {
+        if (account['@type'] !== 'User') continue
+        const username = signInNameOf(account, accountDomainId)
+        if (username === null) continue
+        const current = Object.keys(account.memberGroupIds ?? {})
+        const received = mailboxesOfUsername.get(username)
+        const kept = current.filter(id => !ours.has(id) || received?.has(id))
+        if (kept.length === current.length) continue
+        update[account.id] = { memberGroupIds: Object.fromEntries(kept.map(id => [id, true])) }
+    }
+    if (Object.keys(update).length === 0) return { changed: 0, refused: [] }
     const { updated, refused } = await client.set('Account', { update })
     return { changed: updated, refused }
 }
