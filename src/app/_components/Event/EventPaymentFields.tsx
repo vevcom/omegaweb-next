@@ -1,4 +1,5 @@
 'use client'
+import AdminSection from './AdminSection'
 import { useEventVariantsField } from './EventVariantsField'
 import DateInput from '@/components/UI/DateInput'
 import NumberInput from '@/components/UI/NumberInput'
@@ -28,7 +29,7 @@ export default function EventPaymentFields({ ledgerAccount, ledgerAccounts }: {
     }
 
     return <div className="flex flex-col gap-4 min-w-0 pb-4">
-        {variants.map(variant => <section key={variant.key} className="flex flex-col gap-3 p-4 rounded-round bg-base-200">
+        {variants.map(variant => <AdminSection key={variant.key}>
             <Slider
                 label={variants.length > 1 ? `${variant.name} koster penger` : 'Påmeldingen koster penger'}
                 checked={variant.takesPayment}
@@ -74,7 +75,7 @@ export default function EventPaymentFields({ ledgerAccount, ledgerAccounts }: {
                     className="col-span-full"
                 />
             </div>}
-        </section>)}
+        </AdminSection>)}
 
         {variants.some(variant => variant.takesPayment) && (ledgerAccounts.length > 0
             ? <SelectNumberPossibleNULL

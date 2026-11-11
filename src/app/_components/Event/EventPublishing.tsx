@@ -1,4 +1,5 @@
 'use client'
+import AdminSection from './AdminSection'
 import Form from '@/components/Form/Form'
 import { destroyEventAction, setEventPublishedAction } from '@/services/events/actions'
 import { publishProblems } from '@/services/events/publishProblems'
@@ -19,12 +20,6 @@ type PropTypes = {
     capabilities: CapabilitiesJsObject<'canSetPublished' | 'canDestroy'>,
 }
 
-const sectionClassName = `
-    flex flex-col gap-3 p-4 rounded-round bg-base-200
-    [&>h3]:m-0 [&>h3]:text-l [&>h3]:font-bold
-    [&>p]:m-0
-`
-
 /** Publishing the event once it has what it needs, and deleting it. */
 export default function EventPublishing({ event, adminVisibility, config, capabilities }: PropTypes) {
     const setPublished = configureAction(setEventPublishedAction, { params: { id: event.id } })
@@ -33,7 +28,7 @@ export default function EventPublishing({ event, adminVisibility, config, capabi
     return <div className="flex flex-col gap-4 min-w-0">
         <h2 className="m-0">Publisering</h2>
 
-        {capabilities.canSetPublished.authorized && <section className={sectionClassName}>
+        {capabilities.canSetPublished.authorized && <AdminSection>
             <p>
                 {event.published
                     ? 'Arrangementet er publisert.'
@@ -53,10 +48,9 @@ export default function EventPublishing({ event, adminVisibility, config, capabi
                 disabled={!event.published && problems.length > 0}
                 className="w-auto!"
             />
-        </section>}
+        </AdminSection>}
 
-        {capabilities.canDestroy.authorized && <section className={sectionClassName}>
-            <h3>Slett arrangementet</h3>
+        {capabilities.canDestroy.authorized && <AdminSection title="Slett arrangementet">
             <p>
                 Arrangementet slettes med alle påmeldingene sine. Har noen betalt, må de meldes av først, så de
                 får pengene tilbake.
@@ -71,6 +65,6 @@ export default function EventPublishing({ event, adminVisibility, config, capabi
                     text: 'Er du sikker på at du vil slette dette arrangementet?'
                 }}
             />
-        </section>}
+        </AdminSection>}
     </div>
 }

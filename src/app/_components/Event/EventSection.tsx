@@ -13,3 +13,14 @@ export default function EventSection({ title, children }: { title: string, child
         {children}
     </section>
 }
+
+/** A part of an EventSection under a heading of its own, with a line between it and what is above. */
+export function EventSubSection({ title, children }: { title: string, children: ReactNode }) {
+    return <section className="
+        flex flex-col gap-3 pt-3 border-t border-base-300
+        [&>h3]:m-0 [&>h3]:text-l [&>h3]:font-bold
+    ">
+        <h3>{title}</h3>
+        {children}
+    </section>
+}

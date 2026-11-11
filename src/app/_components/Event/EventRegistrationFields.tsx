@@ -1,10 +1,12 @@
 'use client'
+import AdminSection from './AdminSection'
 import EventQuotaBar from './EventQuotaBar'
 import { useEventVariantsField } from './EventVariantsField'
 import { hasRegistrants, newQuotaDraft, newVariantDraft } from './eventSetupDraft'
 import Button from '@/components/UI/Button'
 import DateInput from '@/components/UI/DateInput'
 import NumberInput from '@/components/UI/NumberInput'
+import OptionCards from '@/components/UI/OptionCards'
 import ReorderableList from '@/components/UI/ReorderableList'
 import TextInput from '@/components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
@@ -17,23 +19,7 @@ import { useState } from 'react'
 import type { QuotaDraft, VariantDraft } from './eventSetupDraft'
 import type { ReactNode } from 'react'
 
-const sectionClassName = `
-    flex flex-col gap-3 p-4 rounded-round bg-base-200
-    [&>h3]:m-0 [&>h3]:text-l [&>h3]:font-bold
-`
-
 const flowStepClassName = 'm-0 py-1 pl-3 text-s text-base-content/80'
-
-const linkButtonClassName = `
-    shrink-0 border-none bg-transparent p-0 text-s text-primary cursor-pointer
-    hover:underline
-`
-
-const removeButtonClassName = `
-    shrink-0 border-none bg-transparent p-0 text-s text-error cursor-pointer
-    enabled:hover:underline
-    disabled:text-base-content/80 disabled:cursor-not-allowed
-`
 
 function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
     quota: QuotaDraft,
@@ -78,24 +64,25 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
                 {describeAudience({ requirements: quota.visibilityRequirements }, groups)}
             </span>
             <div className="flex items-center gap-3">
-                <button
+                <Button
                     type="button"
+                    variant="text"
                     aria-expanded={editingWho}
                     onClick={() => setEditingWho(!editingWho)}
-                    className={linkButtonClassName}
                 >
                     {editingWho ? 'Lukk' : 'Endre hvem'}
-                </button>
-                {several && <button
+                </Button>
+                {several && <Button
                     type="button"
+                    variant="text"
+                    color="red"
                     aria-label="Fjern kvoten"
                     title={quota.numOfRegistrations > 0 ? 'Kvoten har påmeldte' : undefined}
                     disabled={quota.numOfRegistrations > 0}
                     onClick={onRemove}
-                    className={removeButtonClassName}
                 >
                     Fjern
-                </button>}
+                </Button>}
             </div>
         </div>
         {over > 0 && <p className="m-0 text-s text-warning">
@@ -191,11 +178,11 @@ function RegistrationPeriod({ variant, onChange }: {
 
 type Shape = 'NONE' | 'SHARED' | 'QUOTAS' | 'VARIANTS'
 
-const shapes: { shape: Shape, name: string, hint: string }[] = [
-    { shape: 'NONE', name: 'Ingen påmelding', hint: 'Folk bare møter opp' },
-    { shape: 'SHARED', name: 'Felles plasser', hint: 'Alle i samme kø' },
-    { shape: 'QUOTAS', name: 'Kvoter', hint: 'Plasser holdes av til ulike grupper' },
-    { shape: 'VARIANTS', name: 'Varianter', hint: 'Folk velger, for eksempel med eller uten VIP' },
+const shapes: { value: Shape, title: string, hint: string }[] = [
+    { value: 'NONE', title: 'Ingen påmelding', hint: 'Folk bare møter opp' },
+    { value: 'SHARED', title: 'Felles plasser', hint: 'Alle i samme kø' },
+    { value: 'QUOTAS', title: 'Kvoter', hint: 'Plasser holdes av til ulike grupper' },
+    { value: 'VARIANTS', title: 'Varianter', hint: 'Folk velger, for eksempel med eller uten VIP' },
 ]
 
 function shapeOf(variants: VariantDraft[]): Shape {
@@ -246,38 +233,15 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
     const current = shapeOf(variants)
 
     return <div className="flex flex-col gap-4 min-w-0 pb-4">
-        <div className="
-            grid grid-cols-4 gap-2
-            max-mobile:grid-cols-2
-        ">
-            {shapes.map(option => {
-                const blocked = blockedReason(option.shape, variants)
-                return <button
-                    key={option.shape}
-                    type="button"
-                    aria-pressed={current === option.shape}
-                    disabled={blocked !== null}
-                    onClick={() => setVariants(variantsInShape(option.shape, variants, eventStart))}
-                    className={`
-                        flex flex-col gap-0.5 p-2.5 rounded-inner border text-left cursor-pointer bg-base-200
-                        disabled:cursor-not-allowed disabled:opacity-50
-                        ${current === option.shape
-        ? 'border-primary ring-1 ring-primary'
-        : `
-            border-base-300
-            hover:bg-base-300
-        `}
-                    `}
-                >
-                    <span className="font-bold">{option.name}</span>
-                    <span className="text-s text-base-content/80">{blocked ?? option.hint}</span>
-                </button>
-            })}
-        </div>
+        <OptionCards
+            options={shapes.map(shape => ({ ...shape, blocked: blockedReason(shape.value, variants) }))}
+            value={current}
+            onChange={shape => setVariants(variantsInShape(shape, variants, eventStart))}
+        />
 
         {current === 'NONE' && <p className="m-0 text-base-content/80">Arrangementet vises uten påmelding.</p>}
 
-        {variants.length === 1 && <section className={sectionClassName}>
+        {variants.length === 1 && <AdminSection>
             <RegistrationPeriod variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
             <QuotaFlow
                 variant={variants[0]}
@@ -285,10 +249,10 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
                 addLabel={current === 'QUOTAS' ? 'Legg til kvote' : undefined}
                 onChange={changes => changeVariant(variants[0].key, changes)}
             />
-        </section>}
+        </AdminSection>}
 
         {variants.length > 1 && <>
-            {variants.map(variant => <section key={variant.key} className={sectionClassName}>
+            {variants.map(variant => <AdminSection key={variant.key}>
                 <div className="flex items-center gap-2">
                     <TextInput
                         label="Navn på varianten"
@@ -296,15 +260,16 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
                         onChange={event => changeVariant(variant.key, { name: event.target.value })}
                         className="flex-1 max-w-none! mt-0!"
                     />
-                    <button
+                    <Button
                         type="button"
+                        variant="text"
+                        color="red"
                         title={hasRegistrants(variant) ? 'Varianten har påmeldte' : undefined}
                         disabled={hasRegistrants(variant)}
                         onClick={() => setVariants(variants.filter(other => other.key !== variant.key))}
-                        className={removeButtonClassName}
                     >
                         Fjern varianten
-                    </button>
+                    </Button>
                 </div>
                 <RegistrationPeriod variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
                 <QuotaFlow
@@ -313,7 +278,7 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
                     addLabel={variant.quotas.length > 1 ? 'Legg til kvote' : 'Del varianten i kvoter'}
                     onChange={changes => changeVariant(variant.key, changes)}
                 />
-            </section>)}
+            </AdminSection>)}
             <Button
                 type="button"
                 color="secondary"
