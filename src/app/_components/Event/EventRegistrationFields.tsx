@@ -126,10 +126,9 @@ function QuotaFlow({ variant, waitingList, addLabel, onChange }: {
             <ReorderableList
                 items={variant.quotas}
                 getId={quota => quota.key}
-                saveOrder={keys => {
-                    onChange({ quotas: keys.flatMap(key => variant.quotas.filter(quota => quota.key === key)) })
-                    return Promise.resolve({ success: true, data: undefined })
-                }}
+                onReorder={keys => onChange({
+                    quotas: keys.flatMap(key => variant.quotas.filter(quota => quota.key === key)),
+                })}
                 renderItem={(quota, { handle, index }) => <>
                     {index > 0 && <p className={flowStepClassName}>↓ Fylles deretter</p>}
                     <QuotaRow
@@ -153,7 +152,9 @@ function QuotaFlow({ variant, waitingList, addLabel, onChange }: {
         {addLabel && <Button
             type="button"
             color="secondary"
-            onClick={() => onChange({ quotas: [...variant.quotas, newQuotaDraft(`Kvote ${variant.quotas.length + 1}`)] })}
+            onClick={() => onChange({
+                quotas: [...variant.quotas, newQuotaDraft(`Kvote ${variant.quotas.length + 1}`, variant.quotas)],
+            })}
             className="self-start w-auto! m-0!"
         >
             <FontAwesomeIcon icon={faPlus} /> {addLabel}
@@ -217,9 +218,9 @@ function blockedReason(shape: Shape, variants: VariantDraft[]) {
 
 function variantsInShape(shape: Shape, variants: VariantDraft[], eventStart: Date): VariantDraft[] {
     if (shape === 'NONE') return []
-    const first = variants.at(0) ?? newVariantDraft(shape === 'VARIANTS' ? 'Variant 1' : 'Påmelding', eventStart)
+    const first = variants.at(0) ?? newVariantDraft(shape === 'VARIANTS' ? 'Variant 1' : 'Påmelding', eventStart, [])
     if (shape === 'VARIANTS') {
-        return variants.length > 1 ? variants : [first, newVariantDraft('Variant 2', eventStart, first)]
+        return variants.length > 1 ? variants : [first, newVariantDraft('Variant 2', eventStart, [first], first)]
     }
     if (shape === 'SHARED') {
         const places = first.quotas.reduce((sum, quota) => sum + quota.places, 0)
@@ -228,7 +229,7 @@ function variantsInShape(shape: Shape, variants: VariantDraft[], eventStart: Dat
     if (first.quotas.length > 1) return [first]
     return [{
         ...first,
-        quotas: [{ ...first.quotas[0], name: 'Kvote 1' }, newQuotaDraft('Kvote 2')],
+        quotas: [{ ...first.quotas[0], name: 'Kvote 1' }, newQuotaDraft('Kvote 2', first.quotas)],
     }]
 }
 
@@ -318,7 +319,7 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
                 color="secondary"
                 onClick={() => setVariants([
                     ...variants,
-                    newVariantDraft(`Variant ${variants.length + 1}`, eventStart, variants[0]),
+                    newVariantDraft(`Variant ${variants.length + 1}`, eventStart, variants, variants[0]),
                 ])}
                 className="self-start w-auto! m-0!"
             >

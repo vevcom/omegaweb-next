@@ -274,6 +274,63 @@ describe('a refused save', () => {
     })
 })
 
+describe('a save based on the event as it was', () => {
+    const updatedAtOf = async (id: number) => (await prisma.event.findUniqueOrThrow({ where: { id } })).updatedAt
+
+    test('is refused once the event has been saved since, and saves nothing', async () => {
+        const { eventId, variant } = await createEventWithQueue('Lest for lenge siden')
+        const basedOnUpdatedAt = await updatedAtOf(eventId)
+
+        await save(eventId, { name: 'Lagret av en annen', basedOnUpdatedAt })
+        await expect(save(eventId, {
+            name: 'Lagret for sent',
+            variants: [{ id: variant.id, name: 'Påmelding', ...period, quotas: [] }],
+            basedOnUpdatedAt,
+        })).rejects.toThrow(Smorekopp)
+
+        expect((await prisma.event.findUniqueOrThrow({ where: { id: eventId } })).name).toBe('Lagret av en annen')
+        expect((await variantsOf(eventId))[0].quotas).toHaveLength(1)
+        await expect(save(eventId, { name: 'Lagret i tide', basedOnUpdatedAt: await updatedAtOf(eventId) }))
+            .resolves.toMatchObject({ name: 'Lagret i tide' })
+    })
+
+    test('is told apart by every save, whatever it changes, and not by someone registering', async () => {
+        const { eventId, variant } = await createEventWithQueue('Hva flytter tiden')
+        const quota = variant.quotas[0]
+        const before = await updatedAtOf(eventId)
+
+        await save(eventId, {
+            variants: [{
+                id: variant.id,
+                name: 'Påmelding',
+                ...period,
+                quotas: [{ id: quota.id, name: 'Alle', places: 2, ...open }],
+            }],
+        })
+        const afterVariants = await updatedAtOf(eventId)
+        expect(afterVariants.getTime()).toBeGreaterThan(before.getTime())
+
+        await save(eventId, { adminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId }] }] })
+        const afterAdministrators = await updatedAtOf(eventId)
+        expect(afterAdministrators.getTime()).toBeGreaterThan(afterVariants.getTime())
+
+        await eventRegistrationOperations.createAsAdmin({ params: { userId: userIds[2], eventId }, bypassAuth: true })
+        expect(await updatedAtOf(eventId)).toEqual(afterAdministrators)
+    })
+
+    test('is read from the form as the date it posts', async () => {
+        const eventId = await createEvent('Fra skjemaet')
+        const formData = new FormData()
+        formData.append('name', 'Navn fra skjemaet')
+        formData.append('basedOnUpdatedAt', (await updatedAtOf(eventId)).toISOString())
+
+        await expect(eventOperations.saveSetup({ params: { id: eventId }, data: formData, bypassAuth: true }))
+            .resolves.toMatchObject({ name: 'Navn fra skjemaet' })
+        await expect(eventOperations.saveSetup({ params: { id: eventId }, data: formData, bypassAuth: true }))
+            .rejects.toThrow(Smorekopp)
+    })
+})
+
 describe('who administrates, and the account', () => {
     test('replaces who administrates the event', async () => {
         const eventId = await createEvent('Nye admins')

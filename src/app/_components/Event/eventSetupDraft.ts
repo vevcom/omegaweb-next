@@ -125,22 +125,35 @@ export function eventSetupFromForm(
     }
 }
 
-let lastDraftKey = 0
-
-/** Below zero, so a key can never meet the id of something saved. */
-function nextDraftKey() {
-    lastDraftKey -= 1
-    return lastDraftKey
+/**
+ * A key for a new draft among the ones it joins: below theirs, and below zero, so that it can
+ * never meet the id of something saved.
+ */
+function nextDraftKey(siblings: { key: number }[]) {
+    return Math.min(0, ...siblings.map(sibling => sibling.key)) - 1
 }
 
-export function newQuotaDraft(name: string, visibilityRequirements: VisibilityRequirement[] = []): QuotaDraft {
-    return { key: nextDraftKey(), name, places: 0, visibilityRequirements, numOfRegistrations: 0 }
+/** A new quota for the variant that has `siblings`. */
+export function newQuotaDraft(
+    name: string,
+    siblings: QuotaDraft[],
+    visibilityRequirements: VisibilityRequirement[] = [],
+): QuotaDraft {
+    return { key: nextDraftKey(siblings), name, places: 0, visibilityRequirements, numOfRegistrations: 0 }
 }
 
-/** A new variant starts out like the one given, if any, and otherwise open until the event starts. */
-export function newVariantDraft(name: string, eventStart: Date, like?: VariantDraft): VariantDraft {
+/**
+ * A new variant for the event that has `siblings`. It starts out like the one given, if any, and
+ * otherwise open until the event starts.
+ */
+export function newVariantDraft(
+    name: string,
+    eventStart: Date,
+    siblings: VariantDraft[],
+    like?: VariantDraft,
+): VariantDraft {
     return {
-        key: nextDraftKey(),
+        key: nextDraftKey(siblings),
         name,
         registrationStart: like?.registrationStart ?? new Date(),
         registrationEnd: like?.registrationEnd ?? eventStart,
@@ -148,7 +161,7 @@ export function newVariantDraft(name: string, eventStart: Date, like?: VariantDr
         requeueUnpaidRegistrations: false,
         numOfRegistrations: 0,
         numOnWaitingList: 0,
-        quotas: [newQuotaDraft('Påmelding', like?.quotas[0]?.visibilityRequirements)],
+        quotas: [newQuotaDraft('Påmelding', [], like?.quotas[0]?.visibilityRequirements)],
     }
 }
 

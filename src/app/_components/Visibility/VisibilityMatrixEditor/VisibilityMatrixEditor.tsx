@@ -111,7 +111,11 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
 
     return (
         <div className="flex flex-col gap-[0.5em]">
-            {'name' in props && <JsonFieldInput name={props.name} value={requirements} />}
+            {'name' in props && <JsonFieldInput
+                name={props.name}
+                value={requirements}
+                onReset={() => setOwnRequirements(props.defaultValue ?? [])}
+            />}
             <p className="italic">
                 {emptyMeans !== undefined && requirements.length === 0
                     ? emptyMeans

@@ -6,14 +6,13 @@ import EventStatistics from './EventStatistics'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import Tabs, { TabPanel } from '@/components/UI/Tabs'
 import { publishProblems } from '@/services/events/publishProblems'
-import { useState } from 'react'
 import type { ComponentProps } from 'react'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { VariantStatistics } from '@/services/events/statistics'
 import type { AppHref } from '@/lib/sites/href'
 
 type SetupProps = ComponentProps<typeof EventSetupForm>
-type PropTypes = Omit<SetupProps, 'event' | 'onDiscard'> & {
+type PropTypes = Omit<SetupProps, 'event'> & {
     event: SetupProps['event'] & ComponentProps<typeof EventPublishing>['event']
         & ComponentProps<typeof EventNotificationsAdmin>['event'] & { takesRegistration: boolean },
     eventHref: AppHref,
@@ -34,12 +33,6 @@ export default function EventAdmin({ event, eventHref, capabilities, statistics,
     const showRegisterOthers = event.takesRegistration && canRegisterOthers
     const showPublishing = canUpdate || capabilities.canDestroy.authorized
     const canNotify = capabilities.canCreateNotification.authorized
-    const [discards, setDiscards] = useState(0)
-    // Registering someone changes the counts, which must not throw away what is being set up.
-    const setupFormKey = JSON.stringify(
-        [event.variants, setup.access.adminVisibility, discards],
-        (key, value: unknown) => (['numOfRegistrations', 'numOnWaitingList'].includes(key) ? undefined : value),
-    )
     const publishingDot = () => {
         if (event.published) return { level: 'ok' as const, label: 'Publisert' }
         return publishProblems({ ...event, adminVisibility: setup.access.adminVisibility }).length > 0
@@ -59,12 +52,11 @@ export default function EventAdmin({ event, eventHref, capabilities, statistics,
             ]}
         >
             {canUpdate && <TabPanel tab={eventSetupTabs.map(tab => tab.key)}>
-                <EventSetupForm
-                    key={setupFormKey}
-                    event={event}
-                    {...setup}
-                    onDiscard={() => setDiscards(discards + 1)}
-                />
+                {/*
+                  * A save moves `updatedAt`, so the form starts over from what was saved. Someone
+                  * registering does not, so that never throws away what is being set up.
+                  */}
+                <EventSetupForm key={event.updatedAt.getTime()} event={event} {...setup} />
             </TabPanel>}
 
             {showRegisterOthers && <TabPanel tab="others">

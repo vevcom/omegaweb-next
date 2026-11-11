@@ -292,7 +292,10 @@ describe('refilling places', () => {
         await register(laterMember, eventId)
 
         await changeEventSetup(eventId, ([variant]) => {
-            variant.quotas.push({ ...newQuotaDraft('Gruppe én', activeIn(groupOne).requirements), places: 1 })
+            variant.quotas.push({
+                ...newQuotaDraft('Gruppe én', variant.quotas, activeIn(groupOne).requirements),
+                places: 1,
+            })
         })
         const quota = await prisma.eventQuota.findFirstOrThrow({ where: { variantId, name: 'Gruppe én' } })
 
@@ -569,7 +572,7 @@ describe('administrating variants and quotas', () => {
 
         await expect(setQuotaPlaces(quota.id, 2, sessionOf(member))).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
         await expect(changeEventSetup(eventId, variants => {
-            variants.push(newVariantDraft('Ny', new Date(Date.now() + HOUR)))
+            variants.push(newVariantDraft('Ny', new Date(Date.now() + HOUR), variants))
         }, sessionOf(member))).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
 
         await setQuotaPlaces(quota.id, 2, sessionOf(organiser))

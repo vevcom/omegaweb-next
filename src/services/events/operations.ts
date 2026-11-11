@@ -151,6 +151,9 @@ const updateFields = defineSubOperation({
             data: {
                 ...data,
                 locationMap: mapUpdate,
+                // Set here since prisma leaves it when no field of the event's own changes, and a
+                // save of its variants or administrators alone is a save of the event too.
+                updatedAt: new Date(),
             },
         })
         await assertSeenThroughQuotas(prisma, params.id)
@@ -503,7 +506,7 @@ export const eventOperations = {
         operation: async ({
             prisma,
             params,
-            data: { variants, adminRequirements, ledgerAccountSelection, ...fields },
+            data: { variants, adminRequirements, ledgerAccountSelection, basedOnUpdatedAt, ...fields },
         }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
@@ -512,6 +515,7 @@ export const eventOperations = {
 
             const { savedEvent, promoted } = await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.id)
+                if (basedOnUpdatedAt) await assertNotSavedSince(tx, params.id, basedOnUpdatedAt)
                 // Linking takes access to the account, which the operation checks itself. It goes
                 // first, so that it is judged by who administrates the event before this save.
                 if (ledgerAccountSelection !== undefined && ledgerAccountSelection !== event.ledgerAccountId) {
@@ -808,6 +812,21 @@ async function adoptHostAsAdministrators(
         params: { visibilityId },
         data: { requirements: await hostCommitteeAdminRequirements(prisma, committeeId) },
     })
+}
+
+/**
+ * Refuses a save filled in from the event as it was before someone else saved it. Run it under
+ * `lockEvent`, so that two saves from the same state cannot both pass.
+ */
+async function assertNotSavedSince(prisma: PrismaPossibleTransaction<false>, eventId: number, basedOnUpdatedAt: Date) {
+    const event = await prisma.event.findUniqueOrThrow({ where: { id: eventId }, select: { updatedAt: true } })
+    if (event.updatedAt.getTime() !== basedOnUpdatedAt.getTime()) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            'Arrangementet er lagret etter at skjemaet ble lastet. Last inn siden på nytt før du lagrer, '
+            + 'så ingenting av det som er lagret går tapt.'
+        )
+    }
 }
 
 async function assertGroupAccount(prisma: PrismaPossibleTransaction<false>, ledgerAccountId: number) {

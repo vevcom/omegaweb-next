@@ -18,6 +18,7 @@ import { saveEventSetupAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { eventSetupChecks, setupTabStatuses } from '@/services/events/publishProblems'
 import { useTabs } from '@/components/UI/Tabs'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { configureAction } from '@/services/configureAction'
 import { eventLinks } from '@/pageKits/events/links'
 import { useState } from 'react'
@@ -40,7 +41,7 @@ export const eventSetupTabs = [
 type PropTypes = {
     event: Pick<Event,
         'id' | 'name' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'hostedByCommitteeId'
-        | 'waitingList' | 'bindingRegistration' | 'allowRegistrationInMultipleVariants'
+        | 'waitingList' | 'bindingRegistration' | 'allowRegistrationInMultipleVariants' | 'updatedAt'
     > & {
         tags: EventTag[],
         locationMap: EventLocationMap | null,
@@ -55,13 +56,13 @@ type PropTypes = {
     /** The committees to choose the host from, or null when they could not be read (they take COMMITTEE_USE). */
     committees: Committee[] | null,
     ledgerAccounts: ComponentProps<typeof EventPaymentFields>['ledgerAccounts'],
-    onDiscard: () => void,
 }
 
 /**
  * Everything that sets up an event, in one form over the tabs of `eventSetupTabs`. It holds all of
- * it until it is saved, and saves it together, so a change refused anywhere saves nothing. Remount
- * it with a key of what the server holds, so that a save replaces what it holds with the result.
+ * it until it is saved, and saves it together, so a change refused anywhere saves nothing. Key it
+ * on the event's `updatedAt`, so that it starts over from what was saved. It posts that `updatedAt`
+ * with the save, which is refused if the event has been saved since.
  *
  * What it knows of its own values is what it would post. Each value too nested for an input is a
  * field component that holds it and posts it as JSON: the variants, the map and who administrates.
@@ -80,7 +81,6 @@ function SetupForm({
     eventTags,
     committees,
     ledgerAccounts,
-    onDiscard,
 }: PropTypes) {
     const links = eventLinks(config)
     const lockedTag = config.lockedTag
@@ -88,6 +88,7 @@ function SetupForm({
     const [waitingList, setWaitingList] = useState(event.waitingList)
     const save: ActionFormData<Event> = configureAction(saveEventSetupAction, { params: { id: event.id } })
     const { reportDots } = useTabs()
+    const { refresh } = useSiteRouter()
 
     const checkSetup = (values: FormData) => {
         const setup = eventSetupFromForm(values, { ...event, adminVisibility: access.adminVisibility })
@@ -99,12 +100,15 @@ function SetupForm({
         action={save}
         submitText="Lagre"
         className="flex flex-col min-h-full"
-        saveBar={{ onDiscard }}
+        saveBar
         onValuesChange={checkSetup}
+        // At once, so the form starts over from what was saved before anything more is changed in it.
+        successCallback={() => refresh()}
         refreshOnSuccess
         navigateOnSuccess={data => (data?.name ? links.event(data) : null)}
     >
         <FormTab tab="about">
+            <input type="hidden" name="basedOnUpdatedAt" value={event.updatedAt.toISOString()} />
             <FormSection legend="Om arrangementet" columns={2}>
                 <TextInput label="Navn" name="name" defaultValue={event.name} />
                 <TextInput label="Sted" name="location" defaultValue={event.location ?? ''} />

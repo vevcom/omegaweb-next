@@ -10,6 +10,7 @@ type EventVariantsFieldContextType = {
     name: string,
     variants: VariantDraft[],
     setVariants: (variants: VariantDraft[]) => void,
+    reset: () => void,
 }
 
 const EventVariantsFieldContext = createContext<EventVariantsFieldContextType | null>(null)
@@ -33,15 +34,17 @@ export default function EventVariantsField({ name, defaultValue, children }: {
 }) {
     const [variants, setVariants] = useState(() => toVariantDrafts(defaultValue))
 
-    return <EventVariantsFieldContext.Provider value={{ name, variants, setVariants }}>
+    const reset = () => setVariants(toVariantDrafts(defaultValue))
+
+    return <EventVariantsFieldContext.Provider value={{ name, variants, setVariants, reset }}>
         {children}
     </EventVariantsFieldContext.Provider>
 }
 
-/** What posts the field. */
+/** What posts the field, and puts it back to the value it started with when the form is reset. */
 export function EventVariantsFieldInput() {
-    const { name, variants } = useField()
-    return <JsonFieldInput name={name} value={variantsToPost(variants)} />
+    const { name, variants, reset } = useField()
+    return <JsonFieldInput name={name} value={variantsToPost(variants)} onReset={reset} />
 }
 
 /** The value of the field and how to change it, for the parts of the form that edit it. */

@@ -10,8 +10,8 @@ function serialize(formData: FormData) {
 
 /**
  * Whether a form holds anything other than what it started with or last saved. It compares what the
- * form would submit, so it covers every input, and looks again whenever one fires `input`. An input
- * whose value React sets fires it with `useInputEvent`.
+ * form would submit, so it covers every input, and looks again whenever one fires `input` and when
+ * the form is reset. An input whose value React sets fires `input` with `useInputEvent`.
  */
 export function useUnsavedChanges(
     formRef: RefObject<HTMLFormElement | null>,
@@ -38,8 +38,14 @@ export function useUnsavedChanges(
         if (!enabled || !form) return undefined
         savedRef.current = serialize(new FormData(form))
         check()
+        // The browser resets the inputs after the event, so the values are read once it has.
+        const checkAfterReset = () => setTimeout(check)
         form.addEventListener('input', check)
-        return () => form.removeEventListener('input', check)
+        form.addEventListener('reset', checkAfterReset)
+        return () => {
+            form.removeEventListener('input', check)
+            form.removeEventListener('reset', checkAfterReset)
+        }
     }, [enabled, formRef, check])
 
     const markSaved = useCallback((formData: FormData) => {

@@ -1,5 +1,5 @@
 'use client'
-import { useInputEvent } from '@/components/Form/JsonFieldInput'
+import { useFormReset, useInputEvent } from '@/components/Form/JsonFieldInput'
 import { utcInputValue } from '@/lib/dates/dateInputValue'
 import { displayDefaultInputValue } from '@/lib/dates/displayDefaultInputValue'
 import { useId, useRef, useState } from 'react'
@@ -58,6 +58,8 @@ export default function DateInput({
     const [utcValue, setUtcValue] = useState(defaultValueTransformedUtc)
     const utcInputRef = useRef<HTMLInputElement>(null)
     useInputEvent(utcInputRef, String(utcValue ?? ''))
+    // The browser resets the date that is picked, and the one posted follows here.
+    useFormReset(utcInputRef, () => setUtcValue(defaultValueTransformedUtc))
 
     const setUtc = (e: ChangeEvent<HTMLInputElement>) => {
         setUtcValue(utcInputValue(new Date(e.target.value), includeTime))

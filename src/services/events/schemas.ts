@@ -59,6 +59,9 @@ const dataFieldSchemas = z.object({
     }),
     // The form sends 'NULL' while no account is picked, which leaves the link as it is.
     ledgerAccountSelection: z.literal('NULL').transform(() => undefined).or(z.coerce.number().int()),
+    // The `updatedAt` of the event as the form was filled in from it. A save based on an event that
+    // has since been saved by someone else is refused, so that it cannot undo what they saved.
+    basedOnUpdatedAt: Zpn.date({ label: 'Sist lagret' }),
 
     // Created with an empty admin visibility the event would be administrable by anyone until
     // someone narrowed it. A requirement with no conditions can never be satisfied, and so means
@@ -164,6 +167,7 @@ export const eventSchemas = {
             variants: true,
             adminRequirements: true,
             ledgerAccountSelection: true,
+            basedOnUpdatedAt: true,
         }).partial(),
         setPublished: dataFieldSchemas.pick({
             published: true,
