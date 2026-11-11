@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
     turbopack: {},
     // The dev server refuses requests from hosts other than its own, so it takes the hosts of
     // sites.json, read once at start like the app's own. Production has no such check to keep in step.
-    allowedDevOrigins: readDomainConfig().hostNames(),
+    allowedDevOrigins: readDomainConfig().allHostNames(),
 }
 
 export default nextConfig

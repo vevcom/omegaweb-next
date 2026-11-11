@@ -6,7 +6,7 @@ import {
     maxImageFileSizeBytes,
     maxImageFileSizeMb
 } from './constants'
-import { extensionForMimeType } from '@/lib/store/fileExtensions'
+import { extensionForMimeType } from '@/services/store/fileExtensions'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { zfd } from 'zod-form-data'
 import { z } from 'zod'
@@ -138,7 +138,6 @@ export const imageSchemas = {
         // The special collection panel's readPageOfImagesInCollection: the panel knows its collection.
         readPageOfImagesInSpecialCollection: imagePage,
         updateImageMeta: imageId,
-        destroyImageDbAndReturnCleanup: imageId,
         destroyImage: imageId,
         readCollectionOfImage: imageId,
     },

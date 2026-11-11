@@ -19,12 +19,12 @@ DECLARE
 BEGIN
     FOR row IN SELECT "id" FROM "MailAlias" LOOP
         INSERT INTO "Visibility" ("updatedAt") VALUES (CURRENT_TIMESTAMP) RETURNING "id" INTO visibility_id;
-        INSERT INTO "VisibilityRequirement" ("ownerVisibilityId") VALUES (visibility_id);
+        INSERT INTO "VisibilityRequirement" ("visibilityId") VALUES (visibility_id);
         UPDATE "MailAlias" SET "ownerVisibilityId" = visibility_id WHERE "id" = row."id";
     END LOOP;
     FOR row IN SELECT "id" FROM "MailingList" LOOP
         INSERT INTO "Visibility" ("updatedAt") VALUES (CURRENT_TIMESTAMP) RETURNING "id" INTO visibility_id;
-        INSERT INTO "VisibilityRequirement" ("ownerVisibilityId") VALUES (visibility_id);
+        INSERT INTO "VisibilityRequirement" ("visibilityId") VALUES (visibility_id);
         UPDATE "MailingList" SET "ownerVisibilityId" = visibility_id WHERE "id" = row."id";
     END LOOP;
 END $$;

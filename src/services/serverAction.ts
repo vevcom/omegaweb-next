@@ -146,7 +146,7 @@ async function safeServerCall<Return>(call: () => Promise<Return>): Promise<Acti
         return { success: true, data: await call() }
     } catch (error) {
         if (error instanceof ParseError) {
-            return createActionError('BAD PARAMETERS', error.parseError.error.issues)
+            return createActionError(error.errorCode, error.parseError.error.issues)
         }
         if (error instanceof Smorekopp) {
             return createActionError(error.errorCode, error.errors)

@@ -153,14 +153,6 @@ export function implementSpecialCollection({
             })
     })
 
-    const destroyImageDbAndReturnCleanup = defineSubOperation({
-        paramsSchema: () => imageSchemas.params.destroyImageDbAndReturnCleanup,
-        operation: () => async ({ prisma, params }): Promise<() => Promise<void>> => {
-            await assertImageInCollection(prisma, params.imageId)
-            return imageOperations.destroyImageDbAndReturnCleanup.internalCall({ params })
-        }
-    })
-
     const destroyImage = defineSubOperation({
         paramsSchema: () => imageSchemas.params.destroyImage,
         operation: () => async ({ prisma, params }) => {
@@ -186,7 +178,6 @@ export function implementSpecialCollection({
     return {
         internalOperations: {
             uploadImage,
-            destroyImageDbAndReturnCleanup,
             destroyImage,
         },
         specialCollectionPanelOperations: {

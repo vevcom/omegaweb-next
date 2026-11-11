@@ -23,7 +23,9 @@ enum ImageType {
 model Image {
   id                      Int                  @id @default(autoincrement())
   type                    ImageType
+  // The name of the image's file in the store, of the purpose ORIGINAL_IMAGE.
   fsLocationOriginal      String               @unique
+  originalFile            StoreFile            @relation(fields: [fsLocationOriginal], references: [name], onDelete: Restrict)
   // Raster images only. An svg needs no blur placeholder - it is served in full from the moment it
   // is uploaded, since there is no background processing to wait for.
   placeholderDataUrl      String?
@@ -56,31 +58,38 @@ model Image {
 }
 
 model ProcessedImageFiles {
-  id                   Int      @id @default(autoincrement())
-  image                Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
-  imageId              Int      @unique
+  id                   Int        @id @default(autoincrement())
+  image                Image      @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  imageId              Int        @unique
   // Width and height are nullable including tiny: old rows have no recorded dimensions, so
   // srcSetForImage falls back to plain src. Micro and small through huge are also skipped,
-  // and so null, for a small source. See createRasterVariants.
-  fsLocationMicroSize  String?  @unique
+  // and so null, for a small source. See createRasterVariants. Each fsLocation is the name of a
+  // file in the store, of the purpose CACHE_IMAGE.
+  fsLocationMicroSize  String?    @unique
+  microSizeFile        StoreFile? @relation("microSizeFile", fields: [fsLocationMicroSize], references: [name], onDelete: Restrict)
   widthMicroSize       Int?
   heightMicroSize      Int?
-  fsLocationTinySize   String   @unique
+  fsLocationTinySize   String     @unique
+  tinySizeFile         StoreFile  @relation("tinySizeFile", fields: [fsLocationTinySize], references: [name], onDelete: Restrict)
   widthTinySize        Int?
   heightTinySize       Int?
-  fsLocationSmallSize  String?  @unique
+  fsLocationSmallSize  String?    @unique
+  smallSizeFile        StoreFile? @relation("smallSizeFile", fields: [fsLocationSmallSize], references: [name], onDelete: Restrict)
   widthSmallSize       Int?
   heightSmallSize      Int?
-  fsLocationMediumSize String?  @unique
+  fsLocationMediumSize String?    @unique
+  mediumSizeFile       StoreFile? @relation("mediumSizeFile", fields: [fsLocationMediumSize], references: [name], onDelete: Restrict)
   widthMediumSize      Int?
   heightMediumSize     Int?
-  fsLocationLargeSize  String?  @unique
+  fsLocationLargeSize  String?    @unique
+  largeSizeFile        StoreFile? @relation("largeSizeFile", fields: [fsLocationLargeSize], references: [name], onDelete: Restrict)
   widthLargeSize       Int?
   heightLargeSize      Int?
-  fsLocationHugeSize   String?  @unique
+  fsLocationHugeSize   String?    @unique
+  hugeSizeFile         StoreFile? @relation("hugeSizeFile", fields: [fsLocationHugeSize], references: [name], onDelete: Restrict)
   widthHugeSize        Int?
   heightHugeSize       Int?
-  createdAt            DateTime @default(now())
+  createdAt            DateTime   @default(now())
 }
 
 model License {

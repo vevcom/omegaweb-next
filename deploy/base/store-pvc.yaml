@@ -1,0 +1,17 @@
+# The store volume: every file without an S3 bucket, and with one the files whose purpose wants
+# them here, such as the resized image variants, and those the bucket refused. local-path volumes
+# are ReadWriteOnce, which works only because every pod that mounts this one runs on the same node.
+#
+# local-path only binds the volume once a pod uses it, and Argo CD waits for a wave to be
+# healthy before the next. So the volume shares a wave with the migrate job, its first user.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: omegaweb-next-store
+    annotations:
+        argocd.argoproj.io/sync-wave: "-1"
+spec:
+    accessModes: [ReadWriteOnce]
+    resources:
+        requests:
+            storage: 5Gi

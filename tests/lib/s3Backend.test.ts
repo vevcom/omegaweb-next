@@ -1,4 +1,4 @@
-import { createS3Backend } from '@/lib/store/s3Backend'
+import { createS3Backend } from '@/services/store/backends/s3'
 import { HeadBucketCommand, NoSuchKey, S3Client, S3ServiceException } from '@aws-sdk/client-s3'
 import { afterEach, describe, expect, jest, test } from '@jest/globals'
 

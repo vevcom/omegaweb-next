@@ -18,6 +18,8 @@ const dataFieldSchemas = z.object({
 const paramsFieldSchemas = z.object({
     id: z.coerce.number().min(1),
     markOwnedByUserId: mailParamsFieldSchemas.shape.markOwnedByUserId,
+    /** The user whose aliases are read. */
+    userId: z.coerce.number().min(1),
 })
 
 /** The address comes as what stands before and after the @, with the domain picked from ours, and is stored joined. */
@@ -47,6 +49,7 @@ export const mailAliasSchemas = {
     },
     params: {
         readMany: paramsFieldSchemas.pick({ markOwnedByUserId: true }),
+        readReceived: paramsFieldSchemas.pick({ userId: true }),
         update: alias,
         updateDescription: alias,
         visibility: alias,

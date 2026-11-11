@@ -1,0 +1,23 @@
+// An authorization code of the OpenID Connect provider, see src/services/auth/oidc: issued to a user
+// signed in on the auth domain for one client, and deleted when the client exchanges it for tokens,
+// or when it has expired.
+model OidcAuthorizationCode {
+  id       Int    @id @default(autoincrement())
+  // The sha256 of the code, so the code itself is nowhere but in the client's hands.
+  codeHash String @unique
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   Int
+  // The login the user's session on the auth domain came from, which the client's session then carries.
+  provider String
+
+  clientId    String
+  redirectUri String
+  // The scopes granted, space separated, and the nonce the client sent, both repeated in the ID token.
+  scope       String
+  nonce       String?
+  // The S256 challenge the client proves with its verifier at the exchange.
+  codeChallenge String
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}

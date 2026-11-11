@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { careersTeamAuth } from './auth'
 import { careersTeamSchemas } from './schemas'
 import { careersTeamDepartmentIncluder } from './constants'
-import { destroyPersonsAndReturnCleanup } from './persons/destroyPersons'
+import { destroyPersons } from './persons/destroyPersons'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
@@ -74,8 +74,8 @@ export const careersTeamOperations = {
         authorizer: () => careersTeamAuth.destroyDepartment,
         transaction: 'OPENS',
         operation: async ({ prisma, params }) => {
-            const cleanup = await prisma.$transaction(async tx => {
-                const personsCleanup = await destroyPersonsAndReturnCleanup(tx, { departmentId: params.departmentId })
+            await prisma.$transaction(async tx => {
+                await destroyPersons(tx, { departmentId: params.departmentId })
 
                 // The paragraph is on the department's side of the relation, so it does not cascade.
                 const department = await tx.careerTeamDepartment.delete({
@@ -86,9 +86,7 @@ export const careersTeamOperations = {
                     params: { paragraphId: department.paragraphId },
                     prisma: tx,
                 })
-                return personsCleanup
             })
-            await cleanup()
         },
     }),
 

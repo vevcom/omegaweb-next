@@ -6,7 +6,9 @@ model Ombul {
   paragraphId  Int          @unique
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
-  fsLocation   String       @unique //location in /store/ombul/[fsLocation]
+  // The name of the pdf in the store, of the purpose OMBUL.
+  fsLocation   String       @unique
+  file         StoreFile    @relation(fields: [fsLocation], references: [name], onDelete: Restrict)
   year         Int
   issueNumber  Int
   coverImage   Image        @relation(fields: [coverImageId], references: [id], onDelete: Restrict)

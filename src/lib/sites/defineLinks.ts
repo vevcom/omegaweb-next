@@ -7,12 +7,13 @@ import type { SiteName } from './site'
  * Where a set of pages is mounted in the router: on which site, and at which path under that site's
  * root. A page kit's config extends this with what its pages need, and each implementation of the
  * kit declares its config next to its pages; a site's own pages are mounted at its root. The site
- * is carried by name, since a config is plain data that passes to client components.
+ * is carried by name, since a config is plain data that passes to client components. A kit that is
+ * only ever mounted at the site's root says so with `PagesMount<''>`.
  */
-export type PagesMount = {
+export type PagesMount<MountPath extends string = string> = {
     site: SiteName,
     /** Where under the site's root the pages are mounted. '' for the root itself. */
-    mountPath: string,
+    mountPath: MountPath,
 }
 
 /** The href of a page under the mount: a sub path, with a query string when given. */

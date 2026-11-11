@@ -7,6 +7,7 @@ import { visibilityOperations } from '@/services/visibility/operations'
 import { implementVisibilityOperations } from '@/services/visibility/implement'
 import { mailTraversalOperations } from '@/services/mail/traversal/operations'
 import { markOwned, ownerVisibilityIncluder, readAliasOwnerMatrices, readMembershipsToMark } from '@/services/mail/owned'
+import { aliasesReceivedBy } from '@/services/mail/received'
 import type { MailAlias } from '@/prisma-generated-pn-types'
 import type { MailAliasWithOwned } from '@/services/mail/types'
 
@@ -66,6 +67,13 @@ export const aliasOperations = {
             ])
             return aliases.map(alias => markOwned(alias, memberships))
         },
+    }),
+
+    /** The aliases a user receives mail on, see received.ts, for the user themselves. */
+    readReceived: defineOperation({
+        paramsSchema: mailAliasSchemas.params.readReceived,
+        authorizer: ({ params }) => mailAliasAuth.readReceived.data({ userId: params.userId }),
+        operation: ({ prisma, params }): Promise<MailAlias[]> => aliasesReceivedBy(prisma, params.userId),
     }),
 
     update: defineOperation({

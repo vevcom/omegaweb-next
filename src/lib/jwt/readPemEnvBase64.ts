@@ -3,7 +3,7 @@ import { ServiceError } from '@/services/error'
 
 /**
  * PEM keys are stored in env vars as base64 rather than raw multi-line text.
- * Some platform env-var UIs (Dokploy included) don't reliably preserve a
+ * Some platform env-var UIs don't reliably preserve a
  * literal `\n`-escaped value either - they auto-resolve escape sequences
  * back into real newlines when saving, which then breaks the .env file's
  * line-based format the same way an unescaped multi-line PEM does. Base64

@@ -6,8 +6,8 @@ import { withServiceContext } from '@/services/serviceOperation'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { authLinks } from '@/pageKits/auth/links'
-import { authPagesOf } from '@/lib/sites/authPagesOf'
-import { domainContextOfRequest, siteRedirect } from '@/app/domainContextOfRequest'
+import { authPagesOf } from '@/pageKits/auth/authPagesOf'
+import { domainContextOfRequest, redirectToServingDomain, siteRedirect } from '@/app/domainContextOfRequest'
 import { notFound, unstable_rethrow as unstableRethrow } from 'next/navigation'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
@@ -16,6 +16,7 @@ import type { Session } from '@/auth/session/Session'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import type { Awaitable } from '@/lib/awaitable'
+import type { ServedOn } from '@/lib/sites/context'
 
 export type SearchParams = Record<string, string | string[] | undefined>
 
@@ -75,7 +76,9 @@ export async function handleServiceError(error: unknown): Promise<Smorekopp> {
  * `allowUnregistered` on {@link serverPage}).
  */
 async function redirectUnregistered(session: ServerPageSession) {
-    if (session.user && !session.user.acceptedTerms) await siteRedirect(await authPathWithCallback('register'))
+    if (session.user && !session.user.acceptedTerms) {
+        await siteRedirect(await authPathWithCallback('register'), { servedOn: 'auth-domain' })
+    }
 }
 
 /**
@@ -110,8 +113,15 @@ async function authPathWithCallback(page: 'login' | 'register') {
  * operation runs, so that the form cannot be skipped. Only the registration pages set
  * `allowUnregistered` to let such a user in.
  *
+ * A request for the page on a domain that does not serve it is sent on to the one that does, with
+ * the same path and query, before anything else runs. A page is served on its site unless it sets
+ * `servedOn`.
+ *
  * @param allowUnregistered - Lets a logged-in user who has not accepted the terms see the page.
  * For the pages registration itself takes: /register and the email verification before it.
+ * @param servedOn - Optional: `'auth-domain'` for a page served on the domain that signs users in
+ * and nowhere else, which the pages of the auth kit set. Without it the page is served on its
+ * site, and not on a domain set apart to sign users in.
  * @param operation - Loads everything the page needs. Runs once per request (shared between
  * the page render and generateMetadata via React `cache`). Throwing a service error inside
  * it sends the user to the error view - wrap non-critical calls in {@link withFallback} when
@@ -148,8 +158,9 @@ export function serverPage<
     Params extends object,
     Data,
     Authorizers extends CapabilityAuthorizers<Authorizers> = Record<never, never>,
->({ allowUnregistered = false, operation, capabilities, metadata, render }: {
+>({ allowUnregistered = false, servedOn, operation, capabilities, metadata, render }: {
     allowUnregistered?: boolean,
+    servedOn?: ServedOn,
     operation: (args: PageOperationArgs<Params>) => Awaitable<Data>,
     capabilities?: CapabilitiesOf<Data, Authorizers>,
     metadata?: (data: Data) => Metadata,
@@ -175,6 +186,7 @@ export function serverPage<
             params: Params,
             searchParams: SearchParams,
         }
+        await redirectToServingDomain(servedOn)
         const session = await ServerSession.fromNextAuth()
         if (!allowUnregistered) await redirectUnregistered(session)
         const data = await withServiceContext(
