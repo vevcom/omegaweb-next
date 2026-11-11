@@ -1,4 +1,3 @@
-import SimpleTable from '@/app/_components/Table/SimpleTable'
 import { displayAmount } from '@/lib/currency/convert'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from '@/services/cabin/booking/cabinPriceCalculator'
 import type { CabinProductExtended } from '@/services/cabin/product/types'
@@ -42,24 +41,30 @@ export default function CabinPriceCalculator({
         totalPrice = calculateTotalCabinBookingPrice(priceData)
     }
 
-    const tableBody: string[][] = []
-
-    for (const priceRow of priceData) {
-        const description = priceRow.productPrice.description
-        const displayName = priceRow.product.name + (description ? ` (${description})` : '')
-        tableBody.push([
-            displayName,
-            displayAmount(priceRow.productPrice.price),
-            priceRow.amount.toString(),
-            displayAmount(priceRow.amount * priceRow.productPrice.price)
-        ])
+    if (priceData.length === 0) {
+        return <p className="m-0 text-base-content/80">Velg datoer for å se prisen.</p>
     }
 
-    return <div>
-        <SimpleTable
-            header={['Produkt', 'Pris per natt', 'Antall', 'Total pris']}
-            body={tableBody}
-        />
-        <p>Total pris {displayAmount(totalPrice)}</p>
+    return <div className="flex flex-col gap-3">
+        <ul className="m-0 p-0 list-none flex flex-col gap-2">
+            {priceData.map((priceRow, index) => (
+                <li key={index} className="flex justify-between gap-3">
+                    <span>
+                        {priceRow.product.name}
+                        {priceRow.productPrice.description && ` (${priceRow.productPrice.description})`}
+                        <span className="block text-s text-base-content/70">
+                            {priceRow.amount} × {displayAmount(priceRow.productPrice.price)}
+                        </span>
+                    </span>
+                    <span className="whitespace-nowrap">
+                        {displayAmount(priceRow.amount * priceRow.productPrice.price)}
+                    </span>
+                </li>
+            ))}
+        </ul>
+        <div className="flex flex-wrap justify-between gap-x-3 pt-3 border-t border-base-300 text-l font-semibold">
+            <span>Totalt</span>
+            <span className="whitespace-nowrap">{displayAmount(totalPrice, false)}</span>
+        </div>
     </div>
 }

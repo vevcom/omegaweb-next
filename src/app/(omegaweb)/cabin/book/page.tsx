@@ -3,7 +3,6 @@ import ConnectCabinToLedgerForm from './ConnectCabinToLedgerForm'
 import SpecialCmsParagraph from '@/app/_components/Cms/CmsParagraph/SpecialCmsParagraph'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import { default as DateComponent } from '@/components/Date/Date'
 import {
     readSpecialCmsParagraphCabinContractAction,
     updateSpecialCmsParagraphCabinContractAction
@@ -14,14 +13,18 @@ import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operati
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
-import { displayDate } from '@/lib/dates/displayDate'
+import { osloDateTime } from '@/lib/dates/oslo'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import { Require } from '@/auth/authorizer/Require'
-import SiteLink from '@/components/SiteLink/SiteLink'
+import HeaderItemLink from '@/components/HeaderItems/HeaderItemLink'
 import { appHref } from '@/lib/sites/href'
+import { faHouse } from '@fortawesome/free-solid-svg-icons'
 import type { PageOperationArgs } from '@/app/ServerPage'
 import type { ReleasePeriod } from '@/prisma-generated-pn-types'
+
+/** A date as Oslo reads it, such as 11. januar 2027. */
+const osloDay = (date: Date) => osloDateTime(date).setLocale('nb').toFormat('d. MMMM yyyy')
 
 function findCurrentReleasePeriod(releasePeriods: ReleasePeriod[]) {
     const filtered = releasePeriods.filter(releasePeriod => {
@@ -29,7 +32,7 @@ function findCurrentReleasePeriod(releasePeriods: ReleasePeriod[]) {
         return releasePeriod.releaseTime < now && now < releasePeriod.releaseUntil
     })
 
-    if (filtered.length === 0) return new Date()
+    if (filtered.length === 0) return null
     return filtered[0].releaseUntil
 }
 
@@ -108,51 +111,65 @@ const { page, generateMetadata } = serverPage({
         const ledgerAccount = data.cabinLedgerAccount
 
         return <PageWrapper
-            headerItem={capabilities.canConnectToLedgerAccount.authorized && (
-                <SettingsHeaderItemPopUp scale={30} popUpKey="cabinSettings">
-                    <p>
-                        Konto: {ledgerAccount
-                            ? (ledgerAccount.name ?? `Konto ${ledgerAccount.id}`)
-                            : 'ingen. Hytta kan ikke bookes før den er knyttet til en konto.'}
-                    </p>
-                    <ConnectCabinToLedgerForm
-                        currentLedgerAccountId={ledgerAccount?.id ?? null}
-                        ledgerAccounts={data.ledgerAccounts}
-                    />
-                </SettingsHeaderItemPopUp>
-            )}
-        >
-            {capabilities.canReadOwnBookings.authorized &&
-                <SiteLink href={appHref('/users/me/cabin-bookings')}>Mine hyttebookinger</SiteLink>
-            }
-            {nextReleasePeriod &&
-                <p>
-                    Neste slipptid er <DateComponent date={nextReleasePeriod.releaseTime} />,
-                    da slippes bookinger fram til <DateComponent date={nextReleasePeriod.releaseUntil} />
-                </p>
-            }
-            {data.pricePeriods.length > 1 &&
-                <p>
-                    Nye priser fra: {
-                        data.pricePeriods.slice(1).map(period => displayDate(period.validFrom, false)).join(', ')
+            headerItem={
+                <div className="flex items-center gap-[1em]">
+                    {capabilities.canReadOwnBookings.authorized &&
+                        <HeaderItemLink
+                            href={appHref('/users/me/cabin-bookings')}
+                            label="Mine hyttebookinger"
+                            icon={faHouse}
+                        />
                     }
-                </p>
+                    {capabilities.canConnectToLedgerAccount.authorized && (
+                        <SettingsHeaderItemPopUp scale={40} popUpKey="cabinSettings">
+                            <p>
+                                Konto: {ledgerAccount
+                                    ? (ledgerAccount.name ?? `Konto ${ledgerAccount.id}`)
+                                    : 'ingen. Hytta kan ikke bookes før den er knyttet til en konto.'}
+                            </p>
+                            <ConnectCabinToLedgerForm
+                                currentLedgerAccountId={ledgerAccount?.id ?? null}
+                                ledgerAccounts={data.ledgerAccounts}
+                            />
+                        </SettingsHeaderItemPopUp>
+                    )}
+                </div>
             }
+        >
+            <div className="flex flex-col gap-4 mb-6">
+                <p className="m-0 bg-base-200 border border-base-300 rounded-round px-6 py-4">
+                    {releaseUntil
+                        ? `Datoer fram til ${osloDay(releaseUntil)} kan bookes nå.`
+                        : 'Ingen datoer er åpne for booking akkurat nå.'}
+                    {nextReleasePeriod && <>
+                        {' '}Neste slipp er {osloDay(nextReleasePeriod.releaseTime)}{' '}
+                        kl. {osloDateTime(nextReleasePeriod.releaseTime).toFormat('HH:mm')}, og da åpner det fram
+                        til {osloDay(nextReleasePeriod.releaseUntil)}.
+                    </>}
+                    {data.pricePeriods.length > 1 && <>
+                        {' '}Nye priser fra {
+                            data.pricePeriods.slice(1).map(period => osloDay(period.validFrom)).join(', ')
+                        }.
+                    </>}
+                </p>
+            </div>
             <StateWrapper
                 cabinAvailability={data.cabinAvailability}
-                releaseUntil={releaseUntil}
+                releaseUntil={releaseUntil ?? new Date()}
                 cabinProducts={data.cabinProducts}
                 pricePeriods={data.pricePeriods}
                 availableBalance={data.cabinBookingBalance}
                 customerSessionClientSecret={data.cabinBookingCustomerSessionSecret}
             />
 
-            <SpecialCmsParagraph
-                capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraphContract }}
-                special="CABIN_CONTRACT"
-                readSpecialCmsParagraphAction={readSpecialCmsParagraphCabinContractAction}
-                updateCmsParagraphAction={updateSpecialCmsParagraphCabinContractAction}
-            />
+            <div id="cabin-contract" className="mt-6 bg-base-200 border border-base-300 rounded-round p-6">
+                <SpecialCmsParagraph
+                    capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraphContract }}
+                    special="CABIN_CONTRACT"
+                    readSpecialCmsParagraphAction={readSpecialCmsParagraphCabinContractAction}
+                    updateCmsParagraphAction={updateSpecialCmsParagraphCabinContractAction}
+                />
+            </div>
         </PageWrapper>
     },
 })

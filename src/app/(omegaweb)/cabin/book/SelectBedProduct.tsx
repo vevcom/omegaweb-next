@@ -21,6 +21,7 @@ export default function SelectBedProducts({
                 key={index}
                 name={`product-${product.id}`}
                 label={product.name}
+                background="base100"
                 value={amounts[index]}
                 onChange={(e) => {
                     const value = Number(e.target.value)
