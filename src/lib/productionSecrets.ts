@@ -12,12 +12,18 @@ const secretNames = [
     'JWT_PUBLIC_KEY',
 ] as const
 
+/**
+ * Secrets that may be left unset, since mail is optional, but must not be the development values
+ * when set: anyone holding this one can rewrite Omega's mailing lists.
+ */
+const optionalSecretNames = ['EMAIL_ADMIN_PASSWORD'] as const
+
 const secretsWithMinimumLength = ['NEXTAUTH_SECRET', 'JWT_SECRET'] as const
 const minimumSecretLength = 32
 
 /**
  * Refuses to let production start on the development secrets from .env.default, on secrets too
- * short to resist guessing, or with a secret not set at all. Anyone holding NEXTAUTH_SECRET can forge
+ * short to resist guessing, or with a required secret not set at all. Anyone holding NEXTAUTH_SECRET can forge
  * a session, and anyone holding JWT_SECRET can forge a password reset link. A missing one is only
  * read when first used - signing a token, hashing a password - so without this check the server
  * would start and fail there instead.
@@ -28,7 +34,8 @@ export function assertProductionSecrets(envDefaultPath = '.env.default') {
     const devValues = parseEnv(readFileSync(envDefaultPath, 'utf8'))
 
     const missing = secretNames.filter(name => !process.env[name])
-    const devValuesInUse = secretNames.filter(name => process.env[name] && process.env[name] === devValues[name])
+    const devValuesInUse = [...secretNames, ...optionalSecretNames]
+        .filter(name => process.env[name] && process.env[name] === devValues[name])
     const tooShort = secretsWithMinimumLength.filter(name => {
         const secret = process.env[name]
         return secret && secret.length < minimumSecretLength

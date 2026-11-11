@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { EmailChangedTemplate } from '@/lib/email/templates/emailChanged'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { sendMailOperations } from '@/services/mail/send/operations'
 import logger from '@/lib/logger'
 import type { UserBasicWithEmail } from '@/services/users/types'
 
@@ -12,7 +12,7 @@ export async function sendEmailChangedMail(user: UserBasicWithEmail, oldEmail: s
     if (oldEmail === user.email) return
 
     try {
-        await sendMailOperations.internal.sendSystemMail.internalCall({
+        await sendMailOperations.sendSystemMail.internalCall({
             data: {
                 to: oldEmail,
                 subject: 'E-posten din er endret',

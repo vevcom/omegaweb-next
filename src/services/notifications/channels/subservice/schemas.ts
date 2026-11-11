@@ -1,5 +1,6 @@
 import { internalPathMessage, isInternalPath } from '@/lib/fields/safeLink'
 import { Zpn } from '@/lib/fields/zpn'
+import { visibilityRequirementsSchema } from '@/services/visibility/schemas'
 import { Permission } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
@@ -7,6 +8,13 @@ export const notificationMethodSchema = z.object({
     email: z.boolean(),
     emailWeekly: z.boolean(),
     push: z.boolean(),
+})
+
+const audienceFieldSchemas = z.object({
+    userIds: z.number().array().optional(),
+    permission: z.nativeEnum(Permission).optional(),
+    canRegisterForEventId: z.number().optional(),
+    registeredForEventId: z.number().optional(),
 })
 
 export const notificationChannelDataFieldSchemas = z.object({
@@ -23,13 +31,19 @@ export const notificationChannelDataFieldSchemas = z.object({
     // Who the notification is for, on top of being subscribed to its channel. Each given part narrows it.
     audience: Zpn.json({
         label: 'Mottakere',
-        schema: z.object({
-            userIds: z.number().array().optional(),
-            visibilityId: z.number().optional(),
-            permission: z.nativeEnum(Permission).optional(),
-            canRegisterForEventId: z.number().optional(),
-            registeredForEventId: z.number().optional(),
-        }),
+        schema: z.union([
+            audienceFieldSchemas.extend({
+                visibilityId: z.number().optional(),
+                requirements: z.undefined().optional(),
+            }),
+            audienceFieldSchemas.extend({
+                visibilityId: z.undefined().optional(),
+                requirements: visibilityRequirementsSchema.refine(
+                    requirements => requirements.every(requirement => requirement.conditions.length > 0),
+                    'Hvert krav til mottakerne må ha minst én gruppe',
+                ),
+            }),
+        ]),
     }).optional(),
 })
 

@@ -1,33 +1,84 @@
-# Deploying with k3s and Argo CD
+# Deploying to Kubernetes
 
-Production runs on k3s and is deployed by Argo CD. This directory holds the app's own
-manifests. The rest of the cluster lives in [vivat](https://github.com/vevcom/vivat):
-Argo CD's applications, the operators and the Let's Encrypt issuer. The compose files
-stay for development and tests.
+This directory holds the manifests for running the app on Kubernetes: the generic shape of
+one installation, with nothing about where it runs. Domains, certificates, buckets, backups
+and the release that runs are an installation's business and live with whoever runs one. Ours
+is [vivat](https://github.com/vevcom/vivat), which deploys omega.ntnu.no with Argo CD. The
+compose files stay for development and tests.
 
 ```
 deploy/
 ├── base/              # The app, the worker, the migrate job and the database
+│   └── postgres.env   # The Postgres version, read here and by the compose files
 ├── overlays/
-│   ├── local/         # k3d on a workstation: locally built images, no TLS, store on disk or S3
-│   └── prod/          # omega.ntnu.no and its sites: release images, TLS, backups, Phase secrets, S3 store
+│   └── local/         # k3d on a workstation: locally built images, no TLS, store on the volume or S3
 └── k3d/               # Local cluster config and up.sh
 ```
 
-## How a deploy works
+## What base expects
 
-1. Publishing a GitHub release runs `.github/workflows/release.yml`. It builds the
-   `prod` and `tools` images and pushes them to GHCR under the release tag.
-2. The workflow opens a pull request that sets that tag in `overlays/prod`.
-3. Merging the pull request is the deploy. The `omegaweb` application, which vivat
-   defines, sees main change and syncs in waves:
-   - wave -3: the database and the PhaseSecret
-   - wave -1: the migrate job, which runs `migrate:deploy-and-seed`, and locally the store
-     volume it is the first to mount
-   - wave 0: the app and the worker
+An overlay includes `base` and fills in what it leaves open:
 
-   A failed migration stops the sync, so the old pods keep serving.
-4. A rollback is a revert of that pull request.
+- **Images.** The manifests name the images `omegaweb-next` and `omegaweb-next-tools`. The
+  overlay sets the registry and the tag with `images:`. A release pushes
+  `ghcr.io/vevcom/omegaweb-next:<tag>` and `ghcr.io/vevcom/omegaweb-next-tools:<tag>`, and
+  the packages are private because the build bakes in `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, so
+  the overlay also adds a pull secret.
+- **The ingress host.** `ingress.yaml` routes `placeholder.invalid`. The overlay patches in its
+  hosts and TLS.
+- **The environment.** Every pod reads the `omegaweb-next-env` secret, with the variables of
+  `.env.default`, and the `omegaweb-next-config` ConfigMap generated here, whose keys win.
+  How the secret gets there is up to the overlay. The local one builds it from `.env`.
+- **The sites.** Every pod mounts the `omegaweb-next-sites` ConfigMap as `sites.json`, which
+  maps hosts to sites, and none start without it. The overlay generates it from its own file. A
+  changed file rolls the pods. The ingress has to list the same hosts, aliases included, since
+  the app sends aliases on itself, and the auth host when the file sets one apart with
+  `"auth": true`, which is where everyone signs in and the one host Feide calls back to.
+- **The database.** `database.yaml` is a CloudNativePG Cluster, so the operator has to be
+  installed. It creates the `omegaweb-next-db-app` secret, whose `uri` key the pods read as
+  `DB_URI`. Storage size and backups are patched in by the overlay.
+- **The webmail.** `EMAIL_WEBMAIL_URL` is the origin of the mail server's webmail, whose host
+  is also the mail domain the aliases' mailboxes are on, and the client id the webmail signs in
+  through the provider with. Left unset, no alias keeps a mailbox. The mail server's own settings
+  for this are documented in mail-infrastructure.
+- **The store.** Uploaded images and ombul pdfs are on the store volume, which base mounts at
+  `store/` in the app, the worker and the migrate job, and in an S3 bucket when
+  `STORE_S3_BUCKET` is set, with `STORE_S3_ENDPOINT`, `STORE_S3_ACCESS_KEY_ID` and
+  `STORE_S3_SECRET_ACCESS_KEY`. See [The store](#the-store).
+
+A sync applies in waves: the database and the environment first, then the migrate job, which
+runs `migrate:deploy-and-seed`, then the app and the worker. A failed migration stops the sync,
+so the old pods keep serving.
+
+## The store
+
+Without a bucket every file is on the volume. With one, the code says per kind of file where it
+should be: originals and pdfs in the bucket, and the resized image variants on the volume, since
+they can be made again and the bucket has a limit on objects. A file the wanted place refuses is
+written to the other. The database remembers where each file is, and the store's workers move the
+files that are in the wrong place. So setting a bucket, or changing where a kind of file should
+be, needs no copying by hand.
+
+The volume is a `ReadWriteOnce` claim of 5Gi, which works while every pod runs on one node, and it
+is not backed up. Deleting an object from a versioned bucket keeps its old versions, so expire the
+noncurrent versions if the bucket's count of objects does not drop.
+
+**Taking the bucket away** does need a step first. Once `STORE_S3_BUCKET` is unset, a file the
+database places in the bucket can be neither read nor moved, and is a 404 until the bucket is set
+again. So empty it first: release with `preferredLocation: 'VOLUME'` for the purposes kept in the
+bucket, with the bucket still set, wait for the workers to move the files, and unset it once
+`SELECT count(*) FROM "StoreFile" WHERE location = 'S3'` is 0.
+
+**Losing the volume** costs what was only there:
+
+- The image variants come back on their own. The store's worker finds the variants whose content
+  is gone, and the image worker makes them again from the originals, one image at a time. Until
+  it has caught up an image shows its blur placeholder. A volume that is not mounted looks the
+  same as a lost one, and sets off the same work.
+- Originals and pdfs are on the volume only when the bucket refused them, until the worker has
+  moved them there. That is the state right after the first release with this store, while the
+  bucket is at its limit. One that is lost is gone: the worker logs it as an error on every run,
+  with the image or the ombul it belonged to, until it is uploaded again.
 
 ## Trying it locally
 
@@ -39,7 +90,7 @@ open http://omegaweb-next.localhost:8080
 k3d cluster delete omegaweb-next     # tear down
 ```
 
-`up.sh` applies the overlay with `kubectl` and does not use Argo CD. To try Argo CD
+`up.sh` applies the local overlay with `kubectl` and does not use Argo CD. To try Argo CD
 itself, push your branch, set it as `targetRevision` in vivat's
 `clusters/local/omegaweb.yaml` and start from a fresh cluster:
 
@@ -50,88 +101,12 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 kubectl -n argocd port-forward svc/argocd-server 8443:443
 ```
 
-The store is on disk unless `deploy/k3d/.env.local`, which is gitignored, sets the
+The store is on the volume alone unless `deploy/k3d/.env.local`, which is gitignored, sets the
 `STORE_S3_*` variables from `.env.default`. Those go into the app's secret with the rest.
 
-## Secrets
+## Releasing
 
-The app's environment lives in Phase. In prod, the Phase operator reads it into the
-`omegaweb-next-env` secret, as set up in `overlays/prod/phase-secret.yaml`, and keeps it in
-sync. Only two secrets are created by hand, once per cluster: the Phase service token the
-operator logs in with, and the pull secret for the private images.
-
-The operator does not restart the app, so after changing a secret in Phase run
-`kubectl -n omegaweb-next rollout restart deployment`.
-
-Locally, `up.sh` makes `omegaweb-next-env` from `.env` instead.
-
-## Domains
-
-The sites' domains are in `sites.json` in each overlay, which every pod mounts and none start
-without. A changed file rolls the pods. A new host also goes in the overlay's ingress.
-
-## The store
-
-Uploaded images, ombul pdfs and the release countdown's files go to S3 when
-`STORE_S3_BUCKET` is set, and to the `store/` directory otherwise. Prod uses NTNU's
-object storage at `https://s3.trd1.stack.it.ntnu.no`, and k3d and compose use the disk.
-Object keys are the paths under `store/`, so a directory can be copied to the bucket as it is.
-
-Turn on versioning for the bucket, so a deleted file can be brought back after a database
-restore:
-
-```bash
-aws s3api put-bucket-versioning --bucket <bucket> --versioning-configuration Status=Enabled \
-    --endpoint-url https://s3.trd1.stack.it.ntnu.no
-```
-
-NTNU does not back the bucket up, so copy it somewhere else nightly with `rclone copy`.
-Use `copy`, not `sync`, so deletes never reach the copy.
-
-## Moving production off Dokploy
-
-1. **Install k3s on the Debian box.** Dokploy holds ports 80 and 443 through
-   Traefik on Docker Swarm, so either use a fresh VM or plan a short outage
-   for the switch.
-2. **Install Argo CD** with Helm, as in the local steps.
-3. **Fill in the TODOs.** Check that `overlays/prod/sites.json` and `overlays/prod/ingress-patch.yaml` list the same hosts. Set the backup bucket in `overlays/prod/database-patch.yaml`, the store bucket in
-   `overlays/prod/kustomization.yaml` and the Phase app id in `overlays/prod/phase-secret.yaml`.
-4. **Set up S3.** Create the store and backup buckets on stack.it, turn on versioning for
-   the store, and make keys with `openstack ec2 credentials create`. Add the store keys to
-   Phase as `STORE_S3_ACCESS_KEY_ID` and `STORE_S3_SECRET_ACCESS_KEY`. The database
-   backups use the same keys, since EC2 keys reach every bucket in the project.
-5. **Create the two hand-made secrets.** Read the token with `read -s` so it stays out of
-   the shell history.
-
-   ```bash
-   kubectl create namespace omegaweb-next
-   read -s PHASE_TOKEN
-   kubectl -n omegaweb-next create secret generic phase-service-token --from-literal=token="$PHASE_TOKEN"
-   kubectl -n omegaweb-next create secret docker-registry ghcr-pull --docker-server=ghcr.io \
-       --docker-username=<user> --docker-password=<read:packages token>
-   ```
-
-6. **Set up GitHub.** Add the secrets `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` and
-   `DEPLOY_PR_TOKEN`, and the variable `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and keep both
-   GHCR packages private. `DEPLOY_PR_TOKEN` is a token with write access to contents and pull
-   requests on this repo, which `release.yml` opens the deploy pull request with.
-7. **Bootstrap Argo CD** from vivat, as its README describes. First publish a release, deploy that
-   same release to Dokploy and merge the pull request `release.yml` opens. The overlay's `v0.0.0`
-   tags have no images behind them, and the restore below replaces the migration history along
-   with the schema, so both sides must run the same release.
-8. **Move the data.** Stop the Dokploy stack and dump its database. The migrate job has
-   already created and seeded the new database, and the workers are running against it, so
-   the restore replaces everything in one transaction. If it fails, nothing has changed.
-
-   ```bash
-   docker exec <dokploy db container> pg_dump -Fc -U <user> <database> > omegaweb-next.dump
-   uri=$(kubectl -n omegaweb-next get secret omegaweb-next-db-app -o jsonpath='{.data.uri}' | base64 -d)
-   kubectl -n omegaweb-next exec -i omegaweb-next-db-1 -c postgres -- \
-       pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction -d "$uri" \
-       < omegaweb-next.dump
-   ```
-
-   Copy the `store` volume to the bucket with `rclone copy <store volume> s3:<bucket>`. Then
-   point DNS for every host in `overlays/prod/sites.json` at the new box, since one host that does
-   not resolve there keeps the shared certificate from being issued. Register
-   `https://<domain>/api/auth/callback/feide` at Feide for each domain.
+Publishing a GitHub release runs `.github/workflows/release.yml`, which builds the images and
+pushes them to GHCR under the release tag. What happens next is the installation's: for ours,
+the workflow opens a pull request on vivat that points prod at the release, and vivat's README
+says how a deploy and a rollback work from there.

@@ -3,7 +3,8 @@ import { notificationChannelSchemas } from './schemas'
 import { availableNotificationMethodIncluder } from './constants'
 import { methodsAreEqual, validateNewParent } from './helpers'
 import { defineSubOperation } from '@/services/serviceOperation'
-import { defaultNotificationAlias } from '@/lib/email/constants'
+import { visibilityOperations } from '@/services/visibility/operations'
+import { defaultNotificationAlias } from '@/services/mail/send/constants'
 import { ServiceError } from '@/services/error'
 import type { NotificationChannelPurpose, Prisma } from '@/prisma-generated-pn-types'
 import type { ExpandedNotificationChannel, NotificationResult } from '@/services/notifications/types'
@@ -153,18 +154,28 @@ export const notificationChannelOperations = {
      * dispatches it through the channel's available methods.
      *
      * @param data - The notification, optionally restricted to an audience of users, a visibility, a
-     * permission, those who can register for an event and those registered for one.
+     * permission, those who can register for an event and those registered for one. The visibility
+     * is one that exists or, given requirements, one made for the notification alone.
      * @returns The created notification.
      */
     createNotification: defineSubOperation({
         paramsSchema: () => notificationChannelSchemas.params.createNotification,
         dataSchema: () => notificationChannelSchemas.data.createNotification,
+        transaction: 'RUNS_IN',
         operation: () => async ({ prisma, params, data }): Promise<NotificationResult> => {
             // This prevents notifications from being created - and later dispatched by the
             // notification worker - during seeding.
             if (process.env.IGNORE_SERVER_ONLY) {
                 return { notification: null }
             }
+
+            const ownVisibility = data.audience?.requirements?.length
+                ? await visibilityOperations.createWithRequirements.internalCall({
+                    prisma,
+                    data: { requirements: data.audience.requirements },
+                })
+                : null
+            const visibilityId = ownVisibility?.id ?? data.audience?.visibilityId
 
             const notification = await prisma.notification.create({
                 data: {
@@ -181,10 +192,10 @@ export const notificationChannelOperations = {
                             connect: data.audience.userIds.map(userId => ({ id: userId })),
                         },
                     } : {}),
-                    ...(data.audience?.visibilityId ? {
+                    ...(visibilityId ? {
                         visibility: {
                             connect: {
-                                id: data.audience.visibilityId,
+                                id: visibilityId,
                             },
                         },
                     } : {}),

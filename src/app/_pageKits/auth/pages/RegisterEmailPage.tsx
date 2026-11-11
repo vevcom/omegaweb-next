@@ -13,6 +13,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 export function registerEmailPage(config: AuthPagesConfig) {
     const links = authLinks(config)
     return serverPage({
+        servedOn: 'auth-domain',
         allowUnregistered: true,
         operation: async ({ searchParams, session }: PageOperationArgs) => {
             const callbackUrl = QueryParams.callbackUrl.decode(searchParams) ?? links.afterLogin()
@@ -22,7 +23,7 @@ export function registerEmailPage(config: AuthPagesConfig) {
             const updatedUser = await userOperations.read({ params: { id: authResult.session.user.id } })
             if (updatedUser.acceptedTerms) await siteRedirect(callbackUrl)
             if (updatedUser.emailVerified) {
-                await siteRedirect(links.register({ callbackUrl }))
+                await siteRedirect(links.register({ callbackUrl }), { servedOn: 'auth-domain' })
             }
 
             const feideLoginMatch = await authOperations.readFeideLoginMatch({

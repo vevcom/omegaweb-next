@@ -24,6 +24,9 @@ docs
 .gitignore
 .github
 
+# the mail-infrastructure submodule is only for development
+mail-infrastructure
+
 # docker
 .dockerignore
 docker-compose.yml

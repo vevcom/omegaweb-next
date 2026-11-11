@@ -11,6 +11,24 @@ resources:
     - app.yaml
     - worker.yaml
     - ingress.yaml
+    - store-pvc.yaml
+
+# The app, the worker and the migrate job, which seeds the standard images, share the store volume.
+patches:
+    - target:
+          kind: (Deployment|Job)
+      patch: |-
+          - op: add
+            path: /spec/template/spec/volumes/-
+            value:
+                name: store
+                persistentVolumeClaim:
+                    claimName: omegaweb-next-store
+          - op: add
+            path: /spec/template/spec/containers/0/volumeMounts/-
+            value:
+                name: store
+                mountPath: /usr/src/app/store
 
 # Non-secret settings. Listed after the env secret in every envFrom, so a key here
 # wins over the same key in the secret.
@@ -30,3 +48,24 @@ configMapGenerator:
           - AUTH_TRUST_HOST=true
           # Each overlay generates the omegaweb-next-sites ConfigMap this comes from.
           - SITES_CONFIG=/etc/omegaweb-next/sites.json
+    # Only exists to carry POSTGRES_IMAGE from postgres.env into the replacement below.
+    # local-config keeps it out of the cluster.
+    - name: postgres
+      envs:
+          - postgres.env
+      options:
+          disableNameSuffixHash: true
+          annotations:
+              config.kubernetes.io/local-config: "true"
+
+replacements:
+    - source:
+          kind: ConfigMap
+          name: postgres
+          fieldPath: data.POSTGRES_IMAGE
+      targets:
+          - select:
+                kind: Cluster
+                name: omegaweb-next-db
+            fieldPaths:
+                - spec.imageName

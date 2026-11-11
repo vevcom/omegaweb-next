@@ -6,7 +6,7 @@ import { escapeHtml } from '@/lib/html/escapeHtml'
 import logger from '@/lib/logger'
 import { prisma } from '@/prisma-pn-client-instance'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { sendMailOperations } from '@/services/mail/send/operations'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 /**
@@ -125,7 +125,7 @@ async function moveToBackOfQueue(registrationId: number, eventId: number, varian
 
 async function tellRequeued(registrationId: number, email: string, eventName: string) {
     try {
-        await sendMailOperations.internal.sendSystemMail.internalCall({
+        await sendMailOperations.sendSystemMail.internalCall({
             data: {
                 to: email,
                 subject: 'Du er flyttet til ventelisten ved Omegas nettsider',

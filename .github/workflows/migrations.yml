@@ -10,28 +10,17 @@ jobs:
   migrations:
     runs-on: ubuntu-latest
 
-    services:
-      db:
-        image: postgres:16.0-alpine
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: maindb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U user -d maindb"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     env:
-      DB_URI: postgresql://user:password@localhost:5432/maindb
+      DB_URI: postgresql://user:password@localhost:5432/devdb
       SHADOW_DB_URI: postgresql://user:password@localhost:5432/shadowdb
 
     steps:
     - name: checkout
       uses: actions/checkout@v3
+
+    # The test stack's database, so the version under test is the one deploy/base/postgres.env names.
+    - name: database
+      run: docker compose --env-file .env.default --env-file deploy/base/postgres.env -f docker-compose.test.yml up -d --wait db
 
     - name: set up node
       uses: actions/setup-node@v3
@@ -42,7 +31,7 @@ jobs:
       run: npm ci
 
     - name: create shadow database
-      run: PGPASSWORD=password psql -h localhost -U user -d maindb -c 'CREATE DATABASE shadowdb;'
+      run: PGPASSWORD=password psql -h localhost -U user -d devdb -c 'CREATE DATABASE shadowdb;'
 
     - name: migrations apply to an empty database
       run: npx prisma migrate deploy

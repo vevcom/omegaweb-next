@@ -6,14 +6,17 @@ import {
     sendDueWeeklyDigests,
 } from '@/services/notifications/methods/dispatchQueue'
 import { pushIsConfigured } from '@/services/notifications/methods/constants'
-import { destroyImageOrphans } from '@/services/images/subservice/imageFiles'
-import { destroyOmbulOrphans } from '@/services/ombul/store'
+import { cacheImageStore, originalImageStore } from '@/services/images/subservice/imageFiles'
+import { ombulStore } from '@/services/ombul/store'
+import { untrackedStoreFilesWorker } from '@/services/store/untrackedFiles'
 import {
     cancelStaleLedgerTransactions,
     flagUnbalancedLedgerTransactions,
     reimburseUnclaimedPayments,
 } from '@/services/ledger/sweeper'
 import { runNextPaymentCompletionHook } from '@/services/ledger/transactions/paymentCompletionHooks'
+import { syncMailServer } from '@/lib/mailServerSync/sync'
+import { mailServerIsManaged } from '@/lib/mailServerSync/constants'
 import { requeueNextUnpaidRegistration } from '@/services/events/registration/requeueUnpaid'
 import logger from '@/lib/logger'
 import type { Worker } from './types'
@@ -21,6 +24,10 @@ import type { Worker } from './types'
 // Logged once, when the worker process loads its definitions.
 if (!pushIsConfigured) {
     logger.warn('Notification worker will not push notifications, since the VAPID keys are not set')
+}
+if (!mailServerIsManaged) {
+    logger.warn('Mail server sync will not run, since EMAIL_ADMIN_URL, EMAIL_ADMIN_USER and EMAIL_ADMIN_PASSWORD '
+        + 'are not all set')
 }
 
 /**
@@ -79,28 +86,16 @@ export const workers = {
     },
 
     /**
-     * Destroys the orphans of the stores, the files no row refers to - see createOrphanDestroyer.
-     * One store failing does not keep the other from being cleaned.
+     * The store's workers, one per purpose, each made by the implementStore of the service that owns
+     * the purpose. It destroys the purpose's orphans, the files no row refers to, moves its files
+     * to where the purpose wants them, and reports the files a row of another purpose refers to.
      */
-    store: {
-        name: 'Store worker',
-        // A file is only destroyed after a day unreferenced, so looking more often than hourly gains
-        // nothing.
-        intervalMs: 60 * 60 * 1000,
-        tick: async progress => {
-            try {
-                await destroyImageOrphans({ onBatch: progress })
-            } catch (error) {
-                logger.error(`Store worker failed to destroy the orphans of the images store: ${error}`)
-            }
+    ombulStore: ombulStore.worker,
+    originalImageStore: originalImageStore.worker,
+    cacheImageStore: cacheImageStore.worker,
 
-            try {
-                await destroyOmbulOrphans({ onBatch: progress })
-            } catch (error) {
-                logger.error(`Store worker failed to destroy the orphans of the ombul store: ${error}`)
-            }
-        },
-    },
+    /** Destroys what is in the store without a StoreFile row, which no purpose's worker sees. */
+    untrackedStoreFiles: untrackedStoreFilesWorker,
 
     /**
      * The ledger sweeper, see ledger/sweeper.ts. Stale transactions go first, since settling one can
@@ -127,6 +122,20 @@ export const workers = {
             } catch (error) {
                 logger.error(`Ledger sweeper failed to flag unbalanced transactions: ${error}`)
             }
+        },
+    },
+
+    /**
+     * Keeps the mail server's domains, mailing lists and mailboxes in step with the aliases
+     * here, see lib/mailServerSync/sync.ts. Does nothing while the server is not managed.
+     */
+    mail: {
+        name: 'Mail server sync',
+        // How long a changed alias or membership takes to reach the mail server, at most.
+        intervalMs: 60 * 1000,
+        tick: () => {
+            if (!mailServerIsManaged) return false
+            return syncMailServer()
         },
     },
 } as const satisfies Record<string, Worker>

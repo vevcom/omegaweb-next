@@ -7,6 +7,7 @@ import { useState } from 'react'
 import type { ActionFormData } from '@/services/actionTypes'
 import type { NotificationResult } from '@/services/notifications/types'
 import type { AppHref } from '@/lib/sites/href'
+import type { ReactNode } from 'react'
 import type { z } from 'zod'
 import type { notificationChannelSchemas } from '@/services/notifications/channels/subservice/schemas'
 
@@ -14,15 +15,19 @@ type Audience = NonNullable<z.input<typeof notificationChannelSchemas.data.creat
 
 /**
  * Creates a notification in a channel through the action given, bound to the channel by whoever
- * renders it. The audience is picked from the options given, or left open without any.
+ * renders it. The audience is picked from the options given, set in a field of the renderer's own,
+ * or left open without either.
  */
 export default function CreateNotificationForm({
     action,
     audienceOptions,
+    audienceField,
     defaultUrl,
 }: {
     action: ActionFormData<NotificationResult>,
     audienceOptions?: { label: string, audience: Audience }[],
+    /** A form field for the audience, for an action that takes it as something else than `audience`. */
+    audienceField?: ReactNode,
     defaultUrl?: AppHref,
 }) {
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -42,6 +47,7 @@ export default function CreateNotificationForm({
                 options={audienceOptions.map(option => ({ value: JSON.stringify(option.audience), label: option.label }))}
                 className="max-w-[20rem]"
             />}
+            {audienceField}
             <TextInput name="title" label="Tittel" />
             <Textarea name="message" label="Melding" className="max-h-[500px] h-[200px]" />
             <TextInput name="url" label="Lenke (valgfri)" defaultValue={defaultUrl} />
