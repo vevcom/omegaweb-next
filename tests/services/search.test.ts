@@ -283,14 +283,13 @@ describe('search respects a provider\'s own visibility filter', () => {
             },
             bypassAuth: true,
         })
-        const variant = await eventVariantOperations.create({
+        const variant = await eventVariantOperations.internal.create.internalCall({
             params: { eventId: event.id },
             data: {
                 name: 'Påmelding',
                 registrationStart: new Date(Date.now() - HOUR),
                 registrationEnd: new Date(Date.now() + 24 * HOUR),
             },
-            bypassAuth: true,
         })
         await eventQuotaOperations.internal.create.internalCall({
             params: { variantId: variant.id },

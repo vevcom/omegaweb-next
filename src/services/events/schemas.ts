@@ -1,5 +1,4 @@
-import { eventQuotaSchemas } from './quotas/schemas'
-import { eventVariantSchemas } from './variants/schemas'
+import { eventVariantSetupFormSchema } from './variants/schemas'
 import { locationMapSchema } from '@/lib/maps/locationMap'
 import { Zpn } from '@/lib/fields/zpn'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
@@ -52,10 +51,7 @@ const dataFieldSchemas = z.object({
     // What the form on the event's page holds besides the event's own fields. See saveSetup.
     variants: Zpn.json({
         label: 'Påmelding',
-        schema: z.array(eventVariantSchemas.data.create.extend({
-            id: z.number().int().optional(),
-            quotas: eventQuotaSchemas.data.saveSetup.shape.quotas,
-        })),
+        schema: eventVariantSetupFormSchema,
     }),
     adminRequirements: Zpn.json({
         label: 'Hvem kan administrere',

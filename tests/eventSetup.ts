@@ -53,3 +53,11 @@ export async function removeQuota(quotaId: number) {
         })
     })
 }
+
+/** Leaves a variant out of the setup of its event, which removes it. */
+export async function removeVariant(variantId: number) {
+    const { eventId } = await prisma.eventVariant.findUniqueOrThrow({ where: { id: variantId }, select: { eventId: true } })
+    return await changeEventSetup(eventId, variants => {
+        variants.splice(variants.findIndex(variant => variant.id === variantId), 1)
+    })
+}

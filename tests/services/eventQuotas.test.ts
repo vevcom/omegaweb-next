@@ -1,6 +1,6 @@
-import { changeEventSetup, removeQuota, setQuotaPlaces } from 'tests/eventSetup'
+import { changeEventSetup, removeQuota, removeVariant, setQuotaPlaces } from 'tests/eventSetup'
 import { Session } from '@/auth/session/Session'
-import { newQuotaDraft } from '@/components/Event/eventSetupDraft'
+import { newQuotaDraft, newVariantDraft } from '@/components/Event/eventSetupDraft'
 import { ServiceError, Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
@@ -99,14 +99,13 @@ async function createEvent(
     })
     const variants = []
     for (const spec of variantSpecs) {
-        const variant = await eventVariantOperations.create({
+        const variant = await eventVariantOperations.internal.create.internalCall({
             params: { eventId: event.id },
             data: {
                 name: spec.name ?? 'Påmelding',
                 registrationStart: spec.registrationStart ?? new Date(Date.now() - HOUR),
                 registrationEnd: spec.registrationEnd ?? new Date(Date.now() + 24 * HOUR),
             },
-            bypassAuth: true,
         })
         const quotas = []
         for (const quota of spec.quotas) {
@@ -569,11 +568,9 @@ describe('administrating variants and quotas', () => {
         const organiser = await createUser([organisers])
 
         await expect(setQuotaPlaces(quota.id, 2, sessionOf(member))).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
-        await expect(eventVariantOperations.create({
-            params: { eventId },
-            data: { name: 'Ny', registrationStart: new Date(), registrationEnd: new Date(Date.now() + HOUR) },
-            session: sessionOf(member),
-        })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+        await expect(changeEventSetup(eventId, variants => {
+            variants.push(newVariantDraft('Ny', new Date(Date.now() + HOUR)))
+        }, sessionOf(member))).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
 
         await setQuotaPlaces(quota.id, 2, sessionOf(organiser))
         await expect(eventQuotaOperations.readMany({ params: { variantId }, session: sessionOf(organiser) }))
@@ -583,10 +580,9 @@ describe('administrating variants and quotas', () => {
     test('a variant must end after it starts', async () => {
         const { variantId } = await createEventWithQuotas([{ name: 'Alle', places: 1 }])
 
-        await expect(eventVariantOperations.update({
+        await expect(eventVariantOperations.internal.update.internalCall({
             params: { id: variantId },
             data: { registrationStart: new Date(Date.now() + 2 * HOUR), registrationEnd: new Date(Date.now() + HOUR) },
-            bypassAuth: true,
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
     })
 
@@ -600,7 +596,7 @@ describe('administrating variants and quotas', () => {
 
         await expect(removeQuota(quota.id))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
-        await expect(eventVariantOperations.destroy({ params: { id: variantId }, bypassAuth: true }))
+        await expect(removeVariant(variantId))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
 
         // Cutting the places moves the member on to the next quota they pass, which empties this one.
@@ -611,7 +607,7 @@ describe('administrating variants and quotas', () => {
         expect(await prisma.visibility.findUnique({ where: { id: quota.visibilityId } })).toBeNull()
 
         await eventRegistrationOperations.destroyAsAdmin({ params: { registrationId: registration.id }, bypassAuth: true })
-        await eventVariantOperations.destroy({ params: { id: variantId }, bypassAuth: true })
+        await removeVariant(variantId)
         expect(await prisma.eventQuota.findUnique({ where: { id: spare.id } })).toBeNull()
         expect(await prisma.visibility.findUnique({ where: { id: spare.visibilityId } })).toBeNull()
     })
@@ -633,10 +629,10 @@ describe('who sees an event with quotas', () => {
         )
         await expect(removeQuota(quota.id))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
-        await expect(eventVariantOperations.destroy({ params: { id: variantId }, bypassAuth: true }))
+        await expect(removeVariant(variantId))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
         await eventOperations.update({ params: { id: eventId }, data: { canBeViewedBy: 'ALL' }, bypassAuth: true })
-        await eventVariantOperations.destroy({ params: { id: variantId }, bypassAuth: true })
+        await removeVariant(variantId)
         expect(await prisma.eventQuota.findUnique({ where: { id: quota.id } })).toBeNull()
     })
 

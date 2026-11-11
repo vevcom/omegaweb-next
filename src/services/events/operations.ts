@@ -3,7 +3,6 @@ import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
 import { assertSeenThroughQuotas, readEventAccess } from './access'
 import { hasNoAdministrators, publishProblems } from './publishProblems'
-import { applyRegistrationSetup } from './applyRegistrationSetup'
 import { lockEvent } from './registration/queue'
 import { fixVariantPlaces, notifyPromoted } from './registration/fixState'
 import {
@@ -12,7 +11,7 @@ import {
     eventVariantOrder,
     eventVariantSummarySelection,
 } from './constants'
-import { createVariant } from './variants/createVariant'
+import { eventVariantOperations } from './variants/operations'
 import { eventQuotaOperations } from './quotas/operations'
 import { eventNotificationOperations } from './notifications/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
@@ -370,15 +369,19 @@ export const eventOperations = {
             })
 
             if (data.takesRegistration) {
-                const variant = await createVariant(prisma, createdEvent.id, {
-                    name: 'Påmelding',
-                    registrationStart: data.registrationStart ?? new Date(),
-                    registrationEnd: data.registrationEnd ?? new Date(Date.now() + DAY_MS),
-                    takesPayment: data.takesPayment,
-                    price: data.price,
-                    paymentStart: data.paymentStart,
-                    paymentEnd: data.paymentEnd,
-                    requeueUnpaidRegistrations: data.requeueUnpaidRegistrations,
+                const variant = await eventVariantOperations.internal.create.internalCall({
+                    prisma,
+                    params: { eventId: createdEvent.id },
+                    data: {
+                        name: 'Påmelding',
+                        registrationStart: data.registrationStart ?? new Date(),
+                        registrationEnd: data.registrationEnd ?? new Date(Date.now() + DAY_MS),
+                        takesPayment: data.takesPayment,
+                        price: data.price,
+                        paymentStart: data.paymentStart,
+                        paymentEnd: data.paymentEnd,
+                        requeueUnpaidRegistrations: data.requeueUnpaidRegistrations,
+                    },
                 })
                 await eventQuotaOperations.internal.create.internalCall({
                     prisma,
@@ -525,7 +528,13 @@ export const eventOperations = {
                         data: { requirements: adminRequirements },
                     })
                 }
-                const variantIds = variants ? await applyRegistrationSetup(tx, params.id, variants) : []
+                const variantIds = variants
+                    ? await eventVariantOperations.internal.saveSetup.internalCall({
+                        prisma: tx,
+                        params: { eventId: params.id },
+                        data: { variants },
+                    })
+                    : []
                 // The event's own fields go last, since they are checked against its quotas as the save leaves them.
                 const saved = await updateFields.internalCall({ prisma: tx, params, data: fields })
 

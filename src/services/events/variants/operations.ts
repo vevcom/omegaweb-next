@@ -1,15 +1,179 @@
 import '@pn-server-only'
 import { eventVariantAuth } from './auth'
 import { eventVariantSchemas } from './schemas'
-import { assertValidVariant, createVariant, unpaidVariant } from './createVariant'
-import { assertSeenThroughQuotas, readEventAccess, readEventIdOfVariant } from '@/services/events/access'
+import { readEventAccess } from '@/services/events/access'
 import { eventQuotaOrder, eventVariantOrder, eventVariantSummarySelection } from '@/services/events/constants'
-import { lockEvent, registrationsOfVariant } from '@/services/events/registration/queue'
+import { eventQuotaOperations } from '@/services/events/quotas/operations'
+import { registrationsOfVariant } from '@/services/events/registration/queue'
 import { ServiceError } from '@/services/error'
-import { defineOperation } from '@/services/serviceOperation'
-import { visibilityOperations } from '@/services/visibility/operations'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { EventVariantExpanded } from './types'
+
+type VariantPeriods = {
+    registrationStart: Date,
+    registrationEnd: Date,
+    takesPayment: boolean,
+    price?: number | null,
+    paymentStart?: Date | null,
+    paymentEnd?: Date | null,
+}
+
+/** Passes the values the variant will have, so a partial update is judged whole. */
+function assertValidVariant(variant: VariantPeriods) {
+    if (variant.registrationStart > variant.registrationEnd) {
+        throw new ServiceError('BAD PARAMETERS', 'Påmeldingen må jo starte før den slutter')
+    }
+    if (!variant.takesPayment) return
+    if (!variant.price) {
+        throw new ServiceError('BAD PARAMETERS', 'En variant som tar betaling må ha en pris')
+    }
+    if (!variant.paymentStart || !variant.paymentEnd) {
+        throw new ServiceError('BAD PARAMETERS', 'Betalingsdatoer må settes når varianten tar betaling')
+    }
+    if (variant.paymentStart > variant.paymentEnd) {
+        throw new ServiceError('BAD PARAMETERS', 'Betalingen må jo starte før den slutter')
+    }
+}
+
+/** What a variant that does not take payment holds in the payment fields. */
+const unpaidVariant = { price: null, paymentStart: null, paymentEnd: null, requeueUnpaidRegistrations: false }
+
+/*
+ * The writes of the variants. They change the variants and their quotas and nothing else: whoever
+ * calls them holds `lockEvent` and puts the registrations where they then belong once it is done,
+ * and checks that the event is still seen by someone. `eventOperations.saveSetup` does.
+ */
+
+/** Creates a variant last in the order of its event. */
+const create = defineSubOperation({
+    paramsSchema: () => eventVariantSchemas.params.create,
+    dataSchema: () => eventVariantSchemas.data.create,
+    transaction: 'RUNS_IN',
+    operation: () => async ({ prisma, params, data }) => {
+        assertValidVariant(data)
+        const last = await prisma.eventVariant.findFirst({
+            where: { eventId: params.eventId },
+            orderBy: { order: 'desc' },
+            select: { order: true },
+        })
+        return await prisma.eventVariant.create({
+            data: {
+                eventId: params.eventId,
+                order: (last?.order ?? -1) + 1,
+                name: data.name,
+                registrationStart: data.registrationStart,
+                registrationEnd: data.registrationEnd,
+                takesPayment: data.takesPayment,
+                ...(data.takesPayment
+                    ? {
+                        price: data.price,
+                        paymentStart: data.paymentStart,
+                        paymentEnd: data.paymentEnd,
+                        requeueUnpaidRegistrations: data.requeueUnpaidRegistrations,
+                    }
+                    : unpaidVariant),
+            },
+        })
+    },
+})
+
+/** Changes a variant. One that ends up taking no payment loses its price and payment period. */
+const update = defineSubOperation({
+    paramsSchema: () => eventVariantSchemas.params.update,
+    dataSchema: () => eventVariantSchemas.data.update,
+    transaction: 'RUNS_IN',
+    operation: () => async ({ prisma, params, data }) => {
+        const variant = await prisma.eventVariant.findUniqueOrThrow({ where: { id: params.id } })
+        const resulting = { ...variant, ...data }
+        assertValidVariant(resulting)
+
+        return await prisma.eventVariant.update({
+            where: { id: params.id },
+            data: {
+                ...data,
+                ...(resulting.takesPayment ? {} : unpaidVariant),
+            },
+        })
+    },
+})
+
+/** Removes a variant and its quotas, once no one is registered to it or waiting for it. */
+const destroy = defineSubOperation({
+    paramsSchema: () => eventVariantSchemas.params.destroy,
+    transaction: 'RUNS_IN',
+    operation: () => async ({ prisma, params }) => {
+        const variant = await prisma.eventVariant.findUniqueOrThrow({
+            where: { id: params.id },
+            select: { quotas: { select: { id: true } } },
+        })
+        if (await prisma.eventRegistration.count({ where: registrationsOfVariant(params.id) }) > 0) {
+            throw new ServiceError('BAD PARAMETERS', 'Varianten har påmeldte. Meld dem av før du fjerner den.')
+        }
+
+        for (const quota of variant.quotas) {
+            await eventQuotaOperations.internal.destroy.internalCall({ prisma, params: { id: quota.id } })
+        }
+        await prisma.eventVariant.delete({ where: { id: params.id } })
+    },
+})
+
+/** Puts the variants of an event in the order given, which must name each of them once. */
+const reorder = defineSubOperation({
+    paramsSchema: () => eventVariantSchemas.params.reorder,
+    dataSchema: () => eventVariantSchemas.data.reorder,
+    transaction: 'RUNS_IN',
+    operation: () => async ({ prisma, params, data }) => {
+        const variants = await prisma.eventVariant.findMany({
+            where: { eventId: params.eventId },
+            select: { id: true },
+        })
+        const given = new Set(data.variantIds)
+        if (given.size !== data.variantIds.length || given.size !== variants.length
+            || !variants.every(variant => given.has(variant.id))) {
+            throw new ServiceError('BAD PARAMETERS', 'Rekkefølgen må nevne hver variant i arrangementet én gang.')
+        }
+
+        await Promise.all(data.variantIds.map((variantId, order) => prisma.eventVariant.update({
+            where: { id: variantId },
+            data: { order },
+        })))
+    },
+})
+
+/**
+ * Makes the variants of an event the ones given, each with the quotas given, in the order given:
+ * creates those without an id, changes those with one and removes the ones left out, which is
+ * refused where someone is registered. Returns the ids of the variants, in order.
+ */
+const saveSetup = defineSubOperation({
+    paramsSchema: () => eventVariantSchemas.params.saveSetup,
+    dataSchema: () => eventVariantSchemas.data.saveSetup,
+    transaction: 'RUNS_IN',
+    operation: () => async ({ prisma, params, data }): Promise<number[]> => {
+        const existing = await prisma.eventVariant.findMany({
+            where: { eventId: params.eventId },
+            select: { id: true },
+        })
+        const keptIds = data.variants.flatMap(variant => (variant.id === undefined ? [] : [variant.id]))
+        if (!keptIds.every(id => existing.some(variant => variant.id === id))) {
+            throw new ServiceError('BAD PARAMETERS', 'Varianten hører ikke til arrangementet.')
+        }
+
+        for (const variant of existing) {
+            if (!keptIds.includes(variant.id)) await destroy.internalCall({ prisma, params: { id: variant.id } })
+        }
+        const variantIds: number[] = []
+        for (const { id, quotas, ...fields } of data.variants) {
+            const variantId = id ?? (await create.internalCall({ prisma, params, data: fields })).id
+            if (id !== undefined) await update.internalCall({ prisma, params: { id }, data: fields })
+            await eventQuotaOperations.internal.saveSetup.internalCall({ prisma, params: { variantId }, data: { quotas } })
+            variantIds.push(variantId)
+        }
+        await reorder.internalCall({ prisma, params, data: { variantIds } })
+        return variantIds
+    },
+})
 
 export const eventVariantOperations = {
     readMany: defineOperation({
@@ -50,60 +214,11 @@ export const eventVariantOperations = {
         },
     }),
 
-    create: defineOperation({
-        paramsSchema: eventVariantSchemas.params.create,
-        dataSchema: eventVariantSchemas.data.create,
-        authorizer: async ({ params, prisma }) => eventVariantAuth.create.data(
-            await readEventAccess(prisma, params.eventId)
-        ),
-        transaction: 'RUNS_IN',
-        operation: async ({ prisma, params, data }) =>
-            await createVariant(prisma, params.eventId, data),
-    }),
-
-    update: defineOperation({
-        paramsSchema: eventVariantSchemas.params.update,
-        dataSchema: eventVariantSchemas.data.update,
-        authorizer: async ({ params, prisma }) => eventVariantAuth.update.data(
-            await readEventAccess(prisma, await readEventIdOfVariant(prisma, params.id))
-        ),
-        operation: async ({ prisma, params, data }) => {
-            const variant = await prisma.eventVariant.findUniqueOrThrow({ where: { id: params.id } })
-            const resulting = { ...variant, ...data }
-            assertValidVariant(resulting)
-
-            return await prisma.eventVariant.update({
-                where: { id: params.id },
-                data: {
-                    ...data,
-                    ...(resulting.takesPayment ? {} : unpaidVariant),
-                },
-            })
-        },
-    }),
-
-    destroy: defineOperation({
-        paramsSchema: eventVariantSchemas.params.destroy,
-        authorizer: async ({ params, prisma }) => eventVariantAuth.destroy.data(
-            await readEventAccess(prisma, await readEventIdOfVariant(prisma, params.id))
-        ),
-        transaction: 'RUNS_IN',
-        operation: async ({ prisma, params }) => {
-            const variant = await prisma.eventVariant.findUniqueOrThrow({
-                where: { id: params.id },
-                select: { eventId: true, quotas: { select: { visibilityId: true } } },
-            })
-
-            await lockEvent(prisma, variant.eventId)
-            if (await prisma.eventRegistration.count({ where: registrationsOfVariant(params.id) }) > 0) {
-                throw new ServiceError('BAD PARAMETERS', 'Varianten har påmeldte. Meld dem av før du fjerner den.')
-            }
-            await prisma.eventVariant.delete({ where: { id: params.id } })
-            await Promise.all(variant.quotas.map(quota => visibilityOperations.destroy.internalCall({
-                prisma,
-                params: { visibilityId: quota.visibilityId },
-            })))
-            await assertSeenThroughQuotas(prisma, variant.eventId)
-        },
-    }),
+    internal: {
+        create,
+        update,
+        destroy,
+        reorder,
+        saveSetup,
+    },
 } as const
