@@ -69,8 +69,7 @@ class FakeMailServer {
     private readonly blobs = new Map<string, string>()
     readonly setCalls: SetCall[] = []
     readonly authorizations: string[] = []
-    /** What a test has the server refuse: domains by name, and a script for these accounts. */
-    readonly refusedDomains = new Set<string>()
+    /** What a test has the server refuse: a script for these accounts. */
     readonly accountsRefusingScripts = new Set<string>()
     private nextId = 1
 
@@ -307,7 +306,6 @@ class FakeMailServer {
     private refusalOf(object: MailServerObjectName, value: Record<string, unknown>): string | null {
         if (value.description === '') return 'invalidPatch'
         if (object === 'Domain') {
-            if (this.refusedDomains.has(String(value.name))) return 'invalidProperties'
             const taken = Array.from(this.objects.Domain.values()).some(existing => existing.name === value.name)
             return taken ? 'primaryKeyViolation' : null
         }
@@ -316,10 +314,15 @@ class FakeMailServer {
     }
 }
 
-/** A server that already holds our domain, as the dev and prod servers do before the first sync. */
+/**
+ * A server as the infrastructure's plan leaves it before the first sync, the way the dev and prod
+ * servers are: with our domain, and with the two the mailboxes take, which the sync never makes.
+ */
 function serverWithOurDomain(): FakeMailServer {
     const server = new FakeMailServer()
     server.add('Domain', { name: TEST_DOMAIN })
+    server.add('Domain', { name: webmail.domain })
+    server.add('Domain', { name: forwardingDomainOf(webmail.domain) })
     return server
 }
 
@@ -658,9 +661,8 @@ describe('syncing mailboxes', () => {
         const server = serverWithOurDomain()
         await syncMailServer({ client: server.client(), webmail })
 
-        // The webmail's host is the domain of those who sign in, and the lists are on one under it.
-        expect(server.domain(webmail.domain)).toBeDefined()
-        expect(server.domain(forwardingDomainOf(webmail.domain))).toBeDefined()
+        // The webmail's host and the domain of the lists under it are the plan's, so the sync made neither.
+        expect(server.setCallsFor('Domain')).toEqual([])
 
         const group = server.account(alias.address)
         expect(group).toBeDefined()
@@ -747,7 +749,7 @@ describe('syncing mailboxes', () => {
         const server = serverWithOurDomain()
         await syncMailServer({ client: server.client() })
         expect(server.objects.Account.size).toBe(0)
-        expect(server.objects.Domain.size).toBe(1)
+        expect(server.setCallsFor('Domain')).toEqual([])
         expect(server.mailingList(alias.address)).toBeDefined()
     })
 
@@ -785,7 +787,7 @@ describe('syncing mailboxes', () => {
             bypassAuth: true,
         })
         const server = serverWithOurDomain()
-        const accountDomain = server.add('Domain', { name: webmail.domain })
+        const accountDomain = server.domain(webmail.domain)!
         const formerGroup = server.add('Account', {
             '@type': 'Group', name: 'test-migrated', domainId: accountDomain.id, description: alias.address,
         })
@@ -848,9 +850,7 @@ describe('syncing memberships', () => {
         Object.keys(server.objects.Account.get(account.id)?.memberGroupIds ?? {}).sort()
 
     function serverWithAccounts() {
-        const server = serverWithOurDomain()
-        server.add('Domain', { name: webmail.domain })
-        return server
+        return serverWithOurDomain()
     }
 
     test('an account is a member of exactly the mailboxes of the aliases its user receives', async () => {
@@ -966,9 +966,7 @@ describe('syncing the mailboxes of users', () => {
         })
 
     function serverWithAccounts() {
-        const server = serverWithOurDomain()
-        server.add('Domain', { name: webmail.domain })
-        return server
+        return serverWithOurDomain()
     }
 
     test('a user is given their account ahead, at their address, and it sends on to their private email', async () => {
@@ -1163,9 +1161,7 @@ describe('a change the server refuses', () => {
         (await prisma.mailAlias.findUniqueOrThrow({ where: { id: aliasId } })).mailboxAccountId
 
     function serverWithAccounts() {
-        const server = serverWithOurDomain()
-        server.add('Domain', { name: webmail.domain })
-        return server
+        return serverWithOurDomain()
     }
 
     test('a refused list does not keep the other aliases from theirs, and the run fails naming it', async () => {
@@ -1236,20 +1232,22 @@ describe('a change the server refuses', () => {
 
     test('without the domains of the mailboxes the aliases are left as they are', async () => {
         await createTestAlias('test-waits')
-        const server = serverWithOurDomain()
-        server.refusedDomains.add(forwardingDomainOf(webmail.domain))
+        const server = new FakeMailServer()
+        server.add('Domain', { name: webmail.domain })
 
         await expect(run(server)).rejects.toThrow(
-            /left the aliases as they were.*refused to create Domain forward_mail_omega_ntnu_no-\d+ \(invalidProperties\)$/
+            /left the aliases as they were, since the server lacks forward\.mail\.omega\.ntnu\.no,.*infrastructure's plan/
         )
-        expect(server.domain(webmail.domain)).toBeDefined()
+        // The site's domain is the sync's to make. The forwarding domain is the plan's, so it is not made.
+        expect(server.domain(TEST_DOMAIN)).toBeDefined()
+        expect(server.domain(forwardingDomainOf(webmail.domain))).toBeUndefined()
         expect(server.setCallsFor('MailingList')).toEqual([])
         expect(server.setCallsFor('Account')).toEqual([])
     })
 })
 
 describe('syncing domains', () => {
-    test('a missing domain is created, and an existing one is not created again', async () => {
+    test('a missing domain of the sites is created, and an existing one is not created again', async () => {
         const server = new FakeMailServer()
         await syncMailServer({ client: server.client() })
         const domain = server.domain(TEST_DOMAIN)
