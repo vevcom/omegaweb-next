@@ -3,6 +3,7 @@ import { eventAuth } from './auth'
 import { eventSchemas } from './schemas'
 import { assertSeenThroughQuotas, readEventAccess } from './access'
 import {
+    eventArchiveOrder,
     eventListSelection,
     eventQuotaOrder,
     eventVariantOrder,
@@ -242,6 +243,7 @@ export const eventOperations = {
                     ...prismaWhereFilter
                 },
                 select: eventListSelection,
+                orderBy: eventArchiveOrder,
             })
             return events.map(withTagsAndVariantSummary)
         }

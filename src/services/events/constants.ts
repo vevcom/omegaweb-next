@@ -44,6 +44,16 @@ export const eventQuotaOrder = [
     { id: 'asc' },
 ] satisfies Prisma.EventQuotaOrderByWithRelationInput[]
 
+/**
+ * The order of the archived events: the most recent one first, since the archive is what a visitor
+ * looks at to find the last events. The id breaks ties between events that start at the same time,
+ * so the cursor paging has a stable order.
+ */
+export const eventArchiveOrder = [
+    { eventStart: 'desc' },
+    { id: 'desc' },
+] satisfies Prisma.EventOrderByWithRelationInput[]
+
 /** A variant with its quotas in fill order and how many wait for a place in it. */
 export const eventVariantSummarySelection = {
     id: true,
