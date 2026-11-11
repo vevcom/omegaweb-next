@@ -5,6 +5,7 @@ import { configureAction } from '@/services/configureAction'
 import { useSession } from '@/auth/session/useSession'
 import { authLinks } from '@/pageKits/auth/links'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
@@ -20,6 +21,7 @@ type VerifiedUser = {
 export default function VerifyEmail({ config, token }: { config: AuthPagesConfig, token: string }) {
     const links = authLinks(config)
     const session = useSession()
+    const { push } = useSiteRouter()
     const [verifiedUser, setVerifiedUser] = useState<VerifiedUser | null>(null)
     const sessionUserId = session.loading ? null : session.session.user?.id ?? null
 
@@ -29,10 +31,13 @@ export default function VerifyEmail({ config, token }: { config: AuthPagesConfig
                 action={configureAction(verifyEmailAction, { params: { token } })}
                 title="Bekreft e-postadressen din"
                 submitText="Bekreft"
-                successCallback={(user?: VerifiedUser) => user && setVerifiedUser(user)}
-                navigateOnSuccess={(user?: VerifiedUser) => (
-                    user?.id === sessionUserId && !user.acceptedTerms ? links.register() : null
-                )}
+                successCallback={(user?: VerifiedUser) => {
+                    if (!user) return
+                    setVerifiedUser(user)
+                    if (user.id === sessionUserId && !user.acceptedTerms) {
+                        push(links.register(), { servedOn: 'auth-domain' })
+                    }
+                }}
             />
         )
     }

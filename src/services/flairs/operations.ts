@@ -56,7 +56,7 @@ export const flairOperations = {
         dataSchema: flairSchemas.data.updateImage,
         transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
-            const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
+            const newImage = await prisma.$transaction(async tx => {
                 const existingFlair = await tx.flair.findUniqueOrThrow({
                     where: { id: params.flairId }
                 })
@@ -72,15 +72,14 @@ export const flairOperations = {
                         }
                     }
                 })
-                const fileCleanup = existingFlair.imageId
-                    ? await flairImageOperations.destroyImageDbAndReturnCleanup.internalCall({
+                if (existingFlair.imageId) {
+                    await flairImageOperations.destroyImage.internalCall({
                         prisma: tx,
                         params: { imageId: existingFlair.imageId }
                     })
-                    : async () => {}
-                return { image: uploadedImage, cleanup: fileCleanup }
+                }
+                return uploadedImage
             }, { timeout: 20000 })
-            await cleanup()
             return newImage
         }
     }),
@@ -162,7 +161,7 @@ export const flairOperations = {
         paramsSchema: flairSchemas.params.destroy,
         transaction: 'OPENS',
         operation: async ({ prisma, params: { flairId } }) => {
-            const { cleanup } = await prisma.$transaction(async tx => {
+            await prisma.$transaction(async tx => {
                 await lockRanks(tx)
                 const flair = await tx.flair.delete({
                     where: {
@@ -179,17 +178,13 @@ export const flairOperations = {
                 await flairsBelow.reduce((previousMove, flairBelow) => previousMove.then(async () => {
                     await tx.flair.update({ where: { id: flairBelow.id }, data: { rank: flairBelow.rank - 1 } })
                 }), Promise.resolve())
-                const fileCleanup =
-                    await flairImageOperations.destroyImageDbAndReturnCleanup.internalCall({
-                        prisma: tx,
-                        params: {
-                            imageId: flair.imageId,
-                        }
-                    })
-                return { cleanup: fileCleanup }
+                await flairImageOperations.destroyImage.internalCall({
+                    prisma: tx,
+                    params: {
+                        imageId: flair.imageId,
+                    }
+                })
             })
-            // Clean up files after transaction succeeds
-            await cleanup()
         }
     }),
     /** Moves a flair one step towards rank 1, the flair shown first. */

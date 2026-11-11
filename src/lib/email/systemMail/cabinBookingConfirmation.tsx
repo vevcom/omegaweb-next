@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { CabinBookingConfirmationTemplate } from '@/lib/email/templates/cabinBookingConfirmation'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
+import { sendMailOperations } from '@/services/mail/send/operations'
 import type { Booking } from '@/prisma-generated-pn-types'
 
 export type ConfirmedBooking = Pick<Booking, 'start' | 'end' | 'numberOfMembers' | 'numberOfNonMembers' | 'totalPrice'>
@@ -13,7 +13,7 @@ export async function sendCabinBookingConfirmationMail(
     recipient: { email: string, firstname: string },
     booking: ConfirmedBooking,
 ) {
-    await sendMailOperations.internal.sendSystemMail.internalCall({
+    await sendMailOperations.sendSystemMail.internalCall({
         data: {
             to: recipient.email,
             subject: 'Bekreftelse på hyttebooking',

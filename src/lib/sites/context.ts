@@ -1,6 +1,6 @@
 import { Site } from './site'
 import { appHref, domainContextResolvedHref, isAppPath } from './href'
-import type { DomainConfig, SiteDomain } from './domainConfig'
+import type { DomainConfig, DomainConfigData, SiteDomain } from './domainConfig'
 import type { AppHref, DomainContextResolvedHref, ExternalHref } from './href'
 
 export type DomainContextData = {
@@ -8,22 +8,34 @@ export type DomainContextData = {
     path: AppHref,
 }
 
+/**
+ * Where a page says it is served, when that is not on its site: on the auth domain, the one domain
+ * that signs users in, where its session lives and credentials are typed.
+ */
+export type ServedOn = 'auth-domain'
+
 export type ResolveHrefOptions = {
     /**
      * Go by the main domain of the page's site even from a domain that serves it: the explicit way over
      * to another site, used sparingly. Without it the visitor stays on the domain they are on when it can.
      */
     toMainDomainServingSite?: boolean,
+    /**
+     * What the page linked to says of itself, see {@link ServedOn}, for a link that knows it: the
+     * link then goes straight to the domain serving the page, where the page would otherwise send
+     * the request on once it got it.
+     */
+    servedOn?: ServedOn,
 }
 
-const appWidePrefixes = ['/api/', '/_next/', '/__nextjs', '/store/']
+const appWidePrefixes = ['/api/', '/_next/', '/__nextjs', '/store/', '/.well-known/']
 // A file at the app's root, such as /sw.js, /manifest.webmanifest or an icon: a page never has an extension.
 const rootFile = /^\/[^/?#]+\.[a-z0-9]+(?:[?#]|$)/i
 
 /**
  * Paths that are the app's rather than a site's: served alike on every domain, never under a base
- * path. The api, Next's own files, the store and the files at the root, which the browser asks for
- * by their plain path on every domain.
+ * path. The api, Next's own files, the store, the well-known documents and the files at the root,
+ * which the browser asks for by their plain path on every domain.
  */
 export const isAppWidePath = (path: string) =>
     appWidePrefixes.some(prefix => path.startsWith(prefix)) || rootFile.test(path)
@@ -38,6 +50,13 @@ const store = globalThis as { domainConfig?: DomainConfig }
  * configured with, so being on contactor.no and being on omega.ntnu.no/career are different
  * contexts for the same page. Everything site-aware works through it rather than looking at the
  * url itself.
+ *
+ * One domain signs users in, the auth domain, see {@link isAuthDomain}. A page says itself when it
+ * is served there, see {@link ServedOn}, and is then served there alone, under the base path of
+ * the site it is mounted on. A domain set apart for it serves no other page. The context never
+ * tells such a page from its path: {@link urlOnServingDomain} sends a request on from what the
+ * page says. Each site's domain still holds its own session cookie, which the sign in hands over
+ * to it.
  *
  * The server configures it once at start, from sites.json (see loadDomainConfig); the browser from
  * what the server hands over.
@@ -58,6 +77,11 @@ export class DomainContext {
         return store.domainConfig !== undefined
     }
 
+    /** The domain a host is, or null for a host that is no site's, such as the auth domain. */
+    static domainOfHost(host: string): SiteDomain | null {
+        return DomainContext.config().domainOfHost(host)
+    }
+
     /** The domain a host is an alias of, such as `www.omega.ntnu.no` of `omega.ntnu.no`, or null for no alias. */
     static domainOfAlias(host: string): SiteDomain | null {
         return DomainContext.config().domainOfAlias(host)
@@ -68,9 +92,24 @@ export class DomainContext {
         return DomainContext.config().hostNames()
     }
 
-    /** The domains in use, for the server to hand over to the browser. */
-    static domainsForBrowser(): SiteDomain[] {
+    /** The config in use, for the server to hand over to the browser. */
+    static configForBrowser(): DomainConfigData {
         return DomainContext.config().toJSON()
+    }
+
+    /** Whether sites.json names any domain. Until it does, as at build, every host is served like Omega's. */
+    static hasDomains(): boolean {
+        return DomainContext.config().hasDomains()
+    }
+
+    /**
+     * The origin that signs users in: the dedicated auth domain, or without one the main domain of
+     * Omega's site. Throws without either, since no one logs in then.
+     */
+    static authOrigin(): string {
+        const origin = DomainContext.config().authOrigin()
+        if (!origin) throw new Error('sites.json gives no auth domain and Omega\'s site no main domain to sign in on')
+        return origin
     }
 
     private static config(): DomainConfig {
@@ -100,12 +139,33 @@ export class DomainContext {
 
     /**
      * An href of a page on `site` as a link from outside the app, in emails and notifications: by the
-     * main domain serving it.
+     * main domain serving it. A page served on the auth domain is linked by {@link authDomainUrl}.
      */
     static publicUrl(site: Site, href: AppHref): string {
         const url = DomainContext.mainDomainUrl(site, href)
         if (!url) throw new Error('sites.json gives Omega\'s site no main domain to link by')
         return url
+    }
+
+    /**
+     * The url of an app path on the auth domain, which serves every site under its base path. For
+     * what must go straight there: the redirects to the login form and the links in the sign up
+     * and password emails, whose tokens then never pass a site's domain. Throws without an auth
+     * domain, as {@link authOrigin} does.
+     */
+    static authDomainUrl(href: AppHref): string {
+        return `${DomainContext.authOrigin()}${href}`
+    }
+
+    /**
+     * The origin a site is reached by from outside: its main domain, or Omega's for a site without
+     * domains. Throws without either, as nothing is reached then.
+     */
+    static originOfSite(site: Site): string {
+        const config = DomainContext.config()
+        const origin = config.mainOriginOfSite(site) ?? config.mainOriginOfSite(Site.root)
+        if (!origin) throw new Error('sites.json gives Omega\'s site no main domain to reach it by')
+        return origin
     }
 
     /**
@@ -147,8 +207,39 @@ export class DomainContext {
     }
 
     /**
-     * The site whose domain the visitor is on. The root site on a host that is not configured, since
-     * such a host, like the root site's own domains, serves every site under its base path.
+     * Whether the visitor is on the domain that signs users in, where the session the auth pages work
+     * on lives: the dedicated auth domain, or without one the main domain of Omega's site.
+     */
+    isAuthDomain(): boolean {
+        const origin = this.dedicatedAuthOrigin() ?? this.siteDomain()?.origin ?? null
+        return origin !== null && origin === DomainContext.config().authOrigin()
+    }
+
+    /**
+     * Whether the visitor is on a domain set apart to sign users in, which serves the pages that say
+     * they are served on the auth domain, under their sites' base paths, and no other page.
+     */
+    isDedicatedAuthDomain(): boolean {
+        return this.dedicatedAuthOrigin() !== null
+    }
+
+    /**
+     * The origin of the domain the visitor is on, as the browser has it: a site's domain or the
+     * domain set apart to sign in. Null on a host that is neither, such as an alias.
+     */
+    origin(): string | null {
+        return this.siteDomain()?.origin ?? this.dedicatedAuthOrigin()
+    }
+
+    private dedicatedAuthOrigin(): string | null {
+        const config = DomainContext.config()
+        return config.isAuthHost(this.domain) ? config.authOrigin() : null
+    }
+
+    /**
+     * The site whose domain the visitor is on. The root site on a host that is not configured, and
+     * on the dedicated auth domain, since such a host, like the root site's own domains, serves
+     * every site under its base path.
      */
     hostSite(): Site {
         const siteDomain = this.siteDomain()
@@ -174,14 +265,21 @@ export class DomainContext {
      * The href to render for an app path such as `/career/job-ads`, seen from here. The visitor stays
      * on the domain they are on whenever it serves the page's site: site-relative on the site's own
      * domains, under the base path on Omega's. Otherwise, or when asked to go to the main domain, the
-     * page is reached by the main domain serving it. Anything but a site's page, such as an
-     * external url or an app-wide path like `/api/...`, is left as it is. The result is typed as
-     * resolved, so it is never resolved again: on another site's domain a site-relative path reads
-     * as a page of Omega's.
+     * page is reached by the main domain serving it, which is every page from a domain set apart to
+     * sign users in. A page served on the auth domain resolves like any page of its site, and the
+     * page itself sends the request on, see {@link urlOnServingDomain}, unless the link says where
+     * the page is served: it then stays on the auth domain or goes straight to it. Anything but a site's page,
+     * such as an external url or an app-wide path like `/api/...`, is left as it is. The result is
+     * typed as resolved, so it is never resolved again: on another site's domain a site-relative
+     * path reads as a page of Omega's.
      */
     resolveHref(href: AppHref | ExternalHref, options: ResolveHrefOptions = {}): DomainContextResolvedHref {
         const resolved = (): string => {
             if (!isAppPath(href) || isAppWidePath(href)) return href
+            const authOrigin = DomainContext.config().authOrigin()
+            if (options.servedOn === 'auth-domain' && authOrigin !== null) {
+                return this.isAuthDomain() ? href : `${authOrigin}${href}`
+            }
             const target = Site.ofPath(href)
             if (!options.toMainDomainServingSite && this.serves(target)) {
                 return this.servesBasePaths() ? href : target.pathOn(href)
@@ -191,8 +289,29 @@ export class DomainContext {
         return domainContextResolvedHref(resolved())
     }
 
-    /** Whether the domain the visitor is on serves the pages of `site`: its own site, or any site on Omega's domains. */
+    /**
+     * Whether the domain the visitor is on serves the pages of `site`: its own site, or any site on
+     * Omega's domains. The dedicated auth domain serves no site's pages, only the pages that say
+     * they are served on the auth domain.
+     */
     serves(site: Site): boolean {
+        if (this.isDedicatedAuthDomain()) return false
         return this.servesBasePaths() || this.hostSite() === site
+    }
+
+    /**
+     * The url of the page the visitor asked for on the domain that serves it, with its query, or
+     * null when the domain they are on does. `servedOn` is what the page says of itself: a page
+     * served on the auth domain is served there alone, and any other page everywhere but on a
+     * domain set apart to sign users in, from which it goes to the main domain serving its site.
+     * Without an auth domain, as at build, every page is served where it is asked for.
+     */
+    urlOnServingDomain(servedOn?: ServedOn): string | null {
+        if (servedOn === 'auth-domain') {
+            const authOrigin = DomainContext.config().authOrigin()
+            return authOrigin === null || this.isAuthDomain() ? null : `${authOrigin}${this.path}`
+        }
+        if (!this.isDedicatedAuthDomain() || isAppWidePath(this.path)) return null
+        return DomainContext.mainDomainUrl(Site.ofPath(this.path), this.path)
     }
 }

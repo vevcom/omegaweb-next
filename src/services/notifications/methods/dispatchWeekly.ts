@@ -1,8 +1,8 @@
 import { linkToNotificationPage, replaceSpecialSymbols } from './helpers'
 import { weeklyDigest } from './constants'
-import { sendMailSchemas } from '@/services/notifications/sendMail/schemas'
-import { sendMailOperations } from '@/services/notifications/sendMail/operations'
-import { defaultNotificationAlias } from '@/lib/email/constants'
+import { sendMailSchemas } from '@/services/mail/send/schemas'
+import { sendMailOperations } from '@/services/mail/send/operations'
+import { defaultNotificationAlias } from '@/services/mail/send/constants'
 import { wrapInHTML } from '@/lib/email/wrapInHTML'
 import logger from '@/lib/logger'
 import { DomainContext } from '@/lib/sites/context'
@@ -49,7 +49,7 @@ export async function sendWeeklyEmailDigest(user: UserBasicWithEmail, notificati
         return false
     }
 
-    await sendMailOperations.internal.sendBulkMail.internalCall({
+    await sendMailOperations.sendBulkMail.internalCall({
         data: [{
             from: parsed.data.from,
             to: parsed.data.to,

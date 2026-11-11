@@ -1,5 +1,5 @@
 import { licenseOperations } from '@/services/licenses/operations'
-import { mimeTypeForExtension } from '@/lib/store/fileExtensions'
+import { mimeTypeForExtension } from '@/services/store/fileExtensions'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { File } from 'node:buffer'

@@ -1,5 +1,6 @@
 import '@pn-server-only'
 import { manualNotificationChannelAuth } from './auth'
+import { visibilityOwnedByNothing } from '@/services/visibility/constants'
 import { implementNotificationChannelsForPurpose } from '@/services/notifications/channels/implementForPurpose'
 
 const manualChannels = implementNotificationChannelsForPurpose({
@@ -34,5 +35,10 @@ export const manualNotificationChannelOperations = {
     destroy: manualChannels.internal.destroy.implement({
         authorizer: () => manualNotificationChannelAuth.destroy,
         ownershipCheck: ({ prisma, params }) => manualChannels.ownsChannel({ prisma, channelId: params.id }),
+        beforeRun: async ({ prisma, params }) => {
+            await prisma.visibility.deleteMany({
+                where: { notifications: { some: { channelId: params.id } }, ...visibilityOwnedByNothing },
+            })
+        },
     }),
 } as const

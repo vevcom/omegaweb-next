@@ -650,7 +650,7 @@ export const userOperations = {
         // before any db write happens - comfortably slower than the default 5000ms interactive
         // transaction timeout under load, hence the raised timeout below.
         operation: async ({ prisma, params, data }) => {
-            const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
+            const newImage = await prisma.$transaction(async tx => {
                 const existingUser = await tx.user.findUniqueOrThrow({
                     where: { username: params.username },
                 })
@@ -675,16 +675,15 @@ export const userOperations = {
 
                 // A previous imageId is always an upload owned 1:1 by this user (never the shared
                 // default, since that's only ever resolved at read time) - safe to destroy.
-                const fileCleanup = existingUser.imageId
-                    ? await userProfileImageOperations.destroyImageDbAndReturnCleanup.internalCall({
+                if (existingUser.imageId) {
+                    await userProfileImageOperations.destroyImage.internalCall({
                         prisma: tx,
                         params: { imageId: existingUser.imageId }
                     })
-                    : async () => { }
+                }
 
-                return { image: uploadedImage, cleanup: fileCleanup }
+                return uploadedImage
             }, { timeout: 20000 })
-            await cleanup()
             return newImage
         }
     }),

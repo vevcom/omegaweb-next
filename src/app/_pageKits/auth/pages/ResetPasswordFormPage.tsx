@@ -8,6 +8,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 export function resetPasswordFormPage(config: AuthPagesConfig) {
     return serverPage({
+        servedOn: 'auth-domain',
         allowUnregistered: true,
         operation: async ({ searchParams }: PageOperationArgs) => {
             const token = QueryParams.token.decode(searchParams)
