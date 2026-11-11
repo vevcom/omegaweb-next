@@ -31,13 +31,19 @@ async function createArchivedEvent(name: string, eventStart: Date) {
     return event
 }
 
-/** The first page of the archive of the past events. */
-function readArchive() {
+/**
+ * A page of the archive of the past events. The cursor is the id of the last event of the
+ * previous page, the way the archive paging builds it.
+ */
+function readArchivePage(
+    page: { pageSize: number, page: number, cursor: { id: number } | null },
+    name?: string,
+) {
     return eventOperations.readManyArchivedPage({
         params: {
             paging: {
-                page: { pageSize: 12, page: 0, cursor: null },
-                details: { name: undefined, tags: null },
+                page,
+                details: { name, tags: null },
             },
         },
     })
@@ -49,7 +55,7 @@ describe('the archive of past events', () => {
         await createArchivedEvent('Archive newest', new Date('2024-01-01T10:00:00Z'))
         await createArchivedEvent('Archive middle', new Date('2021-01-01T10:00:00Z'))
 
-        const events = await readArchive()
+        const events = await readArchivePage({ pageSize: 12, page: 0, cursor: null })
 
         expect(events.map(event => event.name)).toEqual([
             'Archive newest',
@@ -77,16 +83,59 @@ describe('the archive of past events', () => {
             },
             bypassAuth: true,
         })
+        const running = await eventOperations.create({
+            data: {
+                name: 'Archive running',
+                location: 'Omegakjelleren',
+                eventStart: new Date(Date.now() - HOUR),
+                eventEnd: new Date(Date.now() + HOUR),
+                canBeViewedBy: 'ALL',
+                takesRegistration: true,
+                places: 10,
+                registrationStart: new Date(Date.now() - HOUR),
+                registrationEnd: new Date(Date.now() + HOUR),
+                waitingList: true,
+                tagIds: [],
+                visibilityAdminRequirements: [{ conditions: [] }],
+            },
+            bypassAuth: true,
+        })
         await eventOperations.setPublished({
             params: { id: coming.id },
             data: { published: true },
             bypassAuth: true,
         })
+        await eventOperations.setPublished({
+            params: { id: running.id },
+            data: { published: true },
+            bypassAuth: true,
+        })
 
-        const events = await readArchive()
+        const events = await readArchivePage({ pageSize: 12, page: 0, cursor: null })
         const names = events.map(event => event.name)
 
         expect(names).toContain('Archive past')
         expect(names).not.toContain('Archive coming')
+        expect(names).not.toContain('Archive running')
+    })
+
+    test('pages through the events that start at the same time without losing or repeating one', async () => {
+        const start = new Date('2025-06-01T10:00:00Z')
+        await createArchivedEvent('Archive same first', start)
+        await createArchivedEvent('Archive same second', start)
+        await createArchivedEvent('Archive same third', start)
+
+        // The name filter keeps the other fixtures out of the pages.
+        const first = await readArchivePage({ pageSize: 2, page: 0, cursor: null }, 'Archive same')
+        const second = await readArchivePage(
+            { pageSize: 2, page: 1, cursor: { id: first[first.length - 1].id } },
+            'Archive same',
+        )
+
+        expect([...first, ...second].map(event => event.name)).toEqual([
+            'Archive same third',
+            'Archive same second',
+            'Archive same first',
+        ])
     })
 })
