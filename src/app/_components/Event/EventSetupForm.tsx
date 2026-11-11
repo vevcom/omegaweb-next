@@ -26,10 +26,17 @@ import type { ActionFormData } from '@/services/actionTypes'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
 import type { EventAccess } from '@/services/events/types'
+import type { VisibilityRequirement } from '@/services/visibility/types'
 import type { Committee, Event, EventCanView, EventLocationMap, EventTag } from '@/prisma-generated-pn-types'
 
 /** DateInput submits UTC without saying so, which Date would read as local time. */
 const utcDate = (value: FormDataEntryValue | null) => new Date(`${value as string}Z`)
+
+/** A field the form posts as JSON, which those editing something nested are. Undefined when the form has no such field. */
+function jsonField<Value>(values: FormData, name: string) {
+    const value = values.get(name)
+    return typeof value === 'string' ? JSON.parse(value) as Value : undefined
+}
 
 /** The tabs of the form, for the Tabs around it. */
 export const eventSetupTabs = [
@@ -79,13 +86,15 @@ export default function EventSetupForm({
     const links = eventLinks(config)
     const lockedTag = config.lockedTag
     const [variants, setVariants] = useState<VariantDraft[]>(() => toVariantDrafts(event.variants))
-    const [adminRequirements, setAdminRequirements] = useState(access.adminVisibility.requirements)
     const [waitingList, setWaitingList] = useState(event.waitingList)
     const save: ActionFormData<Event> = configureAction(saveEventSetupAction, { params: { id: event.id } })
     const { reportDots } = useTabs()
 
     const checkSetup = (values: FormData) => {
         const account = values.get('ledgerAccountSelection')
+        // Not a field of the form when who administrates the event could not be read.
+        const adminRequirements = jsonField<VisibilityRequirement[]>(values, 'adminRequirements')
+            ?? access.adminVisibility.requirements
         reportDots(setupTabStatuses(eventSetupChecks({
             location: values.get('location') as string | null,
             eventStart: utcDate(values.get('eventStart')),
@@ -219,8 +228,7 @@ export default function EventSetupForm({
                 <p className="m-0 text-s text-base-content/80">
                     Uten krav kan bare de med rettigheten EVENT_ADMIN administrere arrangementet.
                 </p>
-                <input type="hidden" name="adminRequirements" value={JSON.stringify(adminRequirements)} />
-                <VisibilityMatrixEditor requirements={adminRequirements} onChange={setAdminRequirements} />
+                <VisibilityMatrixEditor name="adminRequirements" defaultValue={access.adminVisibility.requirements} />
             </div> : <p className="m-0 text-base-content/80">Du kan ikke se hvem som administrerer arrangementet.</p>}
         </FormTab>
     </Form>
