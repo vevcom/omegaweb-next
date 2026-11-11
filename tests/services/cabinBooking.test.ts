@@ -126,3 +126,81 @@ describe('reserving beds', () => {
         await expect(reserveAsGuest('cabin-over-beds@example.com', 36, 37)).rejects.toThrow(Smorekopp)
     })
 })
+
+describe('canceling a paid booking', () => {
+    const userSession = () => Session.fromJsObject({ memberships: [], permissions: ['CABIN_USE'], user })
+
+    /** A booking whose payment has SUCCEEDED and been confirmed, paid for through Stripe. */
+    async function createPaidBooking(start: number, end: number) {
+        const cabinAccount = await prisma.ledgerAccount.findUniqueOrThrow({ where: { special: 'CABIN' } })
+        return prisma.booking.create({
+            data: {
+                type: 'CABIN',
+                start: date(start),
+                end: date(end),
+                numberOfMembers: 2,
+                numberOfNonMembers: 0,
+                totalPrice: 1000_00,
+                secret: `paid-${start}`,
+                user: { connect: { id: user.id } },
+                ledgerTransactions: {
+                    create: {
+                        purpose: 'CABIN_BOOKING',
+                        state: 'SUCCEEDED',
+                        ledgerEntries: { create: [{ ledgerAccountId: cabinAccount.id, funds: 1000_00, fees: 0 }] },
+                    },
+                },
+            },
+            include: { ledgerTransactions: true },
+        })
+    }
+
+    test('more than three weeks ahead, the price goes back to the user\'s account', async () => {
+        const booking = await createPaidBooking(60, 62)
+
+        await cabinBookingOperations.cancel({ params: { bookingId: booking.id }, session: userSession() })
+
+        const userAccount = await prisma.user.findUniqueOrThrow({
+            where: { id: user.id },
+            select: { ledgerAccountId: true },
+        })
+        const refund = await prisma.refund.findUniqueOrThrow({
+            where: { originalTransactionId: booking.ledgerTransactions[0].id },
+            include: { refundTransaction: { include: { ledgerEntries: true } } },
+        })
+        expect(refund.refundTransaction.ledgerEntries).toEqual(expect.arrayContaining([
+            expect.objectContaining({ funds: 1000_00, ledgerAccountId: userAccount.ledgerAccountId }),
+        ]))
+        const bookings = await cabinBookingOperations.readManyOfUser({
+            params: { userId: user.id },
+            session: userSession(),
+        })
+        expect(bookings.find(listed => listed.id === booking.id)?.canceled).not.toBeNull()
+    })
+
+    test('less than three weeks ahead, the booking stays', async () => {
+        const booking = await createPaidBooking(19, 20)
+
+        await expect(cabinBookingOperations.cancel({ params: { bookingId: booking.id }, session: userSession() }))
+            .rejects.toMatchObject({ errors: [{ message: expect.stringContaining('dager før innsjekk') }] })
+        await expect(prisma.booking.findUniqueOrThrow({ where: { id: booking.id } }))
+            .resolves.toMatchObject({ canceled: null })
+    })
+
+    test('no one but the booker can cancel it', async () => {
+        const booking = await createPaidBooking(64, 66)
+
+        await expect(cabinBookingOperations.cancel({ params: { bookingId: booking.id }, session: guestSession }))
+            .rejects.toThrow(Smorekopp)
+    })
+
+    test('the user\'s list leaves out reservations never paid for', async () => {
+        const reservation = await reserveAsUser(40, 41)
+
+        const bookings = await cabinBookingOperations.readManyOfUser({
+            params: { userId: user.id },
+            session: userSession(),
+        })
+        expect(bookings.map(listed => listed.id)).not.toContain(reservation.id)
+    })
+})

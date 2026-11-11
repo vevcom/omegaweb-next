@@ -17,6 +17,9 @@ import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { displayDate } from '@/lib/dates/displayDate'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
 import { serverPage, withFallback } from '@/app/ServerPage'
+import { Require } from '@/auth/authorizer/Require'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 import type { ReleasePeriod } from '@/prisma-generated-pn-types'
 
@@ -89,7 +92,10 @@ const { page, generateMetadata } = serverPage({
             ledgerAccounts,
         }
     },
-    capabilities: (data) => ({
+    capabilities: (data, session) => ({
+        canReadOwnBookings: session.user
+            ? cabinBookingAuth.readManyOfUser.data({ userId: session.user.id })
+            : Require.user(),
         canEditSpecialCmsParagraphContract: cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract,
         canConnectToLedgerAccount: cabinBookingAuth.connectToLedgerAccount.data({
             accounts: data.ledgerAccounts.map(account => account.ownership),
@@ -116,6 +122,9 @@ const { page, generateMetadata } = serverPage({
                 </SettingsHeaderItemPopUp>
             )}
         >
+            {capabilities.canReadOwnBookings.authorized &&
+                <SiteLink href={appHref('/users/me/cabin-bookings')}>Mine hyttebookinger</SiteLink>
+            }
             {nextReleasePeriod &&
                 <p>
                     Neste slipptid er <DateComponent date={nextReleasePeriod.releaseTime} />,

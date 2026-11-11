@@ -36,5 +36,10 @@ export const cabinBookingAuth = {
     // Only the holder of a reservation gives it up. Needs `{ booking, providedSecret }` supplied
     // via `.data()`.
     releaseReservation: requireBookingHolder(),
+
+    readManyOfUser: Require.userId(),
+
+    // A guest has no session to cancel with, so the cabin team cancels a guest booking.
+    cancel: Require.userId(),
 } as const
 
