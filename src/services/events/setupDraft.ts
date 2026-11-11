@@ -1,8 +1,8 @@
+import { eventCanBeViewedByOptions } from './constants'
 import { dateFromUtcInputValue } from '@/lib/dates/dateInputValue'
-import { eventCanBeViewedByOptions } from '@/services/events/constants'
-import type { EventSetup } from '@/services/events/publishProblems'
-import type { eventVariantSetupFormSchema } from '@/services/events/variants/schemas'
-import type { EventVariantExpanded } from '@/services/events/variants/types'
+import type { EventSetup } from './publishProblems'
+import type { eventVariantSetupFormSchema } from './variants/schemas'
+import type { EventVariantExpanded } from './variants/types'
 import type { VisibilityRequirement } from '@/services/visibility/types'
 import type { z } from 'zod'
 

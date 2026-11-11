@@ -1,4 +1,5 @@
 import { recordSentMail } from 'tests/utils'
+import { changeEventSetup } from 'tests/eventSetup'
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -71,8 +72,18 @@ const payerSessionOf = (user: UserFiltered) => Session.fromJsObject({
     memberships: sessionOf(user).memberships,
 })
 
+/**
+ * A published event that takes payment. An event is not published as paid without an account to
+ * be paid into, so the one without an account is published first and takes payment after.
+ */
 async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number } = {}) {
     const now = new Date()
+    const payment = {
+        takesPayment: true,
+        price: EVENT_PRICE_KRONER,
+        paymentStart: new Date(now.getTime() - HOUR),
+        paymentEnd: new Date(now.getTime() + 24 * HOUR),
+    }
     const event = await eventOperations.create({
         data: {
             name: 'Betalt testarrangement',
@@ -85,10 +96,7 @@ async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number }
             waitingList: false,
             registrationStart: new Date(now.getTime() - HOUR),
             registrationEnd: new Date(now.getTime() + 24 * HOUR),
-            takesPayment: true,
-            price: EVENT_PRICE_KRONER,
-            paymentStart: new Date(now.getTime() - HOUR),
-            paymentEnd: new Date(now.getTime() + 24 * HOUR),
+            ...(ledgerAccountId ? payment : {}),
             hostedByCommitteeId: committeeId,
             tagIds: [],
             quotaVisibilityRequirements: [
@@ -107,8 +115,12 @@ async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number }
             bypassAuth: true,
         })
     }
-    // Directly, since the tests of an event without an account still need it published.
-    await prisma.event.update({ where: { id: event.id }, data: { published: true } })
+    await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
+    if (!ledgerAccountId) {
+        await changeEventSetup(event.id, ([variant]) => {
+            Object.assign(variant, payment)
+        })
+    }
     return event.id
 }
 

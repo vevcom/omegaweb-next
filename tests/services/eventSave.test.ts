@@ -1,5 +1,5 @@
 import { Session } from '@/auth/session/Session'
-import { toVariantDrafts } from '@/components/Event/eventSetupDraft'
+import { toVariantDrafts } from '@/services/events/setupDraft'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'

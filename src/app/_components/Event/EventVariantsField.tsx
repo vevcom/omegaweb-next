@@ -1,8 +1,8 @@
 'use client'
-import { toVariantDrafts, variantsToPost } from './eventSetupDraft'
+import { toVariantDrafts, variantsToPost } from '@/services/events/setupDraft'
 import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import { createContext, useContext, useState } from 'react'
-import type { VariantDraft } from './eventSetupDraft'
+import type { VariantDraft } from '@/services/events/setupDraft'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
 import type { ReactNode } from 'react'
 

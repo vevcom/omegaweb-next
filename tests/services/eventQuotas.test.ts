@@ -1,6 +1,6 @@
 import { changeEventSetup, removeQuota, removeVariant, setQuotaPlaces, setQuotaRequirements } from 'tests/eventSetup'
 import { Session } from '@/auth/session/Session'
-import { newQuotaDraft, newVariantDraft } from '@/components/Event/eventSetupDraft'
+import { newQuotaDraft, newVariantDraft } from '@/services/events/setupDraft'
 import { ServiceError, Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'

@@ -1,3 +1,4 @@
+import { createAdministrators } from 'tests/eventSetup'
 import { Session } from '@/auth/session/Session'
 import { prisma } from '@/prisma-pn-client-instance'
 import { Smorekopp } from '@/services/error'
@@ -279,7 +280,7 @@ describe('search respects a provider\'s own visibility filter', () => {
                 takesRegistration: false,
                 waitingList: false,
                 tagIds: [],
-                visibilityAdminRequirements: [{ conditions: [] }],
+                visibilityAdminRequirements: await createAdministrators('search-admins'),
             },
             bypassAuth: true,
         })
@@ -299,8 +300,7 @@ describe('search respects a provider\'s own visibility filter', () => {
                 visibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
             },
         })
-        // Directly, since an event only EVENT_ADMIN administrates cannot be published the usual way.
-        await prisma.event.update({ where: { id: event.id }, data: { published: true } })
+        await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
 
         const { rows: memberRows } = await eventOperations.search(omegaEventPages)({
             params: { query: 'søketest begrenset' },

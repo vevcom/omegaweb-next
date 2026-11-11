@@ -1,8 +1,8 @@
-import { toVariantDrafts } from '@/components/Event/eventSetupDraft'
+import { toVariantDrafts } from '@/services/events/setupDraft'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import type { SessionMaybeUser } from '@/auth/session/Session'
-import type { QuotaDraft, VariantDraft } from '@/components/Event/eventSetupDraft'
+import type { QuotaDraft, VariantDraft } from '@/services/events/setupDraft'
 import type { VisibilityRequirement } from '@/services/visibility/types'
 
 /**
@@ -37,6 +37,18 @@ async function eventIdOfQuota(quotaId: number) {
         select: { variant: { select: { eventId: true } } },
     })
     return quota.variant.eventId
+}
+
+/**
+ * A group of its own to administrate a test's events, as the requirements that say so. An event
+ * needs administrators to be published, and a group no one is in gives no one access by it.
+ */
+export async function createAdministrators(shortName: string): Promise<VisibilityRequirement[]> {
+    const { order } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+    const group = await prisma.group.create({
+        data: { groupType: 'MANUAL_GROUP', order, manualGroup: { create: { name: shortName, shortName } } },
+    })
+    return [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }]
 }
 
 /** Gives a quota the places by saving the setup of its event. */
