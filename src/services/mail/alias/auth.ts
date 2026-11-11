@@ -30,16 +30,19 @@ export const mailAliasAuth = {
     /** The aliases one receives mail on are one's own to see, as the mail is. */
     readReceived: Require.userId({ errorMessage: 'Bare du selv ser aliasene du mottar e-post på' }),
     readVisibility: readsAlias,
+    readMailAddress: readsAlias,
     /**
      * The address is changed by an owner who may also create aliases, since a new address is as good as a new
      * alias. Both conditions answer with the rule, so an owner without the permission is told the same as a
      * creator who is no owner.
      */
-    update: Require.permission('MAILSERVER_ADMIN')
+    updateMailAddress: Require.permission('MAILSERVER_ADMIN')
         .or()
         .permission('MAIL_ALIAS_CREATE', { errorMessage: changesAliasAddress })
         .visibility({ errorMessage: changesAliasAddress }),
     updateDescription: ownsAlias,
+    /** Whether the mail is also sent on to the private email of those who receive it is the owners' to decide. */
+    updateMailAddressForwarding: ownsAlias,
     updateVisibility: ownsAlias,
     destroy: ownsAlias,
 } as const

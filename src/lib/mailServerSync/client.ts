@@ -30,6 +30,14 @@ export type MailServerPasswordCredentials = {
     0: { '@type': 'Password', secret: string },
 }
 
+/** Another address of an account, which its mail also arrives at and its user may sign in by. */
+export type MailServerAccountAlias = {
+    name: string,
+    domainId: string,
+    enable?: boolean,
+    description?: string | null,
+}
+
 export type MailServerAccount = {
     id: string,
     '@type': string,
@@ -37,6 +45,8 @@ export type MailServerAccount = {
     domainId: string,
     description?: string,
     emailAddress?: string,
+    /** The aliases of an account, as a list the server keys by position: `{ "0": ..., "1": ... }`. */
+    aliases?: Record<string, MailServerAccountAlias>,
     credentials?: MailServerPasswordCredentials,
     roles?: { '@type': string },
     /** The groups an account is a member of, as a set: the group's id as key and true as value. */
@@ -324,6 +334,23 @@ export class MailServerClient {
         const refused = describeRefusals('destroy', (result as MailServerSetResponse).notDestroyed)
         if (refused.length > 0) {
             throw new MailServerRefusal(`${refused.join('; ')} of the Sieve scripts of account ${accountId}`)
+        }
+    }
+
+    /**
+     * Stops an account's active Sieve script, so that it runs none, which is the only way the
+     * active one can be destroyed without another taking its place.
+     *
+     * @throws MailServerRefusal when the server refuses.
+     */
+    async deactivateSieveScript(accountId: string): Promise<void> {
+        const [[, result]] = await this.send([
+            ['SieveScript/set', { accountId, onSuccessDeactivateScript: true }, 'deactivate'],
+        ])
+        const { notCreated, notUpdated, notDestroyed } = result as MailServerSetResponse
+        const refused = describeRefusals('deactivate', { ...notCreated, ...notUpdated, ...notDestroyed })
+        if (refused.length > 0) {
+            throw new MailServerRefusal(`${refused.join('; ')} the Sieve script of account ${accountId}`)
         }
     }
 

@@ -176,6 +176,11 @@ export const userSchemas = {
         updateBioParagraphContent: paramsFieldSchemas.pick({
             userId: true,
         }),
+        createDefaultVevenMailAddress: id,
+        // The user whose veven mail address the operations of vevenMailAddress.ts act on.
+        vevenMailAddress: paramsFieldSchemas.pick({
+            userId: true,
+        }),
         updatePassword: id,
         updateTheme: username,
         registerNewEmail: paramsFieldSchemas.pick({ id: true, site: true }),
