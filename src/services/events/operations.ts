@@ -30,7 +30,7 @@ import { visibilityOperations } from '@/services/visibility/operations'
 import { implementSearchOperation } from '@/services/search/implement'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
-import { implementVisibilityOperations, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
+import { implementVisibilityRead, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { PromotedRegistration } from './registration/fixState'
 import type { VariantStatistics } from './statistics'
 import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
@@ -48,23 +48,18 @@ const UNSET_EVENT_TIME_OFFSET_MS = 7 * DAY_MS
 // Administers nothing, so a draft from just a name is its creator's until someone is chosen.
 const NO_ADMINISTRATORS = [{ conditions: [] }]
 
-const adminVisibility = implementVisibilityOperations({
+// Who administrates an event is changed with the event, by saving its setup.
+const adminVisibility = implementVisibilityRead({
     implementationParamsSchema: eventSchemas.params.adminVisibility,
-    authorizers: {
-        readMatrix: async ({ params, prisma }) => eventAuth.readAdminVisibility.data(
-            await readEventAccess(prisma, params.id)
-        ),
-        update: async ({ implementationParams, prisma }) => eventAuth.updateAdminVisibility.data(
-            await readEventAccess(prisma, implementationParams.id)
-        ),
-    },
+    authorizer: async ({ params, prisma }) => eventAuth.readAdminVisibility.data(
+        await readEventAccess(prisma, params.id)
+    ),
     readVisibility: async ({ prisma, implementationParams, include }) => (
         await prisma.event.findUniqueOrThrow({
             where: { id: implementationParams.id },
             select: { visibilityAdmin: { include } },
         })
     ).visibilityAdmin,
-    emptyMeans: 'REFUSED',
 })
 
 const read = defineOperation({
@@ -526,7 +521,7 @@ export const eventOperations = {
                     })
                 }
                 if (adminRequirements) {
-                    await visibilityOperations.updateInTransaction.internalCall({
+                    await visibilityOperations.update.internalCall({
                         prisma: tx,
                         params: { visibilityId: event.visibilityAdminId },
                         data: { requirements: adminRequirements },
@@ -807,7 +802,7 @@ async function adoptHostAsAdministrators(
 ) {
     const access = await readEventAccess(prisma, eventId)
     if (!hasNoAdministrators(access.adminVisibility)) return
-    await visibilityOperations.updateInTransaction.internalCall({
+    await visibilityOperations.update.internalCall({
         prisma,
         params: { visibilityId },
         data: { requirements: await hostCommitteeAdminRequirements(prisma, committeeId) },

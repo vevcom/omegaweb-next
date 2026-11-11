@@ -3,6 +3,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { QuotaDraft, VariantDraft } from '@/components/Event/eventSetupDraft'
+import type { VisibilityRequirement } from '@/services/visibility/types'
 
 /**
  * Saves the variants and quotas of an event the way its form does: all of them as they are, with
@@ -43,6 +44,13 @@ export async function setQuotaPlaces(quotaId: number, places: number, session?: 
     return await changeEventSetup(await eventIdOfQuota(quotaId), variants => {
         quotaDraftOf(variants, quotaId).places = places
     }, session)
+}
+
+/** Says who may register through a quota by saving the setup of its event. */
+export async function setQuotaRequirements(quotaId: number, visibilityRequirements: VisibilityRequirement[]) {
+    return await changeEventSetup(await eventIdOfQuota(quotaId), variants => {
+        quotaDraftOf(variants, quotaId).visibilityRequirements = visibilityRequirements
+    })
 }
 
 /** Leaves a quota out of the setup of its event, which removes it. */

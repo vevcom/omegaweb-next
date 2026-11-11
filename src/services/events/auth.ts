@@ -80,7 +80,6 @@ export const eventAuth = {
     create: Require.permission('EVENT_ADMIN').or().permission('EVENT_CREATE'),
 
     readAdminVisibility: canSeeEvent,
-    updateAdminVisibility: eventAdminLevel,
 
     read: canSeeEvent,
     readStatistics: eventAdminLevel,

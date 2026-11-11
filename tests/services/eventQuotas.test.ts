@@ -1,4 +1,4 @@
-import { changeEventSetup, removeQuota, removeVariant, setQuotaPlaces } from 'tests/eventSetup'
+import { changeEventSetup, removeQuota, removeVariant, setQuotaPlaces, setQuotaRequirements } from 'tests/eventSetup'
 import { Session } from '@/auth/session/Session'
 import { newQuotaDraft, newVariantDraft } from '@/components/Event/eventSetupDraft'
 import { ServiceError, Smorekopp } from '@/services/error'
@@ -320,12 +320,7 @@ describe('refilling places', () => {
         await setQuotaPlaces(quota.id, 2)
         expect(await readOfUser(outsider, eventId)).toMatchObject({ state: 'WAITING_LIST' })
 
-        await eventQuotaOperations.visibility.update({
-            implementationParams: { id: quota.id },
-            params: { visibilityId: quota.visibilityId },
-            data: everyone,
-            bypassAuth: true,
-        })
+        await setQuotaRequirements(quota.id, everyone.requirements)
 
         expect(await readOfUser(outsider, eventId)).toMatchObject({ state: 'IN_QUOTA', quotaId: quota.id })
         expect(promotedUserIds()).toEqual([outsider.user.id])

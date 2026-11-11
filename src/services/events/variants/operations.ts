@@ -5,6 +5,7 @@ import { readEventAccess } from '@/services/events/access'
 import { eventQuotaOrder, eventVariantOrder, eventVariantSummarySelection } from '@/services/events/constants'
 import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { registrationsOfVariant } from '@/services/events/registration/queue'
+import { changedFields } from '@/lib/changedFields'
 import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
@@ -126,7 +127,7 @@ const reorder = defineSubOperation({
     operation: () => async ({ prisma, params, data }) => {
         const variants = await prisma.eventVariant.findMany({
             where: { eventId: params.eventId },
-            select: { id: true },
+            select: { id: true, order: true },
         })
         const given = new Set(data.variantIds)
         if (given.size !== data.variantIds.length || given.size !== variants.length
@@ -134,7 +135,10 @@ const reorder = defineSubOperation({
             throw new ServiceError('BAD PARAMETERS', 'Rekkefølgen må nevne hver variant i arrangementet én gang.')
         }
 
-        await Promise.all(data.variantIds.map((variantId, order) => prisma.eventVariant.update({
+        const moved = data.variantIds
+            .map((variantId, order) => ({ variantId, order }))
+            .filter(({ variantId, order }) => variants.find(variant => variant.id === variantId)?.order !== order)
+        await Promise.all(moved.map(({ variantId, order }) => prisma.eventVariant.update({
             where: { id: variantId },
             data: { order },
         })))
@@ -144,17 +148,15 @@ const reorder = defineSubOperation({
 /**
  * Makes the variants of an event the ones given, each with the quotas given, in the order given:
  * creates those without an id, changes those with one and removes the ones left out, which is
- * refused where someone is registered. Returns the ids of the variants, in order.
+ * refused where someone is registered. A variant given as it is already is left alone. Returns
+ * the ids of the variants, in order.
  */
 const saveSetup = defineSubOperation({
     paramsSchema: () => eventVariantSchemas.params.saveSetup,
     dataSchema: () => eventVariantSchemas.data.saveSetup,
     transaction: 'RUNS_IN',
     operation: () => async ({ prisma, params, data }): Promise<number[]> => {
-        const existing = await prisma.eventVariant.findMany({
-            where: { eventId: params.eventId },
-            select: { id: true },
-        })
+        const existing = await prisma.eventVariant.findMany({ where: { eventId: params.eventId } })
         const keptIds = data.variants.flatMap(variant => (variant.id === undefined ? [] : [variant.id]))
         if (!keptIds.every(id => existing.some(variant => variant.id === id))) {
             throw new ServiceError('BAD PARAMETERS', 'Varianten hører ikke til arrangementet.')
@@ -165,8 +167,12 @@ const saveSetup = defineSubOperation({
         }
         const variantIds: number[] = []
         for (const { id, quotas, ...fields } of data.variants) {
-            const variantId = id ?? (await create.internalCall({ prisma, params, data: fields })).id
-            if (id !== undefined) await update.internalCall({ prisma, params: { id }, data: fields })
+            const known = existing.find(variant => variant.id === id)
+            const changes = known ? changedFields(known, fields) : {}
+            if (known && Object.keys(changes).length > 0) {
+                await update.internalCall({ prisma, params: { id: known.id }, data: changes })
+            }
+            const variantId = known?.id ?? (await create.internalCall({ prisma, params, data: fields })).id
             await eventQuotaOperations.internal.saveSetup.internalCall({ prisma, params: { variantId }, data: { quotas } })
             variantIds.push(variantId)
         }

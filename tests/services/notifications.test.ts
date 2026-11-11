@@ -1,3 +1,4 @@
+import { setQuotaRequirements } from 'tests/eventSetup'
 import { prisma } from '@/prisma-pn-client-instance'
 import { notificationMethodOperations } from '@/services/notifications/methods/operations'
 import {
@@ -256,12 +257,7 @@ describe('notification recipient resolution', () => {
         expect(await resolveRecipientIds(notification.id, 'email')).toEqual([member.id])
 
         // Opening the quota to everyone brings the outsider back.
-        await eventQuotaOperations.visibility.update({
-            implementationParams: { id: quota.id },
-            params: { visibilityId: quota.visibilityId },
-            data: { requirements: [] },
-            bypassAuth: true,
-        })
+        await setQuotaRequirements(quota.id, [])
         expect(await resolveRecipientIds(notification.id, 'email')).toEqual([member.id, outsider.id].sort())
     })
 

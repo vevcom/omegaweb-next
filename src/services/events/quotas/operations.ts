@@ -3,46 +3,25 @@ import { eventQuotaAuth } from './auth'
 import { eventQuotaSchemas } from './schemas'
 import { readEventAccess, readEventIdOfQuota, readEventIdOfVariant } from '@/services/events/access'
 import { eventQuotaOrder, eventQuotaSummarySelection } from '@/services/events/constants'
-import { lockEvent } from '@/services/events/registration/queue'
-import { fixVariantPlaces, notifyPromoted } from '@/services/events/registration/fixState'
+import { changedFields } from '@/lib/changedFields'
 import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { visibilityOperations } from '@/services/visibility/operations'
-import { implementVisibilityOperations, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
+import { implementVisibilityRead, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { EventQuotaExpanded } from './types'
-import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
-/** Refills the places of the variant a quota belongs to, after a change to the quota, and tells the promoted. */
-async function refillVariantOfQuota(prisma: PrismaPossibleTransaction<true>, quotaId: number) {
-    const quota = await prisma.eventQuota.findUniqueOrThrow({
-        where: { id: quotaId },
-        select: { variantId: true, variant: { select: { eventId: true } } },
-    })
-    const promoted = await prisma.$transaction(async tx => {
-        await lockEvent(tx, quota.variant.eventId)
-        return await fixVariantPlaces(tx, quota.variantId)
-    })
-    await notifyPromoted(prisma, quota.variant.eventId, promoted)
-}
-
-const visibility = implementVisibilityOperations({
+// Who may register through a quota is changed with the quota, by saving the event's setup.
+const visibility = implementVisibilityRead({
     implementationParamsSchema: eventQuotaSchemas.params.visibility,
-    authorizers: {
-        readMatrix: async ({ prisma, params }) => eventQuotaAuth.readVisibility.data(
-            await readEventAccess(prisma, await readEventIdOfQuota(prisma, params.id))
-        ),
-        update: async ({ prisma, implementationParams }) => eventQuotaAuth.updateVisibility.data(
-            await readEventAccess(prisma, await readEventIdOfQuota(prisma, implementationParams.id))
-        ),
-    },
+    authorizer: async ({ prisma, params }) => eventQuotaAuth.readVisibility.data(
+        await readEventAccess(prisma, await readEventIdOfQuota(prisma, params.id))
+    ),
     readVisibility: async ({ prisma, implementationParams, include }) => (
         await prisma.eventQuota.findUniqueOrThrow({
             where: { id: implementationParams.id },
             select: { visibility: { include } },
         })
     ).visibility,
-    emptyMeans: 'EVERYONE',
-    afterUpdate: ({ prisma, implementationParams }) => refillVariantOfQuota(prisma, implementationParams.id),
 })
 
 /*
@@ -87,7 +66,7 @@ const update = defineSubOperation({
     operation: () => async ({ prisma, params, data: { visibilityRequirements, ...fields } }) => {
         const quota = await prisma.eventQuota.update({ where: { id: params.id }, data: fields })
         if (visibilityRequirements) {
-            await visibilityOperations.updateInTransaction.internalCall({
+            await visibilityOperations.update.internalCall({
                 prisma,
                 params: { visibilityId: quota.visibilityId },
                 data: { requirements: visibilityRequirements },
@@ -129,7 +108,7 @@ const reorder = defineSubOperation({
     operation: () => async ({ prisma, params, data }) => {
         const quotas = await prisma.eventQuota.findMany({
             where: { variantId: params.variantId },
-            select: { id: true },
+            select: { id: true, order: true },
         })
         const given = new Set(data.quotaIds)
         if (given.size !== data.quotaIds.length || given.size !== quotas.length
@@ -137,7 +116,10 @@ const reorder = defineSubOperation({
             throw new ServiceError('BAD PARAMETERS', 'Rekkefølgen må nevne hver kvote i varianten én gang.')
         }
 
-        await Promise.all(data.quotaIds.map((quotaId, order) => prisma.eventQuota.update({
+        const moved = data.quotaIds
+            .map((quotaId, order) => ({ quotaId, order }))
+            .filter(({ quotaId, order }) => quotas.find(quota => quota.id === quotaId)?.order !== order)
+        await Promise.all(moved.map(({ quotaId, order }) => prisma.eventQuota.update({
             where: { id: quotaId },
             data: { order },
         })))
@@ -147,7 +129,7 @@ const reorder = defineSubOperation({
 /**
  * Makes the quotas of a variant the ones given, in the order given: creates those without an id,
  * changes those with one and removes the ones left out, which is refused for a quota someone is
- * registered through.
+ * registered through. A quota given as it is already is left alone.
  */
 const saveSetup = defineSubOperation({
     paramsSchema: () => eventQuotaSchemas.params.saveSetup,
@@ -156,7 +138,7 @@ const saveSetup = defineSubOperation({
     operation: () => async ({ prisma, params, data }) => {
         const existing = await prisma.eventQuota.findMany({
             where: { variantId: params.variantId },
-            select: { id: true },
+            select: { id: true, name: true, places: true },
         })
         const keptIds = data.quotas.flatMap(quota => (quota.id === undefined ? [] : [quota.id]))
         if (!keptIds.every(id => existing.some(quota => quota.id === id))) {
@@ -168,11 +150,18 @@ const saveSetup = defineSubOperation({
         }
         const quotaIds: number[] = []
         for (const { id, ...fields } of data.quotas) {
-            if (id === undefined) {
+            const known = existing.find(quota => quota.id === id)
+            if (!known) {
                 quotaIds.push((await create.internalCall({ prisma, params, data: fields })).id)
             } else {
-                await update.internalCall({ prisma, params: { id }, data: fields })
-                quotaIds.push(id)
+                const { visibilityRequirements, ...row } = fields
+                // The visibility tells for itself whether its requirements are the ones given.
+                await update.internalCall({
+                    prisma,
+                    params: { id: known.id },
+                    data: { ...changedFields(known, row), visibilityRequirements },
+                })
+                quotaIds.push(known.id)
             }
         }
         await reorder.internalCall({ prisma, params, data: { quotaIds } })

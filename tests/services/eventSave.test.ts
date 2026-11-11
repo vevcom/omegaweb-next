@@ -226,6 +226,53 @@ describe('saving an event with its registration', () => {
     })
 })
 
+describe('a save of what is already saved', () => {
+    test('writes only what changed', async () => {
+        const { eventId, variant } = await createEventWithQueue('Lagres igjen')
+        const quotaId = variant.quotas[0].id
+        const requirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }]
+        const setupWith = (places: number, visibilityRequirements = requirements) => ({
+            adminRequirements: requirements,
+            variants: [{
+                id: variant.id,
+                name: 'Påmelding',
+                ...period,
+                quotas: [{ id: quotaId, name: 'Alle', places, visibilityRequirements }],
+            }],
+        })
+        const stored = async () => {
+            const event = await prisma.event.findUniqueOrThrow({
+                where: { id: eventId },
+                select: { visibilityAdmin: { select: { requirements: { select: { id: true } } } } },
+            })
+            const quota = await prisma.eventQuota.findUniqueOrThrow({
+                where: { id: quotaId },
+                select: { updatedAt: true, visibility: { select: { requirements: { select: { id: true } } } } },
+            })
+            const { updatedAt } = await prisma.eventVariant.findUniqueOrThrow({ where: { id: variant.id } })
+            return {
+                variant: updatedAt,
+                quota: quota.updatedAt,
+                whoRegisters: quota.visibility.requirements,
+                whoAdministrates: event.visibilityAdmin.requirements,
+            }
+        }
+        await save(eventId, setupWith(1))
+        const first = await stored()
+
+        await save(eventId, { name: 'Lagret igjen', ...setupWith(1) })
+        expect(await stored()).toEqual(first)
+
+        await save(eventId, setupWith(2))
+        const morePlaces = await stored()
+        expect(morePlaces.quota.getTime()).toBeGreaterThan(first.quota.getTime())
+        expect({ ...morePlaces, quota: first.quota }).toEqual(first)
+
+        await save(eventId, setupWith(2, []))
+        expect(await stored()).toEqual({ ...morePlaces, whoRegisters: [] })
+    })
+})
+
 describe('a refused save', () => {
     test('saves nothing when a quota with registrants is left out', async () => {
         const { eventId, variant } = await createEventWithQueue('Skal ikke endres')
