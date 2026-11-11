@@ -7,6 +7,7 @@ import PageWrapper from '@/app/_components/PageWrapper/PageWrapper'
 import { serverPage } from '@/app/ServerPage'
 import { displayDate } from '@/lib/dates/displayDate'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
+import { cabinAdminCardClassName, cabinAdminTableClassName } from '@/app/(omegaweb)/admin/cabinAdminStyles'
 import { displayAmount } from '@/lib/currency/convert'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { externalHref } from '@/lib/sites/href'
@@ -29,7 +30,7 @@ const { page, generateMetadata } = serverPage({
     render: ({ data, capabilities }) => (
         <PageWrapper
             headerItem={capabilities.canCreatePrice.authorized &&
-                <AddHeaderItemPopUp popUpKey="AddCabinProductPrice">
+                <AddHeaderItemPopUp popUpKey="AddCabinProductPrice" label="Ny pris">
                     <UpdateCabinProductPriceForm
                         productId={data.product.id}
                         productType={data.product.type}
@@ -38,40 +39,35 @@ const { page, generateMetadata } = serverPage({
                 </AddHeaderItemPopUp>
             }
         >
-            <div className="[&_p]:mt-[1rem]">
-                <p>kanskje en måte å redigere på som en HeaderItem?</p>
-
-                <p>
-                    Her bruker vi en egen syntaks for å skrive tidsintervallet en pris er gyldig i.
-                    Syntaksen er inspirert av Cron, men tar bare med de tre siste feltene, siden vi bare bruker datoer.
-                    Les mer her: <SiteLink href={externalHref('https://crontab.guru/')}>crontab.guru</SiteLink>.
-                    Siden vi har laget tolkingen selv, er syntaksen litt begrenset.
-                    De tre feltene vi støtter, er <i>dag i måneden</i>, <i>måned</i> og <i>ukedag</i>.
-                </p>
-
-                <p>
-                    Brukeren vil få den billigste prisen der brukeren oppfyller alle kravene under.
-                    Det vil si at dersom flere prisregler passer, får brukeren den billigste.
-                </p>
-
-            </div>
-
-            <SimpleTable
-                header={[
-                    'Beskrivelse',
-                    'Pris',
-                    'Gyldig fra',
-                    'Andel i Omega',
-                    'Cron-intervall'
-                ]}
-                body={data.product.CabinProductPrice.map(priceObj => [
-                    priceObj.description,
-                    displayAmount(priceObj.price),
-                    displayDate(priceObj.PricePeriod.validFrom, false),
-                    priceObj.memberShare.toString(),
-                    priceObj.cronInterval ?? '',
-                ])}
-            />
+            <section className={`
+                ${cabinAdminCardClassName}
+                max-w-5xl
+            `}>
+                <div className="flex flex-col gap-2 text-s text-base-content/80">
+                    <p className="m-0">
+                        Hver pris gjelder fra starten av en prisperiode, og bare de nettene intervallet passer.
+                        Passer flere priser en natt, får leietakeren den billigste.
+                    </p>
+                    <p className="m-0">
+                        Intervallet skrives som de tre siste feltene i
+                        {' '}<SiteLink href={externalHref('https://crontab.guru/')}>cron</SiteLink>:
+                        dag i måneden, måned og ukedag. For eksempel er <code>* * 5-6</code> fredag og lørdag.
+                    </p>
+                </div>
+                <div className="overflow-x-auto">
+                    <SimpleTable
+                        className={cabinAdminTableClassName}
+                        header={['Beskrivelse', 'Pris per natt', 'Gjelder fra', 'Medlemsandel', 'Intervall']}
+                        body={data.product.CabinProductPrice.map(priceObj => [
+                            priceObj.description || '–',
+                            displayAmount(priceObj.price, false),
+                            displayDate(priceObj.PricePeriod.validFrom, false),
+                            priceObj.memberShare ? `Minst ${priceObj.memberShare} %` : '–',
+                            <code key="cron">{priceObj.cronInterval}</code>,
+                        ])}
+                    />
+                </div>
+            </section>
         </PageWrapper>
     ),
 })

@@ -131,7 +131,9 @@ describe('canceling a paid booking', () => {
     const userSession = () => Session.fromJsObject({ memberships: [], permissions: ['CABIN_USE'], user })
 
     /** A booking whose payment has SUCCEEDED and been confirmed, paid for through Stripe. */
-    async function createPaidBooking(start: number, end: number) {
+    const guest = { firstname: 'Gjest', lastname: 'Gjestesen', email: 'g@example.com', mobile: '12345678' }
+
+    async function createPaidBooking(start: number, end: number, asGuest = false) {
         const cabinAccount = await prisma.ledgerAccount.findUniqueOrThrow({ where: { special: 'CABIN' } })
         return prisma.booking.create({
             data: {
@@ -142,7 +144,9 @@ describe('canceling a paid booking', () => {
                 numberOfNonMembers: 0,
                 totalPrice: 1000_00,
                 secret: `paid-${start}`,
-                user: { connect: { id: user.id } },
+                ...(asGuest
+                    ? { guestUser: { create: guest } }
+                    : { user: { connect: { id: user.id } } }),
                 ledgerTransactions: {
                     create: {
                         purpose: 'CABIN_BOOKING',
@@ -202,5 +206,45 @@ describe('canceling a paid booking', () => {
             session: userSession(),
         })
         expect(bookings.map(listed => listed.id)).not.toContain(reservation.id)
+    })
+
+    const adminSession = Session.fromJsObject({ memberships: [], permissions: ['CABIN_ADMIN'], user })
+    const cancelAsAdmin = (bookingId: number, refund: boolean, session = adminSession) =>
+        cabinBookingOperations.cancelAsAdmin({ params: { bookingId }, data: { refund }, session })
+
+    test('the cabin team can cancel close to check-in, refunding the price', async () => {
+        const booking = await createPaidBooking(21, 22)
+
+        await cancelAsAdmin(booking.id, true)
+
+        await expect(prisma.refund.findUnique({ where: { originalTransactionId: booking.ledgerTransactions[0].id } }))
+            .resolves.not.toBeNull()
+        await expect(prisma.booking.findUniqueOrThrow({ where: { id: booking.id } }))
+            .resolves.toMatchObject({ canceled: expect.any(Date) })
+    })
+
+    test('the cabin team can cancel without refunding', async () => {
+        const booking = await createPaidBooking(23, 24)
+
+        await cancelAsAdmin(booking.id, false)
+
+        await expect(prisma.refund.findUnique({ where: { originalTransactionId: booking.ledgerTransactions[0].id } }))
+            .resolves.toBeNull()
+    })
+
+    test('a guest refund is left to a manual review', async () => {
+        const booking = await createPaidBooking(25, 26, true)
+
+        await cancelAsAdmin(booking.id, true)
+
+        await expect(prisma.manualTransactionReview.findFirst({
+            where: { transactionId: booking.ledgerTransactions[0].id, problem: 'CABIN_GUEST_REFUND' },
+        })).resolves.not.toBeNull()
+    })
+
+    test('only the cabin team cancels as admin', async () => {
+        const booking = await createPaidBooking(27, 28)
+
+        await expect(cancelAsAdmin(booking.id, true, userSession())).rejects.toThrow(Smorekopp)
     })
 })

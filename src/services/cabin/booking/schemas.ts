@@ -18,6 +18,7 @@ const dataFieldSchemas = z.object({
         message: 'Du må godta vilkårene for å bruke siden.'
     }),
     ledgerAccountId: z.coerce.number().int(),
+    refund: Zpn.checkboxOrBoolean({ label: 'Refunder beløpet' }),
 })
 
 const paramsFieldSchemas = z.object({
@@ -84,6 +85,9 @@ export const cabinBookingSchemas = {
         connectToLedgerAccount: dataFieldSchemas.pick({
             ledgerAccountId: true,
         }),
+        cancelAsAdmin: dataFieldSchemas.pick({
+            refund: true,
+        }),
     },
     params: {
         createCabinBookingUserAttached: bookingUserAttachedParams,
@@ -106,6 +110,9 @@ export const cabinBookingSchemas = {
             userId: true,
         }),
         cancel: paramsFieldSchemas.pick({
+            bookingId: true,
+        }),
+        cancelAsAdmin: paramsFieldSchemas.pick({
             bookingId: true,
         }),
     },

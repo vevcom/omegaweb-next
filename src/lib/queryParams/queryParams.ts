@@ -18,6 +18,7 @@ export const QueryParams = {
     token: new StringQueryParam('token'),
     callbackUrl: new LocalPathQueryParam('callbackUrl'),
     frontpageVersion: new EnumQueryParam('frontpage-version', ['logged-out', 'logged-in']),
+    cabinBookingTab: new EnumQueryParam('tab', ['upcoming', 'awaiting-payment', 'past', 'canceled']),
 } as const satisfies Record<string, QueryParam<string | string[] | number | number[] | boolean>>
 
 export type QueryParamNames = typeof QueryParams[keyof typeof QueryParams]['name']
