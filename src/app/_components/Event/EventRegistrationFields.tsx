@@ -1,5 +1,6 @@
 'use client'
 import EventQuotaBar from './EventQuotaBar'
+import { useEventVariantsField } from './EventVariantsField'
 import { hasRegistrants, newQuotaDraft, newVariantDraft } from './eventSetupDraft'
 import Button from '@/components/UI/Button'
 import DateInput from '@/components/UI/DateInput'
@@ -236,19 +237,16 @@ function variantsInShape(shape: Shape, variants: VariantDraft[], eventStart: Dat
 }
 
 /**
- * The variants and quotas of an event as the form holds them. Nothing here is saved until the form
- * is, so the buttons at the top only change what the form will send.
+ * Where the variants and quotas of an event are edited, in the `EventVariantsField` around the
+ * form. Nothing here is saved until the form is, so the buttons at the top only change what the
+ * form will send.
  */
-export default function EventRegistrationFields({ variants, waitingList, eventStart, onChange }: {
-    variants: VariantDraft[],
+export default function EventRegistrationFields({ waitingList, eventStart }: {
     waitingList: boolean,
     eventStart: Date,
-    onChange: (variants: VariantDraft[]) => void,
 }) {
+    const { variants, setVariants, changeVariant } = useEventVariantsField()
     const current = shapeOf(variants)
-    const changeVariant = (key: number, changes: Partial<VariantDraft>) => onChange(
-        variants.map(variant => (variant.key === key ? { ...variant, ...changes } : variant))
-    )
 
     return <div className="flex flex-col gap-4 min-w-0 pb-4">
         <div className="
@@ -262,7 +260,7 @@ export default function EventRegistrationFields({ variants, waitingList, eventSt
                     type="button"
                     aria-pressed={current === option.shape}
                     disabled={blocked !== null}
-                    onClick={() => onChange(variantsInShape(option.shape, variants, eventStart))}
+                    onClick={() => setVariants(variantsInShape(option.shape, variants, eventStart))}
                     className={`
                         flex flex-col gap-0.5 p-2.5 rounded-inner border text-left cursor-pointer bg-base-200
                         disabled:cursor-not-allowed disabled:opacity-50
@@ -306,7 +304,7 @@ export default function EventRegistrationFields({ variants, waitingList, eventSt
                         type="button"
                         title={hasRegistrants(variant) ? 'Varianten har påmeldte' : undefined}
                         disabled={hasRegistrants(variant)}
-                        onClick={() => onChange(variants.filter(other => other.key !== variant.key))}
+                        onClick={() => setVariants(variants.filter(other => other.key !== variant.key))}
                         className={removeButtonClassName}
                     >
                         Fjern varianten
@@ -323,7 +321,7 @@ export default function EventRegistrationFields({ variants, waitingList, eventSt
             <Button
                 type="button"
                 color="secondary"
-                onClick={() => onChange([
+                onClick={() => setVariants([
                     ...variants,
                     newVariantDraft(`Variant ${variants.length + 1}`, eventStart, variants[0]),
                 ])}

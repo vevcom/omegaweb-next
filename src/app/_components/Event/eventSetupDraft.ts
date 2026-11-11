@@ -54,6 +54,19 @@ export function toVariantDrafts(variants: EventVariantExpanded[]): VariantDraft[
     }))
 }
 
+/** The drafts as the field of the form that posts them holds them. */
+export const variantDraftsToField = (variants: VariantDraft[]) => JSON.stringify(variants)
+
+const draftDates = ['registrationStart', 'registrationEnd', 'paymentStart', 'paymentEnd']
+
+/** The drafts back from the field, with their dates as dates again. Without the field there are none. */
+export function variantDraftsFromField(field: FormDataEntryValue | null): VariantDraft[] {
+    if (typeof field !== 'string') return []
+    return JSON.parse(field, (key, value: unknown) => (
+        draftDates.includes(key) && typeof value === 'string' ? new Date(value) : value
+    )) as VariantDraft[]
+}
+
 let lastDraftKey = 0
 
 /** Below zero, so a key can never meet the id of something saved. */

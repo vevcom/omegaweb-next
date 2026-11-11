@@ -3,7 +3,8 @@ import EventLocationInput from './EventLocationInput'
 import EventPaymentFields from './EventPaymentFields'
 import EventRegistrationFields from './EventRegistrationFields'
 import EventTagComponent from './EventTag'
-import { toVariantDrafts } from './eventSetupDraft'
+import EventVariantsField, { EventVariantsFieldInput } from './EventVariantsField'
+import { variantDraftsFromField } from './eventSetupDraft'
 import Form from '@/components/Form/Form'
 import FormSection from '@/components/Form/FormSection'
 import FormTab from '@/components/Form/FormTab'
@@ -21,7 +22,6 @@ import { configureAction } from '@/services/configureAction'
 import { eventLinks } from '@/pageKits/events/links'
 import { useState } from 'react'
 import type { ComponentProps } from 'react'
-import type { VariantDraft } from './eventSetupDraft'
 import type { ActionFormData } from '@/services/actionTypes'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
@@ -72,8 +72,17 @@ type PropTypes = {
  * Everything that sets up an event, in one form over the tabs of `eventSetupTabs`. It holds all of
  * it until it is saved, and saves it together, so a change refused anywhere saves nothing. Remount
  * it with a key of what the server holds, so that a save replaces what it holds with the result.
+ *
+ * What it knows of its own values is what it would post. Each value too nested for an input is a
+ * field component that holds it and posts it as JSON: the variants, the map and who administrates.
  */
-export default function EventSetupForm({
+export default function EventSetupForm(props: PropTypes) {
+    return <EventVariantsField name="variants" defaultValue={props.event.variants}>
+        <SetupForm {...props} />
+    </EventVariantsField>
+}
+
+function SetupForm({
     event,
     access,
     adminVisibilityKnown,
@@ -85,7 +94,7 @@ export default function EventSetupForm({
 }: PropTypes) {
     const links = eventLinks(config)
     const lockedTag = config.lockedTag
-    const [variants, setVariants] = useState<VariantDraft[]>(() => toVariantDrafts(event.variants))
+    // Whether the rules tab has the waiting list switched on, for the registration tab to show it.
     const [waitingList, setWaitingList] = useState(event.waitingList)
     const save: ActionFormData<Event> = configureAction(saveEventSetupAction, { params: { id: event.id } })
     const { reportDots } = useTabs()
@@ -102,9 +111,10 @@ export default function EventSetupForm({
             canBeViewedBy: (values.get('canBeViewedBy') ?? event.canBeViewedBy) as EventCanView,
             // An account left unpicked keeps the one the event has, as the save does.
             ledgerAccount: event.ledgerAccount ?? (account && account !== 'NULL' ? { id: Number(account) } : null),
-            variants,
+            variants: variantDraftsFromField(values.get('variants')),
             adminVisibility: { requirements: adminRequirements },
         })))
+        setWaitingList(values.getAll('waitingList').includes('on'))
     }
 
     return <Form
@@ -185,8 +195,7 @@ export default function EventSetupForm({
                 <Slider
                     label="Venteliste"
                     name="waitingList"
-                    checked={waitingList}
-                    onChange={changeEvent => setWaitingList(changeEvent.target.checked)}
+                    defaultChecked={event.waitingList}
                 />
                 <Slider
                     label="Bindende påmelding"
@@ -202,24 +211,12 @@ export default function EventSetupForm({
         </FormTab>
 
         <FormTab tab="registration">
-            <input type="hidden" name="variants" value={JSON.stringify(variants)} />
-            <EventRegistrationFields
-                variants={variants}
-                waitingList={waitingList}
-                eventStart={event.eventStart}
-                onChange={setVariants}
-            />
+            <EventVariantsFieldInput />
+            <EventRegistrationFields waitingList={waitingList} eventStart={event.eventStart} />
         </FormTab>
 
         <FormTab tab="payment">
-            <EventPaymentFields
-                variants={variants}
-                ledgerAccount={event.ledgerAccount}
-                ledgerAccounts={ledgerAccounts}
-                onChange={(key, changes) => setVariants(variants.map(variant => (
-                    variant.key === key ? { ...variant, ...changes } : variant
-                )))}
-            />
+            <EventPaymentFields ledgerAccount={event.ledgerAccount} ledgerAccounts={ledgerAccounts} />
         </FormTab>
 
         <FormTab tab="access">
