@@ -1,15 +1,13 @@
 import '@pn-server-only'
 import { createQuota } from './quotas/createQuota'
-import { fixVariantPlaces } from './registration/fixState'
 import { assertValidVariant, createVariant, unpaidVariant } from './variants/createVariant'
 import { ServiceError } from '@/services/error'
 import { visibilityOperations } from '@/services/visibility/operations'
 import type { eventSchemas } from './schemas'
-import type { PromotedRegistration } from './registration/fixState'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
-type VariantSetup = NonNullable<z.infer<typeof eventSchemas.data.update>['variants']>[number]
+type VariantSetup = NonNullable<z.infer<typeof eventSchemas.data.saveSetup>['variants']>[number]
 type QuotaSetup = VariantSetup['quotas'][number]
 
 async function destroyVisibilities(tx: Prisma.TransactionClient, visibilityIds: number[]) {
@@ -53,16 +51,16 @@ async function saveQuotas(tx: Prisma.TransactionClient, variantId: number, quota
 }
 
 /**
- * Makes the variants and quotas of an event what the setup says, in its order, and puts the
- * registrations where they then belong. Run it under `lockEvent`, in the caller's transaction, so
- * that anything refused along the way leaves the event as it was. What the setup leaves out is
- * removed, and the setup is refused if someone is registered there.
+ * Makes the variants and quotas of an event what the setup says, in its order, and returns the ids
+ * of the variants. Run it under `lockEvent`, in the caller's transaction, so that anything refused
+ * along the way leaves the event as it was, and fix the places of the variants afterwards. What
+ * the setup leaves out is removed, and the setup is refused if someone is registered there.
  */
 export async function applyRegistrationSetup(
     tx: Prisma.TransactionClient,
     eventId: number,
     variants: VariantSetup[],
-): Promise<PromotedRegistration[]> {
+): Promise<number[]> {
     const existing = await tx.eventVariant.findMany({
         where: { eventId },
         select: {
@@ -99,7 +97,5 @@ export async function applyRegistrationSetup(
         savedIds.push(saved.id)
     }
 
-    const promoted: PromotedRegistration[] = []
-    for (const variantId of savedIds) promoted.push(...await fixVariantPlaces(tx, variantId))
-    return promoted
+    return savedIds
 }

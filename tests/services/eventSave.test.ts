@@ -61,7 +61,7 @@ async function createEvent(name: string) {
     return event.id
 }
 
-const save = (id: number, data: Data<typeof eventOperations.update>) => eventOperations.update({
+const save = (id: number, data: Data<typeof eventOperations.saveSetup>) => eventOperations.saveSetup({
     params: { id },
     data,
     bypassAuth: true,
@@ -201,6 +201,22 @@ describe('saving an event with its registration', () => {
         expect(toVariantDrafts(variants)[0].requeueUnpaidRegistrations).toBe(true)
     })
 
+    test('judges who sees the event by the quotas the same save leaves it with', async () => {
+        const eventId = await createEvent('Sees gjennom kvoter')
+        await eventOperations.setPublished({ params: { id: eventId }, data: { published: true }, bypassAuth: true })
+        const throughQuotas = { canBeViewedBy: 'CAN_REGISTER' as const }
+
+        await expect(save(eventId, throughQuotas)).rejects.toThrow(Smorekopp)
+        await save(eventId, {
+            ...throughQuotas,
+            variants: [{ name: 'Påmelding', ...period, quotas: [{ name: 'Alle', places: 0, ...open }] }],
+        })
+        expect(await prisma.event.findUniqueOrThrow({ where: { id: eventId } })).toMatchObject(throughQuotas)
+
+        await save(eventId, { canBeViewedBy: 'ALL', variants: [] })
+        expect(await variantsOf(eventId)).toHaveLength(0)
+    })
+
     test('leaves out what was not sent', async () => {
         const { eventId } = await createEventWithQueue('Bare navnet')
 
@@ -275,6 +291,33 @@ describe('who administrates, and the account', () => {
         expect(matrix.requirements[0].conditions[0]).toMatchObject({ groupId: other.id })
     })
 
+    test('saves the rest too when the one saving hands the event to others', async () => {
+        const eventId = await createEvent('Gis bort')
+        const other = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order: currentOrder,
+                manualGroup: { create: { name: 'heirs', shortName: 'heirs' } },
+            },
+        })
+        const administrator = Session.fromJsObject({
+            user: null,
+            permissions: [],
+            memberships: [{ groupId, order: currentOrder, active: true, admin: false }],
+        })
+
+        await eventOperations.saveSetup({
+            params: { id: eventId },
+            data: { name: 'Gitt videre', adminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: other.id }] }] },
+            session: administrator,
+        })
+
+        expect((await prisma.event.findUniqueOrThrow({ where: { id: eventId } })).name).toBe('Gitt videre')
+        await expect(eventOperations.saveSetup({
+            params: { id: eventId }, data: { name: 'For sent' }, session: administrator,
+        })).rejects.toThrow(Smorekopp)
+    })
+
     test('takes access to the account to link it, on top of administrating the event', async () => {
         const eventId = await createEvent('Konto kreves')
         const owner = await prisma.group.create({
@@ -294,7 +337,7 @@ describe('who administrates, and the account', () => {
             memberships: [{ groupId, order: currentOrder, active: true, admin: false }],
         })
 
-        await expect(eventOperations.update({
+        await expect(eventOperations.saveSetup({
             params: { id: eventId },
             data: { ledgerAccountSelection: account.id },
             session: administrator,
@@ -309,7 +352,7 @@ describe('who administrates, and the account', () => {
         const formData = new FormData()
         formData.append('ledgerAccountSelection', 'NULL')
 
-        await expect(eventOperations.update({ params: { id: eventId }, data: formData, bypassAuth: true }))
+        await expect(eventOperations.saveSetup({ params: { id: eventId }, data: formData, bypassAuth: true }))
             .resolves.toMatchObject({ ledgerAccountId: null })
     })
 })

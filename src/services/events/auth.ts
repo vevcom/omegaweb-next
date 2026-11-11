@@ -89,6 +89,7 @@ export const eventAuth = {
     search: visibleEvents,
 
     update: eventAdminLevel,
+    saveSetup: eventAdminLevel,
     connectToLedgerAccount: Require.allOf(eventAdminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
     setPublished: eventAdminLevel,
     updateCmsCoverImage: eventAdminLevel,

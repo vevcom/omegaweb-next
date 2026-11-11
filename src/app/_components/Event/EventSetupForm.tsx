@@ -13,7 +13,7 @@ import { SelectNumberPossibleNULL, SelectString } from '@/components/UI/Select'
 import Slider from '@/components/UI/Slider'
 import TextInput from '@/components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
-import { updateEventAction } from '@/services/events/actions'
+import { saveEventSetupAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { eventSetupChecks, setupTabStatuses } from '@/services/events/publishProblems'
 import { useTabs } from '@/components/UI/Tabs'
@@ -81,7 +81,7 @@ export default function EventSetupForm({
     const [variants, setVariants] = useState<VariantDraft[]>(() => toVariantDrafts(event.variants))
     const [adminRequirements, setAdminRequirements] = useState(access.adminVisibility.requirements)
     const [waitingList, setWaitingList] = useState(event.waitingList)
-    const save: ActionFormData<Event> = configureAction(updateEventAction, { params: { id: event.id } })
+    const save: ActionFormData<Event> = configureAction(saveEventSetupAction, { params: { id: event.id } })
     const { reportDots } = useTabs()
 
     const checkSetup = (values: FormData) => {

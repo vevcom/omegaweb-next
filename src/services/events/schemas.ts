@@ -49,7 +49,7 @@ const dataFieldSchemas = z.object({
     published: Zpn.checkboxOrBoolean({ label: 'Publisert' }),
     notifyAboutChange: Zpn.checkboxOrBoolean({ label: 'Varsle de påmeldte' }).default(false),
 
-    // Everything the form on the event's page holds, saved with the event. See applyRegistrationSetup.
+    // What the form on the event's page holds besides the event's own fields. See saveSetup.
     variants: Zpn.json({
         label: 'Påmelding',
         schema: z.array(eventVariantSchemas.data.create.extend({
@@ -71,6 +71,15 @@ const dataFieldSchemas = z.object({
         label: 'Hvem kan administrere',
         schema: visibilityRequirementsSchema.min(1, 'Du må velge hvem som kan administrere arrangementet'),
     }),
+})
+
+/**
+ * The fields as an authorized operation has parsed them. An internal operation parses what it is
+ * given once more, so it takes these: parsing them again changes nothing.
+ */
+const parsedFieldSchemas = dataFieldSchemas.extend({
+    location: z.string().nullable(),
+    hostedByCommitteeId: z.number().int().nullable().optional(),
 })
 
 const paramsFieldSchemas = z.object({
@@ -148,6 +157,14 @@ export const eventSchemas = {
         update: dataFieldSchemas.pick({
             ...eventFields,
             notifyAboutChange: true,
+        }).partial(),
+        updateFields: parsedFieldSchemas.pick({
+            ...eventFields,
+            notifyAboutChange: true,
+        }).partial(),
+        saveSetup: dataFieldSchemas.pick({
+            ...eventFields,
+            notifyAboutChange: true,
             variants: true,
             adminRequirements: true,
             ledgerAccountSelection: true,
@@ -177,6 +194,8 @@ export const eventSchemas = {
             }),
         ),
         update: eventId,
+        updateFields: eventId,
+        saveSetup: eventId,
         updateCmsCoverImage: eventImplementationId,
         setPublished: eventId,
         connectToLedgerAccount: eventId,
