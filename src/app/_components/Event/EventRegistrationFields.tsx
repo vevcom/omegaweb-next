@@ -58,7 +58,6 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
             {several
                 ? <TextInput
                     label="Navn på kvoten"
-                    name={`quotaName${quota.key}`}
                     value={quota.name}
                     onChange={event => onChange({ name: event.target.value })}
                     className="flex-1 min-w-40 max-w-none! mt-0!"
@@ -66,7 +65,6 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
                 : <span className="flex-1">Antall plasser</span>}
             <NumberInput
                 label="Plasser"
-                name={`quotaPlaces${quota.key}`}
                 min={0}
                 value={quota.places}
                 onChange={event => onChange({ places: Number(event.target.value) })}
@@ -173,7 +171,6 @@ function RegistrationPeriod({ variant, onChange }: {
     ">
         <DateInput
             label="Påmelding åpner"
-            name={`registrationStart${variant.key}`}
             includeTime
             defaultValue={variant.registrationStart}
             onChange={event => {
@@ -182,7 +179,6 @@ function RegistrationPeriod({ variant, onChange }: {
         />
         <DateInput
             label="Påmelding stenger"
-            name={`registrationEnd${variant.key}`}
             includeTime
             defaultValue={variant.registrationEnd}
             onChange={event => {
@@ -295,7 +291,6 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
                 <div className="flex items-center gap-2">
                     <TextInput
                         label="Navn på varianten"
-                        name={`variantName${variant.key}`}
                         value={variant.name}
                         onChange={event => changeVariant(variant.key, { name: event.target.value })}
                         className="flex-1 max-w-none! mt-0!"

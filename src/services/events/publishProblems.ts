@@ -8,7 +8,7 @@ export type SetupCheck = { tab: SetupTab, level: 'missing' | 'warning', message:
 
 export type TabStatus = { level: 'ok' | 'warning' | 'missing', label: string }
 
-type EventSetup = {
+export type EventSetup = {
     location: string | null,
     eventStart: Date,
     eventEnd: Date,

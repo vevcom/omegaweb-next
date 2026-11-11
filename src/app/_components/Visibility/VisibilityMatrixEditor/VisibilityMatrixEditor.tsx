@@ -1,5 +1,6 @@
 'use client'
 import Button from '@/components/UI/Button'
+import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import { SelectNumber, SelectString } from '@/components/UI/Select'
 import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import { useGroups } from '@/contexts/ClientData'
@@ -110,7 +111,7 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
 
     return (
         <div className="flex flex-col gap-[0.5em]">
-            {'name' in props && <input type="hidden" name={props.name} value={JSON.stringify(requirements)} />}
+            {'name' in props && <JsonFieldInput name={props.name} value={requirements} />}
             <p className="italic">
                 {emptyMeans !== undefined && requirements.length === 0
                     ? emptyMeans

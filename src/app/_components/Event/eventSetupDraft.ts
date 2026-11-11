@@ -1,7 +1,12 @@
+import { dateFromUtcInputValue } from '@/lib/dates/dateInputValue'
+import { eventCanBeViewedByOptions } from '@/services/events/constants'
+import type { EventSetup } from '@/services/events/publishProblems'
+import type { eventVariantSetupFormSchema } from '@/services/events/variants/schemas'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
 import type { VisibilityRequirement } from '@/services/visibility/types'
+import type { z } from 'zod'
 
-/** A quota as the form holds it. What is not a field of the save goes unread by the server. */
+/** A quota as the form holds it. `variantsToPost` leaves out what is not a field of the save. */
 export type QuotaDraft = {
     /** Tells drafts apart before they have an id. */
     key: number,
@@ -54,17 +59,70 @@ export function toVariantDrafts(variants: EventVariantExpanded[]): VariantDraft[
     }))
 }
 
-/** The drafts as the field of the form that posts them holds them. */
-export const variantDraftsToField = (variants: VariantDraft[]) => JSON.stringify(variants)
+type PostedVariant = z.input<typeof eventVariantSetupFormSchema>[number]
 
-const draftDates = ['registrationStart', 'registrationEnd', 'paymentStart', 'paymentEnd']
+/** The drafts as the save takes them: the fields of its schema and nothing the form holds for itself. */
+export function variantsToPost(variants: VariantDraft[]): PostedVariant[] {
+    return variants.map(variant => ({
+        id: variant.id,
+        name: variant.name,
+        registrationStart: variant.registrationStart,
+        registrationEnd: variant.registrationEnd,
+        takesPayment: variant.takesPayment,
+        price: variant.price,
+        paymentStart: variant.paymentStart,
+        paymentEnd: variant.paymentEnd,
+        requeueUnpaidRegistrations: variant.requeueUnpaidRegistrations,
+        quotas: variant.quotas.map(quota => ({
+            id: quota.id,
+            name: quota.name,
+            places: quota.places,
+            visibilityRequirements: quota.visibilityRequirements,
+        })),
+    }))
+}
 
-/** The drafts back from the field, with their dates as dates again. Without the field there are none. */
-export function variantDraftsFromField(field: FormDataEntryValue | null): VariantDraft[] {
-    if (typeof field !== 'string') return []
-    return JSON.parse(field, (key, value: unknown) => (
-        draftDates.includes(key) && typeof value === 'string' ? new Date(value) : value
-    )) as VariantDraft[]
+const postedDates = ['registrationStart', 'registrationEnd', 'paymentStart', 'paymentEnd']
+
+/** A field posted as JSON. Null when the form has no such field. */
+function jsonField(values: FormData, name: string, reviver?: (key: string, value: unknown) => unknown): unknown {
+    const field = values.get(name)
+    return typeof field === 'string' ? JSON.parse(field, reviver) : null
+}
+
+/**
+ * What the setup checks take, read from what the form would post. This is the one place that
+ * knows how the fields of the form are posted. `saved` is the event as it is saved, for what the
+ * form has no field for.
+ */
+export function eventSetupFromForm(
+    values: FormData,
+    saved: Pick<EventSetup, 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'ledgerAccount' | 'adminVisibility'>,
+): EventSetup {
+    const location = values.get('location')
+    const eventStart = values.get('eventStart')
+    const eventEnd = values.get('eventEnd')
+    const canBeViewedBy = values.get('canBeViewedBy')
+    const account = values.get('ledgerAccountSelection')
+    // Both are written by this form's own fields, so they have the shape those fields post.
+    const variants = jsonField(values, 'variants', (key, value) => (
+        postedDates.includes(key) && typeof value === 'string' ? new Date(value) : value
+    )) as EventSetup['variants'] | null
+    const adminRequirements = jsonField(values, 'adminRequirements') as VisibilityRequirement[] | null
+
+    return {
+        location: typeof location === 'string' ? location : null,
+        eventStart: typeof eventStart === 'string' ? dateFromUtcInputValue(eventStart) : saved.eventStart,
+        eventEnd: typeof eventEnd === 'string' ? dateFromUtcInputValue(eventEnd) : saved.eventEnd,
+        canBeViewedBy: eventCanBeViewedByOptions.find(option => option.value === canBeViewedBy)?.value
+            ?? saved.canBeViewedBy,
+        // An account left unpicked keeps the one the event has, as the save does.
+        ledgerAccount: saved.ledgerAccount
+            ?? (typeof account === 'string' && account !== 'NULL' ? { id: Number(account) } : null),
+        variants: variants ?? [],
+        // Not a field of the form when who administrates the event could not be read.
+        adminVisibility: adminRequirements ? { requirements: adminRequirements } : saved.adminVisibility,
+    }
 }
 
 let lastDraftKey = 0

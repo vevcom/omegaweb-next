@@ -1,6 +1,8 @@
 'use client'
+import { useInputEvent } from '@/components/Form/JsonFieldInput'
+import { utcInputValue } from '@/lib/dates/dateInputValue'
 import { displayDefaultInputValue } from '@/lib/dates/displayDefaultInputValue'
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import type { PropTypes as PropTypesInput } from './TextInput'
 import type { ChangeEvent } from 'react'
 
@@ -29,6 +31,11 @@ const backgroundClassNames = {
     `,
 } as const
 
+/**
+ * A date, with the time when `includeTime` is set. It is picked in the browser's own zone and
+ * posted under `name` in UTC, see `utcInputValue`. Without a name it posts nothing, for an input
+ * that is part of a larger field.
+ */
 export default function DateInput({
     label = 'default',
     color = 'base',
@@ -37,6 +44,7 @@ export default function DateInput({
     defaultValue,
     includeTime = false,
     id,
+    name,
     ...props
 }: Omit<PropTypes, 'type'>) {
     const domId = useId()
@@ -45,12 +53,14 @@ export default function DateInput({
         ? displayDefaultInputValue(defaultValue, includeTime)
         : defaultValue
     const defaultValueTransformedUtc = defaultValue instanceof Date
-        ? defaultValue.toISOString().substring(0, includeTime ? 16 : 10)
+        ? utcInputValue(defaultValue, includeTime)
         : defaultValue
     const [utcValue, setUtcValue] = useState(defaultValueTransformedUtc)
+    const utcInputRef = useRef<HTMLInputElement>(null)
+    useInputEvent(utcInputRef, String(utcValue ?? ''))
 
     const setUtc = (e: ChangeEvent<HTMLInputElement>) => {
-        setUtcValue(new Date(e.target.value).toISOString().substring(0, includeTime ? 16 : 10))
+        setUtcValue(utcInputValue(new Date(e.target.value), includeTime))
     }
 
     return (
@@ -82,18 +92,18 @@ export default function DateInput({
                 `}
                 {...props}
                 id={inputId}
-                name={`${props.name}Local`}
+                name={name && `${name}Local`}
             />
             <label htmlFor={inputId} className="
                 absolute left-4 top-2 text-[length:calc(var(--text-s)*0.85)] text-base-content/80 pointer-events-none
             ">{label}</label>
-            <input
-                defaultValue={defaultValueTransformedUtc}
+            {name && <input
                 {...props}
+                ref={utcInputRef}
                 type="hidden"
-                name={props.name}
+                name={name}
                 value={utcValue}
-            />
+            />}
         </div>
     )
 }

@@ -2,6 +2,7 @@
 
 import Button from '@/components/UI/Button'
 import EventLocationMap from '@/components/Event/EventLocationMap'
+import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import TextInput from '@/components/UI/TextInput'
 import NumberInput from '@/components/UI/NumberInput'
 import Dropdown from '@/components/UI/Dropdown'
@@ -100,7 +101,7 @@ export default function EventLocationInput({ name, defaultValue }: PropTypes) {
                 />
             </div>
         </>}
-        <input type="hidden" name={name} value={JSON.stringify(locationMap)} />
+        <JsonFieldInput name={name} value={locationMap} />
         {provider !== 'NONE' && <Button
             type="button"
             color="secondary"

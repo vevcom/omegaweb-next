@@ -1,5 +1,6 @@
 'use client'
-import { toVariantDrafts, variantDraftsToField } from './eventSetupDraft'
+import { toVariantDrafts, variantsToPost } from './eventSetupDraft'
+import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import { createContext, useContext, useState } from 'react'
 import type { VariantDraft } from './eventSetupDraft'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
@@ -40,7 +41,7 @@ export default function EventVariantsField({ name, defaultValue, children }: {
 /** What posts the field. */
 export function EventVariantsFieldInput() {
     const { name, variants } = useField()
-    return <input type="hidden" name={name} value={variantDraftsToField(variants)} />
+    return <JsonFieldInput name={name} value={variantsToPost(variants)} />
 }
 
 /** The value of the field and how to change it, for the parts of the form that edit it. */

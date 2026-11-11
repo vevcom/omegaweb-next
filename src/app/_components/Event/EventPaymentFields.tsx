@@ -31,7 +31,6 @@ export default function EventPaymentFields({ ledgerAccount, ledgerAccounts }: {
         {variants.map(variant => <section key={variant.key} className="flex flex-col gap-3 p-4 rounded-round bg-base-200">
             <Slider
                 label={variants.length > 1 ? `${variant.name} koster penger` : 'Påmeldingen koster penger'}
-                name={`takesPayment${variant.key}`}
                 checked={variant.takesPayment}
                 onChange={event => changeVariant(variant.key, {
                     takesPayment: event.target.checked,
@@ -45,15 +44,15 @@ export default function EventPaymentFields({ ledgerAccount, ledgerAccounts }: {
             ">
                 <NumberInput
                     label="Pris i kroner"
-                    name={`price${variant.key}`}
                     min={0}
                     value={variant.price ?? ''}
-                    onChange={event => changeVariant(variant.key, { price: Number(event.target.value) })}
+                    onChange={event => changeVariant(variant.key, {
+                        price: event.target.value === '' ? undefined : Number(event.target.value),
+                    })}
                     className="col-span-full"
                 />
                 <DateInput
                     label="Betaling åpner"
-                    name={`paymentStart${variant.key}`}
                     includeTime
                     defaultValue={variant.paymentStart}
                     onChange={event => {
@@ -62,7 +61,6 @@ export default function EventPaymentFields({ ledgerAccount, ledgerAccounts }: {
                 />
                 <DateInput
                     label="Betalingsfrist"
-                    name={`paymentEnd${variant.key}`}
                     includeTime
                     defaultValue={variant.paymentEnd}
                     onChange={event => {
@@ -71,7 +69,6 @@ export default function EventPaymentFields({ ledgerAccount, ledgerAccounts }: {
                 />
                 <Slider
                     label="Flytt ubetalte bakerst på ventelisten"
-                    name={`requeueUnpaidRegistrations${variant.key}`}
                     checked={variant.requeueUnpaidRegistrations}
                     onChange={event => changeVariant(variant.key, { requeueUnpaidRegistrations: event.target.checked })}
                     className="col-span-full"
