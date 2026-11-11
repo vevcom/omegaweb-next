@@ -246,14 +246,13 @@ describe('notification recipient resolution', () => {
             },
             bypassAuth: true,
         })
-        const quota = await eventQuotaOperations.create({
+        const quota = await eventQuotaOperations.internal.create.internalCall({
             params: { variantId: variant.id },
             data: {
                 name: 'Gruppa',
                 places: 5,
                 visibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
             },
-            bypassAuth: true,
         })
         expect(await resolveRecipientIds(notification.id, 'email')).toEqual([member.id])
 

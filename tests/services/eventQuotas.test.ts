@@ -1,4 +1,6 @@
+import { changeEventSetup, removeQuota, setQuotaPlaces } from 'tests/eventSetup'
 import { Session } from '@/auth/session/Session'
+import { newQuotaDraft } from '@/components/Event/eventSetupDraft'
 import { ServiceError, Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
@@ -108,14 +110,13 @@ async function createEvent(
         })
         const quotas = []
         for (const quota of spec.quotas) {
-            quotas.push(await eventQuotaOperations.create({
+            quotas.push(await eventQuotaOperations.internal.create.internalCall({
                 params: { variantId: variant.id },
                 data: {
                     name: quota.name,
                     places: quota.places,
                     visibilityRequirements: (quota.visibility ?? everyone).requirements,
                 },
-                bypassAuth: true,
             }))
         }
         variants.push({ ...variant, quotas })
@@ -291,11 +292,10 @@ describe('refilling places', () => {
         await register(member, eventId)
         await register(laterMember, eventId)
 
-        const quota = await eventQuotaOperations.create({
-            params: { variantId },
-            data: { name: 'Gruppe én', places: 1, visibilityRequirements: activeIn(groupOne).requirements },
-            bypassAuth: true,
+        await changeEventSetup(eventId, ([variant]) => {
+            variant.quotas.push({ ...newQuotaDraft('Gruppe én', activeIn(groupOne).requirements), places: 1 })
         })
+        const quota = await prisma.eventQuota.findFirstOrThrow({ where: { variantId, name: 'Gruppe én' } })
 
         expect(await readOfUser(member, eventId)).toMatchObject({ state: 'IN_QUOTA', quotaId: quota.id })
         expect(await readOfUser(laterMember, eventId)).toMatchObject({ state: 'WAITING_LIST' })
@@ -315,7 +315,7 @@ describe('refilling places', () => {
             params: { userId: outsider.user.id, eventId }, session: sessionOf(organiser),
         })
         // A second place does not seat the outsider while the quota is not theirs.
-        await eventQuotaOperations.update({ params: { id: quota.id }, data: { places: 2 }, bypassAuth: true })
+        await setQuotaPlaces(quota.id, 2)
         expect(await readOfUser(outsider, eventId)).toMatchObject({ state: 'WAITING_LIST' })
 
         await eventQuotaOperations.visibility.update({
@@ -339,14 +339,14 @@ describe('refilling places', () => {
         await register(last, eventId)
         await prisma.eventRegistration.update({ where: { id: paid.id }, data: { manuallyPaid: true } })
 
-        await eventQuotaOperations.update({ params: { id: quota.id }, data: { places: 2 }, bypassAuth: true })
+        await setQuotaPlaces(quota.id, 2)
         expect(await readOfUser(last, eventId)).toMatchObject({ state: 'WAITING_LIST' })
 
-        await eventQuotaOperations.update({ params: { id: quota.id }, data: { places: 1 }, bypassAuth: true })
+        await setQuotaPlaces(quota.id, 1)
         expect(await readOfUser(first, eventId)).toMatchObject({ state: 'WAITING_LIST' })
         expect(await readOfUser(paying, eventId)).toMatchObject({ state: 'IN_QUOTA' })
 
-        await expect(eventQuotaOperations.update({ params: { id: quota.id }, data: { places: 0 }, bypassAuth: true }))
+        await expect(setQuotaPlaces(quota.id, 0))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
         expect(await readOfUser(paying, eventId)).toMatchObject({ state: 'IN_QUOTA' })
         expect(promotedUserIds()).toEqual([])
@@ -359,7 +359,7 @@ describe('refilling places', () => {
         await register(seated, eventId)
         await register(waiting, eventId)
 
-        await eventQuotaOperations.update({ params: { id: quota.id }, data: { places: 2 }, bypassAuth: true })
+        await setQuotaPlaces(quota.id, 2)
 
         expect(await readOfUser(waiting, eventId)).toMatchObject({ state: 'IN_QUOTA' })
         expect(promotedUserIds()).toEqual([waiting.user.id])
@@ -551,12 +551,12 @@ describe('administrating variants and quotas', () => {
             { name: 'Andre', places: 2 },
         ])
 
-        await expect(eventQuotaOperations.reorder({
-            params: { variantId }, data: { quotaIds: [second.id] }, bypassAuth: true,
+        await expect(eventQuotaOperations.internal.reorder.internalCall({
+            params: { variantId }, data: { quotaIds: [second.id] },
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
 
-        await eventQuotaOperations.reorder({
-            params: { variantId }, data: { quotaIds: [second.id, first.id] }, bypassAuth: true,
+        await eventQuotaOperations.internal.reorder.internalCall({
+            params: { variantId }, data: { quotaIds: [second.id, first.id] },
         })
 
         const read = await eventQuotaOperations.readMany({ params: { variantId }, bypassAuth: true })
@@ -568,16 +568,14 @@ describe('administrating variants and quotas', () => {
         const member = await createUser([groupOne])
         const organiser = await createUser([organisers])
 
-        await expect(eventQuotaOperations.update({
-            params: { id: quota.id }, data: { places: 2 }, session: sessionOf(member),
-        })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+        await expect(setQuotaPlaces(quota.id, 2, sessionOf(member))).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
         await expect(eventVariantOperations.create({
             params: { eventId },
             data: { name: 'Ny', registrationStart: new Date(), registrationEnd: new Date(Date.now() + HOUR) },
             session: sessionOf(member),
         })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
 
-        await eventQuotaOperations.update({ params: { id: quota.id }, data: { places: 2 }, session: sessionOf(organiser) })
+        await setQuotaPlaces(quota.id, 2, sessionOf(organiser))
         await expect(eventQuotaOperations.readMany({ params: { variantId }, session: sessionOf(organiser) }))
             .resolves.toMatchObject([{ places: 2 }])
     })
@@ -600,15 +598,15 @@ describe('administrating variants and quotas', () => {
         const member = await createUser([groupOne])
         const registration = await register(member, eventId)
 
-        await expect(eventQuotaOperations.destroy({ params: { id: quota.id }, bypassAuth: true }))
+        await expect(removeQuota(quota.id))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
         await expect(eventVariantOperations.destroy({ params: { id: variantId }, bypassAuth: true }))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
 
         // Cutting the places moves the member on to the next quota they pass, which empties this one.
-        await eventQuotaOperations.update({ params: { id: quota.id }, data: { places: 0 }, bypassAuth: true })
+        await setQuotaPlaces(quota.id, 0)
         expect(await readOfUser(member, eventId)).toMatchObject({ state: 'IN_QUOTA', quotaId: spare.id })
-        await eventQuotaOperations.destroy({ params: { id: quota.id }, bypassAuth: true })
+        await removeQuota(quota.id)
         expect(await prisma.eventQuota.findUnique({ where: { id: quota.id } })).toBeNull()
         expect(await prisma.visibility.findUnique({ where: { id: quota.visibilityId } })).toBeNull()
 
@@ -633,7 +631,7 @@ describe('who sees an event with quotas', () => {
             [{ name: 'Gruppe én', places: 0, visibility: activeIn(groupOne) }],
             { canBeViewedBy: 'CAN_REGISTER' },
         )
-        await expect(eventQuotaOperations.destroy({ params: { id: quota.id }, bypassAuth: true }))
+        await expect(removeQuota(quota.id))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
         await expect(eventVariantOperations.destroy({ params: { id: variantId }, bypassAuth: true }))
             .rejects.toThrow(new Smorekopp('BAD PARAMETERS'))

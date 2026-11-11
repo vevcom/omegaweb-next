@@ -13,7 +13,7 @@ import {
     eventVariantSummarySelection,
 } from './constants'
 import { createVariant } from './variants/createVariant'
-import { createQuota } from './quotas/createQuota'
+import { eventQuotaOperations } from './quotas/operations'
 import { eventNotificationOperations } from './notifications/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { eventLinks } from '@/pageKits/events/links'
@@ -380,10 +380,14 @@ export const eventOperations = {
                     paymentEnd: data.paymentEnd,
                     requeueUnpaidRegistrations: data.requeueUnpaidRegistrations,
                 })
-                await createQuota(prisma, variant.id, {
-                    name: 'Påmelding',
-                    places: data.places ?? 0,
-                    visibilityRequirements: data.quotaVisibilityRequirements,
+                await eventQuotaOperations.internal.create.internalCall({
+                    prisma,
+                    params: { variantId: variant.id },
+                    data: {
+                        name: 'Påmelding',
+                        places: data.places ?? 0,
+                        visibilityRequirements: data.quotaVisibilityRequirements,
+                    },
                 })
             }
             const event = createdEvent

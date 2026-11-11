@@ -54,7 +54,7 @@ const dataFieldSchemas = z.object({
         label: 'Påmelding',
         schema: z.array(eventVariantSchemas.data.create.extend({
             id: z.number().int().optional(),
-            quotas: z.array(eventQuotaSchemas.data.create.extend({ id: z.number().int().optional() })),
+            quotas: eventQuotaSchemas.data.saveSetup.shape.quotas,
         })),
     }),
     adminRequirements: Zpn.json({

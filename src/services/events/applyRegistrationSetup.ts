@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { createQuota } from './quotas/createQuota'
+import { eventQuotaOperations } from './quotas/operations'
 import { assertValidVariant, createVariant, unpaidVariant } from './variants/createVariant'
 import { ServiceError } from '@/services/error'
 import { visibilityOperations } from '@/services/visibility/operations'
@@ -8,46 +8,12 @@ import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
 type VariantSetup = NonNullable<z.infer<typeof eventSchemas.data.saveSetup>['variants']>[number]
-type QuotaSetup = VariantSetup['quotas'][number]
 
 async function destroyVisibilities(tx: Prisma.TransactionClient, visibilityIds: number[]) {
     await Promise.all(visibilityIds.map(visibilityId => visibilityOperations.destroy.internalCall({
         prisma: tx,
         params: { visibilityId },
     })))
-}
-
-async function saveQuotas(tx: Prisma.TransactionClient, variantId: number, quotas: QuotaSetup[]) {
-    const existing = await tx.eventQuota.findMany({
-        where: { variantId },
-        select: { id: true, visibilityId: true, _count: { select: { registrations: true } } },
-    })
-    const removed = existing.filter(quota => !quotas.some(setup => setup.id === quota.id))
-    if (removed.some(quota => quota._count.registrations > 0)) {
-        throw new ServiceError('BAD PARAMETERS', 'Kvoten har påmeldte. Flytt eller meld av dem før du fjerner den.')
-    }
-    await tx.eventQuota.deleteMany({ where: { id: { in: removed.map(quota => quota.id) } } })
-    await destroyVisibilities(tx, removed.map(quota => quota.visibilityId))
-
-    for (let order = 0; order < quotas.length; order++) {
-        const setup = quotas[order]
-        const { id, ...fields } = setup
-        const known = existing.find(quota => quota.id === id)
-        if (id !== undefined && !known) throw new ServiceError('BAD PARAMETERS', 'Kvoten hører ikke til varianten.')
-
-        const saved = known ?? await createQuota(tx, variantId, fields)
-        await tx.eventQuota.update({
-            where: { id: saved.id },
-            data: { order, name: fields.name, places: fields.places },
-        })
-        if (known) {
-            await visibilityOperations.updateInTransaction.internalCall({
-                prisma: tx,
-                params: { visibilityId: known.visibilityId },
-                data: { requirements: fields.visibilityRequirements },
-            })
-        }
-    }
 }
 
 /**
@@ -93,7 +59,11 @@ export async function applyRegistrationSetup(
             where: { id: saved.id },
             data: { ...fields, order, ...(fields.takesPayment ? {} : unpaidVariant) },
         })
-        await saveQuotas(tx, saved.id, quotas)
+        await eventQuotaOperations.internal.saveSetup.internalCall({
+            prisma: tx,
+            params: { variantId: saved.id },
+            data: { quotas },
+        })
         savedIds.push(saved.id)
     }
 

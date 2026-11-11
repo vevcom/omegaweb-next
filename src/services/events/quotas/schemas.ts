@@ -26,6 +26,16 @@ const quotaFields = {
     places: true,
 } as const
 
+const quotaFieldsWithVisibility = {
+    ...quotaFields,
+    visibilityRequirements: true,
+} as const
+
+// A quota as a save of the whole variant gives it. One without an id is new.
+const quotaSetup = dataFieldSchemas.pick(quotaFieldsWithVisibility).extend({
+    id: z.number().int().optional(),
+})
+
 const quotaId = paramsFieldSchemas.pick({
     id: true,
 })
@@ -36,13 +46,13 @@ const variantId = paramsFieldSchemas.pick({
 
 export const eventQuotaSchemas = {
     data: {
-        create: dataFieldSchemas.pick({
-            ...quotaFields,
-            visibilityRequirements: true,
-        }),
-        update: dataFieldSchemas.pick(quotaFields).partial(),
+        create: dataFieldSchemas.pick(quotaFieldsWithVisibility),
+        update: dataFieldSchemas.pick(quotaFieldsWithVisibility).partial(),
         reorder: dataFieldSchemas.pick({
             quotaIds: true,
+        }),
+        saveSetup: z.object({
+            quotas: z.array(quotaSetup),
         }),
     },
     params: {
@@ -51,6 +61,7 @@ export const eventQuotaSchemas = {
         update: quotaId,
         destroy: quotaId,
         reorder: variantId,
+        saveSetup: variantId,
         visibility: quotaId,
     },
 }
