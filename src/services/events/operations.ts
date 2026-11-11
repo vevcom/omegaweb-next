@@ -1,8 +1,8 @@
 import '@pn-server-only'
-import { eventAuth } from './auth'
+import { eventAuth, hasNoAdministrators } from './auth'
 import { eventSchemas } from './schemas'
 import { assertSeenThroughQuotas, readEventAccess } from './access'
-import { hasNoAdministrators, publishProblems } from './publishProblems'
+import { publishProblems } from './publishProblems'
 import { lockEvent } from './registration/queue'
 import { fixVariantPlaces, notifyPromoted } from './registration/fixState'
 import {
@@ -40,9 +40,9 @@ import type { EventPagesConfig } from '@/pageKits/events/config'
 
 const DAY_MS = 1000 * 60 * 60 * 24
 
-// ponytail: a new event has no time yet, and the database requires one. Start and end both land here,
-// so a draft stays on the current list and publishProblems sees them as unset until someone sets them.
-// Make the columns nullable if drafts ever need to show that they have no time.
+// A new event has no time yet, and the database requires one. Start and end both land here, at the
+// same instant, which `hasNoTime` reads as no time. A week ahead keeps the draft on the list of
+// coming events until someone sets them.
 const UNSET_EVENT_TIME_OFFSET_MS = 7 * DAY_MS
 
 // Administers nothing, so a draft from just a name is its creator's until someone is chosen.

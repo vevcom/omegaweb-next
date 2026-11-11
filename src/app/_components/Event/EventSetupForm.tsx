@@ -16,7 +16,7 @@ import TextInput from '@/components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { saveEventSetupAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
-import { eventSetupChecks, setupTabStatuses } from '@/services/events/publishProblems'
+import { eventSetupChecks, setupStatuses } from '@/services/events/publishProblems'
 import { nameVariantInErrors } from '@/services/events/setupErrors'
 import { useTabs } from '@/components/UI/Tabs'
 import useSiteRouter from '@/hooks/useSiteRouter'
@@ -25,6 +25,7 @@ import { eventLinks } from '@/pageKits/events/links'
 import { useState } from 'react'
 import type { ActionFormData } from '@/services/actionTypes'
 import type { EventPagesConfig } from '@/pageKits/events/config'
+import type { SetupPart } from '@/services/events/publishProblems'
 import type { EventAccess, EventDetailed } from '@/services/events/types'
 import type { Committee, Event, EventTag, LedgerAccount } from '@/prisma-generated-pn-types'
 
@@ -36,6 +37,16 @@ export const eventSetupTabs = [
     { key: 'payment', label: 'Betaling' },
     { key: 'access', label: 'Tilgang' },
 ]
+
+/** The tab each part of the setup is put right on, for the dots on the tabs. */
+const tabOfPart = {
+    time: 'about',
+    location: 'about',
+    visibility: 'rules',
+    registration: 'registration',
+    payment: 'payment',
+    administrators: 'access',
+} as const satisfies Record<SetupPart, string>
 
 export type PropTypes = {
     event: Pick<EventDetailed,
@@ -94,7 +105,7 @@ function SetupForm({
 
     const checkSetup = (values: FormData) => {
         const setup = eventSetupFromForm(values, { ...event, adminVisibility: access.adminVisibility })
-        reportDots(setupTabStatuses(eventSetupChecks(setup)))
+        reportDots(setupStatuses(eventSetupChecks(setup), tabOfPart))
         setWaitingList(values.getAll('waitingList').includes('on'))
     }
 

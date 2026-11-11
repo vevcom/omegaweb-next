@@ -32,6 +32,7 @@ import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { eventAuth } from '@/services/events/auth'
+import { hasNoTime } from '@/services/events/publishProblems'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { eventNotificationAuth } from '@/services/events/notifications/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
@@ -311,11 +312,11 @@ export function eventPage(config: EventPagesConfig) {
                         <EventSection title="Tid og sted">
                             <p className={iconRowClassName}>
                                 <FontAwesomeIcon icon={faCalendar} />
-                                <span>
+                                {hasNoTime(event) ? <span>Tiden er ikke satt</span> : <span>
                                     <DateDisplay date={event.eventStart} includeSeconds={false} />
                                     {' – '}
                                     <DateDisplay date={event.eventEnd} includeSeconds={false} />
-                                </span>
+                                </span>}
                             </p>
                             <p className={iconRowClassName}>
                                 <FontAwesomeIcon icon={faLocationDot} />
