@@ -24,26 +24,28 @@ async function compressField(data: any): Promise<any> {
     }
 }
 
-// eslint-disable-next-line
-async function decompressField(data: unknown): Promise<any> {
+/** What a field decompressed to, kept apart from a failure: the user of a company session is null. */
+type Decompressed = { success: true, value: unknown } | { success: false }
+
+async function decompressField(data: unknown): Promise<Decompressed> {
     if (typeof data !== 'string') {
         logger.error('Failed to decompress JWT field: it is not a string.')
 
-        return null
+        return { success: false }
     }
 
     try {
         const buffer = Buffer.from(data, 'base64')
         const inflated = await inflateAsync(buffer)
-        return JSON.parse(inflated.toString())
+        return { success: true, value: JSON.parse(inflated.toString()) as unknown }
     } catch (error) {
         logger.error('Failed to decompress JWT field.', { error })
 
-        return null
+        return { success: false }
     }
 }
 
-const fieldsToCompress: (keyof JWT)[] = ['permissions', 'memberships', 'user']
+const fieldsToCompress: (keyof JWT)[] = ['permissions', 'memberships', 'user', 'companyUser']
 
 export async function compressJwt(token: JWT | undefined): Promise<JWT | undefined> {
     if (!token) return token
@@ -64,15 +66,14 @@ export async function decompressJwt(token: JWT): Promise<JWT | null> {
 
     for (const field of fieldsToCompress) {
         if (field in decompressedJwt) {
-            // The field was compressed by compressField, so it is trusted to have the type JWT declares for it
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const decompressedField = await decompressField(decompressedJwt[field])
 
-            if (decompressedField === null) {
+            if (!decompressedField.success) {
                 return null
             }
 
-            decompressedJwt[field] = decompressedField
+            // The field was compressed by compressField, so it is trusted to have the type JWT declares for it.
+            Object.assign(decompressedJwt, { [field]: decompressedField.value })
         }
     }
 

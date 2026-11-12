@@ -5,6 +5,8 @@ import { companyUserAccountSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { sendCompanyUserPasswordMail } from '@/lib/email/systemMail/companyUserPassword'
+import { sendCompanyUserVerifyEmail } from '@/lib/email/systemMail/companyUserEmail'
+import { decryptAndComparePassword } from '@/auth/passwordHash'
 
 /** How a company user gets and keeps the means to sign in: their password and their email. */
 export const companyUserAccountOperations = {
@@ -34,6 +36,60 @@ export const companyUserAccountOperations = {
             return companyUser.email
         },
     }),
+
+    /**
+     * Asks to change the email of a company user. The new email is not theirs until they have
+     * followed the link sent to it, so nothing changes here.
+     */
+    registerNewEmail: defineOperation({
+        paramsSchema: companyUserAccountSchemas.params.registerNewEmail,
+        dataSchema: companyUserAccountSchemas.data.registerNewEmail,
+        authorizer: async ({ prisma, params }) => {
+            const { companyId } = await prisma.companyUser.findUniqueOrThrow({
+                where: { id: params.id },
+                select: { companyId: true },
+            })
+            return companyUserAccountAuth.registerNewEmail.data({ companyId, companyUserId: params.id })
+        },
+        operation: async ({ prisma, params, data, session }) => {
+            const companyUser = await prisma.companyUser.findUniqueOrThrow({
+                where: { id: params.id },
+                select: {
+                    id: true,
+                    firstname: true,
+                    email: true,
+                    emailVerified: true,
+                    credentials: { select: { passwordHash: true } },
+                },
+            })
+
+            if (data.email === companyUser.email && companyUser.emailVerified) {
+                return { verified: true, email: data.email }
+            }
+
+            // The password link goes to the email, so a company user changing their own must give their
+            // password. Those who manage the user are not asked: they can send that link anyway.
+            const changesOwn = session.companyUser?.id === companyUser.id
+            if (changesOwn && companyUser.credentials && !(
+                data.currentPassword
+                && await decryptAndComparePassword(data.currentPassword, companyUser.credentials.passwordHash)
+            )) {
+                throw new ServiceError('BAD PARAMETERS', 'Feil passord.')
+            }
+
+            const taken = await prisma.companyUser.findFirst({
+                where: { email: data.email, NOT: { id: companyUser.id } },
+                select: { id: true },
+            })
+            if (taken) throw new ServiceError('DUPLICATE', 'E-postadressen tilhører allerede en bedriftsbruker.')
+
+            await sendCompanyUserVerifyEmail(companyUser, data.email)
+            return { verified: false, email: data.email }
+        },
+    }),
+
+    /** Makes the email of a verify email link the company user's. The link is the admission. */
+    verifyEmail: companyUserAccountFlows.verifyEmail,
 
     /** The link by mail, asked for by whoever types the email. The same for a wrong email as a right one. */
     sendResetPasswordEmail: companyUserAccountFlows.sendResetPasswordEmail,

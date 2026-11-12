@@ -2,7 +2,7 @@ import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
-import { generateResetPasswordJWT } from '@/services/auth/account/tokens'
+import { generateResetPasswordJWT, generateVerifyEmailJWT } from '@/services/auth/account/tokens'
 import { authOperations } from '@/services/auth/operations'
 import { companySessionTokenOf } from '@/auth/nextAuth/sessionToken'
 import { companyUserAccountOperations } from '@/services/careers/companies/users/account/operations'
@@ -168,5 +168,93 @@ describe('choosing a password as a company user', () => {
         // A user's token, naming the id of a company user.
         await expect(choosePassword(generateResetPasswordJWT('resetpassword', companyUser.id, companyUser.email, 60 * 60)))
             .rejects.toThrow(new Smorekopp('JWT INVALID'))
+    })
+})
+
+describe('changing the email of a company user', () => {
+    const verifyEmailToken = (companyUserId: number, email: string) =>
+        generateVerifyEmailJWT('companyverifyemail', companyUserId, email, 60 * 60)
+
+    async function createWithPassword(email: string) {
+        const companyUser = await createCompanyUser(email)
+        await choosePassword(passwordToken(companyUser.id, companyUser.email))
+        return companyUser
+    }
+
+    test('asking for a new email changes nothing, and mails the new address a link', async () => {
+        const companyUser = await createCompanyUser('epost-gammel@example.com')
+        const sentMail = recordSentMail()
+
+        const result = await companyUserAccountOperations.registerNewEmail({
+            params: { id: companyUser.id },
+            data: { email: 'Epost-Ny@example.com' },
+            session: companyAdmin,
+        })
+        expect(result).toEqual({ verified: false, email: 'epost-ny@example.com' })
+        expect(sentMail.mock.calls.map(([mail]) => mail.to)).toEqual(['epost-ny@example.com'])
+
+        const stored = await prisma.companyUser.findUniqueOrThrow({ where: { id: companyUser.id } })
+        expect(stored.email).toBe('epost-gammel@example.com')
+    })
+
+    test('a company user changing their own email gives their password, those who manage them do not', async () => {
+        const companyUser = await createWithPassword('epost-selv@example.com')
+        const self = Session.fromToken(await companySessionTokenOf(companyUser.id))
+        recordSentMail()
+
+        await expect(companyUserAccountOperations.registerNewEmail({
+            params: { id: companyUser.id },
+            data: { email: 'epost-selv-ny@example.com' },
+            session: self,
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        await expect(companyUserAccountOperations.registerNewEmail({
+            params: { id: companyUser.id },
+            data: { email: 'epost-selv-ny@example.com', currentPassword: 'feil-passord-som-er-langt' },
+            session: self,
+        })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
+        await expect(companyUserAccountOperations.registerNewEmail({
+            params: { id: companyUser.id },
+            data: { email: 'epost-selv-ny@example.com', currentPassword: PASSWORD },
+            session: self,
+        })).resolves.toEqual({ verified: false, email: 'epost-selv-ny@example.com' })
+    })
+
+    test('an email another company user has is refused before any mail is sent', async () => {
+        const companyUser = await createCompanyUser('epost-opptatt-en@example.com')
+        await createCompanyUser('epost-opptatt-to@example.com')
+        const sentMail = recordSentMail()
+
+        await expect(companyUserAccountOperations.registerNewEmail({
+            params: { id: companyUser.id },
+            data: { email: 'epost-opptatt-to@example.com' },
+            session: companyAdmin,
+        })).rejects.toThrow(new Smorekopp('DUPLICATE'))
+        expect(sentMail).not.toHaveBeenCalled()
+    })
+
+    test('following the link makes the email theirs and verified, and tells the old address', async () => {
+        const companyUser = await createCompanyUser('epost-bekreft@example.com')
+        const sentMail = recordSentMail()
+
+        const verified = await companyUserAccountOperations.verifyEmail({
+            params: { token: verifyEmailToken(companyUser.id, 'epost-bekreftet@example.com') },
+        })
+        expect(verified.email).toBe('epost-bekreftet@example.com')
+        expect(verified.emailVerified).not.toBeNull()
+        expect(sentMail.mock.calls.map(([mail]) => mail.to)).toEqual(['epost-bekreft@example.com'])
+    })
+
+    test('a link is spent by a later verification, and a user\'s link is not a company user\'s', async () => {
+        const companyUser = await createCompanyUser('epost-brukt@example.com')
+        recordSentMail()
+        const first = verifyEmailToken(companyUser.id, 'epost-brukt-forste@example.com')
+        const second = verifyEmailToken(companyUser.id, 'epost-brukt-andre@example.com')
+
+        await companyUserAccountOperations.verifyEmail({ params: { token: second } })
+        await expect(companyUserAccountOperations.verifyEmail({ params: { token: first } }))
+            .rejects.toThrow(new Smorekopp('JWT INVALID'))
+        await expect(companyUserAccountOperations.verifyEmail({
+            params: { token: generateVerifyEmailJWT('verifyemail', companyUser.id, 'epost-kryss@example.com', 60 * 60) },
+        })).rejects.toThrow(new Smorekopp('JWT INVALID'))
     })
 })

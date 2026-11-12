@@ -3,6 +3,7 @@ import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
 import NavBar from '@/components/NavBar/NavBar'
 import { navDef } from '@/components/NavBar/navDef'
 import { adminNavDef } from '@/app/(omegaweb)/admin/adminNavDef'
+import CompanyUserBand from '@/components/CompanyUserBand/CompanyUserBand'
 import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import NavMenuProvider from '@/contexts/NavMenu'
@@ -78,6 +79,7 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
                         </aside>
                         <main className="[grid-area:content] min-h-0 overflow-hidden rounded-round">
                             <ScrollArea className="h-full" scrollerClassName="flex flex-col">
+                                <CompanyUserBand companyUser={serverSession.companyUser} />
                                 {children}
                             </ScrollArea>
                         </main>

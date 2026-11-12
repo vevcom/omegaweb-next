@@ -6,6 +6,7 @@ import { ServiceError } from '@/services/error'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
 import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { sendCompanyUserPasswordMail } from '@/lib/email/systemMail/companyUserPassword'
+import { sendCompanyUserEmailChangedMail } from '@/lib/email/systemMail/companyUserEmail'
 
 /**
  * A company user as a kind of account: where the flows of choosing a password by mail and of
@@ -53,8 +54,7 @@ export const companyUserAccountFlows = implementAccountFlows({
         data: { email, emailVerified: new Date() },
         select: companyUserSelection,
     }),
-    // Written with the email change itself.
-    notifyEmailChanged: async () => {},
+    notifyEmailChanged: sendCompanyUserEmailChangedMail,
     sendResetPasswordMail: async (email) => {
         const companyUser = await globalPrisma.companyUser.findFirst({
             where: { email, active: true },

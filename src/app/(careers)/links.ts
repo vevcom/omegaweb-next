@@ -23,6 +23,11 @@ export type CareerLinks = {
     profile: () => AppHref,
     /** Where a company user chooses a password, from the link in a mail. */
     companyPassword: (token: string) => AppHref,
+    /** Where a company user signs in. The career site has no other login for them. */
+    companyLogin: () => AppHref,
+    companyForgotPassword: () => AppHref,
+    /** Where a company user confirms a new email, from the link in a mail. */
+    companyVerifyEmail: (token: string) => AppHref,
 }
 
 const companyPath = (company: CompanyOfLink) => `/companies/${formatVevenUri(company.name, company.id)}`
@@ -39,4 +44,7 @@ export const careerLinks: CareerLinks = defineLinks<PagesMount, CareerLinks>(hre
     ),
     profile: () => href('/profile'),
     companyPassword: token => href('/company-password', QueryParams.token.encodeUrl(token)),
+    companyLogin: () => href('/company-login'),
+    companyForgotPassword: () => href('/company-forgot-password'),
+    companyVerifyEmail: token => href('/company-verify-email', QueryParams.token.encodeUrl(token)),
 }))(careerPages)
