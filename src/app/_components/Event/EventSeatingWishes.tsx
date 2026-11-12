@@ -4,8 +4,8 @@ import Form from '@/components/Form/Form'
 import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import { configureAction } from '@/services/configureAction'
 import { updateEventSeatingWishesAction } from '@/services/events/seating/actions'
-import { MAX_WISHES } from '@/services/events/seating/plan'
-import { useState } from 'react'
+import { MAX_WISHES, sidesOf } from '@/services/events/seating/plan'
+import { Fragment, useState } from 'react'
 import type { OwnSeating } from '@/services/events/seating/types'
 
 const NONE = 0
@@ -19,14 +19,31 @@ export default function EventSeatingWishes({ eventId, seating }: { eventId: numb
     const open = seating.wishesEnd !== null && new Date(seating.wishesEnd) > new Date()
 
     if (seating.table) {
+        const { number, seats, ownSeat } = seating.table
         return <>
-            <p className="m-0 text-l font-bold">Du sitter på bord {seating.table.number}</p>
-            {seating.table.guests.length > 0 && <>
-                <p className="m-0 text-base-content/80">Sammen med</p>
-                <ul className="m-0 pl-5">
-                    {seating.table.guests.map(name => <li key={name}>{name}</li>)}
-                </ul>
-            </>}
+            <p className="m-0 text-l font-bold">Du sitter på bord {number}, plass {ownSeat + 1}</p>
+            <div className="overflow-x-auto">
+                <div className="flex flex-col gap-1 w-max text-s">
+                    {sidesOf(seats.length).map((side, sideIndex) => <Fragment key={sideIndex}>
+                        {sideIndex === 1 && <div aria-hidden className="h-2 rounded-inner bg-base-300" />}
+                        <ul aria-label={`Side ${sideIndex + 1}`} className="
+                            grid grid-flow-col auto-cols-[6rem] gap-1 m-0 p-0
+                        ">
+                            {side.map(seat => <li
+                                key={seat}
+                                aria-current={seat === ownSeat || undefined}
+                                className={`
+                                    list-none px-2 py-1 rounded-inner truncate
+                                    ${seat === ownSeat ? 'bg-primary text-primary-content font-bold' : 'bg-base-200'}
+                                    ${seats[seat] === null ? 'text-base-content/60' : ''}
+                                `}
+                            >
+                                {seat === ownSeat ? 'Deg' : seats[seat] ?? 'Ledig'}
+                            </li>)}
+                        </ul>
+                    </Fragment>)}
+                </div>
+            </div>
         </>
     }
 

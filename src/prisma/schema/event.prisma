@@ -221,7 +221,9 @@ model EventRegistration {
 
   table       EventTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
   tableId     Int?
-  // Kept at its table when a new seating draft is made.
+  // From 0 along one side of the table, then along the other. Means nothing without a table.
+  seat        Int?
+  // Kept at its seat when a new seating draft is made.
   seatLocked  Boolean     @default(false)
   seatingWishes     EventSeatingWish[] @relation(name: "wishFrom")
   seatingWishedBy   EventSeatingWish[] @relation(name: "wishFor")
@@ -233,5 +235,5 @@ model EventRegistration {
   @@index([quotaId, queuedAt])
   @@index([waitingListVariantId, queuedAt])
   @@index([userId])
-  @@index([tableId])
+  @@unique([tableId, seat])
 }

@@ -141,9 +141,9 @@ describe('the plan', () => {
                 version: 0,
                 seats: [2, 2],
                 placements: [
-                    { registrationId: first.id, table: 1, locked: true },
-                    { registrationId: second.id, table: 1, locked: false },
-                    { registrationId: third.id, table: 0, locked: false },
+                    { registrationId: first.id, table: 1, seat: 0, locked: true },
+                    { registrationId: second.id, table: 1, seat: 1, locked: false },
+                    { registrationId: third.id, table: 0, seat: 1, locked: false },
                 ],
             },
             bypassAuth: true,
@@ -154,13 +154,13 @@ describe('the plan', () => {
 
         await eventSeatingOperations.setPublished({ params, data: { published: true }, bypassAuth: true })
         const own = await eventSeatingOperations.readOwn({ params, session: sessionOf(0) })
-        expect(own?.table).toEqual({ number: 2, guests: ['second Testesen'] })
+        expect(own?.table).toEqual({ number: 2, seats: ['first Testesen', 'second Testesen'], ownSeat: 0 })
         expect(own?.published).toBe(true)
 
         const board = await eventSeatingOperations.readBoard({ params, bypassAuth: true })
         expect(board.seats).toEqual([2, 2])
         expect(board.plan).toEqual({
-            tables: [[third.id], [first.id, second.id].sort((earlier, later) => earlier - later)],
+            tables: [[null, third.id], [first.id, second.id]],
             unseated: [],
         })
         expect(board.locked).toEqual([first.id])
@@ -172,7 +172,7 @@ describe('the plan', () => {
             params,
             data: {
                 seats: [1, 1],
-                placements: [{ registrationId: first.id, table, locked: false }],
+                placements: [{ registrationId: first.id, table, seat: 0, locked: false }],
                 version: version ?? (await eventSeatingOperations.readBoard({ params, bypassAuth: true })).version,
             },
             bypassAuth: true,
@@ -180,13 +180,13 @@ describe('the plan', () => {
         await save(0)
         await save(1)
         const board = await eventSeatingOperations.readBoard({ params, bypassAuth: true })
-        expect(board.plan.tables).toEqual([[], [first.id]])
+        expect(board.plan.tables).toEqual([[null], [first.id]])
         expect(board.plan.unseated).toHaveLength(2)
     })
 
     test('refuses a save from a board someone else has since saved', async () => {
         const { params, first } = await setUp('seat-version')
-        const placements = [{ registrationId: first.id, table: 0, locked: false }]
+        const placements = [{ registrationId: first.id, table: 0, seat: 0, locked: false }]
         await eventSeatingOperations.savePlan({ params, data: { seats: [1], placements, version: 0 }, bypassAuth: true })
         await expectRefused(eventSeatingOperations.savePlan({
             params,
@@ -196,18 +196,23 @@ describe('the plan', () => {
         expect((await eventSeatingOperations.readBoard({ params, bypassAuth: true })).plan.tables).toEqual([[first.id]])
     })
 
-    test('refuses a table with too many guests', async () => {
+    test('refuses two guests in one seat', async () => {
         const { params, first, second } = await setUp('seat-full')
         await expectRefused(eventSeatingOperations.savePlan({
             params,
             data: {
                 seats: [1],
                 placements: [
-                    { registrationId: first.id, table: 0, locked: false },
-                    { registrationId: second.id, table: 0, locked: false },
+                    { registrationId: first.id, table: 0, seat: 0, locked: false },
+                    { registrationId: second.id, table: 0, seat: 0, locked: false },
                 ],
                 version: 0,
             },
+            bypassAuth: true,
+        }))
+        await expectRefused(eventSeatingOperations.savePlan({
+            params,
+            data: { seats: [1], placements: [{ registrationId: first.id, table: 0, seat: 1, locked: false }], version: 0 },
             bypassAuth: true,
         }))
     })

@@ -9,7 +9,7 @@ export type SeatingBoard = {
     guests: SeatingGuest[],
     wishes: SeatingWishes,
     plan: SeatingPlan,
-    /** The guests kept at their table when a new draft is made. */
+    /** The guests kept in their seat when a new draft is made. */
     locked: number[],
     /** The id of the newest table, so a save from a board someone else has since saved is refused. */
     version: number,
@@ -22,6 +22,6 @@ export type OwnSeating = {
     options: { id: number, name: string }[],
     wishes: number[],
     published: boolean,
-    /** Null until the plan is published, or when the guest has no table. */
-    table: { number: number, guests: string[] } | null,
+    /** Null until the plan is published, or when the guest has no seat. Each seat holds a name, or null when empty. */
+    table: { number: number, seats: (string | null)[], ownSeat: number } | null,
 }
