@@ -18,6 +18,7 @@ import {
 import { useSession } from '@/auth/session/useSession'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
+import { Smorekopp } from '@/services/error'
 import { createActionError } from '@/services/actionError'
 import { configureAction } from '@/services/configureAction'
 import {
@@ -196,15 +197,20 @@ export default function StateWrapper({
 
     let totalPrice = 0
     if (dateRange.start && dateRange.end) {
-        totalPrice = calculateTotalCabinBookingPrice(calculateCabinBookingPrice({
-            pricePeriods,
-            products: selectedProducts,
-            productAmounts,
-            startDate: dateRange.start,
-            endDate: dateRange.end,
-            numberOfMembers,
-            numberOfNonMembers,
-        }))
+        try {
+            totalPrice = calculateTotalCabinBookingPrice(calculateCabinBookingPrice({
+                pricePeriods,
+                products: selectedProducts,
+                productAmounts,
+                startDate: dateRange.start,
+                endDate: dateRange.end,
+                numberOfMembers,
+                numberOfNonMembers,
+            }))
+        } catch (error) {
+            // A price rule this stay does not meet, which CabinPriceCalculator shows.
+            if (!(error instanceof Smorekopp)) throw error
+        }
     }
 
     if (session.loading || !reservationState.checked || !storageKey) {

@@ -597,6 +597,7 @@ export const cabinBookingOperations = {
                 canceled: true,
                 transactionTimeout: true,
                 BookingProduct: { select: { quantity: true, product: { select: { name: true } } } },
+                ledgerTransactions: { select: { refundOf: { select: { id: true } } } },
             },
         }),
     }),

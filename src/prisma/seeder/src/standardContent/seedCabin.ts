@@ -53,8 +53,8 @@ export const seedCabin = defineSeedOperation(async (prisma: PrismaClient) => {
             amount: 3,
             type: 'BED',
             CabinProductPrice: [{
-                description: 'Søn-Tors',
-                cronInterval: '* * 0-4',
+                description: '',
+                cronInterval: '* * *',
                 price: 25000,
                 memberShare: 0,
             }]
@@ -64,8 +64,8 @@ export const seedCabin = defineSeedOperation(async (prisma: PrismaClient) => {
             amount: 14,
             type: 'BED',
             CabinProductPrice: [{
-                description: 'Søn-Tors',
-                cronInterval: '* * 0-4',
+                description: '',
+                cronInterval: '* * *',
                 price: 15000,
                 memberShare: 0,
             }]

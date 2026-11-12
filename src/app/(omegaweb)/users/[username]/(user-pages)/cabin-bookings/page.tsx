@@ -1,4 +1,5 @@
 import CancelCabinBookingForm from './CancelCabinBookingForm'
+import { describeBooking } from '@/app/(omegaweb)/admin/cabin-booking/bookingLabels'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { cabinBookingOperations } from '@/services/cabin/booking/operations'
 import { freeCancellationDeadline } from '@/services/cabin/booking/constants'
@@ -13,15 +14,11 @@ type Booking = Awaited<ReturnType<typeof cabinBookingOperations.readManyOfUser>>
 
 const dayMs = 24 * 60 * 60 * 1000
 
-function describeBooking(booking: Booking) {
-    if (booking.type === 'CABIN') return 'Hele hytta'
-    return booking.BookingProduct
-        .map(bookingProduct => `${bookingProduct.quantity} × ${bookingProduct.product.name}`)
-        .join(', ')
-}
-
 function BookingStatus({ booking, now }: { booking: Booking, now: Date }) {
-    if (booking.canceled) return <span>Avbestilt, beløpet er satt inn på Omega-kontoen</span>
+    if (booking.canceled) {
+        const refunded = booking.ledgerTransactions.some(transaction => transaction.refundOf !== null)
+        return <span>{refunded ? 'Avbestilt, beløpet er satt inn på Omega-kontoen' : 'Avbestilt'}</span>
+    }
     if (booking.end <= now) return <span>Fullført</span>
     if (booking.transactionTimeout) return <span className="text-warning">Betalingen behandles</span>
 
