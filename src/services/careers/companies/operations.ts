@@ -33,7 +33,7 @@ export const companyOperations = {
     }),
     read: defineOperation({
         paramsSchema: companySchemas.params.read,
-        authorizer: () => companyAuth.read,
+        authorizer: ({ params }) => companyAuth.read.data({ companyId: params.id }),
         operation: ({ prisma, params: { id } }): Promise<CompanyExpanded> => prisma.company.findUniqueOrThrow({
             where: { id },
             include: logoIncluder,

@@ -13,7 +13,7 @@ export function companyNavDef(company: { id: number, name: string }) {
             name: 'Oversikt',
             href: careerLinks.company(company),
             icon: faBuilding,
-            authorizers: () => [companyAuth.read],
+            authorizers: () => [companyAuth.read.data(ownership)],
         },
         {
             key: 'users',
