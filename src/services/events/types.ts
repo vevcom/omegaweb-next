@@ -1,4 +1,5 @@
 import type { eventFilterSelection, eventQuotaSummarySelection, eventVariantSummarySelection } from './constants'
+import type { eventOperations } from './operations'
 import type { eventSchemas } from './schemas'
 import type { ExpandedCmsImage } from '@/cms/images/types'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
@@ -52,6 +53,9 @@ export type EventExpanded = EventFiltered & {
     coverImage: Pick<ExpandedCmsImage, 'image'>
     tags: EventTag[],
 }
+
+/** An event as its own page reads it, with all there is to it. See `eventOperations.read`. */
+export type EventDetailed = Awaited<ReturnType<typeof eventOperations.read>>
 
 export type EventArchiveCursor = InferPagingCursor<typeof eventSchemas.params.readManyArchivedPage>
 

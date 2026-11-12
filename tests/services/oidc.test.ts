@@ -98,6 +98,7 @@ async function createAliasReceivedBy(userId: number, localPart: string) {
 
 afterEach(async () => {
     await prisma.mailAlias.deleteMany({ where: { address: { startsWith: 'test-oidc-' } } })
+    await prisma.mailAddress.deleteMany({ where: { address: { startsWith: 'test-oidc-' } } })
     await prisma.mailingList.deleteMany({ where: { name: { startsWith: 'test-oidc-' } } })
     await prisma.user.deleteMany({ where: { username: { startsWith: 'test-oidc-' } } })
 })

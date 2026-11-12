@@ -23,7 +23,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 export function eventsPage(config: EventPagesConfig) {
     const links = eventLinks(config)
     return serverPage({
-        operation: async ({ searchParams }: PageOperationArgs) => {
+        operation: async ({ searchParams, session }: PageOperationArgs) => {
             const lockedTag = config.lockedTag
                 ? await eventTagOperations.readSpecial({ params: { special: config.lockedTag } })
                 : null
@@ -41,7 +41,12 @@ export function eventsPage(config: EventPagesConfig) {
                 withFallback(committeeOperations.readAll({}), null),
             ])
 
-            return { pickedTagNames, search, currentEvents, eventTags, committees }
+            // The creator's own committee is offered as the host of a new event.
+            const defaultHostCommitteeId = committees?.find(committee => session.memberships.some(membership => (
+                membership.active && membership.groupId === committee.groupId
+            )))?.id ?? null
+
+            return { pickedTagNames, search, currentEvents, eventTags, committees, defaultHostCommitteeId }
         },
         capabilities: () => ({
             canUpdateTags: eventTagAuth.update,
@@ -51,7 +56,7 @@ export function eventsPage(config: EventPagesConfig) {
         }),
         metadata: () => ({ title: config.titles.current }),
         render: ({ data, capabilities }) => {
-            const { pickedTagNames, search, currentEvents, eventTags, committees } = data
+            const { pickedTagNames, search, currentEvents, eventTags, committees, defaultHostCommitteeId } = data
             const pickedTags = eventTags.filter(tag => pickedTagNames?.includes(tag.name))
             const noEvents = search ? (
                 <div className="flex flex-col items-center gap-3 mt-12 text-base-content/80">
@@ -101,6 +106,7 @@ export function eventsPage(config: EventPagesConfig) {
                                             config={config}
                                             eventTags={eventTags}
                                             committees={committees}
+                                            defaultHostCommitteeId={defaultHostCommitteeId}
                                         />
                                     </div>
                                 </AddHeaderItemPopUp>

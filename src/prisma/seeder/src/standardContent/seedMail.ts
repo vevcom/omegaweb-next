@@ -64,7 +64,7 @@ export const seedMail = defineSeedOperation(async (prisma: PrismaClient) => {
     await Promise.all(Array.from(new Set(allAliases)).map(alias => prisma.mailAlias.upsert({
         where: { address: alias + DOMAIN },
         update: {},
-        create: { address: alias + DOMAIN, ownerVisibility: ownedByNoOne },
+        create: { mailAddress: { create: { address: alias + DOMAIN } }, ownerVisibility: ownedByNoOne },
     })))
 
     await Promise.all(mailingLists.map(mailingList => prisma.mailingList.upsert({

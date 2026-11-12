@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { visibilitySchemas } from './schemas'
-import { defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
+import { defineSubOperation } from '@/services/serviceOperation'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import type { visibilityRequirementsSchema } from './schemas'
 import type { VisibilityRequirementGroupType } from '@/prisma-generated-pn-types'
@@ -52,17 +52,25 @@ async function buildRequirementsCreateInput(requirements: z.infer<typeof visibil
     }))
 }
 
-async function replaceRequirements(
-    tx: PrismaPossibleTransaction<false>,
-    visibilityId: number,
-    requirements: Awaited<ReturnType<typeof buildRequirementsCreateInput>>,
+/** A condition as `sameRequirements` tells it from another: an ACTIVE one by its group, an ORDER one by the order too. */
+function conditionKey(condition: { groupId: number, type: VisibilityRequirementGroupType, order?: number }) {
+    return condition.type === 'ORDER' ? `${condition.groupId}-ORDER-${condition.order}` : `${condition.groupId}-ACTIVE`
+}
+
+/**
+ * Whether the requirements given are the ones stored, whatever order they and their conditions
+ * come in. The order an ACTIVE condition is stored with says nothing, so it is left out.
+ */
+function sameRequirements(
+    stored: { conditions: VisibilityConditionRow[] }[],
+    given: z.infer<typeof visibilityRequirementsSchema>,
 ) {
-    // The conditions go with their requirement by cascade.
-    await tx.visibilityRequirement.deleteMany({ where: { visibilityId } })
-    return await tx.visibility.update({
-        where: { id: visibilityId },
-        data: { requirements: { create: requirements } },
-    })
+    const keysOf = (requirements: { conditions: Parameters<typeof conditionKey>[0][] }[]) => requirements
+        .map(requirement => Array.from(new Set(requirement.conditions.map(conditionKey))).sort().join(','))
+        .sort()
+    const storedKeys = keysOf(stored)
+    const givenKeys = keysOf(given)
+    return storedKeys.length === givenKeys.length && storedKeys.every((key, index) => key === givenKeys[index])
 }
 
 export const visibilityOperations = {
@@ -92,24 +100,27 @@ export const visibilityOperations = {
             prisma.visibility.delete({ where: { id: params.visibilityId } })
     }),
 
+    /**
+     * Makes the requirements of a visibility the ones given. Requirements that are the same as the
+     * stored ones are left as they are, so that saving something else along with them writes nothing here.
+     */
     update: defineSubOperation({
         paramsSchema: () => visibilitySchemas.params.update,
         dataSchema: () => visibilitySchemas.data.update,
-        transaction: 'OPENS',
+        transaction: 'RUNS_IN',
         operation: () => async ({ prisma, params, data }) => {
-            const requirements = await buildRequirementsCreateInput(data.requirements)
-            return await prisma.$transaction(tx => replaceRequirements(tx, params.visibilityId, requirements))
+            const { requirements: stored, ...visibility } = await prisma.visibility.findUniqueOrThrow({
+                where: { id: params.visibilityId },
+                include: { requirements: { include: { conditions: true } } },
+            })
+            if (sameRequirements(stored, data.requirements)) return visibility
+
+            // The conditions go with their requirement by cascade.
+            await prisma.visibilityRequirement.deleteMany({ where: { visibilityId: params.visibilityId } })
+            return await prisma.visibility.update({
+                where: { id: params.visibilityId },
+                data: { requirements: { create: await buildRequirementsCreateInput(data.requirements) } },
+            })
         }
     }),
-
-    /** The same as `update`, for a caller that already holds a transaction. */
-    updateInTransaction: defineSubOperation({
-        paramsSchema: () => visibilitySchemas.params.update,
-        dataSchema: () => visibilitySchemas.data.update,
-        operation: () => async ({ prisma, params, data }) => replaceRequirements(
-            prisma,
-            params.visibilityId,
-            await buildRequirementsCreateInput(data.requirements),
-        ),
-    })
 } as const

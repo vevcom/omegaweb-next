@@ -34,6 +34,7 @@ import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { eventAuth } from '@/services/events/auth'
+import { hasNoTime } from '@/services/events/publishProblems'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { eventNotificationAuth } from '@/services/events/notifications/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
@@ -146,10 +147,11 @@ export function eventPage(config: EventPagesConfig) {
 
             // For giving dots after the event; readable by those administrating it.
             const eventHasEnded = event.eventEnd < new Date()
-            const notAttended = event.takesRegistration && eventHasEnded
+            const notAttended = administers && event.takesRegistration && eventHasEnded
                 ? await withFallback(eventRegistrationOperations.readNotAttended({ params: { eventId: event.id } }), null)
                 : null
-            const statistics = event.takesRegistration
+            // For those administrating it too, so no one else is made to ask for it and be refused.
+            const statistics = administers && event.takesRegistration
                 ? await withFallback(eventOperations.readStatistics({ params: { id: event.id } }), null)
                 : null
             const seatingBoard = event.takesRegistration
@@ -183,6 +185,7 @@ export function eventPage(config: EventPagesConfig) {
             canEditCmsParagraph: eventAuth.updateParagraphContent.data(data.access),
             canDestroy: eventAuth.destroy.data(data.access),
             canUpdate: eventAuth.update.data(data.access),
+            canSetPublished: eventAuth.setPublished.data(data.access),
             canConnectToLedgerAccount: eventAuth.connectToLedgerAccount.data({
                 ...data.access,
                 accounts: data.ledgerAccounts.map(account => account.ownership),
@@ -294,6 +297,7 @@ export function eventPage(config: EventPagesConfig) {
                                         seatingBoard={data.seatingBoard}
                                         capabilities={capabilitiesToJsObject({
                                             canUpdate: capabilities.canUpdate,
+                                            canSetPublished: capabilities.canSetPublished,
                                             canDestroy: capabilities.canDestroy,
                                             canRegisterAsAdmin: capabilities.canRegisterAsAdmin,
                                             canRegisterGuest: capabilities.canRegisterGuest,
@@ -319,11 +323,11 @@ export function eventPage(config: EventPagesConfig) {
                         <EventSection title="Tid og sted">
                             <p className={iconRowClassName}>
                                 <FontAwesomeIcon icon={faCalendar} />
-                                <span>
+                                {hasNoTime(event) ? <span>Tiden er ikke satt</span> : <span>
                                     <DateDisplay date={event.eventStart} includeSeconds={false} />
                                     {' – '}
                                     <DateDisplay date={event.eventEnd} includeSeconds={false} />
-                                </span>
+                                </span>}
                             </p>
                             <p className={iconRowClassName}>
                                 <FontAwesomeIcon icon={faLocationDot} />

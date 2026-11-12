@@ -32,8 +32,12 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     disabled?: boolean,
     /** A second way to submit, sent along as the field named, with 'on' as its value. */
     secondarySubmit?: { text: ReactNode, name: string, color?: Colors },
-    /** Keeps saving at the bottom of a long form, says whether there is anything to save and offers to discard it. */
-    saveBar?: { onDiscard: () => void },
+    /**
+     * Keeps saving at the bottom of a long form, says whether there is anything to save and offers
+     * to discard it. Discarding resets the form, which a field holding its value in state follows
+     * with `useFormReset`.
+     */
+    saveBar?: boolean,
     /** Told what the form would submit, on mount and on every change. */
     onValuesChange?: (values: FormData) => void,
 }
@@ -84,7 +88,7 @@ export default function Form<GiveActionReturn>({
     const formRef = useRef<HTMLFormElement>(null)
     const { dirty, markSaved } = useUnsavedChanges(
         formRef,
-        saveBar !== undefined || onValuesChange !== undefined,
+        Boolean(saveBar) || onValuesChange !== undefined,
         onValuesChange,
     )
 
@@ -162,6 +166,12 @@ export default function Form<GiveActionReturn>({
         }
     }
 
+    // What was refused belongs to what is discarded.
+    const handleReset = () => {
+        setGeneralErrors(undefined)
+        setInputErrors({})
+    }
+
     const submitButton = <div className={secondarySubmit ? 'flex flex-wrap items-start gap-x-2' : 'contents'}>
         {/* The two buttons stay together, on one line wherever there is room for both. */}
         <SubmitButton
@@ -201,7 +211,7 @@ export default function Form<GiveActionReturn>({
                 relative w-full
                 [&>h2]:mb-2
                 ${className}
-            `} {...props} onSubmit={handleSubmit}>
+            `} {...props} onSubmit={handleSubmit} onReset={handleReset}>
                 {title && <h2 className="text-base-content">{title}</h2>}
                 {Children.toArray(children).map((child, index) => {
                     if (isValidElement(child) && child.type === FormTab) return child
@@ -221,7 +231,7 @@ export default function Form<GiveActionReturn>({
                         {dirty ? 'Du har ulagrede endringer.' : 'Alt er lagret.'}
                     </p>
                     <div className="flex items-start gap-2">
-                        {dirty && <Button type="button" color="secondary" className="m-0" onClick={saveBar.onDiscard}>
+                        {dirty && <Button type="reset" color="secondary" className="m-0">
                             Forkast
                         </Button>}
                         {submitButton}

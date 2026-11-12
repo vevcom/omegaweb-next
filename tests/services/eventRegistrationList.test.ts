@@ -31,7 +31,7 @@ async function setUp(key: string) {
         takesPayment: false,
         quotas: [{ name: 'Alle', places: 5, visibilityRequirements: [] }],
     })
-    await eventOperations.update({
+    await eventOperations.saveSetup({
         params: { id: event.id },
         data: { variants: [pool('Pulje 1'), pool('Pulje 2')] },
         bypassAuth: true,

@@ -2,6 +2,7 @@
 
 import Button from '@/components/UI/Button'
 import EventLocationMap from '@/components/Event/EventLocationMap'
+import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import TextInput from '@/components/UI/TextInput'
 import NumberInput from '@/components/UI/NumberInput'
 import Dropdown from '@/components/UI/Dropdown'
@@ -16,15 +17,24 @@ type PropTypes = {
 
 export default function EventLocationInput({ name, defaultValue }: PropTypes) {
     const initialLocation = readLocationMap(defaultValue)
+    const initial = {
+        provider: initialLocation?.provider ?? 'NONE',
+        mazeMapUrl: initialLocation?.provider === 'MAZEMAP' ? initialLocation.url : '',
+        latitude: initialLocation?.provider === 'OPENSTREETMAP' ? String(initialLocation.latitude) : '',
+        longitude: initialLocation?.provider === 'OPENSTREETMAP' ? String(initialLocation.longitude) : '',
+    }
     const [preview, setPreview] = useState<LocationMap | null>(initialLocation)
-    const [provider, setProvider] = useState(initialLocation?.provider ?? 'NONE')
-    const [mazeMapUrl, setMazeMapUrl] = useState(initialLocation?.provider === 'MAZEMAP' ? initialLocation.url : '')
-    const [latitude, setLatitude] = useState(
-        initialLocation?.provider === 'OPENSTREETMAP' ? String(initialLocation.latitude) : ''
-    )
-    const [longitude, setLongitude] = useState(
-        initialLocation?.provider === 'OPENSTREETMAP' ? String(initialLocation.longitude) : ''
-    )
+    const [provider, setProvider] = useState(initial.provider)
+    const [mazeMapUrl, setMazeMapUrl] = useState(initial.mazeMapUrl)
+    const [latitude, setLatitude] = useState(initial.latitude)
+    const [longitude, setLongitude] = useState(initial.longitude)
+    const reset = () => {
+        setPreview(initialLocation)
+        setProvider(initial.provider)
+        setMazeMapUrl(initial.mazeMapUrl)
+        setLatitude(initial.latitude)
+        setLongitude(initial.longitude)
+    }
     let locationMap: unknown = null
     if (provider === 'MAZEMAP') locationMap = { provider, url: mazeMapUrl }
     if (provider === 'OPENSTREETMAP') {
@@ -100,7 +110,7 @@ export default function EventLocationInput({ name, defaultValue }: PropTypes) {
                 />
             </div>
         </>}
-        <input type="hidden" name={name} value={JSON.stringify(locationMap)} />
+        <JsonFieldInput name={name} value={locationMap} onReset={reset} />
         {provider !== 'NONE' && <Button
             type="button"
             color="secondary"

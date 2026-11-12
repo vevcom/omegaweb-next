@@ -1,5 +1,6 @@
 'use client'
 import Form from '@/components/Form/Form'
+import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import Button from '@/components/UI/Button'
 import DateInput from '@/components/UI/DateInput'
 import TextInput from '@/components/UI/TextInput'
@@ -261,12 +262,13 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
 
             <Form
                 action={configureAction(saveEventSeatingPlanAction, { params: { id: eventId } })}
-                saveBar={{ onDiscard }}
+                saveBar
                 submitText="Lagre"
                 refreshOnSuccess
             >
-                <input type="hidden" name="seats" value={JSON.stringify(seats)} />
-                <input type="hidden" name="placements" value={JSON.stringify(placements)} />
+                {/* The plan is held in state, so discarding starts the editor over from what is saved. */}
+                <JsonFieldInput name="seats" value={seats} onReset={onDiscard} />
+                <JsonFieldInput name="placements" value={placements} />
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-end gap-3">
                         <TextInput

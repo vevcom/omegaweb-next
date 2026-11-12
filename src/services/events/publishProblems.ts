@@ -1,14 +1,16 @@
+import { hasNoAdministrators } from './auth'
 import type { EventCanView } from '@/prisma-generated-pn-types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
 
-export type SetupTab = 'about' | 'rules' | 'registration' | 'payment' | 'access'
+/** What a check is about, which is where in the event it is put right. */
+export type SetupPart = 'time' | 'location' | 'visibility' | 'registration' | 'payment' | 'administrators'
 
 /** `missing` stands in the way of saving or publishing. A `warning` is allowed, but rarely what was meant. */
-export type SetupCheck = { tab: SetupTab, level: 'missing' | 'warning', message: string }
+export type SetupCheck = { part: SetupPart, level: 'missing' | 'warning', message: string }
 
-export type TabStatus = { level: 'ok' | 'warning' | 'missing', label: string }
+export type SetupStatus = { level: 'ok' | 'warning' | 'missing', label: string }
 
-type EventSetup = {
+export type EventSetup = {
     location: string | null,
     eventStart: Date,
     eventEnd: Date,
@@ -27,24 +29,28 @@ type EventSetup = {
     adminVisibility: VisibilityMatrix,
 }
 
-/** A requirement without conditions passes no one, so only EVENT_ADMIN gets in. */
-export function hasNoAdministrators(adminVisibility: VisibilityMatrix) {
-    return adminVisibility.requirements.length === 0
-        || adminVisibility.requirements.some(requirement => requirement.conditions.length === 0)
+/**
+ * A new event is given a start and an end at the same instant, since the database requires both.
+ * Until they are set apart it has no time.
+ */
+export function hasNoTime(event: { eventStart: Date, eventEnd: Date }) {
+    return event.eventStart.getTime() === event.eventEnd.getTime()
 }
 
 /** Everything to point out about how an event is set up, whether it is saved or still in the form. */
 export function eventSetupChecks(event: EventSetup): SetupCheck[] {
     const checks: SetupCheck[] = []
-    const add = (tab: SetupTab, level: SetupCheck['level'], message: string) => checks.push({ tab, level, message })
+    const add = (part: SetupPart, level: SetupCheck['level'], message: string) => checks.push({ part, level, message })
 
-    if (event.eventStart >= event.eventEnd) add('about', 'missing', 'Sett når arrangementet starter og slutter.')
-    if (!event.location?.trim()) add('about', 'missing', 'Sett hvor arrangementet er.')
+    if (hasNoTime(event) || event.eventStart > event.eventEnd) {
+        add('time', 'missing', 'Sett når arrangementet starter og slutter.')
+    }
+    if (!event.location?.trim()) add('location', 'missing', 'Sett hvor arrangementet er.')
     if (event.canBeViewedBy === 'CAN_REGISTER' && !event.variants.some(variant => variant.quotas.length > 0)) {
-        add('access', 'missing', 'Bare de som kan melde seg på ser arrangementet, men det har ingen kvoter.')
+        add('visibility', 'missing', 'Bare de som kan melde seg på ser arrangementet, men det har ingen kvoter.')
     }
     if (hasNoAdministrators(event.adminVisibility)) {
-        add('access', 'missing', 'Velg hvem som kan administrere arrangementet.')
+        add('administrators', 'missing', 'Velg hvem som kan administrere arrangementet.')
     }
     if (event.variants.some(variant => variant.takesPayment) && !event.ledgerAccount) {
         add('payment', 'missing', 'Arrangementet tar betaling, men er ikke knyttet til en konto.')
@@ -78,21 +84,22 @@ export function publishProblems(event: EventSetup) {
     return eventSetupChecks(event).filter(check => check.level === 'missing').map(check => check.message)
 }
 
-/** The worst of each tab's checks. Every setup tab gets a status, so that all clear shows too. */
-export function setupTabStatuses(checks: SetupCheck[]) {
-    const statusOf = (tab: SetupTab): TabStatus => {
-        const ofTab = checks.filter(check => check.tab === tab)
-        if (ofTab.length === 0) return { level: 'ok', label: 'I orden' }
+/**
+ * The worst of the checks of each group of parts, for wherever the parts are shown together, such
+ * as on the tabs of a form. Every group gets a status, so that all clear shows too.
+ */
+export function setupStatuses<Group extends string>(
+    checks: SetupCheck[],
+    groupOf: Record<SetupPart, Group>,
+): Record<Group, SetupStatus> {
+    const statusOf = (group: Group): SetupStatus => {
+        const ofGroup = checks.filter(check => groupOf[check.part] === group)
+        if (ofGroup.length === 0) return { level: 'ok', label: 'I orden' }
         return {
-            level: ofTab.some(check => check.level === 'missing') ? 'missing' : 'warning',
-            label: ofTab.map(check => check.message).join(' '),
+            level: ofGroup.some(check => check.level === 'missing') ? 'missing' : 'warning',
+            label: ofGroup.map(check => check.message).join(' '),
         }
     }
-    return {
-        about: statusOf('about'),
-        rules: statusOf('rules'),
-        registration: statusOf('registration'),
-        payment: statusOf('payment'),
-        access: statusOf('access'),
-    }
+    // Every group is a value of `groupOf`, so the entries make up the whole record.
+    return Object.fromEntries(Object.values(groupOf).map(group => [group, statusOf(group)])) as Record<Group, SetupStatus>
 }

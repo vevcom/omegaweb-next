@@ -1,24 +1,27 @@
 'use client'
+import AdminSection from './AdminSection'
+import { useEventVariantsField } from './EventVariantsField'
 import DateInput from '@/components/UI/DateInput'
 import NumberInput from '@/components/UI/NumberInput'
 import { SelectNumberPossibleNULL } from '@/components/UI/Select'
 import Slider from '@/components/UI/Slider'
-import type { VariantDraft } from './eventSetupDraft'
 import type { LedgerAccount } from '@/prisma-generated-pn-types'
 
 type Account = Pick<LedgerAccount, 'id' | 'name'>
 
 const accountName = (account: Account) => account.name ?? `Konto ${account.id}`
 
-/** What each variant costs and the account it is paid into, as the form holds them. */
-export default function EventPaymentFields({ variants, ledgerAccount, ledgerAccounts, onChange }: {
-    variants: VariantDraft[],
+/**
+ * What each variant costs, edited in the `EventVariantsField` around the form, and the account the
+ * event is paid into, which is a field of its own.
+ */
+export default function EventPaymentFields({ ledgerAccount, ledgerAccounts }: {
     /** The account the event is linked to now, if any. */
     ledgerAccount: Account | null,
     /** The group accounts the session may link the event to. */
     ledgerAccounts: Account[],
-    onChange: (key: number, changes: Partial<VariantDraft>) => void,
 }) {
+    const { variants, changeVariant } = useEventVariantsField()
     if (variants.length === 0) {
         return <p className="m-0 text-base-content/80">
             Arrangementet har ikke påmelding, så det er ingenting å betale for.
@@ -26,12 +29,11 @@ export default function EventPaymentFields({ variants, ledgerAccount, ledgerAcco
     }
 
     return <div className="flex flex-col gap-4 min-w-0 pb-4">
-        {variants.map(variant => <section key={variant.key} className="flex flex-col gap-3 p-4 rounded-round bg-base-200">
+        {variants.map(variant => <AdminSection key={variant.key}>
             <Slider
                 label={variants.length > 1 ? `${variant.name} koster penger` : 'Påmeldingen koster penger'}
-                name={`takesPayment${variant.key}`}
                 checked={variant.takesPayment}
-                onChange={event => onChange(variant.key, {
+                onChange={event => changeVariant(variant.key, {
                     takesPayment: event.target.checked,
                     paymentStart: variant.paymentStart ?? variant.registrationStart,
                     paymentEnd: variant.paymentEnd ?? variant.registrationEnd,
@@ -43,39 +45,37 @@ export default function EventPaymentFields({ variants, ledgerAccount, ledgerAcco
             ">
                 <NumberInput
                     label="Pris i kroner"
-                    name={`price${variant.key}`}
                     min={0}
                     value={variant.price ?? ''}
-                    onChange={event => onChange(variant.key, { price: Number(event.target.value) })}
+                    onChange={event => changeVariant(variant.key, {
+                        price: event.target.value === '' ? undefined : Number(event.target.value),
+                    })}
                     className="col-span-full"
                 />
                 <DateInput
                     label="Betaling åpner"
-                    name={`paymentStart${variant.key}`}
                     includeTime
                     defaultValue={variant.paymentStart}
                     onChange={event => {
-                        if (event.target.value) onChange(variant.key, { paymentStart: new Date(event.target.value) })
+                        if (event.target.value) changeVariant(variant.key, { paymentStart: new Date(event.target.value) })
                     }}
                 />
                 <DateInput
                     label="Betalingsfrist"
-                    name={`paymentEnd${variant.key}`}
                     includeTime
                     defaultValue={variant.paymentEnd}
                     onChange={event => {
-                        if (event.target.value) onChange(variant.key, { paymentEnd: new Date(event.target.value) })
+                        if (event.target.value) changeVariant(variant.key, { paymentEnd: new Date(event.target.value) })
                     }}
                 />
                 <Slider
                     label="Flytt ubetalte bakerst på ventelisten"
-                    name={`requeueUnpaidRegistrations${variant.key}`}
                     checked={variant.requeueUnpaidRegistrations}
-                    onChange={event => onChange(variant.key, { requeueUnpaidRegistrations: event.target.checked })}
+                    onChange={event => changeVariant(variant.key, { requeueUnpaidRegistrations: event.target.checked })}
                     className="col-span-full"
                 />
             </div>}
-        </section>)}
+        </AdminSection>)}
 
         {variants.some(variant => variant.takesPayment) && (ledgerAccounts.length > 0
             ? <SelectNumberPossibleNULL

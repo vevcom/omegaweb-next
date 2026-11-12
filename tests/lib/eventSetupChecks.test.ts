@@ -1,4 +1,4 @@
-import { eventSetupChecks, publishProblems, setupTabStatuses } from '@/services/events/publishProblems'
+import { eventSetupChecks, hasNoTime, publishProblems, setupStatuses } from '@/services/events/publishProblems'
 import { describe, expect, test } from '@jest/globals'
 
 const HOUR = 60 * 60 * 1000
@@ -22,21 +22,35 @@ const ready = {
     adminVisibility: { requirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId: 1 }] }] },
 }
 
+// How a form with a tab for the rules and one for the rest might show the parts.
+const tabOfPart = {
+    time: 'about',
+    location: 'about',
+    visibility: 'rules',
+    registration: 'registration',
+    payment: 'payment',
+    administrators: 'access',
+} as const
+
 const statuses = (event: typeof ready | Parameters<typeof eventSetupChecks>[0]) => (
-    setupTabStatuses(eventSetupChecks(event))
+    setupStatuses(eventSetupChecks(event), tabOfPart)
 )
 
 describe('eventSetupChecks', () => {
-    test('a finished event has every tab clear', () => {
+    test('a finished event has every group clear', () => {
         expect(eventSetupChecks({ ...ready, variants: [paying] })).toEqual([])
         expect(Object.values(statuses(ready)).map(status => status.level)).toEqual(Array(5).fill('ok'))
     })
 
-    test('puts what is missing on the tab where it is fixed', () => {
+    test('says which part of the event each check is about, and the groups follow', () => {
+        const partsOf = (event: Parameters<typeof eventSetupChecks>[0]) => eventSetupChecks(event).map(check => check.part)
+        expect(partsOf({ ...ready, location: ' ', eventEnd: ready.eventStart })).toEqual(['time', 'location'])
+        expect(partsOf({ ...ready, canBeViewedBy: 'CAN_REGISTER', variants: [] })).toEqual(['visibility'])
+
         expect(statuses({ ...ready, location: ' ' }).about.level).toBe('missing')
         expect(statuses({ ...ready, adminVisibility: { requirements: [{ conditions: [] }] } }).access.level).toBe('missing')
         expect(statuses({ ...ready, variants: [paying], ledgerAccount: null }).payment.level).toBe('missing')
-        expect(statuses({ ...ready, canBeViewedBy: 'CAN_REGISTER', variants: [] }).access.level).toBe('missing')
+        expect(statuses({ ...ready, canBeViewedBy: 'CAN_REGISTER', variants: [] }).rules.level).toBe('missing')
     })
 
     test('warns of what is allowed without stopping publishing', () => {
@@ -45,7 +59,7 @@ describe('eventSetupChecks', () => {
         expect(publishProblems(event)).toEqual([])
     })
 
-    test('one missing thing outweighs the warnings of a tab', () => {
+    test('one missing thing outweighs the warnings of a group', () => {
         const backwards = { ...variant, registrationStart: at(11), quotas: [{ places: 0 }] }
         const status = statuses({ ...ready, variants: [backwards] }).registration
         expect(status.level).toBe('missing')
@@ -62,5 +76,12 @@ describe('eventSetupChecks', () => {
 
     test('a date that cannot be read is not reported as out of order', () => {
         expect(() => eventSetupChecks({ ...ready, eventStart: new Date('') })).not.toThrow()
+    })
+
+    test('an event that starts and ends at the same instant has no time, and is asked for one', () => {
+        expect(hasNoTime({ eventStart: at(24), eventEnd: at(24) })).toBe(true)
+        expect(hasNoTime(ready)).toBe(false)
+        expect(statuses({ ...ready, eventEnd: ready.eventStart }).about.level).toBe('missing')
+        expect(statuses({ ...ready, eventStart: at(30) }).about.level).toBe('missing')
     })
 })

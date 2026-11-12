@@ -10,8 +10,8 @@ function serialize(formData: FormData) {
 
 /**
  * Whether a form holds anything other than what it started with or last saved. It compares what the
- * form would submit, so it covers every input. The observer catches hidden inputs driven by React
- * state, which fire no input event.
+ * form would submit, so it covers every input, and looks again whenever one fires `input` and when
+ * the form is reset. An input whose value React sets fires `input` with `useInputEvent`.
  */
 export function useUnsavedChanges(
     formRef: RefObject<HTMLFormElement | null>,
@@ -38,12 +38,13 @@ export function useUnsavedChanges(
         if (!enabled || !form) return undefined
         savedRef.current = serialize(new FormData(form))
         check()
-        const observer = new MutationObserver(check)
-        observer.observe(form, { subtree: true, childList: true, attributes: true, attributeFilter: ['value'] })
+        // The browser resets the inputs after the event, so the values are read once it has.
+        const checkAfterReset = () => setTimeout(check)
         form.addEventListener('input', check)
+        form.addEventListener('reset', checkAfterReset)
         return () => {
-            observer.disconnect()
             form.removeEventListener('input', check)
+            form.removeEventListener('reset', checkAfterReset)
         }
     }, [enabled, formRef, check])
 
