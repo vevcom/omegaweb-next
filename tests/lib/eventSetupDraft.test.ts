@@ -75,6 +75,22 @@ describe('the drafts of the setup form', () => {
         expect(parsed[0].quotas.map(quota => quota.id)).toEqual([3, 4])
     })
 
+    test('post an emptied date as an empty one, which the save refuses and the checks ask for', () => {
+        const [draft] = toVariantDrafts([saved(7, [3])])
+        const [posted] = variantsToPost([{ ...draft, registrationEnd: null, paymentStart: null }])
+        expect(posted).toMatchObject({ registrationEnd: '', paymentStart: '' })
+
+        const result = eventVariantSetupFormSchema.safeParse(JSON.parse(JSON.stringify([posted])))
+        expect(result.success).toBe(false)
+        expect(result.error?.issues.map(issue => issue.path.join('.'))).toEqual(['0.registrationEnd', '0.paymentStart'])
+
+        const values = new FormData()
+        values.set('variants', JSON.stringify([posted]))
+        expect(variantsFromForm(values)[0]).toMatchObject({
+            registrationStart: opens, registrationEnd: null, paymentStart: null,
+        })
+    })
+
     test('get keys of their own, below those of their siblings and of anything saved', () => {
         const drafts = toVariantDrafts([saved(7, [3])])
         const first = newVariantDraft('Ny', closes, drafts)
