@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { eventSeatingAuth } from './auth'
 import { eventSeatingSchemas } from './schemas'
+import { placesOf } from './plan'
 import { readEventAccess } from '@/services/events/access'
 import { lockEvent } from '@/services/events/registration/queue'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
@@ -8,6 +9,7 @@ import { ServiceError } from '@/services/error'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { OwnSeating, SeatingBoard } from './types'
+import type { SeatingPlan } from './plan'
 
 /** Those with a place at the event. Someone in several variants still takes one seat. */
 async function readSeatedRegistrations(prisma: PrismaPossibleTransaction<boolean>, eventId: number) {
@@ -18,6 +20,7 @@ async function readSeatedRegistrations(prisma: PrismaPossibleTransaction<boolean
             id: true,
             userId: true,
             tableId: true,
+            seat: true,
             seatLocked: true,
             contact: { select: { name: true } },
             seatingWishes: { orderBy: { rank: 'asc' }, select: { wishedRegistrationId: true } },
@@ -65,6 +68,20 @@ function notifyGuests(
     })
 }
 
+/** Who sits where. A registration without a seat at one of the tables is left without a table. */
+function planOf(
+    tables: { id: number, seats: number }[],
+    registrations: { id: number, tableId: number | null, seat: number | null }[],
+): SeatingPlan {
+    const plan: SeatingPlan = { tables: tables.map(table => Array<number | null>(table.seats).fill(null)), unseated: [] }
+    registrations.forEach(({ id, tableId, seat }) => {
+        const index = tables.findIndex(table => table.id === tableId)
+        if (index === -1 || seat === null || seat >= tables[index].seats) plan.unseated.push(id)
+        else plan.tables[index][seat] = id
+    })
+    return plan
+}
+
 const userIdsOf = (registrations: { userId: number | null }[]) => (
     registrations.flatMap(({ userId }) => (userId === null ? [] : [userId]))
 )
@@ -100,14 +117,7 @@ export const eventSeatingOperations = {
                     id,
                     seatingWishes.map(wish => wish.wishedRegistrationId),
                 ])),
-                plan: {
-                    tables: tableIds.map(tableId => registrations.flatMap(
-                        registration => (registration.tableId === tableId ? [registration.id] : [])
-                    )),
-                    unseated: registrations.flatMap(registration => (
-                        registration.tableId !== null && tableIds.includes(registration.tableId) ? [] : [registration.id]
-                    )),
-                },
+                plan: planOf(event.seatingTables, registrations),
                 locked: registrations.flatMap(registration => (registration.seatLocked ? [registration.id] : [])),
                 version: Math.max(0, ...tableIds),
             }
@@ -125,7 +135,7 @@ export const eventSeatingOperations = {
                 select: {
                     seatingWishesEnd: true,
                     seatingPublishedAt: true,
-                    seatingTables: { select: { id: true, order: true } },
+                    seatingTables: { orderBy: { order: 'asc' }, select: { id: true, seats: true } },
                 },
             })
             if (!event.seatingWishesEnd && !event.seatingPublishedAt) return null
@@ -134,19 +144,18 @@ export const eventSeatingOperations = {
             const own = registrations.find(registration => registration.userId === session.user?.id)
             if (!own) return null
 
-            const ownTable = event.seatingPublishedAt
-                ? event.seatingTables.find(table => table.id === own.tableId)
-                : undefined
+            const plan = planOf(event.seatingTables, registrations)
+            const place = event.seatingPublishedAt ? placesOf(plan).get(own.id) : undefined
+            const nameOf = (id: number | null) => registrations.find(registration => registration.id === id)?.name ?? null
             return {
                 wishesEnd: event.seatingWishesEnd,
                 options: registrations.flatMap(({ id, name }) => (id === own.id ? [] : [{ id, name }])),
                 wishes: own.seatingWishes.map(wish => wish.wishedRegistrationId),
                 published: event.seatingPublishedAt !== null,
-                table: ownTable ? {
-                    number: ownTable.order + 1,
-                    guests: registrations.flatMap(({ id, name, tableId }) => (
-                        tableId === ownTable.id && id !== own.id ? [name] : []
-                    )),
+                table: place ? {
+                    number: place.table + 1,
+                    seats: plan.tables[place.table].map(nameOf),
+                    ownSeat: place.seat,
                 } : null,
             }
         },
@@ -238,32 +247,33 @@ export const eventSeatingOperations = {
                 // Someone may have lost their place since the plan was opened, which should not stop it being saved.
                 const seated = (await readSeatedRegistrations(tx, params.id)).map(({ id }) => id)
                 const placements = data.placements.filter(({ registrationId }) => seated.includes(registrationId))
-                if (placements.some(({ table }) => table >= data.seats.length)) {
-                    throw new ServiceError('BAD PARAMETERS', 'Noen er plassert ved et bord som ikke finnes')
+                const seatsTaken = new Set<string>()
+                const guestsPlaced = new Set<number>()
+                for (const { registrationId, table, seat } of placements) {
+                    if (table >= data.seats.length || seat >= data.seats[table]) {
+                        throw new ServiceError('BAD PARAMETERS', 'Noen er plassert på en plass som ikke finnes')
+                    }
+                    if (seatsTaken.has(`${table}:${seat}`) || guestsPlaced.has(registrationId)) {
+                        throw new ServiceError('BAD PARAMETERS', 'Hver plass og hver gjest kan bare brukes én gang')
+                    }
+                    seatsTaken.add(`${table}:${seat}`)
+                    guestsPlaced.add(registrationId)
                 }
 
-                await tx.eventTable.deleteMany({ where: { eventId: params.id } })
                 await tx.eventRegistration.updateMany({
-                    where: { quota: { variant: { eventId: params.id } }, seatLocked: true },
-                    data: { seatLocked: false },
+                    where: { table: { eventId: params.id } },
+                    data: { seat: null, seatLocked: false },
                 })
-
-                for (let order = 0; order < data.seats.length; order++) {
-                    const seats = data.seats[order]
-                    const atTable = placements.filter(({ table }) => table === order)
-                    if (atTable.length > seats) {
-                        throw new ServiceError('BAD PARAMETERS', `Bord ${order + 1} har for mange gjester`)
-                    }
-                    const { id } = await tx.eventTable.create({ data: { eventId: params.id, order, seats } })
-                    await tx.eventRegistration.updateMany({
-                        where: { id: { in: atTable.map(({ registrationId }) => registrationId) } },
-                        data: { tableId: id },
-                    })
-                    await tx.eventRegistration.updateMany({
-                        where: {
-                            id: { in: atTable.filter(({ locked }) => locked).map(({ registrationId }) => registrationId) },
-                        },
-                        data: { seatLocked: true },
+                await tx.eventTable.deleteMany({ where: { eventId: params.id } })
+                const tables = await tx.eventTable.createManyAndReturn({
+                    data: data.seats.map((seats, order) => ({ eventId: params.id, order, seats })),
+                    select: { id: true, order: true },
+                })
+                const tableIdOf = new Map(tables.map(({ id, order }) => [order, id]))
+                for (const { registrationId, table, seat, locked } of placements) {
+                    await tx.eventRegistration.update({
+                        where: { id: registrationId },
+                        data: { tableId: tableIdOf.get(table), seat, seatLocked: locked },
                     })
                 }
             })

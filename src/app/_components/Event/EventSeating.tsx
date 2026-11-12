@@ -15,20 +15,23 @@ import {
     DEFAULT_SEATING_POINTS,
     createSeatingPlan,
     displaySeats,
+    firstEmptySeat,
     fulfilledWishes,
     moveGuest,
     parseSeats,
+    placesOf,
     reconcilePlan,
     resizePlan,
     seatingSummary,
+    sidesOf,
     swapGuests,
 } from '@/services/events/seating/plan'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLock, faLockOpen } from '@fortawesome/free-solid-svg-icons'
 import { MotionConfig, motion } from 'framer-motion'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import type { DragEvent, ReactNode } from 'react'
-import type { SeatingPlan, SeatingPoints } from '@/services/events/seating/plan'
+import type { Nearness, SeatPlace, SeatingPlan, SeatingPoints } from '@/services/events/seating/plan'
 import type { SeatingBoard } from '@/services/events/seating/types'
 
 const DEFAULT_SEATS_PER_TABLE = 8
@@ -47,6 +50,12 @@ function Stat({ label, value }: { label: string, value: ReactNode }) {
 }
 
 const WISH_ORDINALS = ['Første', 'Andre', 'Tredje']
+const NEARNESS_LABELS: Record<Nearness, string> = {
+    beside: 'Ved siden av',
+    across: 'Rett overfor',
+    diagonal: 'Diagonalt overfor',
+    table: 'Ellers ved bordet',
+}
 
 /** The points a draft tries to get the most of, so the organizers can weigh wishes against committees. */
 function PointsEditor({ points, onChange }: { points: SeatingPoints, onChange: (points: SeatingPoints) => void }) {
@@ -63,6 +72,7 @@ function PointsEditor({ points, onChange }: { points: SeatingPoints, onChange: (
         <p className="m-0 mt-1 text-base-content/80">
             Utkastet prøver å få flest mulig poeng. Endringer brukes neste gang du lager et utkast.
         </p>
+        <p className="m-0 mt-2 font-bold">Poeng for ønsker, det nærmeste først</p>
         <div className="flex flex-wrap items-end gap-2">
             {points.wishes.map((value, rank) => field(
                 `${WISH_ORDINALS[rank]} oppfylte ønske`,
@@ -70,8 +80,23 @@ function PointsEditor({ points, onChange }: { points: SeatingPoints, onChange: (
                 changed => ({ ...points, wishes: points.wishes.map((old, index) => (index === rank ? changed : old)) }),
             ))}
             {field('Gjensidig ønske', points.mutual, mutual => ({ ...points, mutual }))}
-            {field('Samme komité', points.committee, committee => ({ ...points, committee }))}
-            {field('Trekk for tomme plasser', points.emptySeat, emptySeat => ({ ...points, emptySeat }))}
+        </div>
+        <p className="m-0 mt-2 font-bold">Prosent av poengene etter hvor nær de sitter</p>
+        <div className="flex flex-wrap items-end gap-2">
+            {(Object.keys(NEARNESS_LABELS) as Nearness[]).map(nearness => field(
+                NEARNESS_LABELS[nearness],
+                points.nearness[nearness],
+                changed => ({ ...points, nearness: { ...points.nearness, [nearness]: changed } }),
+            ))}
+        </div>
+        <p className="m-0 mt-2 font-bold">Trekk</p>
+        <div className="flex flex-wrap items-end gap-2">
+            {field(
+                'Per ekstra bord en komité deles på',
+                points.committeeSplit,
+                committeeSplit => ({ ...points, committeeSplit }),
+            )}
+            {field('For tomme plasser', points.emptySeat, emptySeat => ({ ...points, emptySeat }))}
             <Button type="button" onClick={() => onChange(DEFAULT_SEATING_POINTS)} className="m-0!">
                 Tilbakestill
             </Button>
@@ -82,11 +107,12 @@ function PointsEditor({ points, onChange }: { points: SeatingPoints, onChange: (
 /** Sorted, so a plan saved and read back compares equal to what was saved. */
 function placementsOf(plan: SeatingPlan, locked: number[]) {
     return plan.tables
-        .flatMap((members, table) => members.map(registrationId => ({
+        .flatMap((members, table) => members.flatMap((registrationId, seat) => (registrationId === null ? [] : [{
             registrationId,
             table,
+            seat,
             locked: locked.includes(registrationId),
-        })))
+        }])))
         .sort((first, second) => first.registrationId - second.registrationId)
 }
 
@@ -115,7 +141,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
     const places = seats.reduce((sum, count) => sum + count, 0)
     const selectedGuest = guests.find(guest => guest.id === selected)
     const wishNames = selectedGuest && (wishes[selectedGuest.id] ?? []).map(nameOf).join(', ')
-    const tableIsFull = (index: number) => plan.tables[index].length >= seats[index]
+    const tableIsFull = (index: number) => firstEmptySeat(plan, index) === null
     const wishing = guests.filter(guest => wishes[guest.id]?.length).length
 
     const placements = placementsOf(plan, locked)
@@ -133,21 +159,32 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
     }
 
     const draft = () => {
-        const lockedTables = Object.fromEntries(locked.map(id => [
-            id,
-            plan.tables.findIndex(members => members.includes(id)),
-        ]))
-        setPlan(createSeatingPlan({ guests, wishes, seats, locked: lockedTables, seed: drafts + 1, points }))
+        const placesNow = placesOf(plan)
+        const lockedPlaces = Object.fromEntries(locked.flatMap(id => {
+            const place = placesNow.get(id)
+            return place ? [[id, place]] : []
+        }))
+        setPlan(createSeatingPlan({ guests, wishes, seats, locked: lockedPlaces, seed: drafts + 1, points }))
         setDrafts(drafts + 1)
         setSelected(null)
     }
 
     // What was placed by hand stays put when a new draft is made.
-    const moveTo = (guestId: number, tableIndex: number | null) => {
-        if (tableIndex !== null && tableIsFull(tableIndex)) return
-        setPlan(moveGuest(plan, guestId, tableIndex))
-        setLocked([...locked.filter(id => id !== guestId), ...tableIndex === null ? [] : [guestId]])
+    const moveTo = (guestId: number, place: SeatPlace | null) => {
+        const there = place === null ? null : plan.tables[place.table][place.seat]
+        const moved = moveGuest(plan, guestId, place)
+        setPlan(moved)
+        const involved = there === null ? [guestId] : [guestId, there]
+        setLocked([
+            ...locked.filter(id => !involved.includes(id)),
+            ...involved.filter(id => !moved.unseated.includes(id)),
+        ])
         setSelected(null)
+    }
+
+    const moveToTable = (guestId: number, tableIndex: number | null) => {
+        const place = tableIndex === null ? null : firstEmptySeat(plan, tableIndex)
+        if (tableIndex === null || place) moveTo(guestId, place)
     }
 
     const swapWith = (guestId: number) => {
@@ -161,7 +198,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
     const dropZone = (tableIndex: number | null) => ({
         onDragOver: (event: DragEvent) => event.preventDefault(),
         onDrop: () => {
-            if (dragged !== null) moveTo(dragged, tableIndex)
+            if (dragged !== null) moveToTable(dragged, tableIndex)
         },
     })
 
@@ -220,8 +257,8 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                     <button
                         type="button"
                         aria-pressed={isLocked}
-                        aria-label={`${isLocked ? 'Lås opp' : 'Lås'} ${nameOf(guestId)} til bordet`}
-                        title={isLocked ? 'Beholder bordet i neste utkast' : 'Lås til bordet'}
+                        aria-label={`${isLocked ? 'Lås opp' : 'Lås'} ${nameOf(guestId)} til plassen`}
+                        title={isLocked ? 'Beholder plassen i neste utkast' : 'Lås til plassen'}
                         onClick={() => setLocked(isLocked
                             ? locked.filter(id => id !== guestId)
                             : [...locked, guestId])}
@@ -240,7 +277,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
     const moveHereButton = (tableIndex: number | null) => selected !== null && <button
         type="button"
         disabled={tableIndex !== null && tableIsFull(tableIndex)}
-        onClick={() => moveTo(selected, tableIndex)}
+        onClick={() => moveToTable(selected, tableIndex)}
         className="
             border-none bg-transparent text-s text-primary underline cursor-pointer
             disabled:text-base-content/80 disabled:no-underline disabled:cursor-default
@@ -248,6 +285,39 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
     >
         Flytt hit
     </button>
+
+    const renderSeat = (tableIndex: number, seat: number) => {
+        const guestId = plan.tables[tableIndex][seat]
+        if (guestId !== null) return renderGuest(guestId, true)
+        const place = { table: tableIndex, seat }
+        return <li
+            key={`empty-${seat}`}
+            className="list-none"
+            onDragOver={event => event.preventDefault()}
+            onDrop={event => {
+                if (dragged === null) return
+                event.stopPropagation()
+                moveTo(dragged, place)
+            }}
+        >
+            <button
+                type="button"
+                disabled={selected === null}
+                onClick={() => {
+                    if (selected !== null) moveTo(selected, place)
+                }}
+                aria-label={`Ledig plass ${seat + 1}`}
+                className="
+                    w-full px-2 py-1 border border-dashed border-base-300 rounded-inner bg-transparent text-s
+                    text-base-content/80
+                    enabled:cursor-pointer
+                    enabled:hover:bg-base-300
+                "
+            >
+                Ledig
+            </button>
+        </li>
+    }
 
     if (guests.length === 0) return <p className="m-0 text-base-content/80">Ingen har fått plass ennå.</p>
 
@@ -333,15 +403,15 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                         <Stat label="fikk minst ett ønske" value={`${summary.gotAWish} av ${summary.wishing}`} />
                         <Stat label="fikk alle ønskene" value={`${summary.gotAllWishes} av ${summary.wishing}`} />
                         <Stat
-                            label="sitter med noen fra komiteen"
-                            value={`${summary.withCommittee} av ${summary.committeeMembers}`}
+                            label="komiteer samlet ved ett bord"
+                            value={`${summary.committeesTogether} av ${summary.committees}`}
                         />
                     </div>}
 
                     <p aria-live="polite" className="m-0 min-h-6 text-s">
                         {selectedGuest
                             ? `${selectedGuest.name} ønsket seg ${wishNames || 'ingen'}.`
-                            : 'Velg noen for å se ønskene, og dra dem til et annet bord eller oppå en de skal bytte med.'}
+                            : 'Velg noen for å se ønskene, og dra dem til en ledig plass eller oppå en de skal bytte med.'}
                     </p>
 
                     <section {...dropZone(null)} className="p-3 rounded-inner bg-base-200">
@@ -358,21 +428,33 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                     </section>
 
                     <div className="
-                        grid grid-cols-3 gap-2
+                        grid grid-cols-2 gap-2
                         max-mobile:grid-cols-1
                     ">
-                        {plan.tables.map((members, index) => <section
+                        {plan.tables.map((table, index) => <section
                             key={index}
                             {...dropZone(index)}
-                            className="min-h-24 p-3 rounded-inner bg-base-200"
+                            className="min-w-0 p-3 rounded-inner bg-base-200"
                         >
                             <div className="flex justify-between gap-2 mb-1">
                                 <h3 className="m-0 text-m">Bord {index + 1}</h3>
                                 {moveHereButton(index) || <span className="text-s text-base-content/80">
-                                    {members.length}/{seats[index]}
+                                    {table.filter(guestId => guestId !== null).length}/{seats[index]}
                                 </span>}
                             </div>
-                            <ul className="m-0 p-0">{members.map(guestId => renderGuest(guestId, true))}</ul>
+                            <div className="overflow-x-auto">
+                                <div className="flex flex-col gap-1 w-max">
+                                    {sidesOf(table.length).map((side, sideIndex) => <Fragment key={sideIndex}>
+                                        {sideIndex === 1 && <div aria-hidden className="h-2 rounded-inner bg-base-300" />}
+                                        <ul
+                                            aria-label={`Side ${sideIndex + 1}`}
+                                            className="grid grid-flow-col auto-cols-[8rem] gap-1 m-0 p-0"
+                                        >
+                                            {side.map(seat => renderSeat(index, seat))}
+                                        </ul>
+                                    </Fragment>)}
+                                </div>
+                            </div>
                         </section>)}
                     </div>
                 </div>

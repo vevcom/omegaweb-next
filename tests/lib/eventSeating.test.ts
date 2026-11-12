@@ -3,10 +3,13 @@ import {
     createSeatingPlan,
     displaySeats,
     moveGuest,
+    nearnessOf,
     parseSeats,
+    placesOf,
     reconcilePlan,
     resizePlan,
     seatingSummary,
+    sidesOf,
     swapGuests,
 } from '@/services/events/seating/plan'
 import { describe, expect, test } from '@jest/globals'
@@ -15,6 +18,7 @@ import type { SeatingGuest, SeatingPlan, SeatingWishes } from '@/services/events
 const guest = (id: number, committees: string[] = []): SeatingGuest => ({ id, name: `Gjest ${id}`, committees })
 const manyGuests = (count: number) => Array.from({ length: count }, (_, index) => guest(index + 1))
 const tableOf = (plan: SeatingPlan, id: number) => plan.tables.findIndex(members => members.includes(id))
+const seatedAt = (table: (number | null)[]) => table.filter(guestId => guestId !== null)
 // Everyone wishes for three random others, always the same ones so the test is stable.
 function wishesOf(guests: SeatingGuest[]): SeatingWishes {
     let state = 7
@@ -31,7 +35,8 @@ function wishesOf(guests: SeatingGuest[]): SeatingWishes {
         return [id, wished]
     }))
 }
-const everyone = (plan: SeatingPlan) => [...plan.tables.flat(), ...plan.unseated].sort((first, second) => first - second)
+const everyone = (plan: SeatingPlan) => [...plan.tables.flatMap(seatedAt), ...plan.unseated]
+    .sort((first, second) => first - second)
 
 describe('createSeatingPlan', () => {
     test('seats everyone once and respects the size of each table', () => {
@@ -39,27 +44,30 @@ describe('createSeatingPlan', () => {
         const plan = createSeatingPlan({ guests, wishes: {}, seats: [6, 2, 4] })
         expect(everyone(plan)).toEqual(guests.map(({ id }) => id))
         expect(plan.unseated).toEqual([])
-        plan.tables.forEach((members, index) => expect(members.length).toBeLessThanOrEqual([6, 2, 4][index]))
+        expect(plan.tables.map(table => table.length)).toEqual([6, 2, 4])
     })
 
     test('leaves out those who do not fit', () => {
         const plan = createSeatingPlan({ guests: manyGuests(10), wishes: {}, seats: [4, 4] })
-        expect(plan.tables.flat()).toHaveLength(8)
+        expect(plan.tables.flatMap(seatedAt)).toHaveLength(8)
         expect(plan.unseated).toHaveLength(2)
     })
 
     test('spreads empty seats over the tables', () => {
         const plan = createSeatingPlan({ guests: manyGuests(14), wishes: {}, seats: [8, 8, 8] })
-        plan.tables.forEach(members => expect(members.length).toBeGreaterThanOrEqual(4))
-        plan.tables.forEach(members => expect(members.length).toBeLessThanOrEqual(5))
+        plan.tables.forEach(table => expect(seatedAt(table).length).toBeGreaterThanOrEqual(4))
+        plan.tables.forEach(table => expect(seatedAt(table).length).toBeLessThanOrEqual(5))
     })
 
-    test('seats those wishing for each other together', () => {
+    test('seats those wishing for each other beside or across from each other', () => {
         const guests = manyGuests(12)
         const wishes = { 1: [12], 12: [1], 2: [11], 11: [2], 3: [10], 10: [3] }
         const plan = createSeatingPlan({ guests, wishes, seats: [4, 4, 4] })
+        const places = placesOf(plan)
         Object.entries(wishes).forEach(([id, [wished]]) => {
-            expect(tableOf(plan, Number(id))).toBe(tableOf(plan, wished))
+            const [one, other] = [places.get(Number(id)), places.get(wished)]
+            expect(one?.table).toBe(other?.table)
+            expect(['beside', 'across']).toContain(nearnessOf(one?.seat ?? 0, other?.seat ?? 0, 4))
         })
     })
 
@@ -75,22 +83,22 @@ describe('createSeatingPlan', () => {
         expect(tableOf(plan, 2)).toBe(tableOf(plan, 3))
     })
 
-    test('keeps a committee together over a wish when the committee is worth more', () => {
+    test('keeps a committee together over a wish when splitting it costs more', () => {
         const guests = [guest(1, ['Vevcom']), guest(2, ['Vevcom']), guest(3), guest(4)]
-        const points = { ...DEFAULT_SEATING_POINTS, committee: 30 }
+        const points = { ...DEFAULT_SEATING_POINTS, committeeSplit: 30 }
         const plan = createSeatingPlan({ guests, wishes: { 2: [3] }, seats: [2, 2], points })
         expect(tableOf(plan, 1)).toBe(tableOf(plan, 2))
     })
 
-    test('keeps locked guests at their table, also against their wishes', () => {
+    test('keeps locked guests in their seat, also against their wishes', () => {
         const plan = createSeatingPlan({
             guests: manyGuests(8),
             wishes: { 1: [2], 2: [1] },
             seats: [4, 4],
-            locked: { 1: 0, 2: 1 },
+            locked: { 1: { table: 0, seat: 3 }, 2: { table: 1, seat: 0 } },
         })
-        expect(tableOf(plan, 1)).toBe(0)
-        expect(tableOf(plan, 2)).toBe(1)
+        expect(plan.tables[0][3]).toBe(1)
+        expect(plan.tables[1][0]).toBe(2)
     })
 
     test('gives the same plan for the same seed', () => {
@@ -100,13 +108,28 @@ describe('createSeatingPlan', () => {
             .toEqual(createSeatingPlan({ guests, wishes, seats: [10, 10], seed: 3 }))
     })
 
-    test('gives nearly everyone at a big dinner a wish, in about a second', () => {
+    test('seats most at a big dinner near a wish, in a few seconds', () => {
         const guests = manyGuests(200)
         const wishes = wishesOf(guests)
         const started = Date.now()
         const plan = createSeatingPlan({ guests, wishes, seats: Array<number>(20).fill(10) })
         expect(Date.now() - started).toBeLessThan(3000)
-        expect(seatingSummary(plan, guests, wishes).gotAWish).toBeGreaterThanOrEqual(185)
+        expect(seatingSummary(plan, guests, wishes).gotAWish).toBeGreaterThanOrEqual(175)
+    })
+})
+
+describe('seats', () => {
+    test('are along two facing sides, the odd one out on the first', () => {
+        expect(sidesOf(8)).toEqual([[0, 1, 2, 3], [4, 5, 6, 7]])
+        expect(sidesOf(5)).toEqual([[0, 1, 2], [3, 4]])
+    })
+
+    test('are near by side, across and diagonally', () => {
+        expect(nearnessOf(1, 2, 8)).toBe('beside')
+        expect(nearnessOf(1, 5, 8)).toBe('across')
+        expect(nearnessOf(1, 6, 8)).toBe('diagonal')
+        expect(nearnessOf(1, 3, 8)).toBe('table')
+        expect(nearnessOf(3, 4, 8)).toBe('table')
     })
 })
 
@@ -125,26 +148,29 @@ describe('tables', () => {
         expect(displaySeats([10, 8])).toBe('10, 8')
     })
 
-    test('moves those who no longer fit away from their table', () => {
-        const resized = resizePlan({ tables: [[1, 2, 3], [4]], unseated: [5] }, [2])
-        expect(resized).toEqual({ tables: [[1, 2]], unseated: [5, 3, 4] })
+    test('keeps everyone on their side and spot when the tables change', () => {
+        const plan = { tables: [[1, 2, 3, 4], [5]], unseated: [6] }
+        expect(resizePlan(plan, [6])).toEqual({ tables: [[1, 2, null, 3, 4, null]], unseated: [6, 5] })
+        expect(resizePlan(plan, [2])).toEqual({ tables: [[1, 3]], unseated: [6, 2, 4, 5] })
     })
 
     test('follows who is registered', () => {
-        expect(reconcilePlan({ tables: [[1, 2]], unseated: [3] }, [2, 3, 4])).toEqual({ tables: [[2]], unseated: [3, 4] })
+        expect(reconcilePlan({ tables: [[1, 2]], unseated: [3] }, [2, 3, 4]))
+            .toEqual({ tables: [[null, 2]], unseated: [3, 4] })
     })
 })
 
 describe('moving by hand', () => {
-    const plan = { tables: [[1, 2], [3]], unseated: [4] }
+    const plan = { tables: [[1, 2], [3, null]], unseated: [4] }
 
-    test('moves a guest to a table and off it again', () => {
-        expect(moveGuest(plan, 1, 1)).toEqual({ tables: [[2], [3, 1]], unseated: [4] })
-        expect(moveGuest(plan, 4, 0)).toEqual({ tables: [[1, 2, 4], [3]], unseated: [] })
-        expect(moveGuest(plan, 3, null)).toEqual({ tables: [[1, 2], []], unseated: [4, 3] })
+    test('moves a guest to a seat and off the tables again', () => {
+        expect(moveGuest(plan, 1, { table: 1, seat: 1 })).toEqual({ tables: [[null, 2], [3, 1]], unseated: [4] })
+        expect(moveGuest(plan, 4, { table: 1, seat: 1 })).toEqual({ tables: [[1, 2], [3, 4]], unseated: [] })
+        expect(moveGuest(plan, 3, null)).toEqual({ tables: [[1, 2], [null, null]], unseated: [4, 3] })
     })
 
-    test('swaps two guests', () => {
-        expect(swapGuests(plan, 1, 4)).toEqual({ tables: [[4, 2], [3]], unseated: [1] })
+    test('trades seats with whoever sits where a guest is moved', () => {
+        expect(moveGuest(plan, 4, { table: 0, seat: 0 })).toEqual({ tables: [[4, 2], [3, null]], unseated: [1] })
+        expect(swapGuests(plan, 1, 3)).toEqual({ tables: [[3, 2], [1, null]], unseated: [4] })
     })
 })

@@ -17,6 +17,7 @@ const dataFieldSchemas = z.object({
         schema: z.array(z.object({
             registrationId: z.number().int(),
             table: z.number().int().min(0),
+            seat: z.number().int().min(0),
             locked: z.boolean(),
         })),
     }),
