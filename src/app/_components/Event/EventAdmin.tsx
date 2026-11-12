@@ -76,7 +76,7 @@ export default function EventAdmin({ event, eventHref, capabilities, statistics,
             </TabPanel>}
 
             {statistics && <TabPanel tab="statistics">
-                <EventStatistics variants={statistics} />
+                <EventStatistics variants={statistics} eventStart={event.eventStart} />
             </TabPanel>}
 
             {seatingBoard && <TabPanel tab="seating">

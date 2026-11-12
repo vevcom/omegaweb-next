@@ -18,8 +18,9 @@ export type EventSetup = {
     ledgerAccount: { id: number } | null,
     variants: {
         name: string,
-        registrationStart: Date,
-        registrationEnd: Date,
+        /** Null for a date the form has emptied. */
+        registrationStart: Date | null,
+        registrationEnd: Date | null,
         takesPayment: boolean,
         price?: number | null,
         paymentStart?: Date | null,
@@ -58,7 +59,9 @@ export function eventSetupChecks(event: EventSetup): SetupCheck[] {
 
     event.variants.forEach(variant => {
         const name = event.variants.length > 1 ? `${variant.name}: ` : ''
-        if (variant.registrationStart >= variant.registrationEnd) {
+        if (!variant.registrationStart || !variant.registrationEnd) {
+            add('registration', 'missing', `${name}Påmeldingsperioden må settes.`)
+        } else if (variant.registrationStart >= variant.registrationEnd) {
             add('registration', 'missing', `${name}Påmeldingen slutter før den starter.`)
         } else if (variant.registrationEnd > event.eventStart) {
             add('registration', 'warning', `${name}Påmeldingen slutter etter at arrangementet har startet.`)
@@ -72,7 +75,7 @@ export function eventSetupChecks(event: EventSetup): SetupCheck[] {
             add('payment', 'missing', `${name}Betalingsperioden må settes.`)
         } else if (variant.paymentStart >= variant.paymentEnd) {
             add('payment', 'missing', `${name}Betalingen slutter før den starter.`)
-        } else if (variant.paymentEnd < variant.registrationEnd) {
+        } else if (variant.registrationEnd && variant.paymentEnd < variant.registrationEnd) {
             add('payment', 'warning', `${name}Betalingsfristen er før påmeldingen stenger.`)
         }
     })

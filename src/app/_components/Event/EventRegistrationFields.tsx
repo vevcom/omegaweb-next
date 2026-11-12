@@ -160,17 +160,19 @@ function RegistrationPeriod({ variant, onChange }: {
         <DateInput
             label="Påmelding åpner"
             includeTime
-            defaultValue={variant.registrationStart}
+            required
+            defaultValue={variant.registrationStart ?? undefined}
             onChange={event => {
-                if (event.target.value) onChange({ registrationStart: new Date(event.target.value) })
+                onChange({ registrationStart: event.target.value ? new Date(event.target.value) : null })
             }}
         />
         <DateInput
             label="Påmelding stenger"
             includeTime
-            defaultValue={variant.registrationEnd}
+            required
+            defaultValue={variant.registrationEnd ?? undefined}
             onChange={event => {
-                if (event.target.value) onChange({ registrationEnd: new Date(event.target.value) })
+                onChange({ registrationEnd: event.target.value ? new Date(event.target.value) : null })
             }}
         />
     </div>
@@ -209,14 +211,16 @@ function variantsInShape(shape: Shape, variants: VariantDraft[], eventStart: Dat
     if (shape === 'VARIANTS') {
         return variants.length > 1 ? variants : [first, newVariantDraft('Variant 2', eventStart, [first], first)]
     }
+    // A variant can be saved without quotas, though the form never leaves one so.
+    const firstQuota = first.quotas.at(0) ?? newQuotaDraft('Påmelding', first.quotas)
     if (shape === 'SHARED') {
         const places = first.quotas.reduce((sum, quota) => sum + quota.places, 0)
-        return [{ ...first, quotas: [{ ...first.quotas[0], places }] }]
+        return [{ ...first, quotas: [{ ...firstQuota, places }] }]
     }
     if (first.quotas.length > 1) return [first]
     return [{
         ...first,
-        quotas: [{ ...first.quotas[0], name: 'Kvote 1' }, newQuotaDraft('Kvote 2', first.quotas)],
+        quotas: [{ ...firstQuota, name: 'Kvote 1' }, newQuotaDraft('Kvote 2', [firstQuota])],
     }]
 }
 

@@ -101,7 +101,7 @@ function Chart({ title, label, ticks, tooltip, children, onPointerMove, onPointe
 }
 
 function CumulativeChart({ statistics }: { statistics: VariantStatistics }) {
-    const { registeredAt, registrationStart, places } = statistics
+    const { registeredAt, registrationStart, places, waiting } = statistics
     const [hovered, setHovered] = useState<number | null>(null)
     const total = registeredAt.length
     const first = Math.min(registrationStart.getTime(), registeredAt[0].getTime())
@@ -112,8 +112,9 @@ function CumulativeChart({ statistics }: { statistics: VariantStatistics }) {
 
     const hoveredAt = hovered === null ? null : registeredAt[hovered]
     return <Chart
-        title="Påmeldinger over tid"
-        label={`Påmeldte: ${total} fra ${displayMoment(new Date(first))} til ${
+        // Those waiting are counted too, so the curve can pass the places while one is still free.
+        title={waiting > 0 ? 'Påmeldinger over tid, venteliste medregnet' : 'Påmeldinger over tid'}
+        label={`${waiting > 0 ? 'Påmeldte og ventende' : 'Påmeldte'}: ${total} fra ${displayMoment(new Date(first))} til ${
             displayMoment(registeredAt[total - 1])
         }, med ${places} plasser`}
         ticks={ticks}
@@ -236,7 +237,11 @@ function BucketChart({ statistics }: { statistics: VariantStatistics }) {
     </Chart>
 }
 
-function VariantSection({ statistics, showName }: { statistics: VariantStatistics, showName: boolean }) {
+function VariantSection({ statistics, showName, eventHasStarted }: {
+    statistics: VariantStatistics,
+    showName: boolean,
+    eventHasStarted: boolean,
+}) {
     const { registeredAt, places, inQuota, waiting, paid, attended } = statistics
     const fillTime = timeToFillMs(statistics)
     const { unit, buckets } = registrationBuckets(statistics)
@@ -252,7 +257,8 @@ function VariantSection({ statistics, showName }: { statistics: VariantStatistic
             <StatTile label="Påmeldte" value={`${inQuota} av ${places}`} />
             <StatTile label="Venteliste" value={waiting} />
             {paid !== null && <StatTile label="Betalt" value={`${paid} av ${inQuota}`} />}
-            {attended > 0 && <StatTile label="Oppmøte" value={`${attended} av ${inQuota}`} />}
+            {/* No one has come before the event, which says nothing. After it starts, it does. */}
+            {(attended > 0 || eventHasStarted) && <StatTile label="Oppmøte" value={`${attended} av ${inQuota}`} />}
         </div>
         {registeredAt.length === 0 ? <p className="m-0 text-base-content/80">Ingen er påmeldt ennå.</p> : <>
             <CumulativeChart statistics={statistics} />
@@ -279,12 +285,17 @@ function VariantSection({ statistics, showName }: { statistics: VariantStatistic
 }
 
 /** How registration went, per variant. Nothing here can be changed, so it sits outside the form. */
-export default function EventStatistics({ variants }: { variants: VariantStatistics[] }) {
+export default function EventStatistics({ variants, eventStart }: {
+    variants: VariantStatistics[],
+    eventStart: Date,
+}) {
+    const eventHasStarted = eventStart <= new Date()
     return <div className="flex flex-col gap-6 pb-4">
         {variants.map(variant => <VariantSection
             key={variant.id}
             statistics={variant}
             showName={variants.length > 1}
+            eventHasStarted={eventHasStarted}
         />)}
         <p className="m-0 text-s text-base-content/80">
             Regnet ut fra dem som fortsatt er påmeldt. De som har meldt seg av telles ikke, så plassene kan ha gått
