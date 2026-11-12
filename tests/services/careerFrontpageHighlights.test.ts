@@ -75,7 +75,7 @@ beforeAll(async () => {
     const tag = await prisma.eventTag.findUniqueOrThrow({ where: { special: 'COMPANY_PRESENTATION' } })
     companyPresentationTagId = tag.id
     const company = await prisma.company.create({
-        data: { name: 'Vevcom Highlight AS', description: 'Bakeri', logo: { create: {} } },
+        data: { name: 'Vevcom Highlight AS', description: 'Bakeri' },
     })
     companyId = company.id
     adminGroupId = (await prisma.group.findFirstOrThrow()).id

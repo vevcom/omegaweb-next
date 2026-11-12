@@ -19,7 +19,6 @@ model CmsImage {
   coverImageforArticle Article?
   special              SpecialCmsImage? @unique
   event                Event?
-  company              Company?
   product              Product?
 }
 
