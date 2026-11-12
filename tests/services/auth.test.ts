@@ -74,7 +74,7 @@ describe('reset password', () => {
         const token = resetPasswordToken(user.id)
 
         expect(await authOperations.verifyResetPasswordToken({ params: { token } }))
-            .toEqual({ userId: user.id, email: null })
+            .toEqual({ accountId: user.id, email: null })
 
         await resetPassword(token)
 
