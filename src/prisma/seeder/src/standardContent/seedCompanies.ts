@@ -63,8 +63,6 @@ async function createCompany(prisma: PrismaClient, company: SeedCompanyConfig) {
         data: { name: company.name, description: company.description }
     })
 
-    await uploadLogo(createdCompany.id, company.logo)
-
     if (company.sponsor) {
         await companyOperations.updateSponsorTier({
             params: { id: createdCompany.id },
@@ -75,6 +73,8 @@ async function createCompany(prisma: PrismaClient, company: SeedCompanyConfig) {
             data: { website: company.sponsor.website },
         })
     }
+
+    await uploadLogo(createdCompany.id, company.logo)
 
     return createdCompany
 }

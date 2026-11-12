@@ -143,6 +143,30 @@ describe('the login of a company user', () => {
         expect(sessionCookieOf(asUser)).toBeUndefined()
     })
 
+    test('a body that is not sent as JSON is refused, though it parses as a login', async () => {
+        // What a form on another site can send: a text/plain body written to be read as JSON.
+        const response = await companyLogin(new NextRequest('https://contactor.no/api/company-auth/login', {
+            method: 'POST',
+            headers: { ...headersOf('https://contactor.no', {}), 'content-type': 'text/plain' },
+            body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+        }))
+        expect(response.status).toBe(403)
+        expect(sessionCookieOf(response)).toBeUndefined()
+    })
+
+    test('a login sent from a page of another site is refused, one from the site itself is not', async () => {
+        const from = (origin: string) => companyLogin(new NextRequest('https://contactor.no/api/company-auth/login', {
+            method: 'POST',
+            headers: { ...headersOf('https://contactor.no', {}), 'content-type': 'application/json', origin },
+            body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+        }))
+
+        const fromElsewhere = await from('https://evil.example')
+        expect(fromElsewhere.status).toBe(403)
+        expect(sessionCookieOf(fromElsewhere)).toBeUndefined()
+        expect((await from('https://contactor.no')).status).toBe(200)
+    })
+
     test('it is only there on a domain that serves the career site', async () => {
         const onAuthDomain = await login({ email: EMAIL, password: PASSWORD }, { origin: 'https://login.omega.ntnu.no' })
         expect(onAuthDomain.status).toBe(404)

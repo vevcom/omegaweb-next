@@ -67,3 +67,15 @@ export function recordSentMail() {
     } as unknown as typeof global.mailHandler
     return sendSingleMail
 }
+
+/**
+ * Waits until `condition` holds, for work a test started without a promise to await, such as a mail
+ * sent in the background. Throws when it has not come to hold within the timeout.
+ */
+export async function waitUntil(condition: () => boolean, timeoutMs = 4000): Promise<void> {
+    const deadline = Date.now() + timeoutMs
+    while (!condition()) {
+        if (Date.now() > deadline) throw new Error('Waited for something that did not happen in time')
+        await new Promise(resolve => setTimeout(resolve, 10))
+    }
+}

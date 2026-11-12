@@ -6,7 +6,7 @@ import { generateResetPasswordJWT, generateVerifyEmailJWT } from '@/services/acc
 import { authOperations } from '@/services/auth/operations'
 import { companySessionTokenOf } from '@/auth/nextAuth/sessionToken'
 import { companyUserAuthOperations } from '@/services/careers/companies/users/auth/operations'
-import { recordSentMail } from 'tests/utils'
+import { recordSentMail, waitUntil } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 
 const companyAdmin = Session.fromJsObject({ user: null, permissions: ['COMPANY_ADMIN'], memberships: [] })
@@ -89,19 +89,20 @@ describe('the password link of a company user', () => {
         await createCompanyUser('konto-glemt@example.com')
         const sentMail = recordSentMail()
 
-        const known = await companyUserAuthOperations.sendResetPasswordEmail({
-            params: { site: 'CAREERS' },
-            data: { email: 'Konto-Glemt@example.com' },
-        })
+        // The unknown email first, so its lookup is done by the time the mail of the known one is.
         const unknown = await companyUserAuthOperations.sendResetPasswordEmail({
             params: { site: 'CAREERS' },
             data: { email: 'konto-ingen@example.com' },
+        })
+        const known = await companyUserAuthOperations.sendResetPasswordEmail({
+            params: { site: 'CAREERS' },
+            data: { email: 'Konto-Glemt@example.com' },
         })
         expect(known).toBe('konto-glemt@example.com')
         expect(unknown).toBe('konto-ingen@example.com')
 
         // The mail is sent without being awaited.
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await waitUntil(() => sentMail.mock.calls.length > 0)
         expect(sentMail.mock.calls.map(([mail]) => mail.to)).toEqual(['konto-glemt@example.com'])
     })
 })
@@ -133,12 +134,17 @@ describe('choosing a password as a company user', () => {
             .rejects.toThrow(new Smorekopp('JWT INVALID'))
     })
 
-    test('a link for an email the company user has since left does not verify the new one', async () => {
+    test('a link sent to an email the company user has since left sets no password', async () => {
         const companyUser = await createCompanyUser('konto-byttet@example.com')
 
-        await choosePassword(passwordToken(companyUser.id, 'konto-gammel@example.com'))
+        await expect(choosePassword(passwordToken(companyUser.id, 'konto-gammel@example.com')))
+            .rejects.toThrow(new Smorekopp('JWT INVALID'))
 
-        const stored = await prisma.companyUser.findUniqueOrThrow({ where: { id: companyUser.id } })
+        const stored = await prisma.companyUser.findUniqueOrThrow({
+            where: { id: companyUser.id },
+            include: { credentials: true },
+        })
+        expect(stored.credentials).toBeNull()
         expect(stored.emailVerified).toBeNull()
     })
 

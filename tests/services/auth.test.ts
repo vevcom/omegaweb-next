@@ -120,13 +120,14 @@ describe('reset password', () => {
         expect(stored.emailVerified).toBeInstanceOf(Date)
     })
 
-    test('a reset only verifies the address the mail went to', async () => {
+    test('a reset link sent to an address the user has since left sets no password', async () => {
         const user = await createUserChangedAnHourAgo('resetotheremail', { withPassword: false })
 
-        await resetPassword(resetPasswordToken(user.id, 60 * 60, 'resetotheremail-gammel@example.com'))
+        await expect(resetPassword(resetPasswordToken(user.id, 60 * 60, 'resetotheremail-gammel@example.com')))
+            .rejects.toThrow(new Smorekopp('JWT INVALID'))
 
-        expect(await passwordMatches(user.id, NEW_PASSWORD)).toBe(true)
-        const stored = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+        const stored = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, include: { credentials: true } })
+        expect(stored.credentials).toBeNull()
         expect(stored.emailVerified).toBeNull()
     })
 
