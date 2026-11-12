@@ -5,6 +5,7 @@ import SiteLink from '@/components/SiteLink/SiteLink'
 import { companyUserOperations } from '@/services/careers/companies/users/operations'
 import { companyUserAuth } from '@/services/careers/companies/users/auth'
 import { companyUserAuthAuth } from '@/services/careers/companies/users/auth/auth'
+import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import { Smorekopp } from '@/services/error'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { displayDate } from '@/lib/dates/displayDate'
@@ -74,7 +75,7 @@ const { page, generateMetadata } = serverPage({
                 `}>
                     <CompanyUserSettings
                         companyUser={companyUser}
-                        capabilities={capabilities}
+                        capabilities={capabilitiesToJsObject(capabilities)}
                         usersHref={careerLinks.companyUsers(company)}
                         isSelf={session.companyUser?.id === companyUser.id}
                     />

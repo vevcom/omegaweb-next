@@ -13,14 +13,17 @@ import {
 } from '@/services/careers/companies/users/auth/actions'
 import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
-import type { Capabilities } from '@/auth/authorizer/capabilities'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { AppHref } from '@/lib/sites/href'
 import type { CompanyUserFiltered } from '@/services/careers/companies/users/types'
 
 type PropTypes = {
     companyUser: CompanyUserFiltered,
-    /** What the viewer may do with the company user. Each form is left out for one who may not. */
-    capabilities: Capabilities<
+    /**
+     * What the viewer may do with the company user, as the page worked it out. Each form is left out
+     * for one who may not.
+     */
+    capabilities: CapabilitiesJsObject<
         'canUpdate' | 'canUpdateRole' | 'canDestroy' | 'canSendPasswordLink' | 'canChangeEmail'
     >,
     /** The list of the company's users, which is where to go when this one is removed. */
