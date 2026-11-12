@@ -14,6 +14,7 @@ import type { FormEvent } from 'react'
 const errorMessages: Record<CompanyLoginError, string> = {
     CredentialsSignin: 'Feil e-post eller passord.',
     AlreadySignedIn: 'Du er allerede logget inn. Logg ut først.',
+    NotOnCareerSite: 'Bedrifter logger inn på karrieresiden.',
     Default: 'Noe gikk galt. Prøv igjen.',
 }
 

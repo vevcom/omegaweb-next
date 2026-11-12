@@ -15,8 +15,6 @@ const id = paramsFieldSchemas.pick({ id: true })
 export const companyUserAuthSchemas = {
     data: {
         registerNewEmail: dataFieldSchemas.pick({ email: true, currentPassword: true }),
-        // Not an operation: what the login route takes, checked by companyUserIdOfCredentials.
-        login: z.object({ email: z.string().min(1).max(200), password: z.string().min(1).max(50) }),
     },
     params: {
         sendPasswordLink: id,
