@@ -1,0 +1,12 @@
+// A user's account on the chat, the Matrix homeserver in chat-infrastructure. A user has one from
+// the first time they sign in to the chat through the provider, see src/services/chat/users, and a
+// user without one is not on the chat.
+model ChatUser {
+  id     Int  @id @default(autoincrement())
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @unique
+  // What stands before the colon in the user's Matrix id, @localpart:server. Matrix never lets it
+  // change, so it is decided here once and stays when the username changes.
+  localpart String   @unique
+  createdAt DateTime @default(now())
+}
