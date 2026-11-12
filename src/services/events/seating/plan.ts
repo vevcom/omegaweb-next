@@ -3,17 +3,28 @@ export type SeatingGuest = { id: number, name: string, committees: string[] }
 export type SeatingWishes = Record<number, number[]>
 export type SeatingPlan = { tables: number[][], unseated: number[] }
 
-// The first wish a guest gets is worth the most, so everyone getting one beats a few getting all three.
-export const FULFILLED_WISH_POINTS = [20, 4, 2]
+export type SeatingPoints = {
+    /** For each wish a guest gets, in the order they get them. */
+    wishes: number[],
+    mutual: number,
+    committee: number,
+    /** Taken off per table for its empty seats, squared, so empty seats spread out. */
+    emptySeat: number,
+}
+
+export const DEFAULT_SEATING_POINTS: SeatingPoints = {
+    // The first wish a guest gets is worth the most, so everyone getting one beats a few getting all three.
+    wishes: [20, 4, 2],
+    mutual: 2,
+    // Lower than a first wish, so a committee is split rather than leaving someone with none of their wishes.
+    committee: 1,
+    // Without outweighing a first wish.
+    emptySeat: 1,
+}
 export const MAX_WISHES = 3
 export const MAX_TABLES = 200
 export const MAX_SEATS_PER_TABLE = 100
-export const MUTUAL_WISH_POINTS = 2
-// Lower than a first wish, so a committee is split rather than leaving someone with none of their wishes.
-export const SHARED_COMMITTEE_POINTS = 1
 const UNSEATED_PENALTY = 100
-// Squared per table, so empty seats spread out, without outweighing a first wish.
-const EMPTY_SEAT_PENALTY = 1
 const ITERATIONS = 300_000
 const START_TEMPERATURE = 4
 // Random swaps rarely help at a big dinner, so this share of them go to the table of someone wished for.
@@ -30,18 +41,23 @@ function seededRandom(seed: number) {
 }
 
 /** The points of those sitting together. A plan's score is the sum over its tables, so a swap only rescores two. */
-function tableScore(members: number[], guests: Map<number, SeatingGuest>, wishes: SeatingWishes) {
+function tableScore(
+    members: number[],
+    guests: Map<number, SeatingGuest>,
+    wishes: SeatingWishes,
+    points: SeatingPoints,
+) {
     let score = 0
     members.forEach((guestId, index) => {
         const fulfilled = (wishes[guestId] ?? []).filter(wished => members.includes(wished))
         fulfilled.forEach((wished, rank) => {
-            score += FULFILLED_WISH_POINTS[rank] ?? 0
-            if (wishes[wished]?.includes(guestId)) score += MUTUAL_WISH_POINTS / 2
+            score += points.wishes[rank] ?? 0
+            if (wishes[wished]?.includes(guestId)) score += points.mutual / 2
         })
         const committees = guests.get(guestId)?.committees ?? []
         members.slice(index + 1).forEach(other => {
             if (guests.get(other)?.committees.some(committee => committees.includes(committee))) {
-                score += SHARED_COMMITTEE_POINTS
+                score += points.committee
             }
         })
     })
@@ -53,12 +69,13 @@ function tableScore(members: number[], guests: Map<number, SeatingGuest>, wishes
  * if the score rises, or sometimes if it falls, which gets ever rarer. That way it does not get
  * stuck on a plan no single swap improves. Locked guests stay at their table, given by its index.
  */
-export function createSeatingPlan({ guests, wishes, seats, locked = {}, seed = 1 }: {
+export function createSeatingPlan({ guests, wishes, seats, locked = {}, seed = 1, points = DEFAULT_SEATING_POINTS }: {
     guests: SeatingGuest[],
     wishes: SeatingWishes,
     seats: number[],
     locked?: Record<number, number>,
     seed?: number,
+    points?: SeatingPoints,
 }): SeatingPlan {
     const guestsById = new Map(guests.map(guest => [guest.id, guest]))
     const random = seededRandom(seed)
@@ -76,7 +93,8 @@ export function createSeatingPlan({ guests, wishes, seats, locked = {}, seed = 1
 
     const scoreOf = (index: number) => (index === unseatedTable
         ? -UNSEATED_PENALTY * tables[index].length
-        : tableScore(tables[index], guestsById, wishes) - EMPTY_SEAT_PENALTY * (seats[index] - tables[index].length) ** 2)
+        : tableScore(tables[index], guestsById, wishes, points)
+            - points.emptySeat * (seats[index] - tables[index].length) ** 2)
 
     // A slot holding null is an empty seat, so a guest can also move to one.
     const slots = tables.flatMap((table, index) => {
