@@ -11,8 +11,25 @@ model CompanyUser {
   admin     Boolean @default(false)
   active    Boolean @default(true)
 
+  // Set when the company user has shown that the email is theirs, by following a link sent to it.
+  emailVerified DateTime?
+  // Bumped to end every session of the company user, as a password change and a deactivation do. A
+  // session carries the value it was started with and is only valid while that still matches.
+  sessionEpoch  Int       @default(0)
+
+  credentials CompanyUserCredentials?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([companyId])
+}
+
+// Keeps the password hash apart from the company user, as Credentials does for a user. A company
+// user without this row has yet to choose a password and cannot sign in.
+model CompanyUserCredentials {
+  companyUser          CompanyUser @relation(fields: [companyUserId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  companyUserId        Int         @id
+  passwordHash         String
+  credentialsUpdatedAt DateTime    @updatedAt
 }
