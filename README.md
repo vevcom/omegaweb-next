@@ -31,6 +31,16 @@ npm run docker:dev -- --mail
 
 It comes from the [mail-infrastructure](https://github.com/vevcom/mail-infrastructure) repo, which is the `mail-infrastructure/` submodule that `--mail` checks out, so the mail server in development is the one production runs. Without `--mail` nothing depends on the submodule. Then set `EMAIL_SERVER=stalwart` and `EMAIL_ADMIN_URL=http://stalwart:8080` in `.env`; the other mail values in `.env.default` already match. The app sends through the server's listener for it, with no login. Stalwart opens that listener when it starts, so after the first start with `--mail` on a fresh volume, restart the `stalwart` container once, or sending is refused. The app also keeps a mailing list per alias on the server, so a mail to an alias reaches the members behind it: in [Mailpit](http://localhost:8025) for an external address, in a mailbox for a local one, and in the alias's own mailbox, which the [webmail](http://mail.omegaweb.localhost:8081) shows to everyone who receives the alias's mail once they sign in there with their account here, see [Mailboxes](#mailboxes). `EMAIL_WEBMAIL_URL` in `.env.default` already names that webmail. The addresses and credentials are in `mail-infrastructure/dev/README.md`. Production refuses to start on the development values of `EMAIL_PASSWORD` and `EMAIL_ADMIN_PASSWORD`, as it does on the other development secrets. The version of the mail server is the submodule's commit, which is bumped like any dependency.
 
+#### Chat
+
+The chat is a Matrix homeserver that signs its users in through this app. To run it, start the stack with it:
+
+```bash
+npm run docker:dev -- --chat
+```
+
+It comes from the [chat-infrastructure](https://github.com/vevcom/chat-infrastructure) repo, which is the `chat-infrastructure/` submodule that `--chat` checks out. Without `--chat` nothing depends on the submodule. Open the client at http://chat.localhost:8090 and sign in: it sends you to this app's login on the auth domain, and back as `@<username>:chat.localhost`. The first time, the chat's sign in shows the Matrix id and the name you get there, and asks you to confirm. `CHAT_AUTH_URL` in `.env.default` already names that sign in. The addresses are in `chat-infrastructure/dev/README.md`. The version of the chat is the submodule's commit, which is bumped like any dependency.
+
 #### DevContainer
 
 To setup the development container see [this guide](https://github.com/vevcom/omegaweb-next/wiki/Getting_Started#development-container).
