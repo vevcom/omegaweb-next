@@ -52,8 +52,10 @@ const { page, generateMetadata } = serverPage({
                 ">
                     {company.logoImage && (
                         <div className="
-                            shrink-0 w-48 [--image-width:100%]
-                            [&_img]:object-contain
+                            shrink-0 w-48
+                            max-mobile:w-40
+                            [&>div]:w-full
+                            [&_img]:h-auto [&_img]:object-contain
                             tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180
                         ">
                             <Image
