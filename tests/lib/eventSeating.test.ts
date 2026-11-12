@@ -1,4 +1,5 @@
 import {
+    DEFAULT_SEATING_POINTS,
     createSeatingPlan,
     displaySeats,
     moveGuest,
@@ -72,6 +73,13 @@ describe('createSeatingPlan', () => {
         const guests = [guest(1, ['Vevcom']), guest(2, ['Vevcom']), guest(3), guest(4)]
         const plan = createSeatingPlan({ guests, wishes: { 2: [3] }, seats: [2, 2] })
         expect(tableOf(plan, 2)).toBe(tableOf(plan, 3))
+    })
+
+    test('keeps a committee together over a wish when the committee is worth more', () => {
+        const guests = [guest(1, ['Vevcom']), guest(2, ['Vevcom']), guest(3), guest(4)]
+        const points = { ...DEFAULT_SEATING_POINTS, committee: 30 }
+        const plan = createSeatingPlan({ guests, wishes: { 2: [3] }, seats: [2, 2], points })
+        expect(tableOf(plan, 1)).toBe(tableOf(plan, 2))
     })
 
     test('keeps locked guests at their table, also against their wishes', () => {
