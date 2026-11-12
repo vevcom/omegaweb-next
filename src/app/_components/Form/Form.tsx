@@ -79,6 +79,7 @@ export default function Form<GiveActionReturn>({
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
     const [inputErrors, setInputErrors] = useState<Partial<Record<string, ErrorMessage[]>>>({})
+    const [refusedNames, setRefusedNames] = useState<string[]>([])
     const [success, setSuccess] = useState(false)
     const [pending, setPending] = useState(false)
     // Which button submitted, so only it shows the wait and the check mark.
@@ -95,6 +96,7 @@ export default function Form<GiveActionReturn>({
     const actionWithError = async (formData: FormData) => {
         setGeneralErrors(undefined)
         setInputErrors({})
+        setRefusedNames([])
 
         const res = await action(formData)
 
@@ -146,6 +148,11 @@ export default function Form<GiveActionReturn>({
         })
         setInputErrors(errorsByLabel)
         if (unmatchedErrors.length > 0) setGeneralErrors(unmatchedErrors)
+        // Every field refused, whichever way its error is shown, so that a tab can say it holds one.
+        setRefusedNames(Array.from(new Set(res.error.flatMap(error => {
+            const label = error.path?.[0]
+            return typeof label === 'string' ? [label] : []
+        }))))
     }
 
     // Tracked here since useFormStatus only covers a transition started during the submit event.
@@ -170,6 +177,7 @@ export default function Form<GiveActionReturn>({
     const handleReset = () => {
         setGeneralErrors(undefined)
         setInputErrors({})
+        setRefusedNames([])
     }
 
     const submitButton = <div className={secondarySubmit ? 'flex flex-wrap items-start gap-x-2' : 'contents'}>
@@ -206,7 +214,7 @@ export default function Form<GiveActionReturn>({
     </div>
 
     return (
-        <FormContext.Provider value={{ inputErrors, pending }}>
+        <FormContext.Provider value={{ inputErrors, refusedNames, pending }}>
             <form ref={formRef} className={`
                 relative w-full
                 [&>h2]:mb-2

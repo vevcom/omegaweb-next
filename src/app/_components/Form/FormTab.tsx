@@ -28,14 +28,15 @@ export default function FormTab({ tab, children }: { tab: string, children: Reac
     }, [show, tab])
 
     // Looked up in the page, not among the children: the inputs of a tab are often rendered by
-    // components further down, which the children given here say nothing about.
+    // components further down, which the children given here say nothing about. A field placed
+    // straight in the tab has its error shown with the general ones, and marks the tab all the same.
     useEffect(() => {
-        const hasErrors = Object.keys(form.inputErrors).some(name => {
+        const hasErrors = form.refusedNames.some(name => {
             const escaped = CSS.escape(name)
             return contentRef.current?.querySelector(`[name="${escaped}"], [id="${escaped}"]`)
         })
         reportErrors(tab, hasErrors)
-    }, [form.inputErrors, reportErrors, tab])
+    }, [form.refusedNames, reportErrors, tab])
 
     return <TabPanel tab={tab}>
         <div ref={contentRef}>{children}</div>
