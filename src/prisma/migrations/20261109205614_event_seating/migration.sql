@@ -4,6 +4,7 @@ ADD COLUMN     "seatingWishesEnd" TIMESTAMP(3);
 
 -- AlterTable
 ALTER TABLE "EventRegistration" ADD COLUMN     "seatLocked" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "seat" INTEGER,
 ADD COLUMN     "tableId" INTEGER;
 
 -- CreateTable
@@ -35,7 +36,7 @@ CREATE INDEX "EventSeatingWish_wishedRegistrationId_idx" ON "EventSeatingWish"("
 CREATE UNIQUE INDEX "EventSeatingWish_registrationId_rank_key" ON "EventSeatingWish"("registrationId", "rank");
 
 -- CreateIndex
-CREATE INDEX "EventRegistration_tableId_idx" ON "EventRegistration"("tableId");
+CREATE UNIQUE INDEX "EventRegistration_tableId_seat_key" ON "EventRegistration"("tableId", "seat");
 
 -- AddForeignKey
 ALTER TABLE "EventTable" ADD CONSTRAINT "EventTable_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
