@@ -24,7 +24,6 @@ export const companyUserAccountFlows = implementAccountFlows({
             where: { id: companyUserId },
             select: { active: true, credentials: { select: { credentialsUpdatedAt: true } } },
         })
-        // A deactivated company user cannot sign in, so there is no password for them to choose.
         if (!companyUser?.active) throw new ServiceError('NOT FOUND', 'Bedriftsbrukeren finnes ikke eller er deaktivert')
         return companyUser.credentials?.credentialsUpdatedAt ?? null
     },

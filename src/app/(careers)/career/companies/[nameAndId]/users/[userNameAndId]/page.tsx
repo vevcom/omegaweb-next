@@ -23,7 +23,6 @@ const { page, generateMetadata } = serverPage({
         const companyUser = await companyUserOperations.read({
             params: { id: decodeVevenUriHandleError(params.userNameAndId) },
         })
-        // The url names the company too, and must not show another company's user under it.
         if (companyUser.companyId !== company.id) throw new Smorekopp('NOT FOUND')
         return { company, companyUser }
     },
