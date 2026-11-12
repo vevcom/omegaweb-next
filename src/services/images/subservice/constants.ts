@@ -1,4 +1,4 @@
-import type { StorableExtension } from '@/lib/store/fileExtensions'
+import type { StorableExtension } from '@/services/store/fileExtensions'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 type StorableExtensions = readonly StorableExtension[]
@@ -15,8 +15,8 @@ export const maxImageCountInOneBatch = 10
 
 /**
  * The most one upload request may carry in total. The client splits a batch so it stays under this,
- * and a single image of the largest size always fits. Must stay below the server action body size
- * limit in next.config.ts.
+ * and a single image of the largest size always fits. Must stay below maxRequestBodySize in
+ * next.config.ts.
  */
 export const maxImageBatchSizeMb = 60
 

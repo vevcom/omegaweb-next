@@ -76,11 +76,12 @@ export function userNavDef({ username, userId }: UserNavSubject) {
         },
         {
             key: 'mail',
-            // The aliases you receive mail on, and the mailboxes among them: yours alone, as the mail is.
+            // Your address and the aliases you receive mail on: yours alone, as the mail is. A user
+            // admin gets in to change the address, and sees no aliases.
             name: 'E-post',
             href: appHref(`/users/${username}/mail`),
             icon: faEnvelope,
-            authorizers: () => [mailAliasAuth.readReceived.data({ userId })],
+            authorizers: () => [mailAliasAuth.readReceived.data({ userId }), userAuth.updateVevenMailAddress],
         },
         {
             key: 'account',

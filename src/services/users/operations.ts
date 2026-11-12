@@ -11,6 +11,7 @@ import {
     userProfileSelection
 } from './constants'
 import { userProfileImageOperations } from './profileImageCollection'
+import { vevenMailAddressOperations } from './vevenMailAddress'
 import { implementSearchOperation } from '@/services/search/implement'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { Site } from '@/lib/sites/site'
@@ -31,6 +32,7 @@ import { decryptAndComparePassword, hashAndEncryptPassword } from '@/auth/passwo
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
+import logger from '@/lib/logger'
 import crypto from 'node:crypto'
 import type { UserPagingReturn, UserPartition } from './types'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -68,6 +70,13 @@ export const userOperations = {
                     },
                 },
                 select: userPrivateSelection
+            })
+
+            // The user exists either way: one left without an address is given it by the mail worker.
+            await vevenMailAddressOperations.internal.createDefault.internalCall({
+                params: { id: user.id },
+            }).catch((error: unknown) => {
+                logger.warn(`Could not give the new user ${user.username} a mail address: ${error}`)
             })
 
             // Not awaited: the user exists either way, and the response must not wait on the mail
@@ -594,7 +603,8 @@ export const userOperations = {
 
     //TODO: Make soft delete?
     /**
-     * Deletes a user from the database, together with the bio paragraph only they owned.
+     * Deletes a user from the database, together with the bio paragraph and the mail address only
+     * they owned. The mail server sync then destroys their mailbox.
      */
     destroy: defineOperation({
         paramsSchema: userSchemas.params.destroy,
@@ -605,12 +615,18 @@ export const userOperations = {
                 where: {
                     id: params.id,
                 },
-                select: { bioParagraphId: true },
+                select: { bioParagraphId: true, mailAddress: { select: { id: true } } },
             })
             await cmsParagraphOperations.destroy.internalCall({
                 prisma,
                 params: { paragraphId: user.bioParagraphId },
             })
+            if (user.mailAddress) {
+                await vevenMailAddressOperations.internal.destroy.internalCall({
+                    prisma,
+                    params: { mailAddressId: user.mailAddress.id },
+                })
+            }
         }
     }),
 
@@ -650,7 +666,7 @@ export const userOperations = {
         // before any db write happens - comfortably slower than the default 5000ms interactive
         // transaction timeout under load, hence the raised timeout below.
         operation: async ({ prisma, params, data }) => {
-            const { image: newImage, cleanup } = await prisma.$transaction(async tx => {
+            const newImage = await prisma.$transaction(async tx => {
                 const existingUser = await tx.user.findUniqueOrThrow({
                     where: { username: params.username },
                 })
@@ -675,16 +691,15 @@ export const userOperations = {
 
                 // A previous imageId is always an upload owned 1:1 by this user (never the shared
                 // default, since that's only ever resolved at read time) - safe to destroy.
-                const fileCleanup = existingUser.imageId
-                    ? await userProfileImageOperations.destroyImageDbAndReturnCleanup.internalCall({
+                if (existingUser.imageId) {
+                    await userProfileImageOperations.destroyImage.internalCall({
                         prisma: tx,
                         params: { imageId: existingUser.imageId }
                     })
-                    : async () => { }
+                }
 
-                return { image: uploadedImage, cleanup: fileCleanup }
+                return uploadedImage
             }, { timeout: 20000 })
-            await cleanup()
             return newImage
         }
     }),

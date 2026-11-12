@@ -6,6 +6,7 @@ import { ServiceError } from '@/services/error'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementVisibilityOperations } from '@/services/visibility/implement'
 import { mailTraversalOperations } from '@/services/mail/traversal/operations'
+import { implementMailAddressOperations } from '@/services/mail/address/implement'
 import { markOwned, ownerVisibilityIncluder, readAliasOwnerMatrices, readMembershipsToMark } from '@/services/mail/owned'
 import { aliasesReceivedBy } from '@/services/mail/received'
 import type { MailAlias } from '@/prisma-generated-pn-types'
@@ -27,6 +28,29 @@ const visibility = implementVisibilityOperations({
     emptyMeans: 'REFUSED',
 })
 
+/**
+ * The address of an alias, see mail/address. It is moved by an owner who may also create aliases,
+ * and whether its mail is forwarded is the owners' to decide.
+ */
+export const aliasMailAddressOperations = implementMailAddressOperations({
+    implementationParamsSchema: mailAliasSchemas.params.mailAddress,
+    authorizers: {
+        read: async ({ implementationParams, prisma }) => mailAliasAuth.readMailAddress.data({
+            visibility: await visibility.readMatrixInternal({ prisma, params: implementationParams }),
+        }),
+        update: async ({ implementationParams, prisma }) => mailAliasAuth.updateMailAddress.data({
+            visibility: await visibility.readMatrixInternal({ prisma, params: implementationParams }),
+        }),
+        updateForwarding: async ({ implementationParams, prisma }) => mailAliasAuth.updateMailAddressForwarding.data({
+            visibility: await visibility.readMatrixInternal({ prisma, params: implementationParams }),
+        }),
+    },
+    readMailAddress: async ({ prisma, implementationParams }) => (await prisma.mailAlias.findUniqueOrThrow({
+        where: { id: implementationParams.id },
+        select: { mailAddress: true },
+    })).mailAddress,
+})
+
 export const aliasOperations = {
     visibility,
 
@@ -34,13 +58,21 @@ export const aliasOperations = {
         dataSchema: mailAliasSchemas.data.create,
         authorizer: ({ data }) => mailAliasAuth.create.data({ ownerVisibility: { requirements: data.ownerRequirements } }),
         transaction: 'RUNS_IN',
-        operation: async ({ prisma, data: { ownerRequirements, ...data } }): Promise<MailAlias> => {
+        operation: async ({ prisma, data: { ownerRequirements, localPart, domain, description } }): Promise<MailAlias> => {
+            const mailAddress = await aliasMailAddressOperations.internal.create.internalCall({
+                prisma,
+                data: { localPart, domain },
+            })
             const ownerVisibility = await visibilityOperations.createWithRequirements.internalCall({
                 prisma,
                 data: { requirements: ownerRequirements },
             })
             return prisma.mailAlias.create({
-                data: { ...data, ownerVisibility: { connect: { id: ownerVisibility.id } } },
+                data: {
+                    description,
+                    mailAddress: { connect: { id: mailAddress.id } },
+                    ownerVisibility: { connect: { id: ownerVisibility.id } },
+                },
             })
         },
     }),
@@ -76,19 +108,6 @@ export const aliasOperations = {
         operation: ({ prisma, params }): Promise<MailAlias[]> => aliasesReceivedBy(prisma, params.userId),
     }),
 
-    update: defineOperation({
-        paramsSchema: mailAliasSchemas.params.update,
-        dataSchema: mailAliasSchemas.data.update,
-        authorizer: async ({ params, prisma }) => mailAliasAuth.update.data({
-            visibility: await visibility.readMatrixInternal({ prisma, params }),
-        }),
-        operation: async ({ prisma, params, data }): Promise<MailAlias> =>
-            prisma.mailAlias.update({
-                where: { id: params.id },
-                data,
-            }),
-    }),
-
     updateDescription: defineOperation({
         paramsSchema: mailAliasSchemas.params.updateDescription,
         dataSchema: mailAliasSchemas.data.updateDescription,
@@ -111,7 +130,7 @@ export const aliasOperations = {
         operation: async ({ prisma, params }): Promise<MailAlias> => {
             const alias = await prisma.mailAlias.findUniqueOrThrow({
                 where: { id: params.id },
-                select: { notificationChannel: true },
+                select: { notificationChannel: true, mailAddress: { select: { id: true } } },
             })
 
             if (alias.notificationChannel.length) {
@@ -127,6 +146,10 @@ export const aliasOperations = {
             await visibilityOperations.destroy.internalCall({
                 prisma,
                 params: { visibilityId: destroyed.ownerVisibilityId },
+            })
+            await aliasMailAddressOperations.internal.destroy.internalCall({
+                prisma,
+                params: { mailAddressId: alias.mailAddress.id },
             })
             return destroyed
         },

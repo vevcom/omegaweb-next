@@ -3,7 +3,7 @@ import { careersTeamPersonAuth } from './auth'
 import { careersTeamPersonSchemas } from './schemas'
 import { careersTeamPersonIncluder } from './constants'
 import { careerTeamImageOperations } from './careerTeamImageCollection'
-import { destroyPersonsAndReturnCleanup } from './destroyPersons'
+import { destroyPersons } from './destroyPersons'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 
@@ -37,7 +37,7 @@ export const careersTeamPersonOperations = {
         operation: async ({ prisma, params, data }) => {
             // The upload writes several resized files before the database, so it needs more than the
             // default transaction timeout.
-            const { image, cleanup } = await prisma.$transaction(async tx => {
+            const image = await prisma.$transaction(async tx => {
                 const person = await tx.careerTeamPerson.findUniqueOrThrow({
                     where: { id: params.personId },
                     select: { name: true, imageId: true },
@@ -54,15 +54,14 @@ export const careersTeamPersonOperations = {
                     where: { id: params.personId },
                     data: { imageId: uploadedImage.id },
                 })
-                const fileCleanup = person.imageId === null
-                    ? async () => {}
-                    : await careerTeamImageOperations.destroyImageDbAndReturnCleanup.internalCall({
+                if (person.imageId !== null) {
+                    await careerTeamImageOperations.destroyImage.internalCall({
                         prisma: tx,
                         params: { imageId: person.imageId },
                     })
-                return { image: uploadedImage, cleanup: fileCleanup }
+                }
+                return uploadedImage
             }, { timeout: 20000 })
-            await cleanup()
             return image
         },
     }),
@@ -72,8 +71,7 @@ export const careersTeamPersonOperations = {
         authorizer: () => careersTeamPersonAuth.destroy,
         transaction: 'OPENS',
         operation: async ({ prisma, params }) => {
-            const cleanup = await prisma.$transaction(tx => destroyPersonsAndReturnCleanup(tx, { id: params.personId }))
-            await cleanup()
+            await prisma.$transaction(tx => destroyPersons(tx, { id: params.personId }))
         },
     }),
 

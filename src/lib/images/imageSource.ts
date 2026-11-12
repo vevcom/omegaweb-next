@@ -1,8 +1,12 @@
+import { storeFilePath } from '@/services/store/paths'
 import type { ImageResolution, ImageSize } from './resolutionForWidth'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 
 /** Smallest to largest. Fallback walks this list when a tier is missing. */
 const sizesSmallestFirst: ImageSize[] = ['MICRO', 'TINY', 'SMALL', 'MEDIUM', 'LARGE', 'HUGE']
+
+const originalPath = (image: ExpandedImage) => storeFilePath('ORIGINAL_IMAGE', image.fsLocationOriginal)
+const variantPath = (fsLocation: string) => storeFilePath('CACHE_IMAGE', fsLocation)
 
 /**
  * Resolves what to actually put in an img src for a given resolution. The resized variants are
@@ -17,9 +21,9 @@ const sizesSmallestFirst: ImageSize[] = ['MICRO', 'TINY', 'SMALL', 'MEDIUM', 'LA
  * tiny is the one guaranteed to exist once processedFiles does.
  */
 export function imageSourceForResolution(image: ExpandedImage, resolution: ImageResolution): string {
-    if (image.type === 'SVG') return `/store/images/${image.fsLocationOriginal}`
-    if (resolution === 'ORIGINAL') return `/store/images/${image.fsLocationOriginal}`
-    if (!image.processedFiles) return image.placeholderDataUrl ?? `/store/images/${image.fsLocationOriginal}`
+    if (image.type === 'SVG') return originalPath(image)
+    if (resolution === 'ORIGINAL') return originalPath(image)
+    if (!image.processedFiles) return image.placeholderDataUrl ?? originalPath(image)
 
     const { processedFiles } = image
     const fsLocationBySize = {
@@ -34,14 +38,14 @@ export function imageSourceForResolution(image: ExpandedImage, resolution: Image
     const resolutionIndex = sizesSmallestFirst.indexOf(resolution)
     for (let index = resolutionIndex; index >= 0; index--) {
         const fsLocation = fsLocationBySize[sizesSmallestFirst[index]]
-        if (fsLocation) return `/store/images/${fsLocation}`
+        if (fsLocation) return variantPath(fsLocation)
     }
     for (let index = resolutionIndex + 1; index < sizesSmallestFirst.length; index++) {
         const fsLocation = fsLocationBySize[sizesSmallestFirst[index]]
-        if (fsLocation) return `/store/images/${fsLocation}`
+        if (fsLocation) return variantPath(fsLocation)
     }
     // Unreachable. fsLocationTinySize is never null once processedFiles exists.
-    return `/store/images/${image.fsLocationOriginal}`
+    return originalPath(image)
 }
 
 /**
@@ -63,7 +67,7 @@ export function srcSetForImage(image: ExpandedImage): string | undefined {
 
     const srcSet = variantsSmallestFirst
         .filter((variant): variant is [string, number] => variant[0] !== null && variant[1] !== null)
-        .map(([fsLocation, width]) => `/store/images/${fsLocation} ${width}w`)
+        .map(([fsLocation, width]) => `${variantPath(fsLocation)} ${width}w`)
         .join(', ')
 
     return srcSet.length > 0 ? srcSet : undefined

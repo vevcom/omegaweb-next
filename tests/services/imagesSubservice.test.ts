@@ -1,14 +1,14 @@
 import '@pn-server-only'
 import { prisma } from '@/prisma-pn-client-instance'
 import { imageOperations } from '@/services/images/subservice/operations'
-import { imageStore, referencedImageFiles } from '@/services/images/subservice/imageFiles'
-import { createOrphanDestroyer } from '@/lib/store/orphanDestroyer'
-import { storeBackend } from '@/lib/store/backend'
+import { cacheImageStore, originalImageStore } from '@/services/images/subservice/imageFiles'
+import { fileSystemBackend } from '@/services/store/backends/fileSystem'
+import { storeUpkeep } from '@/services/store/constants'
 import { allowedExtensions } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { imageSourceForResolution, srcSetForImage } from '@/lib/images/imageSource'
 import { beforeEach, describe, expect, jest, test } from '@jest/globals'
-import { access, unlink, writeFile } from 'fs/promises'
+import { access, unlink } from 'fs/promises'
 import { join } from 'path'
 import { File } from 'node:buffer'
 
@@ -104,6 +104,19 @@ async function expectFilesExist(fsLocations: string[], exists: boolean) {
     expect(existence).toEqual(fsLocations.map(() => exists))
 }
 
+/**
+ * Runs the store's workers for the images as if the given files were made long ago, since a file
+ * is only taken for an orphan once it is older than the grace period.
+ */
+async function runStoreWorkers(fsLocations: string[]) {
+    await prisma.storeFile.updateMany({
+        where: { name: { in: fsLocations } },
+        data: { createdAt: new Date(Date.now() - 2 * storeUpkeep.orphanGraceMs) },
+    })
+    await originalImageStore.worker.tick(() => undefined)
+    await cacheImageStore.worker.tick(() => undefined)
+}
+
 beforeEach(async () => {
     collectionId = await createTestCollection()
 })
@@ -162,8 +175,8 @@ describe('processImageVariants', () => {
             await prisma.image.update({ where: { id }, data: { processingAttempts: { increment: 1 } } })
             return await imageOperations.processImageVariants.internalCall({ prisma, params: { imageId: id } })
         }
-        const read = jest.spyOn(storeBackend, 'read')
-        const write = jest.spyOn(storeBackend, 'write')
+        const read = jest.spyOn(fileSystemBackend, 'read')
+        const write = jest.spyOn(fileSystemBackend, 'write')
 
         read.mockRejectedValueOnce(new Error('The store did not answer'))
         const unreadable = await processClaimed()
@@ -213,7 +226,7 @@ describe('srcSetForImage', () => {
 })
 
 describe('destroyCollection', () => {
-    test('deletes every image file in the store when collection is destroyed', async () => {
+    test('leaves every image file as an orphan, which the store workers destroy', async () => {
         const image1 = await uploadAndProcessImage('Test Image 1')
         const image2 = await uploadAndProcessImage('Test Image 2')
         const allFsLocations = [...image1.allFsLocations, ...image2.allFsLocations]
@@ -226,7 +239,12 @@ describe('destroyCollection', () => {
         })
 
         expect(await prisma.imageCollection.findUnique({ where: { id: collectionId } })).toBeNull()
+        await expectFilesExist(allFsLocations, true)
+
+        await runStoreWorkers(allFsLocations)
+
         await expectFilesExist(allFsLocations, false)
+        expect(await prisma.storeFile.count({ where: { name: { in: allFsLocations } } })).toBe(0)
     })
 
     test('handles gracefully when some files are already missing', async () => {
@@ -241,10 +259,12 @@ describe('destroyCollection', () => {
         })).resolves.not.toThrow()
 
         expect(await prisma.imageCollection.findUnique({ where: { id: collectionId } })).toBeNull()
+        await runStoreWorkers(image.allFsLocations)
         await expectFilesExist(image.allFsLocations, false)
+        expect(await prisma.storeFile.count({ where: { name: { in: image.allFsLocations } } })).toBe(0)
     })
 
-    test('deletes the original of an image whose variants were never processed', async () => {
+    test('leaves the original of an image whose variants were never processed as an orphan too', async () => {
         const imageFile = new File([pngBuffer], 'test.png', { type: 'image/png' })
         const image = await imageOperations.uploadImage.internalCall({
             prisma,
@@ -265,6 +285,7 @@ describe('destroyCollection', () => {
             prisma,
             params: { collectionId },
         })
+        await runStoreWorkers([image.fsLocationOriginal])
 
         expect(await fileExists(image.fsLocationOriginal)).toBe(false)
     })
@@ -283,87 +304,83 @@ describe('destroyCollection', () => {
         })).rejects.toMatchObject({ errorCode: 'BAD PARAMETERS' })
 
         expect(await prisma.imageCollection.findUnique({ where: { id: collectionId } })).not.toBeNull()
+        await runStoreWorkers(image.allFsLocations)
         await expectFilesExist(image.allFsLocations, true)
     })
 })
 
-describe('referencedImageFiles', () => {
-    test('knows the original and every variant of an image, and nothing else', async () => {
-        const image = await uploadAndProcessImage('Referenced Image')
-        const unknown = `unknown-${Date.now()}.png`
+describe('a lost variant', () => {
+    test('has its image processed again by the worker of the variants', async () => {
+        const image = await uploadAndProcessImage('Lost Variant Image')
+        await unlink(storePath(image.processedFiles.fsLocationTinySize))
 
-        const referenced = await referencedImageFiles(prisma, [...image.allFsLocations, unknown])
+        await cacheImageStore.worker.tick(() => undefined)
 
-        expect(Array.from(referenced).sort()).toEqual([...image.allFsLocations].sort())
+        const waiting = await prisma.image.findUniqueOrThrow({
+            where: { id: image.id },
+            include: { processedFiles: true },
+        })
+        expect(waiting.processedFiles).toBeNull()
+        expect(waiting.processingAttempts).toBe(0)
+        expect(waiting.processingStartedAt).toBeNull()
+        // The blur placeholder stands in until the variants are back.
+        expect(imageSourceForResolution(waiting, 'TINY')).toBe(image.placeholderDataUrl)
+
+        const processing = await imageOperations.processImageVariants.internalCall({
+            prisma,
+            params: { imageId: image.id },
+        })
+        expect(processing.success).toBe(true)
+        const { fsLocationTinySize } = await prisma.processedImageFiles.findUniqueOrThrow({ where: { imageId: image.id } })
+        expect(fsLocationTinySize).not.toBe(image.processedFiles.fsLocationTinySize)
+        expect(await fileExists(fsLocationTinySize)).toBe(true)
+
+        // What is left of the old variants goes as orphans.
+        const oldVariants = image.allFsLocations.filter(fsLocation => fsLocation !== image.fsLocationOriginal)
+        await runStoreWorkers(oldVariants)
+        expect(await prisma.storeFile.count({ where: { name: { in: oldVariants } } })).toBe(0)
+        expect(await fileExists(image.fsLocationOriginal)).toBe(true)
+    })
+
+    test('leaves an image alone while every variant is there', async () => {
+        const image = await uploadAndProcessImage('Whole Image')
+
+        await cacheImageStore.worker.tick(() => undefined)
+
+        const { fsLocationTinySize } = await prisma.processedImageFiles.findUniqueOrThrow({ where: { imageId: image.id } })
+        expect(fsLocationTinySize).toBe(image.processedFiles.fsLocationTinySize)
     })
 })
 
-describe('createOrphanDestroyer', () => {
-    const hourMs = 60 * 60 * 1000
-    const dayMs = 24 * hourMs
+describe('destroyImage', () => {
+    test('deletes the image, and its files go once the store workers have run', async () => {
+        const image = await uploadAndProcessImage('Deleted Image')
 
-    /**
-     * The store is shared with the test files running alongside this one, and a run at a time a
-     * day ahead would take their files for confirmed orphans too - so only the files a test writes
-     * itself are ever unreferenced here.
-     */
-    function orphanDestroyerOfOwnFiles(ownFiles: string[], state: { referenced: Set<string> }) {
-        return createOrphanDestroyer(imageStore, {
-            confirmAfterMs: dayMs,
-            context: 'the image store',
-            referenced: fsLocations => new Set(fsLocations.filter(
-                fsLocation => !ownFiles.includes(fsLocation) || state.referenced.has(fsLocation)
-            )),
-        })
-    }
+        await imageOperations.destroyImage.internalCall({ prisma, params: { imageId: image.id } })
+        await expectFilesExist(image.allFsLocations, true)
 
-    async function writeOwnFiles(...names: string[]) {
-        const fsLocations = names.map(name => `${name}-${Date.now()}.png`)
-        await Promise.all(fsLocations.map(fsLocation => writeFile(storePath(fsLocation), pngBuffer)))
-        return fsLocations
-    }
-
-    async function removeLeftovers(fsLocations: string[]) {
-        await Promise.all(fsLocations.map(fsLocation => unlink(storePath(fsLocation)).catch(() => undefined)))
-    }
-
-    test('destroys a file only once it has been unreferenced on every run for the whole delay', async () => {
-        const [orphan, seededLater] = await writeOwnFiles('orphan', 'seeded-later')
-        const state = { referenced: new Set<string>() }
-        const destroyOrphans = orphanDestroyerOfOwnFiles([orphan, seededLater], state)
-        const start = Date.now()
-
-        expect(await destroyOrphans({ now: start })).toBe(0)
-
-        // A row for it turns up between two runs, as it would once seeding gets to it.
-        state.referenced.add(seededLater)
-        expect(await destroyOrphans({ now: start + 12 * hourMs })).toBe(0)
-        state.referenced.delete(seededLater)
-
-        expect(await destroyOrphans({ now: start + dayMs })).toBe(1)
-        expect(await fileExists(orphan)).toBe(false)
-        // Unreferenced again, but only since the last run - its wait starts over.
-        expect(await fileExists(seededLater)).toBe(true)
-
-        await removeLeftovers([orphan, seededLater])
+        await runStoreWorkers(image.allFsLocations)
+        await expectFilesExist(image.allFsLocations, false)
     })
+})
 
-    test('reports each batch, so a long run is not taken for stuck', async () => {
-        const onBatch = jest.fn()
-        const destroyOrphans = createOrphanDestroyer({
-            // eslint-disable-next-line @typescript-eslint/require-await
-            async *listFiles() {
-                yield ['first.png']
-                yield ['second.png']
-            },
-            destroyFile: () => { throw new Error('Nothing here is an orphan') },
-        }, {
-            context: 'a store',
-            referenced: fsLocations => new Set(fsLocations),
+describe('replaceImageFile', () => {
+    test('swaps the original, and the old files go once the store workers have run', async () => {
+        const image = await uploadAndProcessImage('Replaced Image')
+        const svg = new File(['<svg xmlns="http://www.w3.org/2000/svg"></svg>'], 'new.svg', { type: 'image/svg+xml' })
+
+        const { replaced } = await imageOperations.replaceImageFile.internalCall({
+            prisma,
+            params: { imageId: image.id },
+            data: { imageFile: svg },
+            operationImplementationFields: { allowedExtensions },
         })
+        expect(replaced).toBe(true)
+        const { fsLocationOriginal } = await prisma.image.findUniqueOrThrow({ where: { id: image.id } })
+        expect(fsLocationOriginal).not.toBe(image.fsLocationOriginal)
 
-        await destroyOrphans({ onBatch })
-
-        expect(onBatch).toHaveBeenCalledTimes(2)
+        await runStoreWorkers([...image.allFsLocations, fsLocationOriginal])
+        await expectFilesExist(image.allFsLocations, false)
+        expect(await fileExists(fsLocationOriginal)).toBe(true)
     })
 })

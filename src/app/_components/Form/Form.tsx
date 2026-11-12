@@ -2,10 +2,13 @@
 import { SUCCESS_FEEDBACK_TIME } from './constants'
 import { FormContext, FormInputSlot, flattenChildren, inputName } from './FormContext'
 import FormSection from './FormSection'
+import FormTab from './FormTab'
+import { useUnsavedChanges } from './useUnsavedChanges'
 import { PopUpContext } from '@/contexts/PopUp'
+import Button from '@/components/UI/Button'
 import SubmitButton from '@/components/UI/SubmitButton'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import React, { Children, isValidElement, useContext, useState } from 'react'
+import React, { Children, isValidElement, useContext, useRef, useState, useTransition } from 'react'
 import type { AppHref } from '@/lib/sites/href'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
@@ -29,13 +32,27 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     disabled?: boolean,
     /** A second way to submit, sent along as the field named, with 'on' as its value. */
     secondarySubmit?: { text: ReactNode, name: string, color?: Colors },
+    /**
+     * Keeps saving at the bottom of a long form, says whether there is anything to save and offers
+     * to discard it. Discarding resets the form, which a field holding its value in state follows
+     * with `useFormReset`. Such a form shows what is saved, so with `refreshOnSuccess` it refreshes
+     * as soon as a save is through, and it takes no input from a save starting until what was
+     * saved is back: what is typed meanwhile would be in neither.
+     */
+    saveBar?: boolean,
+    /** Told what the form would submit, on mount and on every change. */
+    onValuesChange?: (values: FormData) => void,
 }
-/** The names of every input among the children, those inside sections included, so their errors find them. */
-function collectInputNames(children: ReactNode): string[] {
+/**
+ * The names of the inputs among the children that have room for their errors, those inside sections
+ * included. An input placed straight in a tab has none, so its errors are shown with the general ones.
+ */
+function collectInputNames(children: ReactNode, inTab = false): string[] {
     return Children.toArray(children).flatMap(child => {
-        if (isValidElement<{ children?: ReactNode }>(child) && child.type === FormSection) {
-            return collectInputNames(flattenChildren(child.props.children))
+        if (isValidElement<{ children?: ReactNode }>(child) && (child.type === FormSection || child.type === FormTab)) {
+            return collectInputNames(flattenChildren(child.props.children), child.type === FormTab)
         }
+        if (inTab) return []
         const name = inputName(child)
         return name ? [name] : []
     })
@@ -58,26 +75,40 @@ export default function Form<GiveActionReturn>({
     buttonClassName,
     disabled,
     secondarySubmit,
+    saveBar,
+    onValuesChange,
     ...props
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
     const [inputErrors, setInputErrors] = useState<Partial<Record<string, ErrorMessage[]>>>({})
+    const [refusedNames, setRefusedNames] = useState<string[]>([])
     const [success, setSuccess] = useState(false)
     const [pending, setPending] = useState(false)
+    // In a transition, which lasts until the refreshed page is in place.
+    const [refreshing, startRefresh] = useTransition()
     // Which button submitted, so only it shows the wait and the check mark.
     const [submitter, setSubmitter] = useState<'primary' | 'secondary'>('primary')
     const PopUpCtx = useContext(PopUpContext)
     const { refresh, push } = useSiteRouter()
+    const formRef = useRef<HTMLFormElement>(null)
+    const { dirty, markSaved } = useUnsavedChanges(
+        formRef,
+        Boolean(saveBar) || onValuesChange !== undefined,
+        onValuesChange,
+    )
 
     const actionWithError = async (formData: FormData) => {
         setGeneralErrors(undefined)
         setInputErrors({})
+        setRefusedNames([])
 
         const res = await action(formData)
 
         if (res.success) {
             setSuccess(true)
+            markSaved(formData)
             successCallback?.(res.data)
+            if (saveBar && refreshOnSuccess) startRefresh(() => refresh())
             if (closePopUpOnSuccess) {
                 setTimeout(() => {
                     PopUpCtx?.remove(closePopUpOnSuccess)
@@ -85,7 +116,7 @@ export default function Form<GiveActionReturn>({
             }
             setTimeout(() => {
                 setSuccess(false)
-                if (refreshOnSuccess) refresh()
+                if (refreshOnSuccess && !saveBar) refresh()
                 if (navigateOnSuccess) {
                     // An app path, rendered for the domain the visitor is on.
                     if (typeof navigateOnSuccess === 'string') {
@@ -122,6 +153,11 @@ export default function Form<GiveActionReturn>({
         })
         setInputErrors(errorsByLabel)
         if (unmatchedErrors.length > 0) setGeneralErrors(unmatchedErrors)
+        // Every field refused, whichever way its error is shown, so that a tab can say it holds one.
+        setRefusedNames(Array.from(new Set(res.error.flatMap(error => {
+            const label = error.path?.[0]
+            return typeof label === 'string' ? [label] : []
+        }))))
     }
 
     // Tracked here since useFormStatus only covers a transition started during the submit event.
@@ -142,15 +178,56 @@ export default function Form<GiveActionReturn>({
         }
     }
 
+    // What was refused belongs to what is discarded.
+    const handleReset = () => {
+        setGeneralErrors(undefined)
+        setInputErrors({})
+        setRefusedNames([])
+    }
+
+    const submitButton = <div className={secondarySubmit ? 'flex flex-wrap items-start gap-x-2' : 'contents'}>
+        {/* The two buttons stay together, on one line wherever there is room for both. */}
+        <SubmitButton
+            color={submitColor}
+            success={success && submitter === 'primary'}
+            generalErrors={generalErrors}
+            confirmation={confirmation}
+            pending={pending && submitter === 'primary'}
+            className={`
+                ${buttonClassName}
+                m-0
+            `}
+            disabled={disabled || (pending && submitter !== 'primary') || (saveBar && !dirty && !success)}
+        >
+            {submitText}
+        </SubmitButton>
+        {secondarySubmit && <SubmitButton
+            color={secondarySubmit.color ?? 'secondary'}
+            success={success && submitter === 'secondary'}
+            confirmation={confirmation}
+            pending={pending && submitter === 'secondary'}
+            className={`
+                ${buttonClassName}
+                m-0
+            `}
+            disabled={disabled || (pending && submitter !== 'secondary')}
+            name={secondarySubmit.name}
+            value="on"
+        >
+            {secondarySubmit.text}
+        </SubmitButton>}
+    </div>
+
     return (
-        <FormContext.Provider value={{ inputErrors, pending }}>
-            <form className={`
+        <FormContext.Provider value={{ inputErrors, refusedNames, pending }}>
+            <form ref={formRef} className={`
                 relative w-full
                 [&>h2]:mb-2
                 ${className}
-            `} {...props} onSubmit={handleSubmit}>
+            `} {...props} inert={Boolean(saveBar) && (pending || refreshing)} onSubmit={handleSubmit} onReset={handleReset}>
                 {title && <h2 className="text-base-content">{title}</h2>}
                 {Children.toArray(children).map((child, index) => {
+                    if (isValidElement(child) && child.type === FormTab) return child
                     const name = inputName(child)
                     return <FormInputSlot
                         key={index}
@@ -159,38 +236,20 @@ export default function Form<GiveActionReturn>({
                         pending={pending}
                     />
                 })}
-                {/* The two buttons stay together, on one line wherever there is room for both. */}
-                <div className={secondarySubmit ? 'flex flex-wrap items-start gap-x-2' : 'contents'}>
-                    <SubmitButton
-                        color={submitColor}
-                        success={success && submitter === 'primary'}
-                        generalErrors={generalErrors}
-                        confirmation={confirmation}
-                        pending={pending && submitter === 'primary'}
-                        className={`
-                            ${buttonClassName}
-                            m-0
-                        `}
-                        disabled={disabled || (pending && submitter !== 'primary')}
-                    >
-                        {submitText}
-                    </SubmitButton>
-                    {secondarySubmit && <SubmitButton
-                        color={secondarySubmit.color ?? 'secondary'}
-                        success={success && submitter === 'secondary'}
-                        confirmation={confirmation}
-                        pending={pending && submitter === 'secondary'}
-                        className={`
-                            ${buttonClassName}
-                            m-0
-                        `}
-                        disabled={disabled || (pending && submitter !== 'secondary')}
-                        name={secondarySubmit.name}
-                        value="on"
-                    >
-                        {secondarySubmit.text}
-                    </SubmitButton>}
-                </div>
+                {saveBar ? <div className="
+                    sticky -bottom-1 z-2 flex items-start justify-between gap-3 mt-auto pt-3 pb-1 border-t border-base-300
+                    bg-base-100
+                ">
+                    <p className="m-0 py-2 text-base-content/80">
+                        {dirty ? 'Du har ulagrede endringer.' : 'Alt er lagret.'}
+                    </p>
+                    <div className="flex items-start gap-2">
+                        {dirty && <Button type="reset" color="secondary" className="m-0">
+                            Forkast
+                        </Button>}
+                        {submitButton}
+                    </div>
+                </div> : submitButton}
             </form>
         </FormContext.Provider>
     )

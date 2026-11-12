@@ -26,6 +26,7 @@ afterEach(async () => {
     testGroupIds.length = 0
     // Only delete aliases/lists/externals created by tests (not seeded data)
     await prisma.mailAlias.deleteMany({ where: { address: { startsWith: 'test-' } } })
+    await prisma.mailAddress.deleteMany({ where: { address: { startsWith: 'test-' } } })
     await prisma.mailingList.deleteMany({ where: { name: { startsWith: 'test-' } } })
     await prisma.mailAddressExternal.deleteMany({ where: { address: { endsWith: '@gmail.com' } } })
     await prisma.mailAddressExternal.deleteMany({ where: { address: { startsWith: 'test-' } } })

@@ -128,6 +128,9 @@ const destroyRegistration = defineSubOperation({
 
             const promoted = await prisma.$transaction(async tx => {
                 await lockEvent(tx, eventId)
+                // createPayment holds this row lock, not the event's, so a payment started for the
+                // registration is either seen below or finds the registration gone.
+                await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${params.registrationId} FOR UPDATE`
                 const registration = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
                     select: { id: true, userId: true, state: true },
@@ -662,35 +665,15 @@ export const eventRegistrationOperations = {
         transaction: 'OPENS',
         operation: async ({ prisma, params, session }): Promise<{ payment: ExpandedPayment | null }> => {
             const variant = await resolveVariant(prisma, params.eventId, params.variantId)
-            const found = await prisma.eventRegistration.findFirst({
-                where: { userId: params.userId, ...registrationsOfVariant(variant.id) },
-            })
-
+            const registrationOfPayer = { userId: params.userId, ...registrationsOfVariant(variant.id) }
+            const found = await prisma.eventRegistration.findFirst({ where: registrationOfPayer, select: { id: true } })
             if (!found) {
                 throw new Smorekopp('NOT FOUND', 'Fant ingen påmelding å betale for.')
             }
-            const registration = withPaymentDeadline(found, variant)
 
             const funds = variant.price
             if (!variant.takesPayment || !funds) {
                 throw new Smorekopp('BAD PARAMETERS', 'Dette arrangementet krever ikke betaling.')
-            }
-
-            if (registration.manuallyPaid) {
-                throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
-            }
-
-            // Enforced here too, since the UI gate doesn't stop a direct call.
-            if (registration.state === 'WAITING_LIST') {
-                throw new Smorekopp('BAD PARAMETERS', 'Du står på ventelisten og kan ikke betale før du får en plass.')
-            }
-
-            const now = new Date()
-            if (
-                !variant.paymentStart || !registration.paymentDeadline
-                || now < variant.paymentStart || now > registration.paymentDeadline
-            ) {
-                throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
             }
 
             const event = await prisma.event.findUniqueOrThrow({
@@ -714,8 +697,31 @@ export const eventRegistrationOperations = {
             let payment: ExpandedPayment | undefined
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
                 // Locks the registration row so concurrent payment attempts for it serialize
-                // instead of racing the existingAttempt check below.
-                await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${registration.id} FOR UPDATE`
+                // instead of racing the existingAttempt check below. The registration is read under
+                // the lock, since it may have been removed or lost its place while this waited.
+                await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${found.id} FOR UPDATE`
+                const locked = await tx.eventRegistration.findFirst({ where: { id: found.id, ...registrationOfPayer } })
+                if (!locked) {
+                    throw new Smorekopp('NOT FOUND', 'Fant ingen påmelding å betale for.')
+                }
+                const registration = withPaymentDeadline(locked, variant)
+
+                if (registration.manuallyPaid) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Denne påmeldingen er allerede betalt.')
+                }
+
+                // Enforced here too, since the UI gate doesn't stop a direct call.
+                if (registration.state === 'WAITING_LIST') {
+                    throw new Smorekopp('BAD PARAMETERS', 'Du står på ventelisten og kan ikke betale før du får en plass.')
+                }
+
+                const now = new Date()
+                if (
+                    !variant.paymentStart || !registration.paymentDeadline
+                    || now < variant.paymentStart || now > registration.paymentDeadline
+                ) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Betalingsperioden for dette arrangementet er ikke åpen.')
+                }
 
                 const existingAttempt = await tx.ledgerTransaction.findFirst({
                     where: {

@@ -2,10 +2,12 @@ import '@pn-server-only'
 import { mailServerClientFromEnv } from './client'
 import { mailServerWebmail, mailboxesAreAvailable } from './constants'
 import { destroyMailboxes, syncMailboxes } from './mailboxes'
-import { syncMemberships } from './memberships'
+import { revokeMemberships, syncMemberships } from './memberships'
+import { syncUserMailboxes } from './userMailboxes'
 import { forwardingAddressOf, forwardingDomainOf, syncForwardingScripts } from './forwarding'
 import { validMailAddressDomains } from '@/services/mail/constants'
 import { mailingListAddresses } from '@/services/mail/recipients'
+import { userPartitions } from '@/services/users/constants'
 import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
 import type { MailServerWebmail } from './constants'
@@ -16,11 +18,6 @@ export type SyncMailServerOptions = {
     client?: MailServerClient,
     /** The webmail whose host the mailboxes are on. Defaults to EMAIL_WEBMAIL_URL; null keeps no mailboxes. */
     webmail?: MailServerWebmail | null,
-}
-
-type WantedDomain = {
-    name: string,
-    description: string,
 }
 
 /** A list as the sync wants it on the server. */
@@ -40,25 +37,30 @@ type MailingListChanges = {
 }
 
 const DOMAIN_DESCRIPTION = 'A domain of the sites, created by omegaweb-next'
-const ACCOUNT_DOMAIN_DESCRIPTION = 'The domain of the accounts of those who sign in to the webmail, created by omegaweb-next'
-const FORWARDING_DOMAIN_DESCRIPTION = 'The domain of the lists the mailboxes forward to, created by omegaweb-next'
 
 /**
  * Brings the mail server in step with the database. Every mail domain of the sites exists as a
- * domain. Without a webmail, every alias is a mailing list that forwards to the addresses it
- * reaches. With one, every alias is a mailbox at its own address (see mailboxes.ts), which keeps
- * the mail and forwards a copy to a list of those addresses on a domain of its own (see
- * forwarding.ts): the webmail's host is the domain of the accounts that sign in, and the lists are
- * on a domain under it. Those accounts are made members of the mailboxes of the aliases their
- * users receive, and of no other mailbox (see memberships.ts). What the server holds under other
- * domains is left alone, and no account is created: the app has none of its own, since it sends
- * without a login (see src/services/mail/send/constants.ts). Run by the mail worker
- * (src/workers/definitions.ts).
+ * domain, and every address of ours, an alias's or a user's (see services/mail/address), is on the
+ * server. The sites' domains are the only ones the sync creates, since sites.json is the one list
+ * of them. The two the mailboxes take, the webmail's host and the forwarding domain, are the mail
+ * installation's, so the infrastructure's plan for the server holds them and the sync only looks
+ * them up. Without a webmail, every address is a mailing list that forwards: an alias to the
+ * addresses it reaches, and a user's to their private email. With one, every address is a mailbox:
+ * an alias a group at its own address (see mailboxes.ts), and a user the account they sign in to,
+ * at theirs (see userMailboxes.ts). A mailbox keeps the mail, and while its address forwards it
+ * sends a copy on (see forwarding.ts): a user's to their private email, and an alias's to a list of
+ * the addresses it reaches, on a domain under the webmail's host. The users' accounts are made
+ * members of the mailboxes of the aliases they receive, and of no other mailbox (see
+ * memberships.ts). What the server holds under other domains is left alone, and the app has no
+ * account of its own, since it sends without a login (see src/services/mail/send/constants.ts).
+ * Run by the mail worker (src/workers/definitions.ts).
  *
  * A change the server refuses does not stop the run: every step does what it can and says what was
  * refused, and the run throws at its end naming all of it, so one alias the server will not take
  * does not keep the others from it. Without the domains the mailboxes take the run ends after the
- * domains, since no alias can be placed. A server that does not answer stops the run where it is.
+ * domains, since no alias can be placed. It only takes those who no longer receive an alias out of
+ * its mailbox first, so that a missing domain never lets someone keep a mailbox they were taken
+ * off. A server that does not answer stops the run where it is.
  *
  * @returns false, since one run does all the work there is.
  * @throws once the run is through, when the server refused any change.
@@ -67,14 +69,11 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
     const client = options.client ?? mailServerClientFromEnv()
     const webmail = options.webmail === undefined ? webmailFromEnv() : options.webmail
 
-    const siteDomains = validMailAddressDomains().map(name => ({ name, description: DOMAIN_DESCRIPTION }))
+    const siteDomains = validMailAddressDomains()
     const forwardingDomain = webmail ? forwardingDomainOf(webmail.domain) : null
-    const domains = await syncDomains(client, [
-        ...siteDomains,
-        ...(webmail ? [{ name: webmail.domain, description: ACCOUNT_DOMAIN_DESCRIPTION }] : []),
-        ...(forwardingDomain ? [{ name: forwardingDomain, description: FORWARDING_DOMAIN_DESCRIPTION }] : []),
-    ])
-    const siteDomainIdsByName = new Map(siteDomains.flatMap(({ name }) => {
+    const mailboxDomains = webmail && forwardingDomain ? [webmail.domain, forwardingDomain] : []
+    const domains = await syncDomains(client, siteDomains, mailboxDomains)
+    const siteDomainIdsByName = new Map(siteDomains.flatMap(name => {
         const id = domains.idsByName.get(name)
         return id === undefined ? [] : [[name, id] as const]
     }))
@@ -84,8 +83,18 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
         ? { webmail, domainId: forwardingDomainId, accountDomainId }
         : null
     if (webmail && !forwarding) {
-        throw new Error(`Mail server sync left the aliases as they were, since the domains of the mailboxes are missing${
-            domains.refused.length > 0 ? ` and the server refused to ${domains.refused.join('; ')}` : ''}`)
+        const missing = mailboxDomains.filter(name => !domains.idsByName.has(name.toLowerCase()))
+        // Without the webmail's domain no account has a sign in name, so there is no one to take out.
+        const revoked = accountDomainId === undefined
+            ? { changed: 0, refused: [] }
+            : await revokeMemberships(client, siteDomainIdsByName, accountDomainId)
+        if (revoked.changed > 0) {
+            logger.info(`Mail server sync took ${revoked.changed} accounts out of mailboxes their users no longer receive`)
+        }
+        const refused = [...domains.refused, ...revoked.refused]
+        throw new Error(`Mail server sync left the aliases as they were, since the server lacks ${
+            missing.join(' and ')}, which the mailboxes take and the infrastructure's plan for the mail server adds${
+            refused.length > 0 ? `. The server also refused to ${refused.join('; ')}` : ''}`)
     }
 
     // The lists first: the first run with mailboxes frees the aliases' addresses of the lists that
@@ -96,7 +105,7 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
     const lists = await syncMailingLists(client, listDomainIdsByName, wantedLists)
 
     const mailboxes = forwarding
-        ? await syncMailboxesOfAliases(client, siteDomainIdsByName, forwarding, wantedLists)
+        ? await syncMailboxesOfAddresses(client, siteDomainIdsByName, forwarding, wantedLists)
         : { created: 0, updated: 0, destroyed: 0, scripts: 0, memberships: 0, refused: [] }
 
     const changes = domains.created + mailboxes.created + mailboxes.updated + mailboxes.destroyed
@@ -115,8 +124,11 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
     return false
 }
 
-/** The mailboxes of the aliases, who their members are and what they forward, in the order these depend on each other. */
-async function syncMailboxesOfAliases(
+/**
+ * The mailboxes of the aliases and of the users, who the members of an alias's are and what each
+ * sends on, in the order these depend on each other.
+ */
+async function syncMailboxesOfAddresses(
     client: MailServerClient,
     siteDomainIdsByName: Map<string, string>,
     forwarding: { webmail: MailServerWebmail, accountDomainId: string },
@@ -124,21 +136,33 @@ async function syncMailboxesOfAliases(
 ) {
     const accounts = await client.listAll('Account')
     const synced = await syncMailboxes(client, accounts, siteDomainIdsByName, forwarding.accountDomainId)
-    // The memberships before the stale mailboxes go, since the server keeps a group that has members.
-    const memberships = await syncMemberships(
-        client, accounts, forwarding.accountDomainId, synced.mailboxes, synced.stale
-    )
+    const users = await syncUserMailboxes(client, accounts, siteDomainIdsByName, forwarding.accountDomainId)
+    // The memberships before the stale mailboxes go, since the server keeps a group that has
+    // members. The accounts of users who are gone go first for the same reason.
+    const memberships = await syncMemberships(client, users.mailboxes, synced.mailboxes, synced.stale)
+    const staleUsers = await destroyMailboxes(client, users.stale)
     const stale = await destroyMailboxes(client, synced.stale)
-    const scripts = await syncForwardingScripts(client, synced.mailboxes.map(mailbox => {
-        const forwardTo = forwardingAddressOf(mailbox.aliasAddress, forwarding.webmail.domain)
-        return { ...mailbox, forwardTo: wantedLists.has(forwardTo) ? forwardTo : null }
-    }), forwarding.webmail.origin)
+    const scripts = await syncForwardingScripts(client, [
+        ...synced.mailboxes.map(({ accountId, aliasAddress }) => {
+            const forwardTo = forwardingAddressOf(aliasAddress, forwarding.webmail.domain)
+            return {
+                accountId, address: aliasAddress, forwardTo: wantedLists.has(forwardTo) ? forwardTo : null, personal: false,
+            }
+        }),
+        ...users.mailboxes.map(({ accountId, address, username, forwardTo }) => (
+            { accountId, address: address ?? username, forwardTo, personal: true }
+        )),
+    ], forwarding.webmail.origin)
     return {
-        ...synced.changes,
-        destroyed: stale.destroyed,
+        created: synced.changes.created + users.changes.created,
+        updated: synced.changes.updated + users.changes.updated,
+        destroyed: stale.destroyed + staleUsers.destroyed,
         scripts: scripts.changed,
         memberships: memberships.changed,
-        refused: [...synced.refused, ...memberships.refused, ...stale.refused, ...scripts.refused],
+        refused: [
+            ...synced.refused, ...users.refused, ...memberships.refused, ...staleUsers.refused, ...stale.refused,
+            ...scripts.refused,
+        ],
     }
 }
 
@@ -162,15 +186,18 @@ function creationId(address: string, index: number): string {
 }
 
 /**
- * Creates the domains wanted that the server lacks: the mail domains of the sites, and the mailbox
- * domain. Domains are never destroyed: one the server has that is not ours is only warned about,
- * since mail for it may still be arriving. A domain the server refused has no id.
+ * Creates the mail domains of the sites that the server lacks, and looks up the domains the
+ * mailboxes take, which are the infrastructure's to add and are never created here. Domains are
+ * never destroyed: one the server has that is not ours is only warned about, since mail for it may
+ * still be arriving. A domain the server refused or lacks has no id.
  */
 async function syncDomains(
     client: MailServerClient,
-    wanted: WantedDomain[],
+    siteDomains: string[],
+    mailboxDomains: string[],
 ): Promise<{ idsByName: Map<string, string>, created: number, refused: string[] }> {
-    const ours = new Map(wanted.map(domain => [domain.name.toLowerCase(), domain.description]))
+    const sites = siteDomains.map(name => name.toLowerCase())
+    const ours = new Set([...sites, ...mailboxDomains.map(name => name.toLowerCase())])
     const existing = await client.listAll('Domain')
 
     const idsByName = new Map<string, string>()
@@ -184,12 +211,12 @@ async function syncDomains(
         logger.warn(`Mail server has domains that are not ours, which are left alone: ${foreign.join(', ')}`)
     }
 
-    const missing = Array.from(ours.keys()).filter(name => !idsByName.has(name))
+    const missing = sites.filter(name => !idsByName.has(name))
     const namesByCreationId = new Map(missing.map((name, index) => [creationId(name, index), name]))
     const { created, refused } = await client.set('Domain', {
         create: Object.fromEntries(Array.from(namesByCreationId, ([id, name]) => [
             id,
-            { name, description: ours.get(name) },
+            { name, description: DOMAIN_DESCRIPTION },
         ])),
     })
     for (const [id, domain] of Object.entries(created)) {
@@ -200,10 +227,12 @@ async function syncDomains(
 }
 
 /**
- * The lists the server should have, by their addresses. Without mailboxes, every alias is a list
- * at its own address, forwarding to the addresses it reaches. With them the alias's address is its
- * mailbox's, so the list is on the forwarding domain, for the mailbox to send its copies to, and an
- * alias that reaches no one has none.
+ * The lists the server should have, by their addresses. Without mailboxes, every address is a list
+ * of its own, forwarding whatever its `forwardsToPrivateEmail` says, since nothing else would keep
+ * the mail: an alias to the addresses it reaches, and a user's to their private email. With them
+ * an address is its mailbox's. The list of an alias is then on the forwarding domain, for the
+ * mailbox to send its copies to, and an alias that reaches no one or does not forward has none. A
+ * user's mailbox sends its copies straight to their private email, so a user has no list.
  */
 async function wantedMailingLists(
     siteDomainIdsByName: Map<string, string>,
@@ -213,6 +242,7 @@ async function wantedMailingLists(
         select: {
             address: true,
             description: true,
+            mailAddress: { select: { forwardsToPrivateEmail: true } },
             mailingLists: { select: { mailingListId: true } },
         },
     })
@@ -236,7 +266,7 @@ async function wantedMailingLists(
             wanted.set(alias.address.toLowerCase(), { name: localPart.toLowerCase(), domainId, description, recipients })
             continue
         }
-        if (addresses.length === 0) continue
+        if (addresses.length === 0 || !alias.mailAddress.forwardsToPrivateEmail) continue
         const address = forwardingAddressOf(alias.address, forwarding.webmail.domain)
         wanted.set(address, {
             name: address.slice(0, address.lastIndexOf('@')),
@@ -245,8 +275,32 @@ async function wantedMailingLists(
             recipients,
         })
     }
+    if (!forwarding) {
+        const users = await prisma.user.findMany({
+            where: { ...userPartitions.unarchived, vevenMailAddress: { not: null } },
+            select: { email: true, firstname: true, lastname: true, vevenMailAddress: true },
+        })
+        for (const user of users) {
+            if (user.vevenMailAddress === null) continue
+            const address = user.vevenMailAddress.toLowerCase()
+            const { localPart, domain } = splitAddress(address)
+            const domainId = siteDomainIdsByName.get(domain)
+            if (domainId === undefined) {
+                unplaced.push(address)
+                continue
+            }
+            // An address that is the user's private email too would be sent on to itself.
+            if (user.email.toLowerCase() === address) continue
+            wanted.set(address, {
+                name: localPart,
+                domainId,
+                description: `${user.firstname} ${user.lastname}`,
+                recipients: { [user.email.toLowerCase()]: true },
+            })
+        }
+    }
     if (unplaced.length > 0) {
-        logger.warn(`Mail server sync skips aliases on domains the server does not hold for the sites: ${
+        logger.warn(`Mail server sync skips addresses on domains the server does not hold for the sites: ${
             unplaced.join(', ')}`)
     }
     return wanted

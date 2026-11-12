@@ -1,3 +1,4 @@
+import { setQuotaRequirements } from 'tests/eventSetup'
 import { prisma } from '@/prisma-pn-client-instance'
 import { notificationMethodOperations } from '@/services/notifications/methods/operations'
 import {
@@ -237,33 +238,26 @@ describe('notification recipient resolution', () => {
         expect(await resolveRecipientIds(notification.id, 'email')).toEqual([member.id, outsider.id].sort())
 
         // A quota for the group alone, added after the notification was created, narrows it to the member.
-        const variant = await eventVariantOperations.create({
+        const variant = await eventVariantOperations.internal.create.internalCall({
             params: { eventId: event.id },
             data: {
                 name: 'Påmelding',
                 registrationStart: new Date(),
                 registrationEnd: new Date(Date.now() + 60 * 60 * 1000),
             },
-            bypassAuth: true,
         })
-        const quota = await eventQuotaOperations.create({
+        const quota = await eventQuotaOperations.internal.create.internalCall({
             params: { variantId: variant.id },
             data: {
                 name: 'Gruppa',
                 places: 5,
                 visibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
             },
-            bypassAuth: true,
         })
         expect(await resolveRecipientIds(notification.id, 'email')).toEqual([member.id])
 
         // Opening the quota to everyone brings the outsider back.
-        await eventQuotaOperations.visibility.update({
-            implementationParams: { id: quota.id },
-            params: { visibilityId: quota.visibilityId },
-            data: { requirements: [] },
-            bypassAuth: true,
-        })
+        await setQuotaRequirements(quota.id, [])
         expect(await resolveRecipientIds(notification.id, 'email')).toEqual([member.id, outsider.id].sort())
     })
 
