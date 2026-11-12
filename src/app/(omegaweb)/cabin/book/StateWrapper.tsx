@@ -10,7 +10,11 @@ import Checkbox from '@/components/UI/Checkbox'
 import Form from '@/components/Form/Form'
 import CountDown from '@/components/CountDown/CountDown'
 import CabinBookingPaymentModal from '@/components/Ledger/Modals/CabinBookingPaymentModal'
-import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from '@/services/cabin/booking/cabinPriceCalculator'
+import {
+    calculateCabinBookingPrice,
+    calculateTotalCabinBookingPrice,
+    hasPriceOn,
+} from '@/services/cabin/booking/cabinPriceCalculator'
 import { useSession } from '@/auth/session/useSession'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
@@ -169,8 +173,9 @@ export default function StateWrapper({
             defaultDateRange={dateRange}
             intervalChangeCallback={setDateRange}
             bookings={blockingBookings}
+            isBookable={night => hasPriceOn(night, selectedProducts, pricePeriods)}
         />
-    ), [bookingType, blockingBookings, releaseUntil, dateRange])
+    ), [bookingType, blockingBookings, releaseUntil, dateRange, selectedProducts, pricePeriods])
 
     const productAmounts = useMemo(
         () => (bookingType === 'BED' ? bedAmounts : [1]),

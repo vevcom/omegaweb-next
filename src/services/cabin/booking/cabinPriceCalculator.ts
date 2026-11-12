@@ -17,6 +17,22 @@ function getDateArray(start: Date, end: Date) {
     return ret
 }
 
+function pricesOn(day: Date, memberShare: number, pricePeriod: PricePeriod, prices: CabinProductPriceExtended[]) {
+    return prices.filter(price => price.pricePeriodId === pricePeriod.id
+        && price.memberShare <= memberShare
+        && dateMatchCron(day, price.cronInterval))
+}
+
+/**
+ * Whether the night starting on `day` can be booked with these products, which it can when each
+ * has a price that night. This is how the cabin team closes a night to beds, for example weekends.
+ */
+export function hasPriceOn(day: Date, products: CabinProductExtended[], pricePeriods: PricePeriod[]) {
+    const pricePeriod = pricePeriods.findLast(period => period.validFrom <= day)
+    return pricePeriod !== undefined
+        && products.every(product => pricesOn(day, 100, pricePeriod, product.CabinProductPrice).length > 0)
+}
+
 function matchPriceForDay({
     day,
     memberShare,
@@ -33,21 +49,7 @@ function matchPriceForDay({
         throw new ServiceError('BAD PARAMETERS', 'Det finnes ingen prisperiode for alle de valgte dagene.')
     }
 
-    const filtered = prices.filter(price => {
-        if (price.pricePeriodId !== currentPricePeriod.id) {
-            return false
-        }
-
-        if (price.memberShare > memberShare) {
-            return false
-        }
-
-        if (!dateMatchCron(day, price.cronInterval)) {
-            return false
-        }
-
-        return true
-    })
+    const filtered = pricesOn(day, memberShare, currentPricePeriod, prices)
 
     if (filtered.length === 0) {
         throw new ServiceError('BAD PARAMETERS', `Det finnes ingen pris for ${day.toISOString().slice(0, 10)}.`)

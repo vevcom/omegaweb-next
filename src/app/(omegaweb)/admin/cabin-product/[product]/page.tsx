@@ -46,7 +46,8 @@ const { page, generateMetadata } = serverPage({
                 <div className="flex flex-col gap-2 text-s text-base-content/80">
                     <p className="m-0">
                         Hver pris gjelder fra starten av en prisperiode, og bare de nettene intervallet passer.
-                        Passer flere priser en natt, får leietakeren den billigste.
+                        Passer flere priser en natt, får leietakeren den billigste. En natt uten pris kan ikke
+                        bookes, så <code>* * 0-4</code> på sengene stenger dem i helgene.
                     </p>
                     <p className="m-0">
                         Intervallet skrives som de tre siste feltene i
