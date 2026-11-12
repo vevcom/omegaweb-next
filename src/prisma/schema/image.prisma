@@ -110,6 +110,7 @@ enum SpecialCollection {
   FLAIRIMAGES
   PROMOIMAGES
   CAREERTEAMIMAGES
+  COMPANYLOGOS
 }
 
 model ImageCollection {

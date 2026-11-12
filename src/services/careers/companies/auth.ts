@@ -1,5 +1,7 @@
 import { Require } from '@/auth/authorizer/Require'
 
+export const companyLogosImagePanelAuth = Require.permission('COMPANY_ADMIN')
+
 export const companyAuth = {
     readSponsors: Require.nothing(),
     create: Require.permission('COMPANY_ADMIN'),
