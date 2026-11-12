@@ -54,6 +54,7 @@ export const companySchemas = {
         }),
     },
     params: {
+        read: id,
         readPage: readPageInputSchemaObject(
             id,
             paramsFieldSchemas.pick({

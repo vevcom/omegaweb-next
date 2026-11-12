@@ -5,6 +5,7 @@ export const companyLogosImagePanelAuth = Require.permission('COMPANY_ADMIN')
 export const companyAuth = {
     readSponsors: Require.nothing(),
     create: Require.permission('COMPANY_ADMIN'),
+    read: Require.permission('COMPANY_USE'),
     readPage: Require.permission('COMPANY_USE'),
     search: Require.permission('COMPANY_USE'),
     update: Require.permission('COMPANY_ADMIN'),

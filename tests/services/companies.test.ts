@@ -204,3 +204,23 @@ describe('company logos', () => {
         expect(await prisma.image.count({ where: { id: logo.id } })).toBe(0)
     })
 })
+
+describe('reading a company', () => {
+    test('a company is read with its logo, by those who may see companies', async () => {
+        const id = companyIds[`${NAME_MARKER} Alfa AS`]
+        const company = await companyOperations.read({
+            params: { id },
+            session: Session.fromJsObject({ user: null, permissions: ['COMPANY_USE'], memberships: [] }),
+        })
+        expect(company.name).toBe(`${NAME_MARKER} Alfa AS`)
+        expect(company.logoImage).toBeNull()
+
+        await expect(companyOperations.read({ params: { id }, session: Session.empty() }))
+            .rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
+    })
+
+    test('a company that does not exist is not found', async () => {
+        await expect(companyOperations.read({ params: { id: -1 }, bypassAuth: true }))
+            .rejects.toThrow(new Smorekopp('NOT FOUND'))
+    })
+})
