@@ -41,6 +41,9 @@ An overlay includes `base` and fills in what it leaves open:
   is also the mail domain the aliases' mailboxes are on, and the client id the webmail signs in
   through the provider with. Left unset, no alias keeps a mailbox. The mail server's own settings
   for this are documented in mail-infrastructure.
+- **The chat.** `CHAT_AUTH_URL` is the origin of the chat's sign in, MAS, whose host is the
+  client id it signs users in through the provider with. Left unset, the provider knows no chat.
+  The chat's own settings for this are documented in chat-infrastructure.
 - **The store.** Uploaded images and ombul pdfs are on the store volume, which base mounts at
   `store/` in the app, the worker and the migrate job, and in an S3 bucket when
   `STORE_S3_BUCKET` is set, with `STORE_S3_ENDPOINT`, `STORE_S3_ACCESS_KEY_ID` and

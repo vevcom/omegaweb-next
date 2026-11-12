@@ -1,5 +1,6 @@
 import '@pn-server-only'
 import { userOperations } from '@/services/users/operations'
+import { chatUserOperations } from '@/services/chat/users/operations'
 import type { UserFiltered } from '@/services/users/types'
 import type { Awaitable } from '@/lib/awaitable'
 
@@ -10,14 +11,17 @@ import type { Awaitable } from '@/lib/awaitable'
  */
 export const OIDC_MAIL_SCOPE = 'urn:ietf:params:oauth:scope:mail'
 
+/** The scope the chat's sign in asks for, to be told who the user is on the chat. */
+export const OIDC_CHAT_SCOPE = 'chat'
+
 /** What a claim says: a string, or a list, as `groups` is. */
 export type ClaimValue = string | string[]
 
 /** How a claim is read for the user the token is about. */
 type ClaimResolver = (user: UserFiltered) => Awaitable<ClaimValue>
 
-/** The kinds of client the provider has, see clients.ts: the sites' domains, and the webmail. */
-export type OidcClientKind = 'site' | 'webmail'
+/** The kinds of client the provider has, see clients.ts: the sites' domains, the webmail, and the chat's sign in. */
+export type OidcClientKind = 'site' | 'webmail' | 'chat'
 
 type OidcScopeDefinition = {
     /** The clients that may be given the scope. One asking for a scope it may not have is not given it. */
@@ -26,7 +30,7 @@ type OidcScopeDefinition = {
     claims: Record<string, ClaimResolver>,
 }
 
-const EVERY_CLIENT = ['site', 'webmail'] as const
+const EVERY_CLIENT = ['site', 'webmail', 'chat'] as const
 
 /**
  * The scopes a client may ask for: who may have each, the claims it gives and how each is read.
@@ -58,6 +62,19 @@ export const oidcScopes = {
      * src/lib/mailServerSync/memberships.ts.
      */
     [OIDC_MAIL_SCOPE]: { clients: ['webmail'], claims: {} },
+    /**
+     * Who the user is on the chat: the localpart of their Matrix id, which the chat's sign in makes
+     * their account by. The application decides it, see src/services/chat/users, so the homeserver
+     * never names a user itself. The user has it by the time a token is made, since the code the
+     * token is traded for gave it to them, see clients.ts.
+     */
+    [OIDC_CHAT_SCOPE]: {
+        clients: ['chat'],
+        claims: {
+            chat_localpart: async user =>
+                (await chatUserOperations.read({ params: { userId: user.id }, bypassAuth: true })).localpart,
+        },
+    },
 } as const satisfies Record<string, OidcScopeDefinition>
 
 export type OidcScope = keyof typeof oidcScopes

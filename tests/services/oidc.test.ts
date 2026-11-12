@@ -1,7 +1,9 @@
 import { oidcOperations } from '@/services/auth/oidc/operations'
 import { isPostLogoutRedirectUri, oidcClientOf } from '@/services/auth/oidc/clients'
 import { discoveryDocument } from '@/services/auth/oidc/discovery'
-import { OIDC_CLAIMS, OIDC_MAIL_SCOPE, OIDC_SCOPES, oidcScopes, scopesFor, userClaims } from '@/services/auth/oidc/scopes'
+import {
+    OIDC_CHAT_SCOPE, OIDC_CLAIMS, OIDC_MAIL_SCOPE, OIDC_SCOPES, oidcScopes, scopesFor, userClaims,
+} from '@/services/auth/oidc/scopes'
 import { jwks, signAccessToken, signIdToken, verifyAccessToken } from '@/services/auth/oidc/tokens'
 import { GET as userinfo } from '@/app/api/oidc/userinfo/route'
 import { userOperations } from '@/services/users/operations'
@@ -26,6 +28,10 @@ const REDIRECT_URI = `${ISSUER}/api/sso/callback`
 // The webmail of .env.default, which the tests run with: its host is the client and the mailbox domain.
 const WEBMAIL = 'http://mail.omegaweb.localhost:8081'
 const WEBMAIL_CLIENT = 'mail.omegaweb.localhost'
+// The chat's sign in of .env.default, and where it takes the code back: its callback for the provider.
+const CHAT_AUTH = 'http://account.chat.localhost:8091'
+const CHAT_CLIENT = 'account.chat.localhost'
+const CHAT_REDIRECT_URI = `${CHAT_AUTH}/upstream/callback/000000000000000000000VEVEN`
 
 const hashOf = (value: string) => createHash('sha256').update(value).digest('base64url')
 
@@ -156,6 +162,51 @@ describe('the OpenID Connect provider', () => {
         })
     })
 
+    test('gives a user their chat account when they sign in to the chat, and says who they are there', async () => {
+        const actor = await createUser('chat-scope')
+        const forSite = pkce()
+        const { code: siteCode } = await issue(actor, forSite.challenge, { scope: `openid ${OIDC_CHAT_SCOPE}` })
+        await expect(exchange(siteCode, forSite.verifier)).resolves.toMatchObject({ scopes: ['openid'] })
+        // Signing in to a site is not signing in to the chat.
+        expect(await prisma.chatUser.count({ where: { userId: actor.user.id } })).toBe(0)
+
+        const chat = { clientId: CHAT_CLIENT, redirectUri: CHAT_REDIRECT_URI }
+        const first = pkce()
+        const { code } = await issue(actor, first.challenge, { ...chat, scope: `openid profile email ${OIDC_CHAT_SCOPE}` })
+        expect(await prisma.chatUser.findUnique({ where: { userId: actor.user.id } }))
+            .toMatchObject({ localpart: 'test-oidc-chat-scope' })
+
+        const tokens = await oidcOperations.token({
+            data: { grantType: 'authorization_code', ...chat, code, codeVerifier: first.verifier },
+        })
+        expect(tokens.scope).toBe(`openid profile email ${OIDC_CHAT_SCOPE}`)
+        expect(decode(tokens.id_token)).toMatchObject({
+            sub: String(actor.user.id),
+            aud: CHAT_CLIENT,
+            chat_localpart: 'test-oidc-chat-scope',
+            name: 'Ola Nordmann',
+            email: actor.user.email,
+        })
+
+        // The account is the same at the next sign in, whatever their username is by then.
+        await prisma.user.update({ where: { id: actor.user.id }, data: { username: 'test-oidc-chat-renamed' } })
+        await issue(actor, pkce().challenge, { ...chat, scope: `openid ${OIDC_CHAT_SCOPE}` })
+        expect(await prisma.chatUser.findMany({ where: { userId: actor.user.id } }))
+            .toMatchObject([{ localpart: 'test-oidc-chat-scope' }])
+        await expect(userClaims(actor.user.id, ['openid', OIDC_CHAT_SCOPE]))
+            .resolves.toEqual({ chat_localpart: 'test-oidc-chat-scope' })
+    })
+
+    test('gives no chat account for a request it refuses', async () => {
+        const actor = await createUser('chat-refused')
+        const { challenge } = pkce()
+        const elsewhere = { clientId: CHAT_CLIENT, redirectUri: `${CHAT_AUTH}/elsewhere` }
+        await refused(issue(actor, challenge, elsewhere), 'BAD PARAMETERS')
+        const chat = { clientId: CHAT_CLIENT, redirectUri: CHAT_REDIRECT_URI }
+        await refused(issue({ user: actor.user, session: Session.empty() }, challenge, chat), 'UNAUTHENTICATED')
+        expect(await prisma.chatUser.count({ where: { userId: actor.user.id } })).toBe(0)
+    })
+
     test('refuses a code to an unknown client, to an unregistered redirect uri, and to a plain challenge', async () => {
         const actor = await createUser('clients')
         const { challenge } = pkce()
@@ -276,6 +327,25 @@ describe('the OpenID Connect provider', () => {
         expect(isPostLogoutRedirectUri(`${WEBMAIL}/`)).toBe(true)
     })
 
+    test('the chat\'s sign in is a client too, taking the code back at its callback, and alone given the chat scope', () => {
+        const client = oidcClientOf(CHAT_CLIENT)
+        expect(client).toMatchObject({ id: CHAT_CLIENT, kind: 'chat', site: Site.OMEGAWEB, scopes: scopesFor('chat') })
+        expect(scopesFor('chat')).toEqual(['openid', 'profile', 'email', OIDC_CHAT_SCOPE])
+        expect(scopesFor('site')).not.toContain(OIDC_CHAT_SCOPE)
+        expect(scopesFor('webmail')).not.toContain(OIDC_CHAT_SCOPE)
+        expect(client?.acceptsRedirectUri(CHAT_REDIRECT_URI)).toBe(true)
+        expect(client?.acceptsRedirectUri(`${CHAT_AUTH}/upstream/callback/not-a-ulid`)).toBe(false)
+        expect(client?.acceptsRedirectUri(`${CHAT_REDIRECT_URI}/more`)).toBe(false)
+        expect(client?.acceptsRedirectUri(`${CHAT_REDIRECT_URI}?next=x`)).toBe(false)
+        expect(client?.acceptsRedirectUri(CHAT_REDIRECT_URI.replace('http://', 'https://'))).toBe(false)
+        expect(client?.acceptsRedirectUri(CHAT_REDIRECT_URI.replace(CHAT_AUTH, ISSUER))).toBe(false)
+        // The chat has no site of its own, so the login renders as Omega's.
+        expect(client?.rendersSite(Site.CAREERS)).toBe(false)
+        // Only the chat's sign in gives a chat account.
+        expect(oidcClientOf(CLIENT)?.beforeCode).toBeUndefined()
+        expect(oidcClientOf(WEBMAIL_CLIENT)?.beforeCode).toBeUndefined()
+    })
+
     test('signs tokens the published key verifies, naming the key by the id the JWKS gives it', async () => {
         const { user } = await createUser('tokens')
         const { keys } = jwks()
@@ -382,7 +452,7 @@ describe('the OpenID Connect provider', () => {
         // The scopes and the claims it lists are the table's: the mail scope so the webmail asks for it, and groups.
         expect(discoveryDocument().scopes_supported).toEqual(OIDC_SCOPES)
         expect(discoveryDocument().claims_supported).toEqual(OIDC_CLAIMS)
-        expect(OIDC_SCOPES).toEqual(['openid', 'profile', 'email', OIDC_MAIL_SCOPE])
+        expect(OIDC_SCOPES).toEqual(['openid', 'profile', 'email', OIDC_MAIL_SCOPE, OIDC_CHAT_SCOPE])
         expect(OIDC_CLAIMS).toEqual(['sub', ...Object.values(oidcScopes).flatMap(scope => Object.keys(scope.claims))])
         expect(OIDC_CLAIMS).not.toContain('groups')
     })
