@@ -1,15 +1,9 @@
+import { DEV_COMMITTEE_SHORT_NAME } from './seedDevGroups'
 import { eventOperations } from '@/services/events/operations'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { Data } from '@/services/serviceOperation'
-
-/**
- * Seeded content is administrated through the EVENT_ADMIN permission rather than by any group: a
- * requirement with no conditions can never be satisfied, so the admin level admits only those who
- * bypass it with that permission.
- */
-const ADMINISTRATED_BY_PERMISSION_ONLY = [{ conditions: [] }]
 
 type SeedDevEventConfig = {
     event: Data<typeof eventOperations.create>,
@@ -42,6 +36,14 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
     })
     const quotaVisibilityRequirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId: memberGroupId }] }]
 
+    // The dev committee administrates the seeded events, since an event no one administrates
+    // cannot be published. Those with EVENT_ADMIN administrate them too, as they do every event.
+    const { groupId: committeeGroupId } = await prisma.committee.findUniqueOrThrow({
+        where: { shortName: DEV_COMMITTEE_SHORT_NAME },
+        select: { groupId: true },
+    })
+    const visibilityAdminRequirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId: committeeGroupId }] }]
+
     const coverImage = await prisma.image.findUniqueOrThrow({
         where: {
             standardImage: 'FAIR',
@@ -66,7 +68,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                     bedPresTag.id,
                 ],
                 quotaVisibilityRequirements,
-                visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
+                visibilityAdminRequirements,
             },
             registrationCount: 10,
         },
@@ -83,7 +85,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 registrationEnd: tomorrow,
                 tagIds: [],
                 quotaVisibilityRequirements,
-                visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
+                visibilityAdminRequirements,
             },
             registrationCount: 0,
         },
@@ -101,7 +103,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 registrationEnd: tomorrow,
                 tagIds: [],
                 quotaVisibilityRequirements,
-                visibilityAdminRequirements: ADMINISTRATED_BY_PERMISSION_ONLY,
+                visibilityAdminRequirements,
             },
             registrationCount: 70,
         },

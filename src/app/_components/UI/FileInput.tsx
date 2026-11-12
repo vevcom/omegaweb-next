@@ -97,9 +97,10 @@ export default function FileInput({
             <label
                 htmlFor={inputId}
                 className={`
-                    relative w-full flex items-center border-2 border-transparent rounded-inner outline-0 text-m text-left
-                    text-base-content pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color] duration-300
-                    cursor-pointer
+                    relative w-full flex items-center border border-base-300
+                    peer-focus:ring-3 peer-focus:ring-primary/25
+                    rounded-inner outline-0 text-m text-left text-base-content pt-6 pr-10 pb-2.5 pl-4
+                    transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                     peer-disabled:cursor-not-allowed peer-disabled:opacity-60
                     ${backgroundClassNames[background]}
                     ${focus.trigger}
