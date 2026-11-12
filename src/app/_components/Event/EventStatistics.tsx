@@ -101,7 +101,7 @@ function Chart({ title, label, ticks, tooltip, children, onPointerMove, onPointe
 }
 
 function CumulativeChart({ statistics }: { statistics: VariantStatistics }) {
-    const { registeredAt, registrationStart, places } = statistics
+    const { registeredAt, registrationStart, places, waiting } = statistics
     const [hovered, setHovered] = useState<number | null>(null)
     const total = registeredAt.length
     const first = Math.min(registrationStart.getTime(), registeredAt[0].getTime())
@@ -112,8 +112,9 @@ function CumulativeChart({ statistics }: { statistics: VariantStatistics }) {
 
     const hoveredAt = hovered === null ? null : registeredAt[hovered]
     return <Chart
-        title="Påmeldinger over tid"
-        label={`Påmeldte: ${total} fra ${displayMoment(new Date(first))} til ${
+        // Those waiting are counted too, so the curve can pass the places while one is still free.
+        title={waiting > 0 ? 'Påmeldinger over tid, venteliste medregnet' : 'Påmeldinger over tid'}
+        label={`${waiting > 0 ? 'Påmeldte og ventende' : 'Påmeldte'}: ${total} fra ${displayMoment(new Date(first))} til ${
             displayMoment(registeredAt[total - 1])
         }, med ${places} plasser`}
         ticks={ticks}
