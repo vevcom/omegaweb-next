@@ -25,7 +25,7 @@ async function setUp(key: string) {
         },
         bypassAuth: true,
     })
-    await eventOperations.update({
+    await eventOperations.saveSetup({
         params: { id: event.id },
         data: {
             variants: [{

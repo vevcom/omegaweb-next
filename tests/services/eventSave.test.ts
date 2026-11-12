@@ -1,5 +1,5 @@
 import { Session } from '@/auth/session/Session'
-import { toVariantDrafts } from '@/components/Event/eventSetupDraft'
+import { toVariantDrafts } from '@/services/events/setupDraft'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
@@ -61,7 +61,7 @@ async function createEvent(name: string) {
     return event.id
 }
 
-const save = (id: number, data: Data<typeof eventOperations.update>) => eventOperations.update({
+const save = (id: number, data: Data<typeof eventOperations.saveSetup>) => eventOperations.saveSetup({
     params: { id },
     data,
     bypassAuth: true,
@@ -201,12 +201,75 @@ describe('saving an event with its registration', () => {
         expect(toVariantDrafts(variants)[0].requeueUnpaidRegistrations).toBe(true)
     })
 
+    test('judges who sees the event by the quotas the same save leaves it with', async () => {
+        const eventId = await createEvent('Sees gjennom kvoter')
+        await eventOperations.setPublished({ params: { id: eventId }, data: { published: true }, bypassAuth: true })
+        const throughQuotas = { canBeViewedBy: 'CAN_REGISTER' as const }
+
+        await expect(save(eventId, throughQuotas)).rejects.toThrow(Smorekopp)
+        await save(eventId, {
+            ...throughQuotas,
+            variants: [{ name: 'Påmelding', ...period, quotas: [{ name: 'Alle', places: 0, ...open }] }],
+        })
+        expect(await prisma.event.findUniqueOrThrow({ where: { id: eventId } })).toMatchObject(throughQuotas)
+
+        await save(eventId, { canBeViewedBy: 'ALL', variants: [] })
+        expect(await variantsOf(eventId)).toHaveLength(0)
+    })
+
     test('leaves out what was not sent', async () => {
         const { eventId } = await createEventWithQueue('Bare navnet')
 
         await save(eventId, { name: 'Nytt navn på det' })
 
         expect(await variantsOf(eventId)).toHaveLength(1)
+    })
+})
+
+describe('a save of what is already saved', () => {
+    test('writes only what changed', async () => {
+        const { eventId, variant } = await createEventWithQueue('Lagres igjen')
+        const quotaId = variant.quotas[0].id
+        const requirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }]
+        const setupWith = (places: number, visibilityRequirements = requirements) => ({
+            adminRequirements: requirements,
+            variants: [{
+                id: variant.id,
+                name: 'Påmelding',
+                ...period,
+                quotas: [{ id: quotaId, name: 'Alle', places, visibilityRequirements }],
+            }],
+        })
+        const stored = async () => {
+            const event = await prisma.event.findUniqueOrThrow({
+                where: { id: eventId },
+                select: { visibilityAdmin: { select: { requirements: { select: { id: true } } } } },
+            })
+            const quota = await prisma.eventQuota.findUniqueOrThrow({
+                where: { id: quotaId },
+                select: { updatedAt: true, visibility: { select: { requirements: { select: { id: true } } } } },
+            })
+            const { updatedAt } = await prisma.eventVariant.findUniqueOrThrow({ where: { id: variant.id } })
+            return {
+                variant: updatedAt,
+                quota: quota.updatedAt,
+                whoRegisters: quota.visibility.requirements,
+                whoAdministrates: event.visibilityAdmin.requirements,
+            }
+        }
+        await save(eventId, setupWith(1))
+        const first = await stored()
+
+        await save(eventId, { name: 'Lagret igjen', ...setupWith(1) })
+        expect(await stored()).toEqual(first)
+
+        await save(eventId, setupWith(2))
+        const morePlaces = await stored()
+        expect(morePlaces.quota.getTime()).toBeGreaterThan(first.quota.getTime())
+        expect({ ...morePlaces, quota: first.quota }).toEqual(first)
+
+        await save(eventId, setupWith(2, []))
+        expect(await stored()).toEqual({ ...morePlaces, whoRegisters: [] })
     })
 })
 
@@ -258,6 +321,63 @@ describe('a refused save', () => {
     })
 })
 
+describe('a save based on the event as it was', () => {
+    const updatedAtOf = async (id: number) => (await prisma.event.findUniqueOrThrow({ where: { id } })).updatedAt
+
+    test('is refused once the event has been saved since, and saves nothing', async () => {
+        const { eventId, variant } = await createEventWithQueue('Lest for lenge siden')
+        const basedOnUpdatedAt = await updatedAtOf(eventId)
+
+        await save(eventId, { name: 'Lagret av en annen', basedOnUpdatedAt })
+        await expect(save(eventId, {
+            name: 'Lagret for sent',
+            variants: [{ id: variant.id, name: 'Påmelding', ...period, quotas: [] }],
+            basedOnUpdatedAt,
+        })).rejects.toThrow(Smorekopp)
+
+        expect((await prisma.event.findUniqueOrThrow({ where: { id: eventId } })).name).toBe('Lagret av en annen')
+        expect((await variantsOf(eventId))[0].quotas).toHaveLength(1)
+        await expect(save(eventId, { name: 'Lagret i tide', basedOnUpdatedAt: await updatedAtOf(eventId) }))
+            .resolves.toMatchObject({ name: 'Lagret i tide' })
+    })
+
+    test('is told apart by every save, whatever it changes, and not by someone registering', async () => {
+        const { eventId, variant } = await createEventWithQueue('Hva flytter tiden')
+        const quota = variant.quotas[0]
+        const before = await updatedAtOf(eventId)
+
+        await save(eventId, {
+            variants: [{
+                id: variant.id,
+                name: 'Påmelding',
+                ...period,
+                quotas: [{ id: quota.id, name: 'Alle', places: 2, ...open }],
+            }],
+        })
+        const afterVariants = await updatedAtOf(eventId)
+        expect(afterVariants.getTime()).toBeGreaterThan(before.getTime())
+
+        await save(eventId, { adminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId }] }] })
+        const afterAdministrators = await updatedAtOf(eventId)
+        expect(afterAdministrators.getTime()).toBeGreaterThan(afterVariants.getTime())
+
+        await eventRegistrationOperations.createAsAdmin({ params: { userId: userIds[2], eventId }, bypassAuth: true })
+        expect(await updatedAtOf(eventId)).toEqual(afterAdministrators)
+    })
+
+    test('is read from the form as the date it posts', async () => {
+        const eventId = await createEvent('Fra skjemaet')
+        const formData = new FormData()
+        formData.append('name', 'Navn fra skjemaet')
+        formData.append('basedOnUpdatedAt', (await updatedAtOf(eventId)).toISOString())
+
+        await expect(eventOperations.saveSetup({ params: { id: eventId }, data: formData, bypassAuth: true }))
+            .resolves.toMatchObject({ name: 'Navn fra skjemaet' })
+        await expect(eventOperations.saveSetup({ params: { id: eventId }, data: formData, bypassAuth: true }))
+            .rejects.toThrow(Smorekopp)
+    })
+})
+
 describe('who administrates, and the account', () => {
     test('replaces who administrates the event', async () => {
         const eventId = await createEvent('Nye admins')
@@ -273,6 +393,33 @@ describe('who administrates, and the account', () => {
 
         const matrix = await eventOperations.adminVisibility.readMatrix({ params: { id: eventId }, bypassAuth: true })
         expect(matrix.requirements[0].conditions[0]).toMatchObject({ groupId: other.id })
+    })
+
+    test('saves the rest too when the one saving hands the event to others', async () => {
+        const eventId = await createEvent('Gis bort')
+        const other = await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order: currentOrder,
+                manualGroup: { create: { name: 'heirs', shortName: 'heirs' } },
+            },
+        })
+        const administrator = Session.fromJsObject({
+            user: null,
+            permissions: [],
+            memberships: [{ groupId, order: currentOrder, active: true, admin: false }],
+        })
+
+        await eventOperations.saveSetup({
+            params: { id: eventId },
+            data: { name: 'Gitt videre', adminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: other.id }] }] },
+            session: administrator,
+        })
+
+        expect((await prisma.event.findUniqueOrThrow({ where: { id: eventId } })).name).toBe('Gitt videre')
+        await expect(eventOperations.saveSetup({
+            params: { id: eventId }, data: { name: 'For sent' }, session: administrator,
+        })).rejects.toThrow(Smorekopp)
     })
 
     test('takes access to the account to link it, on top of administrating the event', async () => {
@@ -294,7 +441,7 @@ describe('who administrates, and the account', () => {
             memberships: [{ groupId, order: currentOrder, active: true, admin: false }],
         })
 
-        await expect(eventOperations.update({
+        await expect(eventOperations.saveSetup({
             params: { id: eventId },
             data: { ledgerAccountSelection: account.id },
             session: administrator,
@@ -309,7 +456,7 @@ describe('who administrates, and the account', () => {
         const formData = new FormData()
         formData.append('ledgerAccountSelection', 'NULL')
 
-        await expect(eventOperations.update({ params: { id: eventId }, data: formData, bypassAuth: true }))
+        await expect(eventOperations.saveSetup({ params: { id: eventId }, data: formData, bypassAuth: true }))
             .resolves.toMatchObject({ ledgerAccountId: null })
     })
 })

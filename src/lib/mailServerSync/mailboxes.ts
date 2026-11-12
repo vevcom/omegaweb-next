@@ -55,7 +55,7 @@ export function mailboxAddressOf(aliasAddress: string): string {
 }
 
 /** The id a creation is sent under, see sync.ts. */
-function creationId(address: string, index: number): string {
+export function creationId(address: string, index: number): string {
     return `${address.replace(/[^A-Za-z0-9_-]/g, '_')}-${index}`
 }
 

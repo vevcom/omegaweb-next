@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useCallback, useContext, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useState } from 'react'
 import type { ReactNode } from 'react'
 
 export type TabDot = { level: 'ok' | 'warning' | 'missing', label: string }
@@ -39,17 +39,23 @@ export default function Tabs({ tabs, label, children }: {
 }) {
     const [selected, setSelected] = useState(tabs[0]?.key)
     const [erroredTabs, setErroredTabs] = useState<string[]>([])
-    const erroredRef = useRef<string[]>([])
+    const [hadErrors, setHadErrors] = useState(false)
     const [reportedDots, setReportedDots] = useState<Record<string, TabDot>>({})
+
+    // When errors appear where there were none, the first tab with one is brought forward.
+    const hasErrors = erroredTabs.length > 0
+    if (hasErrors !== hadErrors) {
+        setHadErrors(hasErrors)
+        const firstErrored = tabs.find(tab => erroredTabs.includes(tab.key))
+        if (firstErrored) setSelected(firstErrored.key)
+    }
     const active = tabs.some(tab => tab.key === selected) ? selected : tabs[0]?.key
 
-    // Panels report in tab order, so the first one with an error is the one brought forward.
-    const reportErrors = useCallback((tab: string, hasErrors: boolean) => {
-        const errored = erroredRef.current
-        if (errored.includes(tab) === hasErrors) return
-        if (hasErrors && errored.length === 0) setSelected(tab)
-        erroredRef.current = hasErrors ? [...errored, tab] : errored.filter(other => other !== tab)
-        setErroredTabs(erroredRef.current)
+    const reportErrors = useCallback((tab: string, tabHasErrors: boolean) => {
+        setErroredTabs(errored => {
+            if (errored.includes(tab) === tabHasErrors) return errored
+            return tabHasErrors ? [...errored, tab] : errored.filter(other => other !== tab)
+        })
     }, [])
 
     const reportDots = useCallback((dots: Record<string, TabDot>) => {

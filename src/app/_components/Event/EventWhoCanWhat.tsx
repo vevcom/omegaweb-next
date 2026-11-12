@@ -3,7 +3,7 @@ import { describeAudience } from '@/auth/visibility/describeVisibility'
 import { useGroups } from '@/contexts/ClientData'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { whoCanWhat } from '@/services/events/whoCanWhat'
-import type { VariantDraft } from './eventSetupDraft'
+import type { VariantDraft } from '@/services/events/setupDraft'
 import type { EventAccess } from '@/services/events/types'
 import type { Registers, WhoCanWhatRow } from '@/services/events/whoCanWhat'
 

@@ -3,6 +3,14 @@ import { readDomainConfig } from './src/lib/sites/domainConfigFile'
 import path from 'path'
 import type { NextConfig } from 'next'
 
+/**
+ * The most a request may carry. The body is read before any login check, so this bounds what an
+ * anonymous request can make the server hold. The largest requests are an image batch
+ * (maxImageBatchSizeMb in the image subservice, 60mb) and a new ombul (a 10mb pdf and a cover image of
+ * up to 50mb), plus the form around them.
+ */
+const maxRequestBodySize = '70mb'
+
 const nextConfig: NextConfig = {
     output: 'standalone',
     poweredByHeader: false,
@@ -21,12 +29,12 @@ const nextConfig: NextConfig = {
     },
     experimental: {
         serverActions: {
-            // The body is read before any login check, so this bounds what an anonymous request can make
-            // the server hold. The largest requests are an image batch (maxImageBatchSizeMb in the image
-            // subservice, 60mb) and a new ombul (a 10mb pdf and a cover image of up to 50mb), plus the form
-            // around them.
-            bodySizeLimit: '70mb',
+            bodySizeLimit: maxRequestBodySize,
         },
+        // The proxy runs in front of every request and Next keeps the body in memory for it, cut off at
+        // 10mb by default. A cut off upload reaches the server action as a broken form ("Unexpected end
+        // of form"), so the proxy has to let through all that a server action accepts.
+        proxyClientMaxBodySize: maxRequestBodySize,
     },
     turbopack: {},
     // The dev server refuses requests from hosts other than its own, so it takes the hosts of

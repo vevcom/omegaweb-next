@@ -1,25 +1,24 @@
 import '@pn-server-only'
-import { eventAuth } from './auth'
+import { eventAuth, hasNoAdministrators } from './auth'
 import { eventSchemas } from './schemas'
 import { assertSeenThroughQuotas, readEventAccess } from './access'
-import { hasNoAdministrators, publishProblems } from './publishProblems'
-import { applyRegistrationSetup } from './applyRegistrationSetup'
+import { publishProblems } from './publishProblems'
 import { lockEvent } from './registration/queue'
-import { notifyPromoted } from './registration/fixState'
+import { fixVariantPlaces, notifyPromoted } from './registration/fixState'
 import {
     eventListSelection,
     eventQuotaOrder,
     eventVariantOrder,
     eventVariantSummarySelection,
 } from './constants'
-import { createVariant } from './variants/createVariant'
-import { createQuota } from './quotas/createQuota'
+import { eventVariantOperations } from './variants/operations'
+import { eventQuotaOperations } from './quotas/operations'
 import { eventNotificationOperations } from './notifications/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { eventLinks } from '@/pageKits/events/links'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
-import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { displayDate } from '@/lib/dates/displayDate'
 import { reserveId } from '@/lib/reserveId'
@@ -31,7 +30,8 @@ import { visibilityOperations } from '@/services/visibility/operations'
 import { implementSearchOperation } from '@/services/search/implement'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
-import { implementVisibilityOperations, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
+import { implementVisibilityRead, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
+import type { PromotedRegistration } from './registration/fixState'
 import type { VariantStatistics } from './statistics'
 import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
@@ -40,31 +40,26 @@ import type { EventPagesConfig } from '@/pageKits/events/config'
 
 const DAY_MS = 1000 * 60 * 60 * 24
 
-// ponytail: a new event has no time yet, and the database requires one. Start and end both land here,
-// so a draft stays on the current list and publishProblems sees them as unset until someone sets them.
-// Make the columns nullable if drafts ever need to show that they have no time.
+// A new event has no time yet, and the database requires one. Start and end both land here, at the
+// same instant, which `hasNoTime` reads as no time. A week ahead keeps the draft on the list of
+// coming events until someone sets them.
 const UNSET_EVENT_TIME_OFFSET_MS = 7 * DAY_MS
 
 // Administers nothing, so a draft from just a name is its creator's until someone is chosen.
 const NO_ADMINISTRATORS = [{ conditions: [] }]
 
-const adminVisibility = implementVisibilityOperations({
+// Who administrates an event is changed with the event, by saving its setup.
+const adminVisibility = implementVisibilityRead({
     implementationParamsSchema: eventSchemas.params.adminVisibility,
-    authorizers: {
-        readMatrix: async ({ params, prisma }) => eventAuth.readAdminVisibility.data(
-            await readEventAccess(prisma, params.id)
-        ),
-        update: async ({ implementationParams, prisma }) => eventAuth.updateAdminVisibility.data(
-            await readEventAccess(prisma, implementationParams.id)
-        ),
-    },
+    authorizer: async ({ params, prisma }) => eventAuth.readAdminVisibility.data(
+        await readEventAccess(prisma, params.id)
+    ),
     readVisibility: async ({ prisma, implementationParams, include }) => (
         await prisma.event.findUniqueOrThrow({
             where: { id: implementationParams.id },
             select: { visibilityAdmin: { include } },
         })
     ).visibilityAdmin,
-    emptyMeans: 'REFUSED',
 })
 
 const read = defineOperation({
@@ -118,6 +113,121 @@ const read = defineOperation({
             })),
         }
     }
+})
+
+/**
+ * Writes the event's own fields, taken as an authorized operation has parsed them. Both `update`
+ * and `saveSetup` end here.
+ */
+const updateFields = defineSubOperation({
+    paramsSchema: () => eventSchemas.params.updateFields,
+    dataSchema: () => eventSchemas.data.updateFields,
+    transaction: 'RUNS_IN',
+    operation: () => async ({ prisma, params, data: { tagIds, locationMap, notifyAboutChange, ...data } }) => {
+        const event = await prisma.event.findUniqueOrThrow({
+            where: { id: params.id },
+            include: { locationMap: true },
+        })
+
+        if ((data.eventStart ?? event.eventStart) > (data.eventEnd ?? event.eventEnd)) {
+            throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
+        }
+
+        let mapUpdate: Prisma.EventLocationMapUpdateOneWithoutEventNestedInput | undefined
+        if (locationMap) {
+            const mapData = getLocationMapData(locationMap)
+            mapUpdate = { upsert: { create: mapData, update: mapData } }
+        } else if (locationMap === null && event.locationMap) {
+            mapUpdate = { delete: true }
+        }
+
+        const updatedEvent = await prisma.event.update({
+            where: { id: params.id },
+            data: {
+                ...data,
+                locationMap: mapUpdate,
+                // Set here since prisma leaves it when no field of the event's own changes, and a
+                // save of its variants or administrators alone is a save of the event too.
+                updatedAt: new Date(),
+            },
+        })
+        await assertSeenThroughQuotas(prisma, params.id)
+        if (data.name !== undefined && data.name !== event.name) {
+            await eventNotificationOperations.internal.renameChannels.internalCall({
+                prisma,
+                params: { eventId: params.id },
+                data: { name: data.name },
+            })
+        }
+        if (tagIds) {
+            await prisma.eventTagEvent.deleteMany({
+                where: {
+                    eventId: params.id,
+                    NOT: {
+                        tagId: {
+                            in: tagIds
+                        }
+                    }
+                }
+            })
+
+            await prisma.eventTagEvent.createMany({
+                data: tagIds.map(tagId => ({
+                    eventId: params.id,
+                    tagId
+                })),
+                skipDuplicates: true
+            })
+        }
+        if (data.hostedByCommitteeId) {
+            await adoptHostAsAdministrators(prisma, params.id, event.visibilityAdminId, data.hostedByCommitteeId)
+        }
+        if (notifyAboutChange) {
+            await eventNotificationOperations.internal.createInfoNotification.internalCall({
+                prisma,
+                params: { channelId: updatedEvent.infoNotificationChannelId },
+                data: {
+                    title: `Endring i ${updatedEvent.name}`,
+                    message: `${updatedEvent.name} er endret. `
+                        + `🕓 ${displayDate(updatedEvent.eventStart)}, 📍 ${updatedEvent.location}. `
+                        + 'Se arrangementets side for detaljene.',
+                    url: omegaEventLinks.event(updatedEvent),
+                    audience: { registeredForEventId: updatedEvent.id },
+                },
+            })
+        }
+        return updatedEvent
+    },
+})
+
+/** Changes the event's own fields. Its variants, quotas, administrators and account have operations of their own. */
+const update = defineOperation({
+    paramsSchema: eventSchemas.params.update,
+    dataSchema: eventSchemas.data.update,
+    authorizer: async ({ params, prisma }) => eventAuth.update.data(await readEventAccess(prisma, params.id)),
+    transaction: 'RUNS_IN',
+    operation: ({ prisma, params, data }) => updateFields.internalCall({ prisma, params, data }),
+})
+
+/**
+ * Links an event to the GROUP ledger account its registrations are paid into, replacing any
+ * earlier link.
+ */
+const connectToLedgerAccount = defineOperation({
+    paramsSchema: eventSchemas.params.connectToLedgerAccount,
+    dataSchema: eventSchemas.data.connectToLedgerAccount,
+    authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedgerAccount.data({
+        ...await readEventAccess(prisma, params.id),
+        accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
+    }),
+    operation: async ({ prisma, params, data }) => {
+        await assertGroupAccount(prisma, data.ledgerAccountId)
+
+        return await prisma.event.update({
+            where: { id: params.id },
+            data: { ledgerAccountId: data.ledgerAccountId },
+        })
+    },
 })
 
 export const eventOperations = {
@@ -258,20 +368,28 @@ export const eventOperations = {
             })
 
             if (data.takesRegistration) {
-                const variant = await createVariant(prisma, createdEvent.id, {
-                    name: 'Påmelding',
-                    registrationStart: data.registrationStart ?? new Date(),
-                    registrationEnd: data.registrationEnd ?? new Date(Date.now() + DAY_MS),
-                    takesPayment: data.takesPayment,
-                    price: data.price,
-                    paymentStart: data.paymentStart,
-                    paymentEnd: data.paymentEnd,
-                    requeueUnpaidRegistrations: data.requeueUnpaidRegistrations,
+                const variant = await eventVariantOperations.internal.create.internalCall({
+                    prisma,
+                    params: { eventId: createdEvent.id },
+                    data: {
+                        name: 'Påmelding',
+                        registrationStart: data.registrationStart ?? new Date(),
+                        registrationEnd: data.registrationEnd ?? new Date(Date.now() + DAY_MS),
+                        takesPayment: data.takesPayment,
+                        price: data.price,
+                        paymentStart: data.paymentStart,
+                        paymentEnd: data.paymentEnd,
+                        requeueUnpaidRegistrations: data.requeueUnpaidRegistrations,
+                    },
                 })
-                await createQuota(prisma, variant.id, {
-                    name: 'Påmelding',
-                    places: data.places ?? 0,
-                    visibilityRequirements: data.quotaVisibilityRequirements,
+                await eventQuotaOperations.internal.create.internalCall({
+                    prisma,
+                    params: { variantId: variant.id },
+                    data: {
+                        name: 'Påmelding',
+                        places: data.places ?? 0,
+                        visibilityRequirements: data.quotaVisibilityRequirements,
+                    },
                 })
             }
             const event = createdEvent
@@ -368,138 +486,69 @@ export const eventOperations = {
         }),
     }),
 
+    update,
+
     /**
      * Saves everything the form on the event's page holds, as one change: if any of it is refused,
      * none of it is saved. The event's own fields, its variants and quotas, who administrates it
-     * and the account it is paid into may each be left out.
+     * and the account it is paid into may each be left out. Each part is saved by the operation
+     * that owns it. This one holds them together in one transaction.
      */
-    update: defineOperation({
-        paramsSchema: eventSchemas.params.update,
-        dataSchema: eventSchemas.data.update,
-        authorizer: async ({ params, data, prisma }) => {
-            const access = await readEventAccess(prisma, params.id)
-            if (data.ledgerAccountSelection === undefined) return eventAuth.update.data(access)
-            return eventAuth.connectToLedgerAccount.data({
-                ...access,
-                accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountSelection })],
-            })
-        },
+    saveSetup: defineOperation({
+        paramsSchema: eventSchemas.params.saveSetup,
+        dataSchema: eventSchemas.data.saveSetup,
+        authorizer: async ({ params, prisma }) => eventAuth.saveSetup.data(await readEventAccess(prisma, params.id)),
         transaction: 'OPENS',
         operation: async ({
             prisma,
             params,
-            data: { tagIds, locationMap, notifyAboutChange, variants, adminRequirements, ledgerAccountSelection, ...data },
+            data: { variants, adminRequirements, ledgerAccountSelection, basedOnUpdatedAt, ...fields },
         }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
-                include: { locationMap: true },
+                select: { visibilityAdminId: true, ledgerAccountId: true },
             })
 
-            if ((data.eventStart ?? event.eventStart) > (data.eventEnd ?? event.eventEnd)) {
-                throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
-            }
-
-            let mapUpdate: Prisma.EventLocationMapUpdateOneWithoutEventNestedInput | undefined
-            if (locationMap) {
-                const mapData = getLocationMapData(locationMap)
-                mapUpdate = { upsert: { create: mapData, update: mapData } }
-            } else if (locationMap === null && event.locationMap) {
-                mapUpdate = { delete: true }
-            }
-
-            if (ledgerAccountSelection !== undefined) await assertGroupAccount(prisma, ledgerAccountSelection)
-
-            const { updatedEvent, promoted } = await prisma.$transaction(async tx => {
+            const { savedEvent, promoted } = await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.id)
-                const savedEvent = await tx.event.update({
-                    where: { id: params.id },
-                    data: {
-                        ...data,
-                        ledgerAccountId: ledgerAccountSelection,
-                        locationMap: mapUpdate,
-                    },
-                })
+                if (basedOnUpdatedAt) await assertNotSavedSince(tx, params.id, basedOnUpdatedAt)
+                // Linking takes access to the account, which the operation checks itself. It goes
+                // first, so that it is judged by who administrates the event before this save.
+                if (ledgerAccountSelection !== undefined && ledgerAccountSelection !== event.ledgerAccountId) {
+                    await connectToLedgerAccount({
+                        prisma: tx,
+                        params,
+                        data: { ledgerAccountId: ledgerAccountSelection },
+                    })
+                }
                 if (adminRequirements) {
-                    await visibilityOperations.updateInTransaction.internalCall({
+                    await visibilityOperations.update.internalCall({
                         prisma: tx,
                         params: { visibilityId: event.visibilityAdminId },
                         data: { requirements: adminRequirements },
                     })
                 }
-                const promotedByChange = variants ? await applyRegistrationSetup(tx, params.id, variants) : []
-                await assertSeenThroughQuotas(tx, params.id)
-                if (data.name !== undefined && data.name !== event.name) {
-                    await eventNotificationOperations.internal.renameChannels.internalCall({
+                const variantIds = variants
+                    ? await eventVariantOperations.internal.saveSetup.internalCall({
                         prisma: tx,
                         params: { eventId: params.id },
-                        data: { name: data.name },
+                        data: { variants },
                     })
-                }
-                if (tagIds) {
-                    await tx.eventTagEvent.deleteMany({
-                        where: {
-                            eventId: params.id,
-                            NOT: {
-                                tagId: {
-                                    in: tagIds
-                                }
-                            }
-                        }
-                    })
+                    : []
+                // The event's own fields go last, since they are checked against its quotas as the save leaves them.
+                const saved = await updateFields.internalCall({ prisma: tx, params, data: fields })
 
-                    await tx.eventTagEvent.createMany({
-                        data: tagIds.map(tagId => ({
-                            eventId: params.id,
-                            tagId
-                        })),
-                        skipDuplicates: true
-                    })
-                }
-                if (data.hostedByCommitteeId) {
-                    await adoptHostAsAdministrators(tx, params.id, event.visibilityAdminId, data.hostedByCommitteeId)
-                }
-                if (notifyAboutChange) {
-                    await eventNotificationOperations.internal.createInfoNotification.internalCall({
-                        prisma: tx,
-                        params: { channelId: savedEvent.infoNotificationChannelId },
-                        data: {
-                            title: `Endring i ${savedEvent.name}`,
-                            message: `${savedEvent.name} er endret. `
-                                + `🕓 ${displayDate(savedEvent.eventStart)}, 📍 ${savedEvent.location}. `
-                                + 'Se arrangementets side for detaljene.',
-                            url: omegaEventLinks.event(savedEvent),
-                            audience: { registeredForEventId: savedEvent.id },
-                        },
-                    })
-                }
-                return { updatedEvent: savedEvent, promoted: promotedByChange }
+                const promotedBySave: PromotedRegistration[] = []
+                for (const variantId of variantIds) promotedBySave.push(...await fixVariantPlaces(tx, variantId))
+                return { savedEvent: saved, promoted: promotedBySave }
             })
 
             await notifyPromoted(prisma, params.id, promoted)
-            return updatedEvent
+            return savedEvent
         }
     }),
 
-    /**
-     * Links an event to the GROUP ledger account its registrations are paid into, replacing any
-     * earlier link.
-     */
-    connectToLedgerAccount: defineOperation({
-        paramsSchema: eventSchemas.params.connectToLedgerAccount,
-        dataSchema: eventSchemas.data.connectToLedgerAccount,
-        authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedgerAccount.data({
-            ...await readEventAccess(prisma, params.id),
-            accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
-        }),
-        operation: async ({ prisma, params, data }) => {
-            await assertGroupAccount(prisma, data.ledgerAccountId)
-
-            return await prisma.event.update({
-                where: { id: params.id },
-                data: { ledgerAccountId: data.ledgerAccountId },
-            })
-        },
-    }),
+    connectToLedgerAccount,
 
     updateCmsCoverImage: cmsImageOperations.update.implement({
         implementationParamsSchema: eventSchemas.params.updateCmsCoverImage,
@@ -754,11 +803,26 @@ async function adoptHostAsAdministrators(
 ) {
     const access = await readEventAccess(prisma, eventId)
     if (!hasNoAdministrators(access.adminVisibility)) return
-    await visibilityOperations.updateInTransaction.internalCall({
+    await visibilityOperations.update.internalCall({
         prisma,
         params: { visibilityId },
         data: { requirements: await hostCommitteeAdminRequirements(prisma, committeeId) },
     })
+}
+
+/**
+ * Refuses a save filled in from the event as it was before someone else saved it. Run it under
+ * `lockEvent`, so that two saves from the same state cannot both pass.
+ */
+async function assertNotSavedSince(prisma: PrismaPossibleTransaction<false>, eventId: number, basedOnUpdatedAt: Date) {
+    const event = await prisma.event.findUniqueOrThrow({ where: { id: eventId }, select: { updatedAt: true } })
+    if (event.updatedAt.getTime() !== basedOnUpdatedAt.getTime()) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            'Arrangementet er lagret etter at skjemaet ble lastet. Last inn siden på nytt før du lagrer, '
+            + 'så ingenting av det som er lagret går tapt.'
+        )
+    }
 }
 
 async function assertGroupAccount(prisma: PrismaPossibleTransaction<false>, ledgerAccountId: number) {

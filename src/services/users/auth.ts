@@ -29,6 +29,11 @@ export const userAuth = {
     // The theme is only ever the session user's own, so not even a user admin sets it for someone else.
     updateTheme: Require.userField(),
     updateBioParagraphContent: userIdOrUsersAdmin,
+    // The address a user has on our mail domains is given to them, and changed by a user admin alone.
+    readVevenMailAddress: userIdOrUsersAdmin,
+    updateVevenMailAddress: Require.permission('USERS_ADMIN'),
+    // Whether their mail is also sent on to their private email is the user's own to decide.
+    updateVevenMailAddressForwarding: userIdOrUsersAdmin,
     register: Require.userId(),
     destroy: Require.permission('USERS_ADMIN'),
     // A user may leave on their own. Only an admin may let them back in.

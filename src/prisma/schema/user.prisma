@@ -47,6 +47,11 @@ model User {
   // it was started with and is only valid while that still matches.
   sessionEpoch                      Int                @default(0)
 
+  // The address the user has on one of our mail domains, where the mail in their own mailbox on the
+  // mail server arrives. It is not the email they are reached at, which is `email`.
+  vevenMailAddress String?      @unique
+  mailAddress      MailAddress? @relation(fields: [vevenMailAddress], references: [address], onDelete: Restrict, onUpdate: Cascade)
+
   bulshit     Bulshit[]
   image       Image?    @relation(fields: [imageId], references: [id])
   imageId     Int?      @unique

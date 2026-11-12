@@ -1,4 +1,5 @@
 'use client'
+import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import Button from '@/components/UI/Button'
 import MultiSearchableDropdown from '@/components/UI/MultiSearchableDropdown'
 import { SelectNumber } from '@/components/UI/Select'
@@ -139,7 +140,11 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
     const nobody = requirements.some(list => list.conditions.length === 0)
 
     return <div className="flex flex-col gap-2 w-full min-w-0">
-        {'name' in props && <input type="hidden" name={props.name} value={JSON.stringify(requirements)} />}
+        {'name' in props && <JsonFieldInput
+            name={props.name}
+            value={requirements}
+            onReset={() => setOwnRequirements(props.defaultValue ?? [])}
+        />}
         <p
             aria-live="polite"
             className={`
