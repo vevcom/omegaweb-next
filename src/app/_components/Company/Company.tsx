@@ -4,14 +4,15 @@ import SponsorBadge from './SponsorBadge'
 import CompanySponsorTierForm from './CompanySponsorTierForm'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import TextInput from '@/UI/TextInput'
-import CmsImage from '@/cms/CmsImage/CmsImage'
+import Image from '@/components/Image/Image'
+import FileInput from '@/UI/FileInput'
 import Form from '@/components/Form/Form'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { companyAuth } from '@/services/careers/companies/auth'
 import {
     destroyCompanyAction,
     updateCompanyAction,
-    updateCompanyCmsLogoAction
+    updateCompanyLogoAction
 } from '@/services/careers/companies/actions'
 import { configureAction } from '@/services/configureAction'
 import type { CompanySponsorTier } from '@/prisma-generated-pn-types'
@@ -57,13 +58,9 @@ export default function Company({
     const canUpdate = useAuthorizer({ authorizer: companyAuth.update })
     const canUpdateSponsorTier = useAuthorizer({ authorizer: companyAuth.updateSponsorTier })
     const canDestroy = useAuthorizer({ authorizer: companyAuth.destroy })
-    const canEditCmsImageLogo = useAuthorizer({ authorizer: companyAuth.updateCmsImageLogo })
-    const updateCmsImageAction = configureAction(
-        updateCompanyCmsLogoAction,
-        { implementationParams: { companyId: company.id } }
-    )
+    const canUpdateLogo = useAuthorizer({ authorizer: companyAuth.updateLogo })
     const showSettings = !disableEdit && (
-        canUpdate.authorized || canUpdateSponsorTier.authorized || canDestroy.authorized
+        canUpdate.authorized || canUpdateLogo.authorized || canUpdateSponsorTier.authorized || canDestroy.authorized
     )
     return (
         <div className={`
@@ -71,22 +68,28 @@ export default function Company({
             ${sponsorTierClass[company.sponsorTier]}
         `}>
             <div className="relative mb-2">
-                <CmsImage
-                    capabilities={{ canEdit: canEditCmsImageLogo }}
-                    disableEditor={disableEdit}
-                    className={`
-                        overflow-hidden flex items-center bg-base-100 rounded-inner
-                        tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180
-                        ${squareLogo ? `
-                            aspect-square
-                            [&_div]:size-full
-                            [&_img]:size-full [&_img]:object-contain
-                        ` : ''}
-                    `}
-                    cmsImage={company.logo}
-                    width={logoWidth}
-                    updateCmsImageAction={updateCmsImageAction}
-                />
+                <div className={`
+                    overflow-hidden flex items-center justify-center bg-base-100 rounded-inner [--image-width:100%]
+                    tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180
+                    ${squareLogo ? `
+                        aspect-square
+                        [&_div]:size-full
+                        [&_img]:size-full [&_img]:object-contain
+                    ` : ''}
+                `}>
+                    {company.logoImage ? (
+                        <Image
+                            image={company.logoImage}
+                            alt={company.name}
+                            width={logoWidth}
+                            hideCredit
+                            hideCopyRight
+                            disableLinkingToLicense
+                        />
+                    ) : (
+                        <span className="p-4 text-l font-medium text-center text-base-content/80">{company.name}</span>
+                    )}
+                </div>
                 <SponsorBadge sponsorTier={company.sponsorTier} iconOnly className="
                     absolute top-2 left-2 max-w-[calc(100%-4*var(--gap))] z-1
                 " />
@@ -124,6 +127,17 @@ export default function Company({
                                         label="Nettside"
                                         defaultValue={company.website ?? ''}
                                     />
+                                </Form>
+                            }
+                            {
+                                canUpdateLogo.authorized && <Form
+                                    title="Logo"
+                                    action={configureAction(updateCompanyLogoAction, { params: { id: company.id } })}
+                                    refreshOnSuccess
+                                    closePopUpOnSuccess={`Edit ${company.id}`}
+                                    submitText="Last opp logo"
+                                >
+                                    <FileInput name="imageFile" label="Logo" color="primary" />
                                 </Form>
                             }
                             {

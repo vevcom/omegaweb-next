@@ -37,7 +37,7 @@ const sessionInMemberGroup = () => {
 
 beforeAll(async () => {
     const [company] = await Promise.all([COMPANY_NAME, OTHER_COMPANY_NAME].map(name => prisma.company.create({
-        data: { name, description: 'En bedrift å søke etter.', logo: { create: {} } },
+        data: { name, description: 'En bedrift å søke etter.' },
     })))
     const jobAd = await jobAdOperations.create({
         data: {

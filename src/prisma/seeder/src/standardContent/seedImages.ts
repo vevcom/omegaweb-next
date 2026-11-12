@@ -27,16 +27,6 @@ export const seedDynamicImagesForCms = [
         alt: 'En kappemann',
     },
     {
-        standardStoreFile: standardStoreFiles.kongsberg,
-        name: 'kongsberg',
-        alt: 'Kongsberg',
-    },
-    {
-        standardStoreFile: standardStoreFiles.nordic,
-        name: 'nordic',
-        alt: 'Nordic',
-    },
-    {
         standardStoreFile: standardStoreFiles.ohma,
         name: 'ohma',
         alt: 'Ohma (verdens beste lokomotiv)',

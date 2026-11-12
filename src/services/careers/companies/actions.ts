@@ -13,4 +13,4 @@ export const updateCompanyAction = makeAction(companyOperations.update)
 
 export const updateCompanySponsorTierAction = makeAction(companyOperations.updateSponsorTier)
 
-export const updateCompanyCmsLogoAction = makeAction(companyOperations.updateCmsImageLogo)
+export const updateCompanyLogoAction = makeAction(companyOperations.updateLogo)
