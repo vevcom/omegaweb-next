@@ -89,9 +89,10 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                     id={domId}
                     type="text"
                     className={`
-                        w-full border-2 border-transparent rounded-inner outline-0 text-m
-                        leading-[calc(var(--text-m)*1.25)] pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color]
-                        duration-300
+                        w-full border border-base-300
+                        focus:ring-3 focus:ring-primary/25
+                        rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] pt-6 pr-10 pb-2.5 pl-4
+                        transition-[border-color,background-color,box-shadow] duration-300
                         disabled:cursor-not-allowed disabled:opacity-60
                         ${dropdownColorClassNames[color]}
                         ${dropdownBorderClassNames[color]}

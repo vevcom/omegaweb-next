@@ -1,5 +1,5 @@
-import EventSidebarSection from './EventSidebarSection'
 import EventInfoRow from './EventInfoRow'
+import { EventSubSection } from './EventSection'
 import CountDown from '@/components/CountDown/CountDown'
 import DateDisplay from '@/components/Date/Date'
 import EventPaymentModal from '@/components/Ledger/Modals/EventPaymentModal'
@@ -44,10 +44,10 @@ export default function EventPaymentSection({
     const paymentOpen = paymentStart <= now && now <= deadline
     const status = paymentStatus(registration)
 
-    return <EventSidebarSection title="Betaling">
+    return <EventSubSection title="Betaling">
         <EventInfoRow label="Pris">{displayAmount(price, false)}</EventInfoRow>
-        <EventInfoRow label="Betalingsstart"><DateDisplay date={paymentStart} includeTime /></EventInfoRow>
-        <EventInfoRow label="Betalingsslutt"><DateDisplay date={deadline} includeTime /></EventInfoRow>
+        <EventInfoRow label="Betalingsstart"><DateDisplay date={paymentStart} includeSeconds={false} /></EventInfoRow>
+        <EventInfoRow label="Betalingsslutt"><DateDisplay date={deadline} includeSeconds={false} /></EventInfoRow>
 
         {status === 'PAID' && (
             <p className="
@@ -93,5 +93,5 @@ export default function EventPaymentSection({
         {status === 'NOT_REGISTERED' && (
             <p className="m-0 text-base-content/80">Betales etter påmelding.</p>
         )}
-    </EventSidebarSection>
+    </EventSubSection>
 }

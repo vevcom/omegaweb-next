@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-/** A label and its value, as one row of a section of the event sidebar. */
+/** A label and its value, as one row of a section of the event page. */
 export default function EventInfoRow({ label, children }: { label: string, children: ReactNode }) {
     return <p className="m-0 flex justify-between gap-4 text-m">
         <span className="text-base-content/80">{label}</span>

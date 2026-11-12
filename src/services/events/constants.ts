@@ -23,6 +23,7 @@ export const eventFieldsToExpose = [
     'bindingRegistration',
     'allowRegistrationInMultipleVariants',
     'canBeViewedBy',
+    'createdById',
 ] as const satisfies (keyof Event)[]
 
 /** A quota as the lists and the event page show it, with how many hold one of its places. */

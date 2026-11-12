@@ -14,7 +14,8 @@ export type PropTypes<ValueType extends string | number> = {
 /**
  * A horizontal group of options that looks like n Buttons stitched together, with the selected
  * option filled in the primary color and the rest in the secondary color. Functions like a
- * radio group: exactly one option is selected at a time.
+ * radio group: exactly one option is selected at a time. The radio buttons are out of sight but
+ * take focus, so the group is reached and changed with the keyboard as any radio group is.
  */
 export default function HorizontalSelector<ValueType extends string | number>({
     name,
@@ -25,7 +26,7 @@ export default function HorizontalSelector<ValueType extends string | number>({
 }: PropTypes<ValueType>) {
     return <div className={`
         inline-flex rounded-inner overflow-hidden
-        [&_input[type=radio]]:hidden
+        [&_input[type=radio]]:sr-only
         ${className ?? ''}
     `}>
         {options.map(option => {
@@ -37,6 +38,7 @@ export default function HorizontalSelector<ValueType extends string | number>({
                     ${value === option.value ? 'btn-primary' : 'btn-neutral'}
                     flex items-center justify-center flex-1 m-0 rounded-none cursor-pointer font-normal leading-normal
                     not-last:border-r not-last:border-base-300
+                    has-focus-visible:ring-2 has-focus-visible:ring-inset has-focus-visible:ring-base-content
                 `}
             >
                 <input

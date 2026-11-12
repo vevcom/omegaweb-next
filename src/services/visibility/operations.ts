@@ -52,6 +52,27 @@ async function buildRequirementsCreateInput(requirements: z.infer<typeof visibil
     }))
 }
 
+/** A condition as `sameRequirements` tells it from another: an ACTIVE one by its group, an ORDER one by the order too. */
+function conditionKey(condition: { groupId: number, type: VisibilityRequirementGroupType, order?: number }) {
+    return condition.type === 'ORDER' ? `${condition.groupId}-ORDER-${condition.order}` : `${condition.groupId}-ACTIVE`
+}
+
+/**
+ * Whether the requirements given are the ones stored, whatever order they and their conditions
+ * come in. The order an ACTIVE condition is stored with says nothing, so it is left out.
+ */
+function sameRequirements(
+    stored: { conditions: VisibilityConditionRow[] }[],
+    given: z.infer<typeof visibilityRequirementsSchema>,
+) {
+    const keysOf = (requirements: { conditions: Parameters<typeof conditionKey>[0][] }[]) => requirements
+        .map(requirement => Array.from(new Set(requirement.conditions.map(conditionKey))).sort().join(','))
+        .sort()
+    const storedKeys = keysOf(stored)
+    const givenKeys = keysOf(given)
+    return storedKeys.length === givenKeys.length && storedKeys.every((key, index) => key === givenKeys[index])
+}
+
 export const visibilityOperations = {
     create: defineSubOperation({
         operation: () => ({ prisma }) =>
@@ -79,24 +100,27 @@ export const visibilityOperations = {
             prisma.visibility.delete({ where: { id: params.visibilityId } })
     }),
 
+    /**
+     * Makes the requirements of a visibility the ones given. Requirements that are the same as the
+     * stored ones are left as they are, so that saving something else along with them writes nothing here.
+     */
     update: defineSubOperation({
         paramsSchema: () => visibilitySchemas.params.update,
         dataSchema: () => visibilitySchemas.data.update,
-        transaction: 'OPENS',
+        transaction: 'RUNS_IN',
         operation: () => async ({ prisma, params, data }) => {
-            const requirements = await buildRequirementsCreateInput(data.requirements)
+            const { requirements: stored, ...visibility } = await prisma.visibility.findUniqueOrThrow({
+                where: { id: params.visibilityId },
+                include: { requirements: { include: { conditions: true } } },
+            })
+            if (sameRequirements(stored, data.requirements)) return visibility
 
-            return await prisma.$transaction(async (tx) => {
-                //Remove all current visibilityRequirements (and by cascade all visibilityRequirementGroups)
-                await tx.visibilityRequirement.deleteMany({
-                    where: { visibilityId: params.visibilityId }
-                })
-
-                return await tx.visibility.update({
-                    where: { id: params.visibilityId },
-                    data: { requirements: { create: requirements } }
-                })
+            // The conditions go with their requirement by cascade.
+            await prisma.visibilityRequirement.deleteMany({ where: { visibilityId: params.visibilityId } })
+            return await prisma.visibility.update({
+                where: { id: params.visibilityId },
+                data: { requirements: { create: await buildRequirementsCreateInput(data.requirements) } },
             })
         }
-    })
+    }),
 } as const

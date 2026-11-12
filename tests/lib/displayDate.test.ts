@@ -6,6 +6,10 @@ describe('displayDate', () => {
         expect(displayDate(new Date('2024-01-15T12:00:00Z'))).toBe('15.01.2024, 13:00:00')
     })
 
+    test('leaves out seconds on request', () => {
+        expect(displayDate(new Date('2024-01-15T12:00:00Z'), true, false)).toBe('15.01.2024, 13:00')
+    })
+
     test('formats a summer instant (CEST, UTC+2)', () => {
         expect(displayDate(new Date('2024-07-15T12:00:00Z'))).toBe('15.07.2024, 14:00:00')
     })
