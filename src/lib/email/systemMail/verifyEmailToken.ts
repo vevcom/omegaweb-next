@@ -1,16 +1,7 @@
 import '@pn-server-only'
-import { generateJWT } from '@/jwt/jwt'
+import { generateVerifyEmailJWT as generateVerifyEmailJWTOfAccount } from '@/services/auth/account/tokens'
 
-/**
- * The token a verify email link carries. verifyEmail refuses a token issued before the user row
- * was last written, so the issue time keeps its milliseconds: a token made right after a write
- * is never older than it, and one made before a write in the same second never looks newer. A
- * JWT issue time may hold fractions of a second (RFC 7519, section 2).
- */
+/** The token the verify email link of a user carries. See the generator shared by every kind of account. */
 export function generateVerifyEmailJWT(userId: number, email: string, expiresIn: number) {
-    return generateJWT('verifyemail', {
-        sub: userId,
-        email,
-        iat: Date.now() / 1000,
-    }, expiresIn)
+    return generateVerifyEmailJWTOfAccount('verifyemail', userId, email, expiresIn)
 }

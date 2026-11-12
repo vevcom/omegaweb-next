@@ -21,6 +21,8 @@ export type CareerLinks = {
     /** The page of one of a company's users. */
     companyUser: (company: CompanyOfLink, companyUser: CompanyUserOfLink) => AppHref,
     profile: () => AppHref,
+    /** Where a company user chooses a password, from the link in a mail. */
+    companyPassword: (token: string) => AppHref,
 }
 
 const companyPath = (company: CompanyOfLink) => `/companies/${formatVevenUri(company.name, company.id)}`
@@ -36,4 +38,5 @@ export const careerLinks: CareerLinks = defineLinks<PagesMount, CareerLinks>(hre
         `${companyPath(company)}/users/${formatVevenUri(`${companyUser.firstname} ${companyUser.lastname}`, companyUser.id)}`
     ),
     profile: () => href('/profile'),
+    companyPassword: token => href('/company-password', QueryParams.token.encodeUrl(token)),
 }))(careerPages)

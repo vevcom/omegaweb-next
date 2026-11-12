@@ -2,18 +2,15 @@ import '@pn-server-only'
 import { authAuth } from './auth'
 import { authSchemas, linkFeideAccountClaimsSchema } from './schemas'
 import { moveFeideAccountToUser } from './feideAccounts/move'
+import { userAccountFlows } from './userAccount'
 import { Site } from '@/lib/sites/site'
 import { userBasicSelection, userPartitions } from '@/services/users/constants'
-import { sendResetPasswordMail } from '@/lib/email/systemMail/resetPassword'
 import { sendLinkFeideAccountMail } from '@/lib/email/systemMail/linkFeideAccount'
-import { sendEmailChangedMail } from '@/lib/email/systemMail/emailChanged'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import { userOperations } from '@/services/users/operations'
 import { verifyJWT } from '@/lib/jwt/jwt'
 import { feideEmailDomainsTrustedAsVerified } from '@/lib/feide/constants'
 import logger from '@/lib/logger'
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 
 /** Verifies and reads the claims of a link Feide account token. */
 function readLinkFeideAccountClaims(token: string) {
@@ -27,126 +24,12 @@ function readLinkFeideAccountClaims(token: string) {
 }
 
 export const authOperations = {
-    verifyEmail: defineOperation({
-        paramsSchema: authSchemas.params.verifyEmail,
-        authorizer: () => authAuth.verifyEmail,
-        operation: async ({ prisma, params }) => {
-            const payload = verifyJWT(params.token, 'verifyemail')
-
-            if (!payload.sub || !payload.email || !payload.iat) {
-                throw new ServiceError('JWT INVALID', 'Lenken mangler påkrevd informasjon')
-            }
-
-            const userId = Number(payload.sub)
-            const email = String(payload.email)
-
-            // Kept to the millisecond it was issued at (see generateVerifyEmailJWT).
-            const iat = new Date(Math.round(payload.iat * 1000))
-
-            const user = await userOperations.read({
-                params: {
-                    id: userId,
-                },
-                bypassAuth: true,
-            })
-
-            // Only a later verification spends the token. Other writes to the user, such as the one
-            // every Feide login makes, must not.
-            if (user.emailVerified && iat < user.emailVerified) {
-                throw new ServiceError(
-                    'JWT INVALID',
-                    'Lenken er allerede brukt eller utdatert. Be om en ny e-post fra registreringssiden.'
-                )
-            }
-
-            let updatedUser
-            try {
-                updatedUser = await prisma.user.update({
-                    where: {
-                        id: userId,
-                    },
-                    data: {
-                        emailVerified: new Date(),
-                        email,
-                    },
-                    select: {
-                        ...userBasicSelection,
-                        email: true,
-                        acceptedTerms: true,
-                    },
-                })
-            } catch (error) {
-                // The clicker controls the mailbox, so saying the address is taken leaks nothing.
-                if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
-                    throw new ServiceError(
-                        'DUPLICATE',
-                        'E-postadressen tilhører allerede en annen bruker. Hadde du bruker på gamle ' +
-                        'Omegaveven med denne adressen, velg «Koble til eksisterende bruker» på registreringssiden.'
-                    )
-                }
-                throw error
-            }
-            await sendEmailChangedMail(updatedUser, user.email)
-
-            return updatedUser
-        }
-    }),
-
-    verifyResetPasswordToken: defineOperation({
-        paramsSchema: authSchemas.params.verifyResetPasswordToken,
-        authorizer: () => authAuth.verifyResetPasswordToken,
-        operation: async ({ prisma, params }) => {
-            const payload = verifyJWT(params.token, 'resetpassword')
-
-            if (!payload.sub || !payload.iat) {
-                throw new ServiceError('JWT INVALID', 'Lenken for å nullstille passordet er ugyldig')
-            }
-
-            const userId = Number(payload.sub)
-
-            const user = await prisma.user.findUniqueOrThrow({
-                where: {
-                    id: userId,
-                    ...userPartitions.unarchived,
-                },
-                select: {
-                    credentials: true,
-                }
-            })
-
-            if (user.credentials && user.credentials?.credentialsUpdatedAt > new Date(payload.iat * 1000)) {
-                throw new ServiceError('JWT INVALID', 'Passordet er allerede endret')
-            }
-
-            // Tokens issued before the email claim was added carry none.
-            return { userId, email: typeof payload.email === 'string' ? payload.email : null }
-        }
-    }),
-
-    resetPassword: defineOperation({
-        paramsSchema: authSchemas.params.resetPassword,
-        dataSchema: authSchemas.data.resetPassword,
-        authorizer: () => authAuth.resetPassword,
-        operation: async ({ prisma, params, data }) => {
-            const { userId, email } = await authOperations.verifyResetPasswordToken({ params })
-
-            await userOperations.updatePassword({
-                params: {
-                    id: userId,
-                },
-                data,
-                bypassAuth: true,
-            })
-
-            // Following the link proves the address, so a user signing up need not verify it again.
-            if (email) {
-                await prisma.user.updateMany({
-                    where: { id: userId, email, emailVerified: null },
-                    data: { emailVerified: new Date() },
-                })
-            }
-        }
-    }),
+    // Choosing a password by mail and verifying an email are the same for every kind of account,
+    // and are implemented for a user in userAccount.ts.
+    verifyEmail: userAccountFlows.verifyEmail,
+    verifyResetPasswordToken: userAccountFlows.verifyResetPasswordToken,
+    resetPassword: userAccountFlows.resetPassword,
+    sendResetPasswordEmail: userAccountFlows.sendResetPasswordEmail,
 
     sendLinkFeideAccountEmail: defineOperation({
         paramsSchema: authSchemas.params.sendLinkFeideAccountEmail,
@@ -302,21 +185,6 @@ export const authOperations = {
                 toUserId: toUser.id,
                 allowFinishedRegistration: true,
             })
-        }
-    }),
-
-    sendResetPasswordEmail: defineOperation({
-        paramsSchema: authSchemas.params.sendResetPasswordEmail,
-        dataSchema: authSchemas.data.sendResetPasswordEmail,
-        authorizer: () => authAuth.sendResetPasswordEmail,
-        operation: ({ params, data }) => {
-            // Not awaited: the response must not wait on the lookup or the mail server, or how long
-            // it takes would tell whether a user has this email. Failures are logged, never thrown.
-            void sendResetPasswordMail(data.email, Site.of(params.site)).catch((err: unknown) => {
-                logger.error(`Failed to send reset password to email '${data.email}'`, { error: err })
-            })
-
-            return data.email
         }
     }),
 } as const

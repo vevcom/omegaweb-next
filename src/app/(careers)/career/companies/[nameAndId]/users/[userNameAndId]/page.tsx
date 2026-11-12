@@ -4,6 +4,7 @@ import { careerLinks } from '@/app/(careers)/links'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { companyUserOperations } from '@/services/careers/companies/users/operations'
 import { companyUserAuth } from '@/services/careers/companies/users/auth'
+import { companyUserAccountAuth } from '@/services/careers/companies/users/account/auth'
 import { Smorekopp } from '@/services/error'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { displayDate } from '@/lib/dates/displayDate'
@@ -32,6 +33,7 @@ const { page, generateMetadata } = serverPage({
             canUpdate: companyUserAuth.update.data(ownership),
             canUpdateRole: companyUserAuth.updateRole.data(ownership),
             canDestroy: companyUserAuth.destroy.data(ownership),
+            canSendPasswordLink: companyUserAccountAuth.sendPasswordLink.data(ownership),
         }
     },
     metadata: ({ companyUser }) => ({ title: `${companyUser.firstname} ${companyUser.lastname}` }),
